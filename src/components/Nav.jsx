@@ -41,7 +41,7 @@ export default function Nav() {
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="5" width="12" height="9" rx="1.5"/><path d="M5 5V4a3 3 0 016 0v1"/></svg>
         Activos
       </div>
-      <div className="nav-sub" onClick={() => navigate('activos')}>Arrendatarios</div>
+      <div className={`nav-sub ${isActive('arrendatarios','ficha-arrendatario')?'active':''}`} style={isActive('arrendatarios','ficha-arrendatario')?{color:'var(--accent)',fontWeight:600}:{}} onClick={() => navigate('arrendatarios')}>Arrendatarios</div>
       <div className="nav-sub" onClick={() => navigate('activos')}>Propietarios</div>
 
       <div className="nav-section">Comercialización</div>
