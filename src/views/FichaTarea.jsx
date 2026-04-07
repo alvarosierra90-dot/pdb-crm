@@ -25,7 +25,7 @@ export default function FichaTarea() {
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'var(--purple-lt)',color:'var(--purple)',border:'1px solid var(--purple-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>TAREA</span>
-                  <span className="mono">TAR-001</span>
+                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>TAR-001</span>
                   <span className="tag tag-blue">En curso</span>
                   <span style={{background:'var(--red-lt)',color:'var(--red)',border:'1px solid var(--red-bd)',padding:'1px 7px',borderRadius:9,fontSize:10,fontWeight:600}}>⬆ Alta prioridad</span>
                 </div>

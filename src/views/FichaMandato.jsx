@@ -134,7 +134,7 @@ export default function FichaMandato() {
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'var(--purple-lt)',color:'var(--purple)',border:'1px solid var(--purple-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>MANDATO</span>
-                  <span className="mono">{M.id}</span>
+                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{M.id}</span>
                   <span className={`tag ${M.excl==='Coexclusiva'?'tag-teal':'tag-purple'}`}>{M.excl}</span>
                   <span className="tag tag-blue">{M.tipo}</span>
                   <span className="tag tag-green">{M.estado}</span>
@@ -485,7 +485,7 @@ export default function FichaMandato() {
                     <tbody>
                       {ACTS.map(a=>(
                         <tr key={a.id} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-actividad')}>
-                          <td style={{padding:'7px 12px'}}><span className="mono" style={{color:'var(--text3)'}}>{a.id}</span></td>
+                          <td style={{padding:'7px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{a.id}</span></td>
                           <td style={{padding:'7px 12px'}}><span className={`tag ${TIPO_TAG[a.tipo]||'tag-gray'}`}>{TIPO_ICO[a.tipo]} {a.tipo}</span></td>
                           <td style={{padding:'7px 12px',fontWeight:500}}>{a.asunto}</td>
                           <td style={{padding:'7px 12px',color:'var(--text3)'}}>{a.fecha}</td>
@@ -533,7 +533,7 @@ export default function FichaMandato() {
                       <tbody>
                         {TRANS.map((t,i)=>(
                           <tr key={t.id} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-negociacion')}>
-                            <td style={{padding:'8px 12px'}}><span className="mono" style={{color:'var(--text3)',fontSize:10}}>{t.id}</span></td>
+                            <td style={{padding:'8px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{t.id}</span></td>
                             <td style={{padding:'8px 12px',color:'var(--text3)'}}>{t.fecha}</td>
                             <td style={{padding:'8px 12px',fontWeight:500,color:'var(--accent)'}}>{t.activo}</td>
                             <td style={{padding:'8px 12px',fontWeight:500}}>{t.arrendatario}</td>
@@ -599,10 +599,10 @@ export default function FichaMandato() {
                       <tbody>
                         {VISS.map((v,i)=>(
                           <tr key={v.id} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-visita')}>
-                            <td style={{padding:'8px 12px'}}><span className="mono" style={{color:'var(--text3)',fontSize:10}}>{v.id}</span></td>
+                            <td style={{padding:'8px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{v.id}</span></td>
                             <td style={{padding:'8px 12px',color:'var(--text3)'}}>{v.fecha}</td>
                             <td style={{padding:'8px 12px',fontWeight:500}}>{v.cuenta}</td>
-                            <td style={{padding:'8px 12px'}}><span className="mono" style={{fontSize:10,color:'var(--accent)'}}>{v.demanda}</span></td>
+                            <td style={{padding:'8px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{v.demanda}</span></td>
                             <td style={{padding:'8px 12px',fontWeight:500,color:'var(--teal)'}}>{v.activo}</td>
                             <td style={{padding:'8px 12px'}}><span className="tag tag-blue">{v.tipo}</span></td>
                             <td style={{padding:'8px 12px'}}><span className="tag tag-green">{v.estado}</span></td>

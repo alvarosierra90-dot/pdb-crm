@@ -37,7 +37,7 @@ export default function FichaOferta() {
               <div style={{ flex: 1 }}>
                 <div className="ah-ref">
                   <span className="ref-badge-oferta">OFERTA</span>
-                  <span className="mono">OLBUR2315645</span>
+                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>OLBUR2315645</span>
                   {confidential && <span style={{background:'#1e293b',color:'#f8fafc',border:'1px solid #334155',padding:'0 7px',borderRadius:3,fontSize:9,fontWeight:700,letterSpacing:'.04em'}}>🔒 CONFIDENCIAL</span>}
                   <span style={{ color: 'var(--text3)' }}>· Activo: <span className="pat-link" onClick={() => navigate('ficha-activo')}>Albatros — C. Anabel Segura 9-11, Alcobendas</span></span>
                   <span className="tag tag-green" style={{ fontSize: 9 }}>+ Vinculado</span>

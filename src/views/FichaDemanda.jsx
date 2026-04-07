@@ -3,9 +3,81 @@ import { useNav } from '../context/NavigationContext'
 
 const DEM_TABS = [
   ['dem-info','Información Demanda'],['dem-req','Requisitos'],['dem-zona','Zona búsqueda'],
-  ['dem-seg','Seguimiento comercial'],['dem-act','Actividades'],['dem-partes','Partes involucradas'],
-  ['dem-docs','Documentos'],['dem-neg','Negociaciones en curso'],['dem-followup','Follow-up'],
+  ['dem-seg','Seguimiento comercial'],['dem-360','🔄 Ciclo 360°'],['dem-act','Actividades'],
+  ['dem-partes','Partes involucradas'],['dem-docs','Documentos'],['dem-neg','Negociaciones en curso'],['dem-followup','Follow-up'],
 ]
+
+const MOCK_PRESENTACIONES = [
+  { id:'PRE-2501', activo:'Albatros Edif. D', zona:'A-1 · Alcobendas', sup:'13.486 m²', fecha:'13/11/2025', estado:'Visitado', visitado:true, fecha_visita:'20/11/2025' },
+  { id:'PRE-2502', activo:'P.E Avalon', zona:'M-30 · Julián Camarillo', sup:'46.956 m²', fecha:'20/11/2025', estado:'Sin respuesta', visitado:false, fecha_visita:'' },
+]
+
+const MOCK_VISITAS = [
+  { id:'VIS-2481', activo:'Albatros Edif. D', fecha:'20/11/2025', asistentes:'James Richardson · Laura Martín', resultado:'Muy positiva', oferta_generada:true, oferta:'OF-0038' },
+]
+
+const ETAPAS_360 = [
+  { key:'demanda',       label:'Demanda',       icon:'🔍', color:'var(--accent)' },
+  { key:'presentacion',  label:'Presentación',  icon:'📤', color:'var(--teal)' },
+  { key:'visita',        label:'Visita',        icon:'🏢', color:'var(--purple)' },
+  { key:'oferta',        label:'Oferta',        icon:'📧', color:'var(--amber)' },
+  { key:'negociacion',   label:'Negociación',   icon:'🤝', color:'#f97316' },
+  { key:'oportunidad',   label:'Oportunidad',   icon:'⚡', color:'var(--green)' },
+  { key:'instruccion',   label:'Instrucción',   icon:'✅', color:'#16a34a' },
+]
+
+/* ── Etapa 360 ── */
+function Etapa360({ icon, color, estado, titulo, ref_id, badge, fecha, detalle, responsable, onNav, navLabel, children, last }) {
+  const [open, setOpen] = useState(false)
+  const completado = estado === 'completado'
+  const enCurso    = estado === 'en-curso'
+  const pendiente  = estado === 'pendiente'
+
+  return (
+    <div style={{display:'flex',gap:14,position:'relative',paddingBottom: last?0:20}}>
+      {/* Dot */}
+      <div style={{
+        width:40, height:40, borderRadius:'50%', flexShrink:0, zIndex:1,
+        background: completado ? color : enCurso ? '#fff' : 'var(--gray-lt)',
+        border: `2px solid ${completado||enCurso ? color : 'var(--border)'}`,
+        display:'flex', alignItems:'center', justifyContent:'center',
+        fontSize: completado ? 15 : 18,
+        color: completado ? '#fff' : enCurso ? color : 'var(--text4)',
+        boxShadow: enCurso ? `0 0 0 4px ${color}22` : 'none',
+      }}>
+        {completado ? '✓' : icon}
+      </div>
+
+      {/* Contenido */}
+      <div style={{flex:1, paddingTop:6, opacity: pendiente ? .5 : 1}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:3}}>
+          <span style={{fontWeight:700,fontSize:13,color: pendiente?'var(--text3)':'var(--text1)'}}>{titulo}</span>
+          {ref_id && <span style={{fontFamily:'var(--mono)',fontSize:11,color:color}}>{ref_id}</span>}
+          {badge && <span style={{fontSize:9,background:color+'22',color,border:`1px solid ${color}44`,borderRadius:10,padding:'1px 7px',fontWeight:700}}>{badge}</span>}
+          {enCurso && <span style={{fontSize:9,background:'var(--amber-lt)',color:'var(--amber)',border:'1px solid var(--amber-bd)',borderRadius:10,padding:'1px 7px',fontWeight:700,animation:'pulse 2s infinite'}}>EN CURSO</span>}
+          {completado && <span style={{fontSize:9,background:'#f0fdf4',color:'var(--green)',border:'1px solid #bbf7d0',borderRadius:10,padding:'1px 7px',fontWeight:700}}>COMPLETADO</span>}
+          {pendiente && <span style={{fontSize:9,background:'var(--gray-lt)',color:'var(--text4)',border:'1px solid var(--border)',borderRadius:10,padding:'1px 7px'}}>PENDIENTE</span>}
+        </div>
+        {fecha && <div style={{fontSize:11,color:'var(--text4)',fontFamily:'var(--mono)',marginBottom:4}}>{fecha}{responsable&&` · ${responsable}`}</div>}
+        <div style={{fontSize:11,color:'var(--text2)',marginBottom:6}}>{detalle}</div>
+        {children && (
+          <div>
+            <button onClick={()=>setOpen(v=>!v)} style={{fontSize:10,color:color,background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:'inherit',fontWeight:600}}>
+              {open?'▲ Ocultar detalle':'▼ Ver detalle'}
+            </button>
+            {open && children}
+          </div>
+        )}
+        {onNav && navLabel && !pendiente && (
+          <button className="asset-link" style={{fontSize:11,marginTop:4,display:'inline-block'}} onClick={onNav}>{navLabel} →</button>
+        )}
+        {pendiente && onNav && navLabel && (
+          <button className="ab-btn" style={{fontSize:10,marginTop:4,padding:'3px 10px'}} onClick={onNav}>{navLabel}</button>
+        )}
+      </div>
+    </div>
+  )
+}
 
 /* ── Right Panel ── */
 function RightPanel({ navigate }) {
@@ -94,7 +166,7 @@ export default function FichaDemanda() {
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'var(--accent-lt)',color:'var(--accent)',border:'1px solid var(--accent-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>DEMANDA</span>
-                  <span className="mono">D251035690</span>
+                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>D251035690</span>
                   <span className="tag tag-gray" style={{fontSize:9}}>Guardado</span>
                 </div>
                 <div className="ah-name">Corporacion Financiera Azuaga SL</div>
@@ -261,56 +333,190 @@ export default function FichaDemanda() {
           {activeTab==='dem-seg' && (
             <div className="tab-content active"><div className="info-pad">
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+
+                {/* PRESENTACIONES */}
                 <div>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                    <div style={{fontSize:11,fontWeight:600}}>Serie de presentaciones</div>
-                    <button className="ab-btn blue" style={{padding:'3px 8px',fontSize:10}}>+ Crear Presentación</button>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                    <div style={{fontSize:12,fontWeight:700}}>📤 Presentaciones</div>
+                    <button className="ab-btn blue" style={{padding:'3px 10px',fontSize:10}} onClick={()=>navigate('presentaciones')}>+ Nueva presentación</button>
                   </div>
-                  <div style={{border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
-                    <table className="pat-table"><thead><tr><th>Redacción</th><th>Fecha acción</th><th>Nº oferta</th><th>Enlace web</th></tr></thead>
-                    <tbody><tr><td colSpan={4} style={{textAlign:'center',color:'var(--text4)',fontSize:11,padding:14}}>No se encontró nada para mostrar aquí</td></tr></tbody></table>
-                    <div style={{padding:'5px 10px',fontSize:10,color:'var(--text4)',borderTop:'1px solid var(--border)'}}>Filas: 0</div>
-                  </div>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                    <div style={{fontSize:11,fontWeight:600}}>Presentaciones (Oferta)</div>
-                    <button className="ab-btn blue" style={{padding:'3px 8px',fontSize:10}}>+ Crear Presentación</button>
-                  </div>
-                  <div style={{border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
-                    <table className="pat-table"><thead><tr><th><input type="checkbox" style={{accentColor:'var(--accent)'}}/></th><th>Fecha</th><th>Cuenta</th><th>Oferta</th><th>Motivo estado</th></tr></thead>
-                    <tbody><tr>
-                      <td><input type="checkbox" style={{accentColor:'var(--accent)'}}/></td>
-                      <td>13/11/2025</td><td className="pat-link">Corporacion Fina...</td>
-                      <td className="pat-link">OLBUR2315645 - Albatros...</td>
-                      <td><span className="tag tag-blue">Presentacion</span></td>
-                    </tr></tbody></table>
-                    <div style={{padding:'5px 10px',fontSize:10,color:'var(--text4)',borderTop:'1px solid var(--border)'}}>Filas: 1</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {MOCK_PRESENTACIONES.map(p=>(
+                      <div key={p.id} style={{border:'1px solid var(--border)',borderRadius:7,overflow:'hidden',background:'#fff'}}>
+                        <div style={{padding:'8px 12px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid var(--border)',background:'var(--gray-lt)'}}>
+                          <div style={{flex:1}}>
+                            <div style={{fontWeight:600,fontSize:12,color:'var(--accent)',cursor:'pointer'}} onClick={()=>navigate('ficha-activo')}>{p.activo}</div>
+                            <div style={{fontSize:10,color:'var(--text4)',marginTop:1}}>{p.zona} · {p.sup}</div>
+                          </div>
+                          <span className={`tag ${p.visitado?'tag-teal':'tag-amber'}`} style={{fontSize:9}}>{p.estado}</span>
+                        </div>
+                        <div style={{padding:'7px 12px',display:'flex',gap:16,fontSize:11}}>
+                          <div><span style={{color:'var(--text4)'}}>Enviado: </span><span style={{fontFamily:'var(--mono)'}}>{p.fecha}</span></div>
+                          {p.visitado&&<div><span style={{color:'var(--text4)'}}>Visita: </span><span style={{fontFamily:'var(--mono)',color:'var(--teal)',fontWeight:600}}>{p.fecha_visita}</span></div>}
+                          <span style={{marginLeft:'auto',fontSize:10,color:'var(--text3)',fontFamily:'var(--mono)'}}>{p.id}</span>
+                        </div>
+                      </div>
+                    ))}
+                    <button className="ab-btn" style={{justifyContent:'center',fontSize:11}} onClick={()=>navigate('presentaciones')}>Ver todas las presentaciones →</button>
                   </div>
                 </div>
+
+                {/* VISITAS */}
                 <div>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                    <div style={{fontSize:11,fontWeight:600}}>Serie de visitas</div>
-                    <button className="ab-btn blue" style={{padding:'3px 8px',fontSize:10}}>+ Crear Tour de visitas</button>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                    <div style={{fontSize:12,fontWeight:700}}>🏢 Visitas</div>
+                    <button className="ab-btn blue" style={{padding:'3px 10px',fontSize:10}} onClick={()=>navigate('visitas')}>+ Nueva visita</button>
                   </div>
-                  <div style={{border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
-                    <table className="pat-table"><thead><tr><th>Nombre</th><th>Motivo estado</th><th>Fecha visita</th><th>Cuenta</th></tr></thead>
-                    <tbody><tr><td colSpan={4} style={{textAlign:'center',color:'var(--text4)',fontSize:11,padding:14}}>No se encontró nada para mostrar aquí</td></tr></tbody></table>
-                    <div style={{padding:'5px 10px',fontSize:10,color:'var(--text4)',borderTop:'1px solid var(--border)'}}>Filas: 0</div>
-                  </div>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                    <div style={{fontSize:11,fontWeight:600}}>Visitas</div>
-                    <button className="ab-btn blue" style={{padding:'3px 8px',fontSize:10}}>+ Crear Visita</button>
-                  </div>
-                  <div style={{border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
-                    <table className="pat-table"><thead><tr><th><input type="checkbox" style={{accentColor:'var(--accent)'}}/></th><th>Apellido</th><th>Cuenta</th><th>Asset / Activo (Oferta)</th></tr></thead>
-                    <tbody><tr>
-                      <td><input type="checkbox" style={{accentColor:'var(--accent)'}}/></td>
-                      <td className="pat-link">V - Corporacion Financier...</td>
-                      <td>Corporaci...</td>
-                      <td className="pat-link">Albatros - Calle de Anabel Segura 9-11</td>
-                    </tr></tbody></table>
-                    <div style={{padding:'5px 10px',fontSize:10,color:'var(--text4)',borderTop:'1px solid var(--border)'}}>Filas: 1</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {MOCK_VISITAS.map(v=>(
+                      <div key={v.id} style={{border:'1px solid var(--border)',borderRadius:7,overflow:'hidden',background:'#fff'}}>
+                        <div style={{padding:'8px 12px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid var(--border)',background:'var(--gray-lt)'}}>
+                          <div style={{flex:1}}>
+                            <div style={{fontWeight:600,fontSize:12,color:'var(--accent)',cursor:'pointer'}} onClick={()=>navigate('ficha-activo')}>{v.activo}</div>
+                            <div style={{fontSize:10,color:'var(--text4)',marginTop:1}}>{v.asistentes}</div>
+                          </div>
+                          <span className="tag tag-teal" style={{fontSize:9}}>{v.resultado}</span>
+                        </div>
+                        <div style={{padding:'7px 12px',display:'flex',gap:16,fontSize:11,alignItems:'center'}}>
+                          <div><span style={{color:'var(--text4)'}}>Fecha: </span><span style={{fontFamily:'var(--mono)'}}>{v.fecha}</span></div>
+                          {v.oferta_generada&&(
+                            <div style={{display:'flex',alignItems:'center',gap:4}}>
+                              <span style={{fontSize:9,background:'var(--green-lt)',color:'var(--green)',border:'1px solid var(--green-bd)',borderRadius:3,padding:'0 5px',fontWeight:700}}>OFERTA</span>
+                              <span className="asset-link" style={{fontSize:11,fontFamily:'var(--mono)'}} onClick={()=>navigate('ficha-oferta')}>{v.oferta}</span>
+                            </div>
+                          )}
+                          <span style={{marginLeft:'auto',fontSize:10,color:'var(--text3)',fontFamily:'var(--mono)'}}>{v.id}</span>
+                        </div>
+                      </div>
+                    ))}
+                    <button className="ab-btn" style={{justifyContent:'center',fontSize:11}} onClick={()=>navigate('visitas')}>Ver todas las visitas →</button>
                   </div>
                 </div>
+
+              </div>
+            </div></div>
+          )}
+
+          {/* ── TAB: Ciclo 360° ── */}
+          {activeTab==='dem-360' && (
+            <div className="tab-content active"><div className="info-pad">
+              <div style={{marginBottom:16,fontSize:12,color:'var(--text3)'}}>Ciclo completo de esta demanda desde su entrada hasta la instrucción de facturación.</div>
+
+              {/* Barra de progreso */}
+              <div style={{display:'flex',alignItems:'center',marginBottom:24,padding:'12px 16px',background:'var(--gray-lt)',borderRadius:10,border:'1px solid var(--border)'}}>
+                {ETAPAS_360.map((e,i)=>{
+                  const activo  = ['demanda','presentacion','visita','oferta'].includes(e.key)
+                  const enCurso = e.key === 'oferta'
+                  const futuro  = ['negociacion','oportunidad','instruccion'].includes(e.key)
+                  return (
+                    <div key={e.key} style={{display:'flex',alignItems:'center',flex:1}}>
+                      <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,flex:1}}>
+                        <div style={{width:32,height:32,borderRadius:'50%',background:activo?e.color:futuro?'var(--border)':'var(--border)',border:`2px solid ${activo?e.color:'var(--border)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:activo?'#fff':'var(--text4)',opacity:futuro?.4:1}}>
+                          {activo&&!enCurso?'✓':e.icon}
+                        </div>
+                        <div style={{fontSize:9,fontWeight:600,color:activo?e.color:'var(--text4)',textAlign:'center',whiteSpace:'nowrap',opacity:futuro?.5:1}}>{e.label}</div>
+                      </div>
+                      {i<ETAPAS_360.length-1&&<div style={{height:2,width:20,background:activo&&!enCurso?'var(--green)':'var(--border)',flexShrink:0,marginBottom:18}}/>}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Timeline vertical */}
+              <div style={{position:'relative'}}>
+                <div style={{position:'absolute',left:19,top:0,bottom:0,width:2,background:'var(--border)'}}/>
+
+                {/* DEMANDA */}
+                <Etapa360
+                  icon="🔍" color="var(--accent)" estado="completado"
+                  titulo="Demanda creada" ref_id="D251035690"
+                  fecha="17/10/2025" responsable="Sierra Alvaro"
+                  detalle="Corporacion Financiera Azuaga SL · 2.200–3.000 m² · A-1 Alcobendas"
+                  onNav={()=>null}
+                />
+
+                {/* PRESENTACIONES */}
+                <Etapa360
+                  icon="📤" color="var(--teal)" estado="completado"
+                  titulo="Presentaciones enviadas" badge={`${MOCK_PRESENTACIONES.length} activos`}
+                  fecha="13/11/2025 – 20/11/2025"
+                  detalle={MOCK_PRESENTACIONES.map(p=>p.activo).join(' · ')}
+                  onNav={()=>navigate('presentaciones')}
+                  navLabel="Ver presentaciones"
+                >
+                  <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:8}}>
+                    {MOCK_PRESENTACIONES.map(p=>(
+                      <div key={p.id} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 10px',background:'var(--gray-lt)',borderRadius:5,fontSize:11}}>
+                        <span style={{fontWeight:600,color:'var(--accent)',cursor:'pointer'}} onClick={()=>navigate('ficha-activo')}>{p.activo}</span>
+                        <span style={{color:'var(--text4)'}}>·</span>
+                        <span style={{fontFamily:'var(--mono)',color:'var(--text3)'}}>{p.fecha}</span>
+                        <span className={`tag ${p.visitado?'tag-teal':'tag-amber'}`} style={{fontSize:8,marginLeft:'auto'}}>{p.estado}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Etapa360>
+
+                {/* VISITAS */}
+                <Etapa360
+                  icon="🏢" color="var(--purple)" estado="completado"
+                  titulo="Visitas realizadas" badge={`${MOCK_VISITAS.length} visita`}
+                  fecha="20/11/2025"
+                  detalle="Albatros Edif. D · Resultado muy positivo"
+                  onNav={()=>navigate('visitas')}
+                  navLabel="Ver visitas"
+                >
+                  <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:8}}>
+                    {MOCK_VISITAS.map(v=>(
+                      <div key={v.id} style={{padding:'5px 10px',background:'var(--gray-lt)',borderRadius:5,fontSize:11}}>
+                        <div style={{display:'flex',alignItems:'center',gap:8}}>
+                          <span style={{fontWeight:600,color:'var(--accent)',cursor:'pointer'}} onClick={()=>navigate('ficha-activo')}>{v.activo}</span>
+                          <span className="tag tag-teal" style={{fontSize:8}}>{v.resultado}</span>
+                          {v.oferta_generada&&<span className="asset-link" style={{fontSize:10,marginLeft:'auto',fontFamily:'var(--mono)'}} onClick={()=>navigate('ficha-oferta')}>→ {v.oferta}</span>}
+                        </div>
+                        <div style={{color:'var(--text4)',marginTop:3}}>{v.asistentes} · {v.fecha}</div>
+                      </div>
+                    ))}
+                  </div>
+                </Etapa360>
+
+                {/* OFERTA */}
+                <Etapa360
+                  icon="📧" color="var(--amber)" estado="en-curso"
+                  titulo="Oferta en curso" ref_id="OF-0038"
+                  fecha="25/11/2025"
+                  detalle="Albatros Edif. D · 13.486 m² · 12,50 €/m²/mes · Pendiente aceptación"
+                  onNav={()=>navigate('ficha-oferta')}
+                  navLabel="Ver oferta"
+                />
+
+                {/* NEGOCIACIÓN — pendiente */}
+                <Etapa360
+                  icon="🤝" color="#f97316" estado="pendiente"
+                  titulo="Negociación" fecha="—"
+                  detalle="Pendiente — se iniciará cuando la oferta sea aceptada"
+                  onNav={()=>navigate('negociaciones')}
+                  navLabel="Ir a negociaciones"
+                />
+
+                {/* OPORTUNIDAD — pendiente */}
+                <Etapa360
+                  icon="⚡" color="var(--green)" estado="pendiente"
+                  titulo="Oportunidad (WIP)" fecha="—"
+                  detalle="Pendiente — se generará desde la negociación"
+                  onNav={()=>navigate('oportunidades')}
+                  navLabel="Ir a oportunidades"
+                />
+
+                {/* INSTRUCCIÓN — pendiente */}
+                <Etapa360
+                  icon="✅" color="#16a34a" estado="pendiente"
+                  titulo="Instrucción / Facturación" fecha="—"
+                  detalle="Pendiente — cierre del deal y registro de honorarios"
+                  onNav={()=>navigate('instruccion')}
+                  navLabel="Ir a instrucciones"
+                  last
+                />
+
               </div>
             </div></div>
           )}

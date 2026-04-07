@@ -34,7 +34,7 @@ export default function FichaNegociacion() {
           <div style={{ flex: 1 }}>
             <div className="ah-ref">
               <span className="ref-badge-neg">NEGOCIACIÓN</span>
-              <span className="mono">NEG-0044</span>
+              <span className="asset-link" style={{fontFamily:'var(--mono)'}}>NEG-0044</span>
               <span style={{ color: 'var(--text3)' }}>· Activo: <span className="pat-link" onClick={() => navigate('ficha-activo')}>P.E Avalon — Santa Leonor 65</span></span>
             </div>
             <div className="ah-name">Empresa XYZ — 1.000 m² · P.E Avalon</div>

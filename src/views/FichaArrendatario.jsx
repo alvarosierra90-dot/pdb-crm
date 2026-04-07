@@ -97,7 +97,7 @@ export default function FichaArrendatario() {
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'var(--teal-lt)',color:'var(--teal)',border:'1px solid var(--teal-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>ARRENDATARIO</span>
-                  <span className="mono">ARR-2501</span>
+                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>ARR-2501</span>
                   <span className={`tag ${form.estado==='Activo'?'tag-green':form.estado==='Próximo a vencimiento'?'tag-red':form.estado==='En negociación'?'tag-purple':'tag-gray'}`}>{form.estado}</span>
                 </div>
                 <div className="ah-name">{form.tenant} — {form.activo}</div>

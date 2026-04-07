@@ -70,7 +70,7 @@ export default function TareasList() {
 
   const cell = (t) => ({
     _chk: <td key="_chk"><input type="checkbox" onClick={e=>e.stopPropagation()} style={{accentColor:'var(--accent)'}}/></td>,
-    id:   <td key="id"><span className="mono" style={{color:'var(--text3)'}}>{t.id}</span></td>,
+    id:   <td key="id"><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{t.id}</span></td>,
     as:   <td key="as" style={{fontSize:11,fontWeight:500,maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.as}</td>,
     tipo: <td key="tipo"><span className={`tag ${TIPO_TAG[t.tipo]||'tag-gray'}`} style={{fontSize:9}}>{t.tipo}</span></td>,
     resp: <td key="resp">

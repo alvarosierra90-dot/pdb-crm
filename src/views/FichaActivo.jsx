@@ -593,7 +593,7 @@ export default function FichaActivo() {
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span className="ref-badge-activo">ACTIVO</span>
-                  <span className="mono">MAD-OF-00189</span>
+                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>MAD-OF-00189</span>
                 </div>
                 <div className="ah-name">P.E Avalon</div>
                 <div className="ah-addr">📍 Calle Santa Leonor 65, 28037 Madrid · Área: Centro · Zona: M-30 · Sub-zona: M.Álvaro</div>

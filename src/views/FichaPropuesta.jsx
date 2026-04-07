@@ -175,7 +175,7 @@ export default function FichaPropuesta() {
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'#f5f3ff',color:'#7c3aed',border:'1px solid #ddd6fe',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>PROPUESTA</span>
-                  <span className="mono">{form.id}</span>
+                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{form.id}</span>
                   <span className="tag" style={{fontSize:9,background:TIPO_COLOR[form.tipo]+'22',color:TIPO_COLOR[form.tipo],border:`1px solid ${TIPO_COLOR[form.tipo]}44`}}>{form.tipo}</span>
                   <span className="tag" style={{fontSize:9,background:ESTADO_COLOR[form.estado]+'22',color:ESTADO_COLOR[form.estado],border:`1px solid ${ESTADO_COLOR[form.estado]}44`}}>{form.estado}</span>
                 </div>

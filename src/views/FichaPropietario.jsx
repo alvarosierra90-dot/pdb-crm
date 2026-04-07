@@ -117,7 +117,7 @@ export default function FichaPropietario() {
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'#eff6ff',color:'#1d4ed8',border:'1px solid #bfdbfe',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>PROPIETARIO</span>
-                  <span className="mono">{form.id}</span>
+                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{form.id}</span>
                   <span className="tag" style={{fontSize:9,background:PERFIL_COLOR[form.perfil]+'22',color:PERFIL_COLOR[form.perfil],border:`1px solid ${PERFIL_COLOR[form.perfil]}44`}}>{form.perfil}</span>
                   <span className="tag" style={{fontSize:9,background:ESTADO_COLOR[form.estado]+'22',color:ESTADO_COLOR[form.estado],border:`1px solid ${ESTADO_COLOR[form.estado]}44`}}>{form.estado}</span>
                 </div>

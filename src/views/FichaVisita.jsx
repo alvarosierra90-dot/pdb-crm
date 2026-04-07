@@ -32,7 +32,7 @@ export default function FichaVisita() {
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'var(--teal-lt)',color:'var(--teal)',border:'1px solid var(--teal-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>VISITA</span>
-                  <span className="mono">VIS-001</span>
+                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>VIS-001</span>
                   <span className="tag tag-green">● Realizada</span>
                 </div>
                 <div className="ah-name">Corp. Financiera Azuaga SL — Albatros Edif. D</div>

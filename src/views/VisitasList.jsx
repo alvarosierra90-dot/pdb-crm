@@ -59,12 +59,12 @@ export default function VisitasList() {
 
   const cell = (v) => ({
     _chk:  <td key="_chk"><input type="checkbox" onClick={e=>e.stopPropagation()} style={{accentColor:'var(--accent)'}}/></td>,
-    id:    <td key="id"><span className="mono" style={{color:'var(--text3)'}}>{v.id}</span></td>,
+    id:    <td key="id"><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{v.id}</span></td>,
     fecha: <td key="fecha" style={{fontSize:11}}>{v.f} <span style={{color:'var(--text4)'}}>{v.h}</span></td>,
     cuenta:<td key="cuenta"><span className="dtbl-link" onClick={e=>e.stopPropagation()}>{v.cuenta}</span></td>,
-    dem:   <td key="dem"><span className="dtbl-link mono" style={{fontSize:11}} onClick={e=>e.stopPropagation()}>{v.dem}</span></td>,
+    dem:   <td key="dem"><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}} onClick={e=>e.stopPropagation()}>{v.dem}</span></td>,
     act:   <td key="act" style={{fontSize:11,fontWeight:500}}>{v.act}</td>,
-    of:    <td key="of"><span className="dtbl-link mono" style={{fontSize:11}} onClick={e=>e.stopPropagation()}>{v.of}</span></td>,
+    of:    <td key="of"><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}} onClick={e=>e.stopPropagation()}>{v.of}</span></td>,
     tipo:  <td key="tipo"><span className={`tag ${TIPO_TAG[v.tipo]||'tag-gray'}`}>{v.tipo}</span></td>,
     est:   <td key="est"><span className={`tag ${EST_TAG[v.est]||'tag-gray'}`}>{v.est}</span></td>,
     cont:  <td key="cont" style={{fontSize:11}}>{v.cont}</td>,

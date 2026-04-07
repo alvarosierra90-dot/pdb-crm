@@ -68,7 +68,7 @@ export default function ActividadesList() {
 
   const cell = (a) => ({
     _chk:  <td key="_chk"><input type="checkbox" onClick={e=>e.stopPropagation()} style={{accentColor:'var(--accent)'}}/></td>,
-    id:    <td key="id" className="mono" style={{fontSize:10,color:'var(--text3)'}}>{a.id}</td>,
+    id:    <td key="id"><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{a.id}</span></td>,
     u:     <td key="u">
       <div style={{display:'flex',alignItems:'center',gap:6}}>
         <div style={{width:22,height:22,borderRadius:'50%',background:'var(--accent-lt)',color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,fontWeight:700,flexShrink:0}}>{avatarIni(a.u)}</div>

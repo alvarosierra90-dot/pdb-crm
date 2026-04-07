@@ -68,7 +68,7 @@ export default function FichaUsuario() {
             <div style={{flex:1}}>
               <div className="ah-ref">
                 <span style={{background:'var(--gray-lt)',color:'var(--text2)',border:'1px solid var(--border)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>USUARIO SAVILLS</span>
-                <span className="mono">{USUARIO.id}</span>
+                <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{USUARIO.id}</span>
                 <span className="tag tag-blue">{USUARIO.linea}</span>
               </div>
               <div className="ah-name">{USUARIO.nombre}</div>
@@ -198,7 +198,7 @@ export default function FichaUsuario() {
                   <tbody>
                     {ACTS_U.map(a=>(
                       <tr key={a.id} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-actividad')}>
-                        <td style={{padding:'7px 12px'}}><span className="mono" style={{color:'var(--text3)'}}>{a.id}</span></td>
+                        <td style={{padding:'7px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{a.id}</span></td>
                         <td style={{padding:'7px 12px'}}><span className={`tag ${TIPO_TAG[a.tipo]||'tag-gray'}`}>{TIPO_ICO[a.tipo]} {a.tipo}</span></td>
                         <td style={{padding:'7px 12px',fontWeight:500,maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.asunto}</td>
                         <td style={{padding:'7px 12px',fontSize:10,color:'var(--text3)'}}>{a.ref}</td>

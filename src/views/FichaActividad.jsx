@@ -26,7 +26,7 @@ export default function FichaActividad() {
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'var(--accent-lt)',color:'var(--accent)',border:'1px solid var(--accent-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>ACTIVIDAD</span>
-                  <span className="mono">ACT-2501</span>
+                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>ACT-2501</span>
                   <span className="tag tag-amber">Abierto</span>
                 </div>
                 <div className="ah-name">Propuesta arrendamiento Albatros — Edif. D</div>
