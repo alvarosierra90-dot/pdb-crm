@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  --nav-bg:  #1e1812;
+  --nav-bg:  #f5f0e7;
   --nav-w:   224px;
   --top-h:   52px;
 
@@ -83,6 +83,7 @@ nav {
   flex-direction: column;
   flex-shrink: 0;
   overflow-y: auto;
+  border-right: 1px solid rgba(0,0,0,.08);
 }
 
 .nav-logo {
@@ -90,7 +91,7 @@ nav {
   display: flex;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid rgba(255,255,255,.07);
+  border-bottom: 1px solid rgba(0,0,0,.07);
   margin-bottom: 6px;
 }
 .nav-logo-mark {
@@ -99,19 +100,19 @@ nav {
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
   font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0;
-  box-shadow: 0 3px 12px rgba(249,115,22,.45);
+  box-shadow: 0 3px 12px rgba(249,115,22,.35);
 }
 .nav-logo-text {
   font-size: 14px;
   font-weight: 700;
-  color: rgba(255,255,255,.92);
+  color: #2d1f0e;
   letter-spacing: -.02em;
 }
 
 .nav-section {
   font-size: 9px;
   font-weight: 800;
-  color: rgba(251,191,36,.45);
+  color: #c4956a;
   text-transform: uppercase;
   letter-spacing: .1em;
   padding: 16px 20px 5px;
@@ -125,25 +126,25 @@ nav {
   margin: 1px 10px;
   font-size: 12.5px;
   font-weight: 500;
-  color: rgba(255,255,255,.42);
+  color: #8a7258;
   cursor: pointer;
   border-radius: 9px;
   border-left: none;
   transition: all .15s ease;
 }
 .nav-item:hover {
-  color: rgba(255,255,255,.88);
-  background: rgba(255,255,255,.08);
+  color: #2d1f0e;
+  background: rgba(0,0,0,.06);
 }
 .nav-item.active {
-  color: #fbbf24;
+  color: #ea580c;
   font-weight: 600;
-  background: rgba(251,191,36,.14);
+  background: rgba(249,115,22,.1);
   border: none;
 }
-.nav-item svg { width: 15px; height: 15px; flex-shrink: 0; opacity: .55; transition: opacity .15s; }
-.nav-item:hover svg { opacity: .8; }
-.nav-item.active svg { opacity: 1; stroke: #fbbf24; }
+.nav-item svg { width: 15px; height: 15px; flex-shrink: 0; opacity: .5; transition: opacity .15s; }
+.nav-item:hover svg { opacity: .75; }
+.nav-item.active svg { opacity: 1; stroke: #ea580c; }
 
 .nav-badge {
   margin-left: auto;
@@ -154,25 +155,25 @@ nav {
   padding: 2px 7px;
   border-radius: 10px;
 }
-.nav-dyn { font-size: 8px; color: rgba(255,255,255,.16); margin-left: 2px; }
+.nav-dyn { font-size: 8px; color: rgba(0,0,0,.25); margin-left: 2px; }
 
 .nav-sub {
   padding: 5px 12px 5px 36px;
   margin: 0 10px;
   font-size: 11.5px;
   font-weight: 500;
-  color: rgba(255,255,255,.28);
+  color: #a8906e;
   cursor: pointer;
   border-radius: 7px;
   transition: all .12s;
 }
-.nav-sub:hover { color: rgba(255,255,255,.65); background: rgba(255,255,255,.05); }
-.nav-sub.active { color: #fbbf24; background: rgba(251,191,36,.08); }
+.nav-sub:hover { color: #2d1f0e; background: rgba(0,0,0,.04); }
+.nav-sub.active { color: #ea580c; background: rgba(249,115,22,.08); }
 
 .nav-user {
   margin-top: auto;
   padding: 14px 14px;
-  border-top: 1px solid rgba(255,255,255,.07);
+  border-top: 1px solid rgba(0,0,0,.07);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -183,10 +184,10 @@ nav {
   background: linear-gradient(135deg, #f59e0b, #f97316);
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(249,115,22,.35);
+  box-shadow: 0 2px 8px rgba(249,115,22,.3);
 }
-.nav-user-name { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.85); }
-.nav-user-role  { font-size: 10px; color: rgba(255,255,255,.32); margin-top: 1px; }
+.nav-user-name { font-size: 12px; font-weight: 600; color: #2d1f0e; }
+.nav-user-role  { font-size: 10px; color: #a08060; margin-top: 1px; }
 
 /* ─────────────────────────────────────────
    LAYOUT
