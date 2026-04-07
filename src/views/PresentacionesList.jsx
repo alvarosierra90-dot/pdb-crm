@@ -4,18 +4,18 @@ import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 
 export const PRESENTACIONES = [
-  { id:'PRE-2501', activo:'P.E Avalon',                  cuenta:'Oracle Spain SL',            contacto:'James Richardson',      fecha_envio:'01/04/2026', visitado:true,  fecha_visita:'08/04/2026', responsable:'Sierra Alvaro',  estado:'Visitado',       linea:'Oficinas',  superficie:'46.956 m²', zona:'M-30',       notas:'Reunión muy positiva. Esperando feedback formal.' },
-  { id:'PRE-2502', activo:'Albatros Edif. D',            cuenta:'Grupo Mediática España',      contacto:'Carmen Fuentes',        fecha_envio:'28/03/2026', visitado:false, fecha_visita:'',          responsable:'Sierra Alvaro',  estado:'Sin respuesta',  linea:'Oficinas',  superficie:'53.944 m²', zona:'A-1',        notas:'Segundo seguimiento pendiente.' },
-  { id:'PRE-2503', activo:'Parque Empresarial Norte',     cuenta:'ISDE Escuela de Derecho',     contacto:'Rodrigo Medina',        fecha_envio:'25/03/2026', visitado:true,  fecha_visita:'03/04/2026', responsable:'GOMEZ Ignacio',  estado:'En negociación', linea:'Oficinas',  superficie:'11.200 m²', zona:'M-30',       notas:'Han pedido propuesta económica. Avanzando.' },
-  { id:'PRE-2504', activo:'Torre Glòries',                cuenta:'Generali Real Estate',        contacto:'Marco Rossi',           fecha_envio:'22/03/2026', visitado:true,  fecha_visita:'29/03/2026', responsable:'García Marta',   estado:'Descartado',     linea:'Oficinas',  superficie:'18.500 m²', zona:'22@',        notas:'No encaja con su estrategia actual.' },
-  { id:'PRE-2505', activo:'Edificio Diagonal 95',         cuenta:'BBVA SA',                     contacto:'Patricia Solano',       fecha_envio:'18/03/2026', visitado:false, fecha_visita:'',          responsable:'García Marta',   estado:'Enviado',        linea:'Oficinas',  superficie:'9.800 m²',  zona:'22@',        notas:'Enviado dossier completo. Pendiente respuesta.' },
-  { id:'PRE-2506', activo:'P.E Avalon',                   cuenta:'Telefónica SA',               contacto:'Laura Martín',          fecha_envio:'15/03/2026', visitado:true,  fecha_visita:'24/03/2026', responsable:'Sierra Alvaro',  estado:'Visitado',       linea:'Oficinas',  superficie:'46.956 m²', zona:'M-30',       notas:'Visita realizada. Analizando necesidades internas.' },
-  { id:'PRE-2507', activo:'Park Logístico Getafe',         cuenta:'Amazon Logistics Spain SL',   contacto:'Thomas Clarke',         fecha_envio:'10/03/2026', visitado:true,  fecha_visita:'17/03/2026', responsable:'GOMEZ Ignacio',  estado:'En negociación', linea:'Industrial', superficie:'24.000 m²', zona:'Sur Madrid', notas:'Oferta presentada. Plazo respuesta 30/04.' },
-  { id:'PRE-2508', activo:'Centro Comercial Parquesur',   cuenta:'Inditex SA',                  contacto:'Ana González',          fecha_envio:'05/03/2026', visitado:false, fecha_visita:'',          responsable:'GOMEZ Ignacio',  estado:'Sin respuesta',  linea:'Retail',    superficie:'42.000 m²', zona:'Sur Madrid', notas:'Sin respuesta tras 3 semanas.' },
-  { id:'PRE-2509', activo:'Torre Europa Valencia',         cuenta:'Grupo Mutua Madrileña',       contacto:'Enrique Vázquez',       fecha_envio:'01/03/2026', visitado:true,  fecha_visita:'10/03/2026', responsable:'Sierra Alvaro',  estado:'Descartado',     linea:'Capital Markets', superficie:'7.600 m²', zona:'Mestalla', notas:'Precio fuera de rango.' },
-  { id:'PRE-2510', activo:'Albatros Edif. D',             cuenta:'Repsol SA',                   contacto:'Miguel Torres',         fecha_envio:'25/02/2026', visitado:true,  fecha_visita:'04/03/2026', responsable:'García Marta',   estado:'Visitado',       linea:'Oficinas',  superficie:'53.944 m²', zona:'A-1',        notas:'Segunda visita pendiente de confirmar.' },
-  { id:'PRE-2511', activo:'Parque Empresarial Norte',     cuenta:'Oracle Spain SL',             contacto:'James Richardson',      fecha_envio:'20/02/2026', visitado:false, fecha_visita:'',          responsable:'Sierra Alvaro',  estado:'Enviado',        linea:'Oficinas',  superficie:'11.200 m²', zona:'M-30',       notas:'Alternativa a P.E Avalon.' },
-  { id:'PRE-2512', activo:'Edificio Diagonal 95',         cuenta:'Grupo Mediática España',      contacto:'Carmen Fuentes',        fecha_envio:'14/02/2026', visitado:true,  fecha_visita:'21/02/2026', responsable:'García Marta',   estado:'En negociación', linea:'Oficinas',  superficie:'9.800 m²',  zona:'22@',        notas:'Negociando condiciones de arrendamiento.' },
+  { id:'PRE-2501', demanda:'DEM-0091', activo:'P.E Avalon',                  cuenta:'Oracle Spain SL',            contacto:'James Richardson',      fecha_envio:'01/04/2026', visitado:true,  fecha_visita:'08/04/2026', responsable:'Sierra Alvaro',  estado:'Visitado',       linea:'Oficinas',  superficie:'46.956 m²', zona:'M-30',       notas:'Reunión muy positiva. Esperando feedback formal.' },
+  { id:'PRE-2502', demanda:'DEM-0091', activo:'Albatros Edif. D',            cuenta:'Oracle Spain SL',            contacto:'James Richardson',      fecha_envio:'28/03/2026', visitado:false, fecha_visita:'',          responsable:'Sierra Alvaro',  estado:'Sin respuesta',  linea:'Oficinas',  superficie:'53.944 m²', zona:'A-1',        notas:'Segundo seguimiento pendiente.' },
+  { id:'PRE-2503', demanda:'DEM-0078', activo:'Parque Empresarial Norte',     cuenta:'ISDE Escuela de Derecho',     contacto:'Rodrigo Medina',        fecha_envio:'25/03/2026', visitado:true,  fecha_visita:'03/04/2026', responsable:'GOMEZ Ignacio',  estado:'En negociación', linea:'Oficinas',  superficie:'11.200 m²', zona:'M-30',       notas:'Han pedido propuesta económica. Avanzando.' },
+  { id:'PRE-2504', demanda:'DEM-0083', activo:'Torre Glòries',                cuenta:'Generali Real Estate',        contacto:'Marco Rossi',           fecha_envio:'22/03/2026', visitado:true,  fecha_visita:'29/03/2026', responsable:'García Marta',   estado:'Descartado',     linea:'Oficinas',  superficie:'18.500 m²', zona:'22@',        notas:'No encaja con su estrategia actual.' },
+  { id:'PRE-2505', demanda:'DEM-0083', activo:'Edificio Diagonal 95',         cuenta:'Generali Real Estate',        contacto:'Marco Rossi',           fecha_envio:'18/03/2026', visitado:false, fecha_visita:'',          responsable:'García Marta',   estado:'Enviado',        linea:'Oficinas',  superficie:'9.800 m²',  zona:'22@',        notas:'Enviado dossier completo. Pendiente respuesta.' },
+  { id:'PRE-2506', demanda:'DEM-0065', activo:'P.E Avalon',                   cuenta:'Telefónica SA',               contacto:'Laura Martín',          fecha_envio:'15/03/2026', visitado:true,  fecha_visita:'24/03/2026', responsable:'Sierra Alvaro',  estado:'Visitado',       linea:'Oficinas',  superficie:'46.956 m²', zona:'M-30',       notas:'Visita realizada. Analizando necesidades internas.' },
+  { id:'PRE-2507', demanda:'DEM-0072', activo:'Park Logístico Getafe',         cuenta:'Amazon Logistics Spain SL',   contacto:'Thomas Clarke',         fecha_envio:'10/03/2026', visitado:true,  fecha_visita:'17/03/2026', responsable:'GOMEZ Ignacio',  estado:'En negociación', linea:'Industrial', superficie:'24.000 m²', zona:'Sur Madrid', notas:'Oferta presentada. Plazo respuesta 30/04.' },
+  { id:'PRE-2508', demanda:'DEM-0080', activo:'Centro Comercial Parquesur',   cuenta:'Inditex SA',                  contacto:'Ana González',          fecha_envio:'05/03/2026', visitado:false, fecha_visita:'',          responsable:'GOMEZ Ignacio',  estado:'Sin respuesta',  linea:'Retail',    superficie:'42.000 m²', zona:'Sur Madrid', notas:'Sin respuesta tras 3 semanas.' },
+  { id:'PRE-2509', demanda:'DEM-0059', activo:'Torre Europa Valencia',         cuenta:'Grupo Mutua Madrileña',       contacto:'Enrique Vázquez',       fecha_envio:'01/03/2026', visitado:true,  fecha_visita:'10/03/2026', responsable:'Sierra Alvaro',  estado:'Descartado',     linea:'Capital Markets', superficie:'7.600 m²', zona:'Mestalla', notas:'Precio fuera de rango.' },
+  { id:'PRE-2510', demanda:'DEM-0065', activo:'Albatros Edif. D',             cuenta:'Telefónica SA',               contacto:'Laura Martín',          fecha_envio:'25/02/2026', visitado:true,  fecha_visita:'04/03/2026', responsable:'García Marta',   estado:'Visitado',       linea:'Oficinas',  superficie:'53.944 m²', zona:'A-1',        notas:'Segunda visita pendiente de confirmar.' },
+  { id:'PRE-2511', demanda:'DEM-0091', activo:'Parque Empresarial Norte',     cuenta:'Oracle Spain SL',             contacto:'James Richardson',      fecha_envio:'20/02/2026', visitado:false, fecha_visita:'',          responsable:'Sierra Alvaro',  estado:'Enviado',        linea:'Oficinas',  superficie:'11.200 m²', zona:'M-30',       notas:'Alternativa a P.E Avalon.' },
+  { id:'PRE-2512', demanda:'DEM-0078', activo:'Edificio Diagonal 95',         cuenta:'ISDE Escuela de Derecho',     contacto:'Rodrigo Medina',        fecha_envio:'14/02/2026', visitado:true,  fecha_visita:'21/02/2026', responsable:'García Marta',   estado:'En negociación', linea:'Oficinas',  superficie:'9.800 m²',  zona:'22@',        notas:'Negociando condiciones de arrendamiento.' },
 ]
 
 const ESTADO_TAG = {
@@ -29,6 +29,7 @@ const ESTADO_TAG = {
 const COLS = [
   { id:'_chk',         label:'',                    sys:true },
   { id:'id',           label:'ID',                  required:true, type:'text',   getValue:r=>r.id },
+  { id:'demanda',      label:'Demanda origen',      required:true, type:'text',   getValue:r=>r.demanda },
   { id:'activo',       label:'Activo presentado',   required:true, type:'text',   getValue:r=>r.activo },
   { id:'cuenta',       label:'Cuenta',              required:true, type:'text',   getValue:r=>r.cuenta },
   { id:'contacto',     label:'Contacto',                           type:'text',   getValue:r=>r.contacto },
@@ -44,7 +45,7 @@ const COLS = [
   { id:'_act',         label:'',                    sys:true },
 ]
 
-const DEFAULT_VIS = new Set(['_chk','id','activo','cuenta','contacto','fecha_envio','visitado','fecha_visita','estado','responsable','_act'])
+const DEFAULT_VIS = new Set(['_chk','id','demanda','activo','cuenta','fecha_envio','visitado','fecha_visita','estado','responsable','_act'])
 
 export default function PresentacionesList() {
   const { navigate } = useNav()
@@ -89,6 +90,7 @@ export default function PresentacionesList() {
   const cell = (p) => ({
     _chk:         <td key="_chk"><input type="checkbox" onClick={e=>e.stopPropagation()} style={{accentColor:'var(--accent)'}}/></td>,
     id:           <td key="id"><span style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--text3)'}}>{p.id}</span></td>,
+    demanda:      <td key="demanda"><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}} onClick={e=>{e.stopPropagation();navigate('ficha-demanda')}}>{p.demanda}</span></td>,
     activo:       <td key="activo"><div className="asset-link" style={{fontWeight:600}} onClick={e=>{e.stopPropagation();navigate('ficha-activo')}}>{p.activo}</div><div style={{fontSize:10,color:'var(--text4)'}}>{p.superficie}</div></td>,
     cuenta:       <td key="cuenta"><div style={{fontSize:12,fontWeight:600}}>{p.cuenta}</div><div style={{fontSize:10,color:'var(--text4)'}}>{p.contacto}</div></td>,
     contacto:     <td key="contacto" style={{fontSize:11}}>{p.contacto}</td>,
@@ -172,17 +174,19 @@ export default function PresentacionesList() {
         </div>
       )}
 
-      {/* Resumen visual por activo */}
+      {/* Resumen visual por demanda */}
       <div style={{padding:'8px 16px',borderBottom:'1px solid var(--border)',display:'flex',gap:8,alignItems:'center',overflowX:'auto'}}>
-        <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',flexShrink:0}}>Por activo</span>
-        {Array.from(new Set(PRESENTACIONES.map(p=>p.activo))).map(activo=>{
-          const rows = PRESENTACIONES.filter(p=>p.activo===activo)
-          const vis  = rows.filter(r=>r.visitado).length
+        <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',flexShrink:0}}>Por demanda</span>
+        {Array.from(new Set(PRESENTACIONES.map(p=>p.demanda))).map(dem=>{
+          const rows    = PRESENTACIONES.filter(p=>p.demanda===dem)
+          const visitas = rows.filter(r=>r.visitado).length
+          const cuenta  = rows[0]?.cuenta || ''
           return (
-            <div key={activo} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 10px',borderRadius:12,border:'1px solid var(--border)',background:'#fff',fontSize:11,flexShrink:0,cursor:'pointer',whiteSpace:'nowrap'}} onClick={()=>setQuery(activo)}>
-              <span style={{fontWeight:600,color:'var(--text1)'}}>{activo.length>22?activo.slice(0,22)+'…':activo}</span>
-              <span style={{fontSize:10,color:'var(--text4)'}}>{rows.length} env.</span>
-              <span style={{fontSize:10,fontWeight:700,color:'var(--green)'}}>{vis} vis.</span>
+            <div key={dem} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 10px',borderRadius:12,border:'1px solid var(--border)',background:'#fff',fontSize:11,flexShrink:0,cursor:'pointer',whiteSpace:'nowrap'}} onClick={()=>setQuery(dem)}>
+              <span className="asset-link" style={{fontSize:11,fontFamily:'var(--mono)'}}>{dem}</span>
+              <span style={{fontSize:10,color:'var(--text3)',maxWidth:120,overflow:'hidden',textOverflow:'ellipsis'}}>{cuenta}</span>
+              <span style={{fontSize:10,color:'var(--text4)'}}>{rows.length} activos</span>
+              <span style={{fontSize:10,fontWeight:700,color:visitas>0?'var(--green)':'var(--text4)'}}>{visitas} vis.</span>
             </div>
           )
         })}
