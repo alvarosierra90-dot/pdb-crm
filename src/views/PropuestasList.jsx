@@ -4,16 +4,16 @@ import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 
 export const PROPUESTAS = [
-  { id:'PRY-2501', nombre:'Pitch BBVA Torre Norte', tipo:'Pitch', linea:'Capital Markets', empresa:'BBVA SA', activo:'Torre Norte Castellana', demanda:'—', oferta:'—', creado_por:'Sierra Alvaro', fecha_mod:'07/04/2026', estado:'Activo', fees:'320.000 €', fecha_cierre:'30/06/2026' },
-  { id:'PRY-2502', nombre:'Valoración portfolio logístico Getafe', tipo:'Valoración', linea:'Industrial/Logística', empresa:'Merlín Properties SOCIMI', activo:'Park Logístico Getafe', demanda:'—', oferta:'OF-0041', creado_por:'GOMEZ Ignacio', fecha_mod:'05/04/2026', estado:'Activo', fees:'85.000 €', fecha_cierre:'15/05/2026' },
-  { id:'PRY-2503', nombre:'Propuesta de servicios Telefónica HQ', tipo:'Propuesta de servicios', linea:'Oficinas', empresa:'Telefónica SA', activo:'Distrito Telefónica', demanda:'DEM-0078', oferta:'—', creado_por:'García Marta', fecha_mod:'01/04/2026', estado:'Standby', fees:'210.000 €', fecha_cierre:'31/07/2026' },
-  { id:'PRY-2504', nombre:'Mandato comercial P.E Avalon', tipo:'Mandato comercial', linea:'Oficinas', empresa:'Merlín Properties SOCIMI', activo:'P.E Avalon', demanda:'—', oferta:'OF-0038', creado_por:'Sierra Alvaro', fecha_mod:'28/03/2026', estado:'Adjudicado', fees:'650.000 €', fecha_cierre:'31/03/2026' },
-  { id:'PRY-2505', nombre:'Urbanismo Residencial Valdebebas', tipo:'Urbanismo', linea:'Residencial', empresa:'Neinor Homes SA', activo:'—', demanda:'—', oferta:'—', creado_por:'GOMEZ Ignacio', fecha_mod:'20/03/2026', estado:'Activo', fees:'140.000 €', fecha_cierre:'30/09/2026' },
-  { id:'PRY-2506', nombre:'Workplace Repsol oficinas centrales', tipo:'Proyecto de arquitectura / workplace', linea:'Oficinas', empresa:'Repsol SA', activo:'Repsol Campus Méndez Álvaro', demanda:'—', oferta:'—', creado_por:'García Marta', fecha_mod:'15/03/2026', estado:'Cancelado', fees:'95.000 €', fecha_cierre:'—' },
-  { id:'PRY-2507', nombre:'Pitch venta Torre Europa Valencia', tipo:'Pitch', linea:'Capital Markets', empresa:'FREO Investments Spain SL', activo:'Torre Europa Valencia', demanda:'—', oferta:'OF-0044', creado_por:'Sierra Alvaro', fecha_mod:'10/03/2026', estado:'Activo', fees:'480.000 €', fecha_cierre:'31/08/2026' },
-  { id:'PRY-2508', nombre:'Propuesta servicios Centro Comercial Parquesur', tipo:'Propuesta de servicios', linea:'Retail', empresa:'Inversiones Familiar Velada', activo:'Centro Comercial Parquesur', demanda:'—', oferta:'—', creado_por:'GOMEZ Ignacio', fecha_mod:'05/03/2026', estado:'Standby', fees:'175.000 €', fecha_cierre:'30/06/2026' },
-  { id:'PRY-2509', nombre:'Valoración Edificio Diagonal 95 Barcelona', tipo:'Valoración', linea:'Oficinas', empresa:'FREO Investments Spain SL', activo:'Edificio Diagonal 95', demanda:'—', oferta:'—', creado_por:'García Marta', fecha_mod:'01/03/2026', estado:'Adjudicado', fees:'60.000 €', fecha_cierre:'28/02/2026' },
-  { id:'PRY-2510', nombre:'Mandato búsqueda Oracle Spain expansión', tipo:'Mandato comercial', linea:'Oficinas', empresa:'Oracle Spain SL', activo:'—', demanda:'DEM-0091', oferta:'—', creado_por:'Sierra Alvaro', fecha_mod:'25/02/2026', estado:'Activo', fees:'390.000 €', fecha_cierre:'31/10/2026' },
+  { id:'PRY-2501', nombre:'Pitch BBVA Torre Norte', tipo:'Pitch', linea:'Capital Markets', delegacion:'Madrid', empresa:'BBVA SA', activo:'Torre Norte Castellana', demanda:'—', oferta:'—', creado_por:'Sierra Alvaro', fecha_mod:'07/04/2026', estado:'Activo', fees:'320.000 €', fecha_cierre:'30/06/2026' },
+  { id:'PRY-2502', nombre:'Valoración portfolio logístico Getafe', tipo:'Valoración', linea:'Industrial/Logística', delegacion:'Madrid', empresa:'Merlín Properties SOCIMI', activo:'Park Logístico Getafe', demanda:'—', oferta:'OF-0041', creado_por:'GOMEZ Ignacio', fecha_mod:'05/04/2026', estado:'Activo', fees:'85.000 €', fecha_cierre:'15/05/2026' },
+  { id:'PRY-2503', nombre:'Propuesta de servicios Telefónica HQ', tipo:'Propuesta de servicios', linea:'Oficinas', delegacion:'Madrid', empresa:'Telefónica SA', activo:'Distrito Telefónica', demanda:'DEM-0078', oferta:'—', creado_por:'García Marta', fecha_mod:'01/04/2026', estado:'Standby', fees:'210.000 €', fecha_cierre:'31/07/2026' },
+  { id:'PRY-2504', nombre:'Mandato comercial P.E Avalon', tipo:'Mandato comercial', linea:'Oficinas', delegacion:'Madrid', empresa:'Merlín Properties SOCIMI', activo:'P.E Avalon', demanda:'—', oferta:'OF-0038', creado_por:'Sierra Alvaro', fecha_mod:'28/03/2026', estado:'Adjudicado', fees:'650.000 €', fecha_cierre:'31/03/2026' },
+  { id:'PRY-2505', nombre:'Urbanismo Residencial Valdebebas', tipo:'Urbanismo', linea:'Residencial', delegacion:'Madrid', empresa:'Neinor Homes SA', activo:'—', demanda:'—', oferta:'—', creado_por:'GOMEZ Ignacio', fecha_mod:'20/03/2026', estado:'Activo', fees:'140.000 €', fecha_cierre:'30/09/2026' },
+  { id:'PRY-2506', nombre:'Workplace Repsol oficinas centrales', tipo:'Proyecto de arquitectura / workplace', linea:'Oficinas', delegacion:'Madrid', empresa:'Repsol SA', activo:'Repsol Campus Méndez Álvaro', demanda:'—', oferta:'—', creado_por:'García Marta', fecha_mod:'15/03/2026', estado:'Cancelado', fees:'95.000 €', fecha_cierre:'—' },
+  { id:'PRY-2507', nombre:'Pitch venta Torre Europa Valencia', tipo:'Pitch', linea:'Capital Markets', delegacion:'Valencia', empresa:'FREO Investments Spain SL', activo:'Torre Europa Valencia', demanda:'—', oferta:'OF-0044', creado_por:'Sierra Alvaro', fecha_mod:'10/03/2026', estado:'Activo', fees:'480.000 €', fecha_cierre:'31/08/2026' },
+  { id:'PRY-2508', nombre:'Propuesta servicios Centro Comercial Parquesur', tipo:'Propuesta de servicios', linea:'Retail', delegacion:'Madrid', empresa:'Inversiones Familiar Velada', activo:'Centro Comercial Parquesur', demanda:'—', oferta:'—', creado_por:'GOMEZ Ignacio', fecha_mod:'05/03/2026', estado:'Standby', fees:'175.000 €', fecha_cierre:'30/06/2026' },
+  { id:'PRY-2509', nombre:'Valoración Edificio Diagonal 95 Barcelona', tipo:'Valoración', linea:'Oficinas', delegacion:'Barcelona', empresa:'FREO Investments Spain SL', activo:'Edificio Diagonal 95', demanda:'—', oferta:'—', creado_por:'García Marta', fecha_mod:'01/03/2026', estado:'Adjudicado', fees:'60.000 €', fecha_cierre:'28/02/2026' },
+  { id:'PRY-2510', nombre:'Mandato búsqueda Oracle Spain expansión', tipo:'Mandato comercial', linea:'Oficinas', delegacion:'Madrid', empresa:'Oracle Spain SL', activo:'—', demanda:'DEM-0091', oferta:'—', creado_por:'Sierra Alvaro', fecha_mod:'25/02/2026', estado:'Activo', fees:'390.000 €', fecha_cierre:'31/10/2026' },
 ]
 
 const TIPO_TAG = {
@@ -38,6 +38,7 @@ const COLS = [
   { id:'nombre',       label:'Nombre del proyecto', required:true, type:'text',   getValue:r=>r.nombre },
   { id:'tipo',         label:'Tipo de proyecto',                  type:'enum',   getValue:r=>r.tipo },
   { id:'linea',        label:'Línea de negocio',                  type:'enum',   getValue:r=>r.linea },
+  { id:'delegacion',   label:'Delegación',                        type:'enum',   getValue:r=>r.delegacion },
   { id:'empresa',      label:'Empresa',                           type:'text',   getValue:r=>r.empresa },
   { id:'activo',       label:'Activo',                            type:'text',   getValue:r=>r.activo },
   { id:'demanda',      label:'Demanda',                           type:'text',   getValue:r=>r.demanda },
@@ -50,13 +51,13 @@ const COLS = [
   { id:'_act',         label:'',                   sys:true },
 ]
 
-const DEFAULT_VIS = new Set(['_chk','id','nombre','tipo','linea','empresa','activo','creado_por','estado','fees','fecha_cierre','_act'])
+const DEFAULT_VIS = new Set(['_chk','id','nombre','tipo','linea','delegacion','empresa','activo','creado_por','estado','fees','fecha_cierre','_act'])
 
 export default function PropuestasList() {
   const { navigate } = useNav()
   const [query,   setQuery]   = useState('')
   const [showAdv, setShowAdv] = useState(false)
-  const [af, setAf] = useState({ tipo:'', linea:'', estado:'', creado_por:'' })
+  const [af, setAf] = useState({ tipo:'', linea:'', delegacion:'', estado:'', creado_por:'' })
   const [vis, setVis] = useVisibleCols('propuestas', COLS, DEFAULT_VIS)
 
   const advCount = Object.values(af).filter(Boolean).length
@@ -66,6 +67,7 @@ export default function PropuestasList() {
     if (q && !p.nombre.toLowerCase().includes(q) && !p.empresa.toLowerCase().includes(q) && !p.id.toLowerCase().includes(q)) return false
     if (af.tipo       && p.tipo !== af.tipo) return false
     if (af.linea      && p.linea !== af.linea) return false
+    if (af.delegacion && p.delegacion !== af.delegacion) return false
     if (af.estado     && p.estado !== af.estado) return false
     if (af.creado_por && p.creado_por !== af.creado_por) return false
     return true
@@ -89,6 +91,7 @@ export default function PropuestasList() {
     nombre:       <td key="nombre"><div className="asset-link" style={{fontWeight:600,maxWidth:260}}>{p.nombre}</div></td>,
     tipo:         <td key="tipo"><span className={`tag ${TIPO_TAG[p.tipo]||'tag-gray'}`} style={{fontSize:9,whiteSpace:'nowrap'}}>{p.tipo}</span></td>,
     linea:        <td key="linea" style={{fontSize:11,color:'var(--text2)',whiteSpace:'nowrap'}}>{p.linea}</td>,
+    delegacion:   <td key="delegacion"><span className="tag tag-teal" style={{fontSize:9}}>{p.delegacion}</span></td>,
     empresa:      <td key="empresa"><div style={{fontSize:12,fontWeight:600,color:'var(--accent)',cursor:'pointer'}}>{p.empresa}</div></td>,
     activo:       <td key="activo" style={{fontSize:11}}>{p.activo!=='—'?<span className="asset-link" style={{fontSize:11}} onClick={e=>{e.stopPropagation();navigate('ficha-activo')}}>{p.activo}</span>:<span style={{color:'var(--text4)'}}>—</span>}</td>,
     demanda:      <td key="demanda" style={{fontSize:11}}>{p.demanda!=='—'?<span className="asset-link" style={{fontSize:11}} onClick={e=>{e.stopPropagation();navigate('ficha-demanda')}}>{p.demanda}</span>:<span style={{color:'var(--text4)'}}>—</span>}</td>,
@@ -143,6 +146,12 @@ export default function PropuestasList() {
               <option>Industrial/Logística</option><option>Residencial</option>
             </select>
           </Field>
+          <Field label="Delegación">
+            <select className="fsel" value={af.delegacion} onChange={e=>setAf(p=>({...p,delegacion:e.target.value}))}>
+              <option value="">Todas</option>
+              <option>Madrid</option><option>Barcelona</option><option>Valencia</option><option>Málaga</option><option>Otros</option>
+            </select>
+          </Field>
           <Field label="Estado">
             <select className="fsel" value={af.estado} onChange={e=>setAf(p=>({...p,estado:e.target.value}))}>
               <option value="">Todos</option>
@@ -155,7 +164,7 @@ export default function PropuestasList() {
               <option>Sierra Alvaro</option><option>GOMEZ Ignacio</option><option>García Marta</option>
             </select>
           </Field>
-          {advCount>0&&<button onClick={()=>setAf({tipo:'',linea:'',estado:'',creado_por:''})} style={{fontSize:10,color:'var(--red)',background:'none',border:'none',cursor:'pointer',padding:'0 4px',fontFamily:'inherit',alignSelf:'flex-end',marginBottom:2}}>✕ Limpiar</button>}
+          {advCount>0&&<button onClick={()=>setAf({tipo:'',linea:'',delegacion:'',estado:'',creado_por:''})} style={{fontSize:10,color:'var(--red)',background:'none',border:'none',cursor:'pointer',padding:'0 4px',fontFamily:'inherit',alignSelf:'flex-end',marginBottom:2}}>✕ Limpiar</button>}
         </div>
       )}
 
