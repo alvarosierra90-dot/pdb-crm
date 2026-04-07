@@ -22,8 +22,8 @@
   --red-bd: #fca5a5;
 
   --gray:    #6b7280;
-  --gray-lt: #f5f5f7;
-  --gray-bd: #e5e5ea;
+  --gray-lt: #f8f8fa;
+  --gray-bd: #e8e8ed;
 
   --purple:    #7c3aed;
   --purple-lt: #f5f3ff;
@@ -42,10 +42,10 @@
   --text3: #6c6c72;
   --text4: #adadb8;
 
-  --bg:      #f5f5f7;
+  --bg:      #f8f8fa;
   --surface: #ffffff;
-  --border:  #e5e5ea;
-  --border2: #c7c7cc;
+  --border:  #e8e8ed;
+  --border2: #c8c8d0;
 
   --r:  10px;
   --r2: 14px;
@@ -353,8 +353,8 @@ nav {
 .ref-badge-oferta  { background: var(--green-lt); color: #15803d; border: 1px solid #86efac; padding: 2px 8px; border-radius: 5px; font-size: 9px; font-weight: 800; letter-spacing: .04em; }
 .ref-badge-neg     { background: var(--purple-lt); color: #5b21b6; border: 1px solid var(--purple-bd); padding: 2px 8px; border-radius: 5px; font-size: 9px; font-weight: 800; letter-spacing: .04em; }
 
-.ah-name  { font-size: 26px; font-weight: 800; letter-spacing: -.04em; color: var(--text); line-height: 1.15; }
-.ah-addr  { font-size: 13px; color: var(--text3); margin-top: 5px; line-height: 1.5; }
+.ah-name  { font-size: 26px; font-weight: 700; letter-spacing: -.03em; color: #1d1d1f; line-height: 1.15; }
+.ah-addr  { font-size: 13px; font-weight: 400; color: #6e6e73; margin-top: 5px; line-height: 1.5; }
 .ah-tags  { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
 
 /* ─────────────────────────────────────────
@@ -374,17 +374,17 @@ nav {
 }
 .ks-lbl {
   font-size: 10px;
-  font-weight: 700;
-  color: var(--text4);
+  font-weight: 500;
+  color: #8e8e93;
   text-transform: uppercase;
-  letter-spacing: .09em;
+  letter-spacing: .07em;
   margin-bottom: 6px;
 }
 .ks-val {
   font-size: 26px;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: -.05em;
+  font-weight: 700;
+  color: #1d1d1f;
+  letter-spacing: -.04em;
   line-height: 1;
 }
 .ks-val.amber { color: var(--amber); }
@@ -432,10 +432,10 @@ nav {
 .rp-sec  { padding: 14px 16px; border-bottom: 1px solid var(--border); }
 .rp-lbl  {
   font-size: 10px;
-  font-weight: 800;
-  color: var(--text4);
+  font-weight: 600;
+  color: #8e8e93;
   text-transform: uppercase;
-  letter-spacing: .09em;
+  letter-spacing: .08em;
   margin-bottom: 10px;
 }
 
@@ -460,13 +460,13 @@ nav {
 }
 .kf-lbl {
   font-size: 9.5px;
-  color: var(--text4);
+  color: #8e8e93;
   margin-bottom: 4px;
-  font-weight: 700;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: .06em;
+  letter-spacing: .07em;
 }
-.kf-val   { font-size: 13px; font-weight: 700; color: var(--text); }
+.kf-val   { font-size: 13px; font-weight: 600; color: #1d1d1f; }
 .kf-val.amber { color: var(--amber); }
 .kf-sub   { font-size: 10px; color: var(--green); margin-top: 2px; }
 
