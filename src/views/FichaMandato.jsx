@@ -885,6 +885,9 @@ export default function FichaMandato() {
                   </div>
                 </div>
 
+              </div>
+            </div>
+          )}
 
           {/* ── TAB: INFORME DE GESTIÓN ── */}
           {tab==='informe' && (
@@ -1051,9 +1054,6 @@ export default function FichaMandato() {
                   </table>
                 </div>
 
-              </div>
-            </div>
-          )}
               </div>
             </div>
           )}
