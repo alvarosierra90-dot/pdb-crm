@@ -162,7 +162,7 @@ export default function PortfolioFicha() {
                 <table className="dtbl">
                   <thead><tr><th>Ref.</th><th>Activo</th><th>M²</th><th>Renta</th><th>Estado</th></tr></thead>
                   <tbody>
-                    <tr onClick={() => navigate('ficha-oferta')}><td className="dtbl-link mono">OLB001</td><td>P.E Avalon</td><td>698</td><td>10,5–14,5 €/m²</td><td><span className="tag tag-blue">En curso</span></td></tr>
+                    <tr onClick={() => navigate('ficha-oferta')}><td><span className="asset-link" style={{fontFamily:'var(--mono)'}}>OLB001</span></td><td>P.E Avalon</td><td>698</td><td>10,5–14,5 €/m²</td><td><span className="tag tag-blue">En curso</span></td></tr>
                   </tbody>
                 </table>
               </div>
