@@ -17,14 +17,16 @@ export default function Nav() {
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
         Paneles
       </div>
-      <div className={`nav-item ${isActive('actividades','ficha-actividad') ? 'active' : ''}`} onClick={() => navigate('actividades')}>
+      <div className="nav-item" style={{cursor:'default',opacity:.7,pointerEvents:'none'}}>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 8h10M3 4h10M3 12h6"/></svg>
-        Actividades <span className="nav-badge">10</span>
+        Actividades
       </div>
+      <div className={`nav-sub ${isActive('actividades','ficha-actividad') ? 'active' : ''}`} style={isActive('actividades','ficha-actividad')?{color:'var(--accent)',fontWeight:600}:{}} onClick={() => navigate('actividades')}>Actividad <span className="nav-badge">10</span></div>
       <div className="nav-sub" onClick={() => navigate('tareas')}>Tareas</div>
       <div className="nav-sub" onClick={() => navigate('visitas')}>Visitas</div>
       <div className="nav-sub" onClick={() => navigate('actividades')}>Presentaciones</div>
       <div className={`nav-sub ${isActive('mis-clientes') ? 'active' : ''}`} style={isActive('mis-clientes')?{color:'var(--accent)',fontWeight:600}:{}} onClick={() => navigate('mis-clientes')}>⭐ Mis Clientes</div>
+      <div className={`nav-sub ${isActive('propuestas','ficha-propuesta') ? 'active' : ''}`} style={isActive('propuestas','ficha-propuesta')?{color:'var(--accent)',fontWeight:600}:{}} onClick={() => navigate('propuestas')}>📋 Propuestas / Proyectos</div>
 
       <div className="nav-section">Clientes</div>
       <div className={`nav-item ${isActive('cuentas') ? 'active' : ''}`} onClick={() => navigate('cuentas')}>
