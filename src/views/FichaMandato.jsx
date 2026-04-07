@@ -865,15 +865,36 @@ export default function FichaMandato() {
                   </div>
                 )}
 
+
+                {/* Trazabilidad */}
+                <div className="info-block" style={{marginTop:12}}>
+                  <div className="ib-title">TRAZABILIDAD · MÓDULOS RELACIONADOS</div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
+                    {[
+                      {label:'Cuenta',val:M.cuenta,ico:'🏢',nav:'portfolios'},
+                      {label:'Activos',val:`${M.activos.length} activo`,ico:'🏗',nav:'ficha-activo'},
+                      {label:'Ofertas',val:`${M.ofertas_activas} activas`,ico:'📋',nav:'ficha-oferta'},
+                      {label:'Actividades',val:`${M.actividades} registradas`,ico:'📝',nav:'actividades'},
+                    ].map(t=>(
+                      <div key={t.label} style={{background:'var(--gray-lt)',borderRadius:'var(--r)',padding:'10px 12px',cursor:'pointer',border:'1px solid var(--border)'}} onClick={()=>navigate(t.nav)}>
+                        <div style={{fontSize:18,marginBottom:4}}>{t.ico}</div>
+                        <div style={{fontSize:9,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>{t.label}</div>
+                        <div style={{fontSize:12,fontWeight:600,color:'var(--accent)',marginTop:2}}>{t.val} ↗</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+
           {/* ── TAB: INFORME DE GESTIÓN ── */}
           {tab==='informe' && (
             <div className="tab-content active">
               <div className="info-pad">
 
-                {/* Cabecera del informe */}
+                {/* Cabecera */}
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
                   <div>
-                    <div style={{fontSize:11,color:'var(--text3)',marginBottom:2}}>Informe generado automáticamente desde la PDB · Mandato {M.id} · {M.activos[0].nombre}</div>
+                    <div style={{fontSize:11,color:'var(--text3)',marginBottom:2}}>Informe generado automáticamente · Mandato {M.id} · {M.activos[0].nombre}</div>
                     <div style={{fontSize:10,color:'var(--text4)'}}>Zona: {M.zona} · Actualizado: {new Date().toLocaleDateString('es-ES')}</div>
                   </div>
                   <button className="ab-btn save" style={{gap:6,fontSize:12,padding:'8px 18px'}} onClick={exportarPPT}>
@@ -881,7 +902,7 @@ export default function FichaMandato() {
                   </button>
                 </div>
 
-                {/* ── Bloque 1: Activos comparables ── */}
+                {/* Bloque 1: Activos comparables */}
                 <div className="info-block" style={{marginBottom:14}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
                     <div>
@@ -891,11 +912,9 @@ export default function FichaMandato() {
                     <span className="tag tag-blue">{COMPARABLES.length} activos</span>
                   </div>
                   <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                    <thead>
-                      <tr>{['Referencia','Nombre del activo','SBA (m²)','Renta €/m²/mes','Ocupación','Estado'].map(h=>(
-                        <th key={h} style={{padding:'7px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
-                      ))}</tr>
-                    </thead>
+                    <thead><tr>{['Referencia','Nombre del activo','SBA (m²)','Renta €/m²/mes','Ocupación','Estado'].map(h=>(
+                      <th key={h} style={{padding:'7px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                    ))}</tr></thead>
                     <tbody>
                       {COMPARABLES.map((c,i)=>(
                         <tr key={c.ref} style={{borderBottom:'1px solid var(--border)',background:i%2===0?'#fff':'var(--gray-lt)'}}>
@@ -915,19 +934,17 @@ export default function FichaMandato() {
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot>
-                      <tr style={{borderTop:'2px solid var(--border)',background:'var(--gray-lt)'}}>
-                        <td colSpan={2} style={{padding:'7px 12px',fontWeight:700,fontSize:10}}>MEDIA ZONA {M.zona}</td>
-                        <td style={{padding:'7px 12px',fontWeight:700}}>{Math.round(COMPARABLES.reduce((s,c)=>s+c.sba,0)/COMPARABLES.length).toLocaleString()} m²</td>
-                        <td style={{padding:'7px 12px',fontWeight:700,color:'var(--accent)'}}>{(COMPARABLES.reduce((s,c)=>s+c.renta,0)/COMPARABLES.length).toFixed(1)} €</td>
-                        <td style={{padding:'7px 12px',fontWeight:700}}>{Math.round(COMPARABLES.reduce((s,c)=>s+c.ocup,0)/COMPARABLES.length)}%</td>
-                        <td/>
-                      </tr>
-                    </tfoot>
+                    <tfoot><tr style={{borderTop:'2px solid var(--border)',background:'var(--gray-lt)'}}>
+                      <td colSpan={2} style={{padding:'7px 12px',fontWeight:700,fontSize:10}}>MEDIA ZONA {M.zona}</td>
+                      <td style={{padding:'7px 12px',fontWeight:700}}>{Math.round(COMPARABLES.reduce((s,c)=>s+c.sba,0)/COMPARABLES.length).toLocaleString()} m²</td>
+                      <td style={{padding:'7px 12px',fontWeight:700,color:'var(--accent)'}}>{(COMPARABLES.reduce((s,c)=>s+c.renta,0)/COMPARABLES.length).toFixed(1)} €</td>
+                      <td style={{padding:'7px 12px',fontWeight:700}}>{Math.round(COMPARABLES.reduce((s,c)=>s+c.ocup,0)/COMPARABLES.length)}%</td>
+                      <td/>
+                    </tr></tfoot>
                   </table>
                 </div>
 
-                {/* ── Bloque 2: Situación del mercado ── */}
+                {/* Bloque 2: Situación del mercado */}
                 <div className="info-block" style={{marginBottom:14}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
                     <div>
@@ -943,11 +960,9 @@ export default function FichaMandato() {
                     </div>
                   </div>
                   <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                    <thead>
-                      <tr>{['Fecha','Activo','Arrendatario','Superficie','Renta €/m²/mes','Plazo','Consultora'].map(h=>(
-                        <th key={h} style={{padding:'7px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
-                      ))}</tr>
-                    </thead>
+                    <thead><tr>{['Fecha','Activo','Arrendatario','Superficie','Renta €/m²/mes','Plazo','Consultora'].map(h=>(
+                      <th key={h} style={{padding:'7px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                    ))}</tr></thead>
                     <tbody>
                       {MERCADO_OPS.map((o,i)=>(
                         <tr key={i} style={{borderBottom:'1px solid var(--border)',background:i%2===0?'#fff':'var(--gray-lt)'}}>
@@ -957,16 +972,14 @@ export default function FichaMandato() {
                           <td style={{padding:'8px 12px',fontWeight:600}}>{o.m2.toLocaleString()} m²</td>
                           <td style={{padding:'8px 12px',fontWeight:600,color:'var(--green)'}}>{o.renta} €</td>
                           <td style={{padding:'8px 12px',color:'var(--text3)'}}>{o.plazo}</td>
-                          <td style={{padding:'8px 12px'}}>
-                            <span style={{fontSize:10,fontWeight:600,color:o.consultora==='Savills'?'var(--accent)':'var(--text3)'}}>{o.consultora}</span>
-                          </td>
+                          <td style={{padding:'8px 12px'}}><span style={{fontSize:10,fontWeight:600,color:o.consultora==='Savills'?'var(--accent)':'var(--text3)'}}>{o.consultora}</span></td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
 
-                {/* ── Bloque 3: Visitas realizadas ── */}
+                {/* Bloque 3: Visitas realizadas */}
                 <div className="info-block" style={{marginBottom:14}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
                     <div>
@@ -982,11 +995,9 @@ export default function FichaMandato() {
                     </div>
                   </div>
                   <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                    <thead>
-                      <tr>{['ID','Fecha','Cuenta','Demanda','Tipo','Estado','Interés','Prob. KF'].map(h=>(
-                        <th key={h} style={{padding:'7px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
-                      ))}</tr>
-                    </thead>
+                    <thead><tr>{['ID','Fecha','Cuenta','Demanda','Tipo','Estado','Interés','Prob. KF'].map(h=>(
+                      <th key={h} style={{padding:'7px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                    ))}</tr></thead>
                     <tbody>
                       {VISS.map((v,i)=>(
                         <tr key={v.id} style={{borderBottom:'1px solid var(--border)',background:i%2===0?'#fff':'var(--gray-lt)'}}>
@@ -1004,7 +1015,7 @@ export default function FichaMandato() {
                   </table>
                 </div>
 
-                {/* ── Bloque 4: Presentaciones a compañías ── */}
+                {/* Bloque 4: Presentaciones */}
                 <div className="info-block">
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
                     <div>
@@ -1013,18 +1024,16 @@ export default function FichaMandato() {
                     </div>
                     <div style={{display:'flex',gap:12,alignItems:'center'}}>
                       <div style={{textAlign:'right'}}>
-                        <div style={{fontSize:10,color:'var(--text4)'}}>En negociación</div>
+                        <div style={{fontSize:10,color:'var(--text4)'}}>En negociación / Firmado</div>
                         <div style={{fontSize:14,fontWeight:700,color:'var(--green)'}}>{PRESENTACIONES_INFORME.filter(p=>p.estado==='En negociación'||p.estado==='Firmado').length}</div>
                       </div>
                       <span className="tag tag-amber">{PRESENTACIONES_INFORME.length} presentaciones</span>
                     </div>
                   </div>
                   <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                    <thead>
-                      <tr>{['Fecha','Empresa','Contacto','Plantas','Superficie','Interés','Estado','Ref.'].map(h=>(
-                        <th key={h} style={{padding:'7px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
-                      ))}</tr>
-                    </thead>
+                    <thead><tr>{['Fecha','Empresa','Contacto','Plantas','Superficie','Interés','Estado','Ref.'].map(h=>(
+                      <th key={h} style={{padding:'7px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                    ))}</tr></thead>
                     <tbody>
                       {PRESENTACIONES_INFORME.map((p,i)=>(
                         <tr key={i} style={{borderBottom:'1px solid var(--border)',background:i%2===0?'#fff':'var(--gray-lt)'}}>
@@ -1045,25 +1054,6 @@ export default function FichaMandato() {
               </div>
             </div>
           )}
-
-                {/* Trazabilidad */}
-                <div className="info-block" style={{marginTop:12}}>
-                  <div className="ib-title">TRAZABILIDAD · MÓDULOS RELACIONADOS</div>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
-                    {[
-                      {label:'Cuenta',val:M.cuenta,ico:'🏢',nav:'portfolios'},
-                      {label:'Activos',val:`${M.activos.length} activo`,ico:'🏗',nav:'ficha-activo'},
-                      {label:'Ofertas',val:`${M.ofertas_activas} activas`,ico:'📋',nav:'ficha-oferta'},
-                      {label:'Actividades',val:`${M.actividades} registradas`,ico:'📝',nav:'actividades'},
-                    ].map(t=>(
-                      <div key={t.label} style={{background:'var(--gray-lt)',borderRadius:'var(--r)',padding:'10px 12px',cursor:'pointer',border:'1px solid var(--border)'}} onClick={()=>navigate(t.nav)}>
-                        <div style={{fontSize:18,marginBottom:4}}>{t.ico}</div>
-                        <div style={{fontSize:9,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>{t.label}</div>
-                        <div style={{fontSize:12,fontWeight:600,color:'var(--accent)',marginTop:2}}>{t.val} ↗</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           )}
