@@ -22,8 +22,8 @@
   --red-bd: #fca5a5;
 
   --gray:    #6b7280;
-  --gray-lt: #f7f7f9;
-  --gray-bd: #e0e0e8;
+  --gray-lt: #f5f2ed;
+  --gray-bd: #ddd8d0;
 
   --purple:    #7c3aed;
   --purple-lt: #f5f3ff;
@@ -42,10 +42,10 @@
   --text3: #6c6c72;
   --text4: #adadb8;
 
-  --bg:      #f2f2f7;
+  --bg:      #faf8f5;
   --surface: #ffffff;
-  --border:  #e0e0e8;
-  --border2: #c8c8d0;
+  --border:  #ede8e0;
+  --border2: #d4cdc2;
 
   --r:  10px;
   --r2: 14px;
@@ -203,16 +203,16 @@ nav {
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  padding: 0 24px;
+  padding: 0 28px;
   gap: 8px;
   flex-shrink: 0;
   box-shadow: 0 1px 0 var(--border);
 }
-.bc { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); }
+.bc { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text3); }
 .bc-link { color: var(--accent); cursor: pointer; font-weight: 500; }
 .bc-link:hover { text-decoration: underline; }
-.bc-sep { color: var(--border2); }
-.bc-cur { color: var(--text); font-weight: 600; }
+.bc-sep { color: var(--border2); font-size: 14px; }
+.bc-cur { color: var(--text); font-weight: 700; font-size: 13.5px; }
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 
 /* ─────────────────────────────────────────
@@ -329,34 +329,43 @@ nav {
 .ah {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 20px 24px;
+  padding: 24px 28px 20px;
   flex-shrink: 0;
+  position: relative;
+}
+.ah::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #f59e0b, #f97316, transparent);
+  opacity: .5;
 }
 .ah-ico {
-  width: 48px; height: 48px;
-  border-radius: 12px;
-  background: #1e3a8a;
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px; flex-shrink: 0;
-  box-shadow: var(--shadow-sm);
+  font-size: 24px; flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(249,115,22,.3);
 }
 .ah-ref {
-  font-size: 10px;
+  font-size: 10.5px;
   font-family: var(--mono);
   color: var(--text4);
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
   flex-wrap: wrap;
 }
-.ref-badge-activo { background: #eef5ff; color: #0055b3; border: 1px solid #b8d4ff; padding: 2px 7px; border-radius: 5px; font-size: 9px; font-weight: 800; letter-spacing: .04em; }
-.ref-badge-oferta  { background: var(--green-lt); color: #15803d; border: 1px solid #86efac; padding: 2px 7px; border-radius: 5px; font-size: 9px; font-weight: 800; letter-spacing: .04em; }
-.ref-badge-neg     { background: var(--purple-lt); color: #5b21b6; border: 1px solid var(--purple-bd); padding: 2px 7px; border-radius: 5px; font-size: 9px; font-weight: 800; letter-spacing: .04em; }
+.ref-badge-activo { background: #eef5ff; color: #0055b3; border: 1px solid #b8d4ff; padding: 2px 8px; border-radius: 5px; font-size: 9px; font-weight: 800; letter-spacing: .04em; }
+.ref-badge-oferta  { background: var(--green-lt); color: #15803d; border: 1px solid #86efac; padding: 2px 8px; border-radius: 5px; font-size: 9px; font-weight: 800; letter-spacing: .04em; }
+.ref-badge-neg     { background: var(--purple-lt); color: #5b21b6; border: 1px solid var(--purple-bd); padding: 2px 8px; border-radius: 5px; font-size: 9px; font-weight: 800; letter-spacing: .04em; }
 
-.ah-name  { font-size: 22px; font-weight: 700; letter-spacing: -.04em; color: var(--text); line-height: 1.2; }
-.ah-addr  { font-size: 12px; color: var(--text3); margin-top: 4px; line-height: 1.5; }
-.ah-tags  { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.ah-name  { font-size: 26px; font-weight: 800; letter-spacing: -.04em; color: var(--text); line-height: 1.15; }
+.ah-addr  { font-size: 13px; color: var(--text3); margin-top: 5px; line-height: 1.5; }
+.ah-tags  { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
 
 /* ─────────────────────────────────────────
    KPI STRIP
@@ -366,31 +375,26 @@ nav {
   gap: 1px;
   background: var(--border);
   flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
 }
 .ks {
-  background: var(--surface);
-  padding: 14px 24px;
+  background: #fffdf9;
+  padding: 16px 24px;
   position: relative;
-}
-.ks::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 24px; right: 24px;
-  height: 0;
 }
 .ks-lbl {
   font-size: 10px;
   font-weight: 700;
   color: var(--text4);
   text-transform: uppercase;
-  letter-spacing: .08em;
-  margin-bottom: 5px;
+  letter-spacing: .09em;
+  margin-bottom: 6px;
 }
 .ks-val {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   color: var(--text);
-  letter-spacing: -.04em;
+  letter-spacing: -.05em;
   line-height: 1;
 }
 .ks-val.amber { color: var(--amber); }
