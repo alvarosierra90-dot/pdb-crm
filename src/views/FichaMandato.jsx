@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import PptxGenJS from 'pptxgenjs'
 
 // ── Datos del mandato MAN-2501 ──
 const M = {
@@ -81,6 +82,32 @@ const TIPO_TAG= {Email:'tag-blue',Llamada:'tag-green','Reunión':'tag-purple',Ta
 const TIPO_ICO= {Email:'📧',Llamada:'📞','Reunión':'🤝',Tarea:'✅'}
 const ACT_EST = {Abierto:'tag-amber',Finalizado:'tag-gray','En curso':'tag-blue'}
 
+// ── Informe de gestión: datos vinculados al activo y zona ──
+const COMPARABLES = [
+  {ref:'MAD-OF-00156',nombre:'Torre Europa',zona:'M-30 · Madrid',uso:'Oficinas',sba:6200,renta:11.2,ocup:92,estado:'Comercializado'},
+  {ref:'MAD-OF-00178',nombre:'Edificio Conata II',zona:'M-30 · Madrid',uso:'Oficinas',sba:3800,renta:10.8,ocup:85,estado:'Disponible'},
+  {ref:'MAD-OF-00201',nombre:'Business Park M-30',zona:'M-30 · Madrid',uso:'Oficinas',sba:5100,renta:12.0,ocup:96,estado:'Comercializado'},
+  {ref:'MAD-OF-00214',nombre:'Parque Empresarial Omega',zona:'M-30 · Madrid',uso:'Oficinas',sba:4400,renta:10.0,ocup:78,estado:'Disponible'},
+]
+
+const MERCADO_OPS = [
+  {fecha:'01/03/2026',activo:'Torre Europa',arrendatario:'Repsol SA',m2:2100,renta:11.5,plazo:'5 años',consultora:'Savills'},
+  {fecha:'15/01/2026',activo:'Edificio Conata II',arrendatario:'Mapfre SL',m2:1800,renta:10.9,plazo:'7 años',consultora:'CBRE'},
+  {fecha:'10/12/2025',activo:'Business Park M-30 B',arrendatario:'Endesa SA',m2:3200,renta:12.2,plazo:'10 años',consultora:'JLL'},
+  {fecha:'22/10/2025',activo:'Parque Omega P2',arrendatario:'Telefónica SA',m2:1500,renta:10.5,plazo:'5 años',consultora:'Savills'},
+]
+
+const PRESENTACIONES_INFORME = [
+  {fecha:'15/03/2026',empresa:'Empresa XYZ SA',contacto:'Ana Gómez',plantas:'P4+P5',m2:4050,interes:'Muy alto',estado:'En negociación',ref:'NEG-0044'},
+  {fecha:'01/02/2026',empresa:'Oracle Spain SL',contacto:'Carlos Méndez',plantas:'P4',m2:1500,interes:'Alto',estado:'Firmado',ref:'TRX-2501'},
+  {fecha:'10/01/2026',empresa:'Pharma Group Spain',contacto:'Javier Ruiz',plantas:'P5',m2:2550,interes:'Medio',estado:'Descartado',ref:'DEM-0037'},
+  {fecha:'05/12/2025',empresa:'Generali Real Estate',contacto:'Marta Solá',plantas:'P4+P5',m2:4050,interes:'Bajo',estado:'Sin respuesta',ref:'DEM-0039'},
+]
+
+const INT_COLOR = {'Muy alto':'var(--green)','Alto':'var(--accent)','Medio':'var(--amber)','Bajo':'var(--text4)'}
+const PRES_EST  = {'En negociación':'tag-purple','Firmado':'tag-green','Descartado':'tag-red','Sin respuesta':'tag-gray'}
+const COMP_EST  = {'Disponible':'tag-amber','Comercializado':'tag-green'}
+
 // ── Cronograma helpers ──
 // Fechas reales en ms para calcular posiciones
 function parseES(s) {
@@ -110,6 +137,94 @@ export default function FichaMandato() {
     : M.dias_restantes <= 30 ? 'var(--red)'
     : M.dias_restantes <= 60 ? 'var(--amber)'
     : 'var(--green)'
+
+  const exportarPPT = async () => {
+    const pptx = new PptxGenJS()
+    pptx.layout = 'LAYOUT_WIDE'
+    pptx.title  = `Informe de gestión — ${M.id}`
+
+    const AZUL  = '0071e3'
+    const NEGRO = '1d1d1f'
+    const GRIS  = 'f8f8fa'
+    const BORDE = 'e8e8ed'
+
+    const addHeader = (slide, titulo, subtitulo) => {
+      slide.addShape(pptx.ShapeType.rect, { x:0, y:0, w:'100%', h:1.1, fill:{color:NEGRO} })
+      slide.addText(`${M.id}  ·  ${M.titulo}`, { x:0.4, y:0.08, w:8, h:0.35, fontSize:9, color:'ffffff', bold:false })
+      slide.addText(titulo, { x:0.4, y:0.38, w:12, h:0.55, fontSize:22, color:'ffffff', bold:true })
+      if (subtitulo) slide.addText(subtitulo, { x:0.4, y:0.88, w:12, h:0.22, fontSize:10, color:'aaaaaa' })
+    }
+
+    // ── Slide 1: Portada ──
+    const s0 = pptx.addSlide()
+    s0.addShape(pptx.ShapeType.rect, { x:0, y:0, w:'100%', h:'100%', fill:{color:NEGRO} })
+    s0.addShape(pptx.ShapeType.rect, { x:0, y:3.5, w:'100%', h:0.06, fill:{color:AZUL} })
+    s0.addText('INFORME DE GESTIÓN', { x:0.6, y:1.2, w:12, h:0.6, fontSize:13, color:'aaaaaa', bold:true, charSpacing:4 })
+    s0.addText(M.titulo, { x:0.6, y:1.8, w:12, h:1.2, fontSize:30, color:'ffffff', bold:true })
+    s0.addText(`Mandato: ${M.id}  ·  Activo: ${M.activos[0].nombre}  ·  Zona: ${M.zona}`, { x:0.6, y:3.1, w:12, h:0.35, fontSize:11, color:'888888' })
+    s0.addText(`Generado: ${new Date().toLocaleDateString('es-ES')}  ·  Savills España`, { x:0.6, y:4.5, w:12, h:0.3, fontSize:9, color:'555555' })
+
+    // ── Slide 2: Activos comparables ──
+    const s1 = pptx.addSlide()
+    addHeader(s1, 'Activos comparables por la zona', `Zona de referencia: ${M.zona}`)
+    const rows1 = [
+      [{ text:'Referencia', options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Activo',     options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'SBA (m²)',   options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Renta (€/m²/mes)', options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Ocupación',  options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Estado',     options:{bold:true,fill:{color:NEGRO},color:'ffffff'} }],
+      ...COMPARABLES.map(c => [c.ref, c.nombre, c.sba.toLocaleString(), `${c.renta} €`, `${c.ocup}%`, c.estado]),
+    ]
+    s1.addTable(rows1, { x:0.4, y:1.3, w:12.2, fontSize:10, border:{type:'solid',color:BORDE}, align:'left', autoPage:false })
+
+    // ── Slide 3: Situación del mercado ──
+    const s2 = pptx.addSlide()
+    addHeader(s2, 'Situación actual del mercado', `Operaciones cerradas en ${M.zona} — Acumulado del año`)
+    const rows2 = [
+      [{ text:'Fecha',       options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Activo',      options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Arrendatario',options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Superficie',  options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Renta (€/m²/mes)', options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Plazo',       options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Consultora',  options:{bold:true,fill:{color:NEGRO},color:'ffffff'} }],
+      ...MERCADO_OPS.map(o => [o.fecha, o.activo, o.arrendatario, `${o.m2.toLocaleString()} m²`, `${o.renta} €`, o.plazo, o.consultora]),
+    ]
+    s2.addTable(rows2, { x:0.4, y:1.3, w:12.2, fontSize:10, border:{type:'solid',color:BORDE}, align:'left', autoPage:false })
+
+    // ── Slide 4: Visitas al activo ──
+    const s3 = pptx.addSlide()
+    addHeader(s3, 'Visitas realizadas al activo', `${VISS.length} visitas registradas · ${M.activos[0].nombre}`)
+    const rows3 = [
+      [{ text:'ID',         options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Fecha',      options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Cuenta',     options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Tipo',       options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Estado',     options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Interés',    options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Prob. KF',   options:{bold:true,fill:{color:NEGRO},color:'ffffff'} }],
+      ...VISS.map(v => [v.id, v.fecha, v.cuenta, v.tipo, v.estado, v.interes, `${v.prob}%`]),
+    ]
+    s3.addTable(rows3, { x:0.4, y:1.3, w:12.2, fontSize:10, border:{type:'solid',color:BORDE}, align:'left', autoPage:false })
+
+    // ── Slide 5: Presentaciones a compañías ──
+    const s4 = pptx.addSlide()
+    addHeader(s4, 'Presentaciones del activo a compañías', `${PRESENTACIONES_INFORME.length} presentaciones realizadas · ${M.activos[0].nombre}`)
+    const rows4 = [
+      [{ text:'Fecha',    options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Empresa',  options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Contacto', options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Plantas',  options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Sup. (m²)',options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Interés',  options:{bold:true,fill:{color:NEGRO},color:'ffffff'} },
+       { text:'Estado',   options:{bold:true,fill:{color:NEGRO},color:'ffffff'} }],
+      ...PRESENTACIONES_INFORME.map(p => [p.fecha, p.empresa, p.contacto, p.plantas, `${p.m2.toLocaleString()} m²`, p.interes, p.estado]),
+    ]
+    s4.addTable(rows4, { x:0.4, y:1.3, w:12.2, fontSize:10, border:{type:'solid',color:BORDE}, align:'left', autoPage:false })
+
+    await pptx.writeFile({ fileName: `Informe_Gestion_${M.id}_${new Date().toISOString().slice(0,10)}.pptx` })
+  }
 
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
@@ -163,7 +278,7 @@ export default function FichaMandato() {
 
           {/* Tabs */}
           <div className="tabs">
-            {[['info','Información'],['cronograma','Cronograma'],['alertas',`Alertas (${ALERTAS.filter(a=>a.activa).length})`],['activos','Activos vinculados'],['actividades',`Actividades (${ACTS.length})`],['transacciones',`Transacciones (${TRANS.length})`],['visitas',`Visitas (${VISS.length})`],['docs',`Documentación (${DOCS.length})`],['equipo','Equipo']].map(([k,l])=>(
+            {[['info','Información'],['cronograma','Cronograma'],['alertas',`Alertas (${ALERTAS.filter(a=>a.activa).length})`],['activos','Activos vinculados'],['actividades',`Actividades (${ACTS.length})`],['transacciones',`Transacciones (${TRANS.length})`],['visitas',`Visitas (${VISS.length})`],['docs',`Documentación (${DOCS.length})`],['equipo','Equipo'],['informe','📊 Informe de gestión']].map(([k,l])=>(
               <div key={k} className={`tab ${tab===k?'active':''}`} onClick={()=>setTab(k)}>{l}</div>
             ))}
           </div>
@@ -749,6 +864,187 @@ export default function FichaMandato() {
                     </table>
                   </div>
                 )}
+
+          {/* ── TAB: INFORME DE GESTIÓN ── */}
+          {tab==='informe' && (
+            <div className="tab-content active">
+              <div className="info-pad">
+
+                {/* Cabecera del informe */}
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+                  <div>
+                    <div style={{fontSize:11,color:'var(--text3)',marginBottom:2}}>Informe generado automáticamente desde la PDB · Mandato {M.id} · {M.activos[0].nombre}</div>
+                    <div style={{fontSize:10,color:'var(--text4)'}}>Zona: {M.zona} · Actualizado: {new Date().toLocaleDateString('es-ES')}</div>
+                  </div>
+                  <button className="ab-btn save" style={{gap:6,fontSize:12,padding:'8px 18px'}} onClick={exportarPPT}>
+                    <span style={{fontSize:14}}>📊</span> Exportar informe (PPT)
+                  </button>
+                </div>
+
+                {/* ── Bloque 1: Activos comparables ── */}
+                <div className="info-block" style={{marginBottom:14}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                    <div>
+                      <div className="ib-title" style={{marginBottom:2}}>ACTIVOS COMPARABLES POR LA ZONA</div>
+                      <div style={{fontSize:10,color:'var(--text3)'}}>Activos de oficinas en {M.zona} vinculados a la zona del activo del mandato</div>
+                    </div>
+                    <span className="tag tag-blue">{COMPARABLES.length} activos</span>
+                  </div>
+                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                    <thead>
+                      <tr>{['Referencia','Nombre del activo','SBA (m²)','Renta €/m²/mes','Ocupación','Estado'].map(h=>(
+                        <th key={h} style={{padding:'7px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                      ))}</tr>
+                    </thead>
+                    <tbody>
+                      {COMPARABLES.map((c,i)=>(
+                        <tr key={c.ref} style={{borderBottom:'1px solid var(--border)',background:i%2===0?'#fff':'var(--gray-lt)'}}>
+                          <td style={{padding:'8px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{c.ref}</span></td>
+                          <td style={{padding:'8px 12px',fontWeight:500}}>{c.nombre}</td>
+                          <td style={{padding:'8px 12px',fontWeight:600}}>{c.sba.toLocaleString()} m²</td>
+                          <td style={{padding:'8px 12px',fontWeight:600,color:'var(--accent)'}}>{c.renta} €</td>
+                          <td style={{padding:'8px 12px'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:6}}>
+                              <div style={{width:50,height:4,borderRadius:2,background:'var(--border)'}}>
+                                <div style={{width:`${c.ocup}%`,height:'100%',borderRadius:2,background:c.ocup>=90?'var(--green)':c.ocup>=70?'var(--amber)':'var(--red)'}}/>
+                              </div>
+                              <span style={{fontSize:10,fontWeight:600}}>{c.ocup}%</span>
+                            </div>
+                          </td>
+                          <td style={{padding:'8px 12px'}}><span className={`tag ${COMP_EST[c.estado]||'tag-gray'}`}>{c.estado}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{borderTop:'2px solid var(--border)',background:'var(--gray-lt)'}}>
+                        <td colSpan={2} style={{padding:'7px 12px',fontWeight:700,fontSize:10}}>MEDIA ZONA {M.zona}</td>
+                        <td style={{padding:'7px 12px',fontWeight:700}}>{Math.round(COMPARABLES.reduce((s,c)=>s+c.sba,0)/COMPARABLES.length).toLocaleString()} m²</td>
+                        <td style={{padding:'7px 12px',fontWeight:700,color:'var(--accent)'}}>{(COMPARABLES.reduce((s,c)=>s+c.renta,0)/COMPARABLES.length).toFixed(1)} €</td>
+                        <td style={{padding:'7px 12px',fontWeight:700}}>{Math.round(COMPARABLES.reduce((s,c)=>s+c.ocup,0)/COMPARABLES.length)}%</td>
+                        <td/>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                {/* ── Bloque 2: Situación del mercado ── */}
+                <div className="info-block" style={{marginBottom:14}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                    <div>
+                      <div className="ib-title" style={{marginBottom:2}}>SITUACIÓN ACTUAL DEL MERCADO</div>
+                      <div style={{fontSize:10,color:'var(--text3)'}}>Operaciones cerradas en la zona del acumulado del año · Fuente: Arrendatarios PDB</div>
+                    </div>
+                    <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                      <div style={{textAlign:'right'}}>
+                        <div style={{fontSize:10,color:'var(--text4)'}}>Total absorbido</div>
+                        <div style={{fontSize:14,fontWeight:700,color:'var(--accent)'}}>{MERCADO_OPS.reduce((s,o)=>s+o.m2,0).toLocaleString()} m²</div>
+                      </div>
+                      <span className="tag tag-teal">{MERCADO_OPS.length} ops. cerradas</span>
+                    </div>
+                  </div>
+                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                    <thead>
+                      <tr>{['Fecha','Activo','Arrendatario','Superficie','Renta €/m²/mes','Plazo','Consultora'].map(h=>(
+                        <th key={h} style={{padding:'7px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                      ))}</tr>
+                    </thead>
+                    <tbody>
+                      {MERCADO_OPS.map((o,i)=>(
+                        <tr key={i} style={{borderBottom:'1px solid var(--border)',background:i%2===0?'#fff':'var(--gray-lt)'}}>
+                          <td style={{padding:'8px 12px',color:'var(--text3)',fontSize:10}}>{o.fecha}</td>
+                          <td style={{padding:'8px 12px',fontWeight:500}}>{o.activo}</td>
+                          <td style={{padding:'8px 12px',fontWeight:500,color:'var(--accent)'}}>{o.arrendatario}</td>
+                          <td style={{padding:'8px 12px',fontWeight:600}}>{o.m2.toLocaleString()} m²</td>
+                          <td style={{padding:'8px 12px',fontWeight:600,color:'var(--green)'}}>{o.renta} €</td>
+                          <td style={{padding:'8px 12px',color:'var(--text3)'}}>{o.plazo}</td>
+                          <td style={{padding:'8px 12px'}}>
+                            <span style={{fontSize:10,fontWeight:600,color:o.consultora==='Savills'?'var(--accent)':'var(--text3)'}}>{o.consultora}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* ── Bloque 3: Visitas realizadas ── */}
+                <div className="info-block" style={{marginBottom:14}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                    <div>
+                      <div className="ib-title" style={{marginBottom:2}}>VISITAS REALIZADAS AL ACTIVO</div>
+                      <div style={{fontSize:10,color:'var(--text3)'}}>Registro de todas las visitas vinculadas a {M.activos[0].nombre}</div>
+                    </div>
+                    <div style={{display:'flex',gap:12,alignItems:'center'}}>
+                      <div style={{textAlign:'right'}}>
+                        <div style={{fontSize:10,color:'var(--text4)'}}>Prob. media</div>
+                        <div style={{fontSize:14,fontWeight:700,color:'var(--purple)'}}>{Math.round(VISS.reduce((s,v)=>s+v.prob,0)/VISS.length)}%</div>
+                      </div>
+                      <span className="tag tag-purple">{VISS.length} visitas</span>
+                    </div>
+                  </div>
+                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                    <thead>
+                      <tr>{['ID','Fecha','Cuenta','Demanda','Tipo','Estado','Interés','Prob. KF'].map(h=>(
+                        <th key={h} style={{padding:'7px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                      ))}</tr>
+                    </thead>
+                    <tbody>
+                      {VISS.map((v,i)=>(
+                        <tr key={v.id} style={{borderBottom:'1px solid var(--border)',background:i%2===0?'#fff':'var(--gray-lt)'}}>
+                          <td style={{padding:'8px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{v.id}</span></td>
+                          <td style={{padding:'8px 12px',color:'var(--text3)',fontSize:10}}>{v.fecha}</td>
+                          <td style={{padding:'8px 12px',fontWeight:500}}>{v.cuenta}</td>
+                          <td style={{padding:'8px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{v.demanda}</span></td>
+                          <td style={{padding:'8px 12px'}}><span className="tag tag-teal">{v.tipo}</span></td>
+                          <td style={{padding:'8px 12px'}}><span className="tag tag-green">{v.estado}</span></td>
+                          <td style={{padding:'8px 12px',fontWeight:600,color:INT_COLOR[v.interes]||'var(--text)'}}>{v.interes}</td>
+                          <td style={{padding:'8px 12px',fontWeight:700,color:'var(--purple)'}}>{v.prob}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* ── Bloque 4: Presentaciones a compañías ── */}
+                <div className="info-block">
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                    <div>
+                      <div className="ib-title" style={{marginBottom:2}}>PRESENTACIONES DEL ACTIVO A COMPAÑÍAS</div>
+                      <div style={{fontSize:10,color:'var(--text3)'}}>Registro de todas las presentaciones comerciales realizadas sobre {M.activos[0].nombre}</div>
+                    </div>
+                    <div style={{display:'flex',gap:12,alignItems:'center'}}>
+                      <div style={{textAlign:'right'}}>
+                        <div style={{fontSize:10,color:'var(--text4)'}}>En negociación</div>
+                        <div style={{fontSize:14,fontWeight:700,color:'var(--green)'}}>{PRESENTACIONES_INFORME.filter(p=>p.estado==='En negociación'||p.estado==='Firmado').length}</div>
+                      </div>
+                      <span className="tag tag-amber">{PRESENTACIONES_INFORME.length} presentaciones</span>
+                    </div>
+                  </div>
+                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                    <thead>
+                      <tr>{['Fecha','Empresa','Contacto','Plantas','Superficie','Interés','Estado','Ref.'].map(h=>(
+                        <th key={h} style={{padding:'7px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                      ))}</tr>
+                    </thead>
+                    <tbody>
+                      {PRESENTACIONES_INFORME.map((p,i)=>(
+                        <tr key={i} style={{borderBottom:'1px solid var(--border)',background:i%2===0?'#fff':'var(--gray-lt)'}}>
+                          <td style={{padding:'8px 12px',color:'var(--text3)',fontSize:10}}>{p.fecha}</td>
+                          <td style={{padding:'8px 12px',fontWeight:600}}>{p.empresa}</td>
+                          <td style={{padding:'8px 12px',color:'var(--text3)'}}>{p.contacto}</td>
+                          <td style={{padding:'8px 12px',fontSize:10,color:'var(--text3)'}}>{p.plantas}</td>
+                          <td style={{padding:'8px 12px',fontWeight:600}}>{p.m2.toLocaleString()} m²</td>
+                          <td style={{padding:'8px 12px',fontWeight:600,color:INT_COLOR[p.interes]||'var(--text)'}}>{p.interes}</td>
+                          <td style={{padding:'8px 12px'}}><span className={`tag ${PRES_EST[p.estado]||'tag-gray'}`}>{p.estado}</span></td>
+                          <td style={{padding:'8px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{p.ref}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+              </div>
+            </div>
+          )}
 
                 {/* Trazabilidad */}
                 <div className="info-block" style={{marginTop:12}}>
