@@ -30,7 +30,7 @@ export default function Nav() {
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>
         Visitas
       </div>
-      <div className="nav-item" onClick={() => navigate('actividades')}>
+      <div className={`nav-item ${isActive('presentaciones','ficha-presentacion') ? 'active' : ''}`} onClick={() => navigate('presentaciones')}>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><path d="M9 11.5h5M11.5 9v5"/></svg>
         Presentaciones
       </div>
