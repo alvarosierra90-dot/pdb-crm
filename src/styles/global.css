@@ -42,7 +42,7 @@
   --text3: #6c6c72;
   --text4: #adadb8;
 
-  --bg:      #f8f8fa;
+  --bg:      #fbfbfd;
   --surface: #ffffff;
   --border:  #e8e8ed;
   --border2: #c8c8d0;
@@ -116,7 +116,20 @@ nav {
   text-transform: uppercase;
   letter-spacing: .1em;
   padding: 16px 20px 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
 }
+.nav-section:hover { color: #6e6e73; }
+.nav-section-arrow {
+  width: 12px; height: 12px;
+  color: #aeaeb2;
+  transition: transform .2s ease;
+  flex-shrink: 0;
+}
+.nav-section-arrow.collapsed { transform: rotate(-90deg); }
 
 .nav-item {
   display: flex;
@@ -213,14 +226,14 @@ nav {
 .bc-sep { color: var(--border2); font-size: 14px; }
 .bc-cur { color: #1d1d1f; font-weight: 600; font-size: 13px; }
 .bc-title {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: .09em;
+  letter-spacing: .06em;
   text-transform: uppercase;
   color: #ffffff;
   background: #1d1d1f;
-  padding: 5px 13px;
-  border-radius: 8px;
+  padding: 6px 16px;
+  border-radius: 9px;
   line-height: 1;
 }
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
