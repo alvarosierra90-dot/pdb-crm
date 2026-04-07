@@ -42,7 +42,7 @@ export default function Nav() {
         Activos
       </div>
       <div className={`nav-sub ${isActive('arrendatarios','ficha-arrendatario')?'active':''}`} style={isActive('arrendatarios','ficha-arrendatario')?{color:'var(--accent)',fontWeight:600}:{}} onClick={() => navigate('arrendatarios')}>Arrendatarios</div>
-      <div className="nav-sub" onClick={() => navigate('activos')}>Propietarios</div>
+      <div className={`nav-sub ${isActive('propietarios','ficha-propietario')?'active':''}`} style={isActive('propietarios','ficha-propietario')?{color:'var(--accent)',fontWeight:600}:{}} onClick={() => navigate('propietarios')}>Propietarios</div>
 
       <div className="nav-section">Comercialización</div>
       <div className={`nav-item ${isActive('demandas') ? 'active' : ''}`} onClick={() => navigate('demandas')}>

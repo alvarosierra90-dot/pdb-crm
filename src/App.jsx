@@ -28,8 +28,10 @@ import MisClientes from './views/MisClientes'
 import InteligenciaComercial from './views/InteligenciaComercial'
 import ArrendatariosList from './views/ArrendatariosList'
 import FichaArrendatario from './views/FichaArrendatario'
+import PropietariosList from './views/PropietariosList'
+import FichaPropietario from './views/FichaPropietario'
 
-const BUILT = ['activos','ficha-activo','ofertas','ficha-oferta','negociaciones','ficha-negociacion','portfolios','portfolio','demandas','ficha-demanda','actividades','ficha-actividad','visitas','ficha-visita','tareas','ficha-tarea','zonas','ficha-zona','usuarios','ficha-usuario','mandatos','ficha-mandato','mapas','mis-clientes','inteligencia-comercial','arrendatarios','ficha-arrendatario']
+const BUILT = ['activos','ficha-activo','ofertas','ficha-oferta','negociaciones','ficha-negociacion','portfolios','portfolio','demandas','ficha-demanda','actividades','ficha-actividad','visitas','ficha-visita','tareas','ficha-tarea','zonas','ficha-zona','usuarios','ficha-usuario','mandatos','ficha-mandato','mapas','mis-clientes','inteligencia-comercial','arrendatarios','ficha-arrendatario','propietarios','ficha-propietario']
 
 function Router() {
   const { view } = useNav()
@@ -59,6 +61,8 @@ function Router() {
       {view === 'inteligencia-comercial' && <InteligenciaComercial />}
       {view === 'arrendatarios' && <ArrendatariosList />}
       {view === 'ficha-arrendatario' && <FichaArrendatario />}
+      {view === 'propietarios' && <PropietariosList />}
+      {view === 'ficha-propietario' && <FichaPropietario />}
       {view === 'zonas' && <ZonasList />}
       {view === 'ficha-zona' && <FichaZona />}
       {view === 'usuarios' && <UsuariosList />}
