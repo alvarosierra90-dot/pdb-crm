@@ -137,12 +137,16 @@ export default function Nav() {
       <div className="nav-section" onClick={() => toggle('int')}>
         Inteligencia <ChevronDown collapsed={collapsed.int} />
       </div>
-      {open('int') && (
+      {open('int') && <>
         <div className={`nav-item ${isActive('inteligencia-comercial') ? 'active' : ''}`} onClick={() => navigate('inteligencia-comercial')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/><circle cx="8" cy="8" r="1" fill="currentColor"/></svg>
           Inteligencia Comercial
         </div>
-      )}
+        <div className={`nav-item ${isActive('noticias') ? 'active' : ''}`} onClick={() => navigate('noticias')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>
+          Noticias
+        </div>
+      </>}
 
       <div className="nav-section" onClick={() => toggle('ana')}>
         Análisis <ChevronDown collapsed={collapsed.ana} />
