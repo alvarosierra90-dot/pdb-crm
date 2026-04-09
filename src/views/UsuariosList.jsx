@@ -14,7 +14,7 @@ function ExportMenu({ getConfig }) {
   }, [])
   return (
     <div ref={ref} style={{position:'relative',display:'inline-block'}}>
-      <button className="tbtn" onClick={() => setOpen(o => !o)} style={{display:'flex',alignItems:'center',gap:5}}>
+      <button onClick={() => setOpen(o => !o)} style={{padding:'7px 16px',background:'var(--accent)',border:'none',borderRadius:6,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:700,color:'#fff',display:'flex',alignItems:'center',gap:6,boxShadow:'0 1px 4px rgba(59,130,246,.3)'}}>
         ⬇ Exportar <span style={{fontSize:8}}>{open?'▲':'▼'}</span>
       </button>
       {open && (

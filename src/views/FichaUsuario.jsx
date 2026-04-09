@@ -13,7 +13,7 @@ function ExportMenu({ getConfig }) {
   return (
     <div ref={ref} style={{position:'relative',display:'inline-block'}}>
       <button onClick={() => setOpen(o => !o)}
-        style={{padding:'4px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:4,fontSize:9,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',gap:5}}>
+        style={{padding:'7px 16px',background:'var(--accent)',border:'none',borderRadius:6,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:700,color:'#fff',display:'flex',alignItems:'center',gap:6,boxShadow:'0 1px 4px rgba(59,130,246,.3)'}}>
         ⬇ Exportar informe <span style={{fontSize:8}}>{open?'▲':'▼'}</span>
       </button>
       {open && (
