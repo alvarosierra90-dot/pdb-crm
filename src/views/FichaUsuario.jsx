@@ -36,6 +36,14 @@ const OFRS_U = [
   {ref:'OLB001',activo:'P.E Avalon',m2:1500,renta:'10,5–14,5 €/m²',cliente:'Empresa XYZ',est:'En negociación'},
 ]
 
+// Propuestas / Proyectos (fuente: módulo Proyectos)
+const PROY_U = [
+  {ref:'PRY-2601',nombre:'Mandato Barings — P.E Avalon',tipo:'Mandato exclusivo',cliente:'Barings R.E.',activo:'P.E Avalon',m2:32000,est:'Activo',f:'Jan 2026',resp:'Sierra Alvaro'},
+  {ref:'PRY-2502',nombre:'Propuesta comercial ISDE campus',tipo:'Propuesta',cliente:'ISDE Business School',activo:'Albatros Edif. B',m2:4500,est:'En negociación',f:'Sep 2025',resp:'Sierra Alvaro'},
+  {ref:'PRY-2503',nombre:'Due diligence Torre Europa',tipo:'Due diligence',cliente:'Pharma Group',activo:'Torre Europa',m2:8200,est:'Cerrado',f:'Jun 2025',resp:'Sierra Alvaro'},
+  {ref:'PRY-2401',nombre:'Estudio mercado oficinas CBD',tipo:'Estudio de mercado',cliente:'Merlín Properties',activo:'—',m2:0,est:'Cerrado',f:'Mar 2024',resp:'Sierra Alvaro'},
+]
+
 // Operaciones cerradas (fuente: Transacciones / Arrendatarios)
 const OPS_U = [
   {f:'Mar 2026',activo:'P.E Avalon',cliente:'Oracle Spain SL',m2:13486,renta:12.5,tipo:'Nuevo contrato',honorarios:'1,35 M€'},
@@ -52,21 +60,21 @@ const EVOL_ACTS = [
 const maxActs = Math.max(...EVOL_ACTS.map(x=>x.v),1)
 
 // Datos gráfico actividad anual
-const ACT_SERIES = ['Actividades','Demandas','Ofertas','Ops cerradas']
-const ACT_COLORS = ['var(--accent)','var(--teal)','var(--green)','var(--purple)']
+const ACT_SERIES = ['Actividades','Demandas','Ofertas','Proyectos','Ops cerradas']
+const ACT_COLORS = ['var(--accent)','var(--teal)','var(--green)','var(--amber)','var(--purple)']
 const ACT_ANUAL = [
-  {y:'2022', Actividades:12, Demandas:5,  Ofertas:3, 'Ops cerradas':2},
-  {y:'2023', Actividades:18, Demandas:8,  Ofertas:5, 'Ops cerradas':3},
-  {y:'2024', Actividades:24, Demandas:10, Ofertas:7, 'Ops cerradas':5},
-  {y:'2025', Actividades:31, Demandas:12, Ofertas:9, 'Ops cerradas':6},
-  {y:'2026', Actividades:9,  Demandas:7,  Ofertas:4, 'Ops cerradas':1, ytd:true},
+  {y:'2022', Actividades:12, Demandas:5,  Ofertas:3, Proyectos:1, 'Ops cerradas':2},
+  {y:'2023', Actividades:18, Demandas:8,  Ofertas:5, Proyectos:2, 'Ops cerradas':3},
+  {y:'2024', Actividades:24, Demandas:10, Ofertas:7, Proyectos:3, 'Ops cerradas':5},
+  {y:'2025', Actividades:31, Demandas:12, Ofertas:9, Proyectos:3, 'Ops cerradas':6},
+  {y:'2026', Actividades:9,  Demandas:7,  Ofertas:4, Proyectos:2, 'Ops cerradas':1, ytd:true},
 ]
 const ACT_Q = {
-  '2022':{Q1:{Actividades:2,Demandas:1,Ofertas:1,'Ops cerradas':0},Q2:{Actividades:3,Demandas:1,Ofertas:1,'Ops cerradas':1},Q3:{Actividades:4,Demandas:2,Ofertas:1,'Ops cerradas':0},Q4:{Actividades:3,Demandas:1,Ofertas:0,'Ops cerradas':1}},
-  '2023':{Q1:{Actividades:4,Demandas:2,Ofertas:1,'Ops cerradas':1},Q2:{Actividades:5,Demandas:2,Ofertas:1,'Ops cerradas':1},Q3:{Actividades:5,Demandas:2,Ofertas:2,'Ops cerradas':0},Q4:{Actividades:4,Demandas:2,Ofertas:1,'Ops cerradas':1}},
-  '2024':{Q1:{Actividades:5,Demandas:2,Ofertas:2,'Ops cerradas':1},Q2:{Actividades:7,Demandas:3,Ofertas:2,'Ops cerradas':2},Q3:{Actividades:6,Demandas:3,Ofertas:2,'Ops cerradas':1},Q4:{Actividades:6,Demandas:2,Ofertas:1,'Ops cerradas':1}},
-  '2025':{Q1:{Actividades:7,Demandas:3,Ofertas:2,'Ops cerradas':2},Q2:{Actividades:9,Demandas:3,Ofertas:3,'Ops cerradas':1},Q3:{Actividades:8,Demandas:3,Ofertas:2,'Ops cerradas':2},Q4:{Actividades:7,Demandas:3,Ofertas:2,'Ops cerradas':1}},
-  '2026':{Q1:{Actividades:9,Demandas:7,Ofertas:4,'Ops cerradas':1},Q2:{Actividades:0,Demandas:0,Ofertas:0,'Ops cerradas':0},Q3:{Actividades:0,Demandas:0,Ofertas:0,'Ops cerradas':0},Q4:{Actividades:0,Demandas:0,Ofertas:0,'Ops cerradas':0}},
+  '2022':{Q1:{Actividades:2,Demandas:1,Ofertas:1,Proyectos:0,'Ops cerradas':0},Q2:{Actividades:3,Demandas:1,Ofertas:1,Proyectos:1,'Ops cerradas':1},Q3:{Actividades:4,Demandas:2,Ofertas:1,Proyectos:0,'Ops cerradas':0},Q4:{Actividades:3,Demandas:1,Ofertas:0,Proyectos:0,'Ops cerradas':1}},
+  '2023':{Q1:{Actividades:4,Demandas:2,Ofertas:1,Proyectos:1,'Ops cerradas':1},Q2:{Actividades:5,Demandas:2,Ofertas:1,Proyectos:0,'Ops cerradas':1},Q3:{Actividades:5,Demandas:2,Ofertas:2,Proyectos:1,'Ops cerradas':0},Q4:{Actividades:4,Demandas:2,Ofertas:1,Proyectos:0,'Ops cerradas':1}},
+  '2024':{Q1:{Actividades:5,Demandas:2,Ofertas:2,Proyectos:1,'Ops cerradas':1},Q2:{Actividades:7,Demandas:3,Ofertas:2,Proyectos:1,'Ops cerradas':2},Q3:{Actividades:6,Demandas:3,Ofertas:2,Proyectos:0,'Ops cerradas':1},Q4:{Actividades:6,Demandas:2,Ofertas:1,Proyectos:1,'Ops cerradas':1}},
+  '2025':{Q1:{Actividades:7,Demandas:3,Ofertas:2,Proyectos:1,'Ops cerradas':2},Q2:{Actividades:9,Demandas:3,Ofertas:3,Proyectos:1,'Ops cerradas':1},Q3:{Actividades:8,Demandas:3,Ofertas:2,Proyectos:1,'Ops cerradas':2},Q4:{Actividades:7,Demandas:3,Ofertas:2,Proyectos:0,'Ops cerradas':1}},
+  '2026':{Q1:{Actividades:9,Demandas:7,Ofertas:4,Proyectos:2,'Ops cerradas':1},Q2:{Actividades:0,Demandas:0,Ofertas:0,Proyectos:0,'Ops cerradas':0},Q3:{Actividades:0,Demandas:0,Ofertas:0,Proyectos:0,'Ops cerradas':0},Q4:{Actividades:0,Demandas:0,Ofertas:0,Proyectos:0,'Ops cerradas':0}},
 }
 
 export default function FichaUsuario() {
@@ -146,14 +154,14 @@ export default function FichaUsuario() {
           <div className="ks"><div className="ks-lbl">Actividades</div><div className="ks-val" style={{color:'var(--accent)'}}>{USUARIO.actividades}</div><div className="ks-sub" style={{fontSize:9,color:'var(--text4)'}}>← Actividades</div></div>
           <div className="ks"><div className="ks-lbl">Demandas</div><div className="ks-val">{USUARIO.demandas}</div><div className="ks-sub" style={{fontSize:9,color:'var(--text4)'}}>← Demanda</div></div>
           <div className="ks"><div className="ks-lbl">Ofertas</div><div className="ks-val green">{USUARIO.ofertas}</div><div className="ks-sub" style={{fontSize:9,color:'var(--text4)'}}>← Oferta</div></div>
-          <div className="ks"><div className="ks-lbl">Proyectos</div><div className="ks-val" style={{color:'var(--teal)'}}>{USUARIO.proyectos}</div><div className="ks-sub" style={{fontSize:9,color:'var(--text4)'}}>← Proyectos</div></div>
+          <div className="ks"><div className="ks-lbl">Proyectos</div><div className="ks-val" style={{color:'var(--amber)'}}>{PROY_U.length}</div><div className="ks-sub" style={{fontSize:9,color:'var(--text4)'}}>← Proyectos</div></div>
           <div className="ks"><div className="ks-lbl">Ops cerradas</div><div className="ks-val" style={{color:'var(--purple)'}}>{USUARIO.ops_cerradas}</div><div className="ks-sub" style={{fontSize:9,color:'var(--text4)'}}>← Transacciones</div></div>
           <div className="ks"><div className="ks-lbl">M² gestionados</div><div className="ks-val">{(USUARIO.m2_gestionados/1000).toFixed(0)}k</div><div className="ks-sub" style={{fontSize:9,color:'var(--text4)'}}>← Activos + Ofertas</div></div>
         </div>
 
         {/* Tabs */}
         <div className="tabs">
-          {[['overview','Overview'],['actividades','Actividades ('+ACTS_U.length+')'],['demandas','Demandas ('+DEMS_U.length+')'],['ofertas','Ofertas ('+OFRS_U.length+')'],['operaciones','Ops cerradas ('+OPS_U.length+')'],['evolucion','Evolución']].map(([k,l])=>(
+          {[['overview','Overview'],['actividades','Actividades ('+ACTS_U.length+')'],['demandas','Demandas ('+DEMS_U.length+')'],['ofertas','Ofertas ('+OFRS_U.length+')'],['proyectos','Propuestas/Proyectos ('+PROY_U.length+')'],['operaciones','Ops cerradas ('+OPS_U.length+')'],['evolucion','Evolución']].map(([k,l])=>(
             <div key={k} className={`tab ${tab===k?'active':''}`} onClick={()=>setTab(k)}>{l}</div>
           ))}
         </div>
@@ -415,6 +423,55 @@ export default function FichaUsuario() {
         )}
 
         {/* Tab: Operaciones cerradas */}
+        {/* Tab: Propuestas / Proyectos */}
+        {tab==='proyectos' && (
+          <div className="tab-content active">
+            <div className="info-pad">
+              <div style={{marginBottom:8,fontSize:10,color:'var(--text4)',textAlign:'right'}}>← Módulo Proyectos — propuestas y mandatos asignados al usuario</div>
+              {/* KPIs rápidos */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:12}}>
+                {[
+                  {l:'Total proyectos', v:PROY_U.length, c:'var(--amber)'},
+                  {l:'Activos / En negociación', v:PROY_U.filter(p=>p.est==='Activo'||p.est==='En negociación').length, c:'var(--accent)'},
+                  {l:'Cerrados', v:PROY_U.filter(p=>p.est==='Cerrado').length, c:'var(--green)'},
+                  {l:'M² en proyectos', v:PROY_U.reduce((s,p)=>s+p.m2,0).toLocaleString('es-ES')+' m²', c:'var(--teal)'},
+                ].map(kpi=>(
+                  <div key={kpi.l} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',padding:'10px 14px'}}>
+                    <div style={{fontSize:9,color:'var(--text4)',textTransform:'uppercase',fontWeight:600,marginBottom:4}}>{kpi.l}</div>
+                    <div style={{fontSize:20,fontWeight:800,color:kpi.c,fontFamily:'var(--mono)'}}>{kpi.v}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="info-block" style={{padding:0,overflow:'hidden'}}>
+                <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                  <thead>
+                    <tr>{['Ref','Nombre del proyecto','Tipo','Cliente','Activo','M²','Estado','Fecha'].map(h=>(
+                      <th key={h} style={{padding:'6px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                    ))}</tr>
+                  </thead>
+                  <tbody>
+                    {PROY_U.map((p,i)=>{
+                      const estTag = p.est==='Activo'?'tag-green':p.est==='En negociación'?'tag-amber':p.est==='Cerrado'?'tag-gray':'tag-blue'
+                      return (
+                        <tr key={i} style={{borderBottom:'1px solid var(--border)'}}>
+                          <td style={{padding:'7px 12px',fontFamily:'var(--mono)',fontSize:10,color:'var(--text4)'}}>{p.ref}</td>
+                          <td style={{padding:'7px 12px',fontWeight:600}}>{p.nombre}</td>
+                          <td style={{padding:'7px 12px'}}><span className="tag tag-blue" style={{fontSize:9}}>{p.tipo}</span></td>
+                          <td style={{padding:'7px 12px',fontWeight:500}}>{p.cliente}</td>
+                          <td style={{padding:'7px 12px'}}>{p.activo!=='—'?<span className="dtbl-link">{p.activo}</span>:'—'}</td>
+                          <td style={{padding:'7px 12px',fontWeight:600,fontFamily:'var(--mono)'}}>{p.m2>0?p.m2.toLocaleString('es-ES'):'—'}</td>
+                          <td style={{padding:'7px 12px'}}><span className={`tag ${estTag}`}>{p.est}</span></td>
+                          <td style={{padding:'7px 12px',color:'var(--text3)'}}>{p.f}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {tab==='operaciones' && (
           <div className="tab-content active">
             <div className="info-pad">
