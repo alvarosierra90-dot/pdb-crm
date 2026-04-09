@@ -1,6 +1,175 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
+
+// ─── CONTRACT DRAFTS ─────────────────────────────────────────────────────────
+const CONTRACTS_INIT = [
+  {
+    id: 1, version: 1, nombre: 'Borrador_Contrato_NEG0044_v1.docx',
+    autor: 'Sierra Álvaro', parte: 'Savills', fecha: '10/03/2026', hora: '10:15', size: '48 KB',
+    cambios: null,
+  },
+  {
+    id: 2, version: 2, nombre: 'Borrador_Contrato_NEG0044_v2.docx',
+    autor: 'Ana Gómez', parte: 'Empresa XYZ', fecha: '13/03/2026', hora: '09:30', size: '51 KB',
+    cambios: [
+      { tipo: 'mod', seccion: 'Cláusula 3 — Renta',
+        anterior: 'La renta mensual pactada es de 18,00 €/m²/mes, resultando una renta total mensual de 18.000 €/mes.',
+        nuevo:    'La renta mensual pactada es de 20,00 €/m²/mes, resultando una renta total mensual de 20.000 €/mes.' },
+      { tipo: 'add', seccion: 'Cláusula 5 — Gastos comunes',
+        nuevo: 'Los gastos de comunidad quedarán incluidos dentro de la renta pactada en la Cláusula 3, sin coste adicional para el arrendatario.' },
+      { tipo: 'del', seccion: 'Cláusula 6 — Servicios',
+        anterior: 'El arrendatario abonará mensualmente 3,50 €/m²/mes en concepto de gastos comunes y servicios del edificio.' },
+    ],
+  },
+]
+
+const TIPO_DIFF = {
+  mod: { label: 'Modificado', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+  add: { label: 'Añadido',    color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
+  del: { label: 'Eliminado',  color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' },
+}
+
+function ContractCard({ c, isLatest }) {
+  const [open, setOpen] = useState(false)
+  const isSavills = c.parte === 'Savills'
+  return (
+    <div className={isSavills ? 'neg-bubble-left' : 'neg-bubble-right'} style={{maxWidth:'90%'}}>
+      <div className="neg-meta" style={isSavills ? {} : { justifyContent:'flex-end' }}>
+        {!isSavills && <>
+          <span style={{background:'#f3e8ff',color:'#7c3aed',border:'1px solid #e9d5ff',padding:'0 6px',borderRadius:8,fontSize:9,fontWeight:700}}>BORRADOR v{c.version}</span>
+          <span>{c.fecha} · {c.hora}</span>
+          <span className="neg-name">{c.autor} · {c.parte}</span>
+          <div className="neg-av" style={{background:'#fce7f3',color:'#9d174d'}}>{c.autor.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+        </>}
+        {isSavills && <>
+          <div className="neg-av" style={{background:'#dbeafe',color:'#1e40af'}}>AS</div>
+          <span className="neg-name">{c.autor} · {c.parte}</span>
+          <span>{c.fecha} · {c.hora}</span>
+          <span style={{background:'#f3e8ff',color:'#7c3aed',border:'1px solid #e9d5ff',padding:'0 6px',borderRadius:8,fontSize:9,fontWeight:700}}>BORRADOR v{c.version}</span>
+          {isLatest && <span style={{background:'var(--accent-lt)',color:'var(--accent)',border:'1px solid var(--accent-bd)',padding:'0 6px',borderRadius:8,fontSize:9,fontWeight:700}}>ÚLTIMA VERSIÓN</span>}
+        </>}
+      </div>
+
+      {/* Document card */}
+      <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',overflow:'hidden',maxWidth:480}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderBottom:'1px solid var(--border)'}}>
+          <div style={{width:36,height:36,borderRadius:6,background:'#ede9fe',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>📄</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:12,fontWeight:600,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{c.nombre}</div>
+            <div style={{fontSize:10,color:'var(--text4)',marginTop:1}}>{c.size} · Word · Versión {c.version}{c.cambios ? ` · ${c.cambios.length} cambio${c.cambios.length>1?'s':''}` : ' · Borrador inicial'}</div>
+          </div>
+          <button
+            style={{padding:'4px 10px',borderRadius:'var(--r)',border:'1px solid var(--border)',background:'var(--gray-lt)',fontSize:10,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)',flexShrink:0}}
+            onClick={() => alert(`Descargando ${c.nombre}...`)}
+          >⬇ Descargar</button>
+        </div>
+
+        {c.cambios && (
+          <div>
+            <button
+              onClick={() => setOpen(v => !v)}
+              style={{width:'100%',padding:'7px 12px',border:'none',background:open?'#f5f3ff':'var(--gray-lt)',fontSize:11,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)',display:'flex',alignItems:'center',gap:6,fontWeight:500,borderTop:'none'}}
+            >
+              <span style={{fontSize:12}}>{open ? '▾' : '▸'}</span>
+              Ver {c.cambios.length} cambio{c.cambios.length>1?'s':''} respecto a v{c.version-1}
+              <div style={{display:'flex',gap:4,marginLeft:'auto'}}>
+                {Object.entries(c.cambios.reduce((acc,ch)=>{ acc[ch.tipo]=(acc[ch.tipo]||0)+1; return acc }, {})).map(([t,n]) => (
+                  <span key={t} style={{fontSize:9,fontWeight:700,color:TIPO_DIFF[t].color,background:TIPO_DIFF[t].bg,border:`1px solid ${TIPO_DIFF[t].border}`,borderRadius:4,padding:'1px 5px'}}>{TIPO_DIFF[t].label}: {n}</span>
+                ))}
+              </div>
+            </button>
+
+            {open && (
+              <div style={{borderTop:'1px solid var(--border)',padding:'10px 12px',display:'flex',flexDirection:'column',gap:8,background:'var(--bg)'}}>
+                {c.cambios.map((ch, i) => {
+                  const d = TIPO_DIFF[ch.tipo]
+                  return (
+                    <div key={i} style={{border:`1px solid ${d.border}`,borderRadius:'var(--r)',overflow:'hidden'}}>
+                      <div style={{background:d.bg,padding:'5px 10px',display:'flex',alignItems:'center',gap:6}}>
+                        <span style={{fontSize:10,fontWeight:700,color:d.color}}>{d.label}</span>
+                        <span style={{fontSize:11,fontWeight:600,color:'var(--text)'}}>{ch.seccion}</span>
+                      </div>
+                      <div style={{padding:'8px 10px',background:'var(--surface)',display:'flex',flexDirection:'column',gap:4}}>
+                        {ch.anterior && (
+                          <div style={{fontSize:11,color:'#b91c1c',background:'#fef2f2',borderRadius:4,padding:'5px 8px',lineHeight:1.5,textDecoration:ch.tipo==='del'?'line-through':'none',fontStyle:'italic'}}>
+                            — {ch.anterior}
+                          </div>
+                        )}
+                        {ch.nuevo && (
+                          <div style={{fontSize:11,color:'#15803d',background:'#f0fdf4',borderRadius:4,padding:'5px 8px',lineHeight:1.5}}>
+                            + {ch.nuevo}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function UploadPanel({ onUpload, onClose, nextVersion }) {
+  const fileRef = useRef(null)
+  const [file, setFile] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [note, setNote] = useState('')
+
+  function handleFile(e) {
+    const f = e.target.files[0]
+    if (f) setFile(f)
+  }
+  function handleUpload() {
+    if (!file) return
+    setUploading(true)
+    setTimeout(() => { onUpload(file, note); setUploading(false) }, 900)
+  }
+
+  return (
+    <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:8,display:'flex',flexDirection:'column',gap:10}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{fontSize:12,fontWeight:700,color:'var(--text)'}}>📄 Subir borrador de contrato <span style={{fontSize:10,fontWeight:400,color:'var(--text4)'}}>— Versión {nextVersion}</span></div>
+        <button onClick={onClose} style={{border:'none',background:'none',cursor:'pointer',fontSize:14,color:'var(--text4)',padding:'0 4px'}}>✕</button>
+      </div>
+
+      <div
+        onClick={() => fileRef.current?.click()}
+        style={{border:'2px dashed var(--border2)',borderRadius:'var(--r)',padding:'20px',textAlign:'center',cursor:'pointer',background:'var(--bg)',transition:'border-color .15s'}}
+        onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'}
+        onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border2)'}
+      >
+        <input ref={fileRef} type="file" accept=".doc,.docx,.pdf" style={{display:'none'}} onChange={handleFile}/>
+        {file
+          ? <div style={{fontSize:12,fontWeight:600,color:'var(--accent)'}}>📄 {file.name} <span style={{fontSize:10,fontWeight:400,color:'var(--text4)'}}>({(file.size/1024).toFixed(0)} KB)</span></div>
+          : <div><div style={{fontSize:13,color:'var(--text3)'}}>Arrastra o haz clic para seleccionar</div><div style={{fontSize:10,color:'var(--text4)',marginTop:4}}>.docx · .pdf</div></div>
+        }
+      </div>
+
+      <input
+        value={note}
+        onChange={e=>setNote(e.target.value)}
+        placeholder="Nota sobre los cambios realizados (opcional)..."
+        style={{padding:'7px 10px',border:'1px solid var(--border2)',borderRadius:'var(--r)',fontSize:11,fontFamily:'inherit',outline:'none'}}
+      />
+
+      <div style={{display:'flex',gap:6,justifyContent:'flex-end'}}>
+        <button onClick={onClose} style={{padding:'5px 12px',borderRadius:'var(--r)',border:'1px solid var(--border)',background:'none',fontSize:11,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)'}}>Cancelar</button>
+        <button
+          onClick={handleUpload}
+          disabled={!file||uploading}
+          style={{padding:'5px 14px',borderRadius:'var(--r)',border:'none',background:file&&!uploading?'var(--accent)':'var(--border)',color:file&&!uploading?'#fff':'var(--text4)',fontSize:11,cursor:file&&!uploading?'pointer':'default',fontFamily:'inherit',fontWeight:600}}
+        >
+          {uploading ? 'Subiendo...' : '⬆ Subir borrador'}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 const TABS = ['neg-chat','neg-condiciones','neg-docs','neg-historial','neg-colab']
 const TAB_LABELS = ['💬 Negociación','📋 Condiciones acordadas','📁 Documentos contractuales','🕐 Historial completo','👥 Equipos colaboradores']
@@ -16,6 +185,24 @@ export default function FichaNegociacion() {
   const [addingTeam, setAddingTeam] = useState(false)
   const [newTeam, setNewTeam] = useState('')
   const [showTarea, setShowTarea] = useState(false)
+  const [contracts, setContracts] = useState(CONTRACTS_INIT)
+  const [showUpload, setShowUpload] = useState(false)
+
+  function handleUpload(file, note) {
+    const nextV = contracts.length + 1
+    setContracts(prev => [...prev, {
+      id: Date.now(),
+      version: nextV,
+      nombre: file.name,
+      autor: 'Sierra Álvaro',
+      parte: 'Savills',
+      fecha: new Date().toLocaleDateString('es-ES'),
+      hora: new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' }),
+      size: `${(file.size/1024).toFixed(0)} KB`,
+      cambios: note ? [{ tipo:'mod', seccion:'Nota de cambios', anterior: null, nuevo: note }] : null,
+    }])
+    setShowUpload(false)
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
@@ -157,15 +344,39 @@ export default function FichaNegociacion() {
                   <span><strong>Pendiente respuesta de Propiedad Avalon</strong> — Última propuesta recibida: 15/03/2026 · 11:05</span>
                   <button className="ab-btn" style={{ marginLeft: 'auto', padding: '3px 9px', fontSize: 10, borderColor: '#fde68a' }}>Enviar recordatorio</button>
                 </div>
+
+                {/* Contract version divider */}
+                <div style={{display:'flex',alignItems:'center',gap:8,margin:'4px 0'}}>
+                  <div style={{flex:1,height:1,background:'var(--border)'}}/>
+                  <span style={{fontSize:10,color:'var(--text4)',fontWeight:600,padding:'2px 8px',background:'var(--gray-lt)',borderRadius:10,border:'1px solid var(--border)'}}>📄 Borradores de contrato</span>
+                  <div style={{flex:1,height:1,background:'var(--border)'}}/>
+                </div>
+
+                {/* Contract cards */}
+                {contracts.map((c, i) => (
+                  <ContractCard key={c.id} c={c} isLatest={i === contracts.length - 1} />
+                ))}
               </div>
 
               {/* Input bar */}
               <div style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: '10px 16px', flexShrink: 0 }}>
+                {showUpload && (
+                  <UploadPanel
+                    nextVersion={contracts.length + 1}
+                    onUpload={handleUpload}
+                    onClose={() => setShowUpload(false)}
+                  />
+                )}
                 <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
                   <div style={{ flex: 1, border: '1px solid var(--border2)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
-                    <div style={{ display: 'flex', gap: 4, padding: '4px 8px', borderBottom: '1px solid var(--border)', background: 'var(--gray-lt)' }}>
+                    <div style={{ display: 'flex', gap: 4, padding: '4px 8px', borderBottom: '1px solid var(--border)', background: 'var(--gray-lt)', flexWrap:'wrap' }}>
                       <button className="ab-btn" style={{ padding: '2px 8px', fontSize: 10 }}>💰 Nueva propuesta</button>
                       <button className="ab-btn" style={{ padding: '2px 8px', fontSize: 10 }}>📎 Adjuntar</button>
+                      <button
+                        className="ab-btn"
+                        style={{ padding: '2px 8px', fontSize: 10, color: showUpload ? 'var(--accent)' : undefined, borderColor: showUpload ? 'var(--accent-bd)' : undefined, background: showUpload ? 'var(--accent-lt)' : undefined }}
+                        onClick={() => setShowUpload(v => !v)}
+                      >📄 Subir borrador</button>
                       <button className="ab-btn" style={{ padding: '2px 8px', fontSize: 10 }}>✅ Aceptar</button>
                       <button className="ab-btn" style={{ padding: '2px 8px', fontSize: 10, color: 'var(--red)', borderColor: 'var(--red-bd)' }}>✗ Rechazar</button>
                     </div>
