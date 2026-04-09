@@ -1,7 +1,42 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import { exportPDF, exportPPT } from '../utils/exportReport'
+
+function ExportMenu({ getConfig }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+  return (
+    <div ref={ref} style={{position:'relative',display:'inline-block'}}>
+      <button className="tbtn" onClick={() => setOpen(o => !o)}
+        style={{display:'flex',alignItems:'center',gap:5}}>
+        ⬇ Exportar <span style={{fontSize:8}}>{open?'▲':'▼'}</span>
+      </button>
+      {open && (
+        <div style={{position:'absolute',right:0,top:'110%',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:999,minWidth:130,overflow:'hidden'}}>
+          <div onClick={() => { setOpen(false); exportPDF(getConfig()) }}
+            style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8,borderBottom:'1px solid var(--border)'}}
+            onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
+            onMouseLeave={e=>e.currentTarget.style.background=''}>
+            📄 PDF
+          </div>
+          <div onClick={() => { setOpen(false); exportPPT(getConfig()) }}
+            style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8}}
+            onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
+            onMouseLeave={e=>e.currentTarget.style.background=''}>
+            📊 PowerPoint
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export const PROPIETARIOS = [
   { id:'PRO-2501', propietario:'Merlín Properties SOCIMI',  activo:'P.E Avalon',                zona:'M-30',                subzona:'Julián Camarillo', superficie:46956, precio_compra:'130 M€', cap_rate:5.1, yield:5.4, estado_activo:'Ocupado',    tipologia:'Asset deal',  area:'Descentralizado', anyo_compra:2018, trimestre:'Q3', ltv:45, financiacion:60, responsable:'Sierra Alvaro',  ultima_act:'28/03/2026', perfil:'Core',       regimen:'Propiedad 100%', asset_manager:'Merlín Properties SOCIMI' },
@@ -118,7 +153,21 @@ export default function PropietariosList() {
         <FilterBadge count={activeCount} onClear={clearAll}/>
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
           <ColumnEditor cols={COLS} vis={vis} setVis={setVis}/>
-          <button className="tbtn">⬇ Exportar</button>
+          <ExportMenu getConfig={() => ({
+            title: 'Listado de Propietarios',
+            subtitle: `${result.length} propietarios · Savills PDB`,
+            coverMetrics: [
+              { label: 'Total propietarios', value: result.length },
+              { label: 'M² gestionados', value: result.reduce((s,p)=>s+p.superficie,0).toLocaleString('es-ES') },
+              { label: 'LTV medio', value: `${Math.round(result.reduce((s,p)=>s+p.ltv,0)/result.length)}%` },
+            ],
+            sections: [{
+              title: 'Listado de propietarios',
+              type: 'table',
+              headers: ['ID','Propietario','Activo','Zona','M²','Cap Rate','Perfil','Estado'],
+              rows: result.map(p=>[p.id, p.propietario, p.activo, p.zona, p.superficie.toLocaleString('es-ES'), `${p.cap_rate}%`, p.perfil, p.estado_activo]),
+            }],
+          })} />
           <button className="tbtn prim" onClick={()=>navigate('ficha-propietario')}>+ Nuevo propietario</button>
         </div>
       </div>

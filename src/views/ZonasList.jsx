@@ -1,7 +1,41 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import { exportPDF, exportPPT } from '../utils/exportReport'
+
+function ExportMenu({ getConfig }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+  return (
+    <div ref={ref} style={{position:'relative',display:'inline-block'}}>
+      <button className="tbtn" onClick={() => setOpen(o => !o)} style={{display:'flex',alignItems:'center',gap:5}}>
+        ⬇ Exportar <span style={{fontSize:8}}>{open?'▲':'▼'}</span>
+      </button>
+      {open && (
+        <div style={{position:'absolute',right:0,top:'110%',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:999,minWidth:130,overflow:'hidden'}}>
+          <div onClick={() => { setOpen(false); exportPDF(getConfig()) }}
+            style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8,borderBottom:'1px solid var(--border)'}}
+            onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
+            onMouseLeave={e=>e.currentTarget.style.background=''}>
+            📄 PDF
+          </div>
+          <div onClick={() => { setOpen(false); exportPPT(getConfig()) }}
+            style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8}}
+            onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
+            onMouseLeave={e=>e.currentTarget.style.background=''}>
+            📊 PowerPoint
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const ZONAS = [
   { id:'MAD-M30', zona:'M-30 / Distrito Centro', subzona:'M-30', provincia:'Madrid', uso:'Oficinas', activos_n:2, activos:['P.E Avalon','Parque Empresarial Norte'], stock:58156, disponible:13024, ocupacion:78.9, ofertas_activas:3, takeup_ytd:8500, ops_ytd:4, renta_media:13.5, renta_min:10.5, renta_max:16.8, Disponibilidad:22.4 },
@@ -104,7 +138,21 @@ export default function ZonasList() {
         <FilterBadge activeCount={activeCount} onClear={clearAll}/>
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
           <ColumnEditor cols={COLS} vis={vis} setVis={setVis}/>
-          <button className="tbtn">⬇ Exportar</button>
+          <ExportMenu getConfig={() => ({
+            title: 'Listado de Zonas',
+            subtitle: `${result.length} zonas · Savills PDB`,
+            coverMetrics: [
+              { label: 'Total zonas', value: result.length },
+              { label: 'Stock total (m²)', value: result.reduce((s,z)=>s+z.stock,0).toLocaleString('es-ES') },
+              { label: 'Disponible (m²)', value: result.reduce((s,z)=>s+z.disponible,0).toLocaleString('es-ES') },
+            ],
+            sections: [{
+              title: 'Listado de zonas',
+              type: 'table',
+              headers: ['ID','Zona','Provincia','Uso','Stock m²','Disponible','Ocupación','Renta media'],
+              rows: result.map(z=>[z.id, z.zona, z.provincia, z.uso, z.stock.toLocaleString('es-ES'), z.disponible.toLocaleString('es-ES'), `${z.ocupacion}%`, `${z.renta_media} €/m²`]),
+            }],
+          })} />
         </div>
       </div>
 
