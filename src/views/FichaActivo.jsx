@@ -18,32 +18,32 @@ const USOS_PPAL = [
 
 /* ── USOS ADICIONALES ── */
 const UA_ALL = [
-  {id:'recepcion',      label:'Recepción / Control acceso', attr:true},
-  {id:'nucleo_com',     label:'Núcleos de comunicación',    attr:true},
-  {id:'instalaciones',  label:'Instalaciones técnicas',     attr:true},
-  {id:'seguridad',      label:'Seguridad 24h',              attr:true},
-  {id:'ct',             label:'Centro de transformación',   attr:true},
-  {id:'parking_gen',    label:'Parking',                    sup:true},
-  {id:'trasteros',      label:'Trasteros',                  sup:true},
-  {id:'archivo',        label:'Archivo / Almacén',          sup:true},
-  {id:'vestuarios',     label:'Vestuarios',                 sup:true},
-  {id:'comedor',        label:'Comedor',                    sup:true},
-  {id:'auditorio',      label:'Auditorio',                  sup:true},
-  {id:'salas_reunion',  label:'Salas de reuniones comunes', sup:true},
-  {id:'gimnasio',       label:'Gimnasio',                   sup:true},
-  {id:'terraza',        label:'Terraza / Zonas ajardinadas',sup:true},
-  {id:'rooftop',        label:'Rooftop',                    attr:true},
-  {id:'piscina',        label:'Piscina',                    sup:true},
-  {id:'playa_maniobras',label:'Playa de maniobras',         sup:true},
-  {id:'muelles_carga',  label:'Muelles de carga',           sup:true},
-  {id:'cross_docking',  label:'Cross-docking',              sup:true},
-  {id:'camaras_frigo',  label:'Cámaras frigoríficas',       sup:true},
-  {id:'pk_camiones',    label:'Parking de camiones',        sup:true},
-  {id:'lobby',          label:'Lobby / Recepción hotel',    sup:true},
-  {id:'spa',            label:'Spa / Wellness',             sup:true},
-  {id:'salas_eventos',  label:'Salas de eventos',           sup:true},
-  {id:'restaurante',    label:'Restaurante',                sup:true},
-  {id:'salon_comun',    label:'Salón comunidad',            sup:true},
+  {id:'recepcion',      label:'Recepción',          attr:true, color:'#7c3aed', bg:'#ede9fe', bd:'#c4b5fd'},
+  {id:'nucleo_com',     label:'Núcleos comunic.',   attr:true, color:'#6366f1', bg:'#e0e7ff', bd:'#a5b4fc'},
+  {id:'instalaciones',  label:'Instalaciones',      attr:true, color:'#64748b', bg:'#f1f5f9', bd:'#cbd5e1'},
+  {id:'seguridad',      label:'Seguridad 24h',      attr:true, color:'#dc2626', bg:'#fee2e2', bd:'#fca5a5'},
+  {id:'ct',             label:'C. Transformación',  attr:true, color:'#9ca3af', bg:'#f9fafb', bd:'#e5e7eb'},
+  {id:'parking_gen',    label:'Parking',             sup:true,  color:'#475569', bg:'#f1f5f9', bd:'#94a3b8'},
+  {id:'trasteros',      label:'Trasteros',           sup:true,  color:'#78716c', bg:'#fafaf9', bd:'#d6d3d1'},
+  {id:'archivo',        label:'Archivo / Almacén',  sup:true,  color:'#92400e', bg:'#fff7ed', bd:'#fed7aa'},
+  {id:'vestuarios',     label:'Vestuarios',          sup:true,  color:'#9d174d', bg:'#fdf2f8', bd:'#f9a8d4'},
+  {id:'comedor',        label:'Comedor',             sup:true,  color:'#d97706', bg:'#fffbeb', bd:'#fde68a'},
+  {id:'auditorio',      label:'Auditorio',           sup:true,  color:'#7c3aed', bg:'#ede9fe', bd:'#c4b5fd'},
+  {id:'salas_reunion',  label:'Salas reuniones',     sup:true,  color:'#0284c7', bg:'#e0f2fe', bd:'#7dd3fc'},
+  {id:'gimnasio',       label:'Gimnasio',            sup:true,  color:'#059669', bg:'#ecfdf5', bd:'#6ee7b7'},
+  {id:'terraza',        label:'Terraza / Jardín',    sup:true,  color:'#65a30d', bg:'#f7fee7', bd:'#bef264'},
+  {id:'rooftop',        label:'Rooftop',             attr:true, color:'#0d9488', bg:'#f0fdfa', bd:'#99f6e4'},
+  {id:'piscina',        label:'Piscina',             sup:true,  color:'#0891b2', bg:'#ecfeff', bd:'#67e8f9'},
+  {id:'playa_maniobras',label:'Playa maniobras',     sup:true,  color:'#c2410c', bg:'#fff7ed', bd:'#fed7aa'},
+  {id:'muelles_carga',  label:'Muelles de carga',    sup:true,  color:'#b45309', bg:'#fefce8', bd:'#fde68a'},
+  {id:'cross_docking',  label:'Cross-docking',       sup:true,  color:'#7c2d12', bg:'#fff1f2', bd:'#fecdd3'},
+  {id:'camaras_frigo',  label:'Cámaras frigoríficas',sup:true,  color:'#1d4ed8', bg:'#eff6ff', bd:'#bfdbfe'},
+  {id:'pk_camiones',    label:'Parking camiones',    sup:true,  color:'#374151', bg:'#f9fafb', bd:'#e5e7eb'},
+  {id:'lobby',          label:'Lobby hotel',         sup:true,  color:'#b45309', bg:'#fffbeb', bd:'#fde68a'},
+  {id:'spa',            label:'Spa / Wellness',      sup:true,  color:'#be185d', bg:'#fdf2f8', bd:'#fbcfe8'},
+  {id:'salas_eventos',  label:'Salas de eventos',    sup:true,  color:'#6d28d9', bg:'#f5f3ff', bd:'#ddd6fe'},
+  {id:'restaurante',    label:'Restaurante',         sup:true,  color:'#c2410c', bg:'#fff7ed', bd:'#fed7aa'},
+  {id:'salon_comun',    label:'Salón comunidad',     sup:true,  color:'#047857', bg:'#ecfdf5', bd:'#a7f3d0'},
 ]
 const UA_BY_USO = {
   oficinas:    ['recepcion','nucleo_com','instalaciones','seguridad','ct','parking_gen','trasteros','archivo','vestuarios','comedor','auditorio','salas_reunion','gimnasio','terraza','rooftop'],
@@ -71,18 +71,24 @@ const INIT_BUILDINGS = [
       {id:'S2',sup:1500,principal:[{uso:'parking',sup:1500}],adicional:[{uso:'parking_gen',label:'Parking · 52 plazas',sup:1500,attr:false}]},
     ],
     prop:[
-      {p:'P5',sup:1500},{p:'P4',sup:1500},{p:'P3',sup:1500},{p:'P2',sup:1500},
-      {p:'P1',sup:1500},{p:'PB',sup:1500},{p:'S1',sup:1500},{p:'S2',sup:1500},
+      {p:'P5',sup:1500,units:[{n:'Barings Core Spain SOCIMI',sup:1500}]},
+      {p:'P4',sup:1500,units:[{n:'Barings Core Spain SOCIMI',sup:1500}]},
+      {p:'P3',sup:1500,units:[{n:'Barings Core Spain SOCIMI',sup:1500}]},
+      {p:'P2',sup:1500,units:[{n:'Barings Core Spain SOCIMI',sup:1500}]},
+      {p:'P1',sup:1500,units:[{n:'Barings Core Spain SOCIMI',sup:1500}]},
+      {p:'PB',sup:1500,units:[{n:'Barings Core Spain SOCIMI',sup:1500}]},
+      {p:'S1',sup:1500,units:[{n:'Barings Core Spain SOCIMI',sup:1500}]},
+      {p:'S2',sup:1500,units:[{n:'Barings Core Spain SOCIMI',sup:1500}]},
     ],
     arr:[
-      {p:'P5',sup:1500,units:[{type:'ten',n:'Celonis',m:'1.202 m²',brk:'Oct 2025',brkColor:'var(--amber)',f:4},{type:'vac',oferta:'OLB001',m:'298 m²',f:2}]},
-      {p:'P4',sup:1500,units:[{type:'ten',n:'Celonis',m:'1.500 m²',brk:'Oct 2025',brkColor:'var(--amber)',f:6}]},
-      {p:'P3',sup:1500,units:[{type:'ten',n:'Repsol',m:'767 m²',brk:'Jun 2027',brkColor:'var(--green)',f:3},{type:'vac',oferta:'OLB002',m:'733 m²',f:3}]},
-      {p:'P2',sup:1500,units:[{type:'ten',n:'Repsol',m:'1.200 m²',brk:'Jun 2027',brkColor:'var(--green)',f:4},{type:'vac',oferta:'OLB002',m:'300 m²',f:2}]},
-      {p:'P1',sup:1500,units:[{type:'ten',n:'Desconocido',m:'1.500 m²',brk:'Ene 2026',brkColor:'var(--red)',f:6}]},
-      {p:'PB',sup:1500,units:[{type:'rt',n:'Cafetería',m:'380 m²',brk:'Ene 2029',brkColor:'var(--text4)',f:2},{type:'com',n:'Hall / Común',m:'220 m²',f:2},{type:'vac',oferta:'OLB001',m:'400 m²',f:2}]},
-      {p:'S1',sup:1500,units:[{type:'pk',n:'Parking · 778 plazas',m:'Nivel -1',f:6}]},
-      {p:'S2',sup:1500,units:[{type:'pk',n:'Parking · 52 plazas',m:'Nivel -2',f:6}]},
+      {p:'P5',sup:1500,units:[{type:'ten',n:'Celonis',sup:1202,brk:'Oct 2025',brkColor:'var(--amber)'},{type:'vac',oferta:'OLB001',sup:298}]},
+      {p:'P4',sup:1500,units:[{type:'ten',n:'Celonis',sup:1500,brk:'Oct 2025',brkColor:'var(--amber)'}]},
+      {p:'P3',sup:1500,units:[{type:'ten',n:'Repsol',sup:767,brk:'Jun 2027',brkColor:'var(--green)'},{type:'vac',oferta:'OLB002',sup:733}]},
+      {p:'P2',sup:1500,units:[{type:'ten',n:'Repsol',sup:1200,brk:'Jun 2027',brkColor:'var(--green)'},{type:'vac',oferta:'OLB002',sup:300}]},
+      {p:'P1',sup:1500,units:[{type:'ten',n:'Desconocido',sup:1500,brk:'Ene 2026',brkColor:'var(--red)'}]},
+      {p:'PB',sup:1500,units:[{type:'rt',n:'Cafetería',sup:380,brk:'Ene 2029',brkColor:'var(--text4)'},{type:'com',n:'Hall / Común',sup:220},{type:'vac',oferta:'OLB001',sup:900}]},
+      {p:'S1',sup:1500,units:[{type:'pk',n:'Parking · 778 plazas',sup:1500,nota:'Nivel -1'}]},
+      {p:'S2',sup:1500,units:[{type:'pk',n:'Parking · 52 plazas',sup:1500,nota:'Nivel -2'}]},
     ],
   },
   {
@@ -92,11 +98,15 @@ const INIT_BUILDINGS = [
       {id:'P4',sup:1500,principal:[{uso:'oficinas',sup:1500}],adicional:[]},
       {id:'PB',sup:1500,principal:[{uso:'comun',sup:250},{uso:'oficinas',sup:1250}],adicional:[]},
     ],
-    prop:[{p:'P5',sup:1500},{p:'P4',sup:1500},{p:'PB',sup:1500}],
+    prop:[
+      {p:'P5',sup:1500,units:[{n:'Barings Core Spain SOCIMI',sup:1500}]},
+      {p:'P4',sup:1500,units:[{n:'Barings Core Spain SOCIMI',sup:1500}]},
+      {p:'PB',sup:1500,units:[{n:'Barings Core Spain SOCIMI',sup:1500}]},
+    ],
     arr:[
-      {p:'P5',sup:1500,units:[{type:'ten',n:'Oficinas',m:'1.500 m²',brk:null,f:6}]},
-      {p:'P4',sup:1500,units:[{type:'ten',n:'Celonis',m:'1.300 m²',brk:'Oct 2025',brkColor:'var(--amber)',f:5},{type:'vac',oferta:null,m:'200 m²',f:1}]},
-      {p:'PB',sup:1500,units:[{type:'com',n:'Cafetería',m:'250 m²',f:1},{type:'vac',oferta:null,m:'1.250 m²',f:5}]},
+      {p:'P5',sup:1500,units:[{type:'ten',n:'Oficinas',sup:1500,brk:null}]},
+      {p:'P4',sup:1500,units:[{type:'ten',n:'Celonis',sup:1300,brk:'Oct 2025',brkColor:'var(--amber)'},{type:'vac',oferta:null,sup:200}]},
+      {p:'PB',sup:1500,units:[{type:'com',n:'Cafetería',sup:250},{type:'vac',oferta:null,sup:1250}]},
     ],
   },
   {
@@ -105,10 +115,13 @@ const INIT_BUILDINGS = [
       {id:'P4',sup:1967,principal:[{uso:'oficinas',sup:1967}],adicional:[]},
       {id:'PB',sup:1967,principal:[{uso:'oficinas',sup:1967}],adicional:[]},
     ],
-    prop:[{p:'P4',sup:1967},{p:'PB',sup:1967}],
+    prop:[
+      {p:'P4',sup:1967,units:[{n:'Barings Core Spain SOCIMI',sup:1967}]},
+      {p:'PB',sup:1967,units:[{n:'Barings Core Spain SOCIMI',sup:1967}]},
+    ],
     arr:[
-      {p:'P4',sup:1967,units:[{type:'ten',n:'Repsol',m:'1.967 m²',brk:'Jun 2027',brkColor:'var(--green)',f:6}]},
-      {p:'PB',sup:1967,units:[{type:'vac',oferta:null,m:'1.967 m²',f:6}]},
+      {p:'P4',sup:1967,units:[{type:'ten',n:'Repsol',sup:1967,brk:'Jun 2027',brkColor:'var(--green)'}]},
+      {p:'PB',sup:1967,units:[{type:'vac',oferta:null,sup:1967}]},
     ],
   },
   {
@@ -117,10 +130,13 @@ const INIT_BUILDINGS = [
       {id:'P3',sup:2000,principal:[{uso:'oficinas',sup:2000}],adicional:[]},
       {id:'PB',sup:2000,principal:[{uso:'oficinas',sup:2000}],adicional:[]},
     ],
-    prop:[{p:'P3',sup:2000},{p:'PB',sup:2000}],
+    prop:[
+      {p:'P3',sup:2000,units:[{n:'Barings Core Spain SOCIMI',sup:2000}]},
+      {p:'PB',sup:2000,units:[{n:'Barings Core Spain SOCIMI',sup:2000}]},
+    ],
     arr:[
-      {p:'P3',sup:2000,units:[{type:'ten',n:'Oficinas',m:'2.000 m²',brk:null,f:6}]},
-      {p:'PB',sup:2000,units:[{type:'vac',oferta:null,m:'2.000 m²',f:6}]},
+      {p:'P3',sup:2000,units:[{type:'ten',n:'Oficinas',sup:2000,brk:null}]},
+      {p:'PB',sup:2000,units:[{type:'vac',oferta:null,sup:2000}]},
     ],
   },
 ]
@@ -138,9 +154,14 @@ function StackingPlan() {
   const [newBldg, setNewBldg]           = useState({label:'',sup:'',sobre:'',bajo:''})
   const [splitModal, setSplitModal]     = useState(null) // {floorId, usoId}
   const [splitSup, setSplitSup]         = useState('')
+  const [ppOpen, setPpOpen]             = useState(true)
+  const [uaOpen, setUaOpen]             = useState(true)
+  const [editPA, setEditPA]             = useState(null)  // {layer:'prop'|'arr', rowP, idx}
+  const [editPASup, setEditPASup]       = useState('')
 
   const edif = buildings.find(b=>b.id===edifId) || buildings[0]
-  const usoInfo = (id) => USOS_PPAL.find(u=>u.id===id) || {label:id,color:'#94a3b8',bg:'#f1f5f9',bd:'#cbd5e1'}
+  const usoInfo  = (id) => USOS_PPAL.find(u=>u.id===id) || {label:id,color:'#94a3b8',bg:'#f1f5f9',bd:'#cbd5e1'}
+  const uaInfo   = (id) => UA_ALL.find(u=>u.id===id)   || {label:id,color:'#64748b',bg:'#f1f5f9',bd:'#cbd5e1',attr:false}
 
   /* ── Stats derivados ── */
   const totalSup    = edif.floors.reduce((s,f)=>s+f.sup,0)
@@ -181,6 +202,19 @@ function StackingPlan() {
       const arr=[...f[layer]]; arr.splice(idx,1)
       return {...f,[layer]:arr}
     })}))
+  }
+
+  const savePASup = () => {
+    if(!editPA) return
+    const val = parseFloat(editPASup)
+    if(isNaN(val)||val<=0) return
+    updBuilding(b=>({...b, [editPA.layer]: b[editPA.layer].map(row=>{
+      if(row.p!==editPA.rowP) return row
+      const units=[...row.units]
+      units[editPA.idx]={...units[editPA.idx], sup:val}
+      return {...row, units}
+    })}))
+    setEditPA(null); setEditPASup('')
   }
 
   const saveSup = () => {
@@ -269,7 +303,7 @@ function StackingPlan() {
 
       {/* Vista sub-tabs */}
       <div style={{display:'flex',borderBottom:'1px solid var(--border)',marginLeft:-24,marginRight:-24,paddingLeft:24}}>
-        {[['principal','Uso principal'],['adicional','Usos adicionales'],['prop','Propietarios'],['arr','Arrendatarios y oferta']].map(([k,l])=>(
+        {[['principal','Uso principal'],['prop','Propietarios'],['arr','Arrendatarios y oferta']].map(([k,l])=>(
           <button key={k} onClick={()=>setView(k)} style={vTab(k)}>{l}</button>
         ))}
       </div>
@@ -294,160 +328,238 @@ function StackingPlan() {
       {view==='principal' && (
         <div style={{display:'flex',gap:16}}>
 
-          {/* Sidebar */}
-          <div style={{width:154,flexShrink:0}}>
-            <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:8}}>
-              Arrastra o selecciona plantas
-            </div>
-            {USOS_PPAL.map(u=>(
-              <div key={u.id} draggable
-                onDragStart={()=>setDragging(u.id)}
-                onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                style={{
-                  display:'flex',alignItems:'center',gap:7,padding:'7px 10px',marginBottom:5,
-                  borderRadius:6,cursor:'grab',userSelect:'none',
-                  border:`1px solid ${dragging===u.id?u.color:u.bd}`,
-                  background:u.bg,
-                  opacity:dragging&&dragging!==u.id?.4:1,
-                  boxShadow:dragging===u.id?`0 2px 8px ${u.color}55`:'none',
-                  transform:dragging===u.id?'scale(1.02)':'scale(1)',
-                  transition:'opacity .15s, transform .1s, box-shadow .1s',
-                }}
-              >
-                <div style={{width:10,height:10,borderRadius:2,background:u.color,flexShrink:0}}/>
-                <span style={{fontSize:11,fontWeight:600,color:u.color}}>{u.label}</span>
-              </div>
-            ))}
+          {/* ── SIDEBAR ── */}
+          <div style={{width:160,flexShrink:0,display:'flex',flexDirection:'column',gap:0}}>
 
-            {selectedFloors.length>0 && (
-              <div style={{marginTop:12,padding:10,background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:6}}>
-                <div style={{fontSize:10,fontWeight:700,color:'var(--accent)',marginBottom:6}}>
-                  {selectedFloors.length} planta{selectedFloors.length>1?'s':''} seleccionada{selectedFloors.length>1?'s':''}
+            {/* SECCIÓN: Usos principales */}
+            <div style={{marginBottom:4}}>
+              <div
+                onClick={()=>setPpOpen(v=>!v)}
+                style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',padding:'5px 2px',userSelect:'none'}}
+              >
+                <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Usos principales</span>
+                <span style={{fontSize:11,color:'var(--text4)',transition:'transform .2s',display:'inline-block',transform:ppOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
+              </div>
+              {ppOpen && (
+                <div style={{maxHeight:210,overflowY:'auto',paddingRight:2}}>
+                  {USOS_PPAL.map(u=>(
+                    <div key={u.id} draggable
+                      onDragStart={()=>setDragging(u.id)}
+                      onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                      style={{
+                        display:'flex',alignItems:'center',gap:7,padding:'6px 9px',marginBottom:4,
+                        borderRadius:6,cursor:'grab',userSelect:'none',
+                        border:`1px solid ${dragging===u.id?u.color:u.bd}`,background:u.bg,
+                        opacity:dragging&&dragging!==u.id?.4:1,
+                        boxShadow:dragging===u.id?`0 2px 8px ${u.color}55`:'none',
+                        transform:dragging===u.id?'scale(1.02)':'scale(1)',
+                        transition:'opacity .15s,transform .1s,box-shadow .1s',
+                      }}
+                    >
+                      <div style={{width:9,height:9,borderRadius:2,background:u.color,flexShrink:0}}/>
+                      <span style={{fontSize:11,fontWeight:600,color:u.color}}>{u.label}</span>
+                    </div>
+                  ))}
                 </div>
-                <div style={{fontSize:9,color:'var(--text4)',marginBottom:6,textTransform:'uppercase',letterSpacing:'.03em'}}>Asignación masiva</div>
-                {USOS_PPAL.map(u=>(
-                  <button key={u.id} onClick={()=>bulkAssign(u.id)}
-                    style={{display:'block',width:'100%',padding:'4px 8px',marginBottom:3,
-                      background:u.bg,color:u.color,border:`1px solid ${u.bd}`,
-                      borderRadius:4,fontSize:10,cursor:'pointer',fontFamily:'inherit',textAlign:'left',fontWeight:600}}>
-                    {u.label}
-                  </button>
-                ))}
+              )}
+            </div>
+
+            {/* SECCIÓN: Usos adicionales */}
+            <div>
+              <div
+                onClick={()=>setUaOpen(v=>!v)}
+                style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',padding:'5px 2px',userSelect:'none',borderTop:'1px solid var(--border)',marginTop:4,paddingTop:8}}
+              >
+                <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Usos adicionales</span>
+                <span style={{fontSize:11,color:'var(--text4)',transition:'transform .2s',display:'inline-block',transform:uaOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
+              </div>
+              {uaOpen && (
+                <div style={{maxHeight:260,overflowY:'auto',paddingRight:2}}>
+                  {availableUA.length===0 ? (
+                    <div style={{fontSize:10,color:'var(--text4)',padding:'6px 0',lineHeight:1.4}}>Asigna primero usos principales</div>
+                  ) : availableUA.map(ua=>(
+                    <div key={ua.id} draggable
+                      onDragStart={()=>setDragging(ua.id)}
+                      onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                      style={{
+                        display:'flex',alignItems:'center',gap:6,padding:'5px 9px',marginBottom:3,
+                        borderRadius:5,cursor:'grab',userSelect:'none',
+                        border:`1px solid ${dragging===ua.id?ua.color:ua.bd}`,background:ua.bg,
+                        opacity:dragging&&dragging!==ua.id?.4:1,
+                        boxShadow:dragging===ua.id?`0 2px 8px ${ua.color}44`:'none',
+                        transition:'opacity .15s,box-shadow .1s',
+                      }}
+                    >
+                      <div style={{width:8,height:8,borderRadius:2,background:ua.color,flexShrink:0}}/>
+                      <span style={{fontSize:10,fontWeight:600,color:ua.color,flex:1}}>{ua.label}</span>
+                      <span style={{fontSize:8,padding:'1px 3px',borderRadius:2,fontWeight:700,flexShrink:0,
+                        background:ua.attr?'#ede9fe':'#f0fdf4',color:ua.attr?'#7c3aed':'#16a34a'}}>{ua.attr?'A':'S'}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Asignación masiva */}
+            {selectedFloors.length>0 && (
+              <div style={{marginTop:10,padding:10,background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:6}}>
+                <div style={{fontSize:10,fontWeight:700,color:'var(--accent)',marginBottom:6}}>
+                  {selectedFloors.length} planta{selectedFloors.length>1?'s':''} sel.
+                </div>
+                <div style={{maxHeight:160,overflowY:'auto'}}>
+                  {USOS_PPAL.map(u=>(
+                    <button key={u.id} onClick={()=>bulkAssign(u.id)}
+                      style={{display:'block',width:'100%',padding:'4px 8px',marginBottom:3,
+                        background:u.bg,color:u.color,border:`1px solid ${u.bd}`,
+                        borderRadius:4,fontSize:10,cursor:'pointer',fontFamily:'inherit',textAlign:'left',fontWeight:600}}>
+                      {u.label}
+                    </button>
+                  ))}
+                </div>
                 <button onClick={()=>setSelectedFloors([])}
                   style={{display:'block',width:'100%',padding:'4px 8px',marginTop:4,
                     background:'none',color:'var(--text4)',border:'1px solid var(--border)',
                     borderRadius:4,fontSize:10,cursor:'pointer',fontFamily:'inherit',textAlign:'center'}}>
-                  Cancelar selección
+                  Cancelar
                 </button>
               </div>
             )}
           </div>
 
-          {/* Grid plantas */}
+          {/* ── GRID PLANTAS ── */}
           <div style={{flex:1,minWidth:0}}>
-            {/* Leyenda */}
-            <div style={{display:'flex',gap:10,marginBottom:8,flexWrap:'wrap'}}>
-              {USOS_PPAL.map(u=>(
-                <span key={u.id} style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'var(--text3)'}}>
-                  <span style={{width:10,height:10,background:u.bg,border:`1px solid ${u.bd}`,borderRadius:2,display:'inline-block'}}/>
-                  {u.label}
-                </span>
-              ))}
-            </div>
-
             {/* Cabecera */}
             <div style={{display:'grid',gridTemplateColumns:'22px 52px 1fr 90px',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
               <div style={{padding:'5px 4px'}}/>
               <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Planta</div>
-              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Uso principal</div>
+              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Uso principal + Usos adicionales</div>
               <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
             </div>
 
             {edif.floors.map(floor=>{
               const used  = floor.principal.reduce((s,u)=>s+u.sup,0)
               const avail = floor.sup-used
-              const isTgt = dragTarget===floor.id && view==='principal'
+              const isTgt = dragTarget===floor.id
               const isSel = selectedFloors.includes(floor.id)
+              const hasAdic = floor.adicional.length>0
 
               return (
                 <div key={floor.id}
                   onDragOver={e=>onDragOver(e,floor.id)}
                   onDragLeave={()=>setDragTarget(null)}
-                  onDrop={e=>onDrop(e,floor,'principal')}
+                  onDrop={e=>{
+                    e.preventDefault(); setDragTarget(null)
+                    if(!dragging) return
+                    const isUA = UA_ALL.find(u=>u.id===dragging)
+                    if(isUA){ assignAdicional(floor.id,dragging); setDragging(null); return }
+                    const used2=floor.principal.reduce((s,u)=>s+u.sup,0)
+                    const avail2=floor.sup-used2
+                    if(avail2<=0){ setSplitModal({floorId:floor.id,usoId:dragging}); setSplitSup('') }
+                    else{ assignPrincipal(floor.id,dragging,avail2) }
+                    setDragging(null)
+                  }}
                   style={{
                     display:'grid',gridTemplateColumns:'22px 52px 1fr 90px',
-                    borderBottom:'1px solid var(--border)',minHeight:42,
+                    borderBottom:'1px solid var(--border)',
                     background:isTgt?'#eff6ff':isSel?'#f0f9ff':'var(--surface)',
                     outline:isTgt?'1.5px solid var(--accent)':'none',
                     transition:'background .1s',
                   }}
                 >
                   {/* Checkbox */}
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'center',paddingTop:4}}>
                     <input type="checkbox" checked={isSel}
                       onChange={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
                       style={{width:11,height:11,cursor:'pointer'}}/>
                   </div>
 
                   {/* Label planta */}
-                  <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:'var(--text3)',display:'flex',alignItems:'center'}}>{floor.id}</div>
+                  <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:'var(--text3)',display:'flex',alignItems:'flex-start',paddingTop:10}}>{floor.id}</div>
 
-                  {/* Bloques de uso */}
-                  <div style={{display:'flex',alignItems:'stretch',padding:'4px 4px 4px 0',gap:2}}>
-                    {floor.principal.length===0 ? (
-                      <div style={{flex:1,height:34,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt?600:400}}>
-                        {isTgt?'⬇ Soltar uso aquí':'Arrastra un uso sobre esta planta'}
-                      </div>
-                    ) : (
-                      <>
-                        {floor.principal.map((u,i)=>{
-                          const info = usoInfo(u.uso)
-                          const wpct = `${(u.sup/floor.sup)*100}%`
-                          const isEd = editFloor?.floorId===floor.id && editFloor?.idx===i && editFloor?.layer==='principal'
+                  {/* Columna central: uso principal + adicionales */}
+                  <div style={{padding:'4px 4px 4px 0',display:'flex',flexDirection:'column',gap:4}}>
+
+                    {/* Fila 1: barras de uso principal */}
+                    <div style={{display:'flex',alignItems:'stretch',gap:2,height:32}}>
+                      {floor.principal.length===0 ? (
+                        <div style={{flex:1,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt?600:400}}>
+                          {isTgt?'⬇ Soltar uso aquí':'Sin uso asignado — arrastra un uso'}
+                        </div>
+                      ) : (
+                        <>
+                          {floor.principal.map((u,i)=>{
+                            const info = usoInfo(u.uso)
+                            const wpct = `${(u.sup/floor.sup)*100}%`
+                            const isEd = editFloor?.floorId===floor.id && editFloor?.idx===i && editFloor?.layer==='principal'
+                            return (
+                              <div key={i}
+                                title={`${info.label} · ${u.sup.toLocaleString('es-ES')} m²`}
+                                onClick={()=>{if(isEd)setEditFloor(null);else{setEditFloor({floorId:floor.id,idx:i,layer:'principal'});setEditSup(String(u.sup))}}}
+                                style={{width:wpct,background:info.bg,border:`1px solid ${info.bd}`,borderRadius:4,
+                                  display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',
+                                  flexShrink:0,overflow:'hidden',transition:'filter .1s'}}
+                              >
+                                {isEd ? (
+                                  <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
+                                    <input type="number" value={editSup} onChange={e=>setEditSup(e.target.value)} autoFocus
+                                      onKeyDown={e=>{if(e.key==='Enter')saveSup();if(e.key==='Escape')setEditFloor(null)}}
+                                      style={{width:52,padding:'2px 4px',fontSize:9,border:`1px solid ${info.color}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                    <button onClick={saveSup} style={{padding:'2px 4px',background:info.color,color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓</button>
+                                    <button onClick={()=>removeItem(floor.id,i,'principal')} style={{padding:'2px 4px',background:'#fee2e2',color:'#dc2626',border:'1px solid #fca5a5',borderRadius:3,fontSize:8,cursor:'pointer'}}>✕</button>
+                                  </div>
+                                ) : (
+                                  <span style={{fontSize:9,fontWeight:700,color:info.color,padding:'0 5px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>
+                                    {info.label}{u.sup>=200?` · ${u.sup.toLocaleString('es-ES')} m²`:''}
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })}
+                          {avail>0 && (
+                            <div style={{flex:1,minWidth:14,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:isTgt?'var(--accent)':'var(--text4)'}}>
+                              {avail.toLocaleString('es-ES')} m²
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Fila 2: chips de usos adicionales */}
+                    {hasAdic && (
+                      <div style={{display:'flex',flexWrap:'wrap',gap:3,paddingBottom:4}}>
+                        {floor.adicional.map((ua,i)=>{
+                          const info = uaInfo(ua.uso)
+                          const isEd = editFloor?.floorId===floor.id&&editFloor?.idx===i&&editFloor?.layer==='adicional'
                           return (
-                            <div key={i}
-                              title={`${info.label} · ${u.sup.toLocaleString('es-ES')} m²\nClic para editar`}
-                              onClick={()=>{
-                                if(isEd){setEditFloor(null)}
-                                else{setEditFloor({floorId:floor.id,idx:i,layer:'principal'});setEditSup(String(u.sup))}
-                              }}
-                              style={{
-                                width:wpct,height:34,background:info.bg,
-                                border:`1px solid ${info.bd}`,borderRadius:4,
-                                display:'flex',alignItems:'center',justifyContent:'center',
-                                cursor:'pointer',flexShrink:0,overflow:'hidden',position:'relative',
-                                transition:'filter .1s',
-                              }}
-                            >
-                              {isEd ? (
-                                <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
+                            <div key={i} style={{display:'flex',alignItems:'center',gap:3,padding:'2px 7px',
+                              background:info.bg,border:`1px solid ${info.bd}`,borderRadius:10,
+                              fontSize:9,color:info.color,fontWeight:600}}>
+                              <div style={{width:6,height:6,borderRadius:1,background:info.color,flexShrink:0}}/>
+                              <span>{ua.label}</span>
+                              {!ua.attr&&(isEd?(
+                                <div style={{display:'flex',gap:2}} onClick={e=>e.stopPropagation()}>
                                   <input type="number" value={editSup} onChange={e=>setEditSup(e.target.value)} autoFocus
                                     onKeyDown={e=>{if(e.key==='Enter')saveSup();if(e.key==='Escape')setEditFloor(null)}}
-                                    style={{width:58,padding:'2px 4px',fontSize:10,border:`1px solid ${info.color}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
-                                  <button onClick={saveSup}
-                                    style={{padding:'2px 5px',background:info.color,color:'#fff',border:'none',borderRadius:3,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>✓</button>
-                                  <button onClick={()=>removeItem(floor.id,i,'principal')}
-                                    style={{padding:'2px 5px',background:'#fee2e2',color:'#dc2626',border:'1px solid #fca5a5',borderRadius:3,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+                                    style={{width:44,padding:'1px 3px',fontSize:8,border:`1px solid ${info.color}`,borderRadius:3,fontFamily:'var(--mono)'}}/>
+                                  <button onClick={saveSup} style={{padding:'1px 3px',background:info.color,color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓</button>
                                 </div>
-                              ) : (
-                                <span style={{fontSize:9,fontWeight:700,color:info.color,padding:'0 6px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>
-                                  {info.label}{u.sup>=200?` · ${u.sup.toLocaleString('es-ES')} m²`:''}
+                              ):(
+                                <span onClick={()=>{setEditFloor({floorId:floor.id,idx:i,layer:'adicional'});setEditSup(String(ua.sup))}}
+                                  style={{fontFamily:'var(--mono)',fontSize:8,color:info.color,opacity:.7,cursor:'pointer',textDecoration:'underline dotted'}}>
+                                  {ua.sup>0?`${ua.sup.toLocaleString('es-ES')} m²`:''}
                                 </span>
-                              )}
+                              ))}
+                              <button onClick={()=>removeItem(floor.id,i,'adicional')}
+                                style={{background:'none',border:'none',cursor:'pointer',color:info.color,fontSize:10,lineHeight:1,padding:'0',opacity:.6}}>✕</button>
                             </div>
                           )
                         })}
-                        {avail>0 && (
-                          <div style={{flex:1,height:34,minWidth:16,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:isTgt?'var(--accent)':'var(--text4)'}}>
-                            {avail.toLocaleString('es-ES')} m²
-                          </div>
-                        )}
-                      </>
+                      </div>
                     )}
                   </div>
 
                   {/* Sup total */}
-                  <div style={{padding:'6px 8px',fontSize:11,fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',justifyContent:'flex-end',fontFamily:'var(--mono)'}}>
+                  <div style={{padding:'8px 8px',fontSize:11,fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'flex-start',justifyContent:'flex-end',fontFamily:'var(--mono)',paddingTop:10}}>
                     {floor.sup.toLocaleString('es-ES')} m²
                   </div>
                 </div>
@@ -466,157 +578,139 @@ function StackingPlan() {
         </div>
       )}
 
-      {/* ══ USOS ADICIONALES ══ */}
-      {view==='adicional' && (
-        <div style={{display:'flex',gap:16}}>
-          {/* Sidebar */}
-          <div style={{width:190,flexShrink:0}}>
-            <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>
-              Disponibles · uso del edificio
-            </div>
-            {availableUA.length===0 ? (
-              <div style={{fontSize:11,color:'var(--text4)',padding:'8px 0',lineHeight:1.4}}>Asigna primero usos principales al edificio</div>
-            ) : availableUA.map(ua=>(
-              <div key={ua.id} draggable
-                onDragStart={()=>setDragging(ua.id)}
-                onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                style={{
-                  padding:'6px 9px',marginBottom:4,borderRadius:5,cursor:'grab',
-                  border:`1px solid ${dragging===ua.id?'var(--accent)':'var(--border)'}`,
-                  background:dragging===ua.id?'var(--accent-lt)':'var(--surface)',
-                  fontSize:10,color:'var(--text2)',fontWeight:500,
-                  display:'flex',alignItems:'center',gap:6,
-                  opacity:dragging&&dragging!==ua.id?.4:1,
-                  transition:'opacity .15s',
-                }}
-              >
-                <span style={{fontSize:8,padding:'1px 4px',borderRadius:3,fontWeight:700,flexShrink:0,
-                  background:ua.attr?'#ede9fe':'#f0fdf4',color:ua.attr?'#7c3aed':'#16a34a'}}>
-                  {ua.attr?'ATTR':'SUP'}
+      {/* ══ PROPIETARIOS ══ */}
+      {view==='prop' && (()=>{
+        const PROP_COLORS = ['#3b82f6','#8b5cf6','#14b8a6','#f97316','#ec4899','#22c55e']
+        const ownerSet = [...new Set((edif.prop||[]).flatMap(r=>r.units.map(u=>u.n)))]
+        const ownerColor = (n) => PROP_COLORS[ownerSet.indexOf(n)%PROP_COLORS.length]
+        return (
+          <div>
+            <div style={{display:'flex',gap:10,marginBottom:8,flexWrap:'wrap'}}>
+              {ownerSet.map((n,i)=>(
+                <span key={n} style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'var(--text3)'}}>
+                  <span style={{width:10,height:10,background:PROP_COLORS[i%PROP_COLORS.length]+'22',border:`1px solid ${PROP_COLORS[i%PROP_COLORS.length]}`,borderRadius:2,display:'inline-block'}}/>
+                  {n}
                 </span>
-                {ua.label}
+              ))}
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
+              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Planta</div>
+              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Propietario — clic en bloque para editar superficie</div>
+              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
+            </div>
+            {(edif.prop||[]).map(row=>(
+              <div key={row.p} style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',borderBottom:'1px solid var(--border)',minHeight:40}}>
+                <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:'var(--text3)',display:'flex',alignItems:'center'}}>{row.p}</div>
+                <div style={{display:'flex',alignItems:'stretch',padding:'4px 4px 4px 0',gap:2,height:32,marginTop:4}}>
+                  {row.units.map((u,i)=>{
+                    const col = ownerColor(u.n)
+                    const wpct = `${(u.sup/row.sup)*100}%`
+                    const isEd = editPA?.layer==='prop' && editPA?.rowP===row.p && editPA?.idx===i
+                    return (
+                      <div key={i}
+                        title={`${u.n} · ${u.sup.toLocaleString('es-ES')} m²`}
+                        onClick={()=>{if(isEd)setEditPA(null);else{setEditPA({layer:'prop',rowP:row.p,idx:i});setEditPASup(String(u.sup))}}}
+                        style={{width:wpct,background:col+'22',border:`1px solid ${col}`,borderRadius:4,
+                          display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',
+                          flexShrink:0,overflow:'hidden'}}
+                      >
+                        {isEd ? (
+                          <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
+                            <input type="number" value={editPASup} onChange={e=>setEditPASup(e.target.value)} autoFocus
+                              onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
+                              style={{width:58,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                            <button onClick={savePASup} style={{padding:'2px 4px',background:col,color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓</button>
+                          </div>
+                        ) : (
+                          <span style={{fontSize:9,fontWeight:700,color:col,padding:'0 5px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>
+                            {u.n.split(' ')[0]}{u.sup<row.sup?` · ${u.sup.toLocaleString('es-ES')} m²`:''}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {row.units.reduce((s,u)=>s+u.sup,0)<row.sup && (
+                    <div style={{flex:1,background:'var(--gray-lt)',border:'1px dashed var(--border)',borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:'var(--text4)'}}>
+                      {(row.sup-row.units.reduce((s,u)=>s+u.sup,0)).toLocaleString('es-ES')} m² sin asignar
+                    </div>
+                  )}
+                </div>
+                <div style={{padding:'6px 8px',fontSize:11,fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',justifyContent:'flex-end',fontFamily:'var(--mono)'}}>
+                  {row.sup.toLocaleString('es-ES')} m²
+                </div>
               </div>
             ))}
-            <div style={{marginTop:10,padding:'8px',background:'var(--gray-lt)',borderRadius:5,fontSize:10,color:'var(--text4)',lineHeight:1.5}}>
-              <strong style={{color:'var(--text3)'}}>SUP</strong> — consume m² de planta<br/>
-              <strong style={{color:'var(--text3)'}}>ATTR</strong> — atributo estructural
-            </div>
           </div>
-
-          {/* Grid adicionales */}
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:10,color:'var(--text3)',marginBottom:8}}>
-              Arrastra sobre las plantas para asignar elementos estructurales del edificio.
-            </div>
-            <div style={{display:'grid',gridTemplateColumns:'52px 1fr',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
-              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Planta</div>
-              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Usos adicionales / Elementos estructurales</div>
-            </div>
-            {edif.floors.map(floor=>{
-              const isTgt = dragTarget===floor.id && view==='adicional'
-              return (
-                <div key={floor.id}
-                  onDragOver={e=>onDragOver(e,floor.id)}
-                  onDragLeave={()=>setDragTarget(null)}
-                  onDrop={e=>onDrop(e,floor,'adicional')}
-                  style={{display:'grid',gridTemplateColumns:'52px 1fr',borderBottom:'1px solid var(--border)',minHeight:38,
-                    background:isTgt?'#eff6ff':'var(--surface)',outline:isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s'}}
-                >
-                  <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:'var(--text3)',display:'flex',alignItems:'center'}}>{floor.id}</div>
-                  <div style={{padding:'4px 8px',display:'flex',alignItems:'center',flexWrap:'wrap',gap:4}}>
-                    {floor.adicional.length===0
-                      ? <span style={{fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt?600:400}}>{isTgt?'⬇ Soltar aquí':'—'}</span>
-                      : floor.adicional.map((ua,i)=>{
-                          const isEd=editFloor?.floorId===floor.id&&editFloor?.idx===i&&editFloor?.layer==='adicional'
-                          return (
-                            <div key={i} style={{display:'flex',alignItems:'center',gap:4,padding:'3px 8px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:10,fontSize:10,color:'var(--accent)'}}>
-                              <span style={{fontSize:8,padding:'1px 3px',borderRadius:2,fontWeight:700,background:ua.attr?'#ede9fe':'#f0fdf4',color:ua.attr?'#7c3aed':'#16a34a'}}>{ua.attr?'ATTR':'SUP'}</span>
-                              <span>{ua.label}</span>
-                              {!ua.attr&&(isEd?(
-                                <div style={{display:'flex',gap:2}} onClick={e=>e.stopPropagation()}>
-                                  <input type="number" value={editSup} onChange={e=>setEditSup(e.target.value)} autoFocus
-                                    onKeyDown={e=>{if(e.key==='Enter')saveSup();if(e.key==='Escape')setEditFloor(null)}}
-                                    style={{width:50,padding:'1px 3px',fontSize:9,border:'1px solid var(--accent-bd)',borderRadius:3,fontFamily:'var(--mono)'}}/>
-                                  <button onClick={saveSup} style={{padding:'1px 4px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓</button>
-                                </div>
-                              ):(
-                                <span onClick={()=>{setEditFloor({floorId:floor.id,idx:i,layer:'adicional'});setEditSup(String(ua.sup))}}
-                                  style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--text4)',cursor:'pointer',textDecoration:'underline dotted'}}>
-                                  {ua.sup.toLocaleString('es-ES')} m²
-                                </span>
-                              ))}
-                              <button onClick={()=>removeItem(floor.id,i,'adicional')}
-                                style={{background:'none',border:'none',cursor:'pointer',color:'var(--text4)',fontSize:11,lineHeight:1,padding:'0 0 0 2px'}}>✕</button>
-                            </div>
-                          )
-                        })
-                    }
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ══ PROPIETARIOS ══ */}
-      {view==='prop' && <>
-        <div style={{marginBottom:8}}>
-          <label style={{display:'flex',alignItems:'center',gap:5,fontSize:11,cursor:'pointer'}}>
-            <input type="checkbox" defaultChecked style={{accentColor:'var(--accent)'}}/>
-            Barings Core Spain SOCIMI
-          </label>
-        </div>
-        <div className="sp-grid-wrap">
-          <div style={{display:'grid',gridTemplateColumns:GRID,background:'var(--gray-lt)',borderBottom:'1px solid var(--border)'}}>
-            {['Planta','PROPIETARIO','Sup. Total','Editar','Añadir'].map(h=><div key={h} className="sp-hc">{h}</div>)}
-          </div>
-          {(edif.prop||[]).map(row=>(
-            <div key={row.p} style={{display:'grid',gridTemplateColumns:GRID,borderBottom:'1px solid var(--border)',minHeight:36}}>
-              <div className="sp-planta">{row.p}</div>
-              <div className="sp-units"><div className="sp-unit u-of" style={{flex:6}}><div className="sp-u-name">Barings Core Spain SOCIMI</div></div></div>
-              <div className="sp-sup mono">{row.sup.toLocaleString('es-ES')} m²</div>
-              <div className="sp-edit"><button className="sp-ibtn">✏</button></div>
-              <div className="sp-add"><span className="sp-addlink">+ Unidad</span></div>
-            </div>
-          ))}
-        </div>
-      </>}
+        )
+      })()}
 
       {/* ══ ARRENDATARIOS ══ */}
-      {view==='arr' && <>
-        <div style={{display:'flex',gap:12,marginBottom:10,flexWrap:'wrap'}}>
-          {[['var(--accent)','#dbeafe','#93c5fd','Arrendatario'],['#f59e0b','#fff7ed','#fed7aa','Disponible'],['#22c55e','#dcfce7','#86efac','Zona común']].map(([ac,bg,bd,lbl])=>(
-            <label key={lbl} style={{display:'flex',alignItems:'center',gap:4,fontSize:11,cursor:'pointer'}}>
-              <input type="checkbox" defaultChecked style={{accentColor:ac}}/>
-              <span style={{width:10,height:10,background:bg,border:`1px solid ${bd}`,borderRadius:2,display:'inline-block'}}/>
-              {lbl}
-            </label>
-          ))}
-        </div>
-        <div className="sp-grid-wrap">
-          <div style={{display:'grid',gridTemplateColumns:GRID,background:'var(--gray-lt)',borderBottom:'1px solid var(--border)'}}>
-            {['Planta','ARRENDATARIO / DISPONIBLE','Sup. Total','Editar','Añadir'].map(h=><div key={h} className="sp-hc">{h}</div>)}
+      {view==='arr' && (
+        <div>
+          <div style={{display:'flex',gap:12,marginBottom:8,flexWrap:'wrap'}}>
+            {[['#1e40af','#dbeafe','#93c5fd','Arrendatario'],['#d97706','#fff8ec','#fcd34d','Disponible'],['#15803d','#dcfce7','#86efac','Zona común'],['#ec4899','#fce7f3','#fbcfe8','Retail'],['#475569','#f1f5f9','#94a3b8','Parking']].map(([col,bg,bd,lbl])=>(
+              <span key={lbl} style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'var(--text3)'}}>
+                <span style={{width:10,height:10,background:bg,border:`1px solid ${bd}`,borderRadius:2,display:'inline-block'}}/>
+                {lbl}
+              </span>
+            ))}
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
+            <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Planta</div>
+            <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Arrendatario / Disponible — clic en bloque para editar superficie</div>
+            <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
           </div>
           {(edif.arr||[]).map(row=>(
-            <div key={row.p} style={{display:'grid',gridTemplateColumns:GRID,borderBottom:'1px solid var(--border)',minHeight:36}}>
-              <div className="sp-planta">{row.p}</div>
-              <div className="sp-units">
+            <div key={row.p} style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',borderBottom:'1px solid var(--border)',minHeight:40}}>
+              <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:'var(--text3)',display:'flex',alignItems:'center'}}>{row.p}</div>
+              <div style={{display:'flex',alignItems:'stretch',padding:'4px 4px 4px 0',gap:2,height:32,marginTop:4}}>
                 {row.units.map((u,i)=>{
-                  if(u.type==='pk') return <div key={i} className="sp-unit u-pk" style={{flex:u.f}}><div className="sp-u-name">{u.n}</div><div className="sp-u-m2">{u.m}</div></div>
-                  if(u.type==='com') return <div key={i} className="sp-unit u-com" style={{flex:u.f,flexDirection:'column',alignItems:'flex-start',padding:'4px 8px'}}><div className="sp-u-name">{u.n}</div><div className="sp-u-m2">{u.m}</div></div>
-                  if(u.type==='vac') return <div key={i} style={{flex:u.f,background:'#fff8ec',border:'1px dashed #fcd34d',display:'flex',flexDirection:'column',justifyContent:'center',padding:'4px 8px'}}><div style={{fontSize:9,fontWeight:600,color:'var(--amber)'}}>Disponible{u.oferta?` · ${u.oferta}`:''}</div><div className="sp-u-m2" style={{color:'var(--text3)'}}>{u.m}</div></div>
-                  if(u.type==='rt') return <div key={i} className="sp-unit u-rt" style={{flex:u.f,flexDirection:'column',alignItems:'flex-start',padding:'4px 8px'}}><div className="sp-u-name" style={{fontWeight:600}}>{u.n}</div><div className="sp-u-m2">{u.m}</div>{u.brk&&<div style={{fontSize:9,color:u.brkColor}}>⊙ break {u.brk}</div>}</div>
-                  return <div key={i} style={{flex:u.f,background:'#dbeafe',color:'#1e40af',display:'flex',flexDirection:'column',justifyContent:'center',padding:'4px 8px'}}><div className="sp-u-name" style={{fontWeight:600}}>{u.n}</div><div className="sp-u-m2">{u.m}</div>{u.brk&&<div style={{fontSize:9,color:u.brkColor}}>⊙ break {u.brk}</div>}</div>
+                  const wpct = `${(u.sup/row.sup)*100}%`
+                  const isEd = editPA?.layer==='arr' && editPA?.rowP===row.p && editPA?.idx===i
+                  let bg,bd,col,label
+                  if(u.type==='pk')  { bg='#f1f5f9';bd='#94a3b8';col='#475569';label=u.n }
+                  else if(u.type==='com') { bg='#dcfce7';bd='#86efac';col='#15803d';label=u.n }
+                  else if(u.type==='vac') { bg='#fff8ec';bd='#fcd34d';col='#d97706';label=`Disponible${u.oferta?` · ${u.oferta}`:''}` }
+                  else if(u.type==='rt')  { bg='#fce7f3';bd='#fbcfe8';col='#ec4899';label=u.n }
+                  else { bg='#dbeafe';bd='#93c5fd';col='#1e40af';label=u.n }
+                  return (
+                    <div key={i}
+                      title={`${label} · ${u.sup.toLocaleString('es-ES')} m²${u.brk?` · break ${u.brk}`:''}`}
+                      onClick={()=>{if(isEd)setEditPA(null);else{setEditPA({layer:'arr',rowP:row.p,idx:i});setEditPASup(String(u.sup))}}}
+                      style={{width:wpct,background:bg,border:`1px solid ${bd}`,borderRadius:4,
+                        display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+                        cursor:'pointer',flexShrink:0,overflow:'hidden',padding:'2px 0'}}
+                    >
+                      {isEd ? (
+                        <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
+                          <input type="number" value={editPASup} onChange={e=>setEditPASup(e.target.value)} autoFocus
+                            onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
+                            style={{width:58,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                          <button onClick={savePASup} style={{padding:'2px 4px',background:col,color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓</button>
+                        </div>
+                      ) : (
+                        <>
+                          <span style={{fontSize:9,fontWeight:700,color:col,padding:'0 5px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>
+                            {label}
+                          </span>
+                          <span style={{fontSize:8,color:col,opacity:.7,fontFamily:'var(--mono)'}}>
+                            {u.sup>=200?`${u.sup.toLocaleString('es-ES')} m²`:''}
+                          </span>
+                          {u.brk&&<span style={{fontSize:8,color:u.brkColor,fontWeight:600}}>⊙ {u.brk}</span>}
+                          {u.nota&&<span style={{fontSize:8,color:col,opacity:.6}}>{u.nota}</span>}
+                        </>
+                      )}
+                    </div>
+                  )
                 })}
               </div>
-              <div className="sp-sup mono">{row.sup.toLocaleString('es-ES')} m²</div>
-              <div className="sp-edit"><button className="sp-ibtn">✏</button></div>
-              <div className="sp-add"><span className="sp-addlink">+ Unidad</span></div>
+              <div style={{padding:'6px 8px',fontSize:11,fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',justifyContent:'flex-end',fontFamily:'var(--mono)'}}>
+                {row.sup.toLocaleString('es-ES')} m²
+              </div>
             </div>
           ))}
         </div>
-      </>}
+      )}
 
       {/* ══ MODAL SPLIT ══ */}
       {splitModal&&(()=>{
