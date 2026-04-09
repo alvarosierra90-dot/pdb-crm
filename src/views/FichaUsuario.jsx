@@ -1,6 +1,40 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { exportPDF, exportPPT } from '../utils/exportReport'
+
+function ExportMenu({ getConfig }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+  return (
+    <div ref={ref} style={{position:'relative',display:'inline-block'}}>
+      <button onClick={() => setOpen(o => !o)}
+        style={{padding:'4px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:4,fontSize:9,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',gap:5}}>
+        ⬇ Exportar informe <span style={{fontSize:8}}>{open?'▲':'▼'}</span>
+      </button>
+      {open && (
+        <div style={{position:'absolute',right:0,top:'110%',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:999,minWidth:130,overflow:'hidden'}}>
+          <div onClick={() => { setOpen(false); exportPDF(getConfig()) }}
+            style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8,borderBottom:'1px solid var(--border)'}}
+            onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
+            onMouseLeave={e=>e.currentTarget.style.background=''}>
+            📄 <span>PDF</span>
+          </div>
+          <div onClick={() => { setOpen(false); exportPPT(getConfig()) }}
+            style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8}}
+            onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
+            onMouseLeave={e=>e.currentTarget.style.background=''}>
+            📊 <span>PowerPoint</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const USUARIO = {
   id:'USR-001', nombre:'Sierra Alvaro', iniciales:'AS',
@@ -174,18 +208,7 @@ export default function FichaUsuario() {
                     },
                   ],
                 })
-                return (
-                  <div style={{display:'flex',gap:4}}>
-                    <button onClick={()=>exportPDF(getUsrConfig())}
-                      style={{padding:'4px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:4,fontSize:9,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)'}}>
-                      ⬇ PDF
-                    </button>
-                    <button onClick={()=>exportPPT(getUsrConfig())}
-                      style={{padding:'4px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:4,fontSize:9,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)'}}>
-                      ⬇ PPT
-                    </button>
-                  </div>
-                )
+                return <ExportMenu getConfig={getUsrConfig} />
               })()}
             </div>
           </div>

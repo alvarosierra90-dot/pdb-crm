@@ -24,7 +24,6 @@ const HEX = {
 ═══════════════════════════════════════════════════════════ */
 export function exportPDF(config) {
   try {
-  alert('PDF iniciando: ' + (config?.title || '(sin título)'))
   const date = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
 
   const metricsHtml = config.coverMetrics?.length
@@ -195,7 +194,6 @@ export function exportPDF(config) {
    PPT — PptxGenJS (dynamic import)
 ═══════════════════════════════════════════════════════════ */
 export async function exportPPT(config) {
-  alert('PPT iniciando: ' + (config?.title || '(sin título)'))
   let pptxgen
   try {
     const mod = await import('pptxgenjs')

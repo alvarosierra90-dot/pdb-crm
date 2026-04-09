@@ -1,7 +1,41 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { exportPDF, exportPPT } from '../utils/exportReport'
+
+function ExportMenu({ getConfig }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+  return (
+    <div ref={ref} style={{position:'relative',display:'inline-block'}}>
+      <button onClick={() => setOpen(o => !o)} className="ab-btn"
+        style={{display:'flex',alignItems:'center',gap:5}}>
+        ⬇ Exportar informe <span style={{fontSize:8}}>{open?'▲':'▼'}</span>
+      </button>
+      {open && (
+        <div style={{position:'absolute',right:0,top:'110%',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:999,minWidth:130,overflow:'hidden'}}>
+          <div onClick={() => { setOpen(false); exportPDF(getConfig()) }}
+            style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8,borderBottom:'1px solid var(--border)'}}
+            onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
+            onMouseLeave={e=>e.currentTarget.style.background=''}>
+            📄 <span>PDF</span>
+          </div>
+          <div onClick={() => { setOpen(false); exportPPT(getConfig()) }}
+            style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8}}
+            onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
+            onMouseLeave={e=>e.currentTarget.style.background=''}>
+            📊 <span>PowerPoint</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const TABS = ['datos','condiciones','historico','analisis']
 const TAB_LABELS = ['🏢 Datos del propietario','💰 Condiciones de inversión','🕐 Histórico propietarios','📊 Análisis']
@@ -185,12 +219,7 @@ export default function FichaPropietario() {
               },
             ],
           })
-          return (
-            <div style={{display:'flex',gap:4}}>
-              <button className="ab-btn" onClick={()=>exportPDF(getPropConfig())}>⬇ PDF</button>
-              <button className="ab-btn" onClick={()=>exportPPT(getPropConfig())}>⬇ PPT</button>
-            </div>
-          )
+          return <ExportMenu getConfig={getPropConfig} />
         })()}
       </div>
 
