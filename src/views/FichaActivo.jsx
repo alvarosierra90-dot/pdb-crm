@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 
-const TABS = ['at-info','at-caract','at-prop','at-plazas','at-fotos','at-docs','at-adicional','at-360','at-followup']
-const TAB_LABELS = ['Información general','Características','Propietarios y arrendatarios','Plazas','Fotografías','Documentos','Información adicional','Vista 360','Follow-up']
+const TABS = ['at-info','at-stacking','at-caract','at-prop','at-fotos','at-docs','at-adicional','at-360','at-followup']
+const TAB_LABELS = ['Información general','Stacking Plan','Características','Propietarios y arrendatarios','Fotografías','Documentos','Información adicional','Vista 360','Follow-up']
 
 /* ── Stacking Plan data ── */
 const SP_EDIFS = [
@@ -143,7 +143,7 @@ function StackingPlan() {
 
       {/* FILA 2: sub-tabs vista */}
       <div style={{display:'flex',borderBottom:'1px solid var(--border)',marginLeft:-14,marginRight:-14,paddingLeft:14}}>
-        {[['tipo','Tipo de superficie'],['prop','Propietarios'],['arr','Arrendatarios y oferta']].map(([k,l])=>(
+        {[['tipo','Uso'],['prop','Propietarios'],['arr','Arrendatarios y oferta']].map(([k,l])=>(
           <button key={k} onClick={()=>setView(k)} style={vTab(k)}>{l}</button>
         ))}
       </div>
@@ -180,7 +180,7 @@ function StackingPlan() {
         </div>
         <div className="sp-grid-wrap">
           <div style={{display:'grid',gridTemplateColumns:GRID,background:'var(--gray-lt)',borderBottom:'1px solid var(--border)'}}>
-            {['Planta','USO / SUPERFICIE','Sup. Total','Editar','Añadir'].map(h=><div key={h} className="sp-hc">{h}</div>)}
+            {['Planta','USO','Sup. Total','Editar','Añadir'].map(h=><div key={h} className="sp-hc">{h}</div>)}
           </div>
           {d.tipo.map((row,ri)=>(
             <SpRow key={row.p} p={row.p} sup={row.sup}>
@@ -331,19 +331,6 @@ function TabInfo({ navigate }) {
               <div className="ir"><span className="ir-k">Sup. parcela (m²)</span><span className="ir-v">12.400</span></div>
             </div>
           </div>
-        </div>
-
-        {/* ── STACKING PLAN ── */}
-        <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
-          <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-            <div style={{fontSize:11,fontWeight:600}}>📊 Stacking Plan</div>
-            <div style={{display:'flex',gap:6,alignItems:'center'}}>
-              <span style={{fontSize:10,color:'var(--text4)'}}>Vacante: <strong style={{color:'var(--amber)'}}>10.142 m²</strong></span>
-              <span style={{fontSize:10,color:'var(--text4)'}}>·</span>
-              <span style={{fontSize:10,color:'var(--text4)'}}>Ocupado: <strong style={{color:'var(--green)'}}>36.814 m²</strong></span>
-            </div>
-          </div>
-          <div style={{padding:'12px 14px'}}><StackingPlan/></div>
         </div>
 
         {/* ── SEGUIMIENTO COMERCIAL ── */}
@@ -580,7 +567,6 @@ export default function FichaActivo() {
         <button className="ab-btn">Nuevo</button>
         <button className="ab-btn">Desactivar</button>
         <div className="ab-sep"/>
-        <button className="ab-btn blue">📊 Stacking plan</button>
         <button className="ab-btn">Actualizar</button>
         <button className="ab-btn">📄 Plantillas word</button>
         <div className="ab-sep"/>
@@ -623,13 +609,33 @@ export default function FichaActivo() {
           {/* ── TAB: Información general ── */}
           {activeTab==='at-info' && <TabInfo navigate={navigate}/>}
 
+          {/* ── TAB: Stacking Plan ── */}
+          {activeTab==='at-stacking' && (
+            <div className="tab-content active">
+              <div className="info-pad">
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:600}}>Stacking Plan</div>
+                    <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Distribución de usos, propietarios y arrendatarios por planta y edificio</div>
+                  </div>
+                  <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                    <span style={{fontSize:11,color:'var(--text4)'}}>Vacante: <strong style={{color:'var(--amber)'}}>10.142 m²</strong></span>
+                    <span style={{fontSize:11,color:'var(--text4)'}}>·</span>
+                    <span style={{fontSize:11,color:'var(--text4)'}}>Ocupado: <strong style={{color:'var(--green)'}}>36.814 m²</strong></span>
+                  </div>
+                </div>
+                <StackingPlan/>
+              </div>
+            </div>
+          )}
+
           {/* ── TAB: Características ── */}
           {activeTab==='at-caract' && (
             <div className="tab-content active">
               <div className="info-pad">
                 <div style={{fontSize:14,fontWeight:600,marginBottom:14}}>Características técnicas</div>
                 <div className="carac-tabs">
-                  {[['ct-estado','Estado'],['ct-transporte','Transporte'],['ct-normativa','Normativa / ESG'],['ct-generales','Características generales'],['ct-oficinas','🏢 Oficinas'],['ct-uso','Oficinas (uso)']].map(([k,l])=>(
+                  {[['ct-estado','Estado'],['ct-transporte','Transporte'],['ct-normativa','Normativa / ESG'],['ct-generales','Características generales'],['ct-oficinas','🏢 Oficinas'],['ct-uso','Oficinas (uso)'],['ct-plazas','Plazas']].map(([k,l])=>(
                     <div key={k} className={`ct ${caracTab===k?'active':''}`} onClick={()=>setCaracTab(k)}>{l}</div>
                   ))}
                 </div>
@@ -661,6 +667,18 @@ export default function FichaActivo() {
                 {caracTab==='ct-generales' && <div className="info-block"><div className="ib-title">CARACTERÍSTICAS GENERALES</div><div className="ir"><span className="ir-k">Altura libre</span><span className="ir-v">2,85 m</span></div><div className="ir"><span className="ir-k">Módulo mínimo</span><span className="ir-v">300 m²</span></div><div className="ir"><span className="ir-k">Suelo técnico</span><span className="ir-v">Sí</span></div><div className="ir"><span className="ir-k">Climatización</span><span className="ir-v">Fan-coil 4 tubos</span></div><div className="ir"><span className="ir-k">Seguridad 24h</span><span className="ir-v">Sí</span></div></div>}
                 {caracTab==='ct-oficinas' && <div className="info-block"><div className="ib-title">🏢 OFICINAS</div><div className="ir"><span className="ir-k">Configuración</span><span className="ir-v">Planta abierta / diáfana</span></div><div className="ir"><span className="ir-k">Falso techo</span><span className="ir-v">Sí</span></div><div className="ir"><span className="ir-k">Luminosidad</span><span className="ir-v">Alta — fachada acristalada</span></div><div className="ir"><span className="ir-k">Terraza</span><span className="ir-v">Sí (planta 7)</span></div></div>}
                 {caracTab==='ct-uso' && <div className="info-block"><div className="ib-title">OFICINAS (USO)</div><div className="ir"><span className="ir-k">Uso actual</span><span className="ir-v">Oficinas corporativas</span></div><div className="ir"><span className="ir-k">Inquilinos actuales</span><span className="ir-v">Celonis, Repsol, Cafetería</span></div><div className="ir"><span className="ir-k">M² ocupados</span><span className="ir-v">36.814 m²</span></div><div className="ir"><span className="ir-k">M² vacantes</span><span className="ir-v">10.142 m²</span></div></div>}
+                {caracTab==='ct-plazas' && (
+                  <div className="info-block">
+                    <div className="ib-title">PLAZAS DE APARCAMIENTO</div>
+                    <table className="pat-table">
+                      <thead><tr><th>Tipo</th><th>Planta</th><th>Nº plazas</th><th>Precio/mes</th><th>Estado</th></tr></thead>
+                      <tbody>
+                        <tr><td>Rotación</td><td>S1</td><td>778</td><td>120 €</td><td><span className="tag tag-green">Disponible</span></td></tr>
+                        <tr><td>Fijo</td><td>S2</td><td>52</td><td>150 €</td><td><span className="tag tag-amber">Reservado</span></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -695,14 +713,6 @@ export default function FichaActivo() {
                 </table>
               </div>
             </div>
-          )}
-
-          {/* ── TAB: Plazas ── */}
-          {activeTab==='at-plazas' && (
-            <div className="tab-content active"><div className="info-pad">
-              <table className="pat-table"><thead><tr><th>Tipo</th><th>Planta</th><th>Nº plazas</th><th>Precio/mes</th><th>Estado</th></tr></thead>
-              <tbody><tr><td>Rotación</td><td>S1</td><td>778</td><td>120 €</td><td><span className="tag tag-green">Disponible</span></td></tr></tbody></table>
-            </div></div>
           )}
 
           {/* ── TAB: Fotografías ── */}

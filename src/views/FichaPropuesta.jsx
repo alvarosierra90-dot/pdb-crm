@@ -207,12 +207,13 @@ export default function FichaPropuesta() {
           {/* TAB DATOS */}
           {tab==='datos' && (
             <div className="tab-content active">
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
+              <div className="info-pad">
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:20}}>
 
                 {/* Col 1: Identificación */}
                 <div>
-                  <div className="rp-sec">Identificación</div>
-                  <div className="info-pad">
+                  <div className="ib-title">Identificación</div>
+                  <div>
                     <div className="kf-grid">
                       <KF label="ID" value={form.id} mono/>
                       <KF label="Nombre del proyecto" value={form.nombre} set={v=>set('nombre',v)}/>
@@ -248,8 +249,8 @@ export default function FichaPropuesta() {
 
                 {/* Col 2: Vinculaciones */}
                 <div>
-                  <div className="rp-sec">Vinculaciones</div>
-                  <div className="info-pad">
+                  <div className="ib-title">Vinculaciones</div>
+                  <div>
                     <div style={{marginBottom:4,fontSize:10,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}>Obligatorio</div>
                     <div style={{marginBottom:12,padding:'8px 10px',border:'2px solid var(--accent-bd)',borderRadius:6,background:'var(--accent-lt)'}}>
                       <div className="rp-lbl" style={{color:'var(--accent)'}}>Empresa / Cuenta ★</div>
@@ -303,8 +304,8 @@ export default function FichaPropuesta() {
 
                 {/* Col 3: Económico */}
                 <div>
-                  <div className="rp-sec">Datos económicos</div>
-                  <div className="info-pad">
+                  <div className="ib-title">Datos económicos</div>
+                  <div>
                     <div className="kf-grid">
                       <KF label="Fees potenciales (€)">
                         <input className="kf-inp" value={form.fees} onChange={e=>set('fees',e.target.value)} style={{fontFamily:'var(--mono)',fontWeight:700,fontSize:14}}/>
@@ -349,12 +350,14 @@ export default function FichaPropuesta() {
                 </div>
 
               </div>
+              </div>
             </div>
           )}
 
           {/* TAB EQUIPOS */}
           {tab==='equipos' && (
             <div className="tab-content active">
+            <div className="info-pad">
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
                 <div style={{fontSize:12,color:'var(--text3)'}}>Equipos internos participantes en este proyecto</div>
                 <button className="tbtn prim" style={{fontSize:11}} onClick={()=>setShowAddEquipo(v=>!v)}>+ Añadir equipo</button>
@@ -418,7 +421,7 @@ export default function FichaPropuesta() {
 
               {/* Equipos disponibles */}
               <div style={{marginTop:24}}>
-                <div className="rp-sec">Equipos disponibles</div>
+                <div className="ib-title">Equipos disponibles</div>
                 <div style={{display:'flex',flexWrap:'wrap',gap:6,padding:'8px 0'}}>
                   {EQUIPOS_DISPONIBLES.map(eq=>{
                     const asignado = equipos.find(e=>e.equipo===eq)
@@ -432,11 +435,13 @@ export default function FichaPropuesta() {
                 </div>
               </div>
             </div>
+            </div>
           )}
 
           {/* TAB TRAZABILIDAD */}
           {tab==='trazabilidad' && (
             <div className="tab-content active">
+            <div className="info-pad">
               <div style={{marginBottom:12,fontSize:12,color:'var(--text3)'}}>Registro completo de cambios y acciones sobre este proyecto. Inmutable.</div>
 
               <div style={{position:'relative'}}>
@@ -466,15 +471,17 @@ export default function FichaPropuesta() {
                 </div>
               </div>
             </div>
+            </div>
           )}
 
           {/* TAB RESUMEN */}
           {tab==='resumen' && (
             <div className="tab-content active">
+            <div className="info-pad">
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
 
                 <div>
-                  <div className="rp-sec">Ficha resumen</div>
+                  <div className="ib-title">Ficha resumen</div>
                   <div className="info-pad">
                     {[
                       {label:'ID', val:form.id, mono:true},
@@ -499,7 +506,7 @@ export default function FichaPropuesta() {
                 </div>
 
                 <div>
-                  <div className="rp-sec">Métricas y pipeline</div>
+                  <div className="ib-title">Métricas y pipeline</div>
                   <div className="info-pad">
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}}>
                       {[
@@ -515,7 +522,7 @@ export default function FichaPropuesta() {
                       ))}
                     </div>
 
-                    <div className="rp-sec" style={{marginTop:4}}>Equipos ({equipos.length})</div>
+                    <div className="ib-title" style={{marginTop:4}}>Equipos ({equipos.length})</div>
                     {equipos.length===0
                       ? <div style={{fontSize:11,color:'var(--text4)',padding:'8px 0'}}>Sin equipos asignados</div>
                       : equipos.map((eq,i)=>(
@@ -548,6 +555,7 @@ export default function FichaPropuesta() {
                 </div>
 
               </div>
+            </div>
             </div>
           )}
 
