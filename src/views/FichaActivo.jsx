@@ -5,197 +5,561 @@ import AsignarTareaModal from '../components/AsignarTareaModal'
 const TABS = ['at-info','at-stacking','at-caract','at-prop','at-fotos','at-docs','at-adicional','at-360','at-followup']
 const TAB_LABELS = ['Información general','Stacking Plan','Características','Propietarios y arrendatarios','Fotografías','Documentos','Información adicional','Vista 360','Follow-up']
 
-/* ── Stacking Plan data ── */
-const SP_EDIFS = [
-  {key:'A', label:'P.E Avalon — Edif. A'},
-  {key:'B', label:'Edif. B'},
-  {key:'C', label:'Edif. C'},
-  {key:'D', label:'Edif. D'},
+/* ── USOS PRINCIPALES ── */
+const USOS_PPAL = [
+  {id:'oficinas',    label:'Oficinas',    cls:'u-of',  color:'#3b82f6', bg:'#dbeafe', bd:'#93c5fd'},
+  {id:'retail',      label:'Retail',      cls:'u-rt',  color:'#ec4899', bg:'#fce7f3', bd:'#fbcfe8'},
+  {id:'logistico',   label:'Logístico',   cls:'u-log', color:'#f97316', bg:'#fff7ed', bd:'#fed7aa'},
+  {id:'residencial', label:'Residencial', cls:'u-res', color:'#8b5cf6', bg:'#ede9fe', bd:'#c4b5fd'},
+  {id:'hotel',       label:'Hotel',       cls:'u-hot', color:'#14b8a6', bg:'#ccfbf1', bd:'#99f6e4'},
+  {id:'comun',       label:'Zona común',  cls:'u-com', color:'#22c55e', bg:'#dcfce7', bd:'#86efac'},
+  {id:'parking',     label:'Parking',     cls:'u-pk',  color:'#94a3b8', bg:'#f1f5f9', bd:'#cbd5e1'},
 ]
+
+/* ── USOS ADICIONALES ── */
+const UA_ALL = [
+  {id:'recepcion',      label:'Recepción / Control acceso', attr:true},
+  {id:'nucleo_com',     label:'Núcleos de comunicación',    attr:true},
+  {id:'instalaciones',  label:'Instalaciones técnicas',     attr:true},
+  {id:'seguridad',      label:'Seguridad 24h',              attr:true},
+  {id:'ct',             label:'Centro de transformación',   attr:true},
+  {id:'parking_gen',    label:'Parking',                    sup:true},
+  {id:'trasteros',      label:'Trasteros',                  sup:true},
+  {id:'archivo',        label:'Archivo / Almacén',          sup:true},
+  {id:'vestuarios',     label:'Vestuarios',                 sup:true},
+  {id:'comedor',        label:'Comedor',                    sup:true},
+  {id:'auditorio',      label:'Auditorio',                  sup:true},
+  {id:'salas_reunion',  label:'Salas de reuniones comunes', sup:true},
+  {id:'gimnasio',       label:'Gimnasio',                   sup:true},
+  {id:'terraza',        label:'Terraza / Zonas ajardinadas',sup:true},
+  {id:'rooftop',        label:'Rooftop',                    attr:true},
+  {id:'piscina',        label:'Piscina',                    sup:true},
+  {id:'playa_maniobras',label:'Playa de maniobras',         sup:true},
+  {id:'muelles_carga',  label:'Muelles de carga',           sup:true},
+  {id:'cross_docking',  label:'Cross-docking',              sup:true},
+  {id:'camaras_frigo',  label:'Cámaras frigoríficas',       sup:true},
+  {id:'pk_camiones',    label:'Parking de camiones',        sup:true},
+  {id:'lobby',          label:'Lobby / Recepción hotel',    sup:true},
+  {id:'spa',            label:'Spa / Wellness',             sup:true},
+  {id:'salas_eventos',  label:'Salas de eventos',           sup:true},
+  {id:'restaurante',    label:'Restaurante',                sup:true},
+  {id:'salon_comun',    label:'Salón comunidad',            sup:true},
+]
+const UA_BY_USO = {
+  oficinas:    ['recepcion','nucleo_com','instalaciones','seguridad','ct','parking_gen','trasteros','archivo','vestuarios','comedor','auditorio','salas_reunion','gimnasio','terraza','rooftop'],
+  retail:      ['recepcion','nucleo_com','instalaciones','seguridad','ct','parking_gen','trasteros','vestuarios'],
+  logistico:   ['recepcion','nucleo_com','instalaciones','seguridad','ct','parking_gen','trasteros','archivo','vestuarios','comedor','playa_maniobras','muelles_carga','cross_docking','camaras_frigo','pk_camiones'],
+  residencial: ['recepcion','nucleo_com','instalaciones','seguridad','ct','parking_gen','trasteros','vestuarios','comedor','gimnasio','terraza','rooftop','piscina','salon_comun'],
+  hotel:       ['recepcion','nucleo_com','instalaciones','seguridad','ct','parking_gen','trasteros','vestuarios','comedor','gimnasio','terraza','rooftop','piscina','lobby','spa','salas_eventos','restaurante'],
+  comun:       ['recepcion','nucleo_com','instalaciones','seguridad','ct'],
+  parking:     ['nucleo_com','instalaciones','seguridad','ct'],
+}
+
 const GRID = '64px 1fr 100px 60px 80px'
 
-const SP_DATA = {
-  A: {
-    stats: { of:'9.000', otros:'3.000', disp:'4.050', renta:'10,50–14,50' },
-    tipo: [
-      {p:'P5', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.500 m²',f:6}]},
-      {p:'P4', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.500 m²',f:6}]},
-      {p:'P3', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.500 m²',f:6}]},
-      {p:'P2', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.500 m²',f:6}]},
-      {p:'P1', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.500 m²',f:6}]},
-      {p:'PB', sup:'1.500 m²', units:[{cls:'u-rt',n:'Retail',m:'380 m²',f:2},{cls:'u-com',n:'Común',m:'1.120 m²',f:4}]},
-      {p:'S1', sup:'1.500 m²', units:[{cls:'u-pk',n:'Parking · 778 plazas',m:'Nivel -1',f:6}]},
-      {p:'S2', sup:'1.500 m²', units:[{cls:'u-pk',n:'Parking · 52 plazas',m:'Nivel -2',f:6}]},
+const INIT_BUILDINGS = [
+  {
+    id:'A', label:'P.E Avalon — Edif. A', supPlantaTipo:1500,
+    floors:[
+      {id:'P5',sup:1500,principal:[{uso:'oficinas',sup:1500}],adicional:[]},
+      {id:'P4',sup:1500,principal:[{uso:'oficinas',sup:1500}],adicional:[]},
+      {id:'P3',sup:1500,principal:[{uso:'oficinas',sup:1500}],adicional:[]},
+      {id:'P2',sup:1500,principal:[{uso:'oficinas',sup:1500}],adicional:[]},
+      {id:'P1',sup:1500,principal:[{uso:'oficinas',sup:1500}],adicional:[]},
+      {id:'PB',sup:1500,principal:[{uso:'retail',sup:380},{uso:'comun',sup:1120}],adicional:[]},
+      {id:'S1',sup:1500,principal:[{uso:'parking',sup:1500}],adicional:[{uso:'parking_gen',label:'Parking · 778 plazas',sup:1500,attr:false}]},
+      {id:'S2',sup:1500,principal:[{uso:'parking',sup:1500}],adicional:[{uso:'parking_gen',label:'Parking · 52 plazas',sup:1500,attr:false}]},
     ],
-    prop: [
-      {p:'P5', sup:'1.500 m²'},{p:'P4', sup:'1.500 m²'},{p:'P3', sup:'1.500 m²'},
-      {p:'P2', sup:'1.500 m²'},{p:'P1', sup:'1.500 m²'},{p:'PB', sup:'1.500 m²'},
-      {p:'S1', sup:'1.500 m²'},{p:'S2', sup:'1.500 m²'},
+    prop:[
+      {p:'P5',sup:1500},{p:'P4',sup:1500},{p:'P3',sup:1500},{p:'P2',sup:1500},
+      {p:'P1',sup:1500},{p:'PB',sup:1500},{p:'S1',sup:1500},{p:'S2',sup:1500},
     ],
-    arr: [
-      {p:'P5', sup:'1.500 m²', units:[{type:'ten',n:'Celonis',m:'1.202 m²',brk:'Oct 2025',brkColor:'var(--amber)',f:4},{type:'vac',oferta:'OLB001',m:'298 m²',f:2}]},
-      {p:'P4', sup:'1.500 m²', units:[{type:'ten',n:'Celonis',m:'1.500 m²',brk:'Oct 2025',brkColor:'var(--amber)',f:6}]},
-      {p:'P3', sup:'1.500 m²', units:[{type:'ten',n:'Repsol',m:'767 m²',brk:'Jun 2027',brkColor:'var(--green)',f:3},{type:'vac',oferta:'OLB002',m:'733 m²',f:3}]},
-      {p:'P2', sup:'1.500 m²', units:[{type:'ten',n:'Repsol',m:'1.200 m²',brk:'Jun 2027',brkColor:'var(--green)',f:4},{type:'vac',oferta:'OLB002',m:'300 m²',f:2}]},
-      {p:'P1', sup:'1.500 m²', units:[{type:'ten',n:'Desconocido',m:'1.500 m²',brk:'Ene 2026',brkColor:'var(--red)',f:6}]},
-      {p:'PB', sup:'1.500 m²', units:[{type:'rt',n:'Cafetería',m:'380 m²',brk:'Ene 2029',brkColor:'var(--text4)',f:2},{type:'com',n:'Hall / Común',m:'220 m²',f:2},{type:'vac',oferta:'OLB001',m:'400 m²',f:2}]},
-      {p:'S1', sup:'1.500 m²', units:[{type:'pk',n:'Parking · 778 plazas',m:'Nivel -1',f:6}]},
-      {p:'S2', sup:'1.500 m²', units:[{type:'pk',n:'Parking · 52 plazas',m:'Nivel -2',f:6}]},
-    ],
-  },
-  B: {
-    stats: { of:'4.300', otros:'250', disp:'1.450', renta:'12,00–15,00' },
-    tipo: [
-      {p:'P5', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.500 m²',f:6}]},
-      {p:'P4', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.500 m²',f:6}]},
-      {p:'PB', sup:'1.500 m²', units:[{cls:'u-com',n:'Cafetería',m:'250 m²',f:1},{cls:'u-of',n:'Oficinas',m:'1.250 m²',f:5}]},
-    ],
-    prop: [
-      {p:'P5', sup:'1.500 m²'},{p:'P4', sup:'1.500 m²'},{p:'PB', sup:'1.500 m²'},
-    ],
-    arr: [
-      {p:'P5', sup:'1.500 m²', units:[{type:'ten',n:'Oficinas',m:'1.500 m²',brk:null,f:6}]},
-      {p:'P4', sup:'1.500 m²', units:[{type:'ten',n:'Celonis',m:'1.300 m²',brk:'Oct 2025',brkColor:'var(--amber)',f:5},{type:'vac',oferta:null,m:'200 m²',f:1}]},
-      {p:'PB', sup:'1.500 m²', units:[{type:'com',n:'Cafetería',m:'250 m²',f:1},{type:'vac',oferta:null,m:'1.250 m²',f:5}]},
+    arr:[
+      {p:'P5',sup:1500,units:[{type:'ten',n:'Celonis',m:'1.202 m²',brk:'Oct 2025',brkColor:'var(--amber)',f:4},{type:'vac',oferta:'OLB001',m:'298 m²',f:2}]},
+      {p:'P4',sup:1500,units:[{type:'ten',n:'Celonis',m:'1.500 m²',brk:'Oct 2025',brkColor:'var(--amber)',f:6}]},
+      {p:'P3',sup:1500,units:[{type:'ten',n:'Repsol',m:'767 m²',brk:'Jun 2027',brkColor:'var(--green)',f:3},{type:'vac',oferta:'OLB002',m:'733 m²',f:3}]},
+      {p:'P2',sup:1500,units:[{type:'ten',n:'Repsol',m:'1.200 m²',brk:'Jun 2027',brkColor:'var(--green)',f:4},{type:'vac',oferta:'OLB002',m:'300 m²',f:2}]},
+      {p:'P1',sup:1500,units:[{type:'ten',n:'Desconocido',m:'1.500 m²',brk:'Ene 2026',brkColor:'var(--red)',f:6}]},
+      {p:'PB',sup:1500,units:[{type:'rt',n:'Cafetería',m:'380 m²',brk:'Ene 2029',brkColor:'var(--text4)',f:2},{type:'com',n:'Hall / Común',m:'220 m²',f:2},{type:'vac',oferta:'OLB001',m:'400 m²',f:2}]},
+      {p:'S1',sup:1500,units:[{type:'pk',n:'Parking · 778 plazas',m:'Nivel -1',f:6}]},
+      {p:'S2',sup:1500,units:[{type:'pk',n:'Parking · 52 plazas',m:'Nivel -2',f:6}]},
     ],
   },
-  C: {
-    stats: { of:'1.967', otros:'0', disp:'1.967', renta:'11,00–14,00' },
-    tipo: [
-      {p:'P4', sup:'1.967 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.967 m²',f:6}]},
-      {p:'PB', sup:'1.967 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.967 m²',f:6}]},
+  {
+    id:'B', label:'Edif. B', supPlantaTipo:1500,
+    floors:[
+      {id:'P5',sup:1500,principal:[{uso:'oficinas',sup:1500}],adicional:[]},
+      {id:'P4',sup:1500,principal:[{uso:'oficinas',sup:1500}],adicional:[]},
+      {id:'PB',sup:1500,principal:[{uso:'comun',sup:250},{uso:'oficinas',sup:1250}],adicional:[]},
     ],
-    prop: [{p:'P4', sup:'1.967 m²'},{p:'PB', sup:'1.967 m²'}],
-    arr: [
-      {p:'P4', sup:'1.967 m²', units:[{type:'ten',n:'Repsol',m:'1.967 m²',brk:'Jun 2027',brkColor:'var(--green)',f:6}]},
-      {p:'PB', sup:'1.967 m²', units:[{type:'vac',oferta:null,m:'1.967 m²',f:6}]},
-    ],
-  },
-  D: {
-    stats: { of:'2.000', otros:'0', disp:'2.000', renta:'10,00–13,00' },
-    tipo: [
-      {p:'P3', sup:'2.000 m²', units:[{cls:'u-of',n:'Oficinas',m:'2.000 m²',f:6}]},
-      {p:'PB', sup:'2.000 m²', units:[{cls:'u-of',n:'Oficinas',m:'2.000 m²',f:6}]},
-    ],
-    prop: [{p:'P3', sup:'2.000 m²'},{p:'PB', sup:'2.000 m²'}],
-    arr: [
-      {p:'P3', sup:'2.000 m²', units:[{type:'ten',n:'Oficinas',m:'2.000 m²',brk:null,f:6}]},
-      {p:'PB', sup:'2.000 m²', units:[{type:'vac',oferta:null,m:'2.000 m²',f:6}]},
+    prop:[{p:'P5',sup:1500},{p:'P4',sup:1500},{p:'PB',sup:1500}],
+    arr:[
+      {p:'P5',sup:1500,units:[{type:'ten',n:'Oficinas',m:'1.500 m²',brk:null,f:6}]},
+      {p:'P4',sup:1500,units:[{type:'ten',n:'Celonis',m:'1.300 m²',brk:'Oct 2025',brkColor:'var(--amber)',f:5},{type:'vac',oferta:null,m:'200 m²',f:1}]},
+      {p:'PB',sup:1500,units:[{type:'com',n:'Cafetería',m:'250 m²',f:1},{type:'vac',oferta:null,m:'1.250 m²',f:5}]},
     ],
   },
-}
-
-/* ── Helper rows ── */
-function SpRow({ p, sup, children }) {
-  return (
-    <div style={{display:'grid',gridTemplateColumns:GRID,borderBottom:'1px solid var(--border)',minHeight:36}}>
-      <div className="sp-planta">{p}</div>
-      <div className="sp-units">{children}</div>
-      <div className="sp-sup mono">{sup}</div>
-      <div className="sp-edit"><button className="sp-ibtn">✏</button></div>
-      <div className="sp-add"><span className="sp-addlink">+ Unidad</span></div>
-    </div>
-  )
-}
-
-function SpOccBar() {
-  return (
-    <div style={{display:'flex',alignItems:'center',gap:10,marginTop:10}}>
-      <span style={{fontSize:10,color:'var(--text4)',fontWeight:600,minWidth:60}}>Ocupación</span>
-      <div style={{flex:1,height:8,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
-        <div style={{width:'78.4%',height:'100%',background:'linear-gradient(90deg,#f59e0b,#d97706)',borderRadius:4}}/>
-      </div>
-      <span style={{fontSize:12,fontWeight:700,color:'var(--amber)'}}>78.4%</span>
-    </div>
-  )
-}
+  {
+    id:'C', label:'Edif. C', supPlantaTipo:1967,
+    floors:[
+      {id:'P4',sup:1967,principal:[{uso:'oficinas',sup:1967}],adicional:[]},
+      {id:'PB',sup:1967,principal:[{uso:'oficinas',sup:1967}],adicional:[]},
+    ],
+    prop:[{p:'P4',sup:1967},{p:'PB',sup:1967}],
+    arr:[
+      {p:'P4',sup:1967,units:[{type:'ten',n:'Repsol',m:'1.967 m²',brk:'Jun 2027',brkColor:'var(--green)',f:6}]},
+      {p:'PB',sup:1967,units:[{type:'vac',oferta:null,m:'1.967 m²',f:6}]},
+    ],
+  },
+  {
+    id:'D', label:'Edif. D', supPlantaTipo:2000,
+    floors:[
+      {id:'P3',sup:2000,principal:[{uso:'oficinas',sup:2000}],adicional:[]},
+      {id:'PB',sup:2000,principal:[{uso:'oficinas',sup:2000}],adicional:[]},
+    ],
+    prop:[{p:'P3',sup:2000},{p:'PB',sup:2000}],
+    arr:[
+      {p:'P3',sup:2000,units:[{type:'ten',n:'Oficinas',m:'2.000 m²',brk:null,f:6}]},
+      {p:'PB',sup:2000,units:[{type:'vac',oferta:null,m:'2.000 m²',f:6}]},
+    ],
+  },
+]
 
 function StackingPlan() {
-  const [edif, setEdif] = useState('A')
-  const [view, setView] = useState('tipo')
-  const d = SP_DATA[edif]
+  const [buildings, setBuildings]       = useState(INIT_BUILDINGS)
+  const [edifId, setEdifId]             = useState('A')
+  const [view, setView]                 = useState('principal')
+  const [dragging, setDragging]         = useState(null)
+  const [dragTarget, setDragTarget]     = useState(null)
+  const [editFloor, setEditFloor]       = useState(null) // {floorId, idx, layer}
+  const [editSup, setEditSup]           = useState('')
+  const [selectedFloors, setSelectedFloors] = useState([])
+  const [showCreate, setShowCreate]     = useState(false)
+  const [newBldg, setNewBldg]           = useState({label:'',sup:'',sobre:'',bajo:''})
+  const [splitModal, setSplitModal]     = useState(null) // {floorId, usoId}
+  const [splitSup, setSplitSup]         = useState('')
 
-  /* Folder tab styles */
-  const fTab = (key) => ({
-    padding:'5px 14px', borderRadius:'6px 6px 0 0', fontSize:11, fontWeight: edif===key ? 600 : 500,
-    cursor:'pointer', border:'1px solid', fontFamily:'inherit',
-    borderColor: edif===key ? 'var(--accent)' : 'var(--border)',
-    borderBottom: edif===key ? '2px solid var(--surface)' : '1px solid transparent',
-    background: edif===key ? 'var(--accent)' : 'var(--surface)',
-    color: edif===key ? '#fff' : 'var(--text2)',
+  const edif = buildings.find(b=>b.id===edifId) || buildings[0]
+  const usoInfo = (id) => USOS_PPAL.find(u=>u.id===id) || {label:id,color:'#94a3b8',bg:'#f1f5f9',bd:'#cbd5e1'}
+
+  /* ── Stats derivados ── */
+  const totalSup    = edif.floors.reduce((s,f)=>s+f.sup,0)
+  const assignedSup = edif.floors.reduce((s,f)=>s+f.principal.reduce((ss,u)=>ss+u.sup,0),0)
+  const occPct      = totalSup>0 ? Math.round(assignedSup/totalSup*100) : 0
+
+  /* ── Usos adicionales disponibles (filtrados por uso principal del edificio) ── */
+  const primaryUsos   = [...new Set(edif.floors.flatMap(f=>f.principal.map(p=>p.uso)))]
+  const availableUA   = UA_ALL.filter(ua=>primaryUsos.some(u=>(UA_BY_USO[u]||[]).includes(ua.id)))
+
+  /* ── Mutaciones ── */
+  const updBuilding = (fn) => setBuildings(prev=>prev.map(b=>b.id===edifId?fn(b):b))
+
+  const assignPrincipal = (floorId, usoId, supVal) => {
+    updBuilding(b=>({...b, floors:b.floors.map(f=>{
+      if(f.id!==floorId) return f
+      const used = f.principal.reduce((s,u)=>s+u.sup,0)
+      const avail = f.sup-used
+      if(avail<=0) return f
+      const sup = Math.min(supVal||avail, avail)
+      return {...f, principal:[...f.principal,{uso:usoId,sup}]}
+    })}))
+  }
+
+  const assignAdicional = (floorId, usoId) => {
+    const ua = UA_ALL.find(u=>u.id===usoId)
+    if(!ua) return
+    updBuilding(b=>({...b, floors:b.floors.map(f=>{
+      if(f.id!==floorId) return f
+      if(f.adicional.find(a=>a.uso===usoId)) return f
+      return {...f, adicional:[...f.adicional,{uso:usoId,label:ua.label,sup:ua.sup?100:0,attr:ua.attr||false}]}
+    })}))
+  }
+
+  const removeItem = (floorId, idx, layer) => {
+    updBuilding(b=>({...b, floors:b.floors.map(f=>{
+      if(f.id!==floorId) return f
+      const arr=[...f[layer]]; arr.splice(idx,1)
+      return {...f,[layer]:arr}
+    })}))
+  }
+
+  const saveSup = () => {
+    if(!editFloor) return
+    const val = parseFloat(editSup)
+    if(isNaN(val)||val<=0) return
+    updBuilding(b=>({...b, floors:b.floors.map(f=>{
+      if(f.id!==editFloor.floorId) return f
+      const arr=[...f[editFloor.layer]]
+      arr[editFloor.idx]={...arr[editFloor.idx],sup:val}
+      return {...f,[editFloor.layer]:arr}
+    })}))
+    setEditFloor(null); setEditSup('')
+  }
+
+  const bulkAssign = (usoId) => {
+    selectedFloors.forEach(fId=>assignPrincipal(fId,usoId))
+    setSelectedFloors([])
+  }
+
+  const createBuilding = () => {
+    const sobre=parseInt(newBldg.sobre)||0, bajo=parseInt(newBldg.bajo)||0
+    const sup=parseFloat(newBldg.sup)||1500
+    const floors=[]
+    for(let i=sobre;i>=1;i--) floors.push({id:`P${i}`,sup,principal:[],adicional:[]})
+    floors.push({id:'PB',sup,principal:[],adicional:[]})
+    for(let i=1;i<=bajo;i++) floors.push({id:`S${i}`,sup,principal:[],adicional:[]})
+    const newId=String.fromCharCode(65+buildings.length)
+    setBuildings(prev=>[...prev,{id:newId,label:newBldg.label||`Edif. ${newId}`,supPlantaTipo:sup,floors,prop:[],arr:[]}])
+    setEdifId(newId); setShowCreate(false); setView('principal')
+    setNewBldg({label:'',sup:'',sobre:'',bajo:''})
+  }
+
+  /* ── Drag handlers ── */
+  const onDragOver  = (e,fId)=>{e.preventDefault();setDragTarget(fId)}
+  const onDrop = (e, floor, layer) => {
+    e.preventDefault(); setDragTarget(null)
+    if(!dragging) return
+    if(layer==='adicional') { assignAdicional(floor.id, dragging); setDragging(null); return }
+    const used=floor.principal.reduce((s,u)=>s+u.sup,0)
+    const avail=floor.sup-used
+    if(avail<=0) { setSplitModal({floorId:floor.id,usoId:dragging}); setSplitSup('') }
+    else { assignPrincipal(floor.id,dragging,avail) }
+    setDragging(null)
+  }
+
+  /* ── Tab styles ── */
+  const fTab = (id) => ({
+    padding:'5px 14px',borderRadius:'6px 6px 0 0',fontSize:11,fontWeight:edifId===id?600:500,
+    cursor:'pointer',border:'1px solid',fontFamily:'inherit',transition:'all .15s',
+    borderColor:edifId===id?'var(--accent)':'var(--border)',
+    borderBottom:edifId===id?'2px solid var(--surface)':'1px solid transparent',
+    background:edifId===id?'var(--accent)':'var(--surface)',
+    color:edifId===id?'#fff':'var(--text2)',
   })
-  /* Underline sub-tab styles */
-  const vTab = (key) => ({
-    padding:'7px 14px', fontSize:11, fontWeight: view===key ? 600 : 500, cursor:'pointer',
-    border:'none', borderBottom: view===key ? '2px solid var(--accent)' : '2px solid transparent',
-    background:'var(--surface)', color: view===key ? 'var(--accent)' : 'var(--text3)', fontFamily:'inherit',
+  const vTab = (k) => ({
+    padding:'7px 14px',fontSize:11,fontWeight:view===k?600:500,cursor:'pointer',
+    border:'none',borderBottom:view===k?'2px solid var(--accent)':'2px solid transparent',
+    background:'var(--surface)',color:view===k?'var(--accent)':'var(--text3)',fontFamily:'inherit',
   })
 
   return (
     <div>
-      {/* FILA 1: edificio tabs (folder style) */}
-      <div style={{padding:'6px 0 0',display:'flex',gap:6,borderBottom:'1px solid var(--border)',background:'var(--gray-lt)',marginLeft:-14,marginRight:-14,paddingLeft:14}}>
-        {SP_EDIFS.map(e=>(
-          <button key={e.key} onClick={()=>{setEdif(e.key);setView('tipo')}} style={fTab(e.key)}>{e.label}</button>
+      {/* Edificio tabs */}
+      <div style={{display:'flex',gap:6,borderBottom:'1px solid var(--border)',background:'var(--gray-lt)',marginLeft:-24,marginRight:-24,paddingLeft:24,paddingTop:6,flexWrap:'wrap'}}>
+        {buildings.map(b=>(
+          <button key={b.id} onClick={()=>{setEdifId(b.id);setSelectedFloors([])}} style={fTab(b.id)}>{b.label}</button>
         ))}
-        <button style={{padding:'5px 14px',borderRadius:'6px 6px 0 0',fontSize:11,cursor:'pointer',border:'1px dashed var(--accent-bd)',borderBottom:'1px solid transparent',background:'var(--accent-lt)',color:'var(--accent)',fontFamily:'inherit'}}>+ Añadir edificio</button>
+        {showCreate ? (
+          <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'6px 6px 0 0',flexWrap:'wrap'}}>
+            <input placeholder="Nombre" value={newBldg.label} onChange={e=>setNewBldg(p=>({...p,label:e.target.value}))}
+              style={{width:110,padding:'3px 6px',fontSize:11,border:'1px solid var(--accent-bd)',borderRadius:4,fontFamily:'inherit'}}/>
+            <input placeholder="m² planta tipo" type="number" value={newBldg.sup} onChange={e=>setNewBldg(p=>({...p,sup:e.target.value}))}
+              style={{width:90,padding:'3px 6px',fontSize:11,border:'1px solid var(--accent-bd)',borderRadius:4,fontFamily:'inherit'}}/>
+            <input placeholder="P. sobre rasante" type="number" value={newBldg.sobre} onChange={e=>setNewBldg(p=>({...p,sobre:e.target.value}))}
+              style={{width:80,padding:'3px 6px',fontSize:11,border:'1px solid var(--accent-bd)',borderRadius:4,fontFamily:'inherit'}}/>
+            <input placeholder="P. bajo rasante" type="number" value={newBldg.bajo} onChange={e=>setNewBldg(p=>({...p,bajo:e.target.value}))}
+              style={{width:78,padding:'3px 6px',fontSize:11,border:'1px solid var(--accent-bd)',borderRadius:4,fontFamily:'inherit'}}/>
+            <button onClick={createBuilding} style={{padding:'4px 10px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:4,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Crear</button>
+            <button onClick={()=>setShowCreate(false)} style={{padding:'4px 8px',background:'none',border:'none',cursor:'pointer',fontSize:12,color:'var(--text3)',fontFamily:'inherit'}}>✕</button>
+          </div>
+        ) : (
+          <button onClick={()=>setShowCreate(true)} style={{padding:'5px 14px',borderRadius:'6px 6px 0 0',fontSize:11,cursor:'pointer',border:'1px dashed var(--accent-bd)',borderBottom:'1px solid transparent',background:'var(--accent-lt)',color:'var(--accent)',fontFamily:'inherit'}}>+ Añadir edificio</button>
+        )}
       </div>
 
-      {/* FILA 2: sub-tabs vista */}
-      <div style={{display:'flex',borderBottom:'1px solid var(--border)',marginLeft:-14,marginRight:-14,paddingLeft:14}}>
-        {[['tipo','Uso principal'],['prop','Propietarios'],['arr','Arrendatarios y oferta']].map(([k,l])=>(
+      {/* Vista sub-tabs */}
+      <div style={{display:'flex',borderBottom:'1px solid var(--border)',marginLeft:-24,marginRight:-24,paddingLeft:24}}>
+        {[['principal','Uso principal'],['adicional','Usos adicionales'],['prop','Propietarios'],['arr','Arrendatarios y oferta']].map(([k,l])=>(
           <button key={k} onClick={()=>setView(k)} style={vTab(k)}>{l}</button>
         ))}
       </div>
 
       {/* Stats strip */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:1,background:'var(--border)',borderBottom:'1px solid var(--border)',marginLeft:-14,marginRight:-14,marginBottom:10}}>
-        <div style={{background:'var(--surface)',padding:'9px 14px'}}>
-          <div style={{fontSize:9,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:2}}>OFICINAS</div>
-          <div style={{fontSize:18,fontWeight:700}}>{d.stats.of} m²</div>
-          <div style={{fontSize:10,color:'var(--text3)'}}>Uso principal</div>
-        </div>
-        <div style={{background:'var(--surface)',padding:'9px 14px'}}>
-          <div style={{fontSize:9,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:2}}>OTROS USOS</div>
-          <div style={{fontSize:18,fontWeight:700}}>{d.stats.otros} m²</div>
-          <div style={{fontSize:10,color:'var(--text3)'}}>Retail + Servicios</div>
-        </div>
-        <div style={{background:'var(--surface)',padding:'9px 14px'}}>
-          <div style={{fontSize:9,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:2}}>DISPONIBLE</div>
-          <div style={{fontSize:18,fontWeight:700,color:'var(--amber)'}}>{d.stats.disp} m²</div>
-          <div style={{fontSize:10,color:'var(--text3)'}}>{d.stats.renta} €/m²/mes</div>
-        </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:1,background:'var(--border)',marginLeft:-24,marginRight:-24,marginBottom:12}}>
+        {[
+          {lbl:'SBA TOTAL',   val:`${totalSup.toLocaleString('es-ES')} m²`,    sub:'Superficie bruta alquilable', col:'var(--text1)'},
+          {lbl:'ASIGNADO',    val:`${assignedSup.toLocaleString('es-ES')} m²`, sub:'Uso principal definido',       col:occPct===100?'var(--green)':'var(--accent)'},
+          {lbl:'SIN ASIGNAR', val:`${(totalSup-assignedSup).toLocaleString('es-ES')} m²`, sub:'Pendiente de definir', col:(totalSup-assignedSup)===0?'var(--green)':'var(--amber)'},
+          {lbl:'COBERTURA',   val:`${occPct}%`,                                sub:'Usos definidos sobre total',   col:occPct===100?'var(--green)':occPct>50?'var(--amber)':'var(--red)'},
+        ].map(s=>(
+          <div key={s.lbl} style={{background:'var(--surface)',padding:'9px 14px'}}>
+            <div style={{fontSize:9,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:2}}>{s.lbl}</div>
+            <div style={{fontSize:16,fontWeight:700,color:s.col,fontFamily:'var(--mono)'}}>{s.val}</div>
+            <div style={{fontSize:10,color:'var(--text3)'}}>{s.sub}</div>
+          </div>
+        ))}
       </div>
 
-      {/* ── VISTA: Tipo de superficie ── */}
-      {view==='tipo' && <>
-        <div style={{display:'flex',gap:12,marginBottom:10,flexWrap:'wrap'}}>
-          {[['#3b82f6','#dbeafe','#93c5fd','Oficinas'],['#ec4899','#fce7f3','#fbcfe8','Retail'],['#22c55e','#dcfce7','#86efac','Común'],['#94a3b8','#f1f5f9','#cbd5e1','Parking']].map(([ac,bg,bd,lbl])=>(
-            <label key={lbl} style={{display:'flex',alignItems:'center',gap:4,fontSize:11,cursor:'pointer'}}>
-              <input type="checkbox" defaultChecked style={{accentColor:ac}}/>
-              <span style={{width:10,height:10,background:bg,border:`1px solid ${bd}`,borderRadius:2,display:'inline-block'}}/>
-              {lbl}
-            </label>
-          ))}
-        </div>
-        <div className="sp-grid-wrap">
-          <div style={{display:'grid',gridTemplateColumns:GRID,background:'var(--gray-lt)',borderBottom:'1px solid var(--border)'}}>
-            {['Planta','USO PRINCIPAL','Sup. Total','Editar','Añadir'].map(h=><div key={h} className="sp-hc">{h}</div>)}
-          </div>
-          {d.tipo.map((row,ri)=>(
-            <SpRow key={row.p} p={row.p} sup={row.sup}>
-              {row.units.map((u,i)=>(
-                <div key={i} className={`sp-unit ${u.cls}`} style={{flex:u.f}}>
-                  <div className="sp-u-name">{u.n}</div>
-                  <div className="sp-u-m2">{u.m}</div>
-                </div>
-              ))}
-            </SpRow>
-          ))}
-        </div>
-      </>}
+      {/* ══ USO PRINCIPAL ══ */}
+      {view==='principal' && (
+        <div style={{display:'flex',gap:16}}>
 
-      {/* ── VISTA: Propietarios ── */}
+          {/* Sidebar */}
+          <div style={{width:154,flexShrink:0}}>
+            <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:8}}>
+              Arrastra o selecciona plantas
+            </div>
+            {USOS_PPAL.map(u=>(
+              <div key={u.id} draggable
+                onDragStart={()=>setDragging(u.id)}
+                onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                style={{
+                  display:'flex',alignItems:'center',gap:7,padding:'7px 10px',marginBottom:5,
+                  borderRadius:6,cursor:'grab',userSelect:'none',
+                  border:`1px solid ${dragging===u.id?u.color:u.bd}`,
+                  background:u.bg,
+                  opacity:dragging&&dragging!==u.id?.4:1,
+                  boxShadow:dragging===u.id?`0 2px 8px ${u.color}55`:'none',
+                  transform:dragging===u.id?'scale(1.02)':'scale(1)',
+                  transition:'opacity .15s, transform .1s, box-shadow .1s',
+                }}
+              >
+                <div style={{width:10,height:10,borderRadius:2,background:u.color,flexShrink:0}}/>
+                <span style={{fontSize:11,fontWeight:600,color:u.color}}>{u.label}</span>
+              </div>
+            ))}
+
+            {selectedFloors.length>0 && (
+              <div style={{marginTop:12,padding:10,background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:6}}>
+                <div style={{fontSize:10,fontWeight:700,color:'var(--accent)',marginBottom:6}}>
+                  {selectedFloors.length} planta{selectedFloors.length>1?'s':''} seleccionada{selectedFloors.length>1?'s':''}
+                </div>
+                <div style={{fontSize:9,color:'var(--text4)',marginBottom:6,textTransform:'uppercase',letterSpacing:'.03em'}}>Asignación masiva</div>
+                {USOS_PPAL.map(u=>(
+                  <button key={u.id} onClick={()=>bulkAssign(u.id)}
+                    style={{display:'block',width:'100%',padding:'4px 8px',marginBottom:3,
+                      background:u.bg,color:u.color,border:`1px solid ${u.bd}`,
+                      borderRadius:4,fontSize:10,cursor:'pointer',fontFamily:'inherit',textAlign:'left',fontWeight:600}}>
+                    {u.label}
+                  </button>
+                ))}
+                <button onClick={()=>setSelectedFloors([])}
+                  style={{display:'block',width:'100%',padding:'4px 8px',marginTop:4,
+                    background:'none',color:'var(--text4)',border:'1px solid var(--border)',
+                    borderRadius:4,fontSize:10,cursor:'pointer',fontFamily:'inherit',textAlign:'center'}}>
+                  Cancelar selección
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Grid plantas */}
+          <div style={{flex:1,minWidth:0}}>
+            {/* Leyenda */}
+            <div style={{display:'flex',gap:10,marginBottom:8,flexWrap:'wrap'}}>
+              {USOS_PPAL.map(u=>(
+                <span key={u.id} style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'var(--text3)'}}>
+                  <span style={{width:10,height:10,background:u.bg,border:`1px solid ${u.bd}`,borderRadius:2,display:'inline-block'}}/>
+                  {u.label}
+                </span>
+              ))}
+            </div>
+
+            {/* Cabecera */}
+            <div style={{display:'grid',gridTemplateColumns:'22px 52px 1fr 90px',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
+              <div style={{padding:'5px 4px'}}/>
+              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Planta</div>
+              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Uso principal</div>
+              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
+            </div>
+
+            {edif.floors.map(floor=>{
+              const used  = floor.principal.reduce((s,u)=>s+u.sup,0)
+              const avail = floor.sup-used
+              const isTgt = dragTarget===floor.id && view==='principal'
+              const isSel = selectedFloors.includes(floor.id)
+
+              return (
+                <div key={floor.id}
+                  onDragOver={e=>onDragOver(e,floor.id)}
+                  onDragLeave={()=>setDragTarget(null)}
+                  onDrop={e=>onDrop(e,floor,'principal')}
+                  style={{
+                    display:'grid',gridTemplateColumns:'22px 52px 1fr 90px',
+                    borderBottom:'1px solid var(--border)',minHeight:42,
+                    background:isTgt?'#eff6ff':isSel?'#f0f9ff':'var(--surface)',
+                    outline:isTgt?'1.5px solid var(--accent)':'none',
+                    transition:'background .1s',
+                  }}
+                >
+                  {/* Checkbox */}
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <input type="checkbox" checked={isSel}
+                      onChange={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
+                      style={{width:11,height:11,cursor:'pointer'}}/>
+                  </div>
+
+                  {/* Label planta */}
+                  <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:'var(--text3)',display:'flex',alignItems:'center'}}>{floor.id}</div>
+
+                  {/* Bloques de uso */}
+                  <div style={{display:'flex',alignItems:'stretch',padding:'4px 4px 4px 0',gap:2}}>
+                    {floor.principal.length===0 ? (
+                      <div style={{flex:1,height:34,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt?600:400}}>
+                        {isTgt?'⬇ Soltar uso aquí':'Arrastra un uso sobre esta planta'}
+                      </div>
+                    ) : (
+                      <>
+                        {floor.principal.map((u,i)=>{
+                          const info = usoInfo(u.uso)
+                          const wpct = `${(u.sup/floor.sup)*100}%`
+                          const isEd = editFloor?.floorId===floor.id && editFloor?.idx===i && editFloor?.layer==='principal'
+                          return (
+                            <div key={i}
+                              title={`${info.label} · ${u.sup.toLocaleString('es-ES')} m²\nClic para editar`}
+                              onClick={()=>{
+                                if(isEd){setEditFloor(null)}
+                                else{setEditFloor({floorId:floor.id,idx:i,layer:'principal'});setEditSup(String(u.sup))}
+                              }}
+                              style={{
+                                width:wpct,height:34,background:info.bg,
+                                border:`1px solid ${info.bd}`,borderRadius:4,
+                                display:'flex',alignItems:'center',justifyContent:'center',
+                                cursor:'pointer',flexShrink:0,overflow:'hidden',position:'relative',
+                                transition:'filter .1s',
+                              }}
+                            >
+                              {isEd ? (
+                                <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
+                                  <input type="number" value={editSup} onChange={e=>setEditSup(e.target.value)} autoFocus
+                                    onKeyDown={e=>{if(e.key==='Enter')saveSup();if(e.key==='Escape')setEditFloor(null)}}
+                                    style={{width:58,padding:'2px 4px',fontSize:10,border:`1px solid ${info.color}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                  <button onClick={saveSup}
+                                    style={{padding:'2px 5px',background:info.color,color:'#fff',border:'none',borderRadius:3,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>✓</button>
+                                  <button onClick={()=>removeItem(floor.id,i,'principal')}
+                                    style={{padding:'2px 5px',background:'#fee2e2',color:'#dc2626',border:'1px solid #fca5a5',borderRadius:3,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+                                </div>
+                              ) : (
+                                <span style={{fontSize:9,fontWeight:700,color:info.color,padding:'0 6px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>
+                                  {info.label}{u.sup>=200?` · ${u.sup.toLocaleString('es-ES')} m²`:''}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })}
+                        {avail>0 && (
+                          <div style={{flex:1,height:34,minWidth:16,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:isTgt?'var(--accent)':'var(--text4)'}}>
+                            {avail.toLocaleString('es-ES')} m²
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Sup total */}
+                  <div style={{padding:'6px 8px',fontSize:11,fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',justifyContent:'flex-end',fontFamily:'var(--mono)'}}>
+                    {floor.sup.toLocaleString('es-ES')} m²
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Barra de asignación */}
+            <div style={{display:'flex',alignItems:'center',gap:10,marginTop:10,padding:'8px 0'}}>
+              <span style={{fontSize:10,color:'var(--text4)',fontWeight:600,minWidth:70}}>Asignación</span>
+              <div style={{flex:1,height:6,background:'var(--border)',borderRadius:3,overflow:'hidden'}}>
+                <div style={{width:`${occPct}%`,height:'100%',background:occPct===100?'var(--green)':'var(--accent)',borderRadius:3,transition:'width .4s'}}/>
+              </div>
+              <span style={{fontSize:11,fontWeight:700,color:occPct===100?'var(--green)':'var(--accent)',minWidth:32,textAlign:'right'}}>{occPct}%</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ USOS ADICIONALES ══ */}
+      {view==='adicional' && (
+        <div style={{display:'flex',gap:16}}>
+          {/* Sidebar */}
+          <div style={{width:190,flexShrink:0}}>
+            <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>
+              Disponibles · uso del edificio
+            </div>
+            {availableUA.length===0 ? (
+              <div style={{fontSize:11,color:'var(--text4)',padding:'8px 0',lineHeight:1.4}}>Asigna primero usos principales al edificio</div>
+            ) : availableUA.map(ua=>(
+              <div key={ua.id} draggable
+                onDragStart={()=>setDragging(ua.id)}
+                onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                style={{
+                  padding:'6px 9px',marginBottom:4,borderRadius:5,cursor:'grab',
+                  border:`1px solid ${dragging===ua.id?'var(--accent)':'var(--border)'}`,
+                  background:dragging===ua.id?'var(--accent-lt)':'var(--surface)',
+                  fontSize:10,color:'var(--text2)',fontWeight:500,
+                  display:'flex',alignItems:'center',gap:6,
+                  opacity:dragging&&dragging!==ua.id?.4:1,
+                  transition:'opacity .15s',
+                }}
+              >
+                <span style={{fontSize:8,padding:'1px 4px',borderRadius:3,fontWeight:700,flexShrink:0,
+                  background:ua.attr?'#ede9fe':'#f0fdf4',color:ua.attr?'#7c3aed':'#16a34a'}}>
+                  {ua.attr?'ATTR':'SUP'}
+                </span>
+                {ua.label}
+              </div>
+            ))}
+            <div style={{marginTop:10,padding:'8px',background:'var(--gray-lt)',borderRadius:5,fontSize:10,color:'var(--text4)',lineHeight:1.5}}>
+              <strong style={{color:'var(--text3)'}}>SUP</strong> — consume m² de planta<br/>
+              <strong style={{color:'var(--text3)'}}>ATTR</strong> — atributo estructural
+            </div>
+          </div>
+
+          {/* Grid adicionales */}
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:10,color:'var(--text3)',marginBottom:8}}>
+              Arrastra sobre las plantas para asignar elementos estructurales del edificio.
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'52px 1fr',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
+              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Planta</div>
+              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Usos adicionales / Elementos estructurales</div>
+            </div>
+            {edif.floors.map(floor=>{
+              const isTgt = dragTarget===floor.id && view==='adicional'
+              return (
+                <div key={floor.id}
+                  onDragOver={e=>onDragOver(e,floor.id)}
+                  onDragLeave={()=>setDragTarget(null)}
+                  onDrop={e=>onDrop(e,floor,'adicional')}
+                  style={{display:'grid',gridTemplateColumns:'52px 1fr',borderBottom:'1px solid var(--border)',minHeight:38,
+                    background:isTgt?'#eff6ff':'var(--surface)',outline:isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s'}}
+                >
+                  <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:'var(--text3)',display:'flex',alignItems:'center'}}>{floor.id}</div>
+                  <div style={{padding:'4px 8px',display:'flex',alignItems:'center',flexWrap:'wrap',gap:4}}>
+                    {floor.adicional.length===0
+                      ? <span style={{fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt?600:400}}>{isTgt?'⬇ Soltar aquí':'—'}</span>
+                      : floor.adicional.map((ua,i)=>{
+                          const isEd=editFloor?.floorId===floor.id&&editFloor?.idx===i&&editFloor?.layer==='adicional'
+                          return (
+                            <div key={i} style={{display:'flex',alignItems:'center',gap:4,padding:'3px 8px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:10,fontSize:10,color:'var(--accent)'}}>
+                              <span style={{fontSize:8,padding:'1px 3px',borderRadius:2,fontWeight:700,background:ua.attr?'#ede9fe':'#f0fdf4',color:ua.attr?'#7c3aed':'#16a34a'}}>{ua.attr?'ATTR':'SUP'}</span>
+                              <span>{ua.label}</span>
+                              {!ua.attr&&(isEd?(
+                                <div style={{display:'flex',gap:2}} onClick={e=>e.stopPropagation()}>
+                                  <input type="number" value={editSup} onChange={e=>setEditSup(e.target.value)} autoFocus
+                                    onKeyDown={e=>{if(e.key==='Enter')saveSup();if(e.key==='Escape')setEditFloor(null)}}
+                                    style={{width:50,padding:'1px 3px',fontSize:9,border:'1px solid var(--accent-bd)',borderRadius:3,fontFamily:'var(--mono)'}}/>
+                                  <button onClick={saveSup} style={{padding:'1px 4px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓</button>
+                                </div>
+                              ):(
+                                <span onClick={()=>{setEditFloor({floorId:floor.id,idx:i,layer:'adicional'});setEditSup(String(ua.sup))}}
+                                  style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--text4)',cursor:'pointer',textDecoration:'underline dotted'}}>
+                                  {ua.sup.toLocaleString('es-ES')} m²
+                                </span>
+                              ))}
+                              <button onClick={()=>removeItem(floor.id,i,'adicional')}
+                                style={{background:'none',border:'none',cursor:'pointer',color:'var(--text4)',fontSize:11,lineHeight:1,padding:'0 0 0 2px'}}>✕</button>
+                            </div>
+                          )
+                        })
+                    }
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ══ PROPIETARIOS ══ */}
       {view==='prop' && <>
         <div style={{marginBottom:8}}>
           <label style={{display:'flex',alignItems:'center',gap:5,fontSize:11,cursor:'pointer'}}>
@@ -207,20 +571,22 @@ function StackingPlan() {
           <div style={{display:'grid',gridTemplateColumns:GRID,background:'var(--gray-lt)',borderBottom:'1px solid var(--border)'}}>
             {['Planta','PROPIETARIO','Sup. Total','Editar','Añadir'].map(h=><div key={h} className="sp-hc">{h}</div>)}
           </div>
-          {d.prop.map(row=>(
-            <SpRow key={row.p} p={row.p} sup={row.sup}>
-              <div className="sp-unit u-of" style={{flex:6}}>
-                <div className="sp-u-name">Barings Core Spain SOCIMI</div>
-              </div>
-            </SpRow>
+          {(edif.prop||[]).map(row=>(
+            <div key={row.p} style={{display:'grid',gridTemplateColumns:GRID,borderBottom:'1px solid var(--border)',minHeight:36}}>
+              <div className="sp-planta">{row.p}</div>
+              <div className="sp-units"><div className="sp-unit u-of" style={{flex:6}}><div className="sp-u-name">Barings Core Spain SOCIMI</div></div></div>
+              <div className="sp-sup mono">{row.sup.toLocaleString('es-ES')} m²</div>
+              <div className="sp-edit"><button className="sp-ibtn">✏</button></div>
+              <div className="sp-add"><span className="sp-addlink">+ Unidad</span></div>
+            </div>
           ))}
         </div>
       </>}
 
-      {/* ── VISTA: Arrendatarios y oferta ── */}
+      {/* ══ ARRENDATARIOS ══ */}
       {view==='arr' && <>
         <div style={{display:'flex',gap:12,marginBottom:10,flexWrap:'wrap'}}>
-          {[['var(--accent)','#dbeafe','#93c5fd','Arrendatario'],['#f59e0b','#fff7ed','#fed7aa','Oferta disponible'],['#22c55e','#dcfce7','#86efac','Zona común']].map(([ac,bg,bd,lbl])=>(
+          {[['var(--accent)','#dbeafe','#93c5fd','Arrendatario'],['#f59e0b','#fff7ed','#fed7aa','Disponible'],['#22c55e','#dcfce7','#86efac','Zona común']].map(([ac,bg,bd,lbl])=>(
             <label key={lbl} style={{display:'flex',alignItems:'center',gap:4,fontSize:11,cursor:'pointer'}}>
               <input type="checkbox" defaultChecked style={{accentColor:ac}}/>
               <span style={{width:10,height:10,background:bg,border:`1px solid ${bd}`,borderRadius:2,display:'inline-block'}}/>
@@ -230,50 +596,73 @@ function StackingPlan() {
         </div>
         <div className="sp-grid-wrap">
           <div style={{display:'grid',gridTemplateColumns:GRID,background:'var(--gray-lt)',borderBottom:'1px solid var(--border)'}}>
-            {['Planta','ARRENDATARIO / OFERTA DISPONIBLE','Sup. Total','Editar','Añadir'].map(h=><div key={h} className="sp-hc">{h}</div>)}
+            {['Planta','ARRENDATARIO / DISPONIBLE','Sup. Total','Editar','Añadir'].map(h=><div key={h} className="sp-hc">{h}</div>)}
           </div>
-          {d.arr.map(row=>(
-            <SpRow key={row.p} p={row.p} sup={row.sup}>
-              {row.units.map((u,i)=>{
-                if (u.type==='pk') return (
-                  <div key={i} className="sp-unit u-pk" style={{flex:u.f}}>
-                    <div className="sp-u-name">{u.n}</div>
-                    <div className="sp-u-m2">{u.m}</div>
-                  </div>
-                )
-                if (u.type==='com') return (
-                  <div key={i} className="sp-unit u-com" style={{flex:u.f,flexDirection:'column',alignItems:'flex-start',padding:'4px 8px'}}>
-                    <div className="sp-u-name">{u.n}</div>
-                    <div className="sp-u-m2">{u.m}</div>
-                  </div>
-                )
-                if (u.type==='vac') return (
-                  <div key={i} style={{flex:u.f,background:'#fff8ec',border:'1px dashed #fcd34d',display:'flex',flexDirection:'column',justifyContent:'center',padding:'4px 8px'}}>
-                    <div style={{fontSize:9,fontWeight:600,color:'var(--amber)'}}>Disponible{u.oferta ? ` · ${u.oferta}` : ''}</div>
-                    <div className="sp-u-m2" style={{color:'var(--text3)'}}>{u.m}</div>
-                  </div>
-                )
-                if (u.type==='rt') return (
-                  <div key={i} className="sp-unit u-rt" style={{flex:u.f,flexDirection:'column',alignItems:'flex-start',padding:'4px 8px'}}>
-                    <div className="sp-u-name" style={{fontWeight:600}}>{u.n}</div>
-                    <div className="sp-u-m2">{u.m}</div>
-                    {u.brk && <div style={{fontSize:9,color:u.brkColor}}>⊙ break {u.brk}</div>}
-                  </div>
-                )
-                return (
-                  <div key={i} style={{flex:u.f,background:'#dbeafe',color:'#1e40af',display:'flex',flexDirection:'column',justifyContent:'center',padding:'4px 8px'}}>
-                    <div className="sp-u-name" style={{fontWeight:600}}>{u.n}</div>
-                    <div className="sp-u-m2">{u.m}</div>
-                    {u.brk && <div style={{fontSize:9,color:u.brkColor}}>⊙ break {u.brk}</div>}
-                  </div>
-                )
-              })}
-            </SpRow>
+          {(edif.arr||[]).map(row=>(
+            <div key={row.p} style={{display:'grid',gridTemplateColumns:GRID,borderBottom:'1px solid var(--border)',minHeight:36}}>
+              <div className="sp-planta">{row.p}</div>
+              <div className="sp-units">
+                {row.units.map((u,i)=>{
+                  if(u.type==='pk') return <div key={i} className="sp-unit u-pk" style={{flex:u.f}}><div className="sp-u-name">{u.n}</div><div className="sp-u-m2">{u.m}</div></div>
+                  if(u.type==='com') return <div key={i} className="sp-unit u-com" style={{flex:u.f,flexDirection:'column',alignItems:'flex-start',padding:'4px 8px'}}><div className="sp-u-name">{u.n}</div><div className="sp-u-m2">{u.m}</div></div>
+                  if(u.type==='vac') return <div key={i} style={{flex:u.f,background:'#fff8ec',border:'1px dashed #fcd34d',display:'flex',flexDirection:'column',justifyContent:'center',padding:'4px 8px'}}><div style={{fontSize:9,fontWeight:600,color:'var(--amber)'}}>Disponible{u.oferta?` · ${u.oferta}`:''}</div><div className="sp-u-m2" style={{color:'var(--text3)'}}>{u.m}</div></div>
+                  if(u.type==='rt') return <div key={i} className="sp-unit u-rt" style={{flex:u.f,flexDirection:'column',alignItems:'flex-start',padding:'4px 8px'}}><div className="sp-u-name" style={{fontWeight:600}}>{u.n}</div><div className="sp-u-m2">{u.m}</div>{u.brk&&<div style={{fontSize:9,color:u.brkColor}}>⊙ break {u.brk}</div>}</div>
+                  return <div key={i} style={{flex:u.f,background:'#dbeafe',color:'#1e40af',display:'flex',flexDirection:'column',justifyContent:'center',padding:'4px 8px'}}><div className="sp-u-name" style={{fontWeight:600}}>{u.n}</div><div className="sp-u-m2">{u.m}</div>{u.brk&&<div style={{fontSize:9,color:u.brkColor}}>⊙ break {u.brk}</div>}</div>
+                })}
+              </div>
+              <div className="sp-sup mono">{row.sup.toLocaleString('es-ES')} m²</div>
+              <div className="sp-edit"><button className="sp-ibtn">✏</button></div>
+              <div className="sp-add"><span className="sp-addlink">+ Unidad</span></div>
+            </div>
           ))}
         </div>
       </>}
 
-      <SpOccBar/>
+      {/* ══ MODAL SPLIT ══ */}
+      {splitModal&&(()=>{
+        const floor=edif.floors.find(f=>f.id===splitModal.floorId)
+        const info=usoInfo(splitModal.usoId)
+        return (
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:999}}
+            onClick={()=>setSplitModal(null)}>
+            <div style={{background:'var(--surface)',borderRadius:'var(--r2)',padding:20,width:310,boxShadow:'0 8px 32px rgba(0,0,0,.18)'}}
+              onClick={e=>e.stopPropagation()}>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:'var(--text1)'}}>Dividir planta {floor?.id}</div>
+              <div style={{fontSize:11,color:'var(--text3)',marginBottom:12,lineHeight:1.5}}>
+                La planta está completa. Indica cuántos m² asignar a <strong style={{color:info.color}}>{info.label}</strong> — el último uso existente se reducirá proporcionalmente.
+              </div>
+              <input type="number" placeholder="m² a asignar" value={splitSup} onChange={e=>setSplitSup(e.target.value)}
+                autoFocus
+                style={{width:'100%',padding:'7px 10px',border:'1px solid var(--border)',borderRadius:5,fontSize:12,
+                  fontFamily:'var(--mono)',marginBottom:10,boxSizing:'border-box'}}
+                onKeyDown={e=>{if(e.key==='Enter')document.getElementById('sp-split-confirm')?.click()}}
+              />
+              <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+                <button onClick={()=>setSplitModal(null)}
+                  style={{padding:'6px 14px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>
+                  Cancelar
+                </button>
+                <button id="sp-split-confirm"
+                  onClick={()=>{
+                    const sup=parseFloat(splitSup)
+                    if(!isNaN(sup)&&sup>0&&floor){
+                      updBuilding(b=>({...b,floors:b.floors.map(f=>{
+                        if(f.id!==splitModal.floorId) return f
+                        const last=f.principal[f.principal.length-1]
+                        if(!last||last.sup<=sup) return {...f,principal:[...f.principal,{uso:splitModal.usoId,sup}]}
+                        return {...f,principal:[...f.principal.slice(0,-1),{...last,sup:last.sup-sup},{uso:splitModal.usoId,sup}]}
+                      })}))
+                    }
+                    setSplitModal(null); setSplitSup('')
+                  }}
+                  style={{padding:'6px 14px',background:info.color,color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+                  Asignar
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
