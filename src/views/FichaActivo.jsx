@@ -625,6 +625,19 @@ function StackingPlan() {
         const PROP_COLORS = ['#3b82f6','#8b5cf6','#14b8a6','#f97316','#ec4899','#22c55e']
         const ownerSet = [...new Set((edif.prop||[]).flatMap(r=>r.units.map(u=>u.n)))]
         const ownerColor = (n) => PROP_COLORS[ownerSet.indexOf(n)%PROP_COLORS.length]
+        // Helper: upsert a prop row on drop
+        const dropProp = (floorId, floorSup, ownerName) => {
+          updBuilding(b=>{
+            const exists = (b.prop||[]).find(r=>r.p===floorId)
+            if(exists){
+              const avail = exists.sup - exists.units.reduce((s,u)=>s+u.sup,0)
+              if(avail<=0) return b
+              return {...b, prop: b.prop.map(r=>r.p===floorId?{...r,units:[...r.units,{n:ownerName,sup:avail}]}:r)}
+            } else {
+              return {...b, prop: [...(b.prop||[]), {p:floorId, sup:floorSup, units:[{n:ownerName,sup:floorSup}]}]}
+            }
+          })
+        }
         return (
           <div style={{display:'flex',gap:16}}>
 
@@ -660,74 +673,100 @@ function StackingPlan() {
               </button>
             </div>
 
-            {/* ── GRID PLANTAS ── */}
+            {/* ── GRID PLANTAS (driven by edif.floors) ── */}
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Planta</div>
-                <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Propietario — clic en bloque para editar superficie</div>
+                <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Propietario — arrastra desde el panel izquierdo · clic en bloque para editar</div>
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
               </div>
-              {(edif.prop||[]).map(row=>{
-                const unassigned = row.sup - row.units.reduce((s,u)=>s+u.sup,0)
-                const isTgt = dragTarget===row.p
+              {edif.floors.map(floor=>{
+                const propRow = (edif.prop||[]).find(r=>r.p===floor.id)
+                const units    = propRow?.units || []
+                const rowSup   = propRow?.sup ?? floor.sup
+                const assigned = units.reduce((s,u)=>s+u.sup,0)
+                const unassigned = rowSup - assigned
+                const isEmpty  = units.length===0
+                const isTgt    = dragTarget===floor.id
                 return (
-                  <div key={row.p}
-                    onDragOver={e=>{e.preventDefault();setDragTarget(row.p)}}
+                  <div key={floor.id}
+                    onDragOver={e=>{e.preventDefault();setDragTarget(floor.id)}}
                     onDragLeave={()=>setDragTarget(null)}
                     onDrop={e=>{
                       e.preventDefault();setDragTarget(null)
                       if(!dragging||!ownerSet.includes(dragging)) return
-                      const col=ownerColor(dragging)
-                      const avail=row.sup-row.units.reduce((s,u)=>s+u.sup,0)
-                      if(avail<=0) return
-                      updBuilding(b=>({...b,prop:(b.prop||[]).map(r=>r.p===row.p?{...r,units:[...r.units,{n:dragging,sup:avail}]}:r)}))
+                      dropProp(floor.id, floor.sup, dragging)
                       setDragging(null)
                     }}
                     style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',borderBottom:'1px solid var(--border)',minHeight:44,
-                      background:isTgt?'#eff6ff':'var(--surface)',outline:isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s'}}>
-                    <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:'var(--text3)',display:'flex',alignItems:'center'}}>{row.p}</div>
-                    <div style={{display:'flex',alignItems:'stretch',padding:'5px 4px 5px 0',gap:2,minHeight:34}}>
-                      {row.units.map((u,i)=>{
-                        const col = ownerColor(u.n)
-                        const wpct = `${(u.sup/row.sup)*100}%`
-                        const isEd = editPA?.layer==='prop' && editPA?.rowP===row.p && editPA?.idx===i
-                        return (
-                          <div key={i}
-                            title={`${u.n} · ${u.sup.toLocaleString('es-ES')} m²`}
-                            onClick={()=>{if(isEd)setEditPA(null);else{setEditPA({layer:'prop',rowP:row.p,idx:i});setEditPASup(String(u.sup))}}}
-                            style={{width:wpct,background:col+'18',border:`1px solid ${col}88`,borderRadius:4,
-                              display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-                              cursor:'pointer',flexShrink:0,overflow:'hidden',padding:'3px 4px',gap:1}}
-                          >
-                            {isEd ? (
-                              <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
-                                <input type="number" value={editPASup} onChange={e=>setEditPASup(e.target.value)} autoFocus
-                                  onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
-                                  style={{width:58,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
-                                <button onClick={savePASup} style={{padding:'2px 4px',background:col,color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓</button>
-                              </div>
-                            ) : (
-                              <>
-                                <span style={{fontSize:10,fontWeight:700,color:col,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center',padding:'0 3px'}}>
-                                  {u.n}
-                                </span>
-                                <span style={{fontSize:9,color:col,opacity:.7,fontFamily:'var(--mono)'}}>
-                                  {u.sup.toLocaleString('es-ES')} m²
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        )
-                      })}
-                      {unassigned>0 && (
-                        <div style={{flex:1,minWidth:20,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:isTgt?'var(--accent)':'var(--text4)',flexDirection:'column',gap:1,padding:'2px 4px'}}>
-                          <span>{unassigned.toLocaleString('es-ES')} m²</span>
-                          <span style={{fontSize:8}}>sin asignar</span>
+                      background:isTgt?'#eff6ff':isEmpty?'var(--gray-lt)':'var(--surface)',
+                      outline:isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s'}}>
+
+                    <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:isEmpty?'var(--text4)':'var(--text3)',display:'flex',alignItems:'center'}}>{floor.id}</div>
+
+                    <div style={{display:'flex',flexDirection:'column',gap:3,padding:'5px 4px 5px 0'}}>
+                      {/* Referencia uso principal (gris tenue) */}
+                      {floor.principal.length>0 && (
+                        <div style={{display:'flex',gap:1,height:6,borderRadius:2,overflow:'hidden',opacity:.35}}>
+                          {floor.principal.map((u,i)=>{
+                            const info=usoInfo(u.uso)
+                            return <div key={i} style={{width:`${(u.sup/floor.sup)*100}%`,background:info.color,flexShrink:0}}/>
+                          })}
                         </div>
                       )}
+                      {/* Bloques de propietario */}
+                      <div style={{display:'flex',alignItems:'stretch',gap:2,minHeight:34}}>
+                        {isEmpty ? (
+                          <div style={{flex:1,background:isTgt?'var(--accent-lt)':'transparent',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,
+                            display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,
+                            color:isTgt?'var(--accent)':'var(--text4)',gap:5}}>
+                            {isTgt?'⬇ Soltar propietario':'Sin propietario asignado — arrastra aquí'}
+                          </div>
+                        ) : (
+                          <>
+                            {units.map((u,i)=>{
+                              const col = ownerColor(u.n)
+                              const wpct = `${(u.sup/rowSup)*100}%`
+                              const isEd = editPA?.layer==='prop' && editPA?.rowP===floor.id && editPA?.idx===i
+                              return (
+                                <div key={i}
+                                  title={`${u.n} · ${u.sup.toLocaleString('es-ES')} m²`}
+                                  onClick={()=>{if(isEd)setEditPA(null);else{setEditPA({layer:'prop',rowP:floor.id,idx:i});setEditPASup(String(u.sup))}}}
+                                  style={{width:wpct,background:col+'18',border:`1px solid ${col}88`,borderRadius:4,
+                                    display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+                                    cursor:'pointer',flexShrink:0,overflow:'hidden',padding:'3px 4px',gap:1}}
+                                >
+                                  {isEd ? (
+                                    <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
+                                      <input type="number" value={editPASup} onChange={e=>setEditPASup(e.target.value)} autoFocus
+                                        onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
+                                        style={{width:58,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                      <button onClick={savePASup} style={{padding:'2px 4px',background:col,color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓</button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <span style={{fontSize:10,fontWeight:700,color:col,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center',padding:'0 3px'}}>{u.n}</span>
+                                      <span style={{fontSize:9,color:col,opacity:.7,fontFamily:'var(--mono)'}}>{u.sup.toLocaleString('es-ES')} m²</span>
+                                    </>
+                                  )}
+                                </div>
+                              )
+                            })}
+                            {unassigned>0 && (
+                              <div style={{flex:1,minWidth:20,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,
+                                display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+                                fontSize:9,color:isTgt?'var(--accent)':'var(--text4)',gap:1,padding:'2px 4px'}}>
+                                <span>{unassigned.toLocaleString('es-ES')} m²</span>
+                                <span style={{fontSize:8}}>sin asignar</span>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
+
                     <div style={{padding:'6px 8px',fontSize:11,fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',justifyContent:'flex-end',fontFamily:'var(--mono)'}}>
-                      {row.sup.toLocaleString('es-ES')} m²
+                      {rowSup.toLocaleString('es-ES')} m²
                     </div>
                   </div>
                 )
@@ -807,86 +846,120 @@ function StackingPlan() {
               </div>
             </div>
 
-            {/* ── GRID PLANTAS ── */}
+            {/* ── GRID PLANTAS (driven by edif.floors) ── */}
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Planta</div>
-                <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Arrendatario / Disponible — clic en bloque para editar superficie</div>
+                <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Arrendatario / Disponible — arrastra desde el panel izquierdo · clic en bloque para editar</div>
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
               </div>
-              {(edif.arr||[]).map(row=>{
-                const isTgt = dragTarget===row.p
+              {edif.floors.map(floor=>{
+                const arrRow  = (edif.arr||[]).find(r=>r.p===floor.id)
+                const units   = arrRow?.units || []
+                const rowSup  = arrRow?.sup ?? floor.sup
+                const assigned = units.reduce((s,u)=>s+u.sup,0)
+                const isEmpty = units.length===0
+                const isTgt   = dragTarget===floor.id
+                // upsert helper for arr
+                const dropArr = (newUnit) => {
+                  updBuilding(b=>{
+                    const exists=(b.arr||[]).find(r=>r.p===floor.id)
+                    if(exists){
+                      const avail=exists.sup-exists.units.reduce((s,u)=>s+u.sup,0)
+                      if(avail<=0) return b
+                      const unit={...newUnit,sup:avail}
+                      return {...b,arr:b.arr.map(r=>r.p===floor.id?{...r,units:[...r.units,unit]}:r)}
+                    } else {
+                      return {...b,arr:[...(b.arr||[]),{p:floor.id,sup:floor.sup,units:[{...newUnit,sup:floor.sup}]}]}
+                    }
+                  })
+                }
                 return (
-                  <div key={row.p}
-                    onDragOver={e=>{e.preventDefault();setDragTarget(row.p)}}
+                  <div key={floor.id}
+                    onDragOver={e=>{e.preventDefault();setDragTarget(floor.id)}}
                     onDragLeave={()=>setDragTarget(null)}
                     onDrop={e=>{
                       e.preventDefault();setDragTarget(null)
                       if(!dragging) return
-                      const avail=row.sup-row.units.reduce((s,u)=>s+u.sup,0)
-                      if(avail<=0) return
                       if(dragging.startsWith('ten:')){
-                        const n=dragging.slice(4)
-                        updBuilding(b=>({...b,arr:(b.arr||[]).map(r=>r.p===row.p?{...r,units:[...r.units,{type:'ten',n,sup:avail}]}:r)}))
+                        dropArr({type:'ten',n:dragging.slice(4)})
                       } else if(dragging.startsWith('type:')){
                         const type=dragging.slice(5)
-                        const newUnit = type==='vac'?{type:'vac',oferta:'',sup:avail}
-                          :type==='com'?{type:'com',n:'Zona común',sup:avail}
-                          :type==='rt'?{type:'rt',n:'Retail',sup:avail}
-                          :{type:'pk',n:'Parking',sup:avail}
-                        updBuilding(b=>({...b,arr:(b.arr||[]).map(r=>r.p===row.p?{...r,units:[...r.units,newUnit]}:r)}))
+                        dropArr(type==='vac'?{type:'vac',oferta:''}:type==='com'?{type:'com',n:'Zona común'}:type==='rt'?{type:'rt',n:'Retail'}:{type:'pk',n:'Parking'})
                       }
                       setDragging(null)
                     }}
                     style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',borderBottom:'1px solid var(--border)',minHeight:52,
-                      background:isTgt?'#eff6ff':'var(--surface)',outline:isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s'}}>
-                    <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:'var(--text3)',display:'flex',alignItems:'center'}}>{row.p}</div>
-                    <div style={{display:'flex',alignItems:'stretch',padding:'5px 4px 5px 0',gap:2}}>
-                      {row.units.map((u,i)=>{
-                        const wpct = `${(u.sup/row.sup)*100}%`
-                        const isEd = editPA?.layer==='arr' && editPA?.rowP===row.p && editPA?.idx===i
-                        const tc = TYPE_COLORS[u.type]||TYPE_COLORS.ten
-                        const {bg,bd,col} = tc
-                        const label = typeLabel(u)
-                        return (
-                          <div key={i}
-                            title={`${label} · ${u.sup.toLocaleString('es-ES')} m²${u.brk?` · break ${u.brk}`:''}`}
-                            onClick={()=>{if(isEd)setEditPA(null);else{setEditPA({layer:'arr',rowP:row.p,idx:i});setEditPASup(String(u.sup))}}}
-                            style={{width:wpct,background:bg,border:`1px solid ${bd}`,borderRadius:4,
-                              display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-                              cursor:'pointer',flexShrink:0,overflow:'hidden',padding:'4px 6px',gap:2,minHeight:42}}
-                          >
-                            {isEd ? (
-                              <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
-                                <input type="number" value={editPASup} onChange={e=>setEditPASup(e.target.value)} autoFocus
-                                  onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
-                                  style={{width:58,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
-                                <button onClick={savePASup} style={{padding:'2px 4px',background:col,color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓</button>
-                              </div>
-                            ) : (
-                              <>
-                                <span style={{fontSize:10,fontWeight:700,color:col,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>
-                                  {label}
-                                </span>
-                                <span style={{fontSize:9,color:col,opacity:.75,fontFamily:'var(--mono)',fontWeight:600}}>
-                                  {u.sup.toLocaleString('es-ES')} m²
-                                </span>
-                                {u.brk&&<span style={{fontSize:8,color:u.brkColor||col,fontWeight:600,whiteSpace:'nowrap'}}>⊙ {u.brk}</span>}
-                                {u.nota&&<span style={{fontSize:8,color:col,opacity:.6}}>{u.nota}</span>}
-                              </>
-                            )}
-                          </div>
-                        )
-                      })}
-                      {row.units.reduce((s,u)=>s+u.sup,0)<row.sup && (
-                        <div style={{flex:1,minWidth:20,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',fontSize:9,color:isTgt?'var(--accent)':'var(--text4)',gap:1,padding:'2px 4px',minHeight:42}}>
-                          <span>{(row.sup-row.units.reduce((s,u)=>s+u.sup,0)).toLocaleString('es-ES')} m²</span>
-                          <span style={{fontSize:8}}>sin asignar</span>
+                      background:isTgt?'#eff6ff':isEmpty?'var(--gray-lt)':'var(--surface)',
+                      outline:isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s'}}>
+
+                    <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:isEmpty?'var(--text4)':'var(--text3)',display:'flex',alignItems:'center'}}>{floor.id}</div>
+
+                    <div style={{display:'flex',flexDirection:'column',gap:3,padding:'5px 4px 5px 0'}}>
+                      {/* Referencia uso principal (gris tenue) */}
+                      {floor.principal.length>0 && (
+                        <div style={{display:'flex',gap:1,height:6,borderRadius:2,overflow:'hidden',opacity:.35}}>
+                          {floor.principal.map((u,i)=>{
+                            const info=usoInfo(u.uso)
+                            return <div key={i} style={{width:`${(u.sup/floor.sup)*100}%`,background:info.color,flexShrink:0}}/>
+                          })}
                         </div>
                       )}
+                      {/* Bloques de arrendatario */}
+                      <div style={{display:'flex',alignItems:'stretch',gap:2,minHeight:42}}>
+                        {isEmpty ? (
+                          <div style={{flex:1,background:isTgt?'var(--accent-lt)':'transparent',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,
+                            display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,
+                            color:isTgt?'var(--accent)':'var(--text4)',gap:5}}>
+                            {isTgt?'⬇ Soltar aquí':'Sin asignación — arrastra un arrendatario o disponible'}
+                          </div>
+                        ) : (
+                          <>
+                            {units.map((u,i)=>{
+                              const wpct = `${(u.sup/rowSup)*100}%`
+                              const isEd = editPA?.layer==='arr' && editPA?.rowP===floor.id && editPA?.idx===i
+                              const tc = TYPE_COLORS[u.type]||TYPE_COLORS.ten
+                              const {bg,bd,col} = tc
+                              const label = typeLabel(u)
+                              return (
+                                <div key={i}
+                                  title={`${label} · ${u.sup.toLocaleString('es-ES')} m²${u.brk?` · break ${u.brk}`:''}`}
+                                  onClick={()=>{if(isEd)setEditPA(null);else{setEditPA({layer:'arr',rowP:floor.id,idx:i});setEditPASup(String(u.sup))}}}
+                                  style={{width:wpct,background:bg,border:`1px solid ${bd}`,borderRadius:4,
+                                    display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+                                    cursor:'pointer',flexShrink:0,overflow:'hidden',padding:'4px 6px',gap:2,minHeight:42}}
+                                >
+                                  {isEd ? (
+                                    <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
+                                      <input type="number" value={editPASup} onChange={e=>setEditPASup(e.target.value)} autoFocus
+                                        onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
+                                        style={{width:58,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                      <button onClick={savePASup} style={{padding:'2px 4px',background:col,color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓</button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <span style={{fontSize:10,fontWeight:700,color:col,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>{label}</span>
+                                      <span style={{fontSize:9,color:col,opacity:.75,fontFamily:'var(--mono)',fontWeight:600}}>{u.sup.toLocaleString('es-ES')} m²</span>
+                                      {u.brk&&<span style={{fontSize:8,color:u.brkColor||col,fontWeight:600,whiteSpace:'nowrap'}}>⊙ {u.brk}</span>}
+                                      {u.nota&&<span style={{fontSize:8,color:col,opacity:.6}}>{u.nota}</span>}
+                                    </>
+                                  )}
+                                </div>
+                              )
+                            })}
+                            {assigned<rowSup && (
+                              <div style={{flex:1,minWidth:20,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',fontSize:9,color:isTgt?'var(--accent)':'var(--text4)',gap:1,padding:'2px 4px',minHeight:42}}>
+                                <span>{(rowSup-assigned).toLocaleString('es-ES')} m²</span>
+                                <span style={{fontSize:8}}>sin asignar</span>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
+
                     <div style={{padding:'6px 8px',fontSize:11,fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',justifyContent:'flex-end',fontFamily:'var(--mono)'}}>
-                      {row.sup.toLocaleString('es-ES')} m²
+                      {rowSup.toLocaleString('es-ES')} m²
                     </div>
                   </div>
                 )
