@@ -152,6 +152,13 @@ const INIT_BUILDINGS = [
   },
 ]
 
+// Ofertas activas vinculadas a este activo (en producción vendrían del estado global)
+const OFERTAS_ACTIVAS = [
+  { ref:'OLB001', contraparte:'Celonis',         sup:698,   estado:'En curso',  color:'#d97706', bg:'#fffbeb', border:'#fde68a' },
+  { ref:'OLB002', contraparte:'Repsol Exp.',     sup:1033,  estado:'En curso',  color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe' },
+  { ref:'OLB003', contraparte:'Oracle Spain SL', sup:13486, estado:'Finalista', color:'#7c3aed', bg:'#faf5ff', border:'#e9d5ff' },
+]
+
 function StackingPlan() {
   const [buildings, setBuildings]       = useState(INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState('A')
@@ -789,7 +796,7 @@ function StackingPlan() {
           pk:  {bg:'#f1f5f9',bd:'#94a3b8',col:'#475569'},
         }
         const typeLabel = (u) => {
-          if(u.type==='vac') return `Disponible${u.oferta?` · ${u.oferta}`:''}`
+          if(u.type==='vac') return u.oferta ? u.oferta : 'Disponible'
           return u.n
         }
         return (
@@ -826,23 +833,33 @@ function StackingPlan() {
                 + Añadir arrendatario
               </button>
               <div style={{borderTop:'1px solid var(--border)',marginTop:10,paddingTop:8}}>
-                <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Disponibles</div>
-                {[['vac','#d97706','#fff8ec','Disponible / Oferta'],['com','#15803d','#dcfce7','Zona común'],['rt','#ec4899','#fce7f3','Retail'],['pk','#475569','#f1f5f9','Parking']].map(([type,col,bg,lbl])=>(
-                  <div key={type} draggable
-                    onDragStart={()=>setDragging('type:'+type)}
-                    onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                    style={{
-                      display:'flex',alignItems:'center',gap:7,padding:'5px 9px',marginBottom:3,
-                      borderRadius:5,cursor:'grab',userSelect:'none',
-                      border:`1px solid ${col}66`,background:bg,
-                      opacity:dragging&&dragging!=='type:'+type?.4:1,
-                      transition:'opacity .15s',
-                    }}
-                  >
-                    <div style={{width:8,height:8,borderRadius:2,background:col,flexShrink:0}}/>
-                    <span style={{fontSize:10,fontWeight:600,color:col}}>{lbl}</span>
-                  </div>
-                ))}
+                <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Ofertas activas</div>
+                {OFERTAS_ACTIVAS.map(ofr=>{
+                  const dragKey = 'ofr:'+ofr.ref
+                  return (
+                    <div key={ofr.ref} draggable
+                      onDragStart={()=>setDragging(dragKey)}
+                      onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                      style={{
+                        display:'flex',flexDirection:'column',gap:2,padding:'6px 9px',marginBottom:4,
+                        borderRadius:5,cursor:'grab',userSelect:'none',
+                        border:`1px solid ${ofr.border}`,background:ofr.bg,
+                        opacity:dragging&&dragging!==dragKey?0.4:1,
+                        transition:'opacity .15s',
+                      }}
+                    >
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:4}}>
+                        <span style={{fontSize:11,fontWeight:700,color:ofr.color,fontFamily:'var(--mono)'}}>{ofr.ref}</span>
+                        <span style={{fontSize:9,fontWeight:600,color:ofr.color,background:'#fff',border:`1px solid ${ofr.border}`,borderRadius:3,padding:'0 4px'}}>{ofr.estado}</span>
+                      </div>
+                      <div style={{fontSize:10,color:'var(--text3)',lineHeight:1.2}}>{ofr.contraparte}</div>
+                      <div style={{fontSize:10,fontWeight:600,color:'var(--text2)'}}>{ofr.sup.toLocaleString('es-ES')} m²</div>
+                    </div>
+                  )
+                })}
+                <button style={{marginTop:2,padding:'5px 8px',background:'none',border:'1px dashed var(--border)',borderRadius:5,fontSize:10,color:'var(--text4)',cursor:'pointer',fontFamily:'inherit',textAlign:'left',width:'100%'}}>
+                  + Nueva oferta
+                </button>
               </div>
             </div>
 
@@ -850,7 +867,7 @@ function StackingPlan() {
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Planta</div>
-                <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Arrendatario / Disponible — arrastra desde el panel izquierdo · clic en bloque para editar</div>
+                <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Arrendatario / Oferta — arrastra desde el panel izquierdo · clic en bloque para editar</div>
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
               </div>
               {edif.floors.map(floor=>{
@@ -867,7 +884,9 @@ function StackingPlan() {
                     if(exists){
                       const avail=exists.sup-exists.units.reduce((s,u)=>s+u.sup,0)
                       if(avail<=0) return b
-                      const unit={...newUnit,sup:avail}
+                      // use the offer's own sup if provided and fits, otherwise cap to available
+                      const fitSup = newUnit.sup && newUnit.sup>0 ? Math.min(newUnit.sup, avail) : avail
+                      const unit={...newUnit,sup:fitSup}
                       return {...b,arr:b.arr.map(r=>r.p===floor.id?{...r,units:[...r.units,unit]}:r)}
                     } else {
                       return {...b,arr:[...(b.arr||[]),{p:floor.id,sup:floor.sup,units:[{...newUnit,sup:floor.sup}]}]}
@@ -883,9 +902,10 @@ function StackingPlan() {
                       if(!dragging) return
                       if(dragging.startsWith('ten:')){
                         dropArr({type:'ten',n:dragging.slice(4)})
-                      } else if(dragging.startsWith('type:')){
-                        const type=dragging.slice(5)
-                        dropArr(type==='vac'?{type:'vac',oferta:''}:type==='com'?{type:'com',n:'Zona común'}:type==='rt'?{type:'rt',n:'Retail'}:{type:'pk',n:'Parking'})
+                      } else if(dragging.startsWith('ofr:')){
+                        const ref=dragging.slice(4)
+                        const ofr=OFERTAS_ACTIVAS.find(o=>o.ref===ref)
+                        dropArr({type:'vac',oferta:ref,sup:ofr?.sup??0})
                       }
                       setDragging(null)
                     }}
