@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import AsignarTareaModal from '../components/AsignarTareaModal'
 
 const MESES_ANTES_BREAK = 3
 
@@ -22,6 +23,7 @@ const TAB_LABELS = ['📋 Datos del arrendatario','💰 Condiciones económicas'
 export default function FichaArrendatario() {
   const { navigate } = useNav()
   const [tab, setTab] = useState('datos')
+  const [showTarea, setShowTarea] = useState(false)
 
   // Datos del arrendatario (mock — Oracle Spain SL)
   const [form, setForm] = useState({
@@ -86,6 +88,8 @@ export default function FichaArrendatario() {
         <button className="ab-btn blue" onClick={()=>navigate('ficha-activo')}>🏢 Ver activo</button>
         <button className="ab-btn blue" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>
         <button className="ab-btn" onClick={()=>navigate('arrendatarios')}>← Volver</button>
+        <div className="ab-sep"/>
+        <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
       </div>
 
       <div className="ficha-wrap">
@@ -431,6 +435,7 @@ export default function FichaArrendatario() {
           </div>
         </div>
       </div>
+      {showTarea && <AsignarTareaModal refTipo="Arrendatario" refNombre="Oracle Spain SL · ARR-2501" onClose={() => setShowTarea(false)} />}
     </div>
   )
 }

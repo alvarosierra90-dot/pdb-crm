@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import AsignarTareaModal from '../components/AsignarTareaModal'
 
 const TABS = ['datos','condiciones','historico','analisis']
 const TAB_LABELS = ['🏢 Datos del propietario','💰 Condiciones de inversión','🕐 Histórico propietarios','📊 Análisis']
@@ -22,6 +23,7 @@ export default function FichaPropietario() {
   const [tab, setTab] = useState('datos')
   const [hist] = useState(HIST_INIT)
   const [log]  = useState(LOG_INIT)
+  const [showTarea, setShowTarea] = useState(false)
 
   const [form, setForm] = useState({
     // Identificación
@@ -105,6 +107,8 @@ export default function FichaPropietario() {
         <button className="ab-btn blue" onClick={()=>navigate('ficha-arrendatario')}>🔑 Ver arrendatarios</button>
         <button className="ab-btn blue" onClick={()=>navigate('mandatos')}>📄 Mandatos</button>
         <button className="ab-btn" onClick={()=>navigate('propietarios')}>← Volver</button>
+        <div className="ab-sep"/>
+        <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
       </div>
 
       {/* Header */}
@@ -536,6 +540,7 @@ export default function FichaPropietario() {
 
         </div>
       </div>
+      {showTarea && <AsignarTareaModal refTipo="Propietario" refNombre="Merlín Properties SOCIMI" onClose={() => setShowTarea(false)} />}
     </div>
   )
 }

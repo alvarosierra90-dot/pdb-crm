@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import PptxGenJS from 'pptxgenjs'
+import AsignarTareaModal from '../components/AsignarTareaModal'
 
 // ── Datos del mandato MAN-2501 ──
 const M = {
@@ -132,6 +133,7 @@ function RpBtn({ children, onClick }) {
 export default function FichaMandato() {
   const { navigate } = useNav()
   const [tab, setTab] = useState('info')
+  const [showTarea, setShowTarea] = useState(false)
 
   const diasColor = M.dias_restantes <= 0 ? 'var(--red)'
     : M.dias_restantes <= 30 ? 'var(--red)'
@@ -237,6 +239,8 @@ export default function FichaMandato() {
         <button className="ab-btn blue">📎 Vincular activo</button>
         <button className="ab-btn blue">📋 Nueva actividad</button>
         <button className="ab-btn" onClick={()=>navigate('mandatos')}>← Volver</button>
+        <div className="ab-sep"/>
+        <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
       </div>
 
       <div className="ficha-wrap">
@@ -1142,6 +1146,7 @@ export default function FichaMandato() {
           </div>
         </div>
       </div>
+      {showTarea && <AsignarTareaModal refTipo="Mandato" refNombre="MAN-2501 · P.E Avalon" onClose={() => setShowTarea(false)} />}
     </div>
   )
 }

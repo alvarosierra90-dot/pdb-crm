@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import AsignarTareaModal from '../components/AsignarTareaModal'
 
 const TABS = ['datos','equipos','trazabilidad','resumen']
 const TAB_LABELS = ['📋 Datos del proyecto','👥 Equipos y participantes','🔄 Trazabilidad','📊 Resumen']
@@ -110,6 +111,8 @@ export default function FichaPropuesta() {
 
   const removeEquipo = (i) => setEquipos(e => e.filter((_,idx)=>idx!==i))
 
+  const [showTarea, setShowTarea] = useState(false)
+
   const feesNum = parseFloat(form.fees.replace(/[^0-9]/g,'')) || 0
   const feesAdj = feesNum * (parseInt(form.probabilidad)/100)
 
@@ -140,6 +143,8 @@ export default function FichaPropuesta() {
           : <button className="ab-btn" style={{background:'var(--accent)',color:'#fff',border:'none'}} onClick={()=>{set('estado','Adjudicado');setShowConvert(true)}}>🏆 Marcar adjudicado</button>
         }
         <button className="ab-btn" onClick={()=>navigate('propuestas')}>← Volver</button>
+        <div className="ab-sep"/>
+        <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
       </div>
 
       {/* Banner adjudicado */}
@@ -548,6 +553,7 @@ export default function FichaPropuesta() {
 
         </div>
       </div>
+      {showTarea && <AsignarTareaModal refTipo="Propuesta" refNombre="PRY-2501 · Pitch BBVA Torre Norte" onClose={() => setShowTarea(false)} />}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import AsignarTareaModal from '../components/AsignarTareaModal'
 
 const TABS = ['of-info','of-contacto','of-espacios','of-plazas','of-condiciones','of-caract','of-docs','of-web','of-desc','of-seg','of-ficha','of-conf']
 const TAB_LABELS = ['Información oferta','Datos de contacto','Espacios comerciales','Plazas de aparcamiento','Condiciones','Características','Documentos','Contenido web','Descriptivo','Seguimiento comercial','Crear ficha','🔒 Confidencialidad']
@@ -15,6 +16,7 @@ export default function FichaOferta() {
   const [authorizedUsers, setAuthorizedUsers] = useState(USERS_INIT)
   const [addingUser, setAddingUser] = useState(false)
   const [newUser, setNewUser] = useState('')
+  const [showTarea, setShowTarea] = useState(false)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
@@ -28,6 +30,8 @@ export default function FichaOferta() {
         <button className="ab-btn">📄 Crear ficha</button>
         <button className="ab-btn">🔄 Recalcular</button>
         <button className="ab-btn">🌐 Descripción web</button>
+        <div className="ab-sep" />
+        <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
       </div>
       <div className="ficha-wrap">
         <div className="ficha-main">
@@ -539,6 +543,7 @@ export default function FichaOferta() {
           </div>
         </div>
       </div>
+      {showTarea && <AsignarTareaModal refTipo="Oferta" refNombre="OLBUR2315645" onClose={() => setShowTarea(false)} />}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import AsignarTareaModal from '../components/AsignarTareaModal'
 
 const COLAB_INIT = [
   { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable visita', initials:'AS', bg:'#dbeafe', color:'#1e40af', principal:true },
@@ -12,6 +13,7 @@ export default function FichaVisita() {
   const [colabTeams, setColabTeams] = useState(COLAB_INIT)
   const [addingTeam, setAddingTeam] = useState(false)
   const [newTeam, setNewTeam] = useState('')
+  const [showTarea, setShowTarea] = useState(false)
 
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
@@ -22,6 +24,8 @@ export default function FichaVisita() {
         <div className="ab-sep"/>
         <button className="ab-btn blue">📎 Vincular actividad</button>
         <button className="ab-btn" onClick={()=>navigate('visitas')}>← Volver</button>
+        <div className="ab-sep"/>
+        <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
       </div>
 
       <div className="ficha-wrap">
@@ -256,6 +260,7 @@ export default function FichaVisita() {
           </div>
         </div>
       </div>
+      {showTarea && <AsignarTareaModal refTipo="Visita" refNombre="VIS-001 · Corp. Financiera Azuaga" onClose={() => setShowTarea(false)} />}
     </div>
   )
 }

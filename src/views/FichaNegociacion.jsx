@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import AsignarTareaModal from '../components/AsignarTareaModal'
 
 const TABS = ['neg-chat','neg-condiciones','neg-docs','neg-historial','neg-colab']
 const TAB_LABELS = ['💬 Negociación','📋 Condiciones acordadas','📁 Documentos contractuales','🕐 Historial completo','👥 Equipos colaboradores']
@@ -14,6 +15,7 @@ export default function FichaNegociacion() {
   const [colabTeams, setColabTeams] = useState(COLAB_INIT_NEG)
   const [addingTeam, setAddingTeam] = useState(false)
   const [newTeam, setNewTeam] = useState('')
+  const [showTarea, setShowTarea] = useState(false)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
@@ -25,6 +27,8 @@ export default function FichaNegociacion() {
         <button className="ab-btn blue" onClick={() => alert('✅ Link copiado:\nhttps://pdb.savills.es/neg/NEG-0044\n\nCompartir con ambas partes.')}>🔗 Copiar link partes</button>
         <button className="ab-btn">📄 Subir contrato</button>
         <button className="ab-btn" onClick={() => navigate('ficha-activo')}>📊 Ver activo vinculado</button>
+        <div className="ab-sep" />
+        <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
       </div>
 
       {/* Header */}
@@ -397,6 +401,7 @@ export default function FichaNegociacion() {
           </div>
         </div>
       </div>
+      {showTarea && <AsignarTareaModal refTipo="Negociación" refNombre="NEG-0044 · Empresa XYZ" onClose={() => setShowTarea(false)} />}
     </div>
   )
 }

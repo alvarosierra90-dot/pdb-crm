@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import AsignarTareaModal from '../components/AsignarTareaModal'
 
 const TABS = ['at-info','at-caract','at-prop','at-plazas','at-fotos','at-docs','at-adicional','at-360','at-followup']
 const TAB_LABELS = ['Información general','Características','Propietarios y arrendatarios','Plazas','Fotografías','Documentos','Información adicional','Vista 360','Follow-up']
@@ -567,6 +568,7 @@ export default function FichaActivo() {
   const [activeTab, setActiveTab] = useState('at-info')
   const [caracTab, setCaracTab] = useState('ct-estado')
   const [docCat,   setDocCat]   = useState('todos')
+  const [showTarea, setShowTarea] = useState(false)
 
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
@@ -581,6 +583,8 @@ export default function FichaActivo() {
         <button className="ab-btn blue">📊 Stacking plan</button>
         <button className="ab-btn">Actualizar</button>
         <button className="ab-btn">📄 Plantillas word</button>
+        <div className="ab-sep"/>
+        <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
       </div>
 
       <div className="ficha-wrap">
@@ -792,6 +796,7 @@ export default function FichaActivo() {
         <RightPanel navigate={navigate}/>
 
       </div>{/* /ficha-wrap */}
+      {showTarea && <AsignarTareaModal refTipo="Activo" refNombre="P.E Avalon" onClose={() => setShowTarea(false)} />}
     </div>
   )
 }

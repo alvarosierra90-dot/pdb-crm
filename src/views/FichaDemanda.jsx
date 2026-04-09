@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import AsignarTareaModal from '../components/AsignarTareaModal'
 
 const DEM_TABS = [
   ['dem-info','Información Demanda'],['dem-req','Requisitos'],['dem-zona','Zona búsqueda'],
@@ -141,6 +142,7 @@ function RightPanel({ navigate }) {
 export default function FichaDemanda() {
   const { navigate } = useNav()
   const [activeTab, setActiveTab] = useState('dem-info')
+  const [showTarea, setShowTarea] = useState(false)
 
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
@@ -155,6 +157,8 @@ export default function FichaDemanda() {
         <button className="ab-btn blue" onClick={()=>navigate('mapas',{from:'demanda',id:'D251035690',nombre:'Corporacion Financiera Azuaga SL',uso:'Oficinas',sbaMin:2200,sbaMax:3000,rentaMax:18,zona:'A-1 · Alcobendas',provincia:'Madrid'})}>🗺 Exportar a mapa</button>
         <button className="ab-btn">Actualizar</button>
         <button className="ab-btn">Asignar</button>
+        <div className="ab-sep"/>
+        <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
       </div>
 
       <div className="ficha-wrap">
@@ -636,6 +640,7 @@ export default function FichaDemanda() {
 
         <RightPanel navigate={navigate}/>
       </div>
+      {showTarea && <AsignarTareaModal refTipo="Demanda" refNombre="D251035690 · Corp. Financiera Azuaga" onClose={() => setShowTarea(false)} />}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { NavProvider, useNav } from './context/NavigationContext'
+import { TasksProvider } from './context/TasksContext'
 import Nav from './components/Nav'
 import Topbar from './components/Topbar'
 import ActivosList from './views/ActivosList'
@@ -92,9 +93,11 @@ function ConditionalNav() {
 
 export default function App() {
   return (
-    <NavProvider>
-      <ConditionalNav />
-      <Router />
-    </NavProvider>
+    <TasksProvider>
+      <NavProvider>
+        <ConditionalNav />
+        <Router />
+      </NavProvider>
+    </TasksProvider>
   )
 }

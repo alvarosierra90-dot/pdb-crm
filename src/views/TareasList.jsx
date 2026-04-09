@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import { useTasks } from '../context/TasksContext'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 
@@ -43,6 +44,8 @@ const COLS = [
 
 export default function TareasList() {
   const { navigate } = useNav()
+  const { tasks: ctxTasks } = useTasks()
+  const ALL_TARS = [...ctxTasks, ...TARS]
   const [query,   setQuery]   = useState('')
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ tipo: '', est: '', prio: '', resp: '' })
@@ -50,7 +53,7 @@ export default function TareasList() {
 
   const advCount = Object.values(af).filter(Boolean).length
 
-  const preFiltered = TARS.filter(t => {
+  const preFiltered = ALL_TARS.filter(t => {
     const q = query.toLowerCase()
     if (q && !t.as.toLowerCase().includes(q) && !t.ref.toLowerCase().includes(q) && !t.resp.toLowerCase().includes(q)) return false
     if (af.tipo && t.tipo !== af.tipo) return false
@@ -62,11 +65,11 @@ export default function TareasList() {
 
   const { result, sorts, filters, setSort, setFilter, clearFilter, clearAll, activeCount } = useTableFilter(preFiltered, COLS)
 
-  const total       = TARS.length
-  const pendientes  = TARS.filter(t=>t.est==='Pendiente').length
-  const enCurso     = TARS.filter(t=>t.est==='En curso').length
-  const finalizadas = TARS.filter(t=>t.est==='Finalizada').length
-  const prioAlta    = TARS.filter(t=>t.prio==='Alta').length
+  const total       = ALL_TARS.length
+  const pendientes  = ALL_TARS.filter(t=>t.est==='Pendiente').length
+  const enCurso     = ALL_TARS.filter(t=>t.est==='En curso').length
+  const finalizadas = ALL_TARS.filter(t=>t.est==='Finalizada').length
+  const prioAlta    = ALL_TARS.filter(t=>t.prio==='Alta').length
 
   const cell = (t) => ({
     _chk: <td key="_chk"><input type="checkbox" onClick={e=>e.stopPropagation()} style={{accentColor:'var(--accent)'}}/></td>,
@@ -144,7 +147,7 @@ export default function TareasList() {
             <tr>{visibleCols.map(c =>
               c.id === '_chk' ? <th key="_chk"><input type="checkbox" style={{accentColor:'var(--accent)'}}/></th> :
               c.sys ? <th key={c.id}>{c.label}</th> :
-              <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={TARS}/>
+              <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={ALL_TARS}/>
             )}</tr>
           </thead>
           <tbody>
