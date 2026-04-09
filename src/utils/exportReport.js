@@ -289,6 +289,7 @@ function renderChart(doc, data, startY) {
    PDF EXPORT
 ═══════════════════════════════════════════════════════════ */
 export function exportPDF(config) {
+  try {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   let pageNum = 1
 
@@ -329,12 +330,17 @@ export function exportPDF(config) {
 
   const fname = `${(config.filename || config.title).replace(/[^a-z0-9áéíóúñ ]/gi, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`
   doc.save(fname)
+  } catch(err) {
+    console.error('[exportPDF] error:', err)
+    alert(`Error al generar PDF: ${err.message}`)
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
    PPT EXPORT
 ═══════════════════════════════════════════════════════════ */
 export function exportPPT(config) {
+  try {
   const pptx = new pptxgen()
   pptx.layout = 'LAYOUT_WIDE' // 13.33" × 7.5"
   const SW = 13.33, SH = 7.5
@@ -540,5 +546,12 @@ export function exportPPT(config) {
   }
 
   const fname = `${(config.filename || config.title).replace(/[^a-z0-9áéíóúñ ]/gi, '-')}-${new Date().toISOString().slice(0, 10)}.pptx`
-  pptx.writeFile({ fileName: fname })
+  pptx.writeFile({ fileName: fname }).catch(err => {
+    console.error('[exportPPT] writeFile error:', err)
+    alert(`Error al generar PPT: ${err.message}`)
+  })
+  } catch(err) {
+    console.error('[exportPPT] error:', err)
+    alert(`Error al generar PPT: ${err.message}`)
+  }
 }
