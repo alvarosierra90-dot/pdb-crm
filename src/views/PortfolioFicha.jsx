@@ -7,6 +7,7 @@ const TAB_LABELS = ['Overview','Activos (8)','Ofertas (5)','Actividad comercial'
 const USOS_FILTRO = ['Todo','Oficinas','Logístico','Retail','Residencial','Suelo','Centros comerciales','Hoteles']
 
 /* ── Datos absorción ── */
+/* ── Absorción (m² take-up) ── */
 const ABS_ANUAL = [
   {y:'2021',v:28400},{y:'2022',v:38500},{y:'2023',v:45200},{y:'2024',v:52000},{y:'2025',v:61800},{y:'2026',v:52000,ytd:true},
 ]
@@ -18,8 +19,21 @@ const ABS_Q = {
   '2025':[{q:'Q1',v:14200},{q:'Q2',v:18500},{q:'Q3',v:16800},{q:'Q4',v:12300}],
   '2026':[{q:'Q1',v:15600},{q:'Q2',v:20000,ytd:true},{q:'Q3',v:0},{q:'Q4',v:0}],
 }
-// Comparar mismo trimestre todos los años
 const ABS_Q_CROSS = (q) => Object.entries(ABS_Q).map(([y,qs])=>({y, v:qs.find(x=>x.q===q)?.v||0, ytd:y==='2026'}))
+
+/* ── Disponibilidad (% portfolio disponible) ── */
+const DISP_ANUAL = [
+  {y:'2021',v:14.2},{y:'2022',v:12.8},{y:'2023',v:10.5},{y:'2024',v:8.9},{y:'2025',v:7.6},{y:'2026',v:7.9,ytd:true},
+]
+const DISP_Q = {
+  '2021':[{q:'Q1',v:15.1},{q:'Q2',v:14.5},{q:'Q3',v:13.8},{q:'Q4',v:13.2}],
+  '2022':[{q:'Q1',v:13.4},{q:'Q2',v:12.6},{q:'Q3',v:12.0},{q:'Q4',v:11.5}],
+  '2023':[{q:'Q1',v:11.8},{q:'Q2',v:11.2},{q:'Q3',v:10.4},{q:'Q4',v:10.1}],
+  '2024':[{q:'Q1',v:10.0},{q:'Q2',v:9.4},{q:'Q3',v:8.8},{q:'Q4',v:8.5}],
+  '2025':[{q:'Q1',v:8.3},{q:'Q2',v:7.8},{q:'Q3',v:7.5},{q:'Q4',v:7.2}],
+  '2026':[{q:'Q1',v:7.6},{q:'Q2',v:7.9,ytd:true},{q:'Q3',v:0},{q:'Q4',v:0}],
+}
+const DISP_Q_CROSS = (q) => Object.entries(DISP_Q).map(([y,qs])=>({y, v:qs.find(x=>x.q===q)?.v||0, ytd:y==='2026'}))
 
 /* ── Helper exportar ── */
 function exportarInforme(titulo, lineas) {
@@ -53,10 +67,17 @@ export default function PortfolioFicha() {
     return ABS_ANUAL                                               // default: all years
   })()
   const absMax  = Math.max(...absData.map(d=>d.v), 1)
-  const absLabel= fPeriodo&&!fAnio ? `Absorción ${fPeriodo} · comparativa anual`
-    : fAnio ? `Absorción ${fAnio} · por trimestre`
-    : 'Absorción anual · m² absorbidos'
+  const absLabel= fPeriodo&&!fAnio ? `Absorción & Disponibilidad ${fPeriodo} · comparativa anual`
+    : fAnio ? `Absorción & Disponibilidad ${fAnio} · por trimestre`
+    : 'Absorción m² · Disponibilidad % · portfolio'
   const absColor= 'var(--accent)'
+
+  const dispData = (() => {
+    if (fPeriodo && !fAnio)      return DISP_Q_CROSS(fPeriodo)
+    if (fAnio && DISP_Q[fAnio])  return DISP_Q[fAnio].map(d=>({...d,y:d.q}))
+    return DISP_ANUAL
+  })()
+  const dispMax = Math.max(...dispData.map(d=>d.v), 1)
 
   const doExport = () => exportarInforme('Portfolio Merlín Properties', [
     'RESUMEN PORTFOLIO',
@@ -188,21 +209,44 @@ export default function PortfolioFicha() {
                   </div>
                 </div>
                 <div style={{padding:'16px 20px 12px'}}>
-                  {/* Chart */}
-                  <div style={{display:'flex',alignItems:'flex-end',gap:10,height:110}}>
-                    {absData.filter(d=>d.v>0||(d.ytd&&fAnio==='2026')).map((d,i)=>{
-                      const hPx = Math.max(Math.round((d.v/absMax)*90), d.v>0?4:0)
-                      const col = d.ytd ? absColor : 'var(--border2)'
+                  {/* Leyenda */}
+                  <div style={{display:'flex',gap:14,marginBottom:10}}>
+                    <div style={{display:'flex',alignItems:'center',gap:5}}>
+                      <div style={{width:10,height:10,borderRadius:2,background:'var(--accent)'}}/>
+                      <span style={{fontSize:9,color:'var(--text3)',fontWeight:600}}>Absorción m²</span>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:5}}>
+                      <div style={{width:10,height:10,borderRadius:2,background:'var(--amber)'}}/>
+                      <span style={{fontSize:9,color:'var(--text3)',fontWeight:600}}>Disponibilidad %</span>
+                    </div>
+                  </div>
+                  {/* Chart grouped */}
+                  <div style={{display:'flex',alignItems:'flex-end',gap:6,height:120}}>
+                    {absData.filter((_,i)=>!(dispData[i]?.v===0&&!dispData[i]?.ytd&&absData[i]?.v===0)).map((d,i)=>{
+                      const dd = dispData[i] || {v:0}
+                      const hAbs  = Math.max(Math.round((d.v/absMax)*90), d.v>0?4:0)
+                      const hDisp = Math.max(Math.round((dd.v/dispMax)*90), dd.v>0?4:0)
+                      const isYtd = d.ytd
                       const label = d.y || d.q
+                      if(d.v===0 && dd.v===0 && !isYtd) return null
                       return (
-                        <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-                          <span style={{fontSize:9,fontWeight:700,color:d.ytd?absColor:'var(--text3)',whiteSpace:'nowrap'}}>
-                            {d.v>0?`${(d.v/1000).toFixed(1)}k`:'—'}
-                          </span>
-                          <div style={{width:'100%',background:col,borderRadius:'4px 4px 0 0',height:hPx,minHeight:d.v>0?4:0,
-                            boxShadow:d.ytd?`0 0 0 1px ${absColor}`:'none',transition:'.3s'}}/>
-                          <span style={{fontSize:9,color:d.ytd?absColor:'var(--text4)',fontWeight:d.ytd?700:400}}>
-                            {label}{d.ytd&&fPeriodo?'':d.ytd?' YTD':''}
+                        <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+                          {/* values above */}
+                          <div style={{display:'flex',gap:2,marginBottom:2,flexDirection:'column',alignItems:'center'}}>
+                            <span style={{fontSize:8,fontWeight:700,color:isYtd?'var(--accent)':'var(--text3)',whiteSpace:'nowrap'}}>
+                              {d.v>0?`${(d.v/1000).toFixed(1)}k`:'—'}
+                            </span>
+                            <span style={{fontSize:8,fontWeight:700,color:isYtd?'var(--amber)':'var(--text3)',whiteSpace:'nowrap'}}>
+                              {dd.v>0?`${dd.v.toFixed(1)}%`:'—'}
+                            </span>
+                          </div>
+                          {/* grouped bars */}
+                          <div style={{display:'flex',alignItems:'flex-end',gap:2,width:'100%',justifyContent:'center'}}>
+                            <div style={{flex:1,background:isYtd?'var(--accent)':'var(--border2)',borderRadius:'3px 3px 0 0',height:hAbs,minHeight:d.v>0?3:0,transition:'.3s'}}/>
+                            <div style={{flex:1,background:isYtd?'var(--amber)':'color-mix(in srgb,var(--amber) 40%,var(--border2))',borderRadius:'3px 3px 0 0',height:hDisp,minHeight:dd.v>0?3:0,transition:'.3s'}}/>
+                          </div>
+                          <span style={{fontSize:9,color:isYtd?'var(--accent)':'var(--text4)',fontWeight:isYtd?700:400,marginTop:3}}>
+                            {label}{isYtd&&fPeriodo?'':isYtd?' YTD':''}
                           </span>
                         </div>
                       )
@@ -224,6 +268,15 @@ export default function PortfolioFicha() {
                     <div style={{display:'flex',alignItems:'baseline',gap:5}}>
                       <span style={{fontSize:18,fontWeight:800,color:'var(--green)',fontFamily:'var(--mono)'}}>+16%</span>
                       <span style={{fontSize:10,color:'var(--text3)'}}>vs. año anterior</span>
+                    </div>
+                    <div style={{display:'flex',alignItems:'baseline',gap:5,borderLeft:'1px solid var(--border)',paddingLeft:16}}>
+                      <span style={{fontSize:18,fontWeight:800,color:'var(--amber)',fontFamily:'var(--mono)'}}>
+                        {(()=>{
+                          const last = dispData.filter(d=>d.v>0)
+                          return last.length ? `${last[last.length-1].v.toFixed(1)}%` : '—'
+                        })()}
+                      </span>
+                      <span style={{fontSize:10,color:'var(--text3)'}}>disponibilidad actual</span>
                     </div>
                   </div>
                 </div>

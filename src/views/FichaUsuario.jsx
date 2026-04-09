@@ -51,11 +51,31 @@ const EVOL_ACTS = [
 ]
 const maxActs = Math.max(...EVOL_ACTS.map(x=>x.v),1)
 
+// Datos gráfico actividad anual
+const ACT_SERIES = ['Actividades','Demandas','Ofertas','Ops cerradas']
+const ACT_COLORS = ['var(--accent)','var(--teal)','var(--green)','var(--purple)']
+const ACT_ANUAL = [
+  {y:'2022', Actividades:12, Demandas:5,  Ofertas:3, 'Ops cerradas':2},
+  {y:'2023', Actividades:18, Demandas:8,  Ofertas:5, 'Ops cerradas':3},
+  {y:'2024', Actividades:24, Demandas:10, Ofertas:7, 'Ops cerradas':5},
+  {y:'2025', Actividades:31, Demandas:12, Ofertas:9, 'Ops cerradas':6},
+  {y:'2026', Actividades:9,  Demandas:7,  Ofertas:4, 'Ops cerradas':1, ytd:true},
+]
+const ACT_Q = {
+  '2022':{Q1:{Actividades:2,Demandas:1,Ofertas:1,'Ops cerradas':0},Q2:{Actividades:3,Demandas:1,Ofertas:1,'Ops cerradas':1},Q3:{Actividades:4,Demandas:2,Ofertas:1,'Ops cerradas':0},Q4:{Actividades:3,Demandas:1,Ofertas:0,'Ops cerradas':1}},
+  '2023':{Q1:{Actividades:4,Demandas:2,Ofertas:1,'Ops cerradas':1},Q2:{Actividades:5,Demandas:2,Ofertas:1,'Ops cerradas':1},Q3:{Actividades:5,Demandas:2,Ofertas:2,'Ops cerradas':0},Q4:{Actividades:4,Demandas:2,Ofertas:1,'Ops cerradas':1}},
+  '2024':{Q1:{Actividades:5,Demandas:2,Ofertas:2,'Ops cerradas':1},Q2:{Actividades:7,Demandas:3,Ofertas:2,'Ops cerradas':2},Q3:{Actividades:6,Demandas:3,Ofertas:2,'Ops cerradas':1},Q4:{Actividades:6,Demandas:2,Ofertas:1,'Ops cerradas':1}},
+  '2025':{Q1:{Actividades:7,Demandas:3,Ofertas:2,'Ops cerradas':2},Q2:{Actividades:9,Demandas:3,Ofertas:3,'Ops cerradas':1},Q3:{Actividades:8,Demandas:3,Ofertas:2,'Ops cerradas':2},Q4:{Actividades:7,Demandas:3,Ofertas:2,'Ops cerradas':1}},
+  '2026':{Q1:{Actividades:9,Demandas:7,Ofertas:4,'Ops cerradas':1},Q2:{Actividades:0,Demandas:0,Ofertas:0,'Ops cerradas':0},Q3:{Actividades:0,Demandas:0,Ofertas:0,'Ops cerradas':0},Q4:{Actividades:0,Demandas:0,Ofertas:0,'Ops cerradas':0}},
+}
+
 export default function FichaUsuario() {
   const { navigate } = useNav()
   const [tab, setTab] = useState('overview')
   const [fAnio, setFAnio] = useState('2026')
   const [fTrim, setFTrim] = useState('')
+  const [chartAnio, setChartAnio]       = useState('')
+  const [chartPeriodo, setChartPeriodo] = useState('')
 
   return (
     <div style={{display:'flex',flex:1,overflow:'hidden'}}>
@@ -186,6 +206,97 @@ export default function FichaUsuario() {
                   </div>
                 </div>
               </div>
+              {/* Gráfico actividad */}
+              {(()=>{
+                const chartData = (() => {
+                  if (chartAnio && ACT_Q[chartAnio]) {
+                    return Object.entries(ACT_Q[chartAnio]).map(([q,vals])=>({y:q,...vals,ytd:chartAnio==='2026'&&q==='Q1'}))
+                  }
+                  return ACT_ANUAL
+                })()
+                const maxVal = Math.max(...chartData.flatMap(d=>ACT_SERIES.map(s=>d[s]||0)), 1)
+                return (
+                  <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
+                    <div style={{padding:'10px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
+                      <div>
+                        <div style={{fontSize:11,fontWeight:700,color:'var(--text1)'}}>
+                          {chartAnio ? `Actividad ${chartAnio} · por trimestre` : 'Actividad anual · evolución'}
+                        </div>
+                        <div style={{fontSize:9,color:'var(--text4)',marginTop:1}}>Actividades · Demandas · Ofertas · Ops cerradas</div>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:6}}>
+                        <span style={{fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>Año</span>
+                        <select value={chartAnio} onChange={e=>setChartAnio(e.target.value)} className="fsel" style={{fontSize:10}}>
+                          <option value="">Todos</option>
+                          {Object.keys(ACT_Q).reverse().map(y=><option key={y}>{y}</option>)}
+                        </select>
+                        {!chartAnio && (
+                          <>
+                            <span style={{fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>Período</span>
+                            <select value={chartPeriodo} onChange={e=>setChartPeriodo(e.target.value)} className="fsel" style={{fontSize:10}}>
+                              <option value="">Total</option>
+                              <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
+                            </select>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{padding:'14px 20px 12px'}}>
+                      {/* Leyenda */}
+                      <div style={{display:'flex',gap:12,marginBottom:10,flexWrap:'wrap'}}>
+                        {ACT_SERIES.map((s,i)=>(
+                          <div key={s} style={{display:'flex',alignItems:'center',gap:4}}>
+                            <div style={{width:9,height:9,borderRadius:2,background:ACT_COLORS[i]}}/>
+                            <span style={{fontSize:9,color:'var(--text3)',fontWeight:600}}>{s}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Barras agrupadas */}
+                      <div style={{display:'flex',alignItems:'flex-end',gap:8,height:110}}>
+                        {(chartPeriodo && !chartAnio
+                          ? ACT_ANUAL.map(d=>({...d, ...ACT_SERIES.reduce((acc,s)=>({...acc,[s]:ACT_Q[d.y]?.[chartPeriodo]?.[s]||0}),{})}))
+                          : chartData
+                        ).map((d,i)=>{
+                          const hasData = ACT_SERIES.some(s=>(d[s]||0)>0)
+                          if(!hasData && !d.ytd) return null
+                          return (
+                            <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+                              {/* grouped bars */}
+                              <div style={{display:'flex',alignItems:'flex-end',gap:1,width:'100%',justifyContent:'center'}}>
+                                {ACT_SERIES.map((s,si)=>{
+                                  const val = d[s]||0
+                                  const hPx = Math.max(Math.round((val/maxVal)*85),val>0?3:0)
+                                  return (
+                                    <div key={s} title={`${s}: ${val}`} style={{flex:1,background:val>0?ACT_COLORS[si]:'var(--border)',borderRadius:'3px 3px 0 0',height:hPx,minHeight:val>0?3:0,transition:'.3s'}}/>
+                                  )
+                                })}
+                              </div>
+                              <span style={{fontSize:9,color:d.ytd?'var(--accent)':'var(--text4)',fontWeight:d.ytd?700:400,marginTop:2}}>
+                                {d.y}{d.ytd?' YTD':''}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      {/* Totales */}
+                      <div style={{display:'flex',gap:14,marginTop:10,paddingTop:8,borderTop:'1px solid var(--border)',flexWrap:'wrap'}}>
+                        {ACT_SERIES.map((s,i)=>{
+                          const total = (chartAnio ? Object.values(ACT_Q[chartAnio]||{}).reduce((sum,q)=>sum+(q[s]||0),0)
+                            : chartPeriodo ? ACT_ANUAL.reduce((sum,d)=>sum+(ACT_Q[d.y]?.[chartPeriodo]?.[s]||0),0)
+                            : ACT_ANUAL.reduce((sum,d)=>sum+(d[s]||0),0))
+                          return (
+                            <div key={s} style={{display:'flex',alignItems:'baseline',gap:4}}>
+                              <span style={{fontSize:16,fontWeight:800,color:ACT_COLORS[i],fontFamily:'var(--mono)'}}>{total}</span>
+                              <span style={{fontSize:9,color:'var(--text3)'}}>{s.toLowerCase()}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* Últimas actividades */}
               <div className="info-block" style={{padding:0,overflow:'hidden'}}>
                 <div className="ib-title" style={{padding:'8px 14px'}}>ACTIVIDAD RECIENTE<span style={{fontSize:9,fontWeight:400,color:'var(--text4)'}}>← Actividades + Demandas + Ofertas</span></div>
