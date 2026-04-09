@@ -4,9 +4,75 @@ import { useNav } from '../context/NavigationContext'
 const TABS = ['pt-overview','pt-activos','pt-ofertas','pt-actividad','pt-financiero']
 const TAB_LABELS = ['Overview','Activos (8)','Ofertas (5)','Actividad comercial','Financiero']
 
+const USOS_FILTRO = ['Todo','Oficinas','Logístico','Retail','Residencial','Suelo','Centros comerciales','Hoteles']
+
+/* ── Datos absorción ── */
+const ABS_ANUAL = [
+  {y:'2021',v:28400},{y:'2022',v:38500},{y:'2023',v:45200},{y:'2024',v:52000},{y:'2025',v:61800},{y:'2026',v:52000,ytd:true},
+]
+const ABS_Q = {
+  '2021':[{q:'Q1',v:5800},{q:'Q2',v:8200},{q:'Q3',v:7600},{q:'Q4',v:6800}],
+  '2022':[{q:'Q1',v:7800},{q:'Q2',v:11400},{q:'Q3',v:10600},{q:'Q4',v:8700}],
+  '2023':[{q:'Q1',v:9800},{q:'Q2',v:13200},{q:'Q3',v:11600},{q:'Q4',v:10600}],
+  '2024':[{q:'Q1',v:11200},{q:'Q2',v:16000},{q:'Q3',v:13400},{q:'Q4',v:11400}],
+  '2025':[{q:'Q1',v:14200},{q:'Q2',v:18500},{q:'Q3',v:16800},{q:'Q4',v:12300}],
+  '2026':[{q:'Q1',v:15600},{q:'Q2',v:20000,ytd:true},{q:'Q3',v:0},{q:'Q4',v:0}],
+}
+// Comparar mismo trimestre todos los años
+const ABS_Q_CROSS = (q) => Object.entries(ABS_Q).map(([y,qs])=>({y, v:qs.find(x=>x.q===q)?.v||0, ytd:y==='2026'}))
+
+/* ── Helper exportar ── */
+function exportarInforme(titulo, lineas) {
+  const texto = [
+    titulo.toUpperCase(),
+    '='.repeat(60),
+    `Generado: ${new Date().toLocaleString('es-ES')}`,
+    '',
+    ...lineas,
+  ].join('\n')
+  const blob = new Blob([texto], {type:'text/plain;charset=utf-8'})
+  const url = URL.createObjectURL(blob)
+  const a = Object.assign(document.createElement('a'), {
+    href: url,
+    download: `${titulo.replace(/[^a-z0-9]/gi,'-')}-${new Date().toISOString().slice(0,10)}.txt`,
+  })
+  a.click(); URL.revokeObjectURL(url)
+}
+
 export default function PortfolioFicha() {
   const { navigate } = useNav()
   const [activeTab, setActiveTab] = useState('pt-overview')
+  const [fUso,    setFUso]    = useState('Todo')
+  const [fAnio,   setFAnio]   = useState('')
+  const [fPeriodo,setFPeriodo]= useState('')
+
+  /* ── Datos absorción según filtros ── */
+  const absData = (() => {
+    if (fPeriodo && !fAnio)       return ABS_Q_CROSS(fPeriodo)   // Q cross-year
+    if (fAnio && ABS_Q[fAnio])    return ABS_Q[fAnio].map(d=>({...d,y:d.q})) // quarters of that year
+    return ABS_ANUAL                                               // default: all years
+  })()
+  const absMax  = Math.max(...absData.map(d=>d.v), 1)
+  const absLabel= fPeriodo&&!fAnio ? `Absorción ${fPeriodo} · comparativa anual`
+    : fAnio ? `Absorción ${fAnio} · por trimestre`
+    : 'Absorción anual · m² absorbidos'
+  const absColor= 'var(--accent)'
+
+  const doExport = () => exportarInforme('Portfolio Merlín Properties', [
+    'RESUMEN PORTFOLIO',
+    `Total activos: 64   |   Portfolio total: 2.100.000 m²`,
+    `Disponible: 180.000 m²   |   Ocupación media: 88,8%`,
+    `Take-up 2026: 52.000 m²   |   Yield medio: 5,1%`,
+    '',
+    'DISTRIBUCIÓN POR USO',
+    'Oficinas 55% · Logístico 10% · Retail 20% · Hoteles 5% · Otros 10%',
+    '',
+    'FACTURACIÓN SAVILLS',
+    '2026 YTD: 2,65 M€   |   2025: 4,10 M€   |   Histórico: 20,3 M€',
+    '',
+    'ABSORCIÓN ANUAL (m²)',
+    ...ABS_ANUAL.map(d=>`${d.y}: ${d.v.toLocaleString('es-ES')} m²${d.ytd?' (YTD)':''}`),
+  ])
 
   return (
     <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
@@ -27,10 +93,16 @@ export default function PortfolioFicha() {
                   <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Mayor SOCIMI cotizada de España. Portfolio diversificado con activos prime en principales mercados.</div>
                   <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 4 }}>📅 Último contacto: 12/03/2026</div>
                 </div>
-                <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 16 }}>
-                  <div style={{ fontSize: 9, color: 'var(--text4)', textTransform: 'uppercase' }}>Cotización</div>
-                  <div style={{ fontSize: 22, fontWeight: 700 }}>11,24 €</div>
-                  <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>↑ +1,8%</div>
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink: 0, marginLeft: 16 }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 9, color: 'var(--text4)', textTransform: 'uppercase' }}>Cotización</div>
+                    <div style={{ fontSize: 22, fontWeight: 700 }}>11,24 €</div>
+                    <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>↑ +1,8%</div>
+                  </div>
+                  <button onClick={doExport}
+                    style={{padding:'4px 12px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',gap:5}}>
+                    ⬇ Exportar informe
+                  </button>
                 </div>
               </div>
               <div className="uso-bar">
@@ -56,8 +128,9 @@ export default function PortfolioFicha() {
             <div>
               <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 5 }}>Uso principal</div>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                {['Todo','Oficinas','Logístico','Retail'].map((f, i) => (
-                  <span key={f} className={`fchip ${i === 0 ? 'active' : ''}`}>{f}</span>
+                {USOS_FILTRO.map(f => (
+                  <span key={f} className={`fchip ${fUso===f ? 'active' : ''}`} onClick={()=>setFUso(f)}
+                    style={{cursor:'pointer'}}>{f}</span>
                 ))}
               </div>
             </div>
@@ -74,7 +147,7 @@ export default function PortfolioFicha() {
 
         {/* KPI strip */}
         <div className="port-kpi-strip">
-          <div className="pks"><div className="pks-lbl">Portfolio total (m²)</div><div className="pks-val">612.800</div><div className="pks-sub">Filtrado: Todo</div></div>
+          <div className="pks"><div className="pks-lbl">Portfolio total (m²)</div><div className="pks-val">612.800</div><div className="pks-sub">Filtrado: {fUso}</div></div>
           <div className="pks"><div className="pks-lbl">Disponible (m²)</div><div className="pks-val amber">48.496</div><div className="pks-sub">Disponibilidad: 7.9%</div></div>
           <div className="pks"><div className="pks-lbl">Ocupación media</div><div className="pks-val green">88.8%</div><div className="pks-sub">WAULT: 4.2 años</div></div>
           <div className="pks"><div className="pks-lbl">Take-up 2026</div><div className="pks-val">52.000</div><div className="pks-sub">m² absorbidos</div></div>
@@ -88,10 +161,75 @@ export default function PortfolioFicha() {
           ))}
         </div>
 
-        {/* Overview */}
+        {/* ── Overview ── */}
         {activeTab === 'pt-overview' && (
           <div className="tab-content active" style={{ overflowY: 'auto' }}>
             <div className="port-body">
+
+              {/* Gráfico de absorción */}
+              <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
+                <div style={{padding:'10px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:'var(--text1)'}}>{absLabel}</div>
+                    <div style={{fontSize:9,color:'var(--text4)',marginTop:1}}>m² absorbidos en el portfolio · Savills</div>
+                  </div>
+                  {/* Filtros temporales del gráfico */}
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <span style={{fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>Año</span>
+                    <select value={fAnio} onChange={e=>{setFAnio(e.target.value)}} className="fsel" style={{fontSize:10}}>
+                      <option value="">Todos</option>
+                      {Object.keys(ABS_Q).reverse().map(y=><option key={y}>{y}</option>)}
+                    </select>
+                    <span style={{fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>Período</span>
+                    <select value={fPeriodo} onChange={e=>setFPeriodo(e.target.value)} className="fsel" style={{fontSize:10}}>
+                      <option value="">Anual</option>
+                      <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{padding:'16px 20px 12px'}}>
+                  {/* Chart */}
+                  <div style={{display:'flex',alignItems:'flex-end',gap:10,height:110}}>
+                    {absData.filter(d=>d.v>0||(d.ytd&&fAnio==='2026')).map((d,i)=>{
+                      const hPx = Math.max(Math.round((d.v/absMax)*90), d.v>0?4:0)
+                      const col = d.ytd ? absColor : 'var(--border2)'
+                      const label = d.y || d.q
+                      return (
+                        <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                          <span style={{fontSize:9,fontWeight:700,color:d.ytd?absColor:'var(--text3)',whiteSpace:'nowrap'}}>
+                            {d.v>0?`${(d.v/1000).toFixed(1)}k`:'—'}
+                          </span>
+                          <div style={{width:'100%',background:col,borderRadius:'4px 4px 0 0',height:hPx,minHeight:d.v>0?4:0,
+                            boxShadow:d.ytd?`0 0 0 1px ${absColor}`:'none',transition:'.3s'}}/>
+                          <span style={{fontSize:9,color:d.ytd?absColor:'var(--text4)',fontWeight:d.ytd?700:400}}>
+                            {label}{d.ytd&&fPeriodo?'':d.ytd?' YTD':''}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {/* Totales */}
+                  <div style={{display:'flex',gap:16,marginTop:10,paddingTop:8,borderTop:'1px solid var(--border)',flexWrap:'wrap'}}>
+                    <div style={{display:'flex',alignItems:'baseline',gap:5}}>
+                      <span style={{fontSize:18,fontWeight:800,color:'var(--text1)',fontFamily:'var(--mono)'}}>
+                        {fAnio ? (ABS_Q[fAnio]||[]).reduce((s,d)=>s+d.v,0).toLocaleString('es-ES')
+                          : ABS_ANUAL.reduce((s,d)=>s+d.v,0).toLocaleString('es-ES')}
+                      </span>
+                      <span style={{fontSize:10,color:'var(--text3)'}}>m² {fAnio||'acumulados'}</span>
+                    </div>
+                    <div style={{display:'flex',alignItems:'baseline',gap:5}}>
+                      <span style={{fontSize:18,fontWeight:800,color:'var(--accent)',fontFamily:'var(--mono)'}}>52.000</span>
+                      <span style={{fontSize:10,color:'var(--text3)'}}>m² YTD 2026</span>
+                    </div>
+                    <div style={{display:'flex',alignItems:'baseline',gap:5}}>
+                      <span style={{fontSize:18,fontWeight:800,color:'var(--green)',fontFamily:'var(--mono)'}}>+16%</span>
+                      <span style={{fontSize:10,color:'var(--text3)'}}>vs. año anterior</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tablas overview */}
               <div className="port-grid-2">
                 <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
                   <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Portfolio total · Por ciudad</div>
@@ -114,11 +252,13 @@ export default function PortfolioFicha() {
                       <tr><td><span className="tag tag-teal">Logístico</span></td><td>10%</td><td>210.000</td></tr>
                       <tr><td><span className="tag tag-purple">Retail</span></td><td>20%</td><td>420.000</td></tr>
                       <tr><td><span className="tag tag-amber">Hoteles</span></td><td>5%</td><td>105.000</td></tr>
+                      <tr><td><span className="tag tag-gray">Residencial</span></td><td>5%</td><td>105.000</td></tr>
+                      <tr><td><span className="tag tag-gray">Otros</span></td><td>5%</td><td>105.000</td></tr>
                     </tbody>
                   </table>
                 </div>
               </div>
-              <div className="port-grid-2">
+              <div className="port-grid-2" style={{marginTop:12}}>
                 <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
                   <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Facturación Savills · KPIs</div>
                   <div style={{ padding: '12px 14px' }}>
@@ -138,6 +278,17 @@ export default function PortfolioFicha() {
         {activeTab === 'pt-activos' && (
           <div className="tab-content active" style={{ overflowY: 'auto' }}>
             <div className="port-body">
+              <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>
+                <button onClick={()=>exportarInforme('Activos-Portfolio-Merlin',[
+                  'ACTIVOS DEL PORTFOLIO',
+                  'Activo | Ciudad | Uso | SBA m² | Ocupación | Renta €/m²',
+                  'P.E Avalon | Madrid | Oficinas | 46.956 | 78.4% | 10,5',
+                  'Torre Glòries | Barcelona | Oficinas | 18.500 | 100% | 28,0',
+                  'Park Logístico Getafe | Madrid | Logístico | 24.000 | 96% | 6,8',
+                ])} style={{padding:'4px 12px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)',fontWeight:600}}>
+                  ⬇ Exportar
+                </button>
+              </div>
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
                 <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Activos del portfolio (8)</div>
                 <table className="dtbl">
@@ -187,6 +338,17 @@ export default function PortfolioFicha() {
         {activeTab === 'pt-financiero' && (
           <div className="tab-content active" style={{ overflowY: 'auto' }}>
             <div className="port-body">
+              <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>
+                <button onClick={()=>exportarInforme('Financiero-Portfolio-Merlin',[
+                  'INFORME FINANCIERO PORTFOLIO',
+                  `Valor total cartera: €487M`,
+                  `Ingresos brutos: €28.3M/año`,
+                  `NOI: €24.2M/año`,
+                  `Cap Rate: 5.8%`,
+                ])} style={{padding:'4px 12px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)',fontWeight:600}}>
+                  ⬇ Exportar
+                </button>
+              </div>
               <div className="info-2col">
                 <div className="info-block">
                   <div className="ib-title">FINANCIERO PORTFOLIO</div>
@@ -223,7 +385,6 @@ export default function PortfolioFicha() {
               <span style={{ fontSize: 11, color: 'var(--text3)' }}>Total acumulado</span>
               <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>20,3 M€</span>
             </div>
-            {/* Barra visual por línea de negocio */}
             <div style={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', gap: 1, marginBottom: 6 }}>
               <div style={{ flex: .52, background: 'var(--accent)' }} title="Leasing"/>
               <div style={{ flex: .28, background: 'var(--purple)' }} title="Capital Markets"/>
@@ -240,7 +401,6 @@ export default function PortfolioFicha() {
               ))}
             </div>
           </div>
-          {/* Tabla por año */}
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
@@ -279,14 +439,12 @@ export default function PortfolioFicha() {
               <span style={{ fontSize: 11, color: 'var(--text3)' }}>Pipeline activo</span>
               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--amber)' }}>1,50 M€</span>
             </div>
-            {/* Barra progreso vs objetivo */}
             <div style={{ fontSize: 9, color: 'var(--text4)', marginBottom: 3 }}>Progreso vs. objetivo anual (5,5 M€)</div>
             <div style={{ height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden', marginBottom: 3 }}>
               <div style={{ height: '100%', width: '48%', background: 'var(--green)', borderRadius: 3 }}/>
             </div>
             <div style={{ fontSize: 9, color: 'var(--text3)', textAlign: 'right' }}>48% conseguido</div>
           </div>
-          {/* Desglose 2026 */}
           {[
             {ico:'📋',label:'Arrendamiento P.E Avalon P4',valor:'620 k€',estado:'Cerrado',color:'var(--green)'},
             {ico:'💹',label:'Mandato captación Glòries',valor:'1,03 M€',estado:'Cerrado',color:'var(--green)'},
@@ -371,6 +529,7 @@ export default function PortfolioFicha() {
           <button className="acc-btn" onClick={() => setActiveTab('pt-ofertas')}>📄 Ver ofertas (5)</button>
           <button className="acc-btn" onClick={() => setActiveTab('pt-actividad')}>📊 Actividad comercial</button>
           <button className="acc-btn">💹 Cotización 11,24€</button>
+          <button className="acc-btn" onClick={doExport}>⬇ Exportar informe completo</button>
         </div>
       </div>
     </div>

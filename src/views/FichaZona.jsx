@@ -96,75 +96,258 @@ export default function FichaZona() {
         </div>
 
         {/* Tab: Overview */}
-        {tab==='overview' && (
-          <div className="tab-content active">
-            <div className="info-pad">
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
-                {/* Datos del mercado */}
-                <div className="info-block">
-                  <div className="ib-title">DATOS DE MERCADO · ZONA
-                    <span style={{fontSize:9,color:'var(--text4)',fontWeight:400}}>Agregado desde módulos base</span>
-                  </div>
-                  <div className="ir"><span className="ir-k">Stock total (SBA)</span><span className="ir-v">{ZONA.stock.toLocaleString()} m²</span></div>
-                  <div className="ir"><span className="ir-k">Disponible actual</span><span className="ir-v" style={{color:'var(--amber)'}}>{ZONA.disponible.toLocaleString()} m²</span></div>
-                  <div className="ir"><span className="ir-k">Disponibilidad</span><span className="ir-v" style={{color:'var(--amber)'}}>{ZONA.Disponibilidad}%</span></div>
-                  <div className="ir"><span className="ir-k">Ocupación media</span><span className="ir-v" style={{color:'var(--green)'}}>{ZONA.ocupacion}%</span></div>
-                  <div className="ir"><span className="ir-k">Activos en cartera</span><span className="ir-v">{ACTIVOS_ZONA.length}</span></div>
-                  <div className="ir"><span className="ir-k">Ofertas activas</span><span className="ir-v" style={{color:'var(--accent)'}}>{ZONA.ofertas_activas}</span></div>
-                </div>
-                {/* Rentas y transacciones */}
-                <div className="info-block">
-                  <div className="ib-title">RENTAS Y TRANSACCIONES
-                    <span style={{fontSize:9,color:'var(--text4)',fontWeight:400}}>← Arrendatarios + Transacciones</span>
-                  </div>
-                  <div className="ir"><span className="ir-k">Renta media</span><span className="ir-v" style={{fontWeight:700}}>{ZONA.renta_media} €/m²/mes</span></div>
-                  <div className="ir"><span className="ir-k">Rango de rentas</span><span className="ir-v">{ZONA.renta_min} – {ZONA.renta_max} €/m²/mes</span></div>
-                  <div className="ir"><span className="ir-k">Take-up YTD 2026</span><span className="ir-v">{ZONA.takeup_ytd.toLocaleString()} m²</span></div>
-                  <div className="ir"><span className="ir-k">Operaciones YTD</span><span className="ir-v">{ZONA.ops_ytd}</span></div>
-                  <div className="ir"><span className="ir-k">Sup. media por op.</span><span className="ir-v">{Math.round(ZONA.takeup_ytd/ZONA.ops_ytd).toLocaleString()} m²</span></div>
-                  <div className="ir"><span className="ir-k">Superficie contratada</span><span className="ir-v">15.188 m² total histórico</span></div>
-                </div>
-              </div>
+        {tab==='overview' && (()=>{
+          /* ── datos históricos ── */
+          const TAKEUP_ANUAL=[{y:'2022',v:6200},{y:'2023',v:9800},{y:'2024',v:7100},{y:'2025',v:11200},{y:'2026',v:8500,ytd:true}]
+          const TAKEUP_Q={
+            '2025':[{q:'Q1',v:2400},{q:'Q2',v:3800},{q:'Q3',v:2800},{q:'Q4',v:2200}],
+            '2026':[{q:'Q1',v:3200},{q:'Q2',v:3600,ytd:true},{q:'Q3',v:0},{q:'Q4',v:0}],
+            '2024':[{q:'Q1',v:1600},{q:'Q2',v:2400},{q:'Q3',v:1800},{q:'Q4',v:1300}],
+          }
+          const RENTA_ANUAL=[{y:'2022',v:11.0},{y:'2023',v:11.8},{y:'2024',v:12.5},{y:'2025',v:13.0},{y:'2026',v:13.5,ytd:true}]
+          const DISP_ANUAL=[{y:'2022',v:28},{y:'2023',v:25},{y:'2024',v:23},{y:'2025',v:21},{y:'2026',v:22.4,ytd:true}]
+          const OPS_ANUAL=[{y:'2022',v:3},{y:'2023',v:5},{y:'2024',v:4},{y:'2025',v:6},{y:'2026',v:4,ytd:true}]
 
-              {/* Tabla resumen activos */}
-              <div className="info-block" style={{padding:0,overflow:'hidden'}}>
-                <div className="ib-title" style={{padding:'8px 14px'}}>ACTIVOS QUE COMPONEN LA ZONA
-                  <span style={{fontSize:9,color:'var(--text4)',fontWeight:400}}>← Módulo Activos</span>
+          /* filtrado por fAnio/fTrim */
+          const takupData = fAnio&&TAKEUP_Q[fAnio]
+            ? TAKEUP_Q[fAnio].map(d=>({...d,y:d.q,ytd:d.ytd||false})).filter(d=>!fTrim||d.y===fTrim)
+            : TAKEUP_ANUAL.filter(d=>!fAnio||d.y===fAnio)
+          const rentaData = fAnio ? RENTA_ANUAL.filter(d=>d.y===fAnio) : RENTA_ANUAL
+          const dispData  = fAnio ? DISP_ANUAL.filter(d=>d.y===fAnio)  : DISP_ANUAL
+          const opsData   = fAnio ? OPS_ANUAL.filter(d=>d.y===fAnio)   : OPS_ANUAL
+
+          const takupMax = Math.max(...takupData.map(d=>d.v),1)
+          const rentaMax = 16
+          const dispMax  = 35
+          const opsMax   = 8
+
+          const doExportOv = () => {
+            const txt = [
+              'INFORME DE ZONA · M-30 / DISTRITO CENTRO',
+              '='.repeat(60),
+              `Generado: ${new Date().toLocaleString('es-ES')}`,
+              fAnio?`Filtro año: ${fAnio}`:'', fTrim?`Trimestre: ${fTrim}`:'',
+              '',
+              'DATOS DE MERCADO',
+              `Stock total: ${ZONA.stock.toLocaleString()} m²`,
+              `Disponible: ${ZONA.disponible.toLocaleString()} m²  (${ZONA.Disponibilidad}%)`,
+              `Ocupación media: ${ZONA.ocupacion}%`,
+              `Ofertas activas: ${ZONA.ofertas_activas}`,
+              '',
+              'RENTAS Y ABSORCIÓN',
+              `Renta media: ${ZONA.renta_media} €/m²/mes`,
+              `Rango: ${ZONA.renta_min} – ${ZONA.renta_max} €/m²/mes`,
+              `Take-up YTD 2026: ${ZONA.takeup_ytd.toLocaleString()} m²`,
+              `Operaciones YTD: ${ZONA.ops_ytd}`,
+              '',
+              'TAKE-UP ANUAL (m²)',
+              ...TAKEUP_ANUAL.map(d=>`${d.y}: ${d.v.toLocaleString('es-ES')} m²${d.ytd?' (YTD)':''}`),
+              '',
+              'RENTA MEDIA €/m²/mes',
+              ...RENTA_ANUAL.map(d=>`${d.y}: ${d.v} €/m²`),
+              '',
+              'ACTIVOS EN LA ZONA',
+              ...ACTIVOS_ZONA.map(a=>`${a.nombre} | ${a.sba.toLocaleString()} m² | ${a.occ}% occ | ${a.renta} €/m²`),
+            ].filter(l=>l!==undefined)
+            const blob=new Blob([txt.join('\n')],{type:'text/plain;charset=utf-8'})
+            const url=URL.createObjectURL(blob)
+            const a=Object.assign(document.createElement('a'),{href:url,download:`Zona-M30-${new Date().toISOString().slice(0,10)}.txt`})
+            a.click(); URL.revokeObjectURL(url)
+          }
+
+          return (
+            <div className="tab-content active" style={{overflowY:'auto'}}>
+              <div className="info-pad">
+
+                {/* Barra filtros + export */}
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14,flexWrap:'wrap'}}>
+                  <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Filtrar por</span>
+                  <select className="fsel" value={fAnio} onChange={e=>setFAnio(e.target.value)}>
+                    <option value="">Todos los años</option>
+                    <option>2026</option><option>2025</option><option>2024</option><option>2023</option><option>2022</option>
+                  </select>
+                  <select className="fsel" value={fTrim} onChange={e=>setFTrim(e.target.value)}>
+                    <option value="">Todos los trimestres</option>
+                    <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
+                  </select>
+                  {(fAnio||fTrim) && (
+                    <button onClick={()=>{setFAnio('');setFTrim('')}}
+                      style={{padding:'3px 9px',background:'none',border:'1px solid var(--border)',borderRadius:4,fontSize:10,cursor:'pointer',color:'var(--text4)',fontFamily:'inherit'}}>
+                      ✕ Limpiar
+                    </button>
+                  )}
+                  <button onClick={doExportOv}
+                    style={{marginLeft:'auto',padding:'4px 12px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)'}}>
+                    ⬇ Exportar informe
+                  </button>
                 </div>
-                <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                  <thead>
-                    <tr>{['Activo','SBA m²','Disponible','Ocupación','Renta €/m²','Arrendatarios','Ofertas'].map(h=>(
-                      <th key={h} style={{padding:'6px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
-                    ))}</tr>
-                  </thead>
-                  <tbody>
-                    {ACTIVOS_ZONA.map(a=>(
-                      <tr key={a.ref} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-activo')}>
-                        <td style={{padding:'7px 12px'}}>
-                          <div className="dtbl-link">{a.nombre}</div>
-                          <div className="asset-sub mono">{a.ref}</div>
-                        </td>
-                        <td style={{padding:'7px 12px',fontWeight:600}}>{a.sba.toLocaleString()}</td>
-                        <td style={{padding:'7px 12px',color:'var(--amber)',fontWeight:600}}>{a.disponible.toLocaleString()}</td>
-                        <td style={{padding:'7px 12px'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:5}}>
-                            <div style={{width:40,height:4,background:'var(--border)',borderRadius:2,overflow:'hidden'}}>
-                              <div style={{height:'100%',width:`${a.occ}%`,background:a.occ>=90?'var(--green)':a.occ>=75?'var(--amber)':'var(--red)'}}/>
-                            </div>
-                            <span style={{fontSize:11,color:a.occ>=90?'var(--green)':a.occ>=75?'var(--amber)':'var(--red)',fontWeight:600}}>{a.occ}%</span>
+
+                {/* ── 4 KPI callout cards ── */}
+                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:14}}>
+                  {[
+                    {lbl:'Operaciones YTD',val:ZONA.ops_ytd,unit:'ops',color:'var(--purple)',sub:'en la zona 2026'},
+                    {lbl:'Absorción YTD',val:`${(ZONA.takeup_ytd/1000).toFixed(1)}k`,unit:'m²',color:'var(--accent)',sub:'take-up 2026'},
+                    {lbl:'Disponibilidad',val:`${ZONA.Disponibilidad}%`,unit:'',color:'var(--amber)',sub:'sobre stock total'},
+                    {lbl:'Renta media',val:`${ZONA.renta_media}`,unit:'€/m²',color:'var(--green)',sub:`rango ${ZONA.renta_min}–${ZONA.renta_max}`},
+                  ].map(k=>(
+                    <div key={k.lbl} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',padding:'12px 14px',borderTop:`3px solid ${k.color}`}}>
+                      <div style={{fontSize:9,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',marginBottom:5}}>{k.lbl}</div>
+                      <div style={{display:'flex',alignItems:'baseline',gap:4}}>
+                        <span style={{fontSize:22,fontWeight:800,color:k.color,fontFamily:'var(--mono)',lineHeight:1}}>{k.val}</span>
+                        <span style={{fontSize:11,color:k.color,fontWeight:600}}>{k.unit}</span>
+                      </div>
+                      <div style={{fontSize:9,color:'var(--text4)',marginTop:3}}>{k.sub}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── Fila gráficos principales ── */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
+
+                  {/* Absorción */}
+                  <div className="info-block">
+                    <div className="ib-title" style={{marginBottom:8}}>
+                      📦 Superficie absorbida por año
+                      <span style={{fontSize:9,fontWeight:400,color:'var(--text4)'}}>m²  ← Transacciones</span>
+                    </div>
+                    <div style={{display:'flex',alignItems:'flex-end',gap:8,height:90}}>
+                      {takupData.filter(d=>d.v>0||(d.ytd&&!fAnio)).map((d,i)=>{
+                        const h=Math.max(Math.round(d.v/takupMax*80),d.v>0?3:0)
+                        return (
+                          <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+                            <span style={{fontSize:9,fontWeight:700,color:d.ytd?'var(--accent)':'var(--text3)'}}>{(d.v/1000).toFixed(1)}k</span>
+                            <div style={{width:'100%',background:d.ytd?'var(--accent)':'var(--border2)',borderRadius:'3px 3px 0 0',height:h,minHeight:d.v>0?2:0}}/>
+                            <span style={{fontSize:9,color:d.ytd?'var(--accent)':'var(--text4)',fontWeight:d.ytd?700:400}}>{d.y}{d.ytd?' YTD':''}</span>
                           </div>
-                        </td>
-                        <td style={{padding:'7px 12px'}}>{a.renta} €</td>
-                        <td style={{padding:'7px 12px',fontWeight:500}}>{a.arrendatarios}</td>
-                        <td style={{padding:'7px 12px',color:'var(--accent)',fontWeight:600}}>{a.ofertas}</td>
-                      </tr>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Rentas */}
+                  <div className="info-block">
+                    <div className="ib-title" style={{marginBottom:8}}>
+                      💶 Evolución de rentas medias
+                      <span style={{fontSize:9,fontWeight:400,color:'var(--text4)'}}>€/m²/mes  ← Arrendatarios</span>
+                    </div>
+                    <div style={{display:'flex',alignItems:'flex-end',gap:8,height:90}}>
+                      {rentaData.map((d,i)=>{
+                        const h=Math.round(d.v/rentaMax*80)
+                        return (
+                          <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+                            <span style={{fontSize:9,fontWeight:700,color:d.ytd?'var(--green)':'var(--text3)'}}>{d.v}</span>
+                            <div style={{width:'100%',background:d.ytd?'var(--green)':'var(--border2)',borderRadius:'3px 3px 0 0',height:h}}/>
+                            <span style={{fontSize:9,color:d.ytd?'var(--green)':'var(--text4)',fontWeight:d.ytd?700:400}}>{d.y}{d.ytd?' YTD':''}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
+
+                  {/* Disponibilidad */}
+                  <div className="info-block">
+                    <div className="ib-title" style={{marginBottom:8}}>
+                      📉 Evolución disponibilidad
+                      <span style={{fontSize:9,fontWeight:400,color:'var(--text4)'}}>%  ← Stacking Plan</span>
+                    </div>
+                    {dispData.map(d=>(
+                      <div key={d.y} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                        <span style={{fontSize:10,color:'var(--text3)',width:34,flexShrink:0}}>{d.y}{d.ytd?<span style={{fontSize:8,color:'var(--amber)',fontWeight:700}}> YTD</span>:''}</span>
+                        <div style={{flex:1,height:8,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
+                          <div style={{height:'100%',width:`${d.v/dispMax*100}%`,background:d.ytd?'var(--amber)':'var(--border2)',borderRadius:4,transition:'.3s'}}/>
+                        </div>
+                        <span style={{fontSize:11,fontWeight:700,color:d.ytd?'var(--amber)':'var(--text2)',width:38,textAlign:'right'}}>{d.v}%</span>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+
+                  {/* Nº operaciones */}
+                  <div className="info-block">
+                    <div className="ib-title" style={{marginBottom:8}}>
+                      🔀 Nº operaciones por año
+                      <span style={{fontSize:9,fontWeight:400,color:'var(--text4)'}}>← Arrendatarios</span>
+                    </div>
+                    {opsData.map(d=>(
+                      <div key={d.y} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                        <span style={{fontSize:10,color:'var(--text3)',width:34,flexShrink:0}}>{d.y}{d.ytd?<span style={{fontSize:8,color:'var(--purple)',fontWeight:700}}> YTD</span>:''}</span>
+                        <div style={{flex:1,height:8,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
+                          <div style={{height:'100%',width:`${d.v/opsMax*100}%`,background:d.ytd?'var(--purple)':'var(--border2)',borderRadius:4,transition:'.3s'}}/>
+                        </div>
+                        <span style={{fontSize:11,fontWeight:700,color:d.ytd?'var(--purple)':'var(--text2)',width:20,textAlign:'right'}}>{d.v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tablas compactas métricas */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
+                  <div className="info-block">
+                    <div className="ib-title">DATOS DE MERCADO
+                      <span style={{fontSize:9,color:'var(--text4)',fontWeight:400}}>Agregado desde módulos base</span>
+                    </div>
+                    <div className="ir"><span className="ir-k">Stock total (SBA)</span><span className="ir-v">{ZONA.stock.toLocaleString()} m²</span></div>
+                    <div className="ir"><span className="ir-k">Disponible actual</span><span className="ir-v" style={{color:'var(--amber)'}}>{ZONA.disponible.toLocaleString()} m²</span></div>
+                    <div className="ir"><span className="ir-k">Disponibilidad</span><span className="ir-v" style={{color:'var(--amber)'}}>{ZONA.Disponibilidad}%</span></div>
+                    <div className="ir"><span className="ir-k">Ocupación media</span><span className="ir-v" style={{color:'var(--green)'}}>{ZONA.ocupacion}%</span></div>
+                    <div className="ir"><span className="ir-k">Activos en cartera</span><span className="ir-v">{ACTIVOS_ZONA.length}</span></div>
+                    <div className="ir"><span className="ir-k">Ofertas activas</span><span className="ir-v" style={{color:'var(--accent)'}}>{ZONA.ofertas_activas}</span></div>
+                  </div>
+                  <div className="info-block">
+                    <div className="ib-title">RENTAS Y TRANSACCIONES
+                      <span style={{fontSize:9,color:'var(--text4)',fontWeight:400}}>← Arrendatarios + Transacciones</span>
+                    </div>
+                    <div className="ir"><span className="ir-k">Renta media</span><span className="ir-v" style={{fontWeight:700}}>{ZONA.renta_media} €/m²/mes</span></div>
+                    <div className="ir"><span className="ir-k">Rango de rentas</span><span className="ir-v">{ZONA.renta_min} – {ZONA.renta_max} €/m²/mes</span></div>
+                    <div className="ir"><span className="ir-k">Take-up YTD 2026</span><span className="ir-v">{ZONA.takeup_ytd.toLocaleString()} m²</span></div>
+                    <div className="ir"><span className="ir-k">Operaciones YTD</span><span className="ir-v">{ZONA.ops_ytd}</span></div>
+                    <div className="ir"><span className="ir-k">Sup. media por op.</span><span className="ir-v">{Math.round(ZONA.takeup_ytd/ZONA.ops_ytd).toLocaleString()} m²</span></div>
+                    <div className="ir"><span className="ir-k">Superficie contratada</span><span className="ir-v">15.188 m² total histórico</span></div>
+                  </div>
+                </div>
+
+                {/* Tabla activos */}
+                <div className="info-block" style={{padding:0,overflow:'hidden'}}>
+                  <div className="ib-title" style={{padding:'8px 14px'}}>ACTIVOS QUE COMPONEN LA ZONA
+                    <span style={{fontSize:9,color:'var(--text4)',fontWeight:400}}>← Módulo Activos</span>
+                  </div>
+                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                    <thead>
+                      <tr>{['Activo','SBA m²','Disponible','Ocupación','Renta €/m²','Arrendatarios','Ofertas'].map(h=>(
+                        <th key={h} style={{padding:'6px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                      ))}</tr>
+                    </thead>
+                    <tbody>
+                      {ACTIVOS_ZONA.map(a=>(
+                        <tr key={a.ref} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-activo')}>
+                          <td style={{padding:'7px 12px'}}>
+                            <div className="dtbl-link">{a.nombre}</div>
+                            <div className="asset-sub mono">{a.ref}</div>
+                          </td>
+                          <td style={{padding:'7px 12px',fontWeight:600}}>{a.sba.toLocaleString()}</td>
+                          <td style={{padding:'7px 12px',color:'var(--amber)',fontWeight:600}}>{a.disponible.toLocaleString()}</td>
+                          <td style={{padding:'7px 12px'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:5}}>
+                              <div style={{width:40,height:4,background:'var(--border)',borderRadius:2,overflow:'hidden'}}>
+                                <div style={{height:'100%',width:`${a.occ}%`,background:a.occ>=90?'var(--green)':a.occ>=75?'var(--amber)':'var(--red)'}}/>
+                              </div>
+                              <span style={{fontSize:11,color:a.occ>=90?'var(--green)':a.occ>=75?'var(--amber)':'var(--red)',fontWeight:600}}>{a.occ}%</span>
+                            </div>
+                          </td>
+                          <td style={{padding:'7px 12px'}}>{a.renta} €</td>
+                          <td style={{padding:'7px 12px',fontWeight:500}}>{a.arrendatarios}</td>
+                          <td style={{padding:'7px 12px',color:'var(--accent)',fontWeight:600}}>{a.ofertas}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* Tab: Activos */}
         {tab==='activos' && (

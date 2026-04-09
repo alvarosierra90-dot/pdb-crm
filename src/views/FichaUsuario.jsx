@@ -88,6 +88,35 @@ export default function FichaUsuario() {
                 <option value="">Todos los trimestres</option>
                 <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
               </select>
+              <button onClick={()=>{
+                const lineas=[
+                  `INFORME USUARIO HÁBIL · ${USUARIO.nombre}`,
+                  '='.repeat(60),
+                  `Generado: ${new Date().toLocaleString('es-ES')}`,
+                  fAnio?`Año: ${fAnio}`:'', fTrim?`Trimestre: ${fTrim}`:'',
+                  '',
+                  'PERFIL',
+                  `ID: ${USUARIO.id}  |  Rol: ${USUARIO.rol}`,
+                  `Equipo: ${USUARIO.equipo}  |  Línea: ${USUARIO.linea}`,
+                  `Email: ${USUARIO.email}`,
+                  '',
+                  'ACTIVIDAD',
+                  `Actividades: ${USUARIO.actividades}  |  Demandas: ${USUARIO.demandas}`,
+                  `Ofertas: ${USUARIO.ofertas}  |  Proyectos: ${USUARIO.proyectos}`,
+                  `Ops cerradas: ${USUARIO.ops_cerradas}  |  M² gestionados: ${USUARIO.m2_gestionados.toLocaleString('es-ES')}`,
+                  '',
+                  'HONORARIOS',
+                  `Facturado: ${USUARIO.honorarios}  |  Pipeline: ${USUARIO.pipeline}`,
+                ]
+                const texto=lineas.filter(Boolean).join('\n')
+                const blob=new Blob([texto],{type:'text/plain;charset=utf-8'})
+                const url=URL.createObjectURL(blob)
+                const a=Object.assign(document.createElement('a'),{href:url,download:`Usuario-${USUARIO.id}-${new Date().toISOString().slice(0,10)}.txt`})
+                a.click(); URL.revokeObjectURL(url)
+              }}
+                style={{padding:'4px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:4,fontSize:9,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)'}}>
+                ⬇ Exportar informe
+              </button>
             </div>
           </div>
         </div>

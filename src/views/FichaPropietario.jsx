@@ -109,6 +109,33 @@ export default function FichaPropietario() {
         <button className="ab-btn" onClick={()=>navigate('propietarios')}>← Volver</button>
         <div className="ab-sep"/>
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
+        <button className="ab-btn" onClick={()=>{
+          const lineas=[
+            'INFORME PROPIETARIO',
+            `ID: ${form.id}  |  ${form.propietario}  |  CIF: ${form.cif}`,
+            `Perfil: ${form.perfil}  |  Estado: ${form.estado}  |  Tipo: ${form.tipo_entidad}`,
+            `Responsable: ${form.responsable}  |  Email: ${form.email}`,
+            '',
+            'ACTIVO VINCULADO',
+            `Activo: ${form.activo}  |  Zona: ${form.zona}  |  Uso: ${form.uso}`,
+            `Superficie: ${form.superficie} m²  |  Régimen: ${form.regimen||'—'}`,
+            `Año compra: ${form.anyo_compra||'—'}  |  Precio compra: ${form.precio_compra||'—'}`,
+            `Valoración actual: ${form.valoracion_actual||'—'}  |  Plusvalía: ${form.plusvalia_latente||'—'}`,
+            '',
+            'CONDICIONES INVERSIÓN',
+            `Cap Rate: ${form.cap_rate||'—'}%  |  Yield: ${form.yield||'—'}%  |  TIR obj.: ${form.tir_objetivo||'—'}%`,
+            `Horizonte: ${form.horizonte_inv||'—'}  |  Estrategia: ${form.estrategia||'—'}`,
+            '',
+            'FINANCIACIÓN',
+            `LTV: ${form.ltv||'—'}%  |  Banco: ${form.banco||'—'}  |  Tipo deuda: ${form.tipo_deuda||'—'}`,
+            `Vencimiento: ${form.vencimiento_deuda||'—'}  |  Tipo interés: ${form.tipo_interes||'—'}`,
+          ]
+          const texto=lineas.join('\n')
+          const blob=new Blob([texto],{type:'text/plain;charset=utf-8'})
+          const url=URL.createObjectURL(blob)
+          const a=Object.assign(document.createElement('a'),{href:url,download:`Propietario-${form.id}-${new Date().toISOString().slice(0,10)}.txt`})
+          a.click(); URL.revokeObjectURL(url)
+        }}>⬇ Exportar informe</button>
       </div>
 
       {/* Header */}
