@@ -75,7 +75,7 @@ export default function PortfolioFicha() {
         {/* KPI strip */}
         <div className="port-kpi-strip">
           <div className="pks"><div className="pks-lbl">Portfolio total (m²)</div><div className="pks-val">612.800</div><div className="pks-sub">Filtrado: Todo</div></div>
-          <div className="pks"><div className="pks-lbl">Disponible (m²)</div><div className="pks-val amber">48.496</div><div className="pks-sub">Vacancia: 7.9%</div></div>
+          <div className="pks"><div className="pks-lbl">Disponible (m²)</div><div className="pks-val amber">48.496</div><div className="pks-sub">Disponibilidad: 7.9%</div></div>
           <div className="pks"><div className="pks-lbl">Ocupación media</div><div className="pks-val green">88.8%</div><div className="pks-sub">WAULT: 4.2 años</div></div>
           <div className="pks"><div className="pks-lbl">Take-up 2026</div><div className="pks-val">52.000</div><div className="pks-sub">m² absorbidos</div></div>
           <div className="pks"><div className="pks-lbl">Yield medio</div><div className="pks-val">5.1%</div><div className="pks-sub">Cap rate: 4.8%</div></div>

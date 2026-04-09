@@ -415,7 +415,7 @@ function RightPanel({ navigate }) {
         </div>
         <div className="kf-grid">
           <div className="kf"><div className="kf-lbl">Renta zona</div><div className="kf-val">10,5 €/m²</div></div>
-          <div className="kf"><div className="kf-lbl">Vacancia zona</div><div className="kf-val amber">11,4%</div></div>
+          <div className="kf"><div className="kf-lbl">Disponibilidad zona</div><div className="kf-val amber">11,4%</div></div>
         </div>
       </div>
 
@@ -499,7 +499,7 @@ function RightPanel({ navigate }) {
             <span className="ai-badge">Tiempo real</span>
           </div>
           <div className="ai-text">
-            <strong>10.142 m² vacantes</strong> (21,6%). 2 break options vencidas o próximas. Renta zona 10,5 €/m² — margen de subida. Oracle en fase finalista para P1–P4.
+            <strong>10.142 m² disponibles</strong> (21,6%). 2 break options vencidas o próximas. Renta zona 10,5 €/m² — margen de subida. Oracle en fase finalista para P1–P4.
           </div>
           <div className="ai-cta">✎ Preguntar a la IA</div>
         </div>
@@ -619,7 +619,7 @@ export default function FichaActivo() {
                     <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Distribución de usos, propietarios y arrendatarios por planta y edificio</div>
                   </div>
                   <div style={{display:'flex',gap:10,alignItems:'center'}}>
-                    <span style={{fontSize:11,color:'var(--text4)'}}>Vacante: <strong style={{color:'var(--amber)'}}>10.142 m²</strong></span>
+                    <span style={{fontSize:11,color:'var(--text4)'}}>Disponible: <strong style={{color:'var(--amber)'}}>10.142 m²</strong></span>
                     <span style={{fontSize:11,color:'var(--text4)'}}>·</span>
                     <span style={{fontSize:11,color:'var(--text4)'}}>Ocupado: <strong style={{color:'var(--green)'}}>36.814 m²</strong></span>
                   </div>
@@ -666,7 +666,7 @@ export default function FichaActivo() {
                 {caracTab==='ct-normativa' && <div className="info-block"><div className="ib-title">NORMATIVA / ESG</div><div className="ir"><span className="ir-k">Certificación energética</span><span className="ir-v">A+</span></div><div className="ir"><span className="ir-k">LEED</span><span className="ir-v">Gold</span></div><div className="ir"><span className="ir-k">BREEAM</span><span className="ir-v">Very Good</span></div><div className="ir"><span className="ir-k">ESG Rating</span><span className="ir-v">A</span></div><div className="ir"><span className="ir-k">Consumo energético</span><span className="ir-v">87 kWh/m²/año</span></div></div>}
                 {caracTab==='ct-generales' && <div className="info-block"><div className="ib-title">CARACTERÍSTICAS GENERALES</div><div className="ir"><span className="ir-k">Altura libre</span><span className="ir-v">2,85 m</span></div><div className="ir"><span className="ir-k">Módulo mínimo</span><span className="ir-v">300 m²</span></div><div className="ir"><span className="ir-k">Suelo técnico</span><span className="ir-v">Sí</span></div><div className="ir"><span className="ir-k">Climatización</span><span className="ir-v">Fan-coil 4 tubos</span></div><div className="ir"><span className="ir-k">Seguridad 24h</span><span className="ir-v">Sí</span></div></div>}
                 {caracTab==='ct-oficinas' && <div className="info-block"><div className="ib-title">🏢 OFICINAS</div><div className="ir"><span className="ir-k">Configuración</span><span className="ir-v">Planta abierta / diáfana</span></div><div className="ir"><span className="ir-k">Falso techo</span><span className="ir-v">Sí</span></div><div className="ir"><span className="ir-k">Luminosidad</span><span className="ir-v">Alta — fachada acristalada</span></div><div className="ir"><span className="ir-k">Terraza</span><span className="ir-v">Sí (planta 7)</span></div></div>}
-                {caracTab==='ct-uso' && <div className="info-block"><div className="ib-title">OFICINAS (USO)</div><div className="ir"><span className="ir-k">Uso actual</span><span className="ir-v">Oficinas corporativas</span></div><div className="ir"><span className="ir-k">Inquilinos actuales</span><span className="ir-v">Celonis, Repsol, Cafetería</span></div><div className="ir"><span className="ir-k">M² ocupados</span><span className="ir-v">36.814 m²</span></div><div className="ir"><span className="ir-k">M² vacantes</span><span className="ir-v">10.142 m²</span></div></div>}
+                {caracTab==='ct-uso' && <div className="info-block"><div className="ib-title">OFICINAS (USO)</div><div className="ir"><span className="ir-k">Uso actual</span><span className="ir-v">Oficinas corporativas</span></div><div className="ir"><span className="ir-k">Inquilinos actuales</span><span className="ir-v">Celonis, Repsol, Cafetería</span></div><div className="ir"><span className="ir-k">M² ocupados</span><span className="ir-v">36.814 m²</span></div><div className="ir"><span className="ir-k">M² disponibles</span><span className="ir-v">10.142 m²</span></div></div>}
                 {caracTab==='ct-plazas' && (
                   <div className="info-block">
                     <div className="ib-title">PLAZAS DE APARCAMIENTO</div>
@@ -774,7 +774,7 @@ export default function FichaActivo() {
               <div style={{fontSize:13,fontWeight:600,marginBottom:14}}>Vista 360° — Actividad transversal</div>
               <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
                 {[
-                  {av:'AI',bg:'var(--purple-lt)',color:'var(--purple)',name:'IA',msg:'10.142 m² vacantes. 2 break options próximas.',badge:{bg:'var(--purple-lt)',color:'var(--purple)',bc:'var(--purple-bd)',lbl:'IA'},time:'Hoy · Automático'},
+                  {av:'AI',bg:'var(--purple-lt)',color:'var(--purple)',name:'IA',msg:'10.142 m² disponibles. 2 break options próximas.',badge:{bg:'var(--purple-lt)',color:'var(--purple)',bc:'var(--purple-bd)',lbl:'IA'},time:'Hoy · Automático'},
                   {av:'AS',bg:'#dbeafe',color:'#1e40af',name:'Álvaro Sierra',msg:'registró visita con Oracle',badge:{bg:'var(--accent-lt)',color:'var(--accent)',bc:'var(--accent-bd)',lbl:'VISITA'},time:'Ayer, 16:30'},
                   {av:'MR',bg:'#fce7f3',color:'#9d174d',name:'María Ruiz',msg:'envió Deal Room a Celonis',badge:{bg:'var(--green-lt)',color:'var(--green)',bc:'var(--green-bd)',lbl:'OFERTA'},time:'23/03/2026'},
                   {av:'JL',bg:'#dcfce7',color:'#166534',name:'Jorge López',msg:'subió Valoración Q1 2026',badge:{bg:'var(--gray-lt)',color:'var(--text2)',bc:'var(--gray-bd)',lbl:'DOC'},time:'20/03/2026'},

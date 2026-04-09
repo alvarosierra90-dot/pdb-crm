@@ -5,7 +5,7 @@ import { useNav } from '../context/NavigationContext'
 const ZONA = {
   id:'MAD-M30', zona:'M-30 / Distrito Centro', subzona:'M-30', provincia:'Madrid',
   area:'Madrid Centro · M-30 interior', uso:'Oficinas',
-  stock:58156, disponible:13024, ocupacion:78.9, vacancia:22.4,
+  stock:58156, disponible:13024, ocupacion:78.9, Disponibilidad:22.4,
   ofertas_activas:3, takeup_ytd:8500, ops_ytd:4,
   renta_media:13.5, renta_min:10.5, renta_max:16.8,
 }
@@ -60,7 +60,7 @@ export default function FichaZona() {
               <div className="ah-tags">
                 <span className="tag tag-blue">Oficinas</span>
                 <span className="tag tag-teal">{ACTIVOS_ZONA.length} activos</span>
-                <span className="tag tag-amber">Vacancia {ZONA.vacancia}%</span>
+                <span className="tag tag-amber">Disponibilidad {ZONA.Disponibilidad}%</span>
                 <span className="tag tag-gray">{ZONA.renta_min}–{ZONA.renta_max} €/m²</span>
               </div>
             </div>
@@ -107,7 +107,7 @@ export default function FichaZona() {
                   </div>
                   <div className="ir"><span className="ir-k">Stock total (SBA)</span><span className="ir-v">{ZONA.stock.toLocaleString()} m²</span></div>
                   <div className="ir"><span className="ir-k">Disponible actual</span><span className="ir-v" style={{color:'var(--amber)'}}>{ZONA.disponible.toLocaleString()} m²</span></div>
-                  <div className="ir"><span className="ir-k">Vacancia</span><span className="ir-v" style={{color:'var(--amber)'}}>{ZONA.vacancia}%</span></div>
+                  <div className="ir"><span className="ir-k">Disponibilidad</span><span className="ir-v" style={{color:'var(--amber)'}}>{ZONA.Disponibilidad}%</span></div>
                   <div className="ir"><span className="ir-k">Ocupación media</span><span className="ir-v" style={{color:'var(--green)'}}>{ZONA.ocupacion}%</span></div>
                   <div className="ir"><span className="ir-k">Activos en cartera</span><span className="ir-v">{ACTIVOS_ZONA.length}</span></div>
                   <div className="ir"><span className="ir-k">Ofertas activas</span><span className="ir-v" style={{color:'var(--accent)'}}>{ZONA.ofertas_activas}</span></div>
@@ -386,7 +386,7 @@ export default function FichaZona() {
               </div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                 <div className="info-block">
-                  <div className="ib-title">Vacancia histórica<span style={{fontSize:9,fontWeight:400,color:'var(--text4)'}}>← Stacking Plan</span></div>
+                  <div className="ib-title">Disponibilidad histórica<span style={{fontSize:9,fontWeight:400,color:'var(--text4)'}}>← Stacking Plan</span></div>
                   {[{y:'2022',v:28},{y:'2023',v:25},{y:'2024',v:23},{y:'2025',v:21},{y:'2026',v:22.4,ytd:true}].map(d=>(
                     <div key={d.y} style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
                       <span style={{fontSize:10,color:'var(--text3)',width:28}}>{d.y}</span>
@@ -421,7 +421,7 @@ export default function FichaZona() {
           <div className="rp-lbl">KPIs de la zona</div>
           <div className="kf-grid">
             <div className="kf"><div className="kf-lbl">Stock</div><div className="kf-val" style={{fontSize:11}}>{(ZONA.stock/1000).toFixed(1)}k m²</div></div>
-            <div className="kf"><div className="kf-lbl">Vacancia</div><div className="kf-val amber">{ZONA.vacancia}%</div></div>
+            <div className="kf"><div className="kf-lbl">Disponibilidad</div><div className="kf-val amber">{ZONA.Disponibilidad}%</div></div>
             <div className="kf"><div className="kf-lbl">Renta media</div><div className="kf-val" style={{fontSize:11}}>{ZONA.renta_media} €/m²</div></div>
             <div className="kf"><div className="kf-lbl">Take-up YTD</div><div className="kf-val" style={{fontSize:11}}>{(ZONA.takeup_ytd/1000).toFixed(1)}k m²</div></div>
           </div>
@@ -432,7 +432,7 @@ export default function FichaZona() {
           <div style={{display:'flex',flexDirection:'column',gap:5}}>
             {[
               {fuente:'Activos',dato:'Stock · Nº activos',color:'var(--accent)'},
-              {fuente:'Stacking Plan',dato:'Disponible · Vacancia',color:'var(--purple)'},
+              {fuente:'Stacking Plan',dato:'Disponible · Disponibilidad',color:'var(--purple)'},
               {fuente:'Arrendatarios',dato:'Ocupación · Renta media · Ops',color:'var(--teal)'},
               {fuente:'Oferta',dato:'Ofertas activas',color:'var(--green)'},
               {fuente:'Transacciones',dato:'Take-up · Histórico',color:'var(--amber)'},
@@ -463,7 +463,7 @@ export default function FichaZona() {
           <div className="rp-lbl">Asistente IA</div>
           <div className="ai-box">
             <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Análisis zona</span><span className="ai-badge">Tiempo real</span></div>
-            <div className="ai-text">Vacancia <strong>22,4%</strong> — por encima de la media de Madrid (18%). 3 ofertas activas en curso. Renta media estabilizada en 13,5 €/m². Take-up 2026 en línea con 2025.</div>
+            <div className="ai-text">Disponibilidad <strong>22,4%</strong> — por encima de la media de Madrid (18%). 3 ofertas activas en curso. Renta media estabilizada en 13,5 €/m². Take-up 2026 en línea con 2025.</div>
             <div className="ai-cta">✎ Generar informe de zona</div>
           </div>
         </div>
