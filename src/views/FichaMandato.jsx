@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
-import PptxGenJS from 'pptxgenjs'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 
 // ── Datos del mandato MAN-2501 ──
@@ -141,6 +140,7 @@ export default function FichaMandato() {
     : 'var(--green)'
 
   const exportarPPT = async () => {
+    const { default: PptxGenJS } = await import('pptxgenjs')
     const pptx = new PptxGenJS()
     pptx.layout = 'LAYOUT_WIDE'
     pptx.title  = `Informe de gestión — ${M.id}`

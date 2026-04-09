@@ -1,557 +1,312 @@
 /**
- * exportReport.js — PDF & PPT export utility for Savills PDB
- * Uses jsPDF (PDF programmatic) + PptxGenJS (PowerPoint)
+ * exportReport.js — PDF (print-window) & PPT (PptxGenJS) export
  */
 
-import { jsPDF } from 'jspdf'
-import pptxgen from 'pptxgenjs'
-
-/* ── Color palette (matches PDB CSS vars) ─────────────────── */
-const C = {
-  dark:    [15,  22,  35],
-  dark2:   [22,  33,  55],
-  accent:  [59,  130, 246],
-  surface: [248, 250, 252],
-  border:  [226, 232, 240],
-  stripe:  [241, 245, 249],
-  text1:   [15,  23,  42],
-  text2:   [51,  65,  85],
-  text3:   [100, 116, 139],
-  text4:   [148, 163, 184],
-  green:   [34,  197, 94],
-  amber:   [245, 158, 11],
-  purple:  [139, 92,  246],
-  teal:    [20,  184, 166],
-  white:   [255, 255, 255],
-}
+/* ── Color palette ──────────────────────────────────────── */
 const HEX = {
-  dark:    '0F1623',
-  dark2:   '162137',
-  accent:  '3B82F6',
-  surface: 'F8FAFC',
-  border:  'E2E8F0',
-  stripe:  'F1F5F9',
-  text1:   '0F172A',
-  text2:   '334155',
-  text3:   '64748B',
-  text4:   '94A3B8',
-  green:   '22C55E',
-  amber:   'F59E0B',
-  purple:  '8B5CF6',
-  teal:    '14B8A6',
-  white:   'FFFFFF',
-}
-
-/* ── A4 constants ─────────────────────────────────────────── */
-const W = 210, H = 297, M = 14, CW = W - M * 2
-
-/* ── jsPDF helpers ────────────────────────────────────────── */
-const fill   = (doc, col) => doc.setFillColor(...col)
-const stroke = (doc, col) => doc.setDrawColor(...col)
-const color  = (doc, col) => doc.setTextColor(...col)
-
-function sectionHeader(doc, title, y) {
-  fill(doc, C.accent)
-  doc.rect(M, y, CW, 7.5, 'F')
-  color(doc, C.white)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(7.5)
-  doc.text(title.toUpperCase(), M + 4, y + 5)
-  return y + 7.5
-}
-
-function drawPageChrome(doc, config, pageNum, totalHint) {
-  // Top bar
-  fill(doc, C.dark)
-  doc.rect(0, 0, W, 10, 'F')
-  fill(doc, C.accent)
-  doc.rect(0, 10, W, 0.8, 'F')
-  color(doc, C.accent)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(6.5)
-  doc.text('SAVILLS · PDB', M, 7)
-  color(doc, C.text3)
-  doc.setFont('helvetica', 'normal')
-  doc.text(config.title, W / 2, 7, { align: 'center' })
-  color(doc, C.text4)
-  doc.text(`Pág. ${pageNum}`, W - M, 7, { align: 'right' })
-  // Bottom bar
-  fill(doc, C.dark)
-  doc.rect(0, H - 7, W, 7, 'F')
-  color(doc, C.text4)
-  doc.setFontSize(6)
-  doc.text('© Savills Aguirre Newman · Uso interno · Confidencial', M, H - 2.5)
-  doc.text(new Date().toLocaleDateString('es-ES'), W - M, H - 2.5, { align: 'right' })
-}
-
-function drawCover(doc, config) {
-  // Full dark top
-  fill(doc, C.dark)
-  doc.rect(0, 0, W, 90, 'F')
-  // Accent stripe
-  fill(doc, C.accent)
-  doc.rect(0, 90, W, 1.5, 'F')
-  // Left accent bar
-  fill(doc, C.accent)
-  doc.rect(0, 0, 3, 90, 'F')
-
-  // SAVILLS
-  color(doc, C.accent)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9)
-  doc.text('SAVILLS', M + 4, 18)
-  color(doc, C.text4)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7.5)
-  doc.text('PDB · PLATAFORMA DE DATOS DE BUILDINGS', M + 22, 18)
-
-  // Divider
-  fill(doc, C.dark2)
-  doc.rect(M + 4, 21, CW - 4, 0.3, 'F')
-
-  // Title
-  color(doc, C.white)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(24)
-  const titleLines = doc.splitTextToSize(config.title, CW - 4)
-  doc.text(titleLines, M + 4, 38)
-
-  // Subtitle
-  const subtitleY = 38 + titleLines.length * 9
-  color(doc, C.text3)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(10)
-  doc.text(config.subtitle || '', M + 4, subtitleY)
-
-  // Date
-  color(doc, C.text4)
-  doc.setFontSize(7.5)
-  doc.text(
-    `Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`,
-    M + 4, subtitleY + 12
-  )
-
-  // Cover metrics
-  let nextY = 100
-  if (config.coverMetrics?.length) {
-    const n = config.coverMetrics.length
-    const mW = CW / n
-    config.coverMetrics.forEach((m, i) => {
-      const x = M + i * mW
-      // Card
-      fill(doc, C.surface)
-      stroke(doc, C.border)
-      doc.setLineWidth(0.3)
-      doc.roundedRect(x + 0.5, 97, mW - 2, 20, 1.5, 1.5, 'FD')
-      // Accent top
-      fill(doc, C.accent)
-      doc.rect(x + 0.5, 97, mW - 2, 1.5, 'F')
-      // Value
-      color(doc, C.text1)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(14)
-      doc.text(String(m.value), x + mW / 2 - 1, 111, { align: 'center' })
-      // Label
-      color(doc, C.text3)
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(6.5)
-      doc.text(m.label, x + mW / 2 - 1, 115, { align: 'center', maxWidth: mW - 4 })
-    })
-    nextY = 126
-  }
-
-  // Footer
-  fill(doc, C.dark)
-  doc.rect(0, H - 7, W, 7, 'F')
-  color(doc, C.text4)
-  doc.setFontSize(6)
-  doc.setFont('helvetica', 'normal')
-  doc.text('© Savills Aguirre Newman · Uso interno · Confidencial', M, H - 2.5)
-  doc.text(new Date().toLocaleDateString('es-ES'), W - M, H - 2.5, { align: 'right' })
-
-  return nextY
-}
-
-function renderKpis(doc, data, startY, pageBreakFn) {
-  let y = startY + 4
-  const cols = Math.min(data.length, 3)
-  const kW = CW / cols
-  const kH = 19
-
-  let maxRowY = y
-  data.forEach((kpi, i) => {
-    const col = i % cols
-    const row = Math.floor(i / cols)
-    const rowY = y + row * (kH + 3)
-    if (rowY + kH > H - 15 && row > 0) return // simple overflow guard
-    const x = M + col * kW
-
-    fill(doc, C.surface)
-    stroke(doc, C.border)
-    doc.setLineWidth(0.3)
-    doc.roundedRect(x + 0.5, rowY, kW - 2, kH, 1.5, 1.5, 'FD')
-    fill(doc, C.accent)
-    doc.rect(x + 0.5, rowY, kW - 2, 1.5, 'F')
-
-    color(doc, C.text1)
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(13)
-    doc.text(String(kpi.value), x + (kW - 2) / 2, rowY + 10.5, { align: 'center' })
-    color(doc, C.text3)
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(6.5)
-    doc.text(kpi.label, x + (kW - 2) / 2, rowY + 15.5, { align: 'center', maxWidth: kW - 5 })
-
-    maxRowY = Math.max(maxRowY, rowY + kH)
-  })
-  return maxRowY + 5
-}
-
-function renderTable(doc, headers, rows, startY, pageBreakFn) {
-  let y = startY + 3
-  const n = headers.length
-  // Compute column widths (first col wider)
-  const firstW = CW * 0.26
-  const restW  = (CW - firstW) / (n - 1)
-  const colWidths = headers.map((_, i) => i === 0 ? firstW : restW)
-
-  // Header row
-  fill(doc, C.dark)
-  doc.rect(M, y, CW, 6.5, 'F')
-  color(doc, C.white)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(6.5)
-  let cx = M
-  headers.forEach((h, i) => {
-    doc.text(h.toUpperCase(), cx + 2.5, y + 4.5, { maxWidth: colWidths[i] - 3 })
-    cx += colWidths[i]
-  })
-  y += 6.5
-
-  rows.forEach((row, ri) => {
-    if (y > H - 15) y = pageBreakFn()
-    const rowH = 6.2
-    fill(doc, ri % 2 === 0 ? C.stripe : C.white)
-    doc.rect(M, y, CW, rowH, 'F')
-    stroke(doc, C.border)
-    doc.setLineWidth(0.15)
-    doc.line(M, y + rowH, M + CW, y + rowH)
-
-    const isLast = ri === rows.length - 1
-    color(doc, isLast ? C.text1 : C.text2)
-    doc.setFont('helvetica', isLast ? 'bold' : 'normal')
-    doc.setFontSize(7.5)
-    let cx2 = M
-    row.forEach((cell, ci) => {
-      doc.text(String(cell ?? ''), cx2 + 2.5, y + 4.3, { maxWidth: colWidths[ci] - 3 })
-      cx2 += colWidths[ci]
-    })
-    y += rowH
-  })
-  return y + 4
-}
-
-function renderChart(doc, data, startY) {
-  let y = startY + 3
-  const maxVal = Math.max(...data.map(d => d.v ?? d.value ?? 0), 1)
-  const labelW = 16
-  const trackW = CW - labelW - 18
-  const barH   = 5.5
-  const gap    = 2
-
-  data.forEach(d => {
-    const val = d.v ?? d.value ?? 0
-    if (val === 0 && !d.ytd) return
-    const pct = val / maxVal
-    const lbl = d.y ?? d.q ?? d.label ?? ''
-
-    color(doc, C.text2)
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(7)
-    doc.text(lbl, M + labelW - 1, y + barH - 1.2, { align: 'right' })
-
-    fill(doc, C.border)
-    doc.rect(M + labelW, y, trackW, barH, 'F')
-    fill(doc, d.ytd ? C.accent : [148, 163, 184])
-    if (pct > 0) doc.rect(M + labelW, y, trackW * pct, barH, 'F')
-
-    color(doc, C.text3)
-    doc.setFontSize(6.5)
-    const valStr = val > 1000 ? `${(val / 1000).toFixed(1)}k` : String(val)
-    doc.text(valStr, M + labelW + trackW * pct + 2, y + barH - 1.2)
-
-    y += barH + gap
-  })
-  return y + 4
+  dark:    '#0F1623',
+  dark2:   '#162137',
+  accent:  '#3B82F6',
+  surface: '#F8FAFC',
+  border:  '#E2E8F0',
+  stripe:  '#F1F5F9',
+  text1:   '#0F172A',
+  text2:   '#334155',
+  text3:   '#64748B',
+  text4:   '#94A3B8',
+  green:   '#22C55E',
+  amber:   '#F59E0B',
+  white:   '#FFFFFF',
 }
 
 /* ═══════════════════════════════════════════════════════════
-   PDF EXPORT
+   PDF — print-window (browser native, CSS-rendered)
 ═══════════════════════════════════════════════════════════ */
 export function exportPDF(config) {
-  try {
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-  let pageNum = 1
+  const date = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
 
-  const newPage = () => {
-    doc.addPage()
-    pageNum++
-    drawPageChrome(doc, config, pageNum)
-    return 18
-  }
+  const metricsHtml = config.coverMetrics?.length
+    ? `<div class="cover-metrics">
+        ${config.coverMetrics.map(m => `
+          <div class="cover-kpi">
+            <div class="cover-kpi-val">${m.value}</div>
+            <div class="cover-kpi-lbl">${m.label}</div>
+          </div>`).join('')}
+       </div>` : ''
 
-  let y = drawCover(doc, config)
+  const sectionsHtml = (config.sections || []).map(s => {
+    let body = ''
 
-  for (const section of (config.sections || [])) {
-    if (y > H - 45) y = newPage()
-    y = sectionHeader(doc, section.title, y) + 2
-
-    if (section.type === 'kpis')   y = renderKpis(doc, section.data, y, newPage)
-    if (section.type === 'table')  y = renderTable(doc, section.headers, section.rows, y, newPage)
-    if (section.type === 'chart')  y = renderChart(doc, section.data, y)
-    if (section.type === 'text') {
-      color(doc, C.text2)
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(8.5)
-      const lines = doc.splitTextToSize(section.content, CW)
-      doc.text(lines, M, y + 2)
-      y += lines.length * 4 + 6
+    if (s.type === 'kpis') {
+      body = `<div class="kpi-grid">
+        ${s.data.map(k => `
+          <div class="kpi-card">
+            <div class="kpi-val">${k.value}</div>
+            <div class="kpi-lbl">${k.label}</div>
+          </div>`).join('')}
+      </div>`
     }
-    y += 5
-  }
 
-  // Add chrome to cover page (already has footer)
-  // Add chrome to pages 2+
-  const total = doc.getNumberOfPages()
-  for (let p = 2; p <= total; p++) {
-    doc.setPage(p)
-    drawPageChrome(doc, config, p)
-  }
+    if (s.type === 'table') {
+      body = `<table class="rep-table">
+        <thead><tr>${s.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${s.rows.map((r, ri) => `
+          <tr class="${ri === s.rows.length - 1 ? 'total-row' : ''}">
+            ${r.map(c => `<td>${c ?? ''}</td>`).join('')}
+          </tr>`).join('')}
+        </tbody>
+      </table>`
+    }
 
-  const fname = `${(config.filename || config.title).replace(/[^a-z0-9áéíóúñ ]/gi, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`
-  doc.save(fname)
-  } catch(err) {
-    console.error('[exportPDF] error:', err)
-    alert(`Error al generar PDF: ${err.message}`)
+    if (s.type === 'chart') {
+      const maxV = Math.max(...s.data.map(d => d.v ?? d.value ?? 0), 1)
+      body = `<div class="chart-wrap">
+        ${s.data.filter(d => (d.v ?? d.value ?? 0) > 0 || d.ytd).map(d => {
+          const val  = d.v ?? d.value ?? 0
+          const pct  = Math.round((val / maxV) * 100)
+          const lbl  = d.y ?? d.q ?? d.label ?? ''
+          const valStr = val > 1000 ? `${(val / 1000).toFixed(1)}k` : String(val)
+          return `<div class="chart-row">
+            <span class="chart-lbl">${lbl}${d.ytd ? ' YTD' : ''}</span>
+            <div class="chart-track">
+              <div class="chart-bar ${d.ytd ? 'ytd' : ''}" style="width:${pct}%"></div>
+            </div>
+            <span class="chart-val">${valStr}</span>
+          </div>`
+        }).join('')}
+      </div>`
+    }
+
+    if (s.type === 'text') {
+      body = `<p class="rep-text">${s.content}</p>`
+    }
+
+    return `<div class="section">
+      <div class="section-hdr">${s.title.toUpperCase()}</div>
+      <div class="section-body">${body}</div>
+    </div>`
+  }).join('')
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>${config.title}</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:${HEX.text1};background:#fff}
+
+    /* ── Cover ── */
+    .cover{background:${HEX.dark};color:#fff;padding:48px 48px 32px;min-height:280px;position:relative;page-break-after:always}
+    .cover-accent{position:absolute;left:0;top:0;width:5px;height:100%;background:${HEX.accent}}
+    .cover-brand{font-size:10px;font-weight:700;color:${HEX.accent};letter-spacing:.1em;margin-bottom:4px}
+    .cover-brand span{color:${HEX.text4};font-weight:400;margin-left:8px}
+    .cover-divider{height:1px;background:${HEX.dark2};margin:10px 0 24px}
+    .cover-title{font-size:32px;font-weight:800;line-height:1.15;margin-bottom:10px}
+    .cover-subtitle{font-size:13px;color:${HEX.text3};margin-bottom:8px}
+    .cover-date{font-size:9px;color:${HEX.text4}}
+    .cover-stripe{height:3px;background:${HEX.accent};margin:24px -48px 0}
+    .cover-metrics{display:flex;gap:10px;margin-top:24px}
+    .cover-kpi{flex:1;background:${HEX.dark2};border-top:3px solid ${HEX.accent};padding:12px 10px 10px;text-align:center}
+    .cover-kpi-val{font-size:18px;font-weight:800;color:#fff;margin-bottom:4px}
+    .cover-kpi-lbl{font-size:8px;color:${HEX.text4};text-transform:uppercase;letter-spacing:.04em;line-height:1.3}
+
+    /* ── Content ── */
+    .content{padding:32px 48px}
+    .section{margin-bottom:24px;page-break-inside:avoid}
+    .section-hdr{background:${HEX.accent};color:#fff;font-size:8px;font-weight:700;letter-spacing:.08em;padding:5px 10px;border-radius:2px;margin-bottom:10px}
+    .section-body{padding:0 2px}
+
+    /* KPI grid */
+    .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .kpi-card{background:${HEX.surface};border:1px solid ${HEX.border};border-top:3px solid ${HEX.accent};border-radius:4px;padding:10px 12px}
+    .kpi-val{font-size:18px;font-weight:800;color:${HEX.text1};margin-bottom:3px}
+    .kpi-lbl{font-size:8px;color:${HEX.text3};text-transform:uppercase;letter-spacing:.04em}
+
+    /* Table */
+    .rep-table{width:100%;border-collapse:collapse;font-size:10px}
+    .rep-table th{background:${HEX.dark};color:#fff;padding:5px 8px;text-align:left;font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+    .rep-table td{padding:5px 8px;border-bottom:1px solid ${HEX.border};color:${HEX.text2}}
+    .rep-table tr:nth-child(even) td{background:${HEX.stripe}}
+    .rep-table tr.total-row td{font-weight:700;color:${HEX.text1};background:${HEX.stripe};border-top:2px solid ${HEX.border}}
+
+    /* Chart */
+    .chart-wrap{display:flex;flex-direction:column;gap:5px}
+    .chart-row{display:flex;align-items:center;gap:8px;height:18px}
+    .chart-lbl{width:60px;text-align:right;font-size:9px;color:${HEX.text2};flex-shrink:0}
+    .chart-track{flex:1;height:12px;background:${HEX.border};border-radius:2px;overflow:hidden}
+    .chart-bar{height:100%;background:${HEX.text4};border-radius:2px;transition:width .3s}
+    .chart-bar.ytd{background:${HEX.accent}}
+    .chart-val{width:40px;font-size:9px;color:${HEX.text3}}
+
+    /* Text */
+    .rep-text{font-size:10px;color:${HEX.text2};line-height:1.6}
+
+    /* Footer */
+    .footer{position:fixed;bottom:0;left:0;right:0;background:${HEX.dark};color:${HEX.text4};font-size:8px;padding:5px 48px;display:flex;justify-content:space-between}
+
+    /* Print */
+    @media print {
+      @page{margin:10mm 12mm;size:A4}
+      .footer{position:fixed;bottom:0}
+      .section{page-break-inside:avoid}
+    }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-accent"></div>
+    <div class="cover-brand">SAVILLS <span>· PDB · PLATAFORMA DE DATOS DE BUILDINGS</span></div>
+    <div class="cover-divider"></div>
+    <div class="cover-title">${config.title}</div>
+    <div class="cover-subtitle">${config.subtitle || ''}</div>
+    <div class="cover-date">Generado el ${date}</div>
+    <div class="cover-stripe"></div>
+    ${metricsHtml}
+  </div>
+  <div class="content">
+    ${sectionsHtml}
+  </div>
+  <div class="footer">
+    <span>© Savills Aguirre Newman · Uso interno · Confidencial</span>
+    <span>${config.title} · ${date}</span>
+  </div>
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print() }, 400)
+    }
+  </script>
+</body>
+</html>`
+
+  const win = window.open('', '_blank')
+  if (!win) {
+    alert('El navegador ha bloqueado la ventana emergente. Permite los pop-ups para esta página y vuelve a intentarlo.')
+    return
   }
+  win.document.write(html)
+  win.document.close()
 }
 
 /* ═══════════════════════════════════════════════════════════
-   PPT EXPORT
+   PPT — PptxGenJS (dynamic import)
 ═══════════════════════════════════════════════════════════ */
-export function exportPPT(config) {
+export async function exportPPT(config) {
+  let pptxgen
   try {
-  const pptx = new pptxgen()
-  pptx.layout = 'LAYOUT_WIDE' // 13.33" × 7.5"
-  const SW = 13.33, SH = 7.5
-
-  /* ── Cover slide ── */
-  const cover = pptx.addSlide()
-  cover.background = { color: HEX.dark }
-
-  // Left accent bar
-  cover.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 0.12, h: SH, fill: { color: HEX.accent }, line: { type: 'none' } })
-  // Bottom accent stripe
-  cover.addShape(pptx.ShapeType.rect, { x: 0, y: 4.6, w: SW, h: 0.06, fill: { color: HEX.accent }, line: { type: 'none' } })
-
-  // SAVILLS · PDB
-  cover.addText([
-    { text: 'SAVILLS', options: { bold: true, color: HEX.accent } },
-    { text: '  ·  PDB · PLATAFORMA DE DATOS DE BUILDINGS', options: { color: HEX.text4 } },
-  ], { x: 0.4, y: 0.35, w: 10, h: 0.35, fontSize: 9, fontFace: 'Calibri' })
-
-  // Title
-  cover.addText(config.title, {
-    x: 0.4, y: 1.1, w: SW - 0.8, h: 1.5,
-    fontSize: 40, bold: true, color: HEX.white, fontFace: 'Calibri',
-  })
-
-  // Subtitle
-  if (config.subtitle) {
-    cover.addText(config.subtitle, {
-      x: 0.4, y: 2.8, w: SW - 0.8, h: 0.5,
-      fontSize: 14, color: HEX.text3, fontFace: 'Calibri',
-    })
+    const mod = await import('pptxgenjs')
+    pptxgen = mod.default
+  } catch (e) {
+    alert(`No se pudo cargar la librería PPT: ${e.message}`)
+    return
   }
 
-  // Date
-  cover.addText(
-    `Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}  ·  Savills Aguirre Newman`,
-    { x: 0.4, y: 4.2, w: SW - 0.8, h: 0.3, fontSize: 8, color: HEX.text4, fontFace: 'Calibri' }
-  )
+  try {
+    const pptx = new pptxgen()
+    pptx.layout = 'LAYOUT_WIDE'
+    const SW = 13.33, SH = 7.5
 
-  // Cover metrics
-  if (config.coverMetrics?.length) {
-    const n = config.coverMetrics.length
-    const mW = (SW - 0.8) / n
-    config.coverMetrics.forEach((m, i) => {
-      const x = 0.4 + i * mW
-      cover.addShape(pptx.ShapeType.rect, {
-        x, y: 4.9, w: mW - 0.12, h: 1.7,
-        fill: { color: HEX.dark2 }, line: { color: HEX.text4, width: 0.5 },
-      })
-      cover.addShape(pptx.ShapeType.rect, {
-        x, y: 4.9, w: mW - 0.12, h: 0.07,
-        fill: { color: HEX.accent }, line: { type: 'none' },
-      })
-      cover.addText(String(m.value), {
-        x, y: 5.05, w: mW - 0.12, h: 0.8,
-        fontSize: 26, bold: true, color: HEX.white, align: 'center', fontFace: 'Calibri',
-      })
-      cover.addText(m.label, {
-        x, y: 5.9, w: mW - 0.12, h: 0.55,
-        fontSize: 8, color: HEX.text3, align: 'center', fontFace: 'Calibri', wrap: true,
-      })
-    })
-  }
+    const addChrome = (sl, title) => {
+      sl.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: SW, h: 0.65, fill: { color: '0F1623' }, line: { type: 'none' } })
+      sl.addShape(pptx.ShapeType.rect, { x: 0, y: 0.65, w: SW, h: 0.05, fill: { color: '3B82F6' }, line: { type: 'none' } })
+      sl.addText(title.toUpperCase(), { x: 0.3, y: 0.1, w: 9, h: 0.45, fontSize: 10, bold: true, color: 'FFFFFF', fontFace: 'Calibri' })
+      sl.addText('SAVILLS · PDB', { x: SW - 2.2, y: 0.18, w: 1.9, h: 0.3, fontSize: 7, color: '94A3B8', align: 'right', fontFace: 'Calibri' })
+      sl.addShape(pptx.ShapeType.rect, { x: 0, y: SH - 0.38, w: SW, h: 0.38, fill: { color: '0F1623' }, line: { type: 'none' } })
+      sl.addText(config.title, { x: 0.3, y: SH - 0.32, w: 8, h: 0.28, fontSize: 6.5, color: '94A3B8', fontFace: 'Calibri' })
+      sl.addText(new Date().toLocaleDateString('es-ES'), { x: SW - 1.8, y: SH - 0.32, w: 1.5, h: 0.28, fontSize: 6.5, color: '94A3B8', align: 'right', fontFace: 'Calibri' })
+    }
 
-  /* ── Content slides ── */
-  const addContentSlide = (title) => {
-    const sl = pptx.addSlide()
-    sl.background = { color: HEX.surface }
-
-    // Header
-    sl.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: SW, h: 0.65, fill: { color: HEX.dark }, line: { type: 'none' } })
-    sl.addShape(pptx.ShapeType.rect, { x: 0, y: 0.65, w: SW, h: 0.05, fill: { color: HEX.accent }, line: { type: 'none' } })
-    sl.addText(title.toUpperCase(), {
-      x: 0.3, y: 0.1, w: 9, h: 0.45,
-      fontSize: 10.5, bold: true, color: HEX.white, fontFace: 'Calibri',
-    })
-    sl.addText('SAVILLS · PDB', {
-      x: SW - 2.3, y: 0.18, w: 2, h: 0.3,
-      fontSize: 7, color: HEX.text4, align: 'right', fontFace: 'Calibri',
-    })
-    // Footer
-    sl.addShape(pptx.ShapeType.rect, { x: 0, y: SH - 0.38, w: SW, h: 0.38, fill: { color: HEX.dark }, line: { type: 'none' } })
-    sl.addText(config.title, {
-      x: 0.3, y: SH - 0.32, w: 8, h: 0.28,
-      fontSize: 6.5, color: HEX.text4, fontFace: 'Calibri',
-    })
-    sl.addText(new Date().toLocaleDateString('es-ES'), {
-      x: SW - 1.8, y: SH - 0.32, w: 1.5, h: 0.28,
-      fontSize: 6.5, color: HEX.text4, align: 'right', fontFace: 'Calibri',
-    })
-    return sl
-  }
-
-  for (const section of (config.sections || [])) {
-    const sl = addContentSlide(section.title)
-    const contentY = 0.85
-    const contentH = SH - contentY - 0.55
-    const contentW = SW - 0.6
-
-    if (section.type === 'kpis') {
-      const n = section.data.length
-      const cols = Math.min(n, 4)
-      const kW = contentW / cols
-      const rows = Math.ceil(n / cols)
-      const kH = Math.min(contentH / rows - 0.15, 2.0)
-
-      section.data.forEach((kpi, i) => {
-        const col = i % cols
-        const row = Math.floor(i / cols)
-        const x = 0.3 + col * kW
-        const y = contentY + row * (kH + 0.12)
-        sl.addShape(pptx.ShapeType.rect, {
-          x, y, w: kW - 0.12, h: kH,
-          fill: { color: HEX.white }, line: { color: HEX.border, width: 0.7 },
-        })
-        sl.addShape(pptx.ShapeType.rect, {
-          x, y, w: kW - 0.12, h: 0.06,
-          fill: { color: HEX.accent }, line: { type: 'none' },
-        })
-        sl.addText(String(kpi.value), {
-          x, y: y + kH * 0.18, w: kW - 0.12, h: kH * 0.48,
-          fontSize: Math.max(18, Math.min(28, 180 / (String(kpi.value).length + 1))),
-          bold: true, color: HEX.text1, align: 'center', fontFace: 'Calibri',
-        })
-        sl.addText(kpi.label, {
-          x, y: y + kH * 0.68, w: kW - 0.12, h: kH * 0.28,
-          fontSize: 7.5, color: HEX.text3, align: 'center', fontFace: 'Calibri', wrap: true,
-        })
+    /* ── Cover ── */
+    const cover = pptx.addSlide()
+    cover.background = { color: '0F1623' }
+    cover.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 0.1, h: SH, fill: { color: '3B82F6' }, line: { type: 'none' } })
+    cover.addShape(pptx.ShapeType.rect, { x: 0, y: 4.5, w: SW, h: 0.06, fill: { color: '3B82F6' }, line: { type: 'none' } })
+    cover.addText([
+      { text: 'SAVILLS', options: { bold: true, color: '3B82F6' } },
+      { text: '  ·  PDB · PLATAFORMA DE DATOS DE BUILDINGS', options: { color: '94A3B8' } },
+    ], { x: 0.4, y: 0.35, w: 11, h: 0.35, fontSize: 9, fontFace: 'Calibri' })
+    cover.addText(config.title, { x: 0.4, y: 1.1, w: SW - 0.8, h: 1.4, fontSize: 36, bold: true, color: 'FFFFFF', fontFace: 'Calibri' })
+    if (config.subtitle) {
+      cover.addText(config.subtitle, { x: 0.4, y: 2.65, w: SW - 0.8, h: 0.45, fontSize: 13, color: '64748B', fontFace: 'Calibri' })
+    }
+    cover.addText(
+      `Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}  ·  Savills Aguirre Newman`,
+      { x: 0.4, y: 4.1, w: SW - 0.8, h: 0.3, fontSize: 8, color: '94A3B8', fontFace: 'Calibri' }
+    )
+    if (config.coverMetrics?.length) {
+      const n = config.coverMetrics.length
+      const mW = (SW - 0.8) / n
+      config.coverMetrics.forEach((m, i) => {
+        const x = 0.4 + i * mW
+        cover.addShape(pptx.ShapeType.rect, { x, y: 4.75, w: mW - 0.1, h: 1.7, fill: { color: '162137' }, line: { color: '334155', width: 0.5 } })
+        cover.addShape(pptx.ShapeType.rect, { x, y: 4.75, w: mW - 0.1, h: 0.07, fill: { color: '3B82F6' }, line: { type: 'none' } })
+        cover.addText(String(m.value), { x, y: 4.9, w: mW - 0.1, h: 0.75, fontSize: 22, bold: true, color: 'FFFFFF', align: 'center', fontFace: 'Calibri' })
+        cover.addText(m.label, { x, y: 5.7, w: mW - 0.1, h: 0.6, fontSize: 7.5, color: '64748B', align: 'center', fontFace: 'Calibri', wrap: true })
       })
     }
 
-    if (section.type === 'table') {
-      const hdrs = section.headers
-      const firstW = contentW * 0.26
-      const restW  = (contentW - firstW) / (hdrs.length - 1)
-      const colW   = hdrs.map((_, i) => i === 0 ? firstW : restW)
-      const rowH   = Math.min(0.38, contentH / (section.rows.length + 1))
+    /* ── Content slides ── */
+    for (const section of (config.sections || [])) {
+      const sl = pptx.addSlide()
+      sl.background = { color: 'F8FAFC' }
+      addChrome(sl, section.title)
+      const cy = 0.85, cH = SH - cy - 0.55, cW = SW - 0.6
 
-      const tableRows = [
-        hdrs.map((h, i) => ({
-          text: h.toUpperCase(),
-          options: { bold: true, color: HEX.white, fill: HEX.dark, fontSize: 7.5, align: 'left', fontFace: 'Calibri' },
-        })),
-        ...section.rows.map((row, ri) => row.map(cell => ({
-          text: String(cell ?? ''),
-          options: {
-            fontSize: 8, color: ri === section.rows.length - 1 ? HEX.text1 : HEX.text2,
-            bold: ri === section.rows.length - 1,
-            fill: ri % 2 === 0 ? HEX.stripe : HEX.white,
-            align: 'left', fontFace: 'Calibri',
-          },
-        }))),
-      ]
-      sl.addTable(tableRows, {
-        x: 0.3, y: contentY, w: contentW,
-        colW, rowH,
-        border: { type: 'solid', color: HEX.border, pt: 0.5 },
-      })
+      if (section.type === 'kpis') {
+        const cols = Math.min(section.data.length, 4)
+        const kW = cW / cols
+        const kH = Math.min(cH / Math.ceil(section.data.length / cols) - 0.12, 1.9)
+        section.data.forEach((kpi, i) => {
+          const col = i % cols, row = Math.floor(i / cols)
+          const x = 0.3 + col * kW, y = cy + row * (kH + 0.12)
+          sl.addShape(pptx.ShapeType.rect, { x, y, w: kW - 0.1, h: kH, fill: { color: 'FFFFFF' }, line: { color: 'E2E8F0', width: 0.7 } })
+          sl.addShape(pptx.ShapeType.rect, { x, y, w: kW - 0.1, h: 0.06, fill: { color: '3B82F6' }, line: { type: 'none' } })
+          sl.addText(String(kpi.value), { x, y: y + kH * 0.18, w: kW - 0.1, h: kH * 0.48, fontSize: Math.min(24, Math.max(14, 120 / String(kpi.value).length)), bold: true, color: '0F172A', align: 'center', fontFace: 'Calibri' })
+          sl.addText(kpi.label, { x, y: y + kH * 0.68, w: kW - 0.1, h: kH * 0.28, fontSize: 7, color: '64748B', align: 'center', fontFace: 'Calibri', wrap: true })
+        })
+      }
+
+      if (section.type === 'table') {
+        const firstW = cW * 0.26
+        const restW  = (cW - firstW) / (section.headers.length - 1)
+        const colW   = section.headers.map((_, i) => i === 0 ? firstW : restW)
+        const rowH   = Math.min(0.36, cH / (section.rows.length + 1))
+        sl.addTable([
+          section.headers.map(h => ({ text: h.toUpperCase(), options: { bold: true, color: 'FFFFFF', fill: '0F1623', fontSize: 7.5, align: 'left', fontFace: 'Calibri' } })),
+          ...section.rows.map((row, ri) => row.map(cell => ({
+            text: String(cell ?? ''),
+            options: { fontSize: 8, color: ri === section.rows.length - 1 ? '0F172A' : '334155', bold: ri === section.rows.length - 1, fill: ri % 2 === 0 ? 'F1F5F9' : 'FFFFFF', align: 'left', fontFace: 'Calibri' },
+          }))),
+        ], { x: 0.3, y: cy, w: cW, colW, rowH, border: { type: 'solid', color: 'E2E8F0', pt: 0.5 } })
+      }
+
+      if (section.type === 'chart') {
+        const data = section.data.filter(d => (d.v ?? d.value ?? 0) > 0 || d.ytd)
+        const maxV = Math.max(...data.map(d => d.v ?? d.value ?? 0), 1)
+        const barH = Math.min(0.4, cH / data.length - 0.07)
+        data.forEach((d, i) => {
+          const val = d.v ?? d.value ?? 0
+          const pct = val / maxV
+          const lbl = d.y ?? d.q ?? d.label ?? ''
+          const y   = cy + i * (barH + 0.07)
+          const lblW = 0.65, trackW = cW - lblW - 0.5
+          sl.addText(lbl + (d.ytd ? ' YTD' : ''), { x: 0.3, y, w: lblW, h: barH, fontSize: 8, color: '334155', align: 'right', fontFace: 'Calibri', valign: 'middle' })
+          sl.addShape(pptx.ShapeType.rect, { x: 0.3 + lblW + 0.08, y, w: trackW, h: barH, fill: { color: 'E2E8F0' }, line: { type: 'none' } })
+          if (pct > 0) sl.addShape(pptx.ShapeType.rect, { x: 0.3 + lblW + 0.08, y, w: trackW * pct, h: barH, fill: { color: d.ytd ? '3B82F6' : '94A3B8' }, line: { type: 'none' } })
+          const valStr = val > 1000 ? `${(val / 1000).toFixed(1)}k` : String(val)
+          sl.addText(valStr, { x: 0.3 + lblW + 0.08 + trackW * pct + 0.06, y, w: 0.8, h: barH, fontSize: 7, color: '94A3B8', align: 'left', fontFace: 'Calibri', valign: 'middle' })
+        })
+      }
+
+      if (section.type === 'text') {
+        sl.addText(section.content, { x: 0.3, y: cy, w: cW, h: cH, fontSize: 10, color: '334155', fontFace: 'Calibri', wrap: true, valign: 'top' })
+      }
     }
 
-    if (section.type === 'chart') {
-      const data = section.data.filter(d => (d.v ?? d.value ?? 0) > 0 || d.ytd)
-      const maxVal = Math.max(...data.map(d => d.v ?? d.value ?? 0), 1)
-      const labelW = 0.65
-      const trackW = contentW - labelW - 0.8
-      const barH   = Math.min(0.42, contentH / data.length - 0.08)
-      const gap    = 0.07
-
-      data.forEach((d, i) => {
-        const val = d.v ?? d.value ?? 0
-        const pct = val / maxVal
-        const lbl = d.y ?? d.q ?? d.label ?? ''
-        const y   = contentY + i * (barH + gap)
-
-        sl.addText(lbl, {
-          x: 0.3, y, w: labelW, h: barH,
-          fontSize: 8, color: HEX.text2, align: 'right', fontFace: 'Calibri', valign: 'middle',
-        })
-        sl.addShape(pptx.ShapeType.rect, {
-          x: 0.3 + labelW + 0.08, y, w: trackW, h: barH,
-          fill: { color: HEX.border }, line: { type: 'none' },
-        })
-        if (pct > 0) {
-          sl.addShape(pptx.ShapeType.rect, {
-            x: 0.3 + labelW + 0.08, y, w: trackW * pct, h: barH,
-            fill: { color: d.ytd ? HEX.accent : '94A3B8' }, line: { type: 'none' },
-          })
-        }
-        const valStr = val > 1000 ? `${(val / 1000).toFixed(1)}k` : String(val)
-        sl.addText(valStr, {
-          x: 0.3 + labelW + 0.08 + trackW * pct + 0.08, y, w: 0.9, h: barH,
-          fontSize: 7, color: HEX.text3, align: 'left', fontFace: 'Calibri', valign: 'middle',
-        })
-      })
-    }
-
-    if (section.type === 'text') {
-      sl.addText(section.content, {
-        x: 0.3, y: contentY, w: contentW, h: contentH,
-        fontSize: 10, color: HEX.text2, fontFace: 'Calibri', wrap: true, valign: 'top',
-      })
-    }
-  }
-
-  const fname = `${(config.filename || config.title).replace(/[^a-z0-9áéíóúñ ]/gi, '-')}-${new Date().toISOString().slice(0, 10)}.pptx`
-  pptx.writeFile({ fileName: fname }).catch(err => {
-    console.error('[exportPPT] writeFile error:', err)
-    alert(`Error al generar PPT: ${err.message}`)
-  })
-  } catch(err) {
-    console.error('[exportPPT] error:', err)
+    const fname = `${(config.filename || config.title).replace(/[^a-z0-9áéíóúñ ]/gi, '-')}-${new Date().toISOString().slice(0, 10)}.pptx`
+    await pptx.writeFile({ fileName: fname })
+  } catch (err) {
+    console.error('[exportPPT]', err)
     alert(`Error al generar PPT: ${err.message}`)
   }
 }
