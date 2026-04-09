@@ -5,6 +5,17 @@ import AsignarTareaModal from '../components/AsignarTareaModal'
 const TABS = ['at-info','at-stacking','at-caract','at-prop','at-fotos','at-docs','at-adicional','at-360','at-followup']
 const TAB_LABELS = ['Información general','Stacking Plan','Características','Propietarios y arrendatarios','Fotografías','Documentos','Información adicional','Vista 360','Follow-up']
 
+/* ── PLAZAS DE APARCAMIENTO ── */
+const UBICACIONES  = ['Interior','Exterior']
+const TIPOS_PLAZA  = ['Simple','Doble']
+const TIPOS_VEHICULO = ['Coches','Motocicletas','Patinetes','Bicicletas','Camiones','Vans']
+const INIT_PLAZAS = [
+  {id:1, ubicacion:'Interior', tipo:'Simple', vehiculo:'Coches',      cantidad:578},
+  {id:2, ubicacion:'Interior', tipo:'Doble',  vehiculo:'Coches',      cantidad:100},
+  {id:3, ubicacion:'Interior', tipo:'Simple', vehiculo:'Motocicletas', cantidad:52},
+  {id:4, ubicacion:'Exterior', tipo:'Simple', vehiculo:'Coches',      cantidad:48},
+]
+
 /* ── USOS PRINCIPALES ── */
 const USOS_PPAL = [
   {id:'oficinas',    label:'Oficinas',    cls:'u-of',  color:'#3b82f6', bg:'#dbeafe', bd:'#93c5fd'},
@@ -935,7 +946,11 @@ function StackingPlan() {
 }
 
 /* ── Tab: Información general ── */
-function TabInfo({ navigate }) {
+function TabInfo({ navigate, plazas }) {
+  const totalPlazas = plazas.reduce((s,p)=>s+p.cantidad,0)
+  const byUbic = UBICACIONES.map(u=>({u, n:plazas.filter(p=>p.ubicacion===u).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
+  const byTipo = TIPOS_PLAZA.map(t=>({t, n:plazas.filter(p=>p.tipo===t).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
+  const byVeh  = TIPOS_VEHICULO.map(v=>({v, n:plazas.filter(p=>p.vehiculo===v).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
   return (
     <div className="tab-content active">
       <div className="info-pad">
@@ -964,6 +979,25 @@ function TabInfo({ navigate }) {
             <div className="ir"><span className="ir-k">Calidad</span><span className="ir-v"><span className="tag tag-amber">Prime</span></span></div>
             <div className="ir"><span className="ir-k">Año construcción</span><span className="ir-v">2003 · Rehab: 2018</span></div>
             <div className="ir"><span className="ir-k">Nº edificios</span><span className="ir-v">4</span></div>
+            {totalPlazas>0 && (
+              <div className="ir" style={{alignItems:'flex-start',paddingTop:6,borderTop:'1px solid var(--border)',marginTop:4}}>
+                <span className="ir-k">🅿 Plazas apar.</span>
+                <span className="ir-v" style={{display:'flex',flexDirection:'column',gap:3}}>
+                  <span style={{fontSize:15,fontWeight:700,color:'var(--text1)',fontFamily:'var(--mono)',lineHeight:1}}>{totalPlazas.toLocaleString('es-ES')}</span>
+                  <span style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:2}}>
+                    {byUbic.map(x=>(
+                      <span key={x.u} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#f1f5f9',border:'1px solid #cbd5e1',color:'#475569',fontWeight:600}}>{x.u} {x.n}</span>
+                    ))}
+                    {byTipo.map(x=>(
+                      <span key={x.t} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#ede9fe',border:'1px solid #c4b5fd',color:'#7c3aed',fontWeight:600}}>{x.t} {x.n}</span>
+                    ))}
+                    {byVeh.map(x=>(
+                      <span key={x.v} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#f0fdf4',border:'1px solid #86efac',color:'#15803d',fontWeight:600}}>{x.v} {x.n}</span>
+                    ))}
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1208,10 +1242,22 @@ function RightPanel({ navigate }) {
 /* ══════════════════════════════════════════════════════════ */
 export default function FichaActivo() {
   const { navigate } = useNav()
-  const [activeTab, setActiveTab] = useState('at-info')
-  const [caracTab, setCaracTab] = useState('ct-estado')
-  const [docCat,   setDocCat]   = useState('todos')
-  const [showTarea, setShowTarea] = useState(false)
+  const [activeTab, setActiveTab]       = useState('at-info')
+  const [caracTab, setCaracTab]         = useState('ct-estado')
+  const [docCat,   setDocCat]           = useState('todos')
+  const [showTarea, setShowTarea]       = useState(false)
+  const [plazas, setPlazas]             = useState(INIT_PLAZAS)
+  const [showAddPlaza, setShowAddPlaza] = useState(false)
+  const [newPlaza, setNewPlaza]         = useState({ubicacion:'Interior',tipo:'Simple',vehiculo:'Coches',cantidad:1})
+  const addPlaza = () => {
+    const c = parseInt(newPlaza.cantidad)||1
+    if(c<=0) return
+    const maxId = plazas.reduce((m,p)=>Math.max(m,p.id),0)
+    setPlazas(prev=>[...prev,{...newPlaza,cantidad:c,id:maxId+1}])
+    setNewPlaza({ubicacion:'Interior',tipo:'Simple',vehiculo:'Coches',cantidad:1})
+    setShowAddPlaza(false)
+  }
+  const removePlaza = (id) => setPlazas(prev=>prev.filter(p=>p.id!==id))
 
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
@@ -1263,7 +1309,7 @@ export default function FichaActivo() {
           </div>
 
           {/* ── TAB: Información general ── */}
-          {activeTab==='at-info' && <TabInfo navigate={navigate}/>}
+          {activeTab==='at-info' && <TabInfo navigate={navigate} plazas={plazas}/>}
 
           {/* ── TAB: Stacking Plan ── */}
           {activeTab==='at-stacking' && (
@@ -1323,18 +1369,140 @@ export default function FichaActivo() {
                 {caracTab==='ct-generales' && <div className="info-block"><div className="ib-title">CARACTERÍSTICAS GENERALES</div><div className="ir"><span className="ir-k">Altura libre</span><span className="ir-v">2,85 m</span></div><div className="ir"><span className="ir-k">Módulo mínimo</span><span className="ir-v">300 m²</span></div><div className="ir"><span className="ir-k">Suelo técnico</span><span className="ir-v">Sí</span></div><div className="ir"><span className="ir-k">Climatización</span><span className="ir-v">Fan-coil 4 tubos</span></div><div className="ir"><span className="ir-k">Seguridad 24h</span><span className="ir-v">Sí</span></div></div>}
                 {caracTab==='ct-oficinas' && <div className="info-block"><div className="ib-title">🏢 OFICINAS</div><div className="ir"><span className="ir-k">Configuración</span><span className="ir-v">Planta abierta / diáfana</span></div><div className="ir"><span className="ir-k">Falso techo</span><span className="ir-v">Sí</span></div><div className="ir"><span className="ir-k">Luminosidad</span><span className="ir-v">Alta — fachada acristalada</span></div><div className="ir"><span className="ir-k">Terraza</span><span className="ir-v">Sí (planta 7)</span></div></div>}
                 {caracTab==='ct-uso' && <div className="info-block"><div className="ib-title">OFICINAS (USO)</div><div className="ir"><span className="ir-k">Uso actual</span><span className="ir-v">Oficinas corporativas</span></div><div className="ir"><span className="ir-k">Inquilinos actuales</span><span className="ir-v">Celonis, Repsol, Cafetería</span></div><div className="ir"><span className="ir-k">M² ocupados</span><span className="ir-v">36.814 m²</span></div><div className="ir"><span className="ir-k">M² disponibles</span><span className="ir-v">10.142 m²</span></div></div>}
-                {caracTab==='ct-plazas' && (
-                  <div className="info-block">
-                    <div className="ib-title">PLAZAS DE APARCAMIENTO</div>
-                    <table className="pat-table">
-                      <thead><tr><th>Tipo</th><th>Planta</th><th>Nº plazas</th><th>Precio/mes</th><th>Estado</th></tr></thead>
-                      <tbody>
-                        <tr><td>Rotación</td><td>S1</td><td>778</td><td>120 €</td><td><span className="tag tag-green">Disponible</span></td></tr>
-                        <tr><td>Fijo</td><td>S2</td><td>52</td><td>150 €</td><td><span className="tag tag-amber">Reservado</span></td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                {caracTab==='ct-plazas' && (()=>{
+                  const totalPl = plazas.reduce((s,p)=>s+p.cantidad,0)
+                  const byUbicPl = UBICACIONES.map(u=>({u,n:plazas.filter(p=>p.ubicacion===u).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
+                  const byTipoPl = TIPOS_PLAZA.map(t=>({t,n:plazas.filter(p=>p.tipo===t).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
+                  const byVehPl  = TIPOS_VEHICULO.map(v=>({v,n:plazas.filter(p=>p.vehiculo===v).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
+                  const selStyle = {padding:'5px 9px',fontSize:11,border:'1px solid var(--border)',borderRadius:5,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',cursor:'pointer'}
+                  return (
+                    <div className="info-block">
+                      {/* Header */}
+                      <div className="ib-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                        <span>🅿 PLAZAS DE APARCAMIENTO</span>
+                        <button
+                          onClick={()=>setShowAddPlaza(v=>!v)}
+                          style={{padding:'3px 10px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600,lineHeight:1.4}}>
+                          {showAddPlaza?'✕ Cancelar':'+ Añadir'}
+                        </button>
+                      </div>
+
+                      {/* Formulario de adición */}
+                      {showAddPlaza && (
+                        <div style={{display:'flex',flexWrap:'wrap',gap:8,padding:'12px 14px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:7,marginBottom:14,alignItems:'flex-end'}}>
+                          <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                            <label style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Ubicación</label>
+                            <select value={newPlaza.ubicacion} onChange={e=>setNewPlaza(p=>({...p,ubicacion:e.target.value}))} style={selStyle}>
+                              {UBICACIONES.map(u=><option key={u}>{u}</option>)}
+                            </select>
+                          </div>
+                          <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                            <label style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Tipo de plaza</label>
+                            <select value={newPlaza.tipo} onChange={e=>setNewPlaza(p=>({...p,tipo:e.target.value}))} style={selStyle}>
+                              {TIPOS_PLAZA.map(t=><option key={t}>{t}</option>)}
+                            </select>
+                          </div>
+                          <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                            <label style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Tipo de vehículo</label>
+                            <select value={newPlaza.vehiculo} onChange={e=>setNewPlaza(p=>({...p,vehiculo:e.target.value}))} style={selStyle}>
+                              {TIPOS_VEHICULO.map(v=><option key={v}>{v}</option>)}
+                            </select>
+                          </div>
+                          <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                            <label style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Cantidad</label>
+                            <input type="number" min="1" value={newPlaza.cantidad}
+                              onChange={e=>setNewPlaza(p=>({...p,cantidad:e.target.value}))}
+                              onKeyDown={e=>{if(e.key==='Enter')addPlaza()}}
+                              style={{width:72,padding:'5px 9px',fontSize:11,border:'1px solid var(--border)',borderRadius:5,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                          </div>
+                          <button onClick={addPlaza}
+                            style={{padding:'5px 16px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:700,alignSelf:'flex-end'}}>
+                            Guardar
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Resumen totales */}
+                      {totalPl>0 && (
+                        <div style={{display:'grid',gridTemplateColumns:'auto 1fr 1fr 1fr',gap:'8px 20px',padding:'10px 14px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:6,marginBottom:14,alignItems:'start'}}>
+                          <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingRight:16,borderRight:'1px solid var(--border)'}}>
+                            <span style={{fontSize:26,fontWeight:800,color:'var(--text1)',fontFamily:'var(--mono)',lineHeight:1}}>{totalPl.toLocaleString('es-ES')}</span>
+                            <span style={{fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase',marginTop:1}}>Total plazas</span>
+                          </div>
+                          <div>
+                            <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:4}}>Ubicación</div>
+                            {byUbicPl.map(x=>(
+                              <div key={x.u} style={{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:2}}>
+                                <span style={{color:'var(--text3)'}}>{x.u}</span>
+                                <span style={{fontWeight:700,fontFamily:'var(--mono)',color:'var(--text1)'}}>{x.n}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div>
+                            <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:4}}>Tipo plaza</div>
+                            {byTipoPl.map(x=>(
+                              <div key={x.t} style={{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:2}}>
+                                <span style={{color:'var(--text3)'}}>{x.t}</span>
+                                <span style={{fontWeight:700,fontFamily:'var(--mono)',color:'var(--text1)'}}>{x.n}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div>
+                            <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:4}}>Vehículo</div>
+                            {byVehPl.map(x=>(
+                              <div key={x.v} style={{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:2}}>
+                                <span style={{color:'var(--text3)'}}>{x.v}</span>
+                                <span style={{fontWeight:700,fontFamily:'var(--mono)',color:'var(--text1)'}}>{x.n}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tabla detalle */}
+                      {plazas.length===0 ? (
+                        <div style={{padding:'20px 0',textAlign:'center',color:'var(--text4)',fontSize:12}}>
+                          No hay plazas registradas — pulsa "+ Añadir" para crear las primeras.
+                        </div>
+                      ) : (
+                        <table className="pat-table">
+                          <thead>
+                            <tr>
+                              <th>Ubicación</th>
+                              <th>Tipo plaza</th>
+                              <th>Vehículo</th>
+                              <th style={{textAlign:'right'}}>Cantidad</th>
+                              <th style={{width:32}}></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {plazas.map(p=>(
+                              <tr key={p.id}>
+                                <td>
+                                  <span style={{display:'inline-flex',alignItems:'center',gap:4}}>
+                                    <span style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#f1f5f9',border:'1px solid #cbd5e1',color:'#475569',fontWeight:600}}>{p.ubicacion}</span>
+                                  </span>
+                                </td>
+                                <td>
+                                  <span style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#ede9fe',border:'1px solid #c4b5fd',color:'#7c3aed',fontWeight:600}}>{p.tipo}</span>
+                                </td>
+                                <td>
+                                  <span style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#f0fdf4',border:'1px solid #86efac',color:'#15803d',fontWeight:600}}>{p.vehiculo}</span>
+                                </td>
+                                <td style={{textAlign:'right',fontFamily:'var(--mono)',fontWeight:700,fontSize:13}}>{p.cantidad.toLocaleString('es-ES')}</td>
+                                <td>
+                                  <button onClick={()=>removePlaza(p.id)}
+                                    style={{background:'none',border:'none',cursor:'pointer',color:'var(--text4)',fontSize:13,padding:'0 4px',lineHeight:1}}
+                                    title="Eliminar">✕</button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             </div>
           )}
