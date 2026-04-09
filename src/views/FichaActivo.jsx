@@ -18,12 +18,12 @@ const SP_DATA = {
   A: {
     stats: { of:'9.000', otros:'3.000', disp:'4.050', renta:'10,50–14,50' },
     tipo: [
-      {p:'P5', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.202 m²',f:4},{cls:'u-vac',n:'Vacante',m:'298 m²',f:2}]},
+      {p:'P5', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.500 m²',f:6}]},
       {p:'P4', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.500 m²',f:6}]},
-      {p:'P3', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'767 m²',f:3},{cls:'u-vac',n:'Vacante',m:'733 m²',f:3}]},
-      {p:'P2', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.200 m²',f:4},{cls:'u-vac',n:'Vacante',m:'300 m²',f:2}]},
+      {p:'P3', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.500 m²',f:6}]},
+      {p:'P2', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.500 m²',f:6}]},
       {p:'P1', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.500 m²',f:6}]},
-      {p:'PB', sup:'1.500 m²', units:[{cls:'u-rt',n:'Retail',m:'380 m²',f:2},{cls:'u-com',n:'Común',m:'220 m²',f:2},{cls:'u-vac',n:'Vacante',m:'400 m²',f:2}]},
+      {p:'PB', sup:'1.500 m²', units:[{cls:'u-rt',n:'Retail',m:'380 m²',f:2},{cls:'u-com',n:'Común',m:'1.120 m²',f:4}]},
       {p:'S1', sup:'1.500 m²', units:[{cls:'u-pk',n:'Parking · 778 plazas',m:'Nivel -1',f:6}]},
       {p:'S2', sup:'1.500 m²', units:[{cls:'u-pk',n:'Parking · 52 plazas',m:'Nivel -2',f:6}]},
     ],
@@ -47,8 +47,8 @@ const SP_DATA = {
     stats: { of:'4.300', otros:'250', disp:'1.450', renta:'12,00–15,00' },
     tipo: [
       {p:'P5', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.500 m²',f:6}]},
-      {p:'P4', sup:'1.500 m²', units:[{cls:'u-of',n:'Celonis',m:'1.300 m²',f:5},{cls:'u-vac',n:'Vacante',m:'200 m²',f:1}]},
-      {p:'PB', sup:'1.500 m²', units:[{cls:'u-com',n:'Cafetería',m:'250 m²',f:1},{cls:'u-vac',n:'Vacante',m:'1.250 m²',f:5}]},
+      {p:'P4', sup:'1.500 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.500 m²',f:6}]},
+      {p:'PB', sup:'1.500 m²', units:[{cls:'u-com',n:'Cafetería',m:'250 m²',f:1},{cls:'u-of',n:'Oficinas',m:'1.250 m²',f:5}]},
     ],
     prop: [
       {p:'P5', sup:'1.500 m²'},{p:'P4', sup:'1.500 m²'},{p:'PB', sup:'1.500 m²'},
@@ -62,8 +62,8 @@ const SP_DATA = {
   C: {
     stats: { of:'1.967', otros:'0', disp:'1.967', renta:'11,00–14,00' },
     tipo: [
-      {p:'P4', sup:'1.967 m²', units:[{cls:'u-of',n:'Repsol',m:'1.967 m²',f:6}]},
-      {p:'PB', sup:'1.967 m²', units:[{cls:'u-vac',n:'Vacante',m:'1.967 m²',f:6}]},
+      {p:'P4', sup:'1.967 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.967 m²',f:6}]},
+      {p:'PB', sup:'1.967 m²', units:[{cls:'u-of',n:'Oficinas',m:'1.967 m²',f:6}]},
     ],
     prop: [{p:'P4', sup:'1.967 m²'},{p:'PB', sup:'1.967 m²'}],
     arr: [
@@ -75,7 +75,7 @@ const SP_DATA = {
     stats: { of:'2.000', otros:'0', disp:'2.000', renta:'10,00–13,00' },
     tipo: [
       {p:'P3', sup:'2.000 m²', units:[{cls:'u-of',n:'Oficinas',m:'2.000 m²',f:6}]},
-      {p:'PB', sup:'2.000 m²', units:[{cls:'u-vac',n:'Vacante',m:'2.000 m²',f:6}]},
+      {p:'PB', sup:'2.000 m²', units:[{cls:'u-of',n:'Oficinas',m:'2.000 m²',f:6}]},
     ],
     prop: [{p:'P3', sup:'2.000 m²'},{p:'PB', sup:'2.000 m²'}],
     arr: [
@@ -143,7 +143,7 @@ function StackingPlan() {
 
       {/* FILA 2: sub-tabs vista */}
       <div style={{display:'flex',borderBottom:'1px solid var(--border)',marginLeft:-14,marginRight:-14,paddingLeft:14}}>
-        {[['tipo','Uso'],['prop','Propietarios'],['arr','Arrendatarios y oferta']].map(([k,l])=>(
+        {[['tipo','Uso principal'],['prop','Propietarios'],['arr','Arrendatarios y oferta']].map(([k,l])=>(
           <button key={k} onClick={()=>setView(k)} style={vTab(k)}>{l}</button>
         ))}
       </div>
@@ -170,7 +170,7 @@ function StackingPlan() {
       {/* ── VISTA: Tipo de superficie ── */}
       {view==='tipo' && <>
         <div style={{display:'flex',gap:12,marginBottom:10,flexWrap:'wrap'}}>
-          {[['#3b82f6','#dbeafe','#93c5fd','Oficinas'],['#ec4899','#fce7f3','#fbcfe8','Retail'],['#22c55e','#dcfce7','#86efac','Común'],['#f59e0b','#fff7ed','#fed7aa','Vacante'],['#94a3b8','#f1f5f9','#cbd5e1','Parking']].map(([ac,bg,bd,lbl])=>(
+          {[['#3b82f6','#dbeafe','#93c5fd','Oficinas'],['#ec4899','#fce7f3','#fbcfe8','Retail'],['#22c55e','#dcfce7','#86efac','Común'],['#94a3b8','#f1f5f9','#cbd5e1','Parking']].map(([ac,bg,bd,lbl])=>(
             <label key={lbl} style={{display:'flex',alignItems:'center',gap:4,fontSize:11,cursor:'pointer'}}>
               <input type="checkbox" defaultChecked style={{accentColor:ac}}/>
               <span style={{width:10,height:10,background:bg,border:`1px solid ${bd}`,borderRadius:2,display:'inline-block'}}/>
@@ -180,7 +180,7 @@ function StackingPlan() {
         </div>
         <div className="sp-grid-wrap">
           <div style={{display:'grid',gridTemplateColumns:GRID,background:'var(--gray-lt)',borderBottom:'1px solid var(--border)'}}>
-            {['Planta','USO','Sup. Total','Editar','Añadir'].map(h=><div key={h} className="sp-hc">{h}</div>)}
+            {['Planta','USO PRINCIPAL','Sup. Total','Editar','Añadir'].map(h=><div key={h} className="sp-hc">{h}</div>)}
           </div>
           {d.tipo.map((row,ri)=>(
             <SpRow key={row.p} p={row.p} sup={row.sup}>
