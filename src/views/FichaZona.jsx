@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import { exportPDF, exportPPT } from '../utils/exportReport'
 
 // Datos de la zona M-30 — construidos relacionalmente desde los módulos base
 const ZONA = {
@@ -121,38 +122,62 @@ export default function FichaZona() {
           const dispMax  = 35
           const opsMax   = 8
 
-          const doExportOv = () => {
-            const txt = [
-              'INFORME DE ZONA · M-30 / DISTRITO CENTRO',
-              '='.repeat(60),
-              `Generado: ${new Date().toLocaleString('es-ES')}`,
-              fAnio?`Filtro año: ${fAnio}`:'', fTrim?`Trimestre: ${fTrim}`:'',
-              '',
-              'DATOS DE MERCADO',
-              `Stock total: ${ZONA.stock.toLocaleString()} m²`,
-              `Disponible: ${ZONA.disponible.toLocaleString()} m²  (${ZONA.Disponibilidad}%)`,
-              `Ocupación media: ${ZONA.ocupacion}%`,
-              `Ofertas activas: ${ZONA.ofertas_activas}`,
-              '',
-              'RENTAS Y ABSORCIÓN',
-              `Renta media: ${ZONA.renta_media} €/m²/mes`,
-              `Rango: ${ZONA.renta_min} – ${ZONA.renta_max} €/m²/mes`,
-              `Take-up YTD 2026: ${ZONA.takeup_ytd.toLocaleString()} m²`,
-              `Operaciones YTD: ${ZONA.ops_ytd}`,
-              '',
-              'TAKE-UP ANUAL (m²)',
-              ...TAKEUP_ANUAL.map(d=>`${d.y}: ${d.v.toLocaleString('es-ES')} m²${d.ytd?' (YTD)':''}`),
-              '',
-              'RENTA MEDIA €/m²/mes',
-              ...RENTA_ANUAL.map(d=>`${d.y}: ${d.v} €/m²`),
-              '',
-              'ACTIVOS EN LA ZONA',
-              ...ACTIVOS_ZONA.map(a=>`${a.nombre} | ${a.sba.toLocaleString()} m² | ${a.occ}% occ | ${a.renta} €/m²`),
-            ].filter(l=>l!==undefined)
-            const blob=new Blob([txt.join('\n')],{type:'text/plain;charset=utf-8'})
-            const url=URL.createObjectURL(blob)
-            const a=Object.assign(document.createElement('a'),{href:url,download:`Zona-M30-${new Date().toISOString().slice(0,10)}.txt`})
-            a.click(); URL.revokeObjectURL(url)
+          const getZonaConfig = () => ({
+            title: `Zona ${ZONA.zona}`,
+            subtitle: `Informe de mercado · ${ZONA.uso} · ${ZONA.provincia}`,
+            coverMetrics: [
+              { label: 'Stock total (m²)', value: ZONA.stock.toLocaleString('es-ES') },
+              { label: 'Disponible (m²)', value: ZONA.disponible.toLocaleString('es-ES') },
+              { label: 'Disponibilidad', value: `${ZONA.Disponibilidad}%` },
+              { label: 'Renta media', value: `${ZONA.renta_media} €/m²` },
+              { label: 'Take-up YTD', value: `${ZONA.takeup_ytd.toLocaleString('es-ES')} m²` },
+            ],
+            sections: [
+              {
+                title: 'Indicadores de mercado',
+                type: 'kpis',
+                data: [
+                  { label: 'Stock total (m²)', value: ZONA.stock.toLocaleString('es-ES') },
+                  { label: 'Disponible (m²)', value: ZONA.disponible.toLocaleString('es-ES') },
+                  { label: 'Disponibilidad (%)', value: `${ZONA.Disponibilidad}%` },
+                  { label: 'Ocupación media', value: `${ZONA.ocupacion}%` },
+                  { label: 'Renta media €/m²/mes', value: ZONA.renta_media },
+                  { label: 'Renta mínima €/m²/mes', value: ZONA.renta_min },
+                  { label: 'Renta máxima €/m²/mes', value: ZONA.renta_max },
+                  { label: 'Take-up YTD 2026 (m²)', value: ZONA.takeup_ytd.toLocaleString('es-ES') },
+                  { label: 'Operaciones YTD', value: ZONA.ops_ytd },
+                ],
+              },
+              {
+                title: 'Evolución take-up (m²)',
+                type: 'chart',
+                data: TAKEUP_ANUAL,
+              },
+              {
+                title: 'Evolución renta media (€/m²/mes)',
+                type: 'chart',
+                data: RENTA_ANUAL,
+              },
+              {
+                title: 'Activos en la zona',
+                type: 'table',
+                headers: ['Activo', 'SBA (m²)', 'Disponible', 'Ocup.', 'Renta €/m²'],
+                rows: [
+                  ...ACTIVOS_ZONA.map(a=>[a.nombre, a.sba.toLocaleString('es-ES'), a.disponible.toLocaleString('es-ES'), `${a.occ}%`, `${a.renta} €`]),
+                ],
+              },
+              {
+                title: 'Transacciones históricas',
+                type: 'table',
+                headers: ['Fecha', 'Activo', 'Arrendatario', 'M²', 'Renta €/m²', 'Tipo'],
+                rows: TRANS.map(t=>[t.fecha, t.activo, t.arrendatario, t.m2.toLocaleString('es-ES'), `${t.renta} €`, t.tipo]),
+              },
+            ],
+          })
+          const doExportOv = (fmt) => {
+            const cfg = getZonaConfig()
+            if (fmt === 'pdf') exportPDF(cfg)
+            else               exportPPT(cfg)
           }
 
           return (
@@ -176,10 +201,16 @@ export default function FichaZona() {
                       ✕ Limpiar
                     </button>
                   )}
-                  <button onClick={doExportOv}
-                    style={{marginLeft:'auto',padding:'4px 12px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)'}}>
-                    ⬇ Exportar informe
-                  </button>
+                  <div style={{marginLeft:'auto',display:'flex',gap:4}}>
+                    <button onClick={()=>doExportOv('pdf')}
+                      style={{padding:'4px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)'}}>
+                      ⬇ PDF
+                    </button>
+                    <button onClick={()=>doExportOv('ppt')}
+                      style={{padding:'4px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)'}}>
+                      ⬇ PPT
+                    </button>
+                  </div>
                 </div>
 
                 {/* ── 4 KPI callout cards ── */}

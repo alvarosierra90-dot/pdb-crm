@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import { exportPDF, exportPPT } from '../utils/exportReport'
 
 const USUARIO = {
   id:'USR-001', nombre:'Sierra Alvaro', iniciales:'AS',
@@ -116,35 +117,76 @@ export default function FichaUsuario() {
                 <option value="">Todos los trimestres</option>
                 <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
               </select>
-              <button onClick={()=>{
-                const lineas=[
-                  `INFORME USUARIO HÁBIL · ${USUARIO.nombre}`,
-                  '='.repeat(60),
-                  `Generado: ${new Date().toLocaleString('es-ES')}`,
-                  fAnio?`Año: ${fAnio}`:'', fTrim?`Trimestre: ${fTrim}`:'',
-                  '',
-                  'PERFIL',
-                  `ID: ${USUARIO.id}  |  Rol: ${USUARIO.rol}`,
-                  `Equipo: ${USUARIO.equipo}  |  Línea: ${USUARIO.linea}`,
-                  `Email: ${USUARIO.email}`,
-                  '',
-                  'ACTIVIDAD',
-                  `Actividades: ${USUARIO.actividades}  |  Demandas: ${USUARIO.demandas}`,
-                  `Ofertas: ${USUARIO.ofertas}  |  Proyectos: ${USUARIO.proyectos}`,
-                  `Ops cerradas: ${USUARIO.ops_cerradas}  |  M² gestionados: ${USUARIO.m2_gestionados.toLocaleString('es-ES')}`,
-                  '',
-                  'HONORARIOS',
-                  `Facturado: ${USUARIO.honorarios}  |  Pipeline: ${USUARIO.pipeline}`,
-                ]
-                const texto=lineas.filter(Boolean).join('\n')
-                const blob=new Blob([texto],{type:'text/plain;charset=utf-8'})
-                const url=URL.createObjectURL(blob)
-                const a=Object.assign(document.createElement('a'),{href:url,download:`Usuario-${USUARIO.id}-${new Date().toISOString().slice(0,10)}.txt`})
-                a.click(); URL.revokeObjectURL(url)
-              }}
-                style={{padding:'4px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:4,fontSize:9,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)'}}>
-                ⬇ Exportar informe
-              </button>
+              {(()=>{
+                const getUsrConfig = () => ({
+                  title: USUARIO.nombre,
+                  subtitle: `Informe de usuario hábil · ${USUARIO.rol} · ${USUARIO.equipo}`,
+                  coverMetrics: [
+                    { label: 'Actividades', value: USUARIO.actividades },
+                    { label: 'Demandas', value: USUARIO.demandas },
+                    { label: 'Ofertas', value: USUARIO.ofertas },
+                    { label: 'Proyectos', value: PROY_U.length },
+                    { label: 'Ops cerradas', value: USUARIO.ops_cerradas },
+                    { label: 'Honorarios', value: USUARIO.honorarios },
+                  ],
+                  sections: [
+                    {
+                      title: 'Perfil del usuario',
+                      type: 'kpis',
+                      data: [
+                        { label: 'ID', value: USUARIO.id },
+                        { label: 'Línea de negocio', value: USUARIO.linea },
+                        { label: 'Rol', value: USUARIO.rol },
+                        { label: 'Equipo', value: USUARIO.equipo },
+                        { label: 'Email', value: USUARIO.email },
+                      ],
+                    },
+                    {
+                      title: 'Actividad y resultados',
+                      type: 'kpis',
+                      data: [
+                        { label: 'Total actividades', value: USUARIO.actividades },
+                        { label: 'Demandas activas', value: USUARIO.demandas },
+                        { label: 'Ofertas en curso', value: USUARIO.ofertas },
+                        { label: 'Proyectos', value: PROY_U.length },
+                        { label: 'Operaciones cerradas', value: USUARIO.ops_cerradas },
+                        { label: 'M² gestionados', value: `${(USUARIO.m2_gestionados/1000).toFixed(1)}k m²` },
+                        { label: 'Honorarios facturados', value: USUARIO.honorarios },
+                        { label: 'Pipeline activo', value: USUARIO.pipeline },
+                      ],
+                    },
+                    {
+                      title: 'Operaciones cerradas',
+                      type: 'table',
+                      headers: ['Fecha', 'Activo', 'Cliente', 'M²', 'Renta €/m²', 'Tipo', 'Honorarios'],
+                      rows: OPS_U.map(o=>[o.f, o.activo, o.cliente, o.m2.toLocaleString('es-ES'), `${o.renta} €`, o.tipo, o.honorarios]),
+                    },
+                    {
+                      title: 'Propuestas y proyectos',
+                      type: 'table',
+                      headers: ['Ref', 'Nombre', 'Tipo', 'Cliente', 'M²', 'Estado'],
+                      rows: PROY_U.map(p=>[p.ref, p.nombre, p.tipo, p.cliente, p.m2>0?p.m2.toLocaleString('es-ES'):'—', p.est]),
+                    },
+                    {
+                      title: 'Evolución actividad anual',
+                      type: 'chart',
+                      data: ACT_ANUAL.map(d=>({y:d.y, v:d.Actividades+d.Demandas+d.Ofertas+d['Ops cerradas'], ytd:d.ytd})),
+                    },
+                  ],
+                })
+                return (
+                  <div style={{display:'flex',gap:4}}>
+                    <button onClick={()=>exportPDF(getUsrConfig())}
+                      style={{padding:'4px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:4,fontSize:9,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)'}}>
+                      ⬇ PDF
+                    </button>
+                    <button onClick={()=>exportPPT(getUsrConfig())}
+                      style={{padding:'4px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:4,fontSize:9,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)'}}>
+                      ⬇ PPT
+                    </button>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         </div>

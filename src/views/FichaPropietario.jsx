@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
+import { exportPDF, exportPPT } from '../utils/exportReport'
 
 const TABS = ['datos','condiciones','historico','analisis']
 const TAB_LABELS = ['🏢 Datos del propietario','💰 Condiciones de inversión','🕐 Histórico propietarios','📊 Análisis']
@@ -109,33 +110,88 @@ export default function FichaPropietario() {
         <button className="ab-btn" onClick={()=>navigate('propietarios')}>← Volver</button>
         <div className="ab-sep"/>
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
-        <button className="ab-btn" onClick={()=>{
-          const lineas=[
-            'INFORME PROPIETARIO',
-            `ID: ${form.id}  |  ${form.propietario}  |  CIF: ${form.cif}`,
-            `Perfil: ${form.perfil}  |  Estado: ${form.estado}  |  Tipo: ${form.tipo_entidad}`,
-            `Responsable: ${form.responsable}  |  Email: ${form.email}`,
-            '',
-            'ACTIVO VINCULADO',
-            `Activo: ${form.activo}  |  Zona: ${form.zona}  |  Uso: ${form.uso}`,
-            `Superficie: ${form.superficie} m²  |  Régimen: ${form.regimen||'—'}`,
-            `Año compra: ${form.anyo_compra||'—'}  |  Precio compra: ${form.precio_compra||'—'}`,
-            `Valoración actual: ${form.valoracion_actual||'—'}  |  Plusvalía: ${form.plusvalia_latente||'—'}`,
-            '',
-            'CONDICIONES INVERSIÓN',
-            `Cap Rate: ${form.cap_rate||'—'}%  |  Yield: ${form.yield||'—'}%  |  TIR obj.: ${form.tir_objetivo||'—'}%`,
-            `Horizonte: ${form.horizonte_inv||'—'}  |  Estrategia: ${form.estrategia||'—'}`,
-            '',
-            'FINANCIACIÓN',
-            `LTV: ${form.ltv||'—'}%  |  Banco: ${form.banco||'—'}  |  Tipo deuda: ${form.tipo_deuda||'—'}`,
-            `Vencimiento: ${form.vencimiento_deuda||'—'}  |  Tipo interés: ${form.tipo_interes||'—'}`,
-          ]
-          const texto=lineas.join('\n')
-          const blob=new Blob([texto],{type:'text/plain;charset=utf-8'})
-          const url=URL.createObjectURL(blob)
-          const a=Object.assign(document.createElement('a'),{href:url,download:`Propietario-${form.id}-${new Date().toISOString().slice(0,10)}.txt`})
-          a.click(); URL.revokeObjectURL(url)
-        }}>⬇ Exportar informe</button>
+        {(()=>{
+          const getPropConfig = () => ({
+            title: form.propietario,
+            subtitle: `Informe de propietario · ${form.tipo_entidad} · ${form.perfil}`,
+            coverMetrics: [
+              { label: 'Perfil inversor', value: form.perfil },
+              { label: 'Cap Rate', value: `${form.cap_rate}%` },
+              { label: 'Yield', value: `${form.yield}%` },
+              { label: 'Valoración actual', value: form.valoracion_actual },
+              { label: 'Plusvalía latente', value: form.plusvalia_latente },
+            ],
+            sections: [
+              {
+                title: 'Identificación del propietario',
+                type: 'kpis',
+                data: [
+                  { label: 'ID', value: form.id },
+                  { label: 'CIF / NIF', value: form.cif },
+                  { label: 'Tipo entidad', value: form.tipo_entidad },
+                  { label: 'País', value: form.pais },
+                  { label: 'Ciudad sede', value: form.ciudad_sede },
+                  { label: 'Estado', value: form.estado },
+                  { label: 'Perfil inversor', value: form.perfil },
+                  { label: 'Responsable', value: form.responsable },
+                ],
+              },
+              {
+                title: 'Activo vinculado',
+                type: 'kpis',
+                data: [
+                  { label: 'Activo', value: form.activo },
+                  { label: 'Zona', value: form.zona },
+                  { label: 'Uso', value: form.uso },
+                  { label: 'Superficie (m²)', value: `${Number(form.superficie).toLocaleString('es-ES')} m²` },
+                  { label: 'Régimen', value: form.regimen || '—' },
+                  { label: 'Año compra', value: form.anyo_compra || '—' },
+                  { label: 'Precio compra', value: form.precio_compra || '—' },
+                  { label: 'Valoración actual', value: form.valoracion_actual || '—' },
+                  { label: 'Plusvalía latente', value: form.plusvalia_latente || '—' },
+                ],
+              },
+              {
+                title: 'Condiciones de inversión',
+                type: 'kpis',
+                data: [
+                  { label: 'Cap Rate actual', value: `${form.cap_rate}%` },
+                  { label: 'Yield', value: `${form.yield}%` },
+                  { label: 'TIR objetivo', value: `${form.tir_objetivo}%` },
+                  { label: 'Cap Rate compra', value: `${form.cap_rate_compra}%` },
+                  { label: 'Horizonte inv. (años)', value: form.horizonte_inv },
+                  { label: 'Estrategia', value: form.estrategia },
+                  { label: '€/m² compra', value: `${Number(form.precio_m2_compra).toLocaleString('es-ES')} €` },
+                  { label: '€/m² actual', value: `${Number(form.precio_m2_actual).toLocaleString('es-ES')} €` },
+                  { label: 'Revalorización', value: form.revalorizacion },
+                ],
+              },
+              {
+                title: 'Financiación',
+                type: 'kpis',
+                data: [
+                  { label: 'LTV', value: `${form.ltv}%` },
+                  { label: 'Banco', value: form.banco || '—' },
+                  { label: 'Tipo de deuda', value: form.tipo_deuda || '—' },
+                  { label: 'Vencimiento', value: form.vencimiento_deuda || '—' },
+                  { label: 'Tipo de interés', value: form.tipo_interes ? `${form.tipo_interes}%` : '—' },
+                ],
+              },
+              {
+                title: 'Histórico de propietarios',
+                type: 'table',
+                headers: ['Propietario', 'Activo', 'Tipo', 'Precio', 'Entrada', 'Salida', 'Rentabilidad'],
+                rows: HIST_INIT.map(h=>[h.propietario, h.activo, h.tipo, h.precio, h.fecha_entrada, h.fecha_salida||'Actual', h.rentabilidad||'—']),
+              },
+            ],
+          })
+          return (
+            <div style={{display:'flex',gap:4}}>
+              <button className="ab-btn" onClick={()=>exportPDF(getPropConfig())}>⬇ PDF</button>
+              <button className="ab-btn" onClick={()=>exportPPT(getPropConfig())}>⬇ PPT</button>
+            </div>
+          )
+        })()}
       </div>
 
       {/* Header */}

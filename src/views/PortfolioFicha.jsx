@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import { exportPDF, exportPPT } from '../utils/exportReport'
 
 const TABS = ['pt-overview','pt-activos','pt-ofertas','pt-actividad','pt-financiero']
 const TAB_LABELS = ['Overview','Activos (8)','Ofertas (5)','Actividad comercial','Financiero']
@@ -35,22 +36,75 @@ const DISP_Q = {
 }
 const DISP_Q_CROSS = (q) => Object.entries(DISP_Q).map(([y,qs])=>({y, v:qs.find(x=>x.q===q)?.v||0, ytd:y==='2026'}))
 
-/* ── Helper exportar ── */
-function exportarInforme(titulo, lineas) {
-  const texto = [
-    titulo.toUpperCase(),
-    '='.repeat(60),
-    `Generado: ${new Date().toLocaleString('es-ES')}`,
-    '',
-    ...lineas,
-  ].join('\n')
-  const blob = new Blob([texto], {type:'text/plain;charset=utf-8'})
-  const url = URL.createObjectURL(blob)
-  const a = Object.assign(document.createElement('a'), {
-    href: url,
-    download: `${titulo.replace(/[^a-z0-9]/gi,'-')}-${new Date().toISOString().slice(0,10)}.txt`,
-  })
-  a.click(); URL.revokeObjectURL(url)
+/* ── Config informe portfolio ── */
+function getReportConfig() {
+  return {
+    title: 'Portfolio Merlín Properties',
+    subtitle: 'Informe de portfolio · SOCIMI',
+    coverMetrics: [
+      { label: 'Total activos', value: '64' },
+      { label: 'Portfolio total', value: '2.100.000 m²' },
+      { label: 'Ocupación media', value: '88,8%' },
+      { label: 'Take-up 2026', value: '52.000 m²' },
+      { label: 'Yield medio', value: '5,1%' },
+    ],
+    sections: [
+      {
+        title: 'Resumen portfolio',
+        type: 'kpis',
+        data: [
+          { label: 'Total activos', value: '64' },
+          { label: 'Portfolio total (m²)', value: '2.100.000' },
+          { label: 'Disponible (m²)', value: '180.000' },
+          { label: 'Disponibilidad', value: '7,9%' },
+          { label: 'Ocupación media', value: '88,8%' },
+          { label: 'WAULT (años)', value: '4,2' },
+          { label: 'Yield medio', value: '5,1%' },
+          { label: 'Cap rate', value: '4,8%' },
+          { label: 'Take-up 2026 YTD', value: '52.000 m²' },
+        ],
+      },
+      {
+        title: 'Distribución por ciudad',
+        type: 'table',
+        headers: ['Ciudad', 'Nº Activos', 'M² Totales', 'Disponible'],
+        rows: [
+          ['Madrid',    '32', '1.050.000', '96.000'],
+          ['Barcelona', '19', '630.000',   '54.000'],
+          ['Valencia',  '6',  '210.000',   '18.000'],
+          ['TOTAL',     '64', '2.100.000', '180.000'],
+        ],
+      },
+      {
+        title: 'Distribución por uso principal',
+        type: 'table',
+        headers: ['Uso', '% Portfolio', 'M² estimados'],
+        rows: [
+          ['Oficinas',     '55%', '1.155.000'],
+          ['Logístico',    '10%', '210.000'],
+          ['Retail',       '20%', '420.000'],
+          ['Residencial',  '5%',  '105.000'],
+          ['Hoteles',      '5%',  '105.000'],
+          ['Otros',        '5%',  '105.000'],
+        ],
+      },
+      {
+        title: 'Absorción anual (m² take-up)',
+        type: 'chart',
+        data: ABS_ANUAL,
+      },
+      {
+        title: 'Facturación Savills',
+        type: 'kpis',
+        data: [
+          { label: 'Facturación 2026 YTD', value: '2,65 M€' },
+          { label: 'Facturación 2025', value: '4,10 M€' },
+          { label: 'Facturación 2024', value: '3,80 M€' },
+          { label: 'Histórico acumulado', value: '20,3 M€' },
+        ],
+      },
+    ],
+  }
 }
 
 export default function PortfolioFicha() {
@@ -79,21 +133,11 @@ export default function PortfolioFicha() {
   })()
   const dispMax = Math.max(...dispData.map(d=>d.v), 1)
 
-  const doExport = () => exportarInforme('Portfolio Merlín Properties', [
-    'RESUMEN PORTFOLIO',
-    `Total activos: 64   |   Portfolio total: 2.100.000 m²`,
-    `Disponible: 180.000 m²   |   Ocupación media: 88,8%`,
-    `Take-up 2026: 52.000 m²   |   Yield medio: 5,1%`,
-    '',
-    'DISTRIBUCIÓN POR USO',
-    'Oficinas 55% · Logístico 10% · Retail 20% · Hoteles 5% · Otros 10%',
-    '',
-    'FACTURACIÓN SAVILLS',
-    '2026 YTD: 2,65 M€   |   2025: 4,10 M€   |   Histórico: 20,3 M€',
-    '',
-    'ABSORCIÓN ANUAL (m²)',
-    ...ABS_ANUAL.map(d=>`${d.y}: ${d.v.toLocaleString('es-ES')} m²${d.ytd?' (YTD)':''}`),
-  ])
+  const doExport = (fmt) => {
+    const cfg = getReportConfig()
+    if (fmt === 'pdf') exportPDF(cfg)
+    else               exportPPT(cfg)
+  }
 
   return (
     <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
@@ -120,10 +164,16 @@ export default function PortfolioFicha() {
                     <div style={{ fontSize: 22, fontWeight: 700 }}>11,24 €</div>
                     <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>↑ +1,8%</div>
                   </div>
-                  <button onClick={doExport}
-                    style={{padding:'4px 12px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',gap:5}}>
-                    ⬇ Exportar informe
-                  </button>
+                  <div style={{display:'flex',gap:4}}>
+                    <button onClick={()=>doExport('pdf')}
+                      style={{padding:'4px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',gap:4}}>
+                      ⬇ PDF
+                    </button>
+                    <button onClick={()=>doExport('ppt')}
+                      style={{padding:'4px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',gap:4}}>
+                      ⬇ PPT
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="uso-bar">
