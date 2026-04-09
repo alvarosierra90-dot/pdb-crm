@@ -165,12 +165,12 @@ export default function PortfolioFicha() {
                     <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>↑ +1,8%</div>
                   </div>
                   <div style={{display:'flex',gap:4}}>
-                    <button onClick={()=>doExport('pdf')}
-                      style={{padding:'4px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',gap:4}}>
+                    <button onClick={()=>{ alert('botón PDF pulsado'); doExport('pdf') }}
+                      style={{padding:'4px 10px',background:'#3b82f6',border:'none',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',fontWeight:700,color:'#fff',display:'flex',alignItems:'center',gap:4}}>
                       ⬇ PDF
                     </button>
-                    <button onClick={()=>doExport('ppt')}
-                      style={{padding:'4px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',gap:4}}>
+                    <button onClick={()=>{ alert('botón PPT pulsado'); doExport('ppt') }}
+                      style={{padding:'4px 10px',background:'#f59e0b',border:'none',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',fontWeight:700,color:'#fff',display:'flex',alignItems:'center',gap:4}}>
                       ⬇ PPT
                     </button>
                   </div>
