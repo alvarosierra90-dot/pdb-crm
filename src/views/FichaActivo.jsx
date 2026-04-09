@@ -1048,6 +1048,7 @@ function TabInfo({ navigate, plazas }) {
             <div className="ir"><span className="ir-k">Tipo de activo</span><span className="ir-v"><span className="tag tag-gray">Construcción existente</span></span></div>
             <div className="ir"><span className="ir-k">Estado</span><span className="ir-v"><span className="tag tag-green">Activo</span></span></div>
             <div className="ir"><span className="ir-k">Uso principal</span><span className="ir-v"><span className="tag tag-blue">Oficinas</span></span></div>
+            <div className="ir"><span className="ir-k">Uso secundario</span><span className="ir-v"><span className="tag tag-gray">—</span></span></div>
             <div className="ir"><span className="ir-k">SBA (m²)</span><span className="ir-v" style={{fontSize:14,fontWeight:700}}>46.956</span></div>
             <div className="ir"><span className="ir-k">Calidad</span><span className="ir-v"><span className="tag tag-amber">Prime</span></span></div>
             <div className="ir"><span className="ir-k">Año construcción</span><span className="ir-v">2003 · Rehab: 2018</span></div>
