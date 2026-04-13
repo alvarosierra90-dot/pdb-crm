@@ -156,6 +156,10 @@ export default function Nav() {
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="3" width="14" height="11" rx="1.5"/><path d="M5 3V2a1 1 0 012 0v1M9 3V2a1 1 0 012 0v1"/></svg>
           Propietarios / Portfolios
         </div>
+        <div className={`nav-item ${isActive('informes-mercado') ? 'active' : ''}`} onClick={() => navigate('informes-mercado')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 12l3-4 3 2 3-5 3 3"/><path d="M2 14h12"/></svg>
+          Informes de Mercado
+        </div>
         <div className={`nav-item ${isActive('zonas','ficha-zona') ? 'active' : ''}`} onClick={() => navigate('zonas')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 2C5.8 2 4 3.8 4 6c0 3 4 8 4 8s4-5 4-8c0-2.2-1.8-4-4-4z"/><circle cx="8" cy="6" r="1.5"/></svg>
           Zonas
@@ -165,6 +169,16 @@ export default function Nav() {
           Usuarios Savills
         </div>
       </>}
+
+      <div className="nav-section" onClick={() => toggle('mkt')}>
+        Marketing <ChevronDown collapsed={collapsed.mkt} />
+      </div>
+      {open('mkt') && (
+        <div className={`nav-item ${isActive('marketing') ? 'active' : ''}`} onClick={() => navigate('marketing')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8l4-4 3 3 5-5"/><path d="M2 14h12"/></svg>
+          Marketing
+        </div>
+      )}
 
       <div className="nav-user">
         <div className="nav-av">AS</div>

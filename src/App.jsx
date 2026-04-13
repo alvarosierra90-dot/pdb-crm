@@ -36,8 +36,10 @@ import PropuestasList from './views/PropuestasList'
 import FichaPropuesta from './views/FichaPropuesta'
 import PresentacionesList from './views/PresentacionesList'
 import VencimientosView from './views/VencimientosView'
+import MarketingView from './views/MarketingView'
+import InformesMercado from './views/InformesMercado'
 
-const BUILT = ['activos','ficha-activo','ofertas','ficha-oferta','negociaciones','ficha-negociacion','portfolios','portfolio','demandas','ficha-demanda','actividades','ficha-actividad','visitas','ficha-visita','tareas','ficha-tarea','zonas','ficha-zona','usuarios','ficha-usuario','mandatos','ficha-mandato','mapas','mis-clientes','inteligencia-comercial','vencimientos','noticias','arrendatarios','ficha-arrendatario','propietarios','ficha-propietario','propuestas','ficha-propuesta','presentaciones','ficha-presentacion']
+const BUILT = ['activos','ficha-activo','ofertas','ficha-oferta','negociaciones','ficha-negociacion','portfolios','portfolio','demandas','ficha-demanda','actividades','ficha-actividad','visitas','ficha-visita','tareas','ficha-tarea','zonas','ficha-zona','usuarios','ficha-usuario','mandatos','ficha-mandato','mapas','mis-clientes','inteligencia-comercial','vencimientos','marketing','informes-mercado','noticias','arrendatarios','ficha-arrendatario','propietarios','ficha-propietario','propuestas','ficha-propuesta','presentaciones','ficha-presentacion']
 
 function Router() {
   const { view } = useNav()
@@ -66,6 +68,8 @@ function Router() {
       {view === 'mis-clientes' && <MisClientes />}
       {view === 'inteligencia-comercial' && <InteligenciaComercial />}
       {view === 'vencimientos' && <VencimientosView />}
+      {view === 'marketing' && <MarketingView />}
+      {view === 'informes-mercado' && <InformesMercado />}
       {view === 'noticias' && <Noticias />}
       {view === 'arrendatarios' && <ArrendatariosList />}
       {view === 'ficha-arrendatario' && <FichaArrendatario />}
