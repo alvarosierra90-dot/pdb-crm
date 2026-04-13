@@ -77,6 +77,20 @@ const DATA_LINEA = {
       { propietario:'Merlín Properties', m2:46956, renta:11.5 },
       { propietario:'Barings Core Spain', m2:9967, renta:10.5 },
     ],
+    top5_activos_m2: [
+      { activo:'Albatros D', direccion:'Av. de Bruselas 24, Alcobendas', zona:'A-1 · Alcobendas', m2:13486, nArrendatarios:1 },
+      { activo:'Torre Norte', direccion:'P.º de la Castellana 81, Madrid', zona:'CBD · Recoletos', m2:4200, nArrendatarios:1 },
+      { activo:'P.E Avalon C', direccion:'C/ Julián Camarillo 6, Madrid', zona:'M-30 · Julián Camarillo', m2:3200, nArrendatarios:2 },
+      { activo:'Parque La Finca B2', direccion:'Pza. de los Sauces 2, Pozuelo', zona:'A-6 · Pozuelo', m2:3200, nArrendatarios:1 },
+      { activo:'P.E Avalon A P5', direccion:'C/ Julián Camarillo 4A, Madrid', zona:'M-30 · Julián Camarillo', m2:1500, nArrendatarios:1 },
+    ],
+    top5_activos_renta: [
+      { activo:'Torre Norte', direccion:'P.º de la Castellana 81, Madrid', zona:'CBD · Recoletos', renta:36.0, m2:4200 },
+      { activo:'Torre Agbar', direccion:'Av. Diagonal 22, Barcelona', zona:'CBD BCN · 22@', renta:30.5, m2:2800 },
+      { activo:'Complejo Herre', direccion:'C/ Velázquez 130, Madrid', zona:'CBD · Salamanca', renta:25.0, m2:1800 },
+      { activo:'Parque La Finca B2', direccion:'Pza. de los Sauces 2, Pozuelo', zona:'A-6 · Pozuelo', renta:22.0, m2:3200 },
+      { activo:'P.E Avalon A P5', direccion:'C/ Julián Camarillo 4A, Madrid', zona:'M-30 · Julián Camarillo', renta:18.5, m2:1500 },
+    ],
   },
 }
 
@@ -296,14 +310,33 @@ async function exportPPT(linea, fYear, d) {
     s4.addTable(opsRows, { x:0.3, y:0.9, w:13, fontSize:7.5, border:{type:'solid',color:'e2e8f0',pt:1} })
   }
 
-  // Slide 5: Top propietarios
-  const s5 = prs.addSlide()
-  addHeader(s5, '7. Top propietarios · Superficie absorbida')
+  // Slide 5: Top activos
+  if (d.top5_activos_m2 && d.top5_activos_renta) {
+    const s5a = prs.addSlide()
+    addHeader(s5a, '9. Top activos · Mayor superficie absorbida')
+    const act_m2Rows = [
+      [{ text:'#',bold:true },{ text:'Activo',bold:true },{ text:'Dirección',bold:true },{ text:'Zona',bold:true },{ text:'m²',bold:true },{ text:'Arrend.',bold:true }],
+      ...d.top5_activos_m2.map((r,i)=>[String(i+1), r.activo, r.direccion, r.zona, r.m2.toLocaleString('es-ES'), String(r.nArrendatarios)])
+    ]
+    s5a.addTable(act_m2Rows, { x:0.3, y:0.9, w:13, colW:[0.4,2.5,3.5,3,2,0.8], fontSize:9, border:{type:'solid',color:'e2e8f0',pt:1} })
+
+    const s5b = prs.addSlide()
+    addHeader(s5b, '10. Top activos · Renta prime más alta')
+    const act_rentaRows = [
+      [{ text:'#',bold:true },{ text:'Activo',bold:true },{ text:'Dirección',bold:true },{ text:'Zona',bold:true },{ text:'Renta €/m²/mes',bold:true },{ text:'m²',bold:true }],
+      ...d.top5_activos_renta.map((r,i)=>[String(i+1), r.activo, r.direccion, r.zona, String(r.renta), r.m2.toLocaleString('es-ES')])
+    ]
+    s5b.addTable(act_rentaRows, { x:0.3, y:0.9, w:13, colW:[0.4,2.5,3.5,3,1.8,1.5], fontSize:9, border:{type:'solid',color:'e2e8f0',pt:1} })
+  }
+
+  // Slide 6: Top propietarios
+  const s6 = prs.addSlide()
+  addHeader(s6, '7. Top propietarios · Superficie absorbida')
   const propRows = [
     [{ text:'#',bold:true },{ text:'Propietario',bold:true },{ text:'m²',bold:true },{ text:'Renta media',bold:true }],
     ...d.top10_propietarios_m2.map((r,i)=>[String(i+1), r.propietario, r.m2.toLocaleString('es-ES'), `${r.renta} €/m²/mes`])
   ]
-  s5.addTable(propRows, { x:0.3, y:0.9, w:8, colW:[0.5,4,2,1.5], fontSize:9, border:{type:'solid',color:'e2e8f0',pt:1} })
+  s6.addTable(propRows, { x:0.3, y:0.9, w:8, colW:[0.5,4,2,1.5], fontSize:9, border:{type:'solid',color:'e2e8f0',pt:1} })
 
   await prs.writeFile({ fileName:`Informe_${linea.id}_${fYear}.pptx` })
 }
@@ -499,11 +532,57 @@ function InformeLinea({ linea, navigate }) {
           </div>
         </div>
 
-        {/* 9. Todas las operaciones del año */}
+        {/* 9 & 10. Top 5 activos */}
+        {(d.top5_activos_m2 || d.top5_activos_renta) && (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            {d.top5_activos_m2 && (
+              <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+                <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>9. Top activos · Mayor superficie absorbida</div>
+                <table className="dtbl">
+                  <thead><tr><th>#</th><th>Activo</th><th>Dirección</th><th>Zona</th><th>m²</th><th>Arrendatarios</th></tr></thead>
+                  <tbody>
+                    {d.top5_activos_m2.map((r,i)=>(
+                      <tr key={i} onClick={()=>navigate('ficha-activo')} style={{cursor:'pointer'}}>
+                        <td style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{i+1}</td>
+                        <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{r.activo}</td>
+                        <td style={{fontSize:10,color:'var(--text3)'}}>{r.direccion}</td>
+                        <td style={{fontSize:10,color:'var(--text3)'}}>{r.zona}</td>
+                        <td className="mono" style={{fontSize:11,fontWeight:700}}>{r.m2.toLocaleString('es-ES')}</td>
+                        <td className="mono" style={{fontSize:11,color:'var(--text3)'}}>{r.nArrendatarios}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {d.top5_activos_renta && (
+              <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+                <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>10. Top activos · Renta prime más alta</div>
+                <table className="dtbl">
+                  <thead><tr><th>#</th><th>Activo</th><th>Dirección</th><th>Zona</th><th>Renta €/m²/mes</th><th>m²</th></tr></thead>
+                  <tbody>
+                    {d.top5_activos_renta.map((r,i)=>(
+                      <tr key={i} onClick={()=>navigate('ficha-activo')} style={{cursor:'pointer'}}>
+                        <td style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{i+1}</td>
+                        <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{r.activo}</td>
+                        <td style={{fontSize:10,color:'var(--text3)'}}>{r.direccion}</td>
+                        <td style={{fontSize:10,color:'var(--text3)'}}>{r.zona}</td>
+                        <td className="mono" style={{fontSize:11,fontWeight:800,color:'var(--teal)'}}>{r.renta}</td>
+                        <td className="mono" style={{fontSize:11}}>{r.m2.toLocaleString('es-ES')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 11. Todas las operaciones del año */}
         {d.ops_anio && (
           <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
             <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <span>9. Todas las operaciones · {fYear}</span>
+              <span>11. Todas las operaciones · {fYear}</span>
               <span style={{fontSize:10,color:'var(--text4)',fontWeight:400}}>{d.ops_anio.length} operaciones</span>
             </div>
             <table className="dtbl">
