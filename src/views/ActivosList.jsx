@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
+import { supabase } from '../lib/supabase'
 import { ACTIVOS } from '../data/mockData'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
@@ -41,8 +42,27 @@ export default function ActivosList() {
   const [af, setAf] = useState({ uso: '', estado: '', ciudad: '', zona: '', sbaMin: '', sbaMax: '', occMin: '', occMax: '' })
   const [vis, setVis] = useVisibleCols('activos', COLS)
 
-  // Supabase fetch disabled — using mockData as source of truth
-  // useEffect(() => { ... }, [])
+  useEffect(() => {
+    supabase.from('activos').select('*').then(({ data, error }) => {
+      if (!error && data && data.length > 0) {
+        setActivos(data.map(a => ({
+          ref:    a.ref,
+          name:   a.nombre,
+          propietario: a.propietario || '—',
+          zona:   a.zona   || '',
+          subzona:a.subzona|| '',
+          ciudad: a.ciudad || '',
+          uso:    a.uso    || '',
+          sba:    a.sba    || 0,
+          occ:    a.occupancy_rate || 0,
+          renta:  a.renta_zona     || 0,
+          valor:  a.valor  || '—',
+          estado: a.estado || '',
+          dias:   a.dias_comercializacion || 0,
+        })))
+      }
+    })
+  }, [])
 
   const advCount = Object.values(af).filter(Boolean).length
 
