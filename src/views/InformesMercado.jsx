@@ -1012,17 +1012,17 @@ export default function InformesMercado() {
         <div style={{fontSize:14,fontWeight:700}}>Informes de Mercado</div>
         <div style={{fontSize:11,color:'var(--text3)',marginTop:1}}>Selecciona una línea de negocio para ver el informe de mercado</div>
       </div>
-      <div style={{flex:1,overflowY:'auto',padding:'24px 28px'}}>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:10,maxWidth:960}}>
+      <div style={{flex:1,overflowY:'auto',padding:'16px 20px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,height:'100%'}}>
           {LINEAS_NEGOCIO.map(l=>(
             <div key={l.id} onClick={()=>setLinea(l)}
-              style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',padding:'20px 16px 16px',cursor:'pointer',transition:'box-shadow .15s, border-color .15s',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:10}}
+              style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',padding:'24px 16px',cursor:'pointer',transition:'box-shadow .15s, border-color .15s',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12}}
               onMouseEnter={e=>{e.currentTarget.style.boxShadow='0 2px 12px rgba(0,0,0,.08)';e.currentTarget.style.borderColor='var(--text4)'}}
               onMouseLeave={e=>{e.currentTarget.style.boxShadow='none';e.currentTarget.style.borderColor='var(--border)'}}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{width:28,height:28,flexShrink:0}}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{width:36,height:36,flexShrink:0}}>
                 {l.paths}
               </svg>
-              <div style={{fontSize:11,fontWeight:600,color:'var(--text2)',lineHeight:1.3}}>{l.label}</div>
+              <div style={{fontSize:12,fontWeight:600,color:'var(--text2)',lineHeight:1.3}}>{l.label}</div>
             </div>
           ))}
         </div>
