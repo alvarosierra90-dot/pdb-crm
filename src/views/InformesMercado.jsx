@@ -91,12 +91,192 @@ const DATA_LINEA = {
       { activo:'Parque La Finca B2', direccion:'Pza. de los Sauces 2, Pozuelo', zona:'A-6 · Pozuelo', renta:22.0, m2:3200 },
       { activo:'P.E Avalon A P5', direccion:'C/ Julián Camarillo 4A, Madrid', zona:'M-30 · Julián Camarillo', renta:18.5, m2:1500 },
     ],
+    trend: [
+      { label:'Q1', value:8200 },
+      { label:'Q2', value:14600 },
+      { label:'Q3', value:18400 },
+      { label:'Q4', value:11800 },
+    ],
+  },
+  inversion: {
+    takeup: [
+      { area:'Madrid', zona:'CBD', subzona:'Gran Vía-Recoletos', m2:45000 },
+      { area:'Madrid', zona:'Descentralizado', subzona:'Las Rozas', m2:28000 },
+      { area:'Barcelona', zona:'CBD BCN', subzona:'22@', m2:32000 },
+      { area:'Barcelona', zona:'Periferia BCN', subzona:'Hospitalet', m2:18000 },
+    ],
+    disponibilidad: [
+      { area:'Madrid', zona:'CBD', subzona:'Gran Vía-Recoletos', m2:125000, activos:6 },
+      { area:'Madrid', zona:'Descentralizado', subzona:'Las Rozas', m2:85000, activos:4 },
+      { area:'Barcelona', zona:'CBD BCN', subzona:'22@', m2:92000, activos:5 },
+    ],
+    transacciones: [
+      { area:'Madrid', zona:'CBD', subzona:'Gran Vía-Recoletos', comprador:'Deka Immobilien', vendedor:'AXA IM Alts', activo:'Torre Cristal B4', direccion:'P.º de la Castellana 259, Madrid', m2:45000, precio:320, yield_:4.2, fecha:'Q1 2026', tipo:'Venta' },
+      { area:'Barcelona', zona:'CBD BCN', subzona:'22@', comprador:'Colonial SOCIMI', vendedor:'Fondo Meridian', activo:'Torre Glòries P8-P14', direccion:'Av. Diagonal 211, Barcelona', m2:32000, precio:280, yield_:3.8, fecha:'Q2 2026', tipo:'Venta' },
+      { area:'Madrid', zona:'Descentralizado', subzona:'Las Rozas', comprador:'Nuveen RE', vendedor:'Barings', activo:'P.E. Las Rozas', direccion:'C/ Rozabella 2, Las Rozas', m2:28000, precio:185, yield_:5.1, fecha:'Q1 2026', tipo:'Venta' },
+    ],
+    ops_anio: [
+      { comprador:'Deka Immobilien', vendedor:'AXA IM Alts', activo:'Torre Cristal B4', direccion:'P.º de la Castellana 259, Madrid', zona:'CBD · Gran Vía-Recoletos', m2:45000, precio:320, yield_:4.2, tipo:'Venta', fecha:'Q1 2026' },
+      { comprador:'Colonial SOCIMI', vendedor:'Fondo Meridian', activo:'Torre Glòries P8-P14', direccion:'Av. Diagonal 211, Barcelona', zona:'CBD BCN · 22@', m2:32000, precio:280, yield_:3.8, tipo:'Venta', fecha:'Q2 2026' },
+      { comprador:'Nuveen RE', vendedor:'Barings', activo:'P.E. Las Rozas', direccion:'C/ Rozabella 2, Las Rozas', zona:'Descentralizado · Las Rozas', m2:28000, precio:185, yield_:5.1, tipo:'Venta', fecha:'Q1 2026' },
+      { comprador:'M&G RE', vendedor:'CBRE IM', activo:'C.C. La Maquinista', direccion:'C/ Potosí 2, Barcelona', zona:'Periferia BCN · Sant Adrià', m2:65000, precio:210, yield_:5.8, tipo:'Venta', fecha:'Q3 2026' },
+      { comprador:'GreenOak RE', vendedor:'Patrizia AG', activo:'Albatros Campus', direccion:'Av. de Bruselas 33, Alcobendas', zona:'A-1 · Alcobendas', m2:22000, precio:148, yield_:5.5, tipo:'Venta', fecha:'Q2 2026' },
+    ],
+    top10_m2: [
+      { arrendatario:'M&G RE', activo:'C.C. La Maquinista', m2:65000, renta:3231 },
+      { arrendatario:'Deka Immobilien', activo:'Torre Cristal B4', m2:45000, renta:7111 },
+      { arrendatario:'Colonial SOCIMI', activo:'Torre Glòries P8-P14', m2:32000, renta:8750 },
+      { arrendatario:'Nuveen RE', activo:'P.E. Las Rozas', m2:28000, renta:6607 },
+      { arrendatario:'GreenOak RE', activo:'Albatros Campus', m2:22000, renta:6727 },
+    ],
+    top10_renta: [
+      { arrendatario:'Colonial SOCIMI', activo:'Torre Glòries P8-P14', m2:32000, renta:3.8 },
+      { arrendatario:'Deka Immobilien', activo:'Torre Cristal B4', m2:45000, renta:4.2 },
+      { arrendatario:'Nuveen RE', activo:'P.E. Las Rozas', m2:28000, renta:5.1 },
+      { arrendatario:'GreenOak RE', activo:'Albatros Campus', m2:22000, renta:5.5 },
+      { arrendatario:'M&G RE', activo:'C.C. La Maquinista', m2:65000, renta:5.8 },
+    ],
+    sectores: [
+      { sector:'Oficinas', m2:105000 },
+      { sector:'Logística / Industrial', m2:85000 },
+      { sector:'Retail / Comercial', m2:65000 },
+      { sector:'Residencial', m2:45000 },
+      { sector:'Hoteles', m2:32000 },
+    ],
+    top10_propietarios_m2: [
+      { propietario:'M&G RE', m2:65000, renta:5.8 },
+      { propietario:'Deka Immobilien', m2:45000, renta:4.2 },
+      { propietario:'Colonial SOCIMI', m2:32000, renta:3.8 },
+    ],
+    top10_propietarios_renta: [
+      { propietario:'Colonial SOCIMI', m2:32000, renta:3.8 },
+      { propietario:'Deka Immobilien', m2:45000, renta:4.2 },
+      { propietario:'M&G RE', m2:65000, renta:5.8 },
+    ],
+    top5_activos_m2: [
+      { activo:'C.C. La Maquinista', direccion:'C/ Potosí 2, Barcelona', zona:'Periferia BCN · Sant Adrià', m2:65000, nArrendatarios:3 },
+      { activo:'Torre Cristal B4', direccion:'P.º de la Castellana 259, Madrid', zona:'CBD · Gran Vía-Recoletos', m2:45000, nArrendatarios:1 },
+      { activo:'Torre Glòries P8-P14', direccion:'Av. Diagonal 211, Barcelona', zona:'CBD BCN · 22@', m2:32000, nArrendatarios:2 },
+      { activo:'P.E. Las Rozas', direccion:'C/ Rozabella 2, Las Rozas', zona:'Descentralizado · Las Rozas', m2:28000, nArrendatarios:4 },
+      { activo:'Albatros Campus', direccion:'Av. de Bruselas 33, Alcobendas', zona:'A-1 · Alcobendas', m2:22000, nArrendatarios:2 },
+    ],
+    top5_activos_renta: [
+      { activo:'Torre Glòries P8-P14', direccion:'Av. Diagonal 211, Barcelona', zona:'CBD BCN · 22@', renta:3.8, m2:32000 },
+      { activo:'Torre Cristal B4', direccion:'P.º de la Castellana 259, Madrid', zona:'CBD · Gran Vía-Recoletos', renta:4.2, m2:45000 },
+      { activo:'P.E. Las Rozas', direccion:'C/ Rozabella 2, Las Rozas', zona:'Descentralizado · Las Rozas', renta:5.1, m2:28000 },
+      { activo:'Albatros Campus', direccion:'Av. de Bruselas 33, Alcobendas', zona:'A-1 · Alcobendas', renta:5.5, m2:22000 },
+      { activo:'C.C. La Maquinista', direccion:'C/ Potosí 2, Barcelona', zona:'Periferia BCN · Sant Adrià', renta:5.8, m2:65000 },
+    ],
+    trend: [
+      { label:'Q1', value:505 },
+      { label:'Q2', value:638 },
+      { label:'Q3', value:210 },
+      { label:'Q4', value:0 },
+    ],
   },
 }
 
 const YEARS = ['2024','2025','2026']
 const QUARTERS = ['Q1','Q2','Q3','Q4']
 const PROVINCIAS = ['Madrid','Barcelona','Valencia','Sevilla']
+
+function polarToXY(cx, cy, r, deg) {
+  const rad = deg * Math.PI / 180
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
+}
+
+function BarChart({ items, color = 'var(--accent)', height = 90 }) {
+  const max = Math.max(...items.map(i => i.value), 1)
+  return (
+    <div style={{ display:'flex', alignItems:'flex-end', gap:6, height:height+46, padding:'10px 14px 4px' }}>
+      {items.map((item, i) => {
+        const barH = Math.max(4, Math.round(item.value / max * height))
+        const lbl = item.value >= 1000000 ? `${(item.value/1000000).toFixed(0)}M`
+                  : item.value >= 1000 ? `${(item.value/1000).toFixed(0)}k`
+                  : String(item.value)
+        return (
+          <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
+            <div style={{ fontSize:9, fontWeight:700, fontFamily:'var(--mono)', color:'var(--text3)' }}>{lbl}</div>
+            <div style={{ width:'100%', height:barH, background:color, borderRadius:'3px 3px 0 0', opacity: Math.min(1, 0.55 + i * 0.15) }} />
+            <div style={{ width:'100%', height:1, background:'var(--border)' }} />
+            <div style={{ fontSize:8, color:'var(--text4)', textAlign:'center', lineHeight:1.3, wordBreak:'break-word', paddingTop:2 }}>{item.label}</div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function LineChart({ points, color = 'var(--accent)' }) {
+  const max = Math.max(...points.map(p => p.value), 1)
+  const W = 300, H = 72, padX = 24, padY = 10
+  const xs = points.map((_, i) => padX + i * ((W - 2*padX) / Math.max(points.length-1, 1)))
+  const ys = points.map(p => H - padY - Math.round(p.value / max * (H - 2*padY)))
+  const line = xs.map((x, i) => `${i===0?'M':'L'}${x},${ys[i]}`).join(' ')
+  const fill = points.length > 1 ? `${line} L${xs[xs.length-1]},${H} L${xs[0]},${H} Z` : ''
+  return (
+    <div style={{ padding:'10px 14px 4px' }}>
+      <svg width="100%" viewBox={`0 0 ${W} ${H+22}`} style={{ overflow:'visible' }}>
+        <defs>
+          <linearGradient id="lcg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#1e40af" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#1e40af" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {fill && <path d={fill} fill="url(#lcg)" />}
+        <path d={line} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {xs.map((x, i) => {
+          const lbl = points[i].value >= 1000000 ? `${(points[i].value/1000000).toFixed(0)}M`
+                    : points[i].value >= 1000 ? `${(points[i].value/1000).toFixed(0)}k`
+                    : String(points[i].value)
+          return (
+            <g key={i}>
+              <circle cx={x} cy={ys[i]} r="3.5" fill="white" stroke={color} strokeWidth="1.5" />
+              <text x={x} y={ys[i]-8} textAnchor="middle" fontSize="8" fill="var(--text3)" fontWeight="600">{lbl}</text>
+              <text x={x} y={H+16} textAnchor="middle" fontSize="9" fill="var(--text4)">{points[i].label}</text>
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
+function DonutChart({ items }) {
+  const COLORS = ['#1e40af','#0891b2','#059669','#d97706','#7c3aed','#db2777','#dc2626']
+  const total = items.reduce((s, i) => s + i.value, 0)
+  const R=46, ir=22, cx=52, cy=52, sz=104
+  let angle = -90
+  const slices = items.map((item, i) => {
+    const sweep = (item.value/total)*360
+    const a1 = angle, a2 = angle + sweep - 0.5
+    angle += sweep
+    const p1 = polarToXY(cx,cy,R,a1), p2 = polarToXY(cx,cy,R,a2)
+    const i1 = polarToXY(cx,cy,ir,a1), i2 = polarToXY(cx,cy,ir,a2)
+    const large = sweep > 180 ? 1 : 0
+    const fmt = (n) => n.toFixed(1)
+    return {
+      d:`M${fmt(p1.x)},${fmt(p1.y)} A${R},${R} 0 ${large},1 ${fmt(p2.x)},${fmt(p2.y)} L${fmt(i2.x)},${fmt(i2.y)} A${ir},${ir} 0 ${large},0 ${fmt(i1.x)},${fmt(i1.y)} Z`,
+      color: COLORS[i%COLORS.length], label:item.label, pct: Math.round(item.value/total*100)
+    }
+  })
+  return (
+    <div style={{ display:'flex', gap:16, alignItems:'center', padding:'12px 14px' }}>
+      <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`} style={{ flexShrink:0 }}>
+        {slices.map((s,i) => <path key={i} d={s.d} fill={s.color} />)}
+      </svg>
+      <div style={{ display:'flex', flexDirection:'column', gap:5, flex:1, minWidth:0 }}>
+        {slices.map((s,i) => (
+          <div key={i} style={{ display:'flex', alignItems:'center', gap:7 }}>
+            <div style={{ width:8,height:8,borderRadius:2,background:s.color,flexShrink:0 }} />
+            <span style={{ fontSize:10,color:'var(--text2)',flex:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis' }}>{s.label}</span>
+            <span style={{ fontSize:10,fontWeight:700,fontFamily:'var(--mono)',color:'var(--text3)' }}>{s.pct}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function HierarchyTable({ data, cols, onRowClick }) {
   const [expanded, setExpanded] = useState({})
@@ -396,51 +576,110 @@ function InformeLinea({ linea, navigate }) {
       <div style={{flex:1,overflowY:'auto',padding:'14px 16px',display:'flex',flexDirection:'column',gap:12}}>
 
         {/* KPIs */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
-          {[
-            {lbl:'Take-up acumulado',val:`${(totalTakeup/1000).toFixed(0)}k m²`,color:'var(--accent)'},
-            {lbl:'Transacciones',    val:d.transacciones.length,color:'var(--teal)'},
-            {lbl:'Disponible total', val:`${(d.disponibilidad.reduce((s,r)=>s+r.m2,0)/1000).toFixed(0)}k m²`,color:'var(--amber)'},
-            {lbl:'Renta prime',      val:`${Math.max(...d.top10_renta.map(r=>r.renta))} €/m²/mes`,color:'var(--green)'},
-          ].map(k=>(
-            <div key={k.lbl} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'10px 14px',textAlign:'center'}}>
-              <div style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:4}}>{k.lbl}</div>
-              <div style={{fontSize:18,fontWeight:800,fontFamily:'var(--mono)',color:k.color}}>{k.val}</div>
+        {(() => {
+          const isCapMkt = linea.id === 'inversion'
+          const volTotal = isCapMkt ? d.transacciones.reduce((s,t)=>s+(t.precio||0),0) : 0
+          const yieldPrime = isCapMkt ? Math.min(...d.top10_renta.map(r=>r.renta)) : 0
+          const kpis = isCapMkt ? [
+            {lbl:'Volumen inversión',  val:`${volTotal} M€`,          color:'var(--accent)'},
+            {lbl:'Operaciones',        val:d.transacciones.length,     color:'var(--teal)'},
+            {lbl:'Yield prime',        val:`${yieldPrime}%`,           color:'var(--green)'},
+            {lbl:'Mayor operación',    val:`${Math.max(...d.transacciones.map(t=>t.precio||0))} M€`, color:'var(--amber)'},
+          ] : [
+            {lbl:'Take-up acumulado',  val:`${(totalTakeup/1000).toFixed(0)}k m²`, color:'var(--accent)'},
+            {lbl:'Transacciones',      val:d.transacciones.length,     color:'var(--teal)'},
+            {lbl:'Disponible total',   val:`${(d.disponibilidad.reduce((s,r)=>s+r.m2,0)/1000).toFixed(0)}k m²`, color:'var(--amber)'},
+            {lbl:'Renta prime',        val:`${Math.max(...d.top10_renta.map(r=>r.renta))} €/m²/mes`, color:'var(--green)'},
+          ]
+          return (
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
+              {kpis.map(k=>(
+                <div key={k.lbl} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'10px 14px',textAlign:'center'}}>
+                  <div style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:4}}>{k.lbl}</div>
+                  <div style={{fontSize:18,fontWeight:800,fontFamily:'var(--mono)',color:k.color}}>{k.val}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )
+        })()}
 
         {/* 1. Take-up */}
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
-          <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>1. Take-up acumulado · {fYear}{fQuarter[0]?' '+fQuarter[0]:''}</div>
-          <HierarchyTable data={d.takeup} cols={[{key:'m2',label:'m² Take-up',fmt:v=>v.toLocaleString('es-ES')+' m²'}]} onRowClick={()=>navigate('activos')}/>
+          <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>
+            1. {linea.id==='inversion' ? 'Volumen de inversión' : 'Take-up acumulado'} · {fYear}{fQuarter[0]?' '+fQuarter[0]:''}
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
+            <div style={{borderRight:'1px solid var(--border)'}}>
+              <HierarchyTable data={d.takeup} cols={[{key:'m2',label:'m²',fmt:v=>v.toLocaleString('es-ES')+' m²'}]} onRowClick={()=>navigate('activos')}/>
+            </div>
+            <div>
+              <BarChart items={[...new Set(d.takeup.map(r=>r.area))].map(a=>({label:a,value:d.takeup.filter(r=>r.area===a).reduce((s,r)=>s+r.m2,0)}))} />
+            </div>
+          </div>
         </div>
 
         {/* 2. Disponibilidad */}
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
           <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>2. Disponibilidad actual</div>
-          <HierarchyTable data={d.disponibilidad} cols={[{key:'m2',label:'m² Disponible',fmt:v=>v.toLocaleString('es-ES')+' m²'},{key:'activos',label:'Nº activos'}]} onRowClick={()=>navigate('ofertas')}/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
+            <div style={{borderRight:'1px solid var(--border)'}}>
+              <HierarchyTable data={d.disponibilidad} cols={[{key:'m2',label:'m² Disponible',fmt:v=>v.toLocaleString('es-ES')+' m²'},{key:'activos',label:'Activos'}]} onRowClick={()=>navigate('ofertas')}/>
+            </div>
+            <div>
+              <BarChart color="var(--amber)" items={[...new Set(d.disponibilidad.map(r=>r.area))].map(a=>({label:a,value:d.disponibilidad.filter(r=>r.area===a).reduce((s,r)=>s+r.m2,0)}))} />
+            </div>
+          </div>
         </div>
+
+        {/* Evolución trimestral */}
+        {d.trend && (
+          <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+            <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>
+              {linea.id==='inversion' ? '3a. Evolución volumen inversión · €M' : '3a. Evolución take-up trimestral · m²'}
+            </div>
+            <LineChart points={d.trend} />
+          </div>
+        )}
 
         {/* 3. Transacciones */}
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
           <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>3. Transacciones cerradas</div>
-          <table className="dtbl">
-            <thead><tr><th>Arrendatario</th><th>Edificio</th><th>Dirección</th><th>Zona</th><th>m²</th><th>Renta €/m²/mes</th><th>Período</th></tr></thead>
-            <tbody>
-              {d.transacciones.map((t,i)=>(
-                <tr key={i} onClick={()=>navigate('ficha-arrendatario')} style={{cursor:'pointer'}}>
-                  <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{t.arrendatario}</td>
-                  <td style={{fontSize:11}}><span className="asset-link" onClick={e=>{e.stopPropagation();navigate('ficha-activo')}}>{t.activo}</span></td>
-                  <td style={{fontSize:10,color:'var(--text3)'}}>{t.direccion}</td>
-                  <td style={{fontSize:11}}>{t.zona} · {t.subzona}</td>
-                  <td className="mono" style={{fontSize:11}}>{t.m2.toLocaleString('es-ES')}</td>
-                  <td className="mono" style={{fontSize:11,fontWeight:700,color:'var(--teal)'}}>{t.renta}</td>
-                  <td style={{fontSize:11,color:'var(--text3)'}}>{t.fecha}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {linea.id === 'inversion' ? (
+            <table className="dtbl">
+              <thead><tr><th>Comprador</th><th>Vendedor</th><th>Activo</th><th>Dirección</th><th>m²</th><th>Precio M€</th><th>Yield %</th><th>Período</th></tr></thead>
+              <tbody>
+                {d.transacciones.map((t,i)=>(
+                  <tr key={i} onClick={()=>navigate('portfolio')} style={{cursor:'pointer'}}>
+                    <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{t.comprador}</td>
+                    <td style={{fontSize:11,color:'var(--text3)'}}>{t.vendedor}</td>
+                    <td style={{fontSize:11}}><span className="asset-link" onClick={e=>{e.stopPropagation();navigate('ficha-activo')}}>{t.activo}</span></td>
+                    <td style={{fontSize:10,color:'var(--text3)'}}>{t.direccion}</td>
+                    <td className="mono" style={{fontSize:11}}>{t.m2.toLocaleString('es-ES')}</td>
+                    <td className="mono" style={{fontSize:11,fontWeight:700,color:'var(--accent)'}}>{t.precio}</td>
+                    <td className="mono" style={{fontSize:11,fontWeight:700,color:'var(--teal)'}}>{t.yield_}%</td>
+                    <td style={{fontSize:11,color:'var(--text3)'}}>{t.fecha}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <table className="dtbl">
+              <thead><tr><th>Arrendatario</th><th>Edificio</th><th>Dirección</th><th>Zona</th><th>m²</th><th>Renta €/m²/mes</th><th>Período</th></tr></thead>
+              <tbody>
+                {d.transacciones.map((t,i)=>(
+                  <tr key={i} onClick={()=>navigate('ficha-arrendatario')} style={{cursor:'pointer'}}>
+                    <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{t.arrendatario}</td>
+                    <td style={{fontSize:11}}><span className="asset-link" onClick={e=>{e.stopPropagation();navigate('ficha-activo')}}>{t.activo}</span></td>
+                    <td style={{fontSize:10,color:'var(--text3)'}}>{t.direccion}</td>
+                    <td style={{fontSize:11}}>{t.zona} · {t.subzona}</td>
+                    <td className="mono" style={{fontSize:11}}>{t.m2.toLocaleString('es-ES')}</td>
+                    <td className="mono" style={{fontSize:11,fontWeight:700,color:'var(--teal)'}}>{t.renta}</td>
+                    <td style={{fontSize:11,color:'var(--text3)'}}>{t.fecha}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* 4 & 5. Top 10 */}
@@ -481,18 +720,23 @@ function InformeLinea({ linea, navigate }) {
 
         {/* 6. Sector de actividad */}
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
-          <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>6. Sector de actividad con más contratación</div>
-          <div style={{padding:'12px 14px'}}>
-            {d.sectores.map((s,i)=>(
-              <div key={s.sector} style={{display:'flex',alignItems:'center',gap:10,marginBottom:7}}>
-                <div style={{width:16,fontSize:10,fontWeight:700,color:'var(--text4)',textAlign:'right',fontFamily:'var(--mono)',flexShrink:0}}>{i+1}</div>
-                <div style={{width:120,fontSize:10,color:'var(--text2)',flexShrink:0}}>{s.sector}</div>
-                <div style={{flex:1,height:7,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
-                  <div style={{height:'100%',width:`${Math.round(s.m2/maxSector*100)}%`,background:'var(--accent)',borderRadius:4}}/>
+          <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>
+            {linea.id==='inversion' ? '6. Distribución por tipo de activo' : '6. Sector de actividad con más contratación'}
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr auto',gap:0}}>
+            <div style={{padding:'12px 14px',borderRight:'1px solid var(--border)'}}>
+              {d.sectores.map((s,i)=>(
+                <div key={s.sector} style={{display:'flex',alignItems:'center',gap:10,marginBottom:7}}>
+                  <div style={{width:16,fontSize:10,fontWeight:700,color:'var(--text4)',textAlign:'right',fontFamily:'var(--mono)',flexShrink:0}}>{i+1}</div>
+                  <div style={{width:120,fontSize:10,color:'var(--text2)',flexShrink:0}}>{s.sector}</div>
+                  <div style={{flex:1,height:7,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
+                    <div style={{height:'100%',width:`${Math.round(s.m2/maxSector*100)}%`,background:'var(--accent)',borderRadius:4}}/>
+                  </div>
+                  <div style={{width:70,fontSize:10,fontWeight:700,fontFamily:'var(--mono)',textAlign:'right',flexShrink:0}}>{s.m2.toLocaleString('es-ES')} m²</div>
                 </div>
-                <div style={{width:70,fontSize:10,fontWeight:700,fontFamily:'var(--mono)',textAlign:'right',flexShrink:0}}>{s.m2.toLocaleString('es-ES')} m²</div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <DonutChart items={d.sectores.map(s=>({label:s.sector,value:s.m2}))} />
           </div>
         </div>
 
@@ -585,23 +829,44 @@ function InformeLinea({ linea, navigate }) {
               <span>11. Todas las operaciones · {fYear}</span>
               <span style={{fontSize:10,color:'var(--text4)',fontWeight:400}}>{d.ops_anio.length} operaciones</span>
             </div>
-            <table className="dtbl">
-              <thead><tr><th>Arrendatario</th><th>Edificio</th><th>Dirección</th><th>Zona</th><th>m²</th><th>€/m²/mes</th><th>Tipo</th><th>Período</th></tr></thead>
-              <tbody>
-                {d.ops_anio.map((op,i)=>(
-                  <tr key={i} onClick={()=>navigate('ficha-arrendatario')} style={{cursor:'pointer'}}>
-                    <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{op.arrendatario}</td>
-                    <td style={{fontSize:11}}><span className="asset-link" onClick={e=>{e.stopPropagation();navigate('ficha-activo')}}>{op.activo}</span></td>
-                    <td style={{fontSize:10,color:'var(--text3)'}}>{op.direccion}</td>
-                    <td style={{fontSize:11,color:'var(--text3)'}}>{op.zona}</td>
-                    <td className="mono" style={{fontSize:11}}>{op.m2.toLocaleString('es-ES')}</td>
-                    <td className="mono" style={{fontSize:11,fontWeight:700,color:'var(--teal)'}}>{op.renta}</td>
-                    <td><span style={{fontSize:9,padding:'1px 6px',borderRadius:6,border:'1px solid var(--border)',background:'var(--gray-lt)',color:'var(--text3)',fontWeight:600}}>{op.tipo}</span></td>
-                    <td style={{fontSize:11,color:'var(--text3)'}}>{op.fecha}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {linea.id === 'inversion' ? (
+              <table className="dtbl">
+                <thead><tr><th>Comprador</th><th>Vendedor</th><th>Activo</th><th>Dirección</th><th>Zona</th><th>m²</th><th>Precio M€</th><th>Yield %</th><th>Período</th></tr></thead>
+                <tbody>
+                  {d.ops_anio.map((op,i)=>(
+                    <tr key={i} onClick={()=>navigate('portfolio')} style={{cursor:'pointer'}}>
+                      <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{op.comprador}</td>
+                      <td style={{fontSize:11,color:'var(--text3)'}}>{op.vendedor}</td>
+                      <td style={{fontSize:11}}><span className="asset-link" onClick={e=>{e.stopPropagation();navigate('ficha-activo')}}>{op.activo}</span></td>
+                      <td style={{fontSize:10,color:'var(--text3)'}}>{op.direccion}</td>
+                      <td style={{fontSize:11,color:'var(--text3)'}}>{op.zona}</td>
+                      <td className="mono" style={{fontSize:11}}>{op.m2.toLocaleString('es-ES')}</td>
+                      <td className="mono" style={{fontSize:11,fontWeight:700,color:'var(--accent)'}}>{op.precio}</td>
+                      <td className="mono" style={{fontSize:11,fontWeight:700,color:'var(--teal)'}}>{op.yield_}%</td>
+                      <td style={{fontSize:11,color:'var(--text3)'}}>{op.fecha}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <table className="dtbl">
+                <thead><tr><th>Arrendatario</th><th>Edificio</th><th>Dirección</th><th>Zona</th><th>m²</th><th>€/m²/mes</th><th>Tipo</th><th>Período</th></tr></thead>
+                <tbody>
+                  {d.ops_anio.map((op,i)=>(
+                    <tr key={i} onClick={()=>navigate('ficha-arrendatario')} style={{cursor:'pointer'}}>
+                      <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{op.arrendatario}</td>
+                      <td style={{fontSize:11}}><span className="asset-link" onClick={e=>{e.stopPropagation();navigate('ficha-activo')}}>{op.activo}</span></td>
+                      <td style={{fontSize:10,color:'var(--text3)'}}>{op.direccion}</td>
+                      <td style={{fontSize:11,color:'var(--text3)'}}>{op.zona}</td>
+                      <td className="mono" style={{fontSize:11}}>{op.m2.toLocaleString('es-ES')}</td>
+                      <td className="mono" style={{fontSize:11,fontWeight:700,color:'var(--teal)'}}>{op.renta}</td>
+                      <td><span style={{fontSize:9,padding:'1px 6px',borderRadius:6,border:'1px solid var(--border)',background:'var(--gray-lt)',color:'var(--text3)',fontWeight:600}}>{op.tipo}</span></td>
+                      <td style={{fontSize:11,color:'var(--text3)'}}>{op.fecha}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
 

@@ -180,7 +180,7 @@ function StackingPlan() {
   const [editFloorSupVal, setEditFloorSupVal] = useState('')
 
   const edif = buildings.find(b=>b.id===edifId) || buildings[0]
-  const usoInfo  = (id) => USOS_PPAL.find(u=>u.id===id) || {label:id,color:'#94a3b8',bg:'#f1f5f9',bd:'#cbd5e1'}
+  const usoInfo  = (id) => USOS_PPAL.find(u=>u.id===id) || UA_ALL.find(u=>u.id===id) || {label:id,color:'#94a3b8',bg:'#f1f5f9',bd:'#cbd5e1'}
   const uaInfo   = (id) => UA_ALL.find(u=>u.id===id)   || {label:id,color:'#64748b',bg:'#f1f5f9',bd:'#cbd5e1',attr:false}
 
   /* ── Stats derivados ── */
@@ -285,9 +285,10 @@ function StackingPlan() {
   const onDrop = (e, floor, layer) => {
     e.preventDefault(); setDragTarget(null)
     if(!dragging) return
-    if(layer==='adicional') { assignAdicional(floor.id, dragging); setDragging(null); return }
+    const isUA = !!UA_ALL.find(u=>u.id===dragging)
     const used=floor.principal.reduce((s,u)=>s+u.sup,0)
     const avail=floor.sup-used
+    if(layer==='adicional' || (isUA && avail<=0)) { assignAdicional(floor.id, dragging); setDragging(null); return }
     if(avail<=0) { setSplitModal({floorId:floor.id,usoId:dragging}); setSplitSup('') }
     else { assignPrincipal(floor.id,dragging,avail) }
     setDragging(null)
@@ -482,10 +483,10 @@ function StackingPlan() {
                   onDrop={e=>{
                     e.preventDefault(); setDragTarget(null)
                     if(!dragging) return
-                    const isUA = UA_ALL.find(u=>u.id===dragging)
-                    if(isUA){ assignAdicional(floor.id,dragging); setDragging(null); return }
+                    const isUA = !!UA_ALL.find(u=>u.id===dragging)
                     const used2=floor.principal.reduce((s,u)=>s+u.sup,0)
                     const avail2=floor.sup-used2
+                    if(isUA && avail2<=0){ assignAdicional(floor.id,dragging); setDragging(null); return }
                     if(avail2<=0){ setSplitModal({floorId:floor.id,usoId:dragging}); setSplitSup('') }
                     else{ assignPrincipal(floor.id,dragging,avail2) }
                     setDragging(null)
