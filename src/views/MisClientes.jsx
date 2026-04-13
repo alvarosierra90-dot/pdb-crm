@@ -36,6 +36,21 @@ const NEGS_CLIENTES = [
   {ref:'NEG-0044',cuenta:'Empresa XYZ',            activo:'Avalon — Santa Leonor',estado:'En negociación',     cierre:'30/03/2026'},
 ]
 
+const OPORS_CLIENTES = [
+  {ref:'OPO-2501',cuenta:'Oracle Spain SL',      activo:'Albatros — Edif. D',   tipo:'Arrendamiento',sup:'13.486 m²',estado:'En curso',      prob:'75%',cierre:'30/04/2026',u:'Sierra Alvaro'},
+  {ref:'OPO-2502',cuenta:'Generali Real Estate', activo:'P.E Avalon — P5',      tipo:'Arrendamiento',sup:'1.500 m²', estado:'Acuerdo alcanzado',prob:'95%',cierre:'15/04/2026',u:'Sierra Alvaro'},
+  {ref:'OPO-2503',cuenta:'Grupo Mediática España',activo:'Torre Norte',          tipo:'Arrendamiento',sup:'16.000 m²',estado:'Potencial',     prob:'30%',cierre:'30/09/2026',u:'GOMEZ Ignacio'},
+]
+
+const OFERTAS_CLIENTES = [
+  {ref:'OFR-0017',cuenta:'ISDE',                 activo:'Albatros — Edif. D',   sup:'1.200 m²',renta:'16 €/m²/mes',estado:'En curso',     fecha:'08/10/2025',u:'Sierra Alvaro'},
+  {ref:'OFR-0038',cuenta:'Oracle Spain SL',       activo:'Albatros — Edif. D',   sup:'13.486 m²',renta:'14,5 €/m²/mes',estado:'Finalista',fecha:'15/03/2026',u:'Sierra Alvaro'},
+]
+
+const TRANS_CLIENTES = [
+  {ref:'TRN-2501',cuenta:'Generali Real Estate', activo:'P.E Avalon — P5',      tipo:'Instrucción',linea:'Oficinas',sup:'1.500 m²',renta:'18,5 €/m²/mes',fecha_cierre:'15/04/2026',fees:'85.000 €',estado:'Firmado',u:'Sierra Alvaro'},
+]
+
 const TIPO_TAG = { Email:'tag-blue', Llamada:'tag-green', 'Reunión':'tag-purple', Nota:'tag-amber', Tarea:'tag-gray' }
 const TIPO_ICO = { Email:'📧', Llamada:'📞', 'Reunión':'🤝', Nota:'📝', Tarea:'✅' }
 const EST_TAG  = { 'Abierto':'tag-amber', 'Finalizado':'tag-gray', 'En Curso':'tag-green', 'En negociación':'tag-amber', 'Pendiente respuesta':'tag-amber', 'Acuerdo alcanzado':'tag-green' }
@@ -59,6 +74,9 @@ export default function MisClientes() {
   )
   const demandasFiltered = DEMANDAS_CLIENTES.filter(d => clientes.includes(d.cuenta))
   const negsFiltered     = NEGS_CLIENTES.filter(n => clientes.includes(n.cuenta))
+  const oporsFiltered    = OPORS_CLIENTES.filter(o => clientes.includes(o.cuenta))
+  const ofertasFiltered  = OFERTAS_CLIENTES.filter(o => clientes.includes(o.cuenta))
+  const transFiltered    = TRANS_CLIENTES.filter(t => clientes.includes(t.cuenta))
 
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
@@ -106,18 +124,20 @@ export default function MisClientes() {
       )}
 
       {/* KPIs */}
-      <div className="kpi-strip" style={{gridTemplateColumns:'repeat(5,1fr)',flexShrink:0}}>
+      <div className="kpi-strip" style={{gridTemplateColumns:'repeat(7,1fr)',flexShrink:0}}>
         <div className="ks"><div className="ks-lbl">Cuentas seguidas</div><div className="ks-val" style={{color:'var(--accent)'}}>{clientes.length}</div></div>
         <div className="ks"><div className="ks-lbl">Actividades</div><div className="ks-val">{actsFiltered.length}</div></div>
         <div className="ks"><div className="ks-lbl">Demandas activas</div><div className="ks-val green">{demandasFiltered.length}</div></div>
         <div className="ks"><div className="ks-lbl">Negociaciones</div><div className="ks-val amber">{negsFiltered.length}</div></div>
-        <div className="ks"><div className="ks-lbl">Abiertas</div><div className="ks-val" style={{color:'var(--amber)'}}>{actsFiltered.filter(a=>a.est==='Abierto').length}</div></div>
+        <div className="ks"><div className="ks-lbl">Oportunidades</div><div className="ks-val" style={{color:'var(--purple)'}}>{oporsFiltered.length}</div></div>
+        <div className="ks"><div className="ks-lbl">Ofertas</div><div className="ks-val" style={{color:'var(--teal)'}}>{ofertasFiltered.length}</div></div>
+        <div className="ks"><div className="ks-lbl">Transacciones</div><div className="ks-val" style={{color:'var(--green)'}}>{transFiltered.length}</div></div>
       </div>
 
       {/* Toolbar + tabs */}
       <div style={{padding:'8px 16px',background:'var(--surface)',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
         <div className="tabs" style={{margin:0,padding:0,border:'none',background:'none',gap:2}}>
-          {[['actividades','Actividades'],['demandas','Demandas'],['negociaciones','Negociaciones']].map(([k,l])=>(
+          {[['actividades','Actividades'],['demandas','Demandas'],['negociaciones','Negociaciones'],['oportunidades','Oportunidades'],['ofertas','Ofertas'],['transacciones','Transacción / Instrucción']].map(([k,l])=>(
             <div key={k} className={`tab ${tab===k?'active':''}`} style={{margin:0}} onClick={()=>setTab(k)}>{l}</div>
           ))}
         </div>
@@ -213,6 +233,101 @@ export default function MisClientes() {
                     <td style={{fontSize:11}}>{n.activo}</td>
                     <td><span className={`tag ${EST_TAG[n.estado]||'tag-gray'}`}>{n.estado}</span></td>
                     <td style={{fontSize:11,fontWeight:600,color:'var(--text2)'}}>{n.cierre}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Tabla oportunidades */}
+      {tab === 'oportunidades' && (
+        <div className="tbl-wrap">
+          <table className="main-tbl">
+            <thead>
+              <tr>{['Ref.','Cuenta','Activo','Tipo','Superficie','Probabilidad','Cierre est.','Estado','Consultor'].map(h=><th key={h}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {oporsFiltered.length === 0
+                ? <tr><td colSpan={9} style={{textAlign:'center',padding:32,color:'var(--text4)',fontSize:12}}>No hay oportunidades para los clientes seleccionados</td></tr>
+                : oporsFiltered.map(o=>(
+                  <tr key={o.ref} onClick={()=>navigate('ficha-negociacion')} style={{cursor:'pointer'}}>
+                    <td><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{o.ref}</span></td>
+                    <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{o.cuenta}</td>
+                    <td style={{fontSize:11}}>{o.activo}</td>
+                    <td><span className="tag tag-purple" style={{fontSize:9}}>{o.tipo}</span></td>
+                    <td className="mono" style={{fontSize:11}}>{o.sup}</td>
+                    <td>
+                      <div style={{display:'flex',alignItems:'center',gap:6}}>
+                        <div style={{width:40,height:5,borderRadius:3,background:'var(--border)',overflow:'hidden'}}>
+                          <div style={{width:o.prob,height:'100%',background:'var(--accent)',borderRadius:3}}/>
+                        </div>
+                        <span style={{fontSize:11,fontFamily:'var(--mono)',fontWeight:600}}>{o.prob}</span>
+                      </div>
+                    </td>
+                    <td style={{fontSize:11}}>{o.cierre}</td>
+                    <td><span className={`tag ${EST_TAG[o.estado]||'tag-gray'}`}>{o.estado}</span></td>
+                    <td style={{fontSize:11}}>{o.u}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Tabla ofertas */}
+      {tab === 'ofertas' && (
+        <div className="tbl-wrap">
+          <table className="main-tbl">
+            <thead>
+              <tr>{['Ref.','Cuenta','Activo','Superficie','Renta asking','Fecha','Estado','Consultor'].map(h=><th key={h}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {ofertasFiltered.length === 0
+                ? <tr><td colSpan={8} style={{textAlign:'center',padding:32,color:'var(--text4)',fontSize:12}}>No hay ofertas para los clientes seleccionados</td></tr>
+                : ofertasFiltered.map(o=>(
+                  <tr key={o.ref} onClick={()=>navigate('ficha-oferta')} style={{cursor:'pointer'}}>
+                    <td><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{o.ref}</span></td>
+                    <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{o.cuenta}</td>
+                    <td style={{fontSize:11}}>{o.activo}</td>
+                    <td className="mono" style={{fontSize:11}}>{o.sup}</td>
+                    <td className="mono" style={{fontSize:11,fontWeight:600,color:'var(--teal)'}}>{o.renta}</td>
+                    <td style={{fontSize:11,color:'var(--text3)'}}>{o.fecha}</td>
+                    <td><span className={`tag ${EST_TAG[o.estado]||'tag-gray'}`}>{o.estado}</span></td>
+                    <td style={{fontSize:11}}>{o.u}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Tabla transacciones / instrucciones */}
+      {tab === 'transacciones' && (
+        <div className="tbl-wrap">
+          <table className="main-tbl">
+            <thead>
+              <tr>{['Ref.','Cuenta','Activo','Tipo','Línea','Superficie','Renta/Precio','Cierre','Fees','Estado','Consultor'].map(h=><th key={h}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {transFiltered.length === 0
+                ? <tr><td colSpan={11} style={{textAlign:'center',padding:32,color:'var(--text4)',fontSize:12}}>No hay transacciones / instrucciones para los clientes seleccionados</td></tr>
+                : transFiltered.map(t=>(
+                  <tr key={t.ref} onClick={()=>navigate('ficha-arrendatario')} style={{cursor:'pointer'}}>
+                    <td><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{t.ref}</span></td>
+                    <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{t.cuenta}</td>
+                    <td style={{fontSize:11}}>{t.activo}</td>
+                    <td><span className="tag tag-teal" style={{fontSize:9}}>{t.tipo}</span></td>
+                    <td style={{fontSize:11}}>{t.linea}</td>
+                    <td className="mono" style={{fontSize:11}}>{t.sup}</td>
+                    <td className="mono" style={{fontSize:11,fontWeight:600,color:'var(--teal)'}}>{t.renta}</td>
+                    <td style={{fontSize:11}}>{t.fecha_cierre}</td>
+                    <td className="mono" style={{fontSize:11,fontWeight:700,color:'var(--green)'}}>{t.fees}</td>
+                    <td><span className={`tag ${EST_TAG[t.estado]||'tag-gray'}`}>{t.estado}</span></td>
+                    <td style={{fontSize:11}}>{t.u}</td>
                   </tr>
                 ))
               }

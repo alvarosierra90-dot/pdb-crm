@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 
-const TABS = ['datos','equipos','trazabilidad','resumen']
-const TAB_LABELS = ['📋 Datos del proyecto','👥 Equipos y participantes','🔄 Trazabilidad','📊 Resumen']
+const TABS = ['datos','equipos','trazabilidad','docs','resumen']
+const TAB_LABELS = ['📋 Datos del proyecto','👥 Equipos y participantes','🔄 Trazabilidad','📁 Documentación','📊 Resumen']
 
 const TIPOS = ['Pitch','Valoración','Propuesta de servicios','Mandato comercial','Consultoría','Urbanismo','Proyecto de arquitectura / workplace']
 const ESTADOS = ['Activo','Standby','Cancelado','Adjudicado']
@@ -112,6 +112,14 @@ export default function FichaPropuesta() {
   const removeEquipo = (i) => setEquipos(e => e.filter((_,idx)=>idx!==i))
 
   const [showTarea, setShowTarea] = useState(false)
+  const [docs, setDocs] = useState([
+    {id:'DOC-001',nombre:'Presentación Pitch BBVA v1.pdf',tipo:'Presentación',fecha:'20/03/2026',size:'4.2 MB',u:'Sierra Alvaro'},
+    {id:'DOC-002',nombre:'Comparativa mercado CBD Q1 2026.xlsx',tipo:'Análisis',fecha:'28/03/2026',size:'1.1 MB',u:'GOMEZ Ignacio'},
+    {id:'DOC-003',nombre:'NDA firmado BBVA.pdf',tipo:'Legal',fecha:'20/03/2026',size:'0.3 MB',u:'Sierra Alvaro'},
+  ])
+  const [showUploadDoc, setShowUploadDoc] = useState(false)
+  const [newDocNombre, setNewDocNombre]   = useState('')
+  const [newDocTipo,   setNewDocTipo]     = useState('Presentación')
 
   const feesNum = parseFloat(form.fees.replace(/[^0-9]/g,'')) || 0
   const feesAdj = feesNum * (parseInt(form.probabilidad)/100)
@@ -472,6 +480,72 @@ export default function FichaPropuesta() {
               </div>
             </div>
             </div>
+          )}
+
+          {/* TAB DOCUMENTACIÓN */}
+          {tab==='docs' && (
+            <div className="tab-content active"><div className="info-pad">
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                <div style={{fontSize:12,fontWeight:700}}>📁 Documentación del proyecto</div>
+                <button className="ab-btn blue" style={{padding:'4px 12px',fontSize:10}} onClick={()=>setShowUploadDoc(v=>!v)}>+ Añadir documento</button>
+              </div>
+
+              {showUploadDoc && (
+                <div style={{background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:12,marginBottom:12,display:'flex',gap:8,alignItems:'flex-end',flexWrap:'wrap'}}>
+                  <div style={{display:'flex',flexDirection:'column',gap:3,flex:2,minWidth:200}}>
+                    <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Nombre</span>
+                    <input className="of-inp" style={{fontSize:11}} value={newDocNombre} onChange={e=>setNewDocNombre(e.target.value)} placeholder="Nombre del documento"/>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                    <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Tipo</span>
+                    <select className="of-sel" style={{fontSize:11}} value={newDocTipo} onChange={e=>setNewDocTipo(e.target.value)}>
+                      {['Presentación','Análisis','Legal','Propuesta','Informe','Plano','Foto','Otro'].map(t=><option key={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <button className="ab-btn blue" style={{padding:'4px 12px',fontSize:10}} onClick={()=>{
+                    if(!newDocNombre) return
+                    const d = new Date()
+                    setDocs(prev=>[...prev,{
+                      id:`DOC-${String(prev.length+1).padStart(3,'0')}`,
+                      nombre:newDocNombre, tipo:newDocTipo,
+                      fecha:`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`,
+                      size:'—', u:'Sierra Alvaro'
+                    }])
+                    setNewDocNombre('')
+                    setShowUploadDoc(false)
+                  }}>Guardar</button>
+                  <button className="ab-btn" style={{padding:'4px 12px',fontSize:10}} onClick={()=>setShowUploadDoc(false)}>Cancelar</button>
+                </div>
+              )}
+
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:10}}>
+                {docs.map(doc=>{
+                  const tipo_color = {Presentación:'var(--accent)',Análisis:'var(--teal)',Legal:'var(--red)',Propuesta:'var(--purple)',Informe:'var(--amber)',Plano:'var(--text2)',Foto:'var(--green)',Otro:'var(--text4)'}
+                  const tipo_ico   = {Presentación:'📊',Análisis:'📈',Legal:'⚖️',Propuesta:'📋',Informe:'📄',Plano:'📐',Foto:'🖼',Otro:'📎'}
+                  const col = tipo_color[doc.tipo]||'var(--text3)'
+                  return (
+                    <div key={doc.id} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'10px 12px',display:'flex',gap:10,alignItems:'flex-start',cursor:'pointer',transition:'border .15s'}}
+                      onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'}
+                      onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+                      <div style={{fontSize:22,flexShrink:0,marginTop:2}}>{tipo_ico[doc.tipo]||'📎'}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:11,fontWeight:600,color:'var(--text1)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{doc.nombre}</div>
+                        <div style={{display:'flex',gap:6,marginTop:4,flexWrap:'wrap',alignItems:'center'}}>
+                          <span style={{fontSize:9,padding:'1px 7px',borderRadius:8,background:col+'18',color:col,border:`1px solid ${col}33`,fontWeight:700}}>{doc.tipo}</span>
+                          <span style={{fontSize:9,color:'var(--text4)'}}>{doc.fecha}</span>
+                          <span style={{fontSize:9,color:'var(--text4)'}}>{doc.size}</span>
+                        </div>
+                        <div style={{fontSize:10,color:'var(--text3)',marginTop:3}}>{doc.u}</div>
+                      </div>
+                      <button onClick={(e)=>{e.stopPropagation();setDocs(prev=>prev.filter(d=>d.id!==doc.id))}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text4)',fontSize:12,padding:'0 2px',flexShrink:0}}>✕</button>
+                    </div>
+                  )
+                })}
+                {docs.length===0 && (
+                  <div style={{gridColumn:'1/-1',textAlign:'center',padding:40,color:'var(--text4)',fontSize:12}}>No hay documentos. Añade el primero.</div>
+                )}
+              </div>
+            </div></div>
           )}
 
           {/* TAB RESUMEN */}
