@@ -21,6 +21,7 @@ const SUGERENCIAS = [
     'Sugiere activos para Grupo Mediática España',
     '¿Qué mandatos están próximos a vencer?',
     '¿Qué clientes tienen más actividad este mes?',
+    '¿Qué edificios están obsoletos o son susceptibles de rehabilitación?',
   ]},
 ]
 
@@ -132,6 +133,29 @@ Activos del PDB que encajan:
 
 > ⚠️ **Nota:** Para cubrir el mínimo (13.000 m²) con un solo activo, Albatros D es la única opción en portfolio. Considera combinar plantas de Avalon si es flexible.`,
 
+  obsoleto: `**Activos con potencial de rehabilitación o reposicionamiento**
+
+Análisis basado en año de última rehabilitación, estado del edificio y posición de mercado:
+
+| Activo | Ubicación | Uso | Última rehab. | Estado | Riesgo obsolescencia |
+|--------|-----------|-----|--------------|--------|---------------------|
+| P.E Avalon — Edif. B | Madrid · M-30 | Oficinas | 2003 (sin rehab.) | Aceptable | 🔴 Alto |
+| Parque Empresarial Norte | Madrid · Periferia | Oficinas | 2001 | Desgastado | 🔴 Alto |
+| Torre Europa Valencia | Valencia · Mestalla | Oficinas | 2007 | Aceptable | 🟡 Medio |
+| Logístico Guadalajara | Guadalajara · A-2 | Logístico | 2008 | Funcional | 🟡 Medio |
+| Albatros — Edif. D | Madrid · A-1 | Oficinas | 2005 (rehab. 2019) | Bueno | 🟢 Bajo |
+
+**Criterios aplicados:**
+- Sin rehabilitación en los últimos 10 años
+- Calificación de estado inferior a "Bueno"
+- Rentas por debajo de la media de zona
+
+**Oportunidades detectadas:**
+- **P.E Avalon Edif. B** — candidato prioritario para captación de mandato de rehabilitación integral
+- **Parque Empresarial Norte** — reposicionamiento como flex/coworking viable dado su estado y ubicación
+
+> 💡 **Acción recomendada:** Contactar a los propietarios de los activos con riesgo alto para proponer una valoración actualizada y explorar mandatos de rehabilitación o venta oportunista.`,
+
   default: (msg) => `**Análisis PDB — respuesta IA**
 
 He analizado tu consulta: *"${msg}"*
@@ -155,6 +179,7 @@ function getResponse(msg) {
   if (m.includes('negoci') || m.includes('pipeline') || m.includes('cierre')) return AI_RESPONSES.pipeline
   if (m.includes('zona') || m.includes('tendencia') || m.includes('barcelona') || m.includes('madrid')) return AI_RESPONSES.zona
   if (m.includes('mandato') || m.includes('vencimi')) return AI_RESPONSES.mandato
+  if (m.includes('obsolet') || m.includes('rehabilit') || m.includes('reposicion')) return AI_RESPONSES.obsoleto
   if (m.includes('cliente') || m.includes('cuenta') || m.includes('actividad')) return AI_RESPONSES.cliente
   if (m.includes('mediática') || m.includes('mediatica') || m.includes('sugiere') || m.includes('recomiend')) return AI_RESPONSES.mediatica
   return AI_RESPONSES.default(msg)

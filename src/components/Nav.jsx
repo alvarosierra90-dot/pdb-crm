@@ -106,10 +106,6 @@ export default function Nav() {
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4M5 8h6M5 11h4"/></svg>
           Mandatos
         </div>
-        <div className={`nav-item ${isActive('vencimientos') ? 'active' : ''}`} onClick={() => navigate('vencimientos')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
-          Vencimientos
-        </div>
         <div className={`nav-item ${isActive('mapas') ? 'active' : ''}`} onClick={() => navigate('mapas')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M6 2L2 4v10l4-2 4 2 4-2V2l-4 2-4-2z"/></svg>
           Mapas
@@ -141,6 +137,10 @@ export default function Nav() {
         <div className={`nav-item ${isActive('inteligencia-comercial') ? 'active' : ''}`} onClick={() => navigate('inteligencia-comercial')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/><circle cx="8" cy="8" r="1" fill="currentColor"/></svg>
           Inteligencia Comercial
+        </div>
+        <div className={`nav-item ${isActive('vencimientos') ? 'active' : ''}`} onClick={() => navigate('vencimientos')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
+          Vencimientos
         </div>
         <div className={`nav-item ${isActive('noticias') ? 'active' : ''}`} onClick={() => navigate('noticias')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>
