@@ -1375,6 +1375,20 @@ function RightPanel({ navigate }) {
   )
 }
 
+/* ══ Actividades follow-up ══ */
+const TIPO_TAG_ACT = { Email:'tag-blue', Llamada:'tag-green', Reunión:'tag-purple', Tarea:'tag-gray', Visita:'tag-teal', Nota:'tag-gray' }
+const TIPO_ICO_ACT = { Email:'📧', Llamada:'📞', Reunión:'🤝', Tarea:'✅', Visita:'🏢', Nota:'📝' }
+const ACT_EST_ACT  = { Abierto:'tag-amber', Finalizado:'tag-gray', 'En curso':'tag-blue', Realizada:'tag-green' }
+const FOLLOWUP_ACTS = [
+  { id:'ACT-AV-01', tipo:'Reunión',  asunto:'Reunión propietario Barings — revisión estado comercialización Q1',   fecha:'15/01/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
+  { id:'ACT-AV-02', tipo:'Visita',   asunto:'Visita técnica Oracle Spain SL — P1–P4 Edif. D (13.486 m²)',         fecha:'20/02/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Realizada'  },
+  { id:'ACT-AV-03', tipo:'Email',    asunto:'Envío informe ocupación Q1 2026 al asset manager de Barings',        fecha:'01/03/2026', user:'GOMEZ Ignacio', initials:'GI', bg:'#fdf4ff', color:'#7e22ce', estado:'Finalizado' },
+  { id:'ACT-AV-04', tipo:'Llamada',  asunto:'Llamada Asset Manager Barings — interés mandato captación P4–P5',    fecha:'12/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
+  { id:'ACT-AV-05', tipo:'Reunión',  asunto:'Visita Oracle Spain — segunda visita + negociación condiciones',     fecha:'28/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
+  { id:'ACT-AV-06', tipo:'Email',    asunto:'Contraoferta Oracle enviada a propietario — pendiente validación',   fecha:'02/04/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
+  { id:'ACT-AV-07', tipo:'Tarea',    asunto:'Preparar informe de gestión mensual para Barings — deadline 15/04', fecha:'07/04/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'En curso'   },
+]
+
 /* ══ Rent Roll data ══ */
 const RENT_ROLL_ROWS = [
   { contrato:'CTR-2201', arrendatario:'Celonis Spain SL',    edificio:'Edif. A', planta:'P5', uso:'Oficinas', sup:1202, rentaM2:14.5, inicio:'01/01/2022', vencimiento:'31/10/2025', breakOpt:'31/10/2025', estado:'Arrendado' },
@@ -1981,10 +1995,48 @@ export default function FichaActivo() {
           {/* ── TAB: Follow-up ── */}
           {activeTab==='at-followup' && (
             <div className="tab-content active"><div className="info-pad">
-              <table className="pat-table">
-                <thead><tr><th>Fecha</th><th>Tipo</th><th>Contacto</th><th>Notas</th></tr></thead>
-                <tbody><tr><td>12/03/2026</td><td><span className="tag tag-blue">Llamada</span></td><td>Asset Manager</td><td>Interés en mandato captación P4-P5</td></tr></tbody>
-              </table>
+              {/* KPI strip */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:14}}>
+                {[
+                  {lbl:'Total actividades', val:FOLLOWUP_ACTS.length,                                                          color:'var(--text1)'},
+                  {lbl:'Reuniones / Visitas',val:FOLLOWUP_ACTS.filter(a=>a.tipo==='Reunión'||a.tipo==='Visita').length,         color:'var(--purple)'},
+                  {lbl:'Emails / Llamadas', val:FOLLOWUP_ACTS.filter(a=>a.tipo==='Email'||a.tipo==='Llamada').length,           color:'var(--accent)'},
+                  {lbl:'Pendientes',        val:FOLLOWUP_ACTS.filter(a=>a.estado==='Abierto'||a.estado==='En curso').length,    color:'var(--red)'},
+                ].map(k=>(
+                  <div key={k.lbl} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'8px 12px',textAlign:'center'}}>
+                    <div style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>{k.lbl}</div>
+                    <div style={{fontSize:18,fontWeight:800,fontFamily:'var(--mono)',color:k.color}}>{k.val}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:600}}>Seguimiento comercial del activo</div>
+                <button className="ab-btn blue">+ Registrar actividad</button>
+              </div>
+              <div className="info-block" style={{padding:0,overflow:'hidden'}}>
+                <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                  <thead>
+                    <tr>{['','ID','Tipo','Descripción','Fecha','Responsable','Estado'].map(h=>(
+                      <th key={h} style={{padding:'6px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                    ))}</tr>
+                  </thead>
+                  <tbody>
+                    {FOLLOWUP_ACTS.map(a=>(
+                      <tr key={a.id} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-actividad')}>
+                        <td style={{padding:'7px 10px',width:30}}>
+                          <div style={{width:26,height:26,borderRadius:'50%',background:a.bg,color:a.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700}}>{a.initials}</div>
+                        </td>
+                        <td style={{padding:'7px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{a.id}</span></td>
+                        <td style={{padding:'7px 12px'}}><span className={`tag ${TIPO_TAG_ACT[a.tipo]||'tag-gray'}`}>{TIPO_ICO_ACT[a.tipo]} {a.tipo}</span></td>
+                        <td style={{padding:'7px 12px',fontWeight:500,maxWidth:320}}>{a.asunto}</td>
+                        <td style={{padding:'7px 12px',color:'var(--text3)',whiteSpace:'nowrap'}}>{a.fecha}</td>
+                        <td style={{padding:'7px 12px',fontSize:10,color:'var(--text3)'}}>{a.user}</td>
+                        <td style={{padding:'7px 12px'}}><span className={`tag ${ACT_EST_ACT[a.estado]||'tag-gray'}`}>{a.estado}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div></div>
           )}
 

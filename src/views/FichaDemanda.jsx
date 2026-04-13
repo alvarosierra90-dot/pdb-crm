@@ -99,6 +99,23 @@ function CampoFisico({ campo, value, onChange }) {
   )
 }
 
+const TIPO_TAG_DEM = { Email:'tag-blue', Llamada:'tag-green', Reunión:'tag-purple', Tarea:'tag-gray', Visita:'tag-teal', Presentación:'tag-amber', Nota:'tag-gray' }
+const TIPO_ICO_DEM = { Email:'📧', Llamada:'📞', Reunión:'🤝', Tarea:'✅', Visita:'🏢', Presentación:'📤', Nota:'📝' }
+const ACT_EST_DEM  = { Abierto:'tag-amber', Finalizado:'tag-gray', 'En curso':'tag-blue', Realizada:'tag-green' }
+
+const DEM_ACTS = [
+  { id:'ACT-DEM-01', tipo:'Nota',         asunto:'Reunión interna equipo — análisis encaje demanda con portfolio Barings',          fecha:'18/10/2025', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
+  { id:'ACT-DEM-02', tipo:'Llamada',      asunto:'Llamada inicial con James Richardson (Dir. Real Estate) — briefing requisitos',  fecha:'22/10/2025', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
+  { id:'ACT-DEM-03', tipo:'Email',        asunto:'Envío de lista larga de activos candidatos (6 opciones en Madrid)',              fecha:'28/10/2025', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
+  { id:'ACT-DEM-04', tipo:'Presentación', asunto:'Presentación Albatros Edif. D — 13.486 m² A-1 Alcobendas',                     fecha:'13/11/2025', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
+  { id:'ACT-DEM-05', tipo:'Visita',       asunto:'Visita técnica Albatros Edif. D — James Richardson + Laura Martín',             fecha:'20/11/2025', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Realizada'  },
+  { id:'ACT-DEM-06', tipo:'Presentación', asunto:'Presentación P.E Avalon — 46.956 m² M-30 Julián Camarillo',                    fecha:'20/11/2025', user:'GOMEZ Ignacio', initials:'GI', bg:'#fdf4ff', color:'#7e22ce', estado:'Finalizado' },
+  { id:'ACT-DEM-07', tipo:'Email',        asunto:'Solicitud de condiciones económicas — Oracle Spain SL vs. Corp. Azuaga',         fecha:'05/12/2025', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
+  { id:'ACT-DEM-08', tipo:'Reunión',      asunto:'Reunión presencial Corp. Financiera Azuaga — revisión shortlist final',          fecha:'15/01/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
+  { id:'ACT-DEM-09', tipo:'Llamada',      asunto:'Llamada de seguimiento — confirmación decisión final Albatros',                  fecha:'10/02/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
+  { id:'ACT-DEM-10', tipo:'Tarea',        asunto:'Preparar borrador contrato — pendiente validación legal',                        fecha:'15/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'En curso'   },
+]
+
 const MOCK_PRESENTACIONES = [
   { id:'PRE-2501', activo:'Albatros Edif. D', zona:'A-1 · Alcobendas', sup:'13.486 m²', fecha:'13/11/2025', estado:'Visitado', visitado:true, fecha_visita:'20/11/2025' },
   { id:'PRE-2502', activo:'P.E Avalon', zona:'M-30 · Julián Camarillo', sup:'46.956 m²', fecha:'20/11/2025', estado:'Sin respuesta', visitado:false, fecha_visita:'' },
@@ -737,19 +754,50 @@ export default function FichaDemanda() {
           {/* ── TAB: Actividades ── */}
           {activeTab==='dem-act' && (
             <div className="tab-content active"><div className="info-pad">
-              <div style={{fontSize:11,fontWeight:600,marginBottom:10}}>Escala de tiempo</div>
-              <div style={{border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'8px 12px',display:'flex',alignItems:'center',gap:8,marginBottom:8,background:'var(--surface)'}}>
-                <input className="search-inp" style={{border:'none',padding:0,flex:1}} placeholder="Buscar escala de tiempo"/>
-                <button className="ab-btn blue" style={{padding:'3px 9px',fontSize:10}}>+ Actividad ▾</button>
+              {/* KPI strip */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:8,marginBottom:14}}>
+                {[
+                  {lbl:'Total actividades', val:DEM_ACTS.length,                                                   color:'var(--text1)'},
+                  {lbl:'Llamadas',          val:DEM_ACTS.filter(a=>a.tipo==='Llamada').length,                      color:'var(--green)'},
+                  {lbl:'Emails',            val:DEM_ACTS.filter(a=>a.tipo==='Email').length,                        color:'var(--accent)'},
+                  {lbl:'Visitas / pres.',   val:DEM_ACTS.filter(a=>a.tipo==='Visita'||a.tipo==='Presentación').length, color:'var(--teal)'},
+                  {lbl:'Pendientes',        val:DEM_ACTS.filter(a=>a.estado==='Abierto'||a.estado==='En curso').length, color:'var(--red)'},
+                ].map(k=>(
+                  <div key={k.lbl} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'8px 12px',textAlign:'center'}}>
+                    <div style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>{k.lbl}</div>
+                    <div style={{fontSize:18,fontWeight:800,fontFamily:'var(--mono)',color:k.color}}>{k.val}</div>
+                  </div>
+                ))}
               </div>
-              <div style={{border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'8px 12px',display:'flex',alignItems:'center',gap:8,marginBottom:20,background:'var(--surface)'}}>
-                <span style={{fontSize:14}}>✏️</span>
-                <input className="search-inp" style={{border:'none',padding:0,flex:1}} placeholder="Escriba una nota..."/>
+              {/* Header */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:600}}>Actividades vinculadas a la demanda</div>
+                <button className="ab-btn blue">+ Nueva actividad</button>
               </div>
-              <div style={{textAlign:'center',padding:50,color:'var(--text4)'}}>
-                <div style={{fontSize:32,marginBottom:8}}>📋</div>
-                <div style={{fontSize:13,fontWeight:600,color:'var(--text2)',marginBottom:6}}>Empezar</div>
-                <div style={{fontSize:11}}>Capturar y administrar todos los registros de la escala de tiempo.</div>
+              {/* Tabla */}
+              <div className="info-block" style={{padding:0,overflow:'hidden'}}>
+                <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                  <thead>
+                    <tr>{['','ID','Tipo','Descripción','Fecha','Responsable','Estado'].map(h=>(
+                      <th key={h} style={{padding:'6px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                    ))}</tr>
+                  </thead>
+                  <tbody>
+                    {DEM_ACTS.map(a=>(
+                      <tr key={a.id} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-actividad')}>
+                        <td style={{padding:'7px 10px',width:30}}>
+                          <div style={{width:26,height:26,borderRadius:'50%',background:a.bg,color:a.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700}}>{a.initials}</div>
+                        </td>
+                        <td style={{padding:'7px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{a.id}</span></td>
+                        <td style={{padding:'7px 12px'}}><span className={`tag ${TIPO_TAG_DEM[a.tipo]||'tag-gray'}`}>{TIPO_ICO_DEM[a.tipo]} {a.tipo}</span></td>
+                        <td style={{padding:'7px 12px',fontWeight:500,maxWidth:320}}>{a.asunto}</td>
+                        <td style={{padding:'7px 12px',color:'var(--text3)',whiteSpace:'nowrap'}}>{a.fecha}</td>
+                        <td style={{padding:'7px 12px',fontSize:10,color:'var(--text3)'}}>{a.user}</td>
+                        <td style={{padding:'7px 12px'}}><span className={`tag ${ACT_EST_DEM[a.estado]||'tag-gray'}`}>{a.estado}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div></div>
           )}

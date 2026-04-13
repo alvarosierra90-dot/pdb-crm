@@ -20,6 +20,21 @@ function diasHasta(fechaStr) {
 const TABS = ['datos','condiciones','alertas','historial']
 const TAB_LABELS = ['📋 Datos del arrendatario','💰 Condiciones económicas','🔔 Alertas y break option','🕐 Historial']
 
+const TIPO_TAG_ARR = { Email:'tag-blue', Llamada:'tag-green', Reunión:'tag-purple', Tarea:'tag-gray', Nota:'tag-gray', Alerta:'tag-red', Modificación:'tag-amber' }
+const TIPO_ICO_ARR = { Email:'📧', Llamada:'📞', Reunión:'🤝', Tarea:'✅', Nota:'📝', Alerta:'🔔', Modificación:'✏️' }
+const ACT_EST_ARR  = { Sistema:'tag-gray', 'Sierra Alvaro':'tag-blue', Automático:'tag-amber' }
+
+const HIST_ACTS = [
+  { id:'HST-001', tipo:'Nota',         asunto:'Arrendatario creado — Oracle Spain SL vinculado a Albatros Edif. D · 13.486 m²',        fecha:'01/07/2021', user:'Sierra Alvaro',  initials:'AS', bg:'#dbeafe', color:'#1e40af', origen:'Sierra Alvaro'  },
+  { id:'HST-002', tipo:'Modificación', asunto:'Actualización condiciones económicas — closing rent ajustado a 12,50 €/m²/mes',          fecha:'15/06/2023', user:'Sierra Alvaro',  initials:'AS', bg:'#dbeafe', color:'#1e40af', origen:'Sierra Alvaro'  },
+  { id:'HST-003', tipo:'Email',        asunto:'Email de renovación enviado a Carlos Méndez (Dir. Real Estate Oracle)',                   fecha:'01/04/2024', user:'Sierra Alvaro',  initials:'AS', bg:'#dbeafe', color:'#1e40af', origen:'Sierra Alvaro'  },
+  { id:'HST-004', tipo:'Alerta',       asunto:'Recordatorio automático — break option a 90 días (vencimiento 01/07/2024)',               fecha:'01/04/2024', user:'Sistema',        initials:'SY', bg:'#fff7ed', color:'#c2410c', origen:'Automático'     },
+  { id:'HST-005', tipo:'Llamada',      asunto:'Llamada Carlos Méndez — Oracle no ejercerá break option, confirma continuidad',          fecha:'15/05/2024', user:'Sierra Alvaro',  initials:'AS', bg:'#dbeafe', color:'#1e40af', origen:'Sierra Alvaro'  },
+  { id:'HST-006', tipo:'Alerta',       asunto:'Break option alcanzada — Oracle Spain SL no ha notificado decisión (vencida 01/07/2024)',fecha:'01/07/2024', user:'Sistema',        initials:'SY', bg:'#fff7ed', color:'#c2410c', origen:'Automático'     },
+  { id:'HST-007', tipo:'Reunión',      asunto:'Reunión de seguimiento anual — revisión condiciones y plazos',                           fecha:'10/01/2025', user:'GOMEZ Ignacio',  initials:'GI', bg:'#fdf4ff', color:'#7e22ce', origen:'Sierra Alvaro'  },
+  { id:'HST-008', tipo:'Nota',         asunto:'Oracle interesado en ampliar superficie — P3 disponible (13.486 m² adicionales)',        fecha:'15/02/2025', user:'Sierra Alvaro',  initials:'AS', bg:'#dbeafe', color:'#1e40af', origen:'Sierra Alvaro'  },
+]
+
 export default function FichaArrendatario() {
   const { navigate } = useNav()
   const [tab, setTab] = useState('datos')
@@ -369,19 +384,47 @@ export default function FichaArrendatario() {
           {tab==='historial' && (
             <div className="tab-content active">
               <div className="info-pad">
-                <div style={{fontSize:14,fontWeight:600,marginBottom:14}}>Historial del arrendatario <span style={{fontSize:10,fontWeight:400,color:'var(--text4)'}}>· AUDITABLE</span></div>
-                <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+                {/* KPI strip */}
+                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:14}}>
                   {[
-                    {color:'var(--red)',   msg:'Break option alcanzada — Oracle Spain SL no ha notificado decisión (vencida 01/07/2024)',date:'01/07/2024 · Automático'},
-                    {color:'var(--amber)', msg:'Recordatorio generado automáticamente — break option a 90 días',date:'01/04/2024 · Sistema'},
-                    {color:'var(--accent)',msg:'Sierra Alvaro actualizó condiciones económicas — closing rent ajustado a 12,50 €/m²',date:'15/06/2021 · Sierra Alvaro'},
-                    {color:'var(--green)', msg:'Arrendatario creado — Oracle Spain SL vinculado a Albatros Edif. D · 13.486 m²',date:'01/07/2021 · Sierra Alvaro'},
-                  ].map((e,i,arr)=>(
-                    <div key={i} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'10px 14px',borderBottom:i<arr.length-1?'1px solid var(--border)':'none'}}>
-                      <div style={{width:8,height:8,borderRadius:'50%',background:e.color,flexShrink:0,marginTop:4}}/>
-                      <div><div style={{fontSize:11,fontWeight:500}}>{e.msg}</div><div style={{fontSize:10,color:'var(--text4)'}}>{e.date}</div></div>
+                    {lbl:'Eventos totales',    val:HIST_ACTS.length,                                                     color:'var(--text1)'},
+                    {lbl:'Comunicaciones',     val:HIST_ACTS.filter(a=>['Email','Llamada','Reunión'].includes(a.tipo)).length, color:'var(--accent)'},
+                    {lbl:'Alertas sistema',    val:HIST_ACTS.filter(a=>a.tipo==='Alerta').length,                         color:'var(--red)'},
+                    {lbl:'Modificaciones',     val:HIST_ACTS.filter(a=>a.tipo==='Modificación'||a.tipo==='Nota').length,  color:'var(--amber)'},
+                  ].map(k=>(
+                    <div key={k.lbl} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'8px 12px',textAlign:'center'}}>
+                      <div style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>{k.lbl}</div>
+                      <div style={{fontSize:18,fontWeight:800,fontFamily:'var(--mono)',color:k.color}}>{k.val}</div>
                     </div>
                   ))}
+                </div>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                  <div style={{fontSize:11,fontWeight:600}}>Historial del arrendatario <span style={{fontSize:10,fontWeight:400,color:'var(--text4)'}}>· AUDITABLE</span></div>
+                  <button className="ab-btn blue">+ Registrar actividad</button>
+                </div>
+                <div className="info-block" style={{padding:0,overflow:'hidden'}}>
+                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                    <thead>
+                      <tr>{['','ID','Tipo','Descripción','Fecha','Usuario','Origen'].map(h=>(
+                        <th key={h} style={{padding:'6px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                      ))}</tr>
+                    </thead>
+                    <tbody>
+                      {[...HIST_ACTS].reverse().map(a=>(
+                        <tr key={a.id} style={{borderBottom:'1px solid var(--border)'}}>
+                          <td style={{padding:'7px 10px',width:30}}>
+                            <div style={{width:26,height:26,borderRadius:'50%',background:a.bg,color:a.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700}}>{a.initials}</div>
+                          </td>
+                          <td style={{padding:'7px 12px'}}><span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text3)'}}>{a.id}</span></td>
+                          <td style={{padding:'7px 12px'}}><span className={`tag ${TIPO_TAG_ARR[a.tipo]||'tag-gray'}`}>{TIPO_ICO_ARR[a.tipo]} {a.tipo}</span></td>
+                          <td style={{padding:'7px 12px',fontWeight:500,maxWidth:320}}>{a.asunto}</td>
+                          <td style={{padding:'7px 12px',color:'var(--text3)',whiteSpace:'nowrap'}}>{a.fecha}</td>
+                          <td style={{padding:'7px 12px',fontSize:10,color:'var(--text3)'}}>{a.user}</td>
+                          <td style={{padding:'7px 12px'}}><span className={`tag ${ACT_EST_ARR[a.origen]||'tag-gray'}`} style={{fontSize:9}}>{a.origen}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
