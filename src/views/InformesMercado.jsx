@@ -603,43 +603,81 @@ function InformeLinea({ linea, navigate }) {
           )
         })()}
 
+        {/* ── RESUMEN VISUAL ── */}
+        {(() => {
+          const isCapMkt = linea.id === 'inversion'
+          const takeupByArea = [...new Set(d.takeup.map(r=>r.area))].map(a=>({label:a, value:d.takeup.filter(r=>r.area===a).reduce((s,r)=>s+r.m2,0)}))
+          const dispByArea   = [...new Set(d.disponibilidad.map(r=>r.area))].map(a=>({label:a, value:d.disponibilidad.filter(r=>r.area===a).reduce((s,r)=>s+r.m2,0)}))
+          return (
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+              {/* Chart A: take-up / volumen por área */}
+              <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+                <div style={{padding:'8px 14px',borderBottom:'1px solid var(--border)',fontSize:10,fontWeight:600,color:'var(--text2)'}}>
+                  {isCapMkt ? 'Volumen inversión por mercado' : 'Take-up por área'}
+                </div>
+                <BarChart items={takeupByArea} height={100} />
+              </div>
+              {/* Chart B: disponibilidad por área */}
+              <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+                <div style={{padding:'8px 14px',borderBottom:'1px solid var(--border)',fontSize:10,fontWeight:600,color:'var(--text2)'}}>
+                  Disponibilidad por área
+                </div>
+                <BarChart items={dispByArea} color="var(--amber)" height={100} />
+              </div>
+              {/* Chart C: evolución trimestral */}
+              {d.trend ? (
+                <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+                  <div style={{padding:'8px 14px',borderBottom:'1px solid var(--border)',fontSize:10,fontWeight:600,color:'var(--text2)'}}>
+                    {isCapMkt ? 'Volumen inversión · €M' : 'Evolución take-up · m²'}
+                  </div>
+                  <LineChart points={d.trend} />
+                </div>
+              ) : (
+                <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+                  <div style={{padding:'8px 14px',borderBottom:'1px solid var(--border)',fontSize:10,fontWeight:600,color:'var(--text2)'}}>Distribución por sector</div>
+                  <DonutChart items={d.sectores.map(s=>({label:s.sector,value:s.m2}))} />
+                </div>
+              )}
+            </div>
+          )
+        })()}
+
+        {/* ── SEGUNDA FILA DE GRÁFICOS ── */}
+        {d.trend && (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+              <div style={{padding:'8px 14px',borderBottom:'1px solid var(--border)',fontSize:10,fontWeight:600,color:'var(--text2)'}}>Distribución por sector</div>
+              <DonutChart items={d.sectores.map(s=>({label:s.sector,value:s.m2}))} />
+            </div>
+            <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+              <div style={{padding:'8px 14px',borderBottom:'1px solid var(--border)',fontSize:10,fontWeight:600,color:'var(--text2)'}}>
+                {linea.id==='inversion' ? 'Precio medio €/m² por operación' : 'Renta media por operación'}
+              </div>
+              <BarChart
+                color="var(--teal)"
+                height={100}
+                items={d.transacciones.map(t=>({
+                  label: t.activo ? t.activo.split(' ').slice(0,2).join(' ') : '',
+                  value: linea.id==='inversion' ? (t.precio||0) : (t.renta||0)
+                }))}
+              />
+            </div>
+          </div>
+        )}
+
         {/* 1. Take-up */}
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
           <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>
             1. {linea.id==='inversion' ? 'Volumen de inversión' : 'Take-up acumulado'} · {fYear}{fQuarter[0]?' '+fQuarter[0]:''}
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
-            <div style={{borderRight:'1px solid var(--border)'}}>
-              <HierarchyTable data={d.takeup} cols={[{key:'m2',label:'m²',fmt:v=>v.toLocaleString('es-ES')+' m²'}]} onRowClick={()=>navigate('activos')}/>
-            </div>
-            <div>
-              <BarChart items={[...new Set(d.takeup.map(r=>r.area))].map(a=>({label:a,value:d.takeup.filter(r=>r.area===a).reduce((s,r)=>s+r.m2,0)}))} />
-            </div>
-          </div>
+          <HierarchyTable data={d.takeup} cols={[{key:'m2',label:'m²',fmt:v=>v.toLocaleString('es-ES')+' m²'}]} onRowClick={()=>navigate('activos')}/>
         </div>
 
         {/* 2. Disponibilidad */}
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
           <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>2. Disponibilidad actual</div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
-            <div style={{borderRight:'1px solid var(--border)'}}>
-              <HierarchyTable data={d.disponibilidad} cols={[{key:'m2',label:'m² Disponible',fmt:v=>v.toLocaleString('es-ES')+' m²'},{key:'activos',label:'Activos'}]} onRowClick={()=>navigate('ofertas')}/>
-            </div>
-            <div>
-              <BarChart color="var(--amber)" items={[...new Set(d.disponibilidad.map(r=>r.area))].map(a=>({label:a,value:d.disponibilidad.filter(r=>r.area===a).reduce((s,r)=>s+r.m2,0)}))} />
-            </div>
-          </div>
+          <HierarchyTable data={d.disponibilidad} cols={[{key:'m2',label:'m² Disponible',fmt:v=>v.toLocaleString('es-ES')+' m²'},{key:'activos',label:'Activos'}]} onRowClick={()=>navigate('ofertas')}/>
         </div>
-
-        {/* Evolución trimestral */}
-        {d.trend && (
-          <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
-            <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>
-              {linea.id==='inversion' ? '3a. Evolución volumen inversión · €M' : '3a. Evolución take-up trimestral · m²'}
-            </div>
-            <LineChart points={d.trend} />
-          </div>
-        )}
 
         {/* 3. Transacciones */}
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
@@ -682,41 +720,80 @@ function InformeLinea({ linea, navigate }) {
           )}
         </div>
 
-        {/* 4 & 5. Top 10 */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-          <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
-            <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>4. Top operaciones · Mayor superficie</div>
-            <table className="dtbl">
-              <thead><tr><th>#</th><th>Arrendatario</th><th>m²</th><th>€/m²/mes</th></tr></thead>
-              <tbody>
-                {d.top10_m2.map((r,i)=>(
-                  <tr key={i} onClick={()=>navigate('ficha-arrendatario')} style={{cursor:'pointer'}}>
-                    <td style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{i+1}</td>
-                    <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{r.arrendatario}</td>
-                    <td className="mono" style={{fontSize:11}}>{r.m2.toLocaleString('es-ES')}</td>
-                    <td className="mono" style={{fontSize:11,color:'var(--teal)',fontWeight:700}}>{r.renta}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* 4 & 5. Top operaciones */}
+        {linea.id === 'inversion' ? (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+              <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>4. Top operaciones · Mayor volumen (M€)</div>
+              <table className="dtbl">
+                <thead><tr><th>#</th><th>Comprador</th><th>Activo</th><th>Precio M€</th><th>m²</th></tr></thead>
+                <tbody>
+                  {d.top10_m2.map((r,i)=>(
+                    <tr key={i} onClick={()=>navigate('portfolio')} style={{cursor:'pointer'}}>
+                      <td style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{i+1}</td>
+                      <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{r.arrendatario}</td>
+                      <td style={{fontSize:11}}>{r.activo}</td>
+                      <td className="mono" style={{fontSize:11,fontWeight:700,color:'var(--accent)'}}>{(r.renta/1000).toFixed(1)} M€</td>
+                      <td className="mono" style={{fontSize:11}}>{r.m2.toLocaleString('es-ES')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+              <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>5. Top operaciones · Yield prime más bajo</div>
+              <table className="dtbl">
+                <thead><tr><th>#</th><th>Comprador</th><th>Activo</th><th>Yield %</th><th>m²</th></tr></thead>
+                <tbody>
+                  {d.top10_renta.map((r,i)=>(
+                    <tr key={i} onClick={()=>navigate('portfolio')} style={{cursor:'pointer'}}>
+                      <td style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{i+1}</td>
+                      <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{r.arrendatario}</td>
+                      <td style={{fontSize:11}}>{r.activo}</td>
+                      <td className="mono" style={{fontSize:11,fontWeight:800,color:'var(--teal)'}}>{r.renta}%</td>
+                      <td className="mono" style={{fontSize:11}}>{r.m2.toLocaleString('es-ES')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
-            <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>5. Top operaciones · Renta más alta</div>
-            <table className="dtbl">
-              <thead><tr><th>#</th><th>Arrendatario</th><th>€/m²/mes</th><th>m²</th></tr></thead>
-              <tbody>
-                {d.top10_renta.map((r,i)=>(
-                  <tr key={i} onClick={()=>navigate('ficha-arrendatario')} style={{cursor:'pointer'}}>
-                    <td style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{i+1}</td>
-                    <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{r.arrendatario}</td>
-                    <td className="mono" style={{fontSize:11,fontWeight:800,color:'var(--teal)'}}>{r.renta}</td>
-                    <td className="mono" style={{fontSize:11}}>{r.m2.toLocaleString('es-ES')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        ) : (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+              <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>4. Top operaciones · Mayor superficie</div>
+              <table className="dtbl">
+                <thead><tr><th>#</th><th>Arrendatario</th><th>m²</th><th>€/m²/mes</th></tr></thead>
+                <tbody>
+                  {d.top10_m2.map((r,i)=>(
+                    <tr key={i} onClick={()=>navigate('ficha-arrendatario')} style={{cursor:'pointer'}}>
+                      <td style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{i+1}</td>
+                      <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{r.arrendatario}</td>
+                      <td className="mono" style={{fontSize:11}}>{r.m2.toLocaleString('es-ES')}</td>
+                      <td className="mono" style={{fontSize:11,color:'var(--teal)',fontWeight:700}}>{r.renta}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+              <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>5. Top operaciones · Renta más alta</div>
+              <table className="dtbl">
+                <thead><tr><th>#</th><th>Arrendatario</th><th>€/m²/mes</th><th>m²</th></tr></thead>
+                <tbody>
+                  {d.top10_renta.map((r,i)=>(
+                    <tr key={i} onClick={()=>navigate('ficha-arrendatario')} style={{cursor:'pointer'}}>
+                      <td style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{i+1}</td>
+                      <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{r.arrendatario}</td>
+                      <td className="mono" style={{fontSize:11,fontWeight:800,color:'var(--teal)'}}>{r.renta}</td>
+                      <td className="mono" style={{fontSize:11}}>{r.m2.toLocaleString('es-ES')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 6. Sector de actividad */}
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
@@ -740,41 +817,78 @@ function InformeLinea({ linea, navigate }) {
           </div>
         </div>
 
-        {/* 7. Top propietarios */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-          <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
-            <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>7. Top propietarios · Superficie absorbida</div>
-            <table className="dtbl">
-              <thead><tr><th>#</th><th>Propietario</th><th>m²</th><th>Renta media</th></tr></thead>
-              <tbody>
-                {d.top10_propietarios_m2.map((r,i)=>(
-                  <tr key={i} onClick={()=>navigate('portfolio')} style={{cursor:'pointer'}}>
-                    <td style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{i+1}</td>
-                    <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{r.propietario}</td>
-                    <td className="mono" style={{fontSize:11}}>{r.m2.toLocaleString('es-ES')}</td>
-                    <td className="mono" style={{fontSize:11,color:'var(--teal)'}}>{r.renta}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* 7 & 8. Top compradores / propietarios */}
+        {linea.id === 'inversion' ? (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+              <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>7. Top compradores · Mayor volumen adquirido</div>
+              <table className="dtbl">
+                <thead><tr><th>#</th><th>Comprador</th><th>m² adquiridos</th><th>Yield medio</th></tr></thead>
+                <tbody>
+                  {d.top10_propietarios_m2.map((r,i)=>(
+                    <tr key={i} onClick={()=>navigate('portfolio')} style={{cursor:'pointer'}}>
+                      <td style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{i+1}</td>
+                      <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{r.propietario}</td>
+                      <td className="mono" style={{fontSize:11}}>{r.m2.toLocaleString('es-ES')}</td>
+                      <td className="mono" style={{fontSize:11,color:'var(--teal)'}}>{r.renta}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+              <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>8. Top compradores · Yield prime más bajo</div>
+              <table className="dtbl">
+                <thead><tr><th>#</th><th>Comprador</th><th>Yield prime</th><th>m²</th></tr></thead>
+                <tbody>
+                  {d.top10_propietarios_renta.map((r,i)=>(
+                    <tr key={i} onClick={()=>navigate('portfolio')} style={{cursor:'pointer'}}>
+                      <td style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{i+1}</td>
+                      <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{r.propietario}</td>
+                      <td className="mono" style={{fontSize:11,fontWeight:800,color:'var(--teal)'}}>{r.renta}%</td>
+                      <td className="mono" style={{fontSize:11}}>{r.m2.toLocaleString('es-ES')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
-            <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>8. Top propietarios · Renta más alta</div>
-            <table className="dtbl">
-              <thead><tr><th>#</th><th>Propietario</th><th>Renta max.</th><th>m²</th></tr></thead>
-              <tbody>
-                {d.top10_propietarios_renta.map((r,i)=>(
-                  <tr key={i} onClick={()=>navigate('portfolio')} style={{cursor:'pointer'}}>
-                    <td style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{i+1}</td>
-                    <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{r.propietario}</td>
-                    <td className="mono" style={{fontSize:11,fontWeight:800,color:'var(--teal)'}}>{r.renta}</td>
-                    <td className="mono" style={{fontSize:11}}>{r.m2.toLocaleString('es-ES')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        ) : (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+              <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>7. Top propietarios · Superficie absorbida</div>
+              <table className="dtbl">
+                <thead><tr><th>#</th><th>Propietario</th><th>m²</th><th>Renta media</th></tr></thead>
+                <tbody>
+                  {d.top10_propietarios_m2.map((r,i)=>(
+                    <tr key={i} onClick={()=>navigate('portfolio')} style={{cursor:'pointer'}}>
+                      <td style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{i+1}</td>
+                      <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{r.propietario}</td>
+                      <td className="mono" style={{fontSize:11}}>{r.m2.toLocaleString('es-ES')}</td>
+                      <td className="mono" style={{fontSize:11,color:'var(--teal)'}}>{r.renta}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+              <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>8. Top propietarios · Renta más alta</div>
+              <table className="dtbl">
+                <thead><tr><th>#</th><th>Propietario</th><th>Renta max.</th><th>m²</th></tr></thead>
+                <tbody>
+                  {d.top10_propietarios_renta.map((r,i)=>(
+                    <tr key={i} onClick={()=>navigate('portfolio')} style={{cursor:'pointer'}}>
+                      <td style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{i+1}</td>
+                      <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{r.propietario}</td>
+                      <td className="mono" style={{fontSize:11,fontWeight:800,color:'var(--teal)'}}>{r.renta}</td>
+                      <td className="mono" style={{fontSize:11}}>{r.m2.toLocaleString('es-ES')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 9 & 10. Top 5 activos */}
         {(d.top5_activos_m2 || d.top5_activos_renta) && (
