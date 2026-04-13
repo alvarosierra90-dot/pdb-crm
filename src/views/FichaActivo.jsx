@@ -1375,6 +1375,193 @@ function RightPanel({ navigate }) {
   )
 }
 
+/* ══ Rent Roll data ══ */
+const RENT_ROLL_ROWS = [
+  { contrato:'CTR-2201', arrendatario:'Celonis Spain SL',    edificio:'Edif. A', planta:'P5', uso:'Oficinas', sup:1202, rentaM2:14.5, inicio:'01/01/2022', vencimiento:'31/10/2025', breakOpt:'31/10/2025', estado:'Arrendado' },
+  { contrato:'CTR-2202', arrendatario:'Celonis Spain SL',    edificio:'Edif. A', planta:'P4', uso:'Oficinas', sup:1500, rentaM2:14.5, inicio:'01/01/2022', vencimiento:'31/10/2025', breakOpt:'31/10/2025', estado:'Arrendado' },
+  { contrato:'CTR-2203', arrendatario:'Celonis Spain SL',    edificio:'Edif. C', planta:'P4', uso:'Oficinas', sup:1300, rentaM2:14.0, inicio:'01/03/2022', vencimiento:'31/10/2025', breakOpt:'31/10/2025', estado:'Arrendado' },
+  { contrato:'CTR-2301', arrendatario:'Repsol S.A.',         edificio:'Edif. A', planta:'P3', uso:'Oficinas', sup:767,  rentaM2:12.5, inicio:'01/06/2020', vencimiento:'30/06/2027', breakOpt:'—',          estado:'Arrendado' },
+  { contrato:'CTR-2302', arrendatario:'Repsol S.A.',         edificio:'Edif. A', planta:'P2', uso:'Oficinas', sup:1200, rentaM2:12.5, inicio:'01/06/2020', vencimiento:'30/06/2027', breakOpt:'—',          estado:'Arrendado' },
+  { contrato:'CTR-2303', arrendatario:'Repsol S.A.',         edificio:'Edif. C', planta:'PB', uso:'Oficinas', sup:1967, rentaM2:12.0, inicio:'01/06/2020', vencimiento:'30/06/2027', breakOpt:'—',          estado:'Arrendado' },
+  { contrato:'—',        arrendatario:'DISPONIBLE',          edificio:'Edif. A', planta:'P5', uso:'Oficinas', sup:298,  rentaM2:null,  inicio:'—',          vencimiento:'—',          breakOpt:'—',          estado:'Disponible' },
+  { contrato:'—',        arrendatario:'DISPONIBLE',          edificio:'Edif. A', planta:'P3', uso:'Oficinas', sup:733,  rentaM2:null,  inicio:'—',          vencimiento:'—',          breakOpt:'—',          estado:'Disponible' },
+  { contrato:'—',        arrendatario:'DISPONIBLE',          edificio:'Edif. A', planta:'P2', uso:'Oficinas', sup:300,  rentaM2:null,  inicio:'—',          vencimiento:'—',          breakOpt:'—',          estado:'Disponible' },
+  { contrato:'CTR-2401', arrendatario:'Oracle Spain SL',     edificio:'Edif. D', planta:'P1–P4', uso:'Oficinas', sup:13486, rentaM2:13.0, inicio:'—', vencimiento:'31/03/2028', breakOpt:'31/03/2026', estado:'En negociación' },
+  { contrato:'CTR-2101', arrendatario:'—',                   edificio:'Edif. A', planta:'S1', uso:'Parking',  sup:null, rentaM2:90,   inicio:'01/01/2021', vencimiento:'31/12/2026', breakOpt:'—',          estado:'Arrendado', plazas:778, rentaPlaza:'90 €/plaza/mes' },
+  { contrato:'CTR-2102', arrendatario:'—',                   edificio:'Edif. C', planta:'S2', uso:'Parking',  sup:null, rentaM2:90,   inicio:'01/01/2021', vencimiento:'31/12/2026', breakOpt:'—',          estado:'Arrendado', plazas:52,  rentaPlaza:'90 €/plaza/mes' },
+]
+
+async function exportRentRoll(activo = 'P.E Avalon') {
+  const XLSX = await import('xlsx')
+  const X = XLSX.default || XLSX
+
+  const now = new Date().toLocaleDateString('es-ES')
+
+  // ── Cabecera del informe ──
+  const header = [
+    [`RENT ROLL — ${activo}`],
+    [`Fecha de extracción: ${now}`],
+    [`Generado por: PropDatabase CRM`],
+    [],
+  ]
+
+  // ── Cabecera de columnas ──
+  const cols = [
+    'Ref. Contrato','Arrendatario','Edificio','Planta','Uso',
+    'Sup. (m²)','Renta €/m²/mes','Renta mensual (€)','Renta anual (€)',
+    'Inicio contrato','Vencimiento','Break option','Estado','Plazas parking','Renta plaza (€)',
+  ]
+
+  // ── Filas de datos ──
+  const rows = RENT_ROLL_ROWS.map(r => {
+    const rentaMes  = r.rentaM2 && r.sup ? Math.round(r.sup * r.rentaM2) : null
+    const rentaAnio = rentaMes ? rentaMes * 12 : null
+    return [
+      r.contrato,
+      r.arrendatario,
+      r.edificio,
+      r.planta,
+      r.uso,
+      r.sup ?? '',
+      r.rentaM2 ?? '',
+      rentaMes ?? '',
+      rentaAnio ?? '',
+      r.inicio,
+      r.vencimiento,
+      r.breakOpt,
+      r.estado,
+      r.plazas ?? '',
+      r.rentaPlaza ?? '',
+    ]
+  })
+
+  // ── Fila de totales ──
+  const totalSup     = RENT_ROLL_ROWS.filter(r=>r.sup && r.estado==='Arrendado').reduce((s,r)=>s+r.sup,0)
+  const totalMes     = RENT_ROLL_ROWS.filter(r=>r.rentaM2&&r.sup).reduce((s,r)=>s+Math.round(r.sup*r.rentaM2),0)
+  const totalAnio    = totalMes * 12
+  const totals = ['TOTAL','','','','',totalSup,'',totalMes,totalAnio,'','','','','','']
+
+  const aoa = [...header, cols, ...rows, [], totals]
+
+  const ws = X.utils.aoa_to_sheet(aoa)
+
+  // Anchos de columna
+  ws['!cols'] = [
+    {wch:14},{wch:28},{wch:10},{wch:10},{wch:10},
+    {wch:10},{wch:16},{wch:18},{wch:16},
+    {wch:14},{wch:14},{wch:14},{wch:16},{wch:14},{wch:18},
+  ]
+
+  const wb = X.utils.book_new()
+  X.utils.book_append_sheet(wb, ws, 'Rent Roll')
+  X.writeFile(wb, `RentRoll_${activo.replace(/\s/g,'_')}_${now.replace(/\//g,'-')}.xlsx`)
+}
+
+async function exportFichaActivo(navigate_) {
+  const { jsPDF } = await import('jspdf')
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+  const azul = [37, 99, 235]
+  const gris = [100, 116, 139]
+  const negro = [15, 23, 42]
+  const borde = [226, 232, 240]
+
+  // ── Cabecera ──
+  doc.setFillColor(...azul)
+  doc.rect(0, 0, 210, 28, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(16).setFont('helvetica','bold')
+  doc.text('P.E Avalon', 14, 12)
+  doc.setFontSize(9).setFont('helvetica','normal')
+  doc.text('Parque Empresarial · Julián Camarillo, Madrid · M-30', 14, 19)
+  doc.text(`Exportado: ${new Date().toLocaleDateString('es-ES')}`, 140, 19)
+
+  // ── KPIs principales ──
+  doc.setTextColor(...negro)
+  doc.setFontSize(8).setFont('helvetica','bold')
+  const kpis = [
+    ['SBA Total','46.956 m²'],['Ocupación','78,4%'],['Renta','10,5 €/m²/mes'],
+    ['Valor','130 M€'],['WAULT','3,2 años'],['Disponible','10.142 m²'],
+  ]
+  const kpiX = [14,47,80,113,146,179]
+  kpis.forEach(([lbl,val],i)=>{
+    doc.setFont('helvetica','bold').setFontSize(7).setTextColor(...gris)
+    doc.text(lbl.toUpperCase(), kpiX[i], 36)
+    doc.setFont('helvetica','bold').setFontSize(11).setTextColor(...negro)
+    doc.text(val, kpiX[i], 43)
+  })
+  doc.setDrawColor(...borde)
+  doc.line(14, 48, 196, 48)
+
+  // ── Información general ──
+  doc.setFont('helvetica','bold').setFontSize(9).setTextColor(...azul)
+  doc.text('INFORMACIÓN GENERAL', 14, 56)
+  doc.setFont('helvetica','normal').setFontSize(8).setTextColor(...negro)
+  const info = [
+    ['Dirección','Calle Julián Camarillo 4, 28037 Madrid'],
+    ['Zona','M-30 · Julián Camarillo'],
+    ['Uso principal','Oficinas'],
+    ['Año construcción','2001 · Rehabilitación 2018'],
+    ['Certificación','LEED Gold · BREEAM Very Good'],
+    ['Propietario','Barings Real Estate'],
+    ['Gestora','Savills Investment Management'],
+  ]
+  info.forEach(([k,v],i)=>{
+    doc.setFont('helvetica','bold').setTextColor(...gris).text(k+': ', 14, 63+i*6)
+    doc.setFont('helvetica','normal').setTextColor(...negro).text(v, 50, 63+i*6)
+  })
+  doc.line(14, 107, 196, 107)
+
+  // ── Rent Roll resumen ──
+  doc.setFont('helvetica','bold').setFontSize(9).setTextColor(...azul)
+  doc.text('RENT ROLL — RESUMEN', 14, 114)
+  const rrHeaders = ['Arrendatario','Planta','Sup. m²','€/m²/mes','Vencimiento','Estado']
+  const rrWidths = [50,20,20,22,28,24]
+  let rrX = 14
+  let rrY = 120
+  doc.setFont('helvetica','bold').setFontSize(7.5).setTextColor(255,255,255)
+  doc.setFillColor(...azul)
+  doc.rect(14, rrY-5, 182, 7, 'F')
+  rrHeaders.forEach((h,i)=>{ doc.text(h, rrX+1, rrY); rrX += rrWidths[i] })
+
+  const rrRows = [
+    ['Celonis Spain SL','P4–P5','2.702','14,5','31/10/2025','Arrendado'],
+    ['Repsol S.A.','P2–P3 + C-PB','3.934','12,5','30/06/2027','Arrendado'],
+    ['Oracle Spain SL (neg.)','P1–P4 Edif. D','13.486','13,0','31/03/2028','En negociación'],
+    ['DISPONIBLE','P3, P2, P5 (parcial)','1.331','—','—','Disponible'],
+    ['Parking','S1 + S2','—','90€/plaza','31/12/2026','Arrendado'],
+  ]
+  rrRows.forEach((row,ri)=>{
+    rrY += 6
+    rrX = 14
+    doc.setFillColor(ri%2===0?248:255, ri%2===0?250:255, ri%2===0?252:255)
+    doc.rect(14, rrY-4.5, 182, 6, 'F')
+    doc.setFont('helvetica','normal').setFontSize(7).setTextColor(...negro)
+    row.forEach((cell,ci)=>{ doc.text(String(cell), rrX+1, rrY); rrX += rrWidths[ci] })
+  })
+  rrY += 2
+  doc.setDrawColor(...borde).line(14, rrY, 196, rrY)
+
+  // ── Vencimientos ──
+  rrY += 8
+  doc.setFont('helvetica','bold').setFontSize(9).setTextColor(...azul)
+  doc.text('PRÓXIMOS VENCIMIENTOS', 14, rrY)
+  rrY += 7
+  doc.setFont('helvetica','normal').setFontSize(8).setTextColor(...negro)
+  ;[
+    '• Oct 2025 — Break option Celonis (2.702 m²) · VENCIDA',
+    '• Mar 2026 — Break option Oracle (13.486 m²)',
+    '• Jun 2027 — Fin contrato Repsol (3.934 m²)',
+  ].forEach(t=>{ doc.text(t, 14, rrY); rrY+=6 })
+
+  // ── Footer ──
+  doc.setFont('helvetica','normal').setFontSize(7).setTextColor(...gris)
+  doc.text('Generado por PropDatabase CRM · Savills Spain · Confidencial', 14, 287)
+  doc.text('Página 1 / 1', 180, 287)
+
+  doc.save(`FichaActivo_P.E_Avalon_${new Date().toLocaleDateString('es-ES').replace(/\//g,'-')}.pdf`)
+}
+
 /* ══════════════════════════════════════════════════════════ */
 export default function FichaActivo() {
   const { navigate, params } = useNav()
@@ -1718,7 +1905,47 @@ export default function FichaActivo() {
           {/* ── TAB: Información adicional ── */}
           {activeTab==='at-adicional' && (
             <div className="tab-content active"><div className="info-pad">
-              <div style={{fontSize:12,fontWeight:600,marginBottom:12}}>Extracción de datos <span style={{fontSize:10,fontWeight:400,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>· INTEGRACIONES EXTERNAS</span></div>
+
+              {/* ── Exportar ── */}
+              <div style={{marginBottom:20}}>
+                <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Exportar <span style={{fontSize:10,fontWeight:400,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>· DOCUMENTACIÓN DEL ACTIVO</span></div>
+                <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                  {/* Rent Roll Excel */}
+                  <div style={{border:'1px solid var(--border)',borderRadius:'var(--r2)',padding:'14px 18px',background:'var(--surface)',display:'flex',alignItems:'flex-start',gap:12,minWidth:260,flex:1}}>
+                    <div style={{width:36,height:36,borderRadius:8,background:'#f0fdf4',border:'1px solid #bbf7d0',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="#16a34a" strokeWidth="1.5"><rect x="3" y="2" width="14" height="16" rx="1.5"/><path d="M7 6h6M7 9h6M7 12h4"/><path d="M11 15l2-2-2-2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:12,fontWeight:700,marginBottom:2}}>Rent Roll</div>
+                      <div style={{fontSize:10,color:'var(--text3)',marginBottom:10,lineHeight:1.4}}>Exporta el rent roll completo del activo con arrendatarios, superficies, rentas, vencimientos y break options.</div>
+                      <button onClick={()=>exportRentRoll('P.E Avalon')}
+                        style={{padding:'5px 14px',background:'#16a34a',color:'#fff',border:'none',borderRadius:5,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
+                        <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v8M4 6l3 3 3-3"/><path d="M2 11h10" strokeLinecap="round"/></svg>
+                        Exportar .xlsx
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Ficha PDF */}
+                  <div style={{border:'1px solid var(--border)',borderRadius:'var(--r2)',padding:'14px 18px',background:'var(--surface)',display:'flex',alignItems:'flex-start',gap:12,minWidth:260,flex:1}}>
+                    <div style={{width:36,height:36,borderRadius:8,background:'#eff6ff',border:'1px solid #bfdbfe',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="#2563eb" strokeWidth="1.5"><rect x="3" y="2" width="14" height="16" rx="1.5"/><path d="M7 7h6M7 10h4"/><path d="M7 13h2"/></svg>
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:12,fontWeight:700,marginBottom:2}}>Ficha del activo</div>
+                      <div style={{fontSize:10,color:'var(--text3)',marginBottom:10,lineHeight:1.4}}>Exporta la ficha completa del activo en PDF con información general, rent roll resumido y próximos vencimientos.</div>
+                      <button onClick={()=>exportFichaActivo()}
+                        style={{padding:'5px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
+                        <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v8M4 6l3 3 3-3"/><path d="M2 11h10" strokeLinecap="round"/></svg>
+                        Exportar .pdf
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Integraciones externas ── */}
+              <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Extracción de datos <span style={{fontSize:10,fontWeight:400,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>· INTEGRACIONES EXTERNAS</span></div>
               <div className="info-2col" style={{marginBottom:20}}>
                 <div className="info-block"><div className="ib-title">🏛 Catastro</div><div className="ir"><span className="ir-k">Certificado catastral</span><button className="ab-btn save" style={{padding:'3px 10px',fontSize:10}}>Descargar</button></div><div className="ir"><span className="ir-k">Ref. catastral</span><span className="ir-v link mono" style={{fontSize:10}}>1380341VK4718A0001FU</span></div></div>
                 <div className="info-block"><div className="ib-title">📊 INE</div><div className="ir"><span className="ir-k">Estadísticas del barrio</span><button className="ab-btn save" style={{padding:'3px 10px',fontSize:10}}>Descargar</button></div></div>
