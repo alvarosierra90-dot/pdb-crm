@@ -55,9 +55,7 @@ export default function VencimientosView() {
   const proximos = filtered.filter(v => { const d = diasRestantes(v.fecha); return d >= 0 && d < 365 }).length
 
   const handleClick = (v) => {
-    if (v.instruccion) navigate('ficha-arrendatario')
-    else if (v.oportunidad) navigate('ficha-negociacion')
-    else navigate('ficha-arrendatario')
+    navigate('ficha-arrendatario')
   }
 
   return (
