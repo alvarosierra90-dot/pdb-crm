@@ -1039,7 +1039,46 @@ function StackingPlan() {
 }
 
 /* ── Tab: Información general ── */
+const CUENTAS_ASSET_MANAGER = [
+  'Merlín Properties SOCIMI','Colonial SOCIMI','Blackstone Real Estate','AXA IM Real Assets',
+  'CBRE Global Investors','Generali Real Estate','Nuveen Real Estate','DWS Real Estate',
+  'Allianz Real Estate','PGGM','Patrizia','Inbeni Real Estate','Barings Core Spain SOCIMI',
+  'FREO Investments Spain SL','Invesco Real Estate','Amundi Real Estate',
+]
+
+function AssetManagerSearch({ value, onChange }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen]   = useState(false)
+  const results = CUENTAS_ASSET_MANAGER.filter(c => c.toLowerCase().includes(query.toLowerCase()))
+  return (
+    <div style={{position:'relative'}}>
+      <div style={{display:'flex',gap:4,alignItems:'center'}}>
+        <span style={{fontSize:12,color:'var(--text2)',flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+          {value || <span style={{color:'var(--text4)'}}>—</span>}
+        </span>
+        <button onClick={()=>setOpen(o=>!o)} style={{background:'none',border:'1px solid var(--border)',borderRadius:4,padding:'1px 6px',cursor:'pointer',fontSize:11,color:'var(--text3)',flexShrink:0}}>🔍</button>
+        {value && <button onClick={()=>onChange('')} style={{background:'none',border:'none',cursor:'pointer',fontSize:12,color:'var(--text4)',padding:'0 2px',flexShrink:0}}>×</button>}
+      </div>
+      {open && (
+        <div style={{position:'absolute',top:'110%',left:0,right:0,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:200,maxHeight:180,overflow:'auto'}}>
+          <input autoFocus value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar cuenta…" style={{width:'100%',padding:'6px 10px',border:'none',borderBottom:'1px solid var(--border)',fontSize:11,outline:'none',boxSizing:'border-box',fontFamily:'inherit'}}/>
+          {results.map(c=>(
+            <div key={c} onClick={()=>{onChange(c);setOpen(false);setQuery('')}}
+              style={{padding:'6px 10px',fontSize:11,cursor:'pointer',borderBottom:'1px solid var(--gray-lt)'}}
+              onMouseEnter={e=>e.currentTarget.style.background='var(--accent-lt)'}
+              onMouseLeave={e=>e.currentTarget.style.background=''}>
+              {c}
+            </div>
+          ))}
+          {results.length===0 && <div style={{padding:'8px 10px',fontSize:11,color:'var(--text4)'}}>Sin resultados</div>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TabInfo({ navigate, plazas }) {
+  const [assetManager, setAssetManager] = useState('')
   const totalPlazas = plazas.reduce((s,p)=>s+p.cantidad,0)
   const byUbic = UBICACIONES.map(u=>({u, n:plazas.filter(p=>p.ubicacion===u).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
   const byTipo = TIPOS_PLAZA.map(t=>({t, n:plazas.filter(p=>p.tipo===t).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
@@ -1069,6 +1108,7 @@ function TabInfo({ navigate, plazas }) {
             <div className="ir"><span className="ir-k">Estado</span><span className="ir-v"><span className="tag tag-green">Activo</span></span></div>
             <div className="ir"><span className="ir-k">Uso principal</span><span className="ir-v"><span className="tag tag-blue">Oficinas</span></span></div>
             <div className="ir"><span className="ir-k">Uso secundario</span><span className="ir-v"><span className="tag tag-gray">—</span></span></div>
+            <div className="ir"><span className="ir-k">Asset Manager</span><span className="ir-v" style={{flex:1,minWidth:0}}><AssetManagerSearch value={assetManager} onChange={setAssetManager}/></span></div>
             <div className="ir"><span className="ir-k">SBA (m²)</span><span className="ir-v" style={{fontSize:14,fontWeight:700}}>46.956</span></div>
             <div className="ir"><span className="ir-k">Calidad</span><span className="ir-v"><span className="tag tag-amber">Prime</span></span></div>
             <div className="ir"><span className="ir-k">Año construcción</span><span className="ir-v">2003 · Rehab: 2018</span></div>

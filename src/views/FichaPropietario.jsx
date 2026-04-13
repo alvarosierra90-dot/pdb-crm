@@ -40,6 +40,12 @@ function ExportMenu({ getConfig }) {
 const TABS = ['datos','condiciones','historico','analisis']
 const TAB_LABELS = ['🏢 Datos del propietario','💰 Condiciones de inversión','🕐 Histórico propietarios','📊 Análisis']
 
+const USOS_PROPIETARIO = [
+  'Oficinas','Logístico / Industrial','Retail','Centros comerciales',
+  'Residencial','Living (PRS / BTR / Flex)','Hoteles','Suelos',
+  'Alternativos','Mixto',
+]
+
 const PERFIL_COLOR = { 'Core':'var(--accent)', 'Value-add':'var(--purple)', 'Oportunista':'var(--red)', 'Institucional':'var(--teal)', 'Privado':'var(--text3)' }
 const ESTADO_COLOR = { 'Activo':'var(--green)', 'Inactivo':'var(--text4)', 'En desinversión':'var(--amber)', 'Vendido':'var(--red)' }
 
@@ -59,6 +65,8 @@ export default function FichaPropietario() {
   const [hist] = useState(HIST_INIT)
   const [log]  = useState(LOG_INIT)
   const [showTarea, setShowTarea] = useState(false)
+  const [usos, setUsos] = useState(['Oficinas','Logístico / Industrial'])
+  const toggleUso = (u) => setUsos(prev => prev.includes(u) ? prev.filter(x=>x!==u) : [...prev,u])
 
   const [form, setForm] = useState({
     // Identificación
@@ -308,6 +316,22 @@ export default function FichaPropietario() {
                     <div style={{marginTop:10}}>
                       <div className="rp-lbl">Observaciones</div>
                       <textarea className="kf-inp" value={form.observaciones} onChange={e=>set('observaciones',e.target.value)} rows={4} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
+                    </div>
+                    <div style={{marginTop:12}}>
+                      <div className="rp-lbl" style={{marginBottom:6}}>Usos principales</div>
+                      <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                        {USOS_PROPIETARIO.map(u=>{
+                          const active = usos.includes(u)
+                          return (
+                            <button key={u} onClick={()=>toggleUso(u)} style={{
+                              fontSize:10,padding:'3px 9px',borderRadius:12,cursor:'pointer',fontFamily:'inherit',fontWeight:600,border:'1px solid',
+                              background: active ? 'var(--accent-lt)' : 'var(--gray-lt)',
+                              color: active ? 'var(--accent)' : 'var(--text3)',
+                              borderColor: active ? 'var(--accent-bd)' : 'var(--border)',
+                            }}>{u}</button>
+                          )
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>

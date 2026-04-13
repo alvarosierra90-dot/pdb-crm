@@ -5,7 +5,7 @@ import AsignarTareaModal from '../components/AsignarTareaModal'
 const TABS = ['datos','equipos','trazabilidad','resumen']
 const TAB_LABELS = ['📋 Datos del proyecto','👥 Equipos y participantes','🔄 Trazabilidad','📊 Resumen']
 
-const TIPOS = ['Pitch','Valoración','Propuesta de servicios','Mandato comercial','Urbanismo','Proyecto de arquitectura / workplace']
+const TIPOS = ['Pitch','Valoración','Propuesta de servicios','Mandato comercial','Consultoría','Urbanismo','Proyecto de arquitectura / workplace']
 const ESTADOS = ['Activo','Standby','Cancelado','Adjudicado']
 const LINEAS = ['Oficinas','Capital Markets','Retail','Industrial/Logística','Residencial','Hoteles','Alternativo']
 const ROLES = ['Responsable','Originador','Soporte','Coordinador','Analista']
