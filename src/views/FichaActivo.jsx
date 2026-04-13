@@ -2,6 +2,19 @@ import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
+import { supabase } from '../lib/supabase'
+
+const USO_PREFIX_FA    = { 'Oficinas':'OF', 'Logístico':'LG', 'Retail':'RT', 'Data Center':'DC', 'Residencial':'RS', 'Hoteles':'HT', 'Suelo':'SU' }
+const CIUDAD_PREFIX_FA = { 'Madrid':'MAD', 'Barcelona':'BCN', 'Valencia':'VLC', 'Sevilla':'SEV', 'Bilbao':'BIL', 'Guadalajara':'GUA' }
+function genRefFA(ciudad, uso) {
+  const cp = CIUDAD_PREFIX_FA[ciudad] || ciudad.slice(0,3).toUpperCase()
+  const up = USO_PREFIX_FA[uso] || 'XX'
+  const num = String(Math.floor(Math.random()*90000)+10000)
+  return `${cp}-${up}-${num}`
+}
+const CUENTAS_FA = ['Colonial SOCIMI','Merlin Properties','GMP','Barings Real Estate','Allianz Real Estate','Prologis','CBRE Investment Management','Grosvenor','IBA Capital','Neinor Homes','Axa IM Real Assets','Blackstone','Brookfield']
+const USO_ICO    = { 'Oficinas':'🏢', 'Logístico':'🏭', 'Retail':'🛍', 'Data Center':'🖥', 'Residencial':'🏘', 'Hoteles':'🏨', 'Suelo':'🟫' }
+const NEW_FORM_INIT = { nombre:'', direccion:'', ciudad:'Madrid', uso:'Oficinas', propietario:'' }
 
 const TABS = ['at-info','at-stacking','at-caract','at-prop','at-fotos','at-docs','at-adicional','at-360','at-followup']
 const TAB_LABELS = ['Información general','Stacking Plan','Características','Propietarios y arrendatarios','Fotografías','Documentos','Información adicional','Vista 360','Follow-up']
@@ -1579,6 +1592,7 @@ async function exportFichaActivo(navigate_) {
 /* ══════════════════════════════════════════════════════════ */
 export default function FichaActivo() {
   const { navigate, params } = useNav()
+  const isNew = !!params?.new && !params?.ref
   const [activeTab, setActiveTab]       = useState('at-info')
   const [caracTab, setCaracTab]         = useState('ct-estado')
   const [docCat,   setDocCat]           = useState('todos')
@@ -1586,6 +1600,29 @@ export default function FichaActivo() {
   const [plazas, setPlazas]             = useState(INIT_PLAZAS)
   const [showAddPlaza, setShowAddPlaza] = useState(false)
   const [newPlaza, setNewPlaza]         = useState({ubicacion:'Interior',tipo:'Simple',vehiculo:'Coches',cantidad:1})
+  const [newForm, setNewForm]           = useState(NEW_FORM_INIT)
+  const [saving,  setSaving]            = useState(false)
+  const [saveErr, setSaveErr]           = useState('')
+  const setNF = (k, v) => setNewForm(p => ({ ...p, [k]: v }))
+
+  const handleCreateActivo = async () => {
+    if (!newForm.direccion) { setSaveErr('La dirección es obligatoria'); return }
+    setSaving(true); setSaveErr('')
+    const ref = genRefFA(newForm.ciudad, newForm.uso)
+    const nombre = newForm.nombre || newForm.direccion.split(',')[0].trim()
+    const { error } = await supabase.from('activos').insert({
+      ref, nombre,
+      propietario: newForm.propietario || null,
+      ciudad:      newForm.ciudad || null,
+      uso:         newForm.uso || null,
+      estado:      'Activo',
+      dias_comercializacion: 0,
+    })
+    setSaving(false)
+    if (error) { setSaveErr(error.message); return }
+    navigate('ficha-activo', { ref })
+  }
+
   const addPlaza = () => {
     const c = parseInt(newPlaza.cantidad)||1
     if(c<=0) return
@@ -1601,15 +1638,25 @@ export default function FichaActivo() {
 
       {/* Action bar */}
       <div className="action-bar">
-        <button className="ab-btn save">💾 Guardar</button>
-        <button className="ab-btn">Guardar y cerrar</button>
-        <button className="ab-btn">Nuevo</button>
-        <button className="ab-btn">Desactivar</button>
-        <div className="ab-sep"/>
-        <button className="ab-btn">Actualizar</button>
-        <button className="ab-btn">📄 Plantillas word</button>
-        <div className="ab-sep"/>
-        <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
+        {isNew ? (
+          <>
+            <button className="ab-btn save" onClick={handleCreateActivo} disabled={saving}>{saving ? 'Guardando...' : '💾 Crear activo'}</button>
+            <button className="ab-btn" onClick={() => navigate('activos')}>Cancelar</button>
+            {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
+          </>
+        ) : (
+          <>
+            <button className="ab-btn save">💾 Guardar</button>
+            <button className="ab-btn">Guardar y cerrar</button>
+            <button className="ab-btn">Nuevo</button>
+            <button className="ab-btn">Desactivar</button>
+            <div className="ab-sep"/>
+            <button className="ab-btn">Actualizar</button>
+            <button className="ab-btn">📄 Plantillas word</button>
+            <div className="ab-sep"/>
+            <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
+          </>
+        )}
       </div>
 
       <div className="ficha-wrap">
@@ -1618,22 +1665,71 @@ export default function FichaActivo() {
           {/* ── HEADER ── */}
           <div className="ah">
             <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-              <div className="ah-ico">🏢</div>
+              <div className="ah-ico">{isNew ? (USO_ICO[newForm.uso] || '🏢') : '🏢'}</div>
               <div style={{flex:1}}>
-                <div className="ah-ref">
-                  <span className="ref-badge-activo">ACTIVO</span>
-                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>MAD-OF-00189</span>
-                </div>
-                <div className="ah-name">P.E Avalon</div>
-                <div className="ah-addr">📍 Calle Santa Leonor 65, 28037 Madrid · Área: Centro · Zona: M-30 · Sub-zona: M.Álvaro</div>
-                <div className="ah-tags">
-                  <span className="tag tag-blue">Oficinas</span>
-                  <span className="tag tag-gray">Construcción existente</span>
-                  <span className="tag tag-leed">LEED Gold</span>
-                  <span className="tag tag-esg">ESG A</span>
-                  <span className="tag tag-gray">4 edificios</span>
-                  <span className="dias-pill">📅 127 días en comercialización</span>
-                </div>
+                {isNew ? (
+                  /* ── NUEVO ACTIVO: campos editables ── */
+                  <div>
+                    <div className="ah-ref" style={{marginBottom:10}}>
+                      <span className="ref-badge-activo">NUEVO ACTIVO</span>
+                      <span style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--text4)'}}>Ref. auto-generada al guardar</span>
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+                      <div>
+                        <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Nombre del activo</div>
+                        <input className="of-inp" placeholder="P.E Avalon, Torre Sevilla..." value={newForm.nombre} onChange={e=>setNF('nombre',e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/>
+                      </div>
+                      <div>
+                        <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Propietario · <span style={{fontWeight:400,textTransform:'none',letterSpacing:0}}>desde Cuentas</span></div>
+                        <input className="of-inp" list="fa-cuentas-list" placeholder="Buscar cuenta..." value={newForm.propietario} onChange={e=>setNF('propietario',e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/>
+                        <datalist id="fa-cuentas-list">{CUENTAS_FA.map(c=><option key={c} value={c}/>)}</datalist>
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Dirección *</div>
+                      <div style={{position:'relative',marginBottom:10}}>
+                        <input className="of-inp" placeholder="Calle Serrano 41, Madrid..." value={newForm.direccion} onChange={e=>setNF('direccion',e.target.value)} style={{width:'100%',boxSizing:'border-box',paddingLeft:30}}/>
+                        <svg style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',opacity:.4}} viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 2C5.8 2 4 3.8 4 6c0 3 4 8 4 8s4-5 4-8c0-2.2-1.8-4-4-4z"/><circle cx="8" cy="6" r="1.5"/></svg>
+                      </div>
+                    </div>
+                    <div style={{display:'flex',gap:10}}>
+                      <div>
+                        <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Ciudad</div>
+                        <select className="of-sel" value={newForm.ciudad} onChange={e=>setNF('ciudad',e.target.value)}>
+                          {['Madrid','Barcelona','Valencia','Sevilla','Bilbao','Guadalajara','Otras'].map(o=><option key={o}>{o}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Uso principal</div>
+                        <select className="of-sel" value={newForm.uso} onChange={e=>setNF('uso',e.target.value)}>
+                          {['Oficinas','Logístico','Retail','Data Center','Residencial','Hoteles','Suelo'].map(o=><option key={o}>{o}</option>)}
+                        </select>
+                      </div>
+                      <div style={{display:'flex',alignItems:'flex-end',paddingBottom:2}}>
+                        <span style={{fontSize:10,color:'var(--text4)'}}>Ref: </span>
+                        <span style={{fontFamily:'var(--mono)',fontSize:11,fontWeight:700,color:'var(--accent)',marginLeft:4}}>{genRefFA(newForm.ciudad,newForm.uso).replace(/\d{5}/,'XXXXX')}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* ── ACTIVO EXISTENTE ── */
+                  <>
+                    <div className="ah-ref">
+                      <span className="ref-badge-activo">ACTIVO</span>
+                      <span className="asset-link" style={{fontFamily:'var(--mono)'}}>MAD-OF-00189</span>
+                    </div>
+                    <div className="ah-name">P.E Avalon</div>
+                    <div className="ah-addr">📍 Calle Santa Leonor 65, 28037 Madrid · Área: Centro · Zona: M-30 · Sub-zona: M.Álvaro</div>
+                    <div className="ah-tags">
+                      <span className="tag tag-blue">Oficinas</span>
+                      <span className="tag tag-gray">Construcción existente</span>
+                      <span className="tag tag-leed">LEED Gold</span>
+                      <span className="tag tag-esg">ESG A</span>
+                      <span className="tag tag-gray">4 edificios</span>
+                      <span className="dias-pill">📅 127 días en comercialización</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

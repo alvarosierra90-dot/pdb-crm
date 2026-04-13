@@ -34,7 +34,6 @@ const COLS = [
   { id: '_act',    label: '',              sys: true },
 ]
 
-const FORM_INIT = { ref:'', nombre:'', propietario:'', zona:'', subzona:'', ciudad:'', uso:'Oficinas', sba:'', occupancy_rate:'', renta_zona:'', valor:'', estado:'Activo' }
 
 export default function ActivosList() {
   const { navigate } = useNav()
@@ -43,44 +42,6 @@ export default function ActivosList() {
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ uso: '', estado: '', ciudad: '', zona: '', sbaMin: '', sbaMax: '', occMin: '', occMax: '' })
   const [vis, setVis] = useVisibleCols('activos', COLS)
-  const [showNew, setShowNew] = useState(false)
-  const [newForm, setNewForm] = useState(FORM_INIT)
-  const [saving,  setSaving]  = useState(false)
-  const [saveErr, setSaveErr] = useState('')
-
-  const setF = (k, v) => setNewForm(p => ({ ...p, [k]: v }))
-
-  const handleSave = async () => {
-    if (!newForm.ref || !newForm.nombre) { setSaveErr('Ref y Nombre son obligatorios'); return }
-    setSaving(true); setSaveErr('')
-    const { error } = await supabase.from('activos').insert({
-      ref:               newForm.ref.trim(),
-      nombre:            newForm.nombre.trim(),
-      propietario:       newForm.propietario || null,
-      zona:              newForm.zona || null,
-      subzona:           newForm.subzona || null,
-      ciudad:            newForm.ciudad || null,
-      uso:               newForm.uso || null,
-      sba:               newForm.sba ? parseFloat(newForm.sba) : null,
-      occupancy_rate:    newForm.occupancy_rate ? parseFloat(newForm.occupancy_rate) : null,
-      renta_zona:        newForm.renta_zona ? parseFloat(newForm.renta_zona) : null,
-      valor:             newForm.valor || null,
-      estado:            newForm.estado || 'Activo',
-      dias_comercializacion: 0,
-    })
-    setSaving(false)
-    if (error) { setSaveErr(error.message); return }
-    // Recargar lista
-    const { data } = await supabase.from('activos').select('*')
-    if (data) setActivos(data.map(a => ({
-      ref: a.ref, name: a.nombre, propietario: a.propietario||'—',
-      zona: a.zona||'', subzona: a.subzona||'', ciudad: a.ciudad||'',
-      uso: a.uso||'', sba: a.sba||0, occ: a.occupancy_rate||0,
-      renta: a.renta_zona||0, valor: a.valor||'—', estado: a.estado||'', dias: a.dias_comercializacion||0,
-    })))
-    setShowNew(false)
-    setNewForm(FORM_INIT)
-  }
 
   useEffect(() => {
     supabase.from('activos').select('*').then(({ data, error }) => {
@@ -152,7 +113,7 @@ export default function ActivosList() {
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
           <ColumnEditor cols={COLS} vis={vis} setVis={setVis} />
           <button className="tbtn">⬇ Exportar</button>
-          <button className="tbtn prim" onClick={() => setShowNew(true)}>+ Nuevo</button>
+          <button className="tbtn prim" onClick={() => navigate('ficha-activo', { new: true })}>+ Nuevo</button>
         </div>
       </div>
       {showAdv && (
@@ -166,52 +127,6 @@ export default function ActivosList() {
           <Field label="Ocup. mín %"><input className="fsel" type="number" placeholder="0" value={af.occMin} onChange={e => setAf(p => ({ ...p, occMin: e.target.value }))} /></Field>
           <Field label="Ocup. máx %"><input className="fsel" type="number" placeholder="100" value={af.occMax} onChange={e => setAf(p => ({ ...p, occMax: e.target.value }))} /></Field>
           {advCount > 0 && <button onClick={() => setAf({ uso: '', estado: '', ciudad: '', zona: '', sbaMin: '', sbaMax: '', occMin: '', occMax: '' })} style={{ fontSize: 10, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontFamily: 'inherit', alignSelf: 'flex-end', marginBottom: 2 }}>✕ Limpiar</button>}
-        </div>
-      )}
-      {/* Modal nuevo activo */}
-      {showNew && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setShowNew(false)}>
-          <div style={{background:'var(--surface)',borderRadius:10,padding:24,width:540,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 8px 40px rgba(0,0,0,.18)'}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:14,fontWeight:700,marginBottom:18}}>Nuevo activo</div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
-              {[
-                {k:'ref',       lbl:'Ref *',         ph:'MAD-OF-00001'},
-                {k:'nombre',    lbl:'Nombre *',       ph:'Torre Ejemplo'},
-                {k:'propietario',lbl:'Propietario',   ph:'Colonial, Merlin...'},
-                {k:'ciudad',    lbl:'Ciudad',         ph:'Madrid'},
-                {k:'zona',      lbl:'Zona',           ph:'CBD, M-30, 22@...'},
-                {k:'subzona',   lbl:'Sub-zona',       ph:'Recoletos, Poblenou...'},
-                {k:'sba',       lbl:'SBA (m²)',       ph:'5000',      type:'number'},
-                {k:'occupancy_rate',lbl:'Ocupación %',ph:'85',        type:'number'},
-                {k:'renta_zona',lbl:'Renta €/m²/mes', ph:'18.5',     type:'number'},
-                {k:'valor',     lbl:'Valor',          ph:'95 M€'},
-              ].map(({k,lbl,ph,type})=>(
-                <div key={k}>
-                  <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>{lbl}</div>
-                  <input className="of-inp" type={type||'text'} placeholder={ph} value={newForm[k]} onChange={e=>setF(k,e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/>
-                </div>
-              ))}
-              <div>
-                <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Uso</div>
-                <select className="of-sel" value={newForm.uso} onChange={e=>setF('uso',e.target.value)} style={{width:'100%'}}>
-                  {['Oficinas','Logístico','Retail','Data Center','Residencial','Hoteles','Suelo'].map(o=><option key={o}>{o}</option>)}
-                </select>
-              </div>
-              <div>
-                <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Estado</div>
-                <select className="of-sel" value={newForm.estado} onChange={e=>setF('estado',e.target.value)} style={{width:'100%'}}>
-                  {['Activo','En comercialización','Vendido','Inactivo'].map(o=><option key={o}>{o}</option>)}
-                </select>
-              </div>
-            </div>
-            {saveErr && <div style={{fontSize:11,color:'var(--red)',marginBottom:10}}>{saveErr}</div>}
-            <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:4}}>
-              <button className="ab-btn" onClick={()=>{setShowNew(false);setSaveErr('')}}>Cancelar</button>
-              <button className="ab-btn save" onClick={handleSave} disabled={saving}>
-                {saving ? 'Guardando...' : 'Guardar activo'}
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
