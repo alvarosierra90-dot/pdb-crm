@@ -8,6 +8,92 @@ const DEM_TABS = [
   ['dem-partes','Partes involucradas'],['dem-docs','Documentos'],['dem-neg','Negociaciones en curso'],['dem-followup','Follow-up'],
 ]
 
+/* ── LÓGICA CONDICIONAL DEMANDA ── */
+const USOS_TIPOLOGIAS = {
+  'Oficinas': ['Oficina tradicional','Coworking','Subarriendo','Business park','Sede única (HQ)'],
+  'Logístico / Industrial': ['Nave logística','Nave industrial','Última milla','Plataforma logística','Cross-docking'],
+  'Retail': ['High Street','Local en centro comercial','Parque comercial','Local stand-alone','Flagship store'],
+  'Centros comerciales': ['Centro comercial dominante','Centro comercial secundario','Parque de medianas','Outlet','Participación en centro'],
+  'Residencial': ['Vivienda plurifamiliar','Vivienda unifamiliar','Obra nueva','Segunda mano'],
+  'Living (PRS / BTR / Flex)': ['Build to Rent (BTR)','Build to Sell (BTS)','Flex living','Student housing','Senior living','Coliving'],
+  'Hoteles': ['Hotel urbano','Hotel vacacional','Resort','Aparthotel','Hotel Boutique','Hostal'],
+  'Suelos': ['Suelo finalista','Suelo en desarrollo','Suelo urbanizable'],
+  'Alternativos': ['Data center','Self-storage','Sanitario','Educativo'],
+  'Mixto': ['Uso mixto'],
+}
+
+// Cada campo: { key, label, unit? }
+const CAMPOS_TIPOLOGIA = {
+  'Oficina tradicional':     [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'}],
+  'Coworking':               [{key:'puestos_min',label:'Nº puestos desde'},{key:'puestos_max',label:'Nº puestos hasta'}],
+  'Subarriendo':             [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'}],
+  'Business park':           [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'parking_min',label:'Plazas parking desde'},{key:'parking_max',label:'Plazas parking hasta'}],
+  'Sede única (HQ)':         [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'parking_min',label:'Plazas parking desde'},{key:'parking_max',label:'Plazas parking hasta'}],
+  'Nave logística':          [{key:'sup_min',label:'Sup. almacén desde',unit:'m²'},{key:'sup_max',label:'Sup. almacén hasta',unit:'m²'},{key:'altura_min',label:'Altura libre desde',unit:'m'},{key:'altura_max',label:'Altura libre hasta',unit:'m'},{key:'muelles_min',label:'Nº muelles desde'},{key:'muelles_max',label:'Nº muelles hasta'}],
+  'Nave industrial':         [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'potencia',label:'Potencia eléctrica',unit:'kW'},{key:'altura_min',label:'Altura libre desde',unit:'m'},{key:'altura_max',label:'Altura libre hasta',unit:'m'}],
+  'Última milla':            [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'ubicacion',label:'Ubicación',type:'select',opts:['Urbana','Periurbana']}],
+  'Plataforma logística':    [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'muelles_min',label:'Nº muelles desde'},{key:'muelles_max',label:'Nº muelles hasta'}],
+  'Cross-docking':           [{key:'muelles_min',label:'Nº muelles desde'},{key:'muelles_max',label:'Nº muelles hasta'},{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'}],
+  'High Street':             [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'fachada_min',label:'Fachada desde',unit:'m'},{key:'fachada_max',label:'Fachada hasta',unit:'m'}],
+  'Local en centro comercial':[{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'}],
+  'Parque comercial':        [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'parking_min',label:'Plazas parking desde'},{key:'parking_max',label:'Plazas parking hasta'}],
+  'Local stand-alone':       [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'}],
+  'Flagship store':          [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'fachada_min',label:'Fachada desde',unit:'m'},{key:'fachada_max',label:'Fachada hasta',unit:'m'}],
+  'Centro comercial dominante':[{key:'sba_min',label:'SBA desde',unit:'m²'},{key:'sba_max',label:'SBA hasta',unit:'m²'},{key:'locales_min',label:'Nº locales desde'},{key:'locales_max',label:'Nº locales hasta'},{key:'parking_min',label:'Plazas parking desde'},{key:'parking_max',label:'Plazas parking hasta'}],
+  'Centro comercial secundario':[{key:'sba_min',label:'SBA desde',unit:'m²'},{key:'sba_max',label:'SBA hasta',unit:'m²'},{key:'locales_min',label:'Nº locales desde'},{key:'locales_max',label:'Nº locales hasta'}],
+  'Parque de medianas':      [{key:'sba_min',label:'SBA desde',unit:'m²'},{key:'sba_max',label:'SBA hasta',unit:'m²'},{key:'locales_min',label:'Nº locales desde'},{key:'locales_max',label:'Nº locales hasta'}],
+  'Outlet':                  [{key:'sba_min',label:'SBA desde',unit:'m²'},{key:'sba_max',label:'SBA hasta',unit:'m²'}],
+  'Participación en centro':  [{key:'pct_min',label:'% participación desde'},{key:'pct_max',label:'% participación hasta'},{key:'sba_min',label:'SBA desde',unit:'m²'},{key:'sba_max',label:'SBA hasta',unit:'m²'}],
+  'Vivienda plurifamiliar':  [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'hab_min',label:'Nº habitaciones desde'},{key:'hab_max',label:'Nº habitaciones hasta'},{key:'ban_min',label:'Nº baños desde'},{key:'ban_max',label:'Nº baños hasta'},{key:'parking_min',label:'Plaza parking desde'},{key:'parking_max',label:'Plaza parking hasta'}],
+  'Vivienda unifamiliar':    [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'parcela_min',label:'Parcela desde',unit:'m²'},{key:'parcela_max',label:'Parcela hasta',unit:'m²'},{key:'hab_min',label:'Nº habitaciones desde'},{key:'hab_max',label:'Nº habitaciones hasta'}],
+  'Obra nueva':              [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'unidades_min',label:'Nº unidades desde'},{key:'unidades_max',label:'Nº unidades hasta'}],
+  'Segunda mano':            [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'hab_min',label:'Nº habitaciones desde'},{key:'hab_max',label:'Nº habitaciones hasta'}],
+  'Build to Rent (BTR)':     [{key:'unidades_min',label:'Nº unidades desde'},{key:'unidades_max',label:'Nº unidades hasta'},{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'}],
+  'Build to Sell (BTS)':     [{key:'unidades_min',label:'Nº unidades desde'},{key:'unidades_max',label:'Nº unidades hasta'},{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'}],
+  'Flex living':             [{key:'unidades_min',label:'Nº unidades desde'},{key:'unidades_max',label:'Nº unidades hasta'}],
+  'Student housing':         [{key:'camas_min',label:'Nº camas desde'},{key:'camas_max',label:'Nº camas hasta'}],
+  'Senior living':           [{key:'unidades_min',label:'Nº unidades desde'},{key:'unidades_max',label:'Nº unidades hasta'}],
+  'Coliving':                [{key:'unidades_min',label:'Nº unidades desde'},{key:'unidades_max',label:'Nº unidades hasta'}],
+  'Hotel urbano':            [{key:'hab_min',label:'Nº habitaciones desde'},{key:'hab_max',label:'Nº habitaciones hasta'},{key:'categoria',label:'Categoría',type:'select',opts:['1★','2★','3★','4★','5★','Gran lujo']}],
+  'Hotel vacacional':        [{key:'hab_min',label:'Nº habitaciones desde'},{key:'hab_max',label:'Nº habitaciones hasta'},{key:'categoria',label:'Categoría',type:'select',opts:['1★','2★','3★','4★','5★','Gran lujo']}],
+  'Resort':                  [{key:'hab_min',label:'Nº habitaciones desde'},{key:'hab_max',label:'Nº habitaciones hasta'},{key:'categoria',label:'Categoría',type:'select',opts:['4★','5★','Gran lujo']}],
+  'Aparthotel':              [{key:'unidades_min',label:'Nº unidades desde'},{key:'unidades_max',label:'Nº unidades hasta'}],
+  'Hotel Boutique':          [{key:'hab_min',label:'Nº habitaciones desde'},{key:'hab_max',label:'Nº habitaciones hasta'}],
+  'Hostal':                  [{key:'hab_min',label:'Nº habitaciones desde'},{key:'hab_max',label:'Nº habitaciones hasta'}],
+  'Suelo finalista':         [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'edif_min',label:'Edificabilidad desde',unit:'m²t'},{key:'edif_max',label:'Edificabilidad hasta',unit:'m²t'},{key:'uso_permitido',label:'Uso permitido'}],
+  'Suelo en desarrollo':     [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'estado_urb',label:'Estado urbanístico'}],
+  'Suelo urbanizable':       [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'},{key:'uso_permitido',label:'Uso permitido'}],
+  'Data center':             [{key:'potencia',label:'Potencia',unit:'MW'},{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'}],
+  'Self-storage':            [{key:'unidades_min',label:'Nº unidades desde'},{key:'unidades_max',label:'Nº unidades hasta'},{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'}],
+  'Sanitario':               [{key:'camas_min',label:'Nº camas desde'},{key:'camas_max',label:'Nº camas hasta'}],
+  'Educativo':               [{key:'sup_min',label:'Superficie desde',unit:'m²'},{key:'sup_max',label:'Superficie hasta',unit:'m²'}],
+  'Uso mixto':               [{key:'sup_min',label:'Superficie total desde',unit:'m²'},{key:'sup_max',label:'Superficie total hasta',unit:'m²'},{key:'mix_usos',label:'% por uso'}],
+}
+
+function CampoFisico({ campo, value, onChange }) {
+  if (campo.type === 'select') {
+    return (
+      <div className="ir">
+        <span className="ir-k">{campo.label}</span>
+        <span className="ir-v">
+          <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={value||''} onChange={e=>onChange(e.target.value)}>
+            <option value="">—</option>
+            {campo.opts.map(o=><option key={o}>{o}</option>)}
+          </select>
+        </span>
+      </div>
+    )
+  }
+  return (
+    <div className="ir">
+      <span className="ir-k">{campo.label}{campo.unit?` (${campo.unit})`:''}</span>
+      <span className="ir-v">
+        <input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={value||''} onChange={e=>onChange(e.target.value)} placeholder="—"/>
+      </span>
+    </div>
+  )
+}
+
 const MOCK_PRESENTACIONES = [
   { id:'PRE-2501', activo:'Albatros Edif. D', zona:'A-1 · Alcobendas', sup:'13.486 m²', fecha:'13/11/2025', estado:'Visitado', visitado:true, fecha_visita:'20/11/2025' },
   { id:'PRE-2502', activo:'P.E Avalon', zona:'M-30 · Julián Camarillo', sup:'46.956 m²', fecha:'20/11/2025', estado:'Sin respuesta', visitado:false, fecha_visita:'' },
@@ -144,6 +230,26 @@ export default function FichaDemanda() {
   const [activeTab, setActiveTab] = useState('dem-info')
   const [showTarea, setShowTarea] = useState(false)
 
+  // Demanda condicional
+  const [demUsoPpal,   setDemUsoPpal]   = useState('Oficinas')
+  const [demTipologia, setDemTipologia] = useState('Oficina tradicional')
+  const [demCampos,    setDemCampos]    = useState({})
+  const [demTipoPres,  setDemTipoPres]  = useState('Alquiler')
+  const [demPres,      setDemPres]      = useState({})
+
+  const tipologiasDisp = USOS_TIPOLOGIAS[demUsoPpal] || []
+  const camposActivos  = CAMPOS_TIPOLOGIA[demTipologia] || []
+
+  const setCampo = (key, val) => setDemCampos(p=>({...p,[key]:val}))
+  const setPres  = (key, val) => setDemPres(p=>({...p,[key]:val}))
+
+  const handleUsoPpal = (uso) => {
+    setDemUsoPpal(uso)
+    const firstTip = (USOS_TIPOLOGIAS[uso]||[])[0] || ''
+    setDemTipologia(firstTip)
+    setDemCampos({})
+  }
+
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
       {/* Action bar */}
@@ -253,53 +359,146 @@ export default function FichaDemanda() {
           {activeTab==='dem-req' && (
             <div className="tab-content active"><div className="info-pad">
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
+
+                {/* ── Col 1: Requisitos generales ── */}
                 <div>
                   <div className="of-section">📋 REQUISITOS GENERALES</div>
                   <div className="info-block" style={{marginBottom:10}}>
-                    {[['Tipo activo demandado',['Edificio','Suelo']],['Uso principal',['Oficinas','Retail','Logístico','Hoteles','Living']],['Tipología',['Oficina','Coworking','Subarrendamiento']],['Razón de búsqueda',['Expansión / Crecimiento','Reducción','Reubicación','Reagrupación','Creación','Obsoleto']]].map(([lbl,opts])=>(
-                      <div key={lbl} className="ir">
-                        <span className="ir-k">{lbl}</span>
-                        <span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}>{opts.map(o=><option key={o}>{o}</option>)}</select></span>
-                      </div>
-                    ))}
+                    {/* Tipo activo */}
+                    <div className="ir">
+                      <span className="ir-k">Tipo activo</span>
+                      <span className="ir-v">
+                        <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}>
+                          <option>Edificio</option><option>Suelo</option>
+                        </select>
+                      </span>
+                    </div>
+
+                    {/* Nivel 1: Uso principal */}
+                    <div className="ir">
+                      <span className="ir-k" style={{fontWeight:700,color:'var(--accent)'}}>Uso principal</span>
+                      <span className="ir-v">
+                        <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={demUsoPpal} onChange={e=>handleUsoPpal(e.target.value)}>
+                          {Object.keys(USOS_TIPOLOGIAS).map(u=><option key={u}>{u}</option>)}
+                        </select>
+                      </span>
+                    </div>
+
+                    {/* Nivel 2: Tipología (condicional) */}
+                    <div className="ir">
+                      <span className="ir-k" style={{fontWeight:700,color:'var(--purple)'}}>Tipología</span>
+                      <span className="ir-v">
+                        <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={demTipologia} onChange={e=>{setDemTipologia(e.target.value);setDemCampos({})}}>
+                          {tipologiasDisp.map(t=><option key={t}>{t}</option>)}
+                        </select>
+                      </span>
+                    </div>
+
+                    {/* Razón búsqueda */}
+                    <div className="ir">
+                      <span className="ir-k">Razón búsqueda</span>
+                      <span className="ir-v">
+                        <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}>
+                          {['Expansión / Crecimiento','Reducción','Reubicación','Reagrupación','Creación','Obsoleto'].map(o=><option key={o}>{o}</option>)}
+                        </select>
+                      </span>
+                    </div>
+
                     <div className="ir"><span className="ir-k">Timing proyecto</span><span className="ir-v"><input type="date" className="of-inp" style={{padding:'2px 6px',fontSize:11,width:120}}/></span></div>
-                    <div className="ir"><span className="ir-k">Origen Demanda</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>OTRAS CONSULTORAS</option><option>IDEALISTA</option><option>WEB BNPPRE</option><option>SAVILLS ESPAÑA</option></select></span></div>
+                    <div className="ir"><span className="ir-k">Origen demanda</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>Otras consultoras</option><option>Idealista</option><option>Web Savills</option><option>LinkedIn</option><option>ON personal</option><option>ON profesional</option></select></span></div>
                     <div className="ir"><span className="ir-k">Mandato asociado</span><span className="ir-v link">— ↗</span></div>
                     <div className="ir"><span className="ir-k">Nº NDA</span><span className="ir-v link">— ↗</span></div>
                   </div>
+
                   <div className="of-section">📝 DESCRIPCIÓN</div>
                   <textarea className="of-textarea" style={{fontSize:11}}>Savills (Estefanía): Buscan unos 2.500 m2 en la zona de Alcobendas. Preguntan específicamente por Albatros. Quieren solo la última planta con terraza.</textarea>
                 </div>
+
+                {/* ── Col 2: Campos físicos + Presupuesto ── */}
                 <div>
-                  <div className="of-section">📐 SUPERFICIE DEMANDADA</div>
-                  <div className="info-block" style={{marginBottom:10}}>
-                    <div className="ir"><span className="ir-k">Oficina mín. (m²)</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} defaultValue="2.200"/></span></div>
-                    <div className="ir"><span className="ir-k">Oficina máx. (m²)</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} defaultValue="3.000"/></span></div>
-                    <div className="ir"><span className="ir-k">Nº Puestos de trabajo</span><span className="ir-v">—</span></div>
+                  {/* Nivel 3: Campos físicos condicionales */}
+                  <div className="of-section">
+                    📐 CAMPOS FÍSICOS
+                    <span style={{marginLeft:6,fontSize:9,background:'var(--purple)22',color:'var(--purple)',border:'1px solid var(--purple)44',borderRadius:8,padding:'1px 6px',fontWeight:700}}>{demTipologia}</span>
                   </div>
-                  <div className="of-section">💰 PRESUPUESTO ALQUILER</div>
                   <div className="info-block" style={{marginBottom:10}}>
-                    <div className="ir"><span className="ir-k">Alquiler</span><span className="ir-v"><input type="checkbox" defaultChecked style={{accentColor:'var(--accent)'}}/></span></div>
-                    <div className="ir"><span className="ir-k">Tipo de búsqueda</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>—</option><option>Estándar</option><option>Estándar / Flexible</option></select></span></div>
-                    <div className="ir"><span className="ir-k">Alquiler (€/m²)</span><span className="ir-v">—</span></div>
-                    <div className="ir"><span className="ir-k">Renta mensual (€/mes)</span><span className="ir-v">—</span></div>
+                    {camposActivos.length > 0
+                      ? camposActivos.map(c=>(
+                          <CampoFisico key={c.key} campo={c} value={demCampos[c.key]} onChange={v=>setCampo(c.key,v)}/>
+                        ))
+                      : <div style={{fontSize:11,color:'var(--text4)',padding:'8px 0'}}>Selecciona una tipología para ver los campos correspondientes.</div>
+                    }
                   </div>
-                  <div className="of-section">🏠 PRESUPUESTO VENTA</div>
+
+                  {/* Nivel 4: Presupuesto condicional */}
+                  <div className="of-section">💰 PRESUPUESTO</div>
                   <div className="info-block">
-                    <div className="ir"><span className="ir-k">Venta</span><span className="ir-v"><input type="checkbox" style={{accentColor:'var(--accent)'}}/></span></div>
-                    <div className="ir"><span className="ir-k">Precio (€/m²)</span><span className="ir-v">—</span></div>
-                    <div className="ir"><span className="ir-k">Precio total (€)</span><span className="ir-v">—</span></div>
+                    {/* Selector Tipo */}
+                    <div className="ir">
+                      <span className="ir-k" style={{fontWeight:700}}>Tipo</span>
+                      <span className="ir-v">
+                        <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={demTipoPres} onChange={e=>setDemTipoPres(e.target.value)}>
+                          <option>Alquiler</option>
+                          <option>Venta</option>
+                          <option>Alquiler / Venta</option>
+                        </select>
+                      </span>
+                    </div>
+
+                    {/* Campos Alquiler */}
+                    {(demTipoPres==='Alquiler'||demTipoPres==='Alquiler / Venta') && (
+                      <div style={{marginTop:8,paddingTop:8,borderTop:'1px dashed var(--border)'}}>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--teal)',marginBottom:4,textTransform:'uppercase',letterSpacing:'.04em'}}>Alquiler</div>
+                        <div className="ir">
+                          <span className="ir-k">Unidad renta</span>
+                          <span className="ir-v">
+                            <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={demPres.unidad_alq||'€/m²/mes'} onChange={e=>setPres('unidad_alq',e.target.value)}>
+                              <option>€/m²/mes</option><option>€/mes</option>
+                            </select>
+                          </span>
+                        </div>
+                        <div className="ir"><span className="ir-k">Alquiler desde</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.alq_min||''} onChange={e=>setPres('alq_min',e.target.value)} placeholder="—"/></span></div>
+                        <div className="ir"><span className="ir-k">Alquiler hasta</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.alq_max||''} onChange={e=>setPres('alq_max',e.target.value)} placeholder="—"/></span></div>
+                      </div>
+                    )}
+
+                    {/* Campos Venta */}
+                    {(demTipoPres==='Venta'||demTipoPres==='Alquiler / Venta') && (
+                      <div style={{marginTop:8,paddingTop:8,borderTop:'1px dashed var(--border)'}}>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--amber)',marginBottom:4,textTransform:'uppercase',letterSpacing:'.04em'}}>Venta</div>
+                        <div className="ir"><span className="ir-k">€/m² desde</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.venta_m2_min||''} onChange={e=>setPres('venta_m2_min',e.target.value)} placeholder="—"/></span></div>
+                        <div className="ir"><span className="ir-k">€/m² hasta</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.venta_m2_max||''} onChange={e=>setPres('venta_m2_max',e.target.value)} placeholder="—"/></span></div>
+                        <div className="ir"><span className="ir-k">Precio total desde</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.venta_tot_min||''} onChange={e=>setPres('venta_tot_min',e.target.value)} placeholder="—"/></span></div>
+                        <div className="ir"><span className="ir-k">Precio total hasta</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.venta_tot_max||''} onChange={e=>setPres('venta_tot_max',e.target.value)} placeholder="—"/></span></div>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* ── Col 3: Parámetros ── */}
                 <div>
                   <div className="of-section">🔍 PARÁMETROS DE BÚSQUEDA</div>
                   <div className="info-block" style={{marginBottom:10}}>
-                    <div style={{fontSize:10,color:'var(--text3)',marginBottom:4}}>Requisitos de búsqueda</div>
-                    <textarea className="of-textarea" style={{fontSize:11,minHeight:50}}>—</textarea>
+                    <div style={{fontSize:10,color:'var(--text3)',marginBottom:4}}>Requisitos adicionales</div>
+                    <textarea className="of-textarea" style={{fontSize:11,minHeight:60}}>—</textarea>
                     <div style={{fontSize:10,color:'var(--text3)',marginTop:8,marginBottom:4}}>Canal de entrada</div>
                     <input className="of-inp" style={{fontSize:11}} defaultValue="—"/>
                   </div>
+
+                  {/* Resumen visual del estado de la demanda */}
+                  <div style={{background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',padding:10,marginTop:8}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--accent)',marginBottom:8,textTransform:'uppercase',letterSpacing:'.04em'}}>✦ Resumen demanda</div>
+                    <div style={{fontSize:11,color:'var(--text2)',lineHeight:1.7}}>
+                      <div><strong>Uso:</strong> {demUsoPpal}</div>
+                      <div><strong>Tipología:</strong> {demTipologia}</div>
+                      <div><strong>Presupuesto:</strong> {demTipoPres}</div>
+                      {camposActivos.filter(c=>demCampos[c.key]).map(c=>(
+                        <div key={c.key}><strong>{c.label}:</strong> {demCampos[c.key]}{c.unit?` ${c.unit}`:''}</div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+
               </div>
             </div></div>
           )}
