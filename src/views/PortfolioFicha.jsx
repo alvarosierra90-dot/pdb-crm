@@ -137,8 +137,182 @@ function getReportConfig() {
           { label: 'Histórico acumulado', value: '20,3 M€' },
         ],
       },
+      {
+        title: 'Listado de activos del propietario',
+        type: 'table',
+        headers: ['Activo', 'Superficie (m²)', 'Uso principal', 'Ubicación'],
+        rows: [
+          ['P.E Avalon',              '46.956', 'Oficinas',   'Madrid · M-30 · Julián Camarillo'],
+          ['Torre Glòries',           '18.500', 'Oficinas',   'Barcelona · 22@ · Poblenou'],
+          ['Park Logístico Getafe',   '24.000', 'Logístico',  'Madrid · Getafe · Corredor del Henares'],
+          ['C.C. La Maquinista',      '65.000', 'Retail',     'Barcelona · Sant Andreu'],
+          ['Hotel ME Madrid',         '11.200', 'Hotel',      'Madrid · Centro · Gran Vía'],
+          ['Residencial Valdebebas',  '32.000', 'Residencial','Madrid · Valdebebas'],
+          ['Logístico Guadalajara',   '48.000', 'Logístico',  'Guadalajara · Corredor A-2'],
+          ['Torre Realia Barcelona',  '28.200', 'Oficinas',   'Barcelona · L\'Hospitalet'],
+        ],
+      },
+      {
+        title: 'Facturación Savills por Línea de Negocio',
+        type: 'table',
+        headers: ['Línea de Negocio', 'Facturación acum.', 'Nº Operaciones'],
+        rows: [
+          ['Leasing Oficinas',       '10,60 M€', '14'],
+          ['Capital Markets',        '5,70 M€',  '6'],
+          ['Retail',                 '1,80 M€',  '3'],
+          ['Industrial / Logística', '0,98 M€',  '2'],
+          ['Valoraciones',           '0,56 M€',  '4'],
+          ['Property Management',    '0,36 M€',  '1'],
+          ['TOTAL',                  '20,00 M€', '30'],
+        ],
+      },
     ],
   }
+}
+
+/* ── Datos financieros por año/trimestre/línea ── */
+const FIN_LINEAS = ['Oficinas','Industrial','Retail','Residencial','Hoteles','Capital Markets','Valoraciones']
+const FIN_DATA = {
+  '2024': { Q1:[3.2,1.1,0.8,0.4,0.3,1.8,0.2], Q2:[3.8,1.3,0.9,0.5,0.4,2.1,0.3], Q3:[3.5,1.2,0.8,0.4,0.3,1.9,0.2], Q4:[3.1,1.0,0.7,0.3,0.2,1.7,0.2] },
+  '2025': { Q1:[3.9,1.4,1.0,0.5,0.4,2.2,0.3], Q2:[4.5,1.6,1.2,0.6,0.5,2.6,0.4], Q3:[4.2,1.5,1.1,0.5,0.4,2.4,0.3], Q4:[3.8,1.3,0.9,0.4,0.3,2.0,0.3] },
+  '2026': { Q1:[4.1,1.5,1.0,0.6,0.4,2.3,0.3], Q2:[4.8,1.7,1.2,0.6,0.5,2.7,0.4], Q3:[], Q4:[] },
+}
+const FIN_COLORS = ['var(--accent)','var(--amber)','var(--red)','var(--purple)','var(--teal)','var(--green)','var(--text3)']
+
+function FinancieroTab() {
+  const [fYear,    setFYear]    = useState('')
+  const [fPeriod,  setFPeriod]  = useState('')
+  const [fCountry, setFCountry] = useState('')
+  const [fRegion,  setFRegion]  = useState('')
+  const [fMarket,  setFMarket]  = useState('')
+  const [fLinea,   setFLinea]   = useState('')
+  const [fService, setFService]  = useState('')
+  const [fSector,  setFSector]   = useState('')
+
+  // Calcular datos del gráfico según filtros
+  const chartData = (() => {
+    const years = fYear ? [fYear] : Object.keys(FIN_DATA)
+    const periods = fPeriod ? [fPeriod] : ['Q1','Q2','Q3','Q4']
+    const lineaIdx = fLinea ? FIN_LINEAS.indexOf(fLinea) : -1
+    const result = []
+    for (const y of years) {
+      for (const q of periods) {
+        const vals = FIN_DATA[y]?.[q]
+        if (!vals || vals.length === 0) continue
+        const total = lineaIdx >= 0 ? (vals[lineaIdx]||0) : vals.reduce((s,v)=>s+v,0)
+        result.push({ label: `${y} ${q}`, total: parseFloat(total.toFixed(2)), ytd: y==='2026'&&(q==='Q1'||q==='Q2') })
+      }
+    }
+    return result
+  })()
+  const chartMax = Math.max(...chartData.map(d=>d.total), 1)
+
+  // KPIs derivados
+  const totalFact = chartData.reduce((s,d)=>s+d.total, 0)
+
+  const filterSel = {fontSize:10,padding:'3px 8px',borderRadius:5,border:'1px solid var(--border)',background:'var(--surface)',fontFamily:'inherit',color:'var(--text2)',cursor:'pointer'}
+  const filterLbl = {fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}
+
+  return (
+    <div className="tab-content active" style={{ overflowY: 'auto' }}>
+      <div className="port-body">
+        {/* Barra de filtros */}
+        <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',padding:'12px 16px',marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,marginBottom:10}}>🔽 Filtros</div>
+          <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'flex-end'}}>
+            {[
+              {lbl:'Year',     val:fYear,    set:setFYear,    opts:['','2024','2025','2026']},
+              {lbl:'Period',   val:fPeriod,  set:setFPeriod,  opts:['','Q1','Q2','Q3','Q4']},
+              {lbl:'Country',  val:fCountry, set:setFCountry, opts:['','España','Portugal']},
+              {lbl:'Region',   val:fRegion,  set:setFRegion,  opts:['','Centro','Este','Norte','Sur']},
+              {lbl:'Market',   val:fMarket,  set:setFMarket,  opts:['','Madrid','Barcelona','Valencia','Sevilla','Lisboa']},
+              {lbl:'Business Line', val:fLinea, set:setFLinea, opts:['',...FIN_LINEAS]},
+              {lbl:'Service Group', val:fService, set:setFService, opts:['','Leasing','Investment','Advisory','PM']},
+              {lbl:'Property Sector', val:fSector, set:setFSector, opts:['','Prime','Secondary','Logístico','Retail Park']},
+            ].map(({lbl,val,set,opts})=>(
+              <div key={lbl} style={{display:'flex',flexDirection:'column',minWidth:90}}>
+                <div style={filterLbl}>{lbl}</div>
+                <select style={filterSel} value={val} onChange={e=>set(e.target.value)}>
+                  {opts.map(o=><option key={o} value={o}>{o||'Todas'}</option>)}
+                </select>
+              </div>
+            ))}
+            <button onClick={()=>{setFYear('');setFPeriod('');setFCountry('');setFRegion('');setFMarket('');setFLinea('');setFService('');setFSector('')}}
+              style={{...filterSel,color:'var(--accent)',border:'1px solid var(--accent-bd)',background:'var(--accent-lt)',fontWeight:700,marginTop:12}}>
+              ✕ Limpiar
+            </button>
+          </div>
+        </div>
+
+        {/* KPIs */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:12}}>
+          {[
+            {lbl:'Valor total cartera',val:'487 M€',color:'var(--text1)'},
+            {lbl:'Ingresos brutos',val:'28,3 M€/año',color:'var(--green)'},
+            {lbl:'NOI',val:'24,2 M€/año',color:'var(--teal)'},
+            {lbl:'Cap Rate',val:'5,8%',color:'var(--accent)'},
+          ].map(k=>(
+            <div key={k.lbl} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'10px 14px',textAlign:'center'}}>
+              <div style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:4}}>{k.lbl}</div>
+              <div style={{fontSize:17,fontWeight:800,fontFamily:'var(--mono)',color:k.color}}>{k.val}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Gráfico de barras */}
+        <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
+          <div style={{padding:'10px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div>
+              <div style={{fontSize:11,fontWeight:700}}>Facturación por período {fLinea ? `· ${fLinea}` : '· todas las líneas'}</div>
+              <div style={{fontSize:9,color:'var(--text4)',marginTop:1}}>M€ según filtros aplicados · Total selección: {totalFact.toFixed(2)} M€</div>
+            </div>
+          </div>
+          <div style={{padding:'16px 20px 12px'}}>
+            {chartData.length === 0
+              ? <div style={{textAlign:'center',padding:32,color:'var(--text4)',fontSize:12}}>Sin datos para los filtros aplicados</div>
+              : (
+                <div style={{display:'flex',alignItems:'flex-end',gap:8,height:120}}>
+                  {chartData.map((d,i)=>{
+                    const h = Math.max(Math.round((d.total/chartMax)*100), d.total>0?4:0)
+                    return (
+                      <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+                        <span style={{fontSize:8,fontWeight:700,color:d.ytd?'var(--accent)':'var(--text3)'}}>{d.total.toFixed(1)}M</span>
+                        <div style={{width:'100%',background:d.ytd?'var(--accent)':'var(--border2)',borderRadius:'3px 3px 0 0',height:h,minHeight:d.total>0?3:0,transition:'.3s'}}/>
+                        <span style={{fontSize:8,color:d.ytd?'var(--accent)':'var(--text4)',fontWeight:d.ytd?700:400,textAlign:'center',lineHeight:1.2}}>{d.label}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            }
+          </div>
+        </div>
+
+        {/* Desglose por línea de negocio */}
+        <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+          <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>Desglose por Línea de Negocio · 2026 YTD</div>
+          <div style={{padding:'12px 14px'}}>
+            {FIN_LINEAS.map((l,i)=>{
+              const q1 = FIN_DATA['2026']?.Q1?.[i]||0
+              const q2 = FIN_DATA['2026']?.Q2?.[i]||0
+              const total = q1 + q2
+              const maxL = 4.8 + 1.7
+              return (
+                <div key={l} style={{display:'flex',alignItems:'center',gap:10,marginBottom:7}}>
+                  <div style={{width:120,fontSize:10,color:'var(--text2)',flexShrink:0}}>{l}</div>
+                  <div style={{flex:1,height:7,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
+                    <div style={{height:'100%',width:`${Math.round(total/maxL*100)}%`,background:FIN_COLORS[i],borderRadius:4,transition:'.3s'}}/>
+                  </div>
+                  <div style={{width:55,fontSize:10,fontWeight:700,color:FIN_COLORS[i],textAlign:'right',fontFamily:'var(--mono)',flexShrink:0}}>{total.toFixed(1)} M€</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  )
 }
 
 export default function PortfolioFicha() {
@@ -398,6 +572,43 @@ export default function PortfolioFicha() {
                   </div>
                 </div>
               </div>
+
+              {/* Facturación por Línea de Negocio — datos desde Transacciones/Instrucción */}
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden', marginTop: 12 }}>
+                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600 }}>💼 Facturación por Línea de Negocio</div>
+                  <span style={{ fontSize: 9, color: 'var(--text4)' }}>Origen: Transacciones / Instrucción</span>
+                </div>
+                <div style={{ padding: '12px 14px' }}>
+                  {[
+                    { linea: 'Leasing Oficinas',         fees: 10_600_000, ops: 14, color: 'var(--accent)' },
+                    { linea: 'Capital Markets',          fees:  5_700_000, ops:  6, color: 'var(--purple)' },
+                    { linea: 'Retail',                   fees:  1_800_000, ops:  3, color: 'var(--red)' },
+                    { linea: 'Industrial / Logística',   fees:    980_000, ops:  2, color: 'var(--amber)' },
+                    { linea: 'Valoraciones',             fees:    560_000, ops:  4, color: 'var(--teal)' },
+                    { linea: 'Property Management',      fees:    360_000, ops:  1, color: 'var(--green)' },
+                  ].map(r => {
+                    const maxFees = 10_600_000
+                    const pct = Math.round(r.fees / maxFees * 100)
+                    return (
+                      <div key={r.linea} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                        <div style={{ width: 110, fontSize: 10, color: 'var(--text2)', flexShrink: 0 }}>{r.linea}</div>
+                        <div style={{ flex: 1, height: 7, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: r.color, borderRadius: 4, transition: '.3s' }}/>
+                        </div>
+                        <div style={{ width: 70, fontSize: 10, fontWeight: 700, color: r.color, textAlign: 'right', fontFamily: 'var(--mono)', flexShrink: 0 }}>
+                          {(r.fees / 1_000_000).toFixed(2)} M€
+                        </div>
+                        <div style={{ width: 28, fontSize: 9, color: 'var(--text4)', textAlign: 'right', flexShrink: 0 }}>{r.ops} ops</div>
+                      </div>
+                    )
+                  })}
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700 }}>TOTAL ACUMULADO</span>
+                    <span style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--mono)', color: 'var(--text1)' }}>20,00 M€</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -464,30 +675,7 @@ export default function PortfolioFicha() {
 
         {/* Financiero */}
         {activeTab === 'pt-financiero' && (
-          <div className="tab-content active" style={{ overflowY: 'auto' }}>
-            <div className="port-body">
-              <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>
-                <button onClick={()=>exportarInforme('Financiero-Portfolio-Merlin',[
-                  'INFORME FINANCIERO PORTFOLIO',
-                  `Valor total cartera: €487M`,
-                  `Ingresos brutos: €28.3M/año`,
-                  `NOI: €24.2M/año`,
-                  `Cap Rate: 5.8%`,
-                ])} style={{padding:'4px 12px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)',fontWeight:600}}>
-                  ⬇ Exportar
-                </button>
-              </div>
-              <div className="info-2col">
-                <div className="info-block">
-                  <div className="ib-title">FINANCIERO PORTFOLIO</div>
-                  <div className="ir"><span className="ir-k">Valor total cartera</span><span className="ir-v" style={{ fontWeight: 700 }}>€487M</span></div>
-                  <div className="ir"><span className="ir-k">Ingresos brutos</span><span className="ir-v">€28.3M/año</span></div>
-                  <div className="ir"><span className="ir-k">NOI</span><span className="ir-v">€24.2M/año</span></div>
-                  <div className="ir"><span className="ir-k">Cap Rate</span><span className="ir-v">5.8%</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <FinancieroTab/>
         )}
       </div>
 
