@@ -36,8 +36,8 @@ function ExportMenu({ getConfig }) {
   )
 }
 
-const TABS = ['pt-overview','pt-activos','pt-ofertas','pt-actividad','pt-financiero']
-const TAB_LABELS = ['Overview','Activos (8)','Ofertas (5)','Actividad comercial','Financiero']
+const TABS = ['pt-overview','pt-activos','pt-ofertas','pt-actividad','pt-oportunidades','pt-transaccion','pt-financiero']
+const TAB_LABELS = ['Overview','Activos (8)','Ofertas (5)','Actividad comercial','Oportunidades (3)','Transacción / Instrucción (6)','Financiero']
 
 const USOS_FILTRO = ['Todo','Oficinas','Logístico','Retail','Residencial','Suelo','Centros comerciales','Hoteles']
 
@@ -169,6 +169,23 @@ function getReportConfig() {
     ],
   }
 }
+
+/* ── Oportunidades ── */
+const MOCK_OPORTUNIDADES = [
+  { id:'OPO-2501', activo:'P.E Avalon — Edif. A P5', empresa:'Celonis Spain SL', sup:1202, renta:'14,5 €/m²/mes', estado:'Oferta enviada', responsable:'A. Sierra', fecha:'2026-03-15', linea:'Leasing Oficinas' },
+  { id:'OPO-2502', activo:'Albatros — Edif. D',      empresa:'Oracle Spain SL',  sup:2800, renta:'12,0 €/m²/mes', estado:'Visita realizada', responsable:'A. Sierra', fecha:'2026-02-28', linea:'Leasing Oficinas' },
+  { id:'OPO-2503', activo:'Park Logístico Getafe',   empresa:'Amazon Logistics',  sup:8400, renta:'6,8 €/m²/mes',  estado:'En seguimiento',  responsable:'C. López',  fecha:'2026-04-01', linea:'Industrial' },
+]
+
+/* ── Transacción / Instrucción ── */
+const MOCK_TRANSACCIONES = [
+  { id:'TRN-2601', tipo:'Arrendamiento', activo:'P.E Avalon P4', empresa:'Mapfre', sup:1967, renta:'10,5 €/m²/mes', fee:'185.000 €', estado:'Firmado',       fecha:'2026-01-20', linea:'Leasing Oficinas' },
+  { id:'TRN-2602', tipo:'Arrendamiento', activo:'Torre Glòries P8', empresa:'Telefónica', sup:2200, renta:'28,0 €/m²/mes', fee:'620.000 €', estado:'Firmado', fecha:'2026-03-05', linea:'Leasing Oficinas' },
+  { id:'TRN-2502', tipo:'Arrendamiento', activo:'Park Logístico Getafe', empresa:'DHL', sup:8400, renta:'6,8 €/m²/mes', fee:'320.000 €', estado:'Instrucción', fecha:'2025-11-10', linea:'Industrial' },
+  { id:'TRN-2503', tipo:'Arrendamiento', activo:'C.C. La Maquinista', empresa:'Inditex', sup:1800, renta:'95 €/m²/mes', fee:'210.000 €', estado:'Instrucción',  fecha:'2026-01-08', linea:'Retail' },
+  { id:'TRN-2401', tipo:'Venta',         activo:'Edificio Realia BCN', empresa:'Inmo Capital III', sup:28200, renta:null, fee:'1.030.000 €', estado:'Firmado', fecha:'2025-06-30', linea:'Capital Markets' },
+  { id:'TRN-2402', tipo:'Venta',         activo:'Logístico Coslada',   empresa:'Prologis Europe',  sup:18000, renta:null, fee:'780.000 €',   estado:'Firmado', fecha:'2025-09-15', linea:'Capital Markets' },
+]
 
 /* ── Datos financieros por año/trimestre/línea ── */
 const FIN_LINEAS = ['Oficinas','Industrial','Retail','Residencial','Hoteles','Capital Markets','Valoraciones']
@@ -573,10 +590,56 @@ export default function PortfolioFicha() {
                 </div>
               </div>
 
+              {/* Resumen Oportunidades */}
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden', marginTop: 12 }}>
+                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600 }}>Oportunidades activas</div>
+                  <button onClick={() => setActiveTab('pt-oportunidades')} style={{ fontSize: 10, padding: '2px 10px', borderRadius: 4, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', color: 'var(--accent)', fontFamily: 'inherit', fontWeight: 600 }}>Ver todas →</button>
+                </div>
+                <table className="dtbl">
+                  <thead><tr><th>Ref.</th><th>Activo</th><th>Empresa</th><th>M²</th><th>Estado</th><th>Línea</th></tr></thead>
+                  <tbody>
+                    {MOCK_OPORTUNIDADES.map(o => (
+                      <tr key={o.id} onClick={() => setActiveTab('pt-oportunidades')} style={{ cursor: 'pointer' }}>
+                        <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)' }}>{o.id}</span></td>
+                        <td style={{ fontSize: 11 }}>{o.activo}</td>
+                        <td style={{ fontSize: 11 }}>{o.empresa}</td>
+                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{o.sup.toLocaleString('es-ES')}</td>
+                        <td><span className="tag tag-blue" style={{ fontSize: 9 }}>{o.estado}</span></td>
+                        <td style={{ fontSize: 10, color: 'var(--text3)' }}>{o.linea}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Resumen Transacción / Instrucción */}
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden', marginTop: 12 }}>
+                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600 }}>Transacción / Instrucción recientes</div>
+                  <button onClick={() => setActiveTab('pt-transaccion')} style={{ fontSize: 10, padding: '2px 10px', borderRadius: 4, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', color: 'var(--accent)', fontFamily: 'inherit', fontWeight: 600 }}>Ver todas →</button>
+                </div>
+                <table className="dtbl">
+                  <thead><tr><th>Ref.</th><th>Tipo</th><th>Activo</th><th>Empresa</th><th>Fee</th><th>Estado</th></tr></thead>
+                  <tbody>
+                    {MOCK_TRANSACCIONES.slice(0, 4).map(t => (
+                      <tr key={t.id} onClick={() => setActiveTab('pt-transaccion')} style={{ cursor: 'pointer' }}>
+                        <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)' }}>{t.id}</span></td>
+                        <td><span className={`tag ${t.tipo === 'Venta' ? 'tag-purple' : 'tag-blue'}`} style={{ fontSize: 9 }}>{t.tipo}</span></td>
+                        <td style={{ fontSize: 11 }}>{t.activo}</td>
+                        <td style={{ fontSize: 11 }}>{t.empresa}</td>
+                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)', fontWeight: 600 }}>{t.fee}</td>
+                        <td><span className={`tag ${t.estado === 'Firmado' ? 'tag-green' : 'tag-amber'}`} style={{ fontSize: 9 }}>{t.estado}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
               {/* Facturación por Línea de Negocio — datos desde Transacciones/Instrucción */}
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden', marginTop: 12 }}>
                 <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: 11, fontWeight: 600 }}>💼 Facturación por Línea de Negocio</div>
+                  <div style={{ fontSize: 11, fontWeight: 600 }}>Facturación por Línea de Negocio</div>
                   <span style={{ fontSize: 9, color: 'var(--text4)' }}>Origen: Transacciones / Instrucción</span>
                 </div>
                 <div style={{ padding: '12px 14px' }}>
@@ -668,6 +731,94 @@ export default function PortfolioFicha() {
                 <div className="ib-title">ACTIVIDAD COMERCIAL RECIENTE</div>
                 <div className="ir"><span className="ir-k">12/03/2026</span><span className="ir-v">Llamada con Asset Manager — interés mandato</span></div>
                 <div className="ir"><span className="ir-k">01/03/2025</span><span className="ir-v">Visita Oracle a P.E Avalon — fase finalista</span></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Oportunidades */}
+        {activeTab === 'pt-oportunidades' && (
+          <div className="tab-content active" style={{ overflowY: 'auto' }}>
+            <div className="port-body">
+              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                {[
+                  { lbl: 'Activas', val: MOCK_OPORTUNIDADES.length, color: 'var(--accent)' },
+                  { lbl: 'M² en pipeline', val: MOCK_OPORTUNIDADES.reduce((s,o)=>s+o.sup,0).toLocaleString('es-ES'), color: 'var(--text1)' },
+                  { lbl: 'Renta potencial', val: '~480 k€/año', color: 'var(--green)' },
+                ].map(k => (
+                  <div key={k.lbl} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 9, color: 'var(--text4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>{k.lbl}</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--mono)', color: k.color }}>{k.val}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Oportunidades activas ({MOCK_OPORTUNIDADES.length})</div>
+                <table className="dtbl">
+                  <thead>
+                    <tr><th>Ref.</th><th>Activo</th><th>Empresa</th><th>M²</th><th>Renta</th><th>Estado</th><th>Resp.</th><th>Línea</th><th>Fecha</th></tr>
+                  </thead>
+                  <tbody>
+                    {MOCK_OPORTUNIDADES.map(o => (
+                      <tr key={o.id} style={{ cursor: 'pointer' }}>
+                        <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>{o.id}</span></td>
+                        <td style={{ fontSize: 11, fontWeight: 500, color: 'var(--accent)' }}>{o.activo}</td>
+                        <td style={{ fontSize: 11 }}>{o.empresa}</td>
+                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{o.sup.toLocaleString('es-ES')} m²</td>
+                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{o.renta}</td>
+                        <td><span className="tag tag-blue" style={{ fontSize: 9 }}>{o.estado}</span></td>
+                        <td style={{ fontSize: 10, color: 'var(--text3)' }}>{o.responsable}</td>
+                        <td style={{ fontSize: 10, color: 'var(--text3)' }}>{o.linea}</td>
+                        <td style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--text3)' }}>{o.fecha.split('-').reverse().join('/')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Transacción / Instrucción */}
+        {activeTab === 'pt-transaccion' && (
+          <div className="tab-content active" style={{ overflowY: 'auto' }}>
+            <div className="port-body">
+              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                {[
+                  { lbl: 'Total operaciones', val: MOCK_TRANSACCIONES.length, color: 'var(--text1)' },
+                  { lbl: 'Firmadas', val: MOCK_TRANSACCIONES.filter(t=>t.estado==='Firmado').length, color: 'var(--green)' },
+                  { lbl: 'Fees totales', val: '3,15 M€', color: 'var(--accent)' },
+                  { lbl: 'En instrucción', val: MOCK_TRANSACCIONES.filter(t=>t.estado==='Instrucción').length, color: 'var(--amber)' },
+                ].map(k => (
+                  <div key={k.lbl} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 9, color: 'var(--text4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>{k.lbl}</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--mono)', color: k.color }}>{k.val}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Transacciones / Instrucciones ({MOCK_TRANSACCIONES.length})</div>
+                <table className="dtbl">
+                  <thead>
+                    <tr><th>Ref.</th><th>Tipo</th><th>Activo</th><th>Empresa</th><th>M²</th><th>Renta / Precio</th><th>Fee</th><th>Estado</th><th>Línea</th><th>Fecha</th></tr>
+                  </thead>
+                  <tbody>
+                    {MOCK_TRANSACCIONES.map(t => (
+                      <tr key={t.id} style={{ cursor: 'pointer' }}>
+                        <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>{t.id}</span></td>
+                        <td><span className={`tag ${t.tipo === 'Venta' ? 'tag-purple' : 'tag-blue'}`} style={{ fontSize: 9 }}>{t.tipo}</span></td>
+                        <td style={{ fontSize: 11, fontWeight: 500, color: 'var(--accent)' }}>{t.activo}</td>
+                        <td style={{ fontSize: 11 }}>{t.empresa}</td>
+                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{t.sup.toLocaleString('es-ES')} m²</td>
+                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{t.renta || '—'}</td>
+                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--green)' }}>{t.fee}</td>
+                        <td><span className={`tag ${t.estado === 'Firmado' ? 'tag-green' : 'tag-amber'}`} style={{ fontSize: 9 }}>{t.estado}</span></td>
+                        <td style={{ fontSize: 10, color: 'var(--text3)' }}>{t.linea}</td>
+                        <td style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--text3)' }}>{t.fecha.split('-').reverse().join('/')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
