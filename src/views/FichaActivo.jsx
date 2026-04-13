@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
+import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
 
 const TABS = ['at-info','at-stacking','at-caract','at-prop','at-fotos','at-docs','at-adicional','at-360','at-followup']
 const TAB_LABELS = ['Información general','Stacking Plan','Características','Propietarios y arrendatarios','Fotografías','Documentos','Información adicional','Vista 360','Follow-up']
@@ -159,8 +160,8 @@ const OFERTAS_ACTIVAS = [
   { ref:'OLB003', contraparte:'Oracle Spain SL', sup:13486, estado:'Finalista', color:'#7c3aed', bg:'#faf5ff', border:'#e9d5ff' },
 ]
 
-function StackingPlan() {
-  const [buildings, setBuildings]       = useState(INIT_BUILDINGS)
+function StackingPlan({ initBuildings }) {
+  const [buildings, setBuildings]       = useState(initBuildings || INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState('A')
   const [view, setView]                 = useState('principal')
   const [dragging, setDragging]         = useState(null)
@@ -1376,7 +1377,7 @@ function RightPanel({ navigate }) {
 
 /* ══════════════════════════════════════════════════════════ */
 export default function FichaActivo() {
-  const { navigate } = useNav()
+  const { navigate, params } = useNav()
   const [activeTab, setActiveTab]       = useState('at-info')
   const [caracTab, setCaracTab]         = useState('ct-estado')
   const [docCat,   setDocCat]           = useState('todos')
@@ -1461,7 +1462,7 @@ export default function FichaActivo() {
                     <span style={{fontSize:11,color:'var(--text4)'}}>Ocupado: <strong style={{color:'var(--green)'}}>36.814 m²</strong></span>
                   </div>
                 </div>
-                <StackingPlan/>
+                <StackingPlan initBuildings={params?.ref ? BUILDINGS_BY_ACTIVO[params.ref] : undefined}/>
               </div>
             </div>
           )}

@@ -11,8 +11,11 @@ function occColor(occ) {
   return 'var(--red)'
 }
 function usoColor(uso) {
-  if (uso === 'Oficinas') return { bg: '#dbeafe', color: '#1e40af' }
-  if (uso === 'Logístico') return { bg: '#f0fdfa', color: '#0f766e' }
+  if (uso === 'Oficinas')    return { bg: '#dbeafe', color: '#1e40af' }
+  if (uso === 'Logístico')   return { bg: '#f0fdfa', color: '#0f766e' }
+  if (uso === 'Retail')      return { bg: '#fdf4ff', color: '#7e22ce' }
+  if (uso === 'Data Center') return { bg: '#f0f9ff', color: '#0369a1' }
+  if (uso === 'Residencial') return { bg: '#fff7ed', color: '#c2410c' }
   return { bg: '#fce7f3', color: '#9d174d' }
 }
 
@@ -73,12 +76,12 @@ export default function ActivosList() {
     zona:    <td key="zona" style={{ fontSize: 11, fontWeight: 500 }}>{a.zona}</td>,
     subzona: <td key="subzona" style={{ fontSize: 11, color: 'var(--text3)' }}>{a.subzona || '—'}</td>,
     ciudad:  <td key="ciudad" style={{ fontSize: 11 }}>{a.ciudad}</td>,
-    uso:     <td key="uso"><span className={`tag ${a.uso === 'Oficinas' ? 'tag-blue' : a.uso === 'Logístico' ? 'tag-teal' : 'tag-purple'}`}>{a.uso}</span></td>,
+    uso:     <td key="uso"><span className={`tag ${a.uso === 'Oficinas' ? 'tag-blue' : a.uso === 'Logístico' ? 'tag-teal' : a.uso === 'Data Center' ? 'tag-blue' : a.uso === 'Residencial' ? 'tag-amber' : 'tag-purple'}`}>{a.uso}</span></td>,
     occ:     <td key="occ"><div className="occ-cell"><div className="occ-bar"><div className="occ-bar-fill" style={{ width: `${a.occ}%`, background: occColor(a.occ) }} /></div><span style={{ fontSize: 11, color: occColor(a.occ) }}>{a.occ}%</span></div></td>,
     valor:   <td key="valor" className="mono">{a.valor}</td>,
     estado:  <td key="estado"><span className={`tag ${a.estado === 'Activo' ? 'tag-green' : a.estado === 'En comercialización' ? 'tag-amber' : 'tag-gray'}`}>{a.estado}</span></td>,
     dias:    <td key="dias">{a.dias > 0 ? <span style={{ color: a.dias > 90 ? 'var(--red)' : a.dias > 60 ? 'var(--amber)' : 'var(--text3)', fontWeight: 600 }}>{a.dias}d</span> : '—'}</td>,
-    _act:    <td key="_act"><div className="ra-cell"><button className="ra" onClick={e => { e.stopPropagation(); navigate('ficha-activo') }}>Ver</button><button className="ra p" onClick={e => e.stopPropagation()}>Editar</button></div></td>,
+    _act:    <td key="_act"><div className="ra-cell"><button className="ra" onClick={e => { e.stopPropagation(); navigate('ficha-activo', { ref: a.ref }) }}>Ver</button><button className="ra p" onClick={e => e.stopPropagation()}>Editar</button></div></td>,
   })
 
   return (
@@ -100,7 +103,7 @@ export default function ActivosList() {
       </div>
       {showAdv && (
         <div style={{ padding: '10px 16px', background: 'var(--gray-lt)', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
-          <Field label="Uso"><select className="fsel" value={af.uso} onChange={e => setAf(p => ({ ...p, uso: e.target.value }))}><option value="">Todos</option><option>Oficinas</option><option>Logístico</option><option>Retail</option></select></Field>
+          <Field label="Uso"><select className="fsel" value={af.uso} onChange={e => setAf(p => ({ ...p, uso: e.target.value }))}><option value="">Todos</option><option>Oficinas</option><option>Logístico</option><option>Retail</option><option>Data Center</option><option>Residencial</option></select></Field>
           <Field label="Estado"><select className="fsel" value={af.estado} onChange={e => setAf(p => ({ ...p, estado: e.target.value }))}><option value="">Todos</option><option>Activo</option><option>En comercialización</option></select></Field>
           <Field label="Zona"><select className="fsel" value={af.zona} onChange={e => setAf(p => ({ ...p, zona: e.target.value }))}><option value="">Todas</option><option>M-30</option><option>A-1</option><option>22@</option><option>Corredor del Henares</option><option>Sur Madrid</option><option>Mestalla</option></select></Field>
           <Field label="Ciudad"><input className="fsel" placeholder="Madrid..." value={af.ciudad} onChange={e => setAf(p => ({ ...p, ciudad: e.target.value }))} /></Field>
@@ -123,7 +126,7 @@ export default function ActivosList() {
             </tr>
           </thead>
           <tbody>
-            {result.map(a => <tr key={a.ref} onClick={() => navigate('ficha-activo')}>{visibleCols.map(c => cell(a)[c.id])}</tr>)}
+            {result.map(a => <tr key={a.ref} onClick={() => navigate('ficha-activo', { ref: a.ref })}>{visibleCols.map(c => cell(a)[c.id])}</tr>)}
           </tbody>
         </table>
       </div>
