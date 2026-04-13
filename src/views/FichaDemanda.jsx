@@ -2,10 +2,15 @@ import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 
+const DEM_USERS_INIT = [
+  { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', granted:'—', owner:true },
+]
+
 const DEM_TABS = [
   ['dem-info','Información Demanda'],['dem-req','Requisitos'],['dem-zona','Zona búsqueda'],
   ['dem-seg','Seguimiento comercial'],['dem-360','🔄 Ciclo 360°'],['dem-act','Actividades'],
   ['dem-partes','Partes involucradas'],['dem-docs','Documentos'],['dem-neg','Negociaciones en curso'],['dem-followup','Follow-up'],
+  ['dem-conf','🔒 Confidencialidad'],
 ]
 
 /* ── LÓGICA CONDICIONAL DEMANDA ── */
@@ -229,6 +234,10 @@ export default function FichaDemanda() {
   const { navigate } = useNav()
   const [activeTab, setActiveTab] = useState('dem-info')
   const [showTarea, setShowTarea] = useState(false)
+  const [confidential,    setConfidential]    = useState(false)
+  const [authorizedUsers, setAuthorizedUsers] = useState(DEM_USERS_INIT)
+  const [addingUser,      setAddingUser]      = useState(false)
+  const [newUser,         setNewUser]         = useState('')
 
   // Demanda condicional
   const [demUsoPpal,   setDemUsoPpal]   = useState('Oficinas')
@@ -277,6 +286,7 @@ export default function FichaDemanda() {
                 <div className="ah-ref">
                   <span style={{background:'var(--accent-lt)',color:'var(--accent)',border:'1px solid var(--accent-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>DEMANDA</span>
                   <span className="asset-link" style={{fontFamily:'var(--mono)'}}>D251035690</span>
+                  {confidential && <span style={{background:'#1e293b',color:'#f8fafc',border:'1px solid #334155',padding:'0 7px',borderRadius:3,fontSize:9,fontWeight:700,letterSpacing:'.04em'}}>🔒 CONFIDENCIAL</span>}
                   <span className="tag tag-gray" style={{fontSize:9}}>Guardado</span>
                 </div>
                 <div className="ah-name">Corporacion Financiera Azuaga SL</div>
@@ -834,6 +844,134 @@ export default function FichaDemanda() {
                 </div>
               </div>
             </div></div>
+          )}
+
+          {/* ── TAB: Confidencialidad ── */}
+          {activeTab==='dem-conf' && (
+            <div className="tab-content active" style={{overflowY:'auto',flex:1}}>
+              <div className="info-pad">
+
+                {/* Toggle principal */}
+                <div style={{display:'flex',alignItems:'center',gap:16,padding:'14px 16px',border:`1px solid ${confidential?'#334155':'var(--border)'}`,borderRadius:'var(--r2)',background:confidential?'#0f172a':'var(--surface)',marginBottom:18,transition:'all .2s'}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:700,color:confidential?'#f8fafc':'var(--text)'}}>Demanda confidencial</div>
+                    <div style={{fontSize:11,color:confidential?'#94a3b8':'var(--text3)',marginTop:2}}>
+                      {confidential ? 'Cliente, requisitos, condiciones económicas y documentos ocultos para usuarios no autorizados.' : 'La demanda es visible para todos los usuarios con acceso al PDB.'}
+                    </div>
+                  </div>
+                  <button onClick={()=>setConfidential(v=>!v)} style={{padding:'6px 16px',borderRadius:20,border:'none',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'inherit',background:confidential?'#f8fafc':'#1e293b',color:confidential?'#0f172a':'#f8fafc',transition:'all .2s'}}>
+                    {confidential ? '🔓 Desactivar' : '🔒 Activar'}
+                  </button>
+                </div>
+
+                {/* Info visible / oculta */}
+                {confidential && (
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:18}}>
+                    <div style={{border:'1px solid var(--red-bd)',background:'var(--red-lt)',borderRadius:'var(--r2)',padding:12}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--red)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>❌ Oculto (no autorizados)</div>
+                      {['Cliente / Empresa','Requisitos de búsqueda','Condiciones económicas','Documentación adjunta','Zona de búsqueda'].map(item=>(
+                        <div key={item} style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--text2)',marginBottom:4}}>
+                          <span style={{color:'var(--red)',fontWeight:700}}>✕</span> {item}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{border:'1px solid var(--green-bd)',background:'var(--green-lt)',borderRadius:'var(--r2)',padding:12}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--green)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>✅ Visible (siempre)</div>
+                      {['Tipo de uso / línea','Estado de la demanda','Equipo responsable','Fecha de creación','Información básica'].map(item=>(
+                        <div key={item} style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--text2)',marginBottom:4}}>
+                          <span style={{color:'var(--green)',fontWeight:700}}>✓</span> {item}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Usuarios autorizados */}
+                <div style={{marginBottom:16}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em'}}>Usuarios autorizados</div>
+                    <button className="ab-btn blue" onClick={()=>setAddingUser(true)} style={{fontSize:10,padding:'3px 9px'}}>+ Añadir usuario</button>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    {authorizedUsers.map((u,i)=>(
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--surface)'}}>
+                        <div style={{width:30,height:30,borderRadius:'50%',background:u.bg,color:u.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,flexShrink:0}}>{u.initials}</div>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:12,fontWeight:600}}>{u.name}</div>
+                          <div style={{fontSize:10,color:'var(--text3)'}}>{u.team} · {u.role}</div>
+                        </div>
+                        {u.owner
+                          ? <span className="tag tag-blue">Propietario</span>
+                          : <>
+                              <span style={{fontSize:10,color:'var(--text4)'}}>Acceso: {u.granted}</span>
+                              <button onClick={()=>setAuthorizedUsers(prev=>prev.filter((_,j)=>j!==i))} style={{fontSize:10,color:'var(--red)',background:'none',border:'none',cursor:'pointer',padding:'2px 6px',fontFamily:'inherit'}}>✕ Quitar</button>
+                            </>
+                        }
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {addingUser && (
+                  <div style={{border:'1px solid var(--accent-bd)',background:'var(--accent-lt)',borderRadius:'var(--r2)',padding:14,marginBottom:14}}>
+                    <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Conceder acceso a usuario</div>
+                    <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'flex-end'}}>
+                      <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                        <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Usuario</span>
+                        <select className="fsel" value={newUser} onChange={e=>setNewUser(e.target.value)} style={{minWidth:220}}>
+                          <option value="">Seleccionar usuario...</option>
+                          <option>GOMEZ Ignacio · Leasing Oficinas MAD</option>
+                          <option>García Marta · Capital Markets MAD</option>
+                          <option>López Carmen · Valoraciones MAD</option>
+                          <option>Alonso Abruña D. · Leasing MAD</option>
+                          <option>Martínez Rosa · Retail MAD</option>
+                        </select>
+                      </div>
+                      <button className="ab-btn save" onClick={()=>{
+                        if(!newUser)return
+                        const [nameStr,teamStr]=[newUser.split('·')[0].trim(),newUser.split('·')[1]?.trim()||'']
+                        const ini=nameStr.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+                        const today=new Date().toLocaleDateString('es-ES')
+                        setAuthorizedUsers(prev=>[...prev,{name:nameStr,team:teamStr,role:'Autorizado',initials:ini,bg:'#f0fdf4',color:'#166534',granted:today,owner:false}])
+                        setAddingUser(false);setNewUser('')
+                      }}>Conceder acceso</button>
+                      <button className="ab-btn" onClick={()=>{setAddingUser(false);setNewUser('')}}>Cancelar</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Solicitud de acceso (demo: usuario no autorizado) */}
+                {confidential && (
+                  <div style={{border:'1px solid var(--amber-bd)',background:'var(--amber-lt)',borderRadius:'var(--r2)',padding:14,marginBottom:16}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--amber)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>DEMO — Vista de usuario no autorizado</div>
+                    <div style={{fontSize:11,color:'var(--text2)',marginBottom:10}}>Un usuario sin acceso vería este mensaje y podría solicitar acceso al responsable.</div>
+                    <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--surface)'}}>
+                      <span style={{fontSize:20}}>🔒</span>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:12,fontWeight:600}}>Demanda confidencial</div>
+                        <div style={{fontSize:11,color:'var(--text3)'}}>No tienes permisos para ver el detalle de esta demanda. Puedes solicitar acceso al responsable.</div>
+                      </div>
+                      <button className="ab-btn save" style={{flexShrink:0}} onClick={()=>alert('✅ Solicitud enviada a Sierra Álvaro\n\nEl responsable recibirá una notificación y podrá aprobar o rechazar tu acceso.')}>Solicitar acceso</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Trazabilidad */}
+                <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>Trazabilidad de accesos</div>
+                <div style={{border:'1px solid var(--border)',borderRadius:'var(--r)',overflow:'hidden'}}>
+                  {[
+                    {color:'var(--green)',msg:'Sierra Álvaro creó la demanda y quedó asignado como responsable',date:'17/10/2025 · 10:24'},
+                    {color:'var(--accent)',msg:'Sierra Álvaro activó confidencialidad en esta demanda',date:'13/04/2026 · 09:00'},
+                  ].map((e,i,arr)=>(
+                    <div key={i} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'9px 12px',borderBottom:i<arr.length-1?'1px solid var(--border)':'none'}}>
+                      <div style={{width:7,height:7,borderRadius:'50%',background:e.color,flexShrink:0,marginTop:4}}/>
+                      <div><div style={{fontSize:11}}>{e.msg}</div><div style={{fontSize:10,color:'var(--text4)'}}>{e.date}</div></div>
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            </div>
           )}
         </div>
 
