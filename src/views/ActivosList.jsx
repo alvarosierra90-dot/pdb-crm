@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
-import { supabase } from '../lib/supabase'
 import { ACTIVOS } from '../data/mockData'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
@@ -42,13 +41,8 @@ export default function ActivosList() {
   const [af, setAf] = useState({ uso: '', estado: '', ciudad: '', zona: '', sbaMin: '', sbaMax: '', occMin: '', occMax: '' })
   const [vis, setVis] = useVisibleCols('activos', COLS)
 
-  useEffect(() => {
-    supabase.from('activos').select('*').then(({ data, error }) => {
-      if (!error && data && data.length > 0) {
-        setActivos(data.map(a => ({ ref: a.ref, name: a.nombre, zona: a.zona, subzona: a.subzona || '', ciudad: a.ciudad, uso: a.uso, sba: a.sba, occ: a.occupancy_rate, renta: a.renta_zona, valor: a.valor, estado: a.estado, dias: a.dias_comercializacion || 0 })))
-      }
-    })
-  }, [])
+  // Supabase fetch disabled — using mockData as source of truth
+  // useEffect(() => { ... }, [])
 
   const advCount = Object.values(af).filter(Boolean).length
 
