@@ -1693,6 +1693,58 @@ function TabMultimedia() {
   )
 }
 
+/* ── Catastro: llamada directa desde el navegador (CORS abierto) ── */
+const USO_CAT_MAP = {
+  'Almacén-Estacionamiento': 'Terciario / Aparcamiento',
+  'Industrial':              'Industrial',
+  'Industria':               'Industrial',
+  'Oficinas':                'Terciario / Oficinas',
+  'Comercial':               'Terciario / Comercial',
+  'Residencial':             'Residencial',
+  'Suelo sin edificar':      'Solar',
+  'Ocio y Hostelería':       'Terciario / Hostelería',
+  'Sanidad y Beneficencia':  'Equipamiento / Sanitario',
+  'Cultural':                'Equipamiento / Cultural',
+  'Religioso':               'Equipamiento / Religioso',
+  'Educación':               'Equipamiento / Educativo',
+  'Espectáculos':            'Terciario / Ocio',
+  'Deportivo':               'Equipamiento / Deportivo',
+}
+async function fetchCatastro(lat, lng) {
+  const parser = new DOMParser()
+  // Paso 1: coordenadas → refcat (tolerancia 100 m)
+  const coordUrl =
+    `https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/` +
+    `OVCCoordenadas.asmx/Consulta_RCCOOR_Distancia` +
+    `?SRS=EPSG:4326&Coordenada_X=${lng}&Coordenada_Y=${lat}&Distancia=100`
+  const coordRes = await fetch(coordUrl)
+  if (!coordRes.ok) throw new Error(`Error HTTP ${coordRes.status} del Catastro`)
+  const coordDoc = parser.parseFromString(await coordRes.text(), 'text/xml')
+  const errCod = coordDoc.querySelector('cod')?.textContent?.trim()
+  if (errCod && errCod !== '0') {
+    throw new Error(coordDoc.querySelector('des')?.textContent || 'Sin datos para esas coordenadas')
+  }
+  const pc1 = coordDoc.querySelector('pc1')?.textContent?.trim()
+  const pc2 = coordDoc.querySelector('pc2')?.textContent?.trim()
+  if (!pc1 || !pc2) throw new Error('No hay inmueble catastral en esas coordenadas')
+  const refcat = `${pc1}${pc2}${coordDoc.querySelector('car')?.textContent?.trim()||''}${coordDoc.querySelector('cc1')?.textContent?.trim()||''}${coordDoc.querySelector('cc2')?.textContent?.trim()||''}`
+  // Paso 2: refcat → datos del inmueble
+  let uso_pgou = null, sup_parcela = null, anno_construccion = null
+  try {
+    const inmRes = await fetch(`https://ovc.catastro.meh.es/OVCServWeb/OVCWcfLibres/RESTServices.svc/Inmueble?RefCat=${refcat}&SRS=EPSG:4326`)
+    if (inmRes.ok) {
+      const inmDoc = parser.parseFromString(await inmRes.text(), 'text/xml')
+      const uso_cat = inmDoc.querySelector('luso')?.textContent?.trim() || ''
+      uso_pgou = USO_CAT_MAP[uso_cat] || uso_cat || null
+      const ant = inmDoc.querySelector('ant')?.textContent?.trim()
+      anno_construccion = ant ? parseInt(ant, 10) : null
+      const sspEl = inmDoc.querySelector('ssp') || inmDoc.querySelector('stl')
+      sup_parcela = sspEl ? Math.round(parseFloat(sspEl.textContent)) : null
+    }
+  } catch { /* datos del inmueble opcionales */ }
+  return { ref_catastral: refcat, uso_pgou, sup_parcela, anno_construccion }
+}
+
 function NewActivoInfoTab({ newForm, setNF, submitted }) {
   const [syncingCat, setSyncingCat] = useState(false)
   const [catMsg,  setCatMsg]  = useState('')
@@ -1701,25 +1753,17 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
     const coords = newForm.coordenadas || ''
     if (!coords) { setCatMsg('Sin coordenadas — busca la dirección en el mapa primero'); return }
     const [latStr, lngStr] = coords.split(',').map(s => s.trim())
-    if (!latStr || !lngStr || isNaN(latStr) || isNaN(lngStr)) {
-      setCatMsg('Coordenadas inválidas'); return
-    }
+    if (!latStr || !lngStr || isNaN(+latStr) || isNaN(+lngStr)) { setCatMsg('Coordenadas inválidas'); return }
     setSyncingCat(true); setCatMsg('')
     try {
-      const res  = await fetch(`/api/catastro?lat=${latStr}&lng=${lngStr}`)
-      const data = await res.json()
-      if (!res.ok) { setCatMsg(data.error || 'Error del servidor'); return }
-      if (data.ref_catastral)    setNF('ref_catastral',    data.ref_catastral)
-      if (data.uso_pgou)         setNF('uso_pgou',         data.uso_pgou)
-      if (data.sup_parcela != null) setNF('sup_parcela',   String(data.sup_parcela))
+      const data = await fetchCatastro(latStr, lngStr)
+      if (data.ref_catastral)             setNF('ref_catastral',    data.ref_catastral)
+      if (data.uso_pgou)                  setNF('uso_pgou',         data.uso_pgou)
+      if (data.sup_parcela      != null)  setNF('sup_parcela',      String(data.sup_parcela))
       if (data.anno_construccion != null) setNF('anno_construccion', String(data.anno_construccion))
-      setCatMsg('ok')
-      setTimeout(() => setCatMsg(''), 4000)
-    } catch (e) {
-      setCatMsg(e.message || 'Error de red')
-    } finally {
-      setSyncingCat(false)
-    }
+      setCatMsg('ok'); setTimeout(() => setCatMsg(''), 4000)
+    } catch (e) { setCatMsg(e.message || 'Error de red') }
+    finally { setSyncingCat(false) }
   }
 
   // Derived conditional zone data
@@ -2356,34 +2400,26 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, h
   // Expose handleSave via ref so parent action bar can trigger it
   if (saveRef) saveRef.current = handleSave
 
-  // ── Sincronización con Catastro ─────────────────────────────────────────
+  // ── Sincronización con Catastro (llamada directa desde browser) ────────
   async function syncCatastro() {
     const coords = info.coordenadas || ''
     if (!coords) { setCatMsg('Sin coordenadas — busca la dirección en el mapa primero'); return }
     const [latStr, lngStr] = coords.split(',').map(s => s.trim())
-    if (!latStr || !lngStr || isNaN(latStr) || isNaN(lngStr)) {
-      setCatMsg('Coordenadas inválidas'); return
-    }
+    if (!latStr || !lngStr || isNaN(+latStr) || isNaN(+lngStr)) { setCatMsg('Coordenadas inválidas'); return }
     setSyncingCat(true); setCatMsg('')
     try {
-      const res  = await fetch(`/api/catastro?lat=${latStr}&lng=${lngStr}`)
-      const data = await res.json()
-      if (!res.ok) { setCatMsg(data.error || 'Error del servidor'); return }
+      const data = await fetchCatastro(latStr, lngStr)
       setInfo(p => ({
         ...p,
-        ref_catastral:    data.ref_catastral    ?? p.ref_catastral,
-        uso_pgou:         data.uso_pgou         ?? p.uso_pgou,
-        sup_parcela:      data.sup_parcela      != null ? String(data.sup_parcela) : p.sup_parcela,
+        ref_catastral:     data.ref_catastral                          ?? p.ref_catastral,
+        uso_pgou:          data.uso_pgou                               ?? p.uso_pgou,
+        sup_parcela:       data.sup_parcela      != null ? String(data.sup_parcela)      : p.sup_parcela,
         anno_construccion: data.anno_construccion != null ? String(data.anno_construccion) : p.anno_construccion,
       }))
       setDirty(true)
-      setCatMsg('ok')
-      setTimeout(() => setCatMsg(''), 4000)
-    } catch (e) {
-      setCatMsg(e.message || 'Error de red')
-    } finally {
-      setSyncingCat(false)
-    }
+      setCatMsg('ok'); setTimeout(() => setCatMsg(''), 4000)
+    } catch (e) { setCatMsg(e.message || 'Error de red') }
+    finally { setSyncingCat(false) }
   }
 
   const totalPlazas = plazas.reduce((s,p)=>s+p.cantidad,0)
@@ -3094,6 +3130,9 @@ export default function FichaActivo() {
   const [newPlaza, setNewPlaza]         = useState({ubicacion:'Interior',tipo:'Simple',vehiculo:'Coches',cantidad:1})
   // ESG / Normativa
   const [esg, setEsg] = useState({ leed:'', breeam:'', well:'', dgnb:'', wiredscore:'', energia:'', consumo:'' })
+  // Catastro sync (info adicional)
+  const [catSyncAd, setCatSyncAd]     = useState(false)
+  const [catSyncMsgAd, setCatSyncMsgAd] = useState('')
   // Transporte
   const [transportes, setTransportes] = useState([
     {id:1, medio:'Metro', linea:'L7', descripcion:'Estadio Olímpico', tiempo:'5 min'},
@@ -3878,13 +3917,86 @@ export default function FichaActivo() {
               </div>
 
               {/* ── Integraciones externas ── */}
-              <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Extracción de datos <span style={{fontSize:10,fontWeight:400,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>· INTEGRACIONES EXTERNAS</span></div>
-              <div className="info-2col" style={{marginBottom:20}}>
-                <div className="info-block"><div className="ib-title">🏛 Catastro</div><div className="ir"><span className="ir-k">Certificado catastral</span><button className="ab-btn save" style={{padding:'3px 10px',fontSize:10}}>Descargar</button></div><div className="ir"><span className="ir-k">Ref. catastral</span><span className="ir-v link mono" style={{fontSize:10}}>1380341VK4718A0001FU</span></div></div>
-                <div className="info-block"><div className="ib-title">📊 INE</div><div className="ir"><span className="ir-k">Estadísticas del barrio</span><button className="ab-btn save" style={{padding:'3px 10px',fontSize:10}}>Descargar</button></div></div>
-                <div className="info-block"><div className="ib-title">🗺 Visor Urbanístico</div><div className="ir"><span className="ir-k">PGOU Madrid</span><span className="ir-v link">Abrir ↗</span></div></div>
-                <div className="info-block"><div className="ib-title">🏷 Registradores</div><div className="ir"><span className="ir-k">Nota simple informativa</span><button className="ab-btn save" style={{padding:'3px 10px',fontSize:10}}>Solicitar</button></div></div>
-              </div>
+              {(()=>{
+                const refcat   = activo?.ref_catastral || null
+                const fichaUrl = refcat ? `https://www1.sedecatastro.gob.es/CYCBienInmueble/SECCallejero.aspx?refcat=${refcat}` : null
+                const visorUrl = refcat ? `https://www1.sedecatastro.gob.es/Cartografia/mapa.aspx?tipo=I&refcat=${refcat}` : null
+                const handleSyncAd = async () => {
+                  const coords = activo?.coordenadas || ''
+                  if (!coords) { setCatSyncMsgAd('Sin coordenadas en la ficha'); return }
+                  const [latStr, lngStr] = coords.split(',').map(s=>s.trim())
+                  if (isNaN(+latStr)||isNaN(+lngStr)) { setCatSyncMsgAd('Coordenadas inválidas'); return }
+                  setCatSyncAd(true); setCatSyncMsgAd('')
+                  try {
+                    const data = await fetchCatastro(latStr, lngStr)
+                    await supabase.from('activos').update({
+                      ref_catastral:     data.ref_catastral     || null,
+                      uso_pgou:          data.uso_pgou          || null,
+                      sup_parcela:       data.sup_parcela       ?? null,
+                      anno_construccion: data.anno_construccion ?? null,
+                    }).eq('ref', activo.ref)
+                    setCatSyncMsgAd('ok'); setTimeout(()=>setCatSyncMsgAd(''),4000)
+                  } catch(e) { setCatSyncMsgAd(e.message||'Error') }
+                  finally { setCatSyncAd(false) }
+                }
+                return (
+                  <>
+                    <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Extracción de datos <span style={{fontSize:10,fontWeight:400,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>· INTEGRACIONES EXTERNAS</span></div>
+                    <div className="info-2col" style={{marginBottom:20}}>
+                      {/* Catastro */}
+                      <div className="info-block">
+                        <div className="ib-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                          <span>🏛 Catastro</span>
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            {catSyncMsgAd==='ok' && <span style={{fontSize:9,color:'var(--green)',fontWeight:600}}>✓ Sincronizado</span>}
+                            {catSyncMsgAd&&catSyncMsgAd!=='ok' && <span style={{fontSize:9,color:'var(--red)'}}>{catSyncMsgAd}</span>}
+                            <button onClick={handleSyncAd} disabled={catSyncAd}
+                              style={{padding:'2px 8px',fontSize:9,fontWeight:600,fontFamily:'inherit',cursor:'pointer',background:'var(--accent)',color:'#fff',border:'none',borderRadius:4,opacity:catSyncAd?0.7:1,whiteSpace:'nowrap'}}>
+                              {catSyncAd?'⟳ Consultando…':'⟳ Sincronizar'}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="ir">
+                          <span className="ir-k">Ref. catastral</span>
+                          {refcat
+                            ? <span className="ir-v mono" style={{fontSize:10,color:'var(--accent)',fontWeight:600}}>{refcat}</span>
+                            : <span className="ir-v" style={{color:'var(--text4)',fontSize:10}}>— (sincroniza para obtenerla)</span>}
+                        </div>
+                        <div className="ir" style={{gap:6,marginTop:4}}>
+                          <span className="ir-k">Ficha catastral</span>
+                          {fichaUrl
+                            ? <a href={fichaUrl} target="_blank" rel="noreferrer" style={{fontSize:10,color:'var(--accent)',fontWeight:600,textDecoration:'none'}}>Abrir en Catastro ↗</a>
+                            : <span style={{fontSize:10,color:'var(--text4)'}}>—</span>}
+                        </div>
+                        <div className="ir" style={{gap:6,marginTop:4}}>
+                          <span className="ir-k">Visor cartografía</span>
+                          {visorUrl
+                            ? <a href={visorUrl} target="_blank" rel="noreferrer" style={{fontSize:10,color:'var(--accent)',fontWeight:600,textDecoration:'none'}}>Abrir visor ↗</a>
+                            : <span style={{fontSize:10,color:'var(--text4)'}}>—</span>}
+                        </div>
+                      </div>
+                      {/* Visor Urbanístico */}
+                      <div className="info-block">
+                        <div className="ib-title">🗺 Visor Urbanístico</div>
+                        {[
+                          {ciudad:'Madrid',    lbl:'SIGUR Madrid',     url:'https://sig.madrid.es/VisoresMap/visores/urbanismo.aspx'},
+                          {ciudad:'Barcelona', lbl:'Urbanisme BCN',    url:'https://w133.bcn.cat/APPS/geoportal/AppGeoportal.html'},
+                          {ciudad:'Valencia',  lbl:'SIT Valencia',     url:'https://sit.valencia.es/GEOSAT/'},
+                        ].map(v=>(
+                          <div key={v.ciudad} className="ir" style={{gap:6}}>
+                            <span className="ir-k" style={{minWidth:70}}>{v.ciudad}</span>
+                            <a href={v.url} target="_blank" rel="noreferrer" style={{fontSize:10,color:'var(--accent)',fontWeight:600,textDecoration:'none'}}>{v.lbl} ↗</a>
+                          </div>
+                        ))}
+                      </div>
+                      {/* INE */}
+                      <div className="info-block"><div className="ib-title">📊 INE</div><div className="ir"><span className="ir-k">Estadísticas del barrio</span><a href="https://www.ine.es/censos2021/" target="_blank" rel="noreferrer" style={{fontSize:10,color:'var(--accent)',fontWeight:600,textDecoration:'none'}}>Abrir INE ↗</a></div></div>
+                      {/* Registradores */}
+                      <div className="info-block"><div className="ib-title">🏷 Registradores</div><div className="ir"><span className="ir-k">Nota simple</span><a href="https://www.registradores.org/tools/servicios/solicitud-nota-simple-informativa/" target="_blank" rel="noreferrer" style={{fontSize:10,color:'var(--accent)',fontWeight:600,textDecoration:'none'}}>Solicitar ↗</a></div></div>
+                    </div>
+                  </>
+                )
+              })()}
             </div></div>
           )}
 
