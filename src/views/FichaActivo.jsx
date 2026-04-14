@@ -457,7 +457,7 @@ const OFERTAS_ACTIVAS = [
   { ref:'OLB003', contraparte:'Oracle Spain SL', sup:13486, estado:'Finalista', color:'#7c3aed', bg:'#faf5ff', border:'#e9d5ff' },
 ]
 
-function StackingPlan({ initBuildings }) {
+function StackingPlan({ initBuildings, onCountChange }) {
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
   const [setupForm, setSetupForm]       = useState({ label:'', sobre:'5', bajo:'1', sup:'1500' })
@@ -477,6 +477,9 @@ function StackingPlan({ initBuildings }) {
   const [editPASup, setEditPASup]       = useState('')
   const [editFloorSup, setEditFloorSup]       = useState(null) // floorId — editable only from principal view
   const [editFloorSupVal, setEditFloorSupVal] = useState('')
+
+  // Notify parent when building count changes
+  useEffect(() => { if (onCountChange) onCountChange(buildings.length) }, [buildings.length])
 
   const edif = buildings.find(b=>b.id===edifId) || buildings[0] || { id:'', label:'', floors:[], prop:[], arr:[], supPlantaTipo:0 }
   const usoInfo  = (id) => USOS_PPAL.find(u=>u.id===id) || UA_ALL.find(u=>u.id===id) || {label:id,color:'#94a3b8',bg:'#f1f5f9',bd:'#cbd5e1'}
@@ -1888,6 +1891,12 @@ function MapaCarrusel({ activo, direccion, onAddressChange }) {
     }
   }, [])
 
+  // Pre-fill search bar when address prop changes
+  useEffect(() => {
+    const dir = direccion || activo?.direccion || ''
+    if (searchRef.current) searchRef.current.value = dir
+  }, [direccion, activo?.direccion])
+
   // Geocode when address prop changes
   useEffect(() => {
     if (!GMAPS_API_KEY) return
@@ -2190,7 +2199,7 @@ function AddressField({ value, ciudad, onSave }) {
   )
 }
 
-function TabInfo({ navigate, plazas, activo, onInfoSaved }) {
+function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved }) {
   const INIT_INFO = {
     nombre:'', direccion:'', ciudad:'', pais:'España',
     area:'', zona:'', subzona:'',
@@ -2204,6 +2213,7 @@ function TabInfo({ navigate, plazas, activo, onInfoSaved }) {
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveOk, setSaveOk] = useState(false)
+  const [saveErr, setSaveErr] = useState('')
 
   // Init from activo (Supabase)
   useEffect(() => {
@@ -2265,7 +2275,9 @@ function TabInfo({ navigate, plazas, activo, onInfoSaved }) {
       sup_parcela:         info.sup_parcela ? parseFloat(info.sup_parcela) : null,
     }).eq('ref', activo.ref)
     setSaving(false)
-    if (!error) { setDirty(false); setSaveOk(true); setTimeout(()=>setSaveOk(false),3000); if (onInfoSaved) onInfoSaved({ nombre: info.nombre, direccion: info.direccion }) }
+    if (error) { setSaveErr(error.message || 'Error al guardar'); return }
+    setDirty(false); setSaveErr(''); setSaveOk(true); setTimeout(()=>setSaveOk(false),3000)
+    if (onInfoSaved) onInfoSaved({ nombre: info.nombre, direccion: info.direccion })
   }
 
   const totalPlazas = plazas.reduce((s,p)=>s+p.cantidad,0)
@@ -2288,13 +2300,21 @@ function TabInfo({ navigate, plazas, activo, onInfoSaved }) {
           }}/>
 
         {/* ── Save bar ── */}
-        {(dirty || saveOk) && (
+        {(dirty || saveOk || saveErr) && (
           <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 14px',
-            background: saveOk ? '#f0fdf4' : 'var(--accent-lt)',
-            border: `1px solid ${saveOk ? '#86efac' : 'var(--accent-bd)'}`,
+            background: saveOk ? '#f0fdf4' : saveErr ? '#fef2f2' : 'var(--accent-lt)',
+            border: `1px solid ${saveOk ? '#86efac' : saveErr ? '#fca5a5' : 'var(--accent-bd)'}`,
             borderRadius:7,marginBottom:12}}>
             {saveOk ? (
               <span style={{fontSize:11,color:'#15803d',fontWeight:600,flex:1}}>✓ Guardado correctamente</span>
+            ) : saveErr ? (
+              <>
+                <span style={{fontSize:11,color:'var(--red)',fontWeight:600,flex:1}}>⚠ {saveErr}</span>
+                <button onClick={()=>setSaveErr('')}
+                  style={{padding:'3px 8px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)'}}>
+                  Cerrar
+                </button>
+              </>
             ) : (
               <>
                 <span style={{fontSize:11,color:'var(--accent)',fontWeight:600,flex:1}}>Cambios sin guardar</span>
@@ -2302,7 +2322,7 @@ function TabInfo({ navigate, plazas, activo, onInfoSaved }) {
                   style={{padding:'5px 16px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
                   {saving ? 'Guardando...' : '💾 Guardar'}
                 </button>
-                <button onClick={()=>{setInfo(activo ? {...INIT_INFO,nombre:activo.nombre||'',...activo} : INIT_INFO);setDirty(false)}}
+                <button onClick={()=>{setInfo(activo ? {...INIT_INFO,...activo} : INIT_INFO);setDirty(false);setSaveErr('')}}
                   style={{padding:'5px 10px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)'}}>
                   Descartar
                 </button>
@@ -2374,6 +2394,13 @@ function TabInfo({ navigate, plazas, activo, onInfoSaved }) {
             <InlineField label="Asset Manager" value={info.asset_manager||'—'} onSave={()=>setDirty(true)}>
               <AssetManagerSearch value={info.asset_manager} onChange={v=>setI('asset_manager',v)}/>
             </InlineField>
+            <div className="ir">
+              <span className="ir-k">Nº edificios</span>
+              <span className="ir-v" style={{display:'flex',alignItems:'center',gap:6}}>
+                <span style={{fontWeight:700,fontFamily:'var(--mono)',fontSize:14}}>{nEdificios ?? 1}</span>
+                <span style={{fontSize:9,color:'var(--text4)'}}>· desde Stacking Plan</span>
+              </span>
+            </div>
             {totalPlazas>0 && (
               <div className="ir" style={{alignItems:'flex-start',paddingTop:6,borderTop:'1px solid var(--border)',marginTop:4}}>
                 <span className="ir-k">🅿 Plazas apar.</span>
@@ -2917,6 +2944,7 @@ export default function FichaActivo() {
   const [loadingActivo, setLoadingActivo] = useState(false)
   const [displayNombre,   setDisplayNombre]   = useState(null) // overrides activo.nombre after inline save
   const [displayDireccion,setDisplayDireccion] = useState(null) // overrides activo.direccion after inline save
+  const [liveEdifCount,   setLiveEdifCount]   = useState(null) // synced from StackingPlan
 
   useEffect(() => {
     if (!params?.ref) return
@@ -3066,7 +3094,7 @@ export default function FichaActivo() {
                       {activo?.uso && <span className={`tag ${activo.uso === 'Oficinas' ? 'tag-blue' : activo.uso === 'Logístico' ? 'tag-teal' : activo.uso === 'Data Center' ? 'tag-blue' : activo.uso === 'Residencial' ? 'tag-amber' : 'tag-purple'}`}>{activo.uso}</span>}
                       {activo?.leed && <span className="tag tag-leed">LEED {activo.leed}</span>}
                       {activo?.esg_rating && <span className="tag tag-esg">ESG {activo.esg_rating}</span>}
-                      {activo?.n_edificios > 1 && <span className="tag tag-gray">{activo.n_edificios} edificios</span>}
+                      {(liveEdifCount ?? activo?.n_edificios) > 1 && <span className="tag tag-gray">{liveEdifCount ?? activo.n_edificios} edificios</span>}
                       {activo?.dias_comercializacion > 0 && <span className="dias-pill">📅 {activo.dias_comercializacion} días en comercialización</span>}
                     </div>
                   </>
@@ -3086,6 +3114,7 @@ export default function FichaActivo() {
           {activeTab==='at-info' && (isNew
             ? <NewActivoInfoTab newForm={newForm} setNF={setNF}/>
             : <TabInfo navigate={navigate} plazas={plazas} activo={activo}
+                nEdificios={liveEdifCount ?? activo?.n_edificios ?? 1}
                 onInfoSaved={({nombre,direccion})=>{ if(nombre!==undefined) setDisplayNombre(nombre||null); if(direccion!==undefined) setDisplayDireccion(direccion||null) }}/>
           )}
 
@@ -3104,7 +3133,7 @@ export default function FichaActivo() {
                     <span style={{fontSize:11,color:'var(--text4)'}}>Ocupado: <strong style={{color:'var(--green)'}}>36.814 m²</strong></span>
                   </div>
                 </div>
-                <StackingPlan initBuildings={isNew ? [] : (BUILDINGS_BY_ACTIVO[params?.ref] || undefined)}/>
+                <StackingPlan initBuildings={isNew ? [] : (BUILDINGS_BY_ACTIVO[params?.ref] || undefined)} onCountChange={setLiveEdifCount}/>
               </div>
             </div>
           )}
