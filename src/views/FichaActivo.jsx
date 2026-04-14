@@ -632,6 +632,13 @@ function StackingPlan({ initBuildings, onCountChange, extraOwners=[], extraTenan
     })}))
   }
 
+  const removePropUnit = (floorId, idx) => {
+    updBuilding(b=>({...b, prop:(b.prop||[]).map(r=>r.p!==floorId?r:{...r,units:r.units.filter((_,i)=>i!==idx)})}))
+  }
+  const removeArrUnit = (floorId, idx) => {
+    updBuilding(b=>({...b, arr:(b.arr||[]).map(r=>r.p!==floorId?r:{...r,units:r.units.filter((_,i)=>i!==idx)})}))
+  }
+
   const savePASup = () => {
     if(!editPA) return
     const val = parseFloat(editPASup)
@@ -1194,9 +1201,9 @@ function StackingPlan({ initBuildings, onCountChange, extraOwners=[], extraTenan
                                 <div key={i}
                                   title={`${u.n} · ${u.sup.toLocaleString('es-ES')} m²`}
                                   onClick={()=>{if(isEd)setEditPA(null);else{setEditPA({layer:'prop',rowP:floor.id,idx:i});setEditPASup(String(u.sup))}}}
-                                  style={{width:wpct,background:col+'18',border:`1px solid ${col}88`,borderRadius:4,
+                                  style={{position:'relative',width:wpct,background:col+'18',border:`1px solid ${col}88`,borderRadius:4,
                                     display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-                                    cursor:'pointer',flexShrink:0,overflow:'hidden',padding:'3px 4px',gap:1}}
+                                    cursor:'pointer',flexShrink:0,overflow:'visible',padding:'3px 4px',gap:1}}
                                 >
                                   {isEd ? (
                                     <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
@@ -1207,6 +1214,8 @@ function StackingPlan({ initBuildings, onCountChange, extraOwners=[], extraTenan
                                     </div>
                                   ) : (
                                     <>
+                                      <button onClick={e=>{e.stopPropagation();removePropUnit(floor.id,i)}}
+                                        style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
                                       <span style={{fontSize:10,fontWeight:700,color:col,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center',padding:'0 3px'}}>{u.n}</span>
                                       <span style={{fontSize:9,color:col,opacity:.7,fontFamily:'var(--mono)'}}>{u.sup.toLocaleString('es-ES')} m²</span>
                                     </>
@@ -1400,9 +1409,9 @@ function StackingPlan({ initBuildings, onCountChange, extraOwners=[], extraTenan
                                 <div key={i}
                                   title={`${label} · ${u.sup.toLocaleString('es-ES')} m²${u.brk?` · break ${u.brk}`:''}`}
                                   onClick={()=>{if(isEd)setEditPA(null);else{setEditPA({layer:'arr',rowP:floor.id,idx:i});setEditPASup(String(u.sup))}}}
-                                  style={{width:wpct,background:bg,border:`1px solid ${bd}`,borderRadius:4,
+                                  style={{position:'relative',width:wpct,background:bg,border:`1px solid ${bd}`,borderRadius:4,
                                     display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-                                    cursor:'pointer',flexShrink:0,overflow:'hidden',padding:'4px 6px',gap:2,minHeight:42}}
+                                    cursor:'pointer',flexShrink:0,overflow:'visible',padding:'4px 6px',gap:2,minHeight:42}}
                                 >
                                   {isEd ? (
                                     <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
@@ -1413,6 +1422,8 @@ function StackingPlan({ initBuildings, onCountChange, extraOwners=[], extraTenan
                                     </div>
                                   ) : (
                                     <>
+                                      <button onClick={e=>{e.stopPropagation();removeArrUnit(floor.id,i)}}
+                                        style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
                                       <span style={{fontSize:10,fontWeight:700,color:col,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>{label}</span>
                                       <span style={{fontSize:9,color:col,opacity:.75,fontFamily:'var(--mono)',fontWeight:600}}>{u.sup.toLocaleString('es-ES')} m²</span>
                                       {u.brk&&<span style={{fontSize:8,color:u.brkColor||col,fontWeight:600,whiteSpace:'nowrap'}}>⊙ {u.brk}</span>}
