@@ -31,8 +31,11 @@ const COLS = [
   { id: 'valor',      label: 'Precio Adquisición',                 type:'text',   getValue: r => r.valor },
   { id: 'estado',     label: 'Estado',                             type:'enum',   getValue: r => r.estado },
   { id: 'dias',       label: 'Días comerc.',                       type:'number', getValue: r => r.dias },
-  { id: 'propietario',label: 'Propietario',                        type:'enum',   getValue: r => r.propietario },
-  { id: '_act',       label: '',                    sys: true },
+  { id: 'propietario',   label: 'Propietario',                        type:'enum',   getValue: r => r.propietario },
+  { id: 'uso_secundario', label: 'Uso secundario',                  type:'enum',   getValue: r => r.uso_secundario },
+  { id: 'sup_planta_tipo', label: 'Sup. planta tipo (m²)',          type:'number', getValue: r => r.sup_planta_tipo },
+  { id: 'sup_neta',      label: 'Sup. neta (m²)',                   type:'number', getValue: r => r.sup_neta },
+  { id: '_act',          label: '',                    sys: true },
 ]
 
 
@@ -62,6 +65,9 @@ export default function ActivosList() {
           valor:  a.valor  || '—',
           estado: a.estado || '',
           dias:   a.dias_comercializacion || 0,
+          uso_secundario: a.uso_secundario || '',
+          sup_planta_tipo: a.sup_planta_tipo || 0,
+          sup_neta: (a.sba && a.ratio_perdida) ? Math.round(a.sba * (1 - a.ratio_perdida / 100)) : null,
         })))
       }
       setLoading(false)
@@ -99,7 +105,10 @@ export default function ActivosList() {
     valor:   <td key="valor" className="mono">{a.valor}</td>,
     estado:  <td key="estado"><span className={`tag ${a.estado === 'Totalmente ocupado' ? 'tag-green' : a.estado === 'Activo' ? 'tag-green' : a.estado === 'Parcialmente disponible' ? 'tag-amber' : a.estado === 'En comercialización' ? 'tag-amber' : a.estado === 'Vacío al completo' ? 'tag-red' : 'tag-gray'}`}>{a.estado}</span></td>,
     dias:    <td key="dias">{a.dias > 0 ? <span style={{ color: a.dias > 90 ? 'var(--red)' : a.dias > 60 ? 'var(--amber)' : 'var(--text3)', fontWeight: 600 }}>{a.dias}d</span> : '—'}</td>,
-    propietario: <td key="propietario" style={{ fontSize: 11 }}>{a.propietario}</td>,
+    propietario:    <td key="propietario" style={{ fontSize: 11 }}>{a.propietario}</td>,
+    uso_secundario: <td key="uso_secundario">{a.uso_secundario ? <span className="tag tag-gray" style={{fontSize:9}}>{a.uso_secundario}</span> : <span style={{color:'var(--text4)'}}>—</span>}</td>,
+    sup_planta_tipo:<td key="sup_planta_tipo" className="mono">{a.sup_planta_tipo ? a.sup_planta_tipo.toLocaleString('es-ES') + ' m²' : '—'}</td>,
+    sup_neta:       <td key="sup_neta" className="mono">{a.sup_neta != null ? a.sup_neta.toLocaleString('es-ES') + ' m²' : '—'}</td>,
     _act:    <td key="_act"><div className="ra-cell"><button className="ra" onClick={e => { e.stopPropagation(); navigate('ficha-activo', { ref: a.ref }) }}>Ver</button><button className="ra p" onClick={e => e.stopPropagation()}>Editar</button></div></td>,
   })
 
