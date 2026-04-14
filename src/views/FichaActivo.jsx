@@ -563,7 +563,7 @@ const OFERTAS_ACTIVAS = [
   { ref:'OLB003', contraparte:'Oracle Spain SL', sup:13486, estado:'Finalista', color:'#7c3aed', bg:'#faf5ff', border:'#e9d5ff' },
 ]
 
-function StackingPlan({ initBuildings, onCountChange, extraOwners=[], extraTenants=[], onAddOwner, onAddTenant }) {
+function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwners=[], extraTenants=[], onAddOwner, onAddTenant }) {
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
   const [setupForm, setSetupForm]       = useState({ label:'', sobre:'5', bajo:'1', sup:'1500' })
@@ -586,6 +586,11 @@ function StackingPlan({ initBuildings, onCountChange, extraOwners=[], extraTenan
 
   // Notify parent when building count changes
   useEffect(() => { if (onCountChange) onCountChange(buildings.length) }, [buildings.length])
+  useEffect(() => {
+    if (!onOwnersChange) return
+    const names = new Set(buildings.flatMap(b=>(b.prop||[]).flatMap(r=>r.units.map(u=>u.n))))
+    onOwnersChange(names.size)
+  }, [buildings])
 
   const edif = buildings.find(b=>b.id===edifId) || buildings[0] || { id:'', label:'', floors:[], prop:[], arr:[], supPlantaTipo:0 }
   const usoInfo  = (id) => USOS_PPAL.find(u=>u.id===id) || UA_ALL.find(u=>u.id===id) || {label:id,color:'#94a3b8',bg:'#f1f5f9',bd:'#cbd5e1'}
@@ -2763,7 +2768,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
 }
 
 /* ── Panel derecho ── */
-function RightPanel({ navigate, nEdificios, plazas, esg, activo }) {
+function RightPanel({ navigate, nEdificios, nPropietarios, plazas, esg, activo }) {
   const [chatOpen, setChatOpen] = useState(false)
   const [chatMsg,  setChatMsg]  = useState('')
   const [chatLog,  setChatLog]  = useState([
@@ -2853,6 +2858,10 @@ function RightPanel({ navigate, nEdificios, plazas, esg, activo }) {
               <div className="kf">
                 <div className="kf-lbl">Nº arrendatarios</div>
                 <div className="kf-val">{nArrendatarios}</div>
+              </div>
+              <div className="kf">
+                <div className="kf-lbl">Nº propietarios</div>
+                <div className="kf-val">{nPropietarios ?? '—'}</div>
               </div>
             </div>
             <div style={{marginTop:8}}>
@@ -3493,6 +3502,7 @@ export default function FichaActivo() {
   const [editingNombre,   setEditingNombre]   = useState(false)
   const [editNombreVal,   setEditNombreVal]   = useState('')
   const [liveEdifCount,   setLiveEdifCount]   = useState(null) // synced from StackingPlan
+  const [liveOwnerCount,  setLiveOwnerCount]  = useState(null) // unique propietarios assigned in stacking plan
   const infoSaveRef = useRef(null) // ref to TabInfo's handleSave
   const infoSyncRef = useRef(null) // ref to TabInfo's syncCatastro (available for future use)
 
@@ -3725,6 +3735,7 @@ export default function FichaActivo() {
               <StackingPlan
                 initBuildings={isNew ? [] : (BUILDINGS_BY_ACTIVO[params?.ref] || undefined)}
                 onCountChange={setLiveEdifCount}
+                onOwnersChange={setLiveOwnerCount}
                 extraOwners={propietariosReg.map(p=>p.propietario)}
                 extraTenants={arrendatariosReg.map(a=>a.tenant)}
                 onAddOwner={()=>setShowNuevoProp(true)}
@@ -4482,7 +4493,7 @@ export default function FichaActivo() {
 
         </div>{/* /ficha-main */}
 
-        <RightPanel navigate={navigate} nEdificios={liveEdifCount ?? activo?.n_edificios ?? 1} plazas={plazas} esg={esg} activo={activo}/>
+        <RightPanel navigate={navigate} nEdificios={liveEdifCount ?? activo?.n_edificios ?? 1} nPropietarios={liveOwnerCount} plazas={plazas} esg={esg} activo={activo}/>
 
       </div>{/* /ficha-wrap */}
       {showTarea && <AsignarTareaModal refTipo="Activo" refNombre="P.E Avalon" onClose={() => setShowTarea(false)} />}
