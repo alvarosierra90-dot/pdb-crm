@@ -927,6 +927,8 @@ function StackingPlan({ initBuildings, onCountChange }) {
               const isTgt = dragTarget===floor.id
               const isSel = selectedFloors.includes(floor.id)
               const hasAdic = floor.adicional.length>0
+              // Línea gruesa debajo de PB para separar SR de BR
+              const isPB = floor.id === 'PB'
 
               return (
                 <div key={floor.id}
@@ -945,7 +947,7 @@ function StackingPlan({ initBuildings, onCountChange }) {
                   }}
                   style={{
                     display:'grid',gridTemplateColumns:'22px 52px 1fr 90px',
-                    borderBottom:'1px solid var(--border)',
+                    borderBottom: isPB ? '3px solid var(--text3)' : '1px solid var(--border)',
                     background:isTgt?'#eff6ff':isSel?'#f0f9ff':'var(--surface)',
                     outline:isTgt?'1.5px solid var(--accent)':'none',
                     transition:'background .1s',
@@ -1158,7 +1160,7 @@ function StackingPlan({ initBuildings, onCountChange }) {
                       dropProp(floor.id, floor.sup, dragging)
                       setDragging(null)
                     }}
-                    style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',borderBottom:'1px solid var(--border)',minHeight:44,
+                    style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',borderBottom:floor.id==='PB'?'3px solid var(--text3)':'1px solid var(--border)',minHeight:44,
                       background:isTgt?'#eff6ff':isEmpty?'var(--gray-lt)':'var(--surface)',
                       outline:isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s'}}>
 
@@ -1362,7 +1364,7 @@ function StackingPlan({ initBuildings, onCountChange }) {
                       }
                       setDragging(null)
                     }}
-                    style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',borderBottom:'1px solid var(--border)',minHeight:52,
+                    style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',borderBottom:floor.id==='PB'?'3px solid var(--text3)':'1px solid var(--border)',minHeight:52,
                       background:isTgt?'#eff6ff':isEmpty?'var(--gray-lt)':'var(--surface)',
                       outline:isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s'}}>
 
