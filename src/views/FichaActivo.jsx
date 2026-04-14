@@ -2567,7 +2567,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, h
 }
 
 /* ── Panel derecho ── */
-function RightPanel({ navigate }) {
+function RightPanel({ navigate, nEdificios, plazas, esg }) {
   const [chatOpen, setChatOpen] = useState(false)
   const [chatMsg,  setChatMsg]  = useState('')
   const [chatLog,  setChatLog]  = useState([
@@ -2623,21 +2623,55 @@ function RightPanel({ navigate }) {
         )}
       </div>
 
-      {/* 2. Ubicación / datos de zona */}
+      {/* 2. KPIs del activo */}
+      {(()=>{
+        const totalPlazas = (plazas||[]).reduce((s,p)=>s+p.cantidad,0)
+        const sellos = [
+          esg?.leed        && {label:`LEED ${esg.leed}`,              cls:'tag-leed'},
+          esg?.breeam      && {label:`BREEAM ${esg.breeam}`,          cls:'tag-esg'},
+          esg?.well        && {label:`WELL ${esg.well}`,              cls:'tag-purple'},
+          esg?.dgnb        && {label:`DGNB ${esg.dgnb}`,             cls:'tag-blue'},
+          esg?.wiredscore  && {label:`WiredScore ${esg.wiredscore}`,  cls:'tag-gray'},
+        ].filter(Boolean)
+        return (
+          <div className="rp-sec">
+            <div className="rp-lbl">KPIs del activo</div>
+            <div className="kf-grid">
+              <div className="kf">
+                <div className="kf-lbl">Nº edificios</div>
+                <div className="kf-val">{nEdificios ?? 1}</div>
+              </div>
+              <div className="kf">
+                <div className="kf-lbl">Total plazas</div>
+                <div className="kf-val">{totalPlazas > 0 ? totalPlazas.toLocaleString('es-ES') : '—'}</div>
+              </div>
+            </div>
+            <div style={{marginTop:8}}>
+              <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:5}}>Sellos sostenibilidad</div>
+              {sellos.length > 0 ? (
+                <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                  {sellos.map(s=>(
+                    <span key={s.label} className={`tag ${s.cls}`} style={{fontSize:9,padding:'2px 7px'}}>{s.label}</span>
+                  ))}
+                </div>
+              ) : (
+                <span style={{fontSize:11,color:'var(--text4)'}}>—</span>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* 3. Ubicación / datos de zona */}
       <div className="rp-sec">
         <div className="rp-lbl">Ubicación · datos de zona</div>
-        <div className="map-ph">
-          <div style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>M-30 · Madrid</div>
-          <div style={{fontSize:10,color:'var(--text3)'}}>Calle Santa Leonor 65</div>
-          <div style={{fontSize:10,background:'var(--accent)',color:'#fff',padding:'3px 8px',borderRadius:4,marginTop:2}}>Ver en Google Maps</div>
-        </div>
         <div className="kf-grid">
           <div className="kf"><div className="kf-lbl">Renta zona (media oferta)</div><div className="kf-val">10,5 €/m²</div></div>
           <div className="kf"><div className="kf-lbl">Disponibilidad zona</div><div className="kf-val amber">11,4%</div></div>
         </div>
       </div>
 
-      {/* 3. KPIs Financieros */}
+      {/* 4. KPIs Financieros */}
       <div className="rp-sec">
         <div className="rp-lbl">KPIs Financieros</div>
         <div className="kf-grid">
@@ -2650,7 +2684,7 @@ function RightPanel({ navigate }) {
         </div>
       </div>
 
-      {/* 4. Vencimientos contractuales */}
+      {/* 5. Vencimientos contractuales */}
       <div className="rp-sec">
         <div className="rp-lbl">Vencimientos contractuales</div>
         {[
@@ -2670,7 +2704,7 @@ function RightPanel({ navigate }) {
         ))}
       </div>
 
-      {/* 5. Propuestas / Proyectos en curso */}
+      {/* 6. Propuestas / Proyectos en curso */}
       <div className="rp-sec">
         <div className="rp-lbl">Propuestas / Proyectos en curso</div>
         {[
@@ -2688,7 +2722,7 @@ function RightPanel({ navigate }) {
         ))}
       </div>
 
-      {/* 6. Historial */}
+      {/* 7. Historial */}
       <div className="rp-sec">
         <div className="rp-lbl">Historial</div>
         {[
@@ -2706,7 +2740,7 @@ function RightPanel({ navigate }) {
         ))}
       </div>
 
-      {/* 7. Propietario y contactos */}
+      {/* 8. Propietario y contactos */}
       <div className="rp-sec">
         <div className="rp-lbl">Propietario</div>
         <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:8}}>
@@ -2726,7 +2760,7 @@ function RightPanel({ navigate }) {
         </div>
       </div>
 
-      {/* 8. Documentos recientes */}
+      {/* 9. Documentos recientes */}
       <div className="rp-sec">
         <div className="rp-lbl">Documentos recientes</div>
         {[
@@ -3857,7 +3891,7 @@ export default function FichaActivo() {
 
         </div>{/* /ficha-main */}
 
-        <RightPanel navigate={navigate}/>
+        <RightPanel navigate={navigate} nEdificios={liveEdifCount ?? activo?.n_edificios ?? 1} plazas={plazas} esg={esg}/>
 
       </div>{/* /ficha-wrap */}
       {showTarea && <AsignarTareaModal refTipo="Activo" refNombre="P.E Avalon" onClose={() => setShowTarea(false)} />}
