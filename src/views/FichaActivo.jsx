@@ -68,6 +68,12 @@ const MADRID_ZONES = [
 ]
 
 const AREAS_MAD  = [...new Set(MADRID_ZONES.map(z => z.area))]
+const CARAC_CATEGORIAS_GEN = ['Altura','Modularidad','Suelo técnico','Falso techo','Climatización','Seguridad','Iluminación','Ascensores','Escaleras','Fachada','Cubierta','Accesibilidad','Otro (especificar)']
+const CARAC_CATEGORIAS_OF  = ['Configuración','Luminosidad','División','Terraza','Suelo técnico','Falso techo','Plantas diáfanas','Módulo mínimo','Otro (especificar)']
+const CARAC_CATEGORIAS_RT  = ['Frente de fachada','Altura libre','Carga/m²','Muelle','Acceso camiones','Escaparate','Otro (especificar)']
+const CARAC_CATEGORIAS_LG  = ['Altura libre','Carga/m²','Muelles','Playa maniobras','Acceso','Cámaras frigoríficas','Cross-docking','Otro (especificar)']
+const CARAC_CATEGORIAS_RES = ['Tipología','Altura libre','Orientación','Terraza','Trastero incluido','Plazas de garaje','Piscina','Zonas comunes','Otro (especificar)']
+const MEDIOS_TRANSPORTE = ['Metro','Autobús','Cercanías','Tren','Tranvía','BiciMAD / Bici pública','Coche','Taxi / VTC','Aeropuerto']
 const ESTADOS_CONSTRUCCION = ['Cambio de uso en trámite','Construcción existente','En construcción','En demolición','En rehabilitación','LC + ICO obtenidos','LC + ICO solicitados','Licencia de construcción','Licencia primera ocupación','Llave en mano','Nueva construcción / Obra nueva','Proyecto','Rehabilitación integral','Rehabilitación parcial']
 const USOS_PRINCIPALES = ['Build to Rent','Aparcamiento','Apartamentos turísticos','Build to Sell','Care homes','Trastero','Flex Living','Hotel','Industrial','Logística','Oficinas','Residencial','Retail','Senior Living']
 const CALIDADES = ['A+','A','B+','B','C','D']
@@ -240,8 +246,9 @@ const OFERTAS_ACTIVAS = [
 ]
 
 function StackingPlan({ initBuildings }) {
-  const [buildings, setBuildings]       = useState(initBuildings || INIT_BUILDINGS)
-  const [edifId, setEdifId]             = useState('A')
+  const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
+  const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
+  const [setupForm, setSetupForm]       = useState({ label:'', sobre:'5', bajo:'1', sup:'1500' })
   const [view, setView]                 = useState('principal')
   const [dragging, setDragging]         = useState(null)
   const [dragTarget, setDragTarget]     = useState(null)
@@ -259,7 +266,7 @@ function StackingPlan({ initBuildings }) {
   const [editFloorSup, setEditFloorSup]       = useState(null) // floorId — editable only from principal view
   const [editFloorSupVal, setEditFloorSupVal] = useState('')
 
-  const edif = buildings.find(b=>b.id===edifId) || buildings[0]
+  const edif = buildings.find(b=>b.id===edifId) || buildings[0] || { id:'', label:'', floors:[], prop:[], arr:[], supPlantaTipo:0 }
   const usoInfo  = (id) => USOS_PPAL.find(u=>u.id===id) || UA_ALL.find(u=>u.id===id) || {label:id,color:'#94a3b8',bg:'#f1f5f9',bd:'#cbd5e1'}
   const uaInfo   = (id) => UA_ALL.find(u=>u.id===id)   || {label:id,color:'#64748b',bg:'#f1f5f9',bd:'#cbd5e1',attr:false}
 
@@ -388,6 +395,50 @@ function StackingPlan({ initBuildings }) {
     border:'none',borderBottom:view===k?'2px solid var(--accent)':'2px solid transparent',
     background:'var(--surface)',color:view===k?'var(--accent)':'var(--text3)',fontFamily:'inherit',
   })
+
+  /* ── Setup vacío ── */
+  const createFirstBuilding = () => {
+    const label = setupForm.label.trim() || 'Edificio A'
+    const sobre = Math.max(1, parseInt(setupForm.sobre) || 1)
+    const bajo  = Math.max(0, parseInt(setupForm.bajo)  || 0)
+    const sup   = Math.max(100, parseFloat(setupForm.sup) || 1000)
+    const floors = []
+    for (let i = sobre; i >= 1; i--) floors.push({ id: `P${i}`, sup, principal: [], adicional: [] })
+    floors.push({ id: 'PB', sup, principal: [], adicional: [] })
+    for (let i = 1; i <= bajo; i++) floors.push({ id: `S${i}`, sup, principal: [], adicional: [] })
+    const id = 'A'
+    setBuildings([{ id, label, supPlantaTipo: sup, floors, prop: floors.map(f=>({p:f.id,sup,units:[]})), arr: floors.map(f=>({p:f.id,sup,units:[]})) }])
+    setEdifId(id)
+  }
+
+  if (buildings.length === 0) return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'48px 24px',gap:20}}>
+      <div style={{fontSize:32}}>🏗</div>
+      <div style={{fontSize:14,fontWeight:600,color:'var(--text1)'}}>Configura el stacking plan</div>
+      <div style={{fontSize:12,color:'var(--text3)',marginTop:-10,textAlign:'center'}}>Define la estructura del edificio para empezar a asignar plantas y usos</div>
+      <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10,padding:24,width:'100%',maxWidth:420,display:'flex',flexDirection:'column',gap:14}}>
+        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+          <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Nombre del edificio</span>
+          <input style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}} placeholder="Edificio A" value={setupForm.label} onChange={e=>setSetupForm(p=>({...p,label:e.target.value}))}/>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+            <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Plantas SR</span>
+            <input type="number" min="1" max="100" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}} value={setupForm.sobre} onChange={e=>setSetupForm(p=>({...p,sobre:e.target.value}))}/>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+            <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Sótanos BR</span>
+            <input type="number" min="0" max="20" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}} value={setupForm.bajo} onChange={e=>setSetupForm(p=>({...p,bajo:e.target.value}))}/>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+            <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Sup. tipo (m²)</span>
+            <input type="number" min="100" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}} value={setupForm.sup} onChange={e=>setSetupForm(p=>({...p,sup:e.target.value}))}/>
+          </div>
+        </div>
+        <button onClick={createFirstBuilding} style={{marginTop:4,padding:'9px 0',background:'var(--accent)',color:'#fff',border:'none',borderRadius:7,fontSize:12,fontWeight:600,fontFamily:'inherit',cursor:'pointer'}}>Crear estructura</button>
+      </div>
+    </div>
+  )
 
   return (
     <div>
@@ -2215,6 +2266,35 @@ export default function FichaActivo() {
   const [plazas, setPlazas]             = useState(INIT_PLAZAS)
   const [showAddPlaza, setShowAddPlaza] = useState(false)
   const [newPlaza, setNewPlaza]         = useState({ubicacion:'Interior',tipo:'Simple',vehiculo:'Coches',cantidad:1})
+  // ESG / Normativa
+  const [esg, setEsg] = useState({ leed:'', breeam:'', well:'', dgnb:'', wiredscore:'', energia:'', consumo:'' })
+  // Transporte
+  const [transportes, setTransportes] = useState([
+    {id:1, medio:'Metro', linea:'L7', descripcion:'Estadio Olímpico', tiempo:'5 min'},
+    {id:2, medio:'Autobús', linea:'23, 37, 140', descripcion:'', tiempo:''},
+    {id:3, medio:'Coche', linea:'', descripcion:'M-30 · A-2', tiempo:''},
+  ])
+  const [showAddTransp, setShowAddTransp] = useState(false)
+  const [newTransp, setNewTransp] = useState({medio:'Metro', linea:'', descripcion:'', tiempo:''})
+  // Características generales (filas dinámicas)
+  const [caracGenerales, setCaracGenerales] = useState([
+    {id:1, categoria:'Altura', detalle:'Altura libre: 2,85 m'},
+    {id:2, categoria:'Modularidad', detalle:'Módulo mínimo: 300 m²'},
+    {id:3, categoria:'Suelo técnico', detalle:'Sí'},
+    {id:4, categoria:'Climatización', detalle:'Fan-coil 4 tubos'},
+    {id:5, categoria:'Seguridad', detalle:'24h'},
+  ])
+  const [showAddCarac, setShowAddCarac] = useState(false)
+  const [newCarac, setNewCarac] = useState({categoria:'', categoriaOtro:'', detalle:''})
+  // Características por uso (filas dinámicas)
+  const [caracUso, setCaracUso] = useState([
+    {id:1, categoria:'Configuración', detalle:'Planta abierta / diáfana'},
+    {id:2, categoria:'Falso techo', detalle:'Sí'},
+    {id:3, categoria:'Luminosidad', detalle:'Alta — fachada acristalada'},
+    {id:4, categoria:'Terraza', detalle:'Sí (planta 7)'},
+  ])
+  const [showAddCaracUso, setShowAddCaracUso] = useState(false)
+  const [newCaracUso, setNewCaracUso] = useState({categoria:'', categoriaOtro:'', detalle:''})
   const [newForm, setNewForm]           = useState(NEW_FORM_INIT)
   const [saving,  setSaving]            = useState(false)
   const [saveErr, setSaveErr]           = useState('')
@@ -2235,29 +2315,59 @@ export default function FichaActivo() {
   }, [params?.ref])
 
   const handleCreateActivo = async () => {
-    if (!newForm.direccion) { setSaveErr('La dirección es obligatoria'); return }
+    const nombre = newForm.nombre || (newForm.direccion ? newForm.direccion.split(',')[0].trim() : '')
+    if (!nombre) { setSaveErr('El nombre o la dirección son obligatorios'); return }
     setSaving(true); setSaveErr('')
-    const ref   = genRefFA(newForm.ciudad, newForm.uso)
-    const nombre = newForm.nombre || newForm.direccion.split(',')[0].trim()
-    const { error } = await supabase.from('activos').insert({
+    const ref = genRefFA(newForm.ciudad, newForm.uso)
+    // Only insert columns guaranteed to exist in migration 001 schema
+    const payload = {
       ref, nombre,
-      direccion:             newForm.direccion   || null,
-      ciudad:                newForm.ciudad       || null,
-      pais:                  newForm.pais         || null,
-      zona:                  newForm.zona         || null,
-      subzona:               newForm.subzona      || null,
-      uso:                   newForm.uso          || null,
-      propietario:           newForm.propietario  || null,
-      calidad:               newForm.calidad      || null,
-      sba:                   newForm.sba ? parseFloat(newForm.sba) : null,
-      anno_construccion:     newForm.anno_construccion  ? parseInt(newForm.anno_construccion)  : null,
-      anno_rehabilitacion:   newForm.anno_rehabilitacion? parseInt(newForm.anno_rehabilitacion): null,
-      ref_catastral:         newForm.ref_catastral || null,
-      estado:                'Activo',
+      ciudad:            newForm.ciudad       || null,
+      pais:              newForm.pais         || null,
+      zona:              newForm.zona         || null,
+      subzona:           newForm.subzona      || null,
+      area:              newForm.area         || null,
+      uso:               newForm.uso          || null,
+      calidad:           newForm.calidad      || null,
+      sba:               newForm.sba ? parseFloat(newForm.sba) : null,
+      anno_construccion: newForm.anno_construccion   ? parseInt(newForm.anno_construccion)  : null,
+      anno_rehabilitacion: newForm.anno_rehabilitacion ? parseInt(newForm.anno_rehabilitacion) : null,
+      ref_catastral:     newForm.ref_catastral || null,
+      estado:            'Activo',
       dias_comercializacion: 0,
-    })
+    }
+    // Add extra columns if migration 002 has been run (fail silently if not)
+    try {
+      const { error } = await supabase.from('activos').insert({
+        ...payload,
+        propietario:         newForm.propietario       || null,
+        direccion:           newForm.direccion         || null,
+        tipo_activo:         newForm.tipo_activo       || null,
+        estado_construccion: newForm.estado_construccion || null,
+        uso_secundario:      newForm.uso_secundario    || null,
+        asset_manager:       newForm.asset_manager     || null,
+        clasificacion_urb:   newForm.clasificacion_urb || null,
+        uso_pgou:            newForm.uso_pgou          || null,
+        calificacion_urb:    newForm.calificacion_urb  || null,
+        edificabilidad:      newForm.edificabilidad    || null,
+        sup_parcela:         newForm.sup_parcela ? parseFloat(newForm.sup_parcela) : null,
+        cp:                  newForm.cp                || null,
+      })
+      setSaving(false)
+      if (error) {
+        // If extra columns don't exist yet, retry with base payload
+        if (error.message?.includes('column') || error.code === '42703') {
+          const { error: e2 } = await supabase.from('activos').insert(payload)
+          if (e2) { setSaveErr(e2.message); return }
+        } else {
+          setSaveErr(error.message); return
+        }
+      }
+    } catch(e) {
+      setSaving(false)
+      setSaveErr(String(e)); return
+    }
     setSaving(false)
-    if (error) { setSaveErr(error.message); return }
     navigate('ficha-activo', { ref })
   }
 
@@ -2379,49 +2489,240 @@ export default function FichaActivo() {
                     <span style={{fontSize:11,color:'var(--text4)'}}>Ocupado: <strong style={{color:'var(--green)'}}>36.814 m²</strong></span>
                   </div>
                 </div>
-                <StackingPlan initBuildings={params?.ref ? BUILDINGS_BY_ACTIVO[params.ref] : undefined}/>
+                <StackingPlan initBuildings={isNew ? [] : (BUILDINGS_BY_ACTIVO[params?.ref] || undefined)}/>
               </div>
             </div>
           )}
 
           {/* ── TAB: Características ── */}
-          {activeTab==='at-caract' && (
+          {activeTab==='at-caract' && (()=>{
+            const usoActivo = activo?.uso || ''
+            const usoLabel = usoActivo || 'Uso principal'
+            const usoIco = USO_ICO[usoActivo] || '🏢'
+            const caracCatsByUso = usoActivo==='Retail' ? CARAC_CATEGORIAS_RT : usoActivo==='Logístico' ? CARAC_CATEGORIAS_LG : usoActivo==='Residencial' ? CARAC_CATEGORIAS_RES : CARAC_CATEGORIAS_OF
+            const selSt = {padding:'5px 9px',fontSize:11,border:'1px solid var(--border)',borderRadius:5,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}
+            const inpSt = {padding:'5px 9px',fontSize:11,border:'1px solid var(--border)',borderRadius:5,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',flex:1}
+            const addRowBtn = (onClick, show) => (
+              <button onClick={onClick} style={{padding:'3px 10px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600,lineHeight:1.4}}>{show?'✕ Cancelar':'+ Añadir'}</button>
+            )
+            const addRowForm = (vals, setVals, cats, onSave, onCancel) => (
+              <div style={{display:'flex',flexWrap:'wrap',gap:8,padding:'10px 12px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:7,marginBottom:12,alignItems:'flex-end'}}>
+                <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                  <label style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Categoría</label>
+                  <select value={vals.categoria} onChange={e=>setVals(p=>({...p,categoria:e.target.value,categoriaOtro:''}))} style={{...selSt,minWidth:160}}>
+                    <option value="">Seleccionar...</option>
+                    {cats.map(c=><option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                {vals.categoria==='Otro (especificar)' && (
+                  <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                    <label style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Especificar</label>
+                    <input value={vals.categoriaOtro} onChange={e=>setVals(p=>({...p,categoriaOtro:e.target.value}))} style={{...selSt,minWidth:140}} placeholder="Nombre..."/>
+                  </div>
+                )}
+                <div style={{display:'flex',flexDirection:'column',gap:3,flex:1,minWidth:160}}>
+                  <label style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Detalle / Valor</label>
+                  <input value={vals.detalle} onChange={e=>setVals(p=>({...p,detalle:e.target.value}))} style={inpSt} placeholder="Descripción o valor..."/>
+                </div>
+                <button onClick={onSave} style={{padding:'5px 16px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:700,alignSelf:'flex-end'}}>Guardar</button>
+                <button onClick={onCancel} style={{padding:'5px 10px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',alignSelf:'flex-end',color:'var(--text3)'}}>✕</button>
+              </div>
+            )
+            const caracTable = (rows, onRemove) => rows.length===0 ? (
+              <div style={{padding:'16px 0',textAlign:'center',color:'var(--text4)',fontSize:12}}>Sin características registradas — pulsa "+ Añadir" para empezar.</div>
+            ) : (
+              <table className="pat-table">
+                <thead><tr><th>Categoría</th><th>Detalle / Valor</th><th style={{width:32}}></th></tr></thead>
+                <tbody>{rows.map(r=>(
+                  <tr key={r.id}>
+                    <td><span style={{fontSize:10,padding:'2px 8px',borderRadius:9,background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',color:'var(--accent)',fontWeight:600}}>{r.categoria==='Otro (especificar)' ? r.categoriaOtro : r.categoria}</span></td>
+                    <td style={{fontSize:12,color:'var(--text1)'}}>{r.detalle}</td>
+                    <td><button onClick={()=>onRemove(r.id)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text4)',fontSize:13,padding:'0 4px'}} title="Eliminar">✕</button></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            )
+            return (
             <div className="tab-content active">
               <div className="info-pad">
                 <div style={{fontSize:14,fontWeight:600,marginBottom:14}}>Características técnicas</div>
                 <div className="carac-tabs">
-                  {[['ct-estado','Estado'],['ct-transporte','Transporte'],['ct-normativa','Normativa / ESG'],['ct-generales','Características generales'],['ct-oficinas','🏢 Oficinas'],['ct-uso','Oficinas (uso)'],['ct-plazas','Plazas']].map(([k,l])=>(
+                  {[['ct-estado','Estado'],['ct-transporte','Transporte'],['ct-normativa','Normativa / ESG'],['ct-generales','Características generales'],[`ct-uso`,`${usoIco} ${usoLabel}`],['ct-plazas','Plazas']].map(([k,l])=>(
                     <div key={k} className={`ct ${caracTab===k?'active':''}`} onClick={()=>setCaracTab(k)}>{l}</div>
                   ))}
                 </div>
+
+                {/* Estado — read-only, sincronizado */}
                 {caracTab==='ct-estado' && (
                   <div className="info-2col">
                     <div className="info-block">
-                      <div className="ib-title">DATOS DEL INMUEBLE</div>
-                      <div className="ir"><span className="ir-k">Año de construcción</span><span className="ir-v">2003</span></div>
-                      <div className="ir"><span className="ir-k">Año de rehabilitación</span><span className="ir-v">2018</span></div>
-                      <div className="ir"><span className="ir-k">Estado actual</span><span className="ir-v">Construcción existente</span></div>
-                      <div className="ir"><span className="ir-k">Calidad</span><span className="ir-v"><span className="tag tag-amber">Prime</span></span></div>
-                      <div className="ir"><span className="ir-k">Nº de edificios</span><span className="ir-v">4</span></div>
-                      <div className="ir"><span className="ir-k">Nº plantas sobre rasante</span><span className="ir-v">7</span></div>
-                      <div className="ir"><span className="ir-k">Nº plantas bajo rasante</span><span className="ir-v">2</span></div>
+                      <div className="ib-title">DATOS DEL INMUEBLE <span style={{fontSize:9,fontWeight:400,color:'var(--text4)',textTransform:'none',letterSpacing:0}}>— sincronizado desde Info general</span></div>
+                      <div className="ir"><span className="ir-k">Año de construcción</span><span className="ir-v">{activo?.anno_construccion || '2003'}</span></div>
+                      <div className="ir"><span className="ir-k">Año de rehabilitación</span><span className="ir-v">{activo?.anno_rehabilitacion || '2018'}</span></div>
+                      <div className="ir"><span className="ir-k">Estado actual</span><span className="ir-v">{activo?.estado_construccion || 'Construcción existente'}</span></div>
+                      <div className="ir"><span className="ir-k">Calidad</span><span className="ir-v">{activo?.calidad || '—'}</span></div>
+                      <div className="ir"><span className="ir-k">Nº de edificios</span><span className="ir-v">{activo ? '—' : '4'}</span></div>
+                      <div className="ir"><span className="ir-k">Nº plantas sobre rasante</span><span className="ir-v">—</span></div>
+                      <div className="ir"><span className="ir-k">Nº plantas bajo rasante</span><span className="ir-v">—</span></div>
                     </div>
                     <div className="info-block">
-                      <div className="ib-title">SUPERFICIES</div>
-                      <div className="ir"><span className="ir-k">SBA (m²)</span><span className="ir-v" style={{fontWeight:700}}>46.956</span></div>
-                      <div className="ir"><span className="ir-k">Sup. neta (m²)</span><span className="ir-v">44.186</span></div>
-                      <div className="ir"><span className="ir-k">Ratio de pérdida</span><span className="ir-v">5,9%</span></div>
-                      <div className="ir"><span className="ir-k">Sup. planta tipo (m²)</span><span className="ir-v">1.500</span></div>
-                      <div className="ir"><span className="ir-k">Sup. parcela (m²)</span><span className="ir-v">12.400</span></div>
-                      <div className="ir"><span className="ir-k">Ocupación parcela</span><span className="ir-v">32%</span></div>
+                      <div className="ib-title">SUPERFICIES <span style={{fontSize:9,fontWeight:400,color:'var(--text4)',textTransform:'none',letterSpacing:0}}>— sincronizado desde Info general</span></div>
+                      <div className="ir"><span className="ir-k">SBA (m²)</span><span className="ir-v" style={{fontWeight:700}}>{activo?.sba ? activo.sba.toLocaleString('es-ES') : '46.956'}</span></div>
+                      <div className="ir"><span className="ir-k">Sup. planta tipo (m²)</span><span className="ir-v">—</span></div>
+                      <div className="ir"><span className="ir-k">Sup. parcela (m²)</span><span className="ir-v">{activo?.sup_parcela ? activo.sup_parcela.toLocaleString('es-ES') : '—'}</span></div>
+                      <div className="ir"><span className="ir-k">Plazas de aparcamiento</span><span className="ir-v">{plazas.reduce((s,p)=>s+p.cantidad,0).toLocaleString('es-ES')}</span></div>
                     </div>
                   </div>
                 )}
-                {caracTab==='ct-transporte' && <div className="info-block"><div className="ib-title">TRANSPORTE</div><div className="ir"><span className="ir-k">Metro (línea)</span><span className="ir-v">L7 · Estadio Olímpico (5 min)</span></div><div className="ir"><span className="ir-k">Autobús</span><span className="ir-v">Líneas 23, 37, 140</span></div><div className="ir"><span className="ir-k">Acceso por coche</span><span className="ir-v">M-30 · A-2</span></div><div className="ir"><span className="ir-k">Bicicleta / BiciMAD</span><span className="ir-v">Estación a 200m</span></div></div>}
-                {caracTab==='ct-normativa' && <div className="info-block"><div className="ib-title">NORMATIVA / ESG</div><div className="ir"><span className="ir-k">Certificación energética</span><span className="ir-v">A+</span></div><div className="ir"><span className="ir-k">LEED</span><span className="ir-v">Gold</span></div><div className="ir"><span className="ir-k">BREEAM</span><span className="ir-v">Very Good</span></div><div className="ir"><span className="ir-k">ESG Rating</span><span className="ir-v">A</span></div><div className="ir"><span className="ir-k">Consumo energético</span><span className="ir-v">87 kWh/m²/año</span></div></div>}
-                {caracTab==='ct-generales' && <div className="info-block"><div className="ib-title">CARACTERÍSTICAS GENERALES</div><div className="ir"><span className="ir-k">Altura libre</span><span className="ir-v">2,85 m</span></div><div className="ir"><span className="ir-k">Módulo mínimo</span><span className="ir-v">300 m²</span></div><div className="ir"><span className="ir-k">Suelo técnico</span><span className="ir-v">Sí</span></div><div className="ir"><span className="ir-k">Climatización</span><span className="ir-v">Fan-coil 4 tubos</span></div><div className="ir"><span className="ir-k">Seguridad 24h</span><span className="ir-v">Sí</span></div></div>}
-                {caracTab==='ct-oficinas' && <div className="info-block"><div className="ib-title">🏢 OFICINAS</div><div className="ir"><span className="ir-k">Configuración</span><span className="ir-v">Planta abierta / diáfana</span></div><div className="ir"><span className="ir-k">Falso techo</span><span className="ir-v">Sí</span></div><div className="ir"><span className="ir-k">Luminosidad</span><span className="ir-v">Alta — fachada acristalada</span></div><div className="ir"><span className="ir-k">Terraza</span><span className="ir-v">Sí (planta 7)</span></div></div>}
-                {caracTab==='ct-uso' && <div className="info-block"><div className="ib-title">OFICINAS (USO)</div><div className="ir"><span className="ir-k">Uso actual</span><span className="ir-v">Oficinas corporativas</span></div><div className="ir"><span className="ir-k">Inquilinos actuales</span><span className="ir-v">Celonis, Repsol, Cafetería</span></div><div className="ir"><span className="ir-k">M² ocupados</span><span className="ir-v">36.814 m²</span></div><div className="ir"><span className="ir-k">M² disponibles</span><span className="ir-v">10.142 m²</span></div></div>}
+
+                {/* Transporte — dinámico */}
+                {caracTab==='ct-transporte' && (
+                  <div className="info-block">
+                    <div className="ib-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <span>TRANSPORTE</span>
+                      {addRowBtn(()=>setShowAddTransp(v=>!v), showAddTransp)}
+                    </div>
+                    {showAddTransp && (
+                      <div style={{display:'flex',flexWrap:'wrap',gap:8,padding:'10px 12px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:7,marginBottom:12,alignItems:'flex-end'}}>
+                        <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                          <label style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Medio</label>
+                          <select value={newTransp.medio} onChange={e=>setNewTransp(p=>({...p,medio:e.target.value}))} style={{padding:'5px 9px',fontSize:11,border:'1px solid var(--border)',borderRadius:5,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',minWidth:130}}>
+                            {MEDIOS_TRANSPORTE.map(m=><option key={m}>{m}</option>)}
+                          </select>
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                          <label style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Línea / Vía</label>
+                          <input value={newTransp.linea} onChange={e=>setNewTransp(p=>({...p,linea:e.target.value}))} style={{padding:'5px 9px',fontSize:11,border:'1px solid var(--border)',borderRadius:5,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',width:90}} placeholder="L7, A-3..."/>
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',gap:3,flex:1,minWidth:120}}>
+                          <label style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Descripción</label>
+                          <input value={newTransp.descripcion} onChange={e=>setNewTransp(p=>({...p,descripcion:e.target.value}))} style={{padding:'5px 9px',fontSize:11,border:'1px solid var(--border)',borderRadius:5,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',width:'100%'}} placeholder="Nombre parada..."/>
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                          <label style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Tiempo</label>
+                          <input value={newTransp.tiempo} onChange={e=>setNewTransp(p=>({...p,tiempo:e.target.value}))} style={{padding:'5px 9px',fontSize:11,border:'1px solid var(--border)',borderRadius:5,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',width:70}} placeholder="5 min"/>
+                        </div>
+                        <button onClick={()=>{
+                          if (!newTransp.medio) return
+                          const maxId = transportes.reduce((m,t)=>Math.max(m,t.id),0)
+                          setTransportes(prev=>[...prev,{...newTransp,id:maxId+1}])
+                          setNewTransp({medio:'Metro',linea:'',descripcion:'',tiempo:''})
+                          setShowAddTransp(false)
+                        }} style={{padding:'5px 16px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:700,alignSelf:'flex-end'}}>Guardar</button>
+                        <button onClick={()=>{setShowAddTransp(false);setNewTransp({medio:'Metro',linea:'',descripcion:'',tiempo:''})}} style={{padding:'5px 10px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',alignSelf:'flex-end',color:'var(--text3)'}}>✕</button>
+                      </div>
+                    )}
+                    {transportes.length===0 ? (
+                      <div style={{padding:'16px 0',textAlign:'center',color:'var(--text4)',fontSize:12}}>Sin transporte registrado.</div>
+                    ) : (
+                      <table className="pat-table">
+                        <thead><tr><th>Medio</th><th>Línea / Vía</th><th>Descripción</th><th>Tiempo acceso</th><th style={{width:32}}></th></tr></thead>
+                        <tbody>{transportes.map(t=>(
+                          <tr key={t.id}>
+                            <td><span style={{fontSize:10,padding:'2px 8px',borderRadius:9,background:'#eff6ff',border:'1px solid #bfdbfe',color:'#1d4ed8',fontWeight:600}}>{t.medio}</span></td>
+                            <td style={{fontFamily:'var(--mono)',fontSize:11}}>{t.linea || '—'}</td>
+                            <td style={{fontSize:11,color:'var(--text2)'}}>{t.descripcion || '—'}</td>
+                            <td style={{fontSize:11,fontWeight:600}}>{t.tiempo || '—'}</td>
+                            <td><button onClick={()=>setTransportes(prev=>prev.filter(x=>x.id!==t.id))} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text4)',fontSize:13,padding:'0 4px'}} title="Eliminar">✕</button></td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    )}
+                  </div>
+                )}
+
+                {/* Normativa / ESG — dropdowns */}
+                {caracTab==='ct-normativa' && (
+                  <div className="info-block">
+                    <div className="ib-title">NORMATIVA / ESG</div>
+                    <div className="info-2col" style={{gap:10}}>
+                      <div>
+                        <div className="ir"><span className="ir-k">Certificación energética</span>
+                          <select value={esg.energia} onChange={e=>setEsg(p=>({...p,energia:e.target.value}))} style={selSt}>
+                            <option value="">—</option>{['A+','A','B','C','D','E','F','G'].map(v=><option key={v}>{v}</option>)}
+                          </select>
+                        </div>
+                        <div className="ir"><span className="ir-k">LEED</span>
+                          <select value={esg.leed} onChange={e=>setEsg(p=>({...p,leed:e.target.value}))} style={selSt}>
+                            <option value="">—</option>{['Certified','Silver','Gold','Platinum'].map(v=><option key={v}>{v}</option>)}
+                          </select>
+                        </div>
+                        <div className="ir"><span className="ir-k">BREEAM</span>
+                          <select value={esg.breeam} onChange={e=>setEsg(p=>({...p,breeam:e.target.value}))} style={selSt}>
+                            <option value="">—</option>{['Pass','Good','Very Good','Excellent','Outstanding'].map(v=><option key={v}>{v}</option>)}
+                          </select>
+                        </div>
+                        <div className="ir"><span className="ir-k">WELL</span>
+                          <select value={esg.well} onChange={e=>setEsg(p=>({...p,well:e.target.value}))} style={selSt}>
+                            <option value="">—</option>{['Bronze','Silver','Gold','Platinum'].map(v=><option key={v}>{v}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="ir"><span className="ir-k">DGNB</span>
+                          <select value={esg.dgnb} onChange={e=>setEsg(p=>({...p,dgnb:e.target.value}))} style={selSt}>
+                            <option value="">—</option>{['Bronze','Silver','Gold','Platinum'].map(v=><option key={v}>{v}</option>)}
+                          </select>
+                        </div>
+                        <div className="ir"><span className="ir-k">WiredScore</span>
+                          <select value={esg.wiredscore} onChange={e=>setEsg(p=>({...p,wiredscore:e.target.value}))} style={selSt}>
+                            <option value="">—</option>{['Connected','Silver','Gold','Platinum'].map(v=><option key={v}>{v}</option>)}
+                          </select>
+                        </div>
+                        <div className="ir"><span className="ir-k">Consumo energético</span>
+                          <input value={esg.consumo} onChange={e=>setEsg(p=>({...p,consumo:e.target.value}))} style={{...selSt,width:120}} placeholder="kWh/m²/año"/>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Características generales — dinámico */}
+                {caracTab==='ct-generales' && (
+                  <div className="info-block">
+                    <div className="ib-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <span>CARACTERÍSTICAS GENERALES</span>
+                      {addRowBtn(()=>setShowAddCarac(v=>!v), showAddCarac)}
+                    </div>
+                    {showAddCarac && addRowForm(
+                      newCarac, setNewCarac,
+                      CARAC_CATEGORIAS_GEN,
+                      () => {
+                        if (!newCarac.categoria || !newCarac.detalle) return
+                        const maxId = caracGenerales.reduce((m,r)=>Math.max(m,r.id),0)
+                        setCaracGenerales(prev=>[...prev,{...newCarac,id:maxId+1}])
+                        setNewCarac({categoria:'',categoriaOtro:'',detalle:''})
+                        setShowAddCarac(false)
+                      },
+                      () => { setShowAddCarac(false); setNewCarac({categoria:'',categoriaOtro:'',detalle:''}) }
+                    )}
+                    {caracTable(caracGenerales, id=>setCaracGenerales(prev=>prev.filter(r=>r.id!==id)))}
+                  </div>
+                )}
+
+                {/* Características por uso — condicional */}
+                {caracTab==='ct-uso' && (
+                  <div className="info-block">
+                    <div className="ib-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <span>{usoIco} {usoLabel.toUpperCase()}</span>
+                      {addRowBtn(()=>setShowAddCaracUso(v=>!v), showAddCaracUso)}
+                    </div>
+                    {showAddCaracUso && addRowForm(
+                      newCaracUso, setNewCaracUso,
+                      caracCatsByUso,
+                      () => {
+                        if (!newCaracUso.categoria || !newCaracUso.detalle) return
+                        const maxId = caracUso.reduce((m,r)=>Math.max(m,r.id),0)
+                        setCaracUso(prev=>[...prev,{...newCaracUso,id:maxId+1}])
+                        setNewCaracUso({categoria:'',categoriaOtro:'',detalle:''})
+                        setShowAddCaracUso(false)
+                      },
+                      () => { setShowAddCaracUso(false); setNewCaracUso({categoria:'',categoriaOtro:'',detalle:''}) }
+                    )}
+                    {caracTable(caracUso, id=>setCaracUso(prev=>prev.filter(r=>r.id!==id)))}
+                  </div>
+                )}
+
                 {caracTab==='ct-plazas' && (()=>{
                   const totalPl = plazas.reduce((s,p)=>s+p.cantidad,0)
                   const byUbicPl = UBICACIONES.map(u=>({u,n:plazas.filter(p=>p.ubicacion===u).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
@@ -2558,7 +2859,8 @@ export default function FichaActivo() {
                 })()}
               </div>
             </div>
-          )}
+            )
+          })()}
 
           {/* ── TAB: Propietarios y arrendatarios ── */}
           {activeTab==='at-prop' && (
@@ -2640,12 +2942,12 @@ export default function FichaActivo() {
               </div>
               <div className="doc-drop">↑ Arrastra documentos aquí o haz clic para cargar</div>
               <table className="doc-table">
-                <thead><tr><th>Documento</th><th>Categorías</th><th>Fecha</th><th>Por</th><th>Tamaño</th><th></th></tr></thead>
+                <thead><tr><th>Documento</th><th>Categoría</th><th>Ámbito / Planta</th><th>Fecha</th><th>Por</th><th>Tamaño</th><th></th></tr></thead>
                 <tbody>
-                  <tr><td><span className="doc-link">📊 Dossier Avalon</span></td><td><span className="doc-tag" style={{background:'var(--accent-lt)',color:'var(--accent)'}}>Comercial</span></td><td>07/02/2026</td><td>Álvaro Sierra</td><td>4.2 MB</td><td style={{display:'flex',gap:4}}>⬇ ✏ 🗑</td></tr>
-                  <tr><td><span className="doc-link">📈 Stacking plan Q1 2026</span></td><td><span className="doc-tag" style={{background:'var(--accent-lt)',color:'var(--accent)'}}>Comercial</span></td><td>07/02/2026</td><td>Álvaro Sierra</td><td>1.1 MB</td><td style={{display:'flex',gap:4}}>⬇ ✏ 🗑</td></tr>
-                  <tr><td><span className="doc-link">💰 Valoración Q1 2026</span></td><td><span className="doc-tag" style={{background:'var(--amber-lt)',color:'var(--amber)'}}>Valoraciones</span></td><td>20/03/2026</td><td>Jorge López</td><td>5.6 MB</td><td style={{display:'flex',gap:4}}>⬇ ✏ 🗑</td></tr>
-                  <tr><td><span className="doc-link">📋 Rent Roll 2026</span></td><td><span className="doc-tag" style={{background:'var(--accent-lt)',color:'var(--accent)'}}>Comercial</span></td><td>01/01/2026</td><td>Álvaro Sierra</td><td>680 KB</td><td style={{display:'flex',gap:4}}>⬇ ✏ 🗑</td></tr>
+                  <tr><td><span className="doc-link">📊 Dossier Avalon</span></td><td><span className="doc-tag" style={{background:'var(--accent-lt)',color:'var(--accent)'}}>Comercial</span></td><td><span className="doc-tag" style={{background:'var(--gray-lt)',color:'var(--text3)'}}>Edificio completo</span></td><td>07/02/2026</td><td>Álvaro Sierra</td><td>4.2 MB</td><td style={{display:'flex',gap:4}}>⬇ ✏ 🗑</td></tr>
+                  <tr><td><span className="doc-link">📈 Stacking plan Q1 2026</span></td><td><span className="doc-tag" style={{background:'var(--accent-lt)',color:'var(--accent)'}}>Comercial</span></td><td><span className="doc-tag" style={{background:'var(--gray-lt)',color:'var(--text3)'}}>Edificio completo</span></td><td>07/02/2026</td><td>Álvaro Sierra</td><td>1.1 MB</td><td style={{display:'flex',gap:4}}>⬇ ✏ 🗑</td></tr>
+                  <tr><td><span className="doc-link">💰 Valoración Q1 2026</span></td><td><span className="doc-tag" style={{background:'var(--amber-lt)',color:'var(--amber)'}}>Valoraciones</span></td><td><span className="doc-tag" style={{background:'var(--gray-lt)',color:'var(--text3)'}}>Edificio completo</span></td><td>20/03/2026</td><td>Jorge López</td><td>5.6 MB</td><td style={{display:'flex',gap:4}}>⬇ ✏ 🗑</td></tr>
+                  <tr><td><span className="doc-link">📋 Rent Roll 2026</span></td><td><span className="doc-tag" style={{background:'var(--accent-lt)',color:'var(--accent)'}}>Comercial</span></td><td><span className="doc-tag" style={{background:'#f0fdfa',color:'#0f766e',border:'1px solid #99f6e4'}}>P3</span></td><td>01/01/2026</td><td>Álvaro Sierra</td><td>680 KB</td><td style={{display:'flex',gap:4}}>⬇ ✏ 🗑</td></tr>
                 </tbody>
               </table>
             </div></div>
@@ -2654,6 +2956,59 @@ export default function FichaActivo() {
           {/* ── TAB: Información adicional ── */}
           {activeTab==='at-adicional' && (
             <div className="tab-content active"><div className="info-pad">
+
+              {/* ── Ficha comercial ── */}
+              <div style={{marginBottom:22}}>
+                <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Ficha comercial <span style={{fontSize:10,fontWeight:400,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>· RESUMEN EJECUTIVO</span></div>
+                <div style={{border:'1px solid var(--border)',borderRadius:'var(--r2)',padding:'16px 18px',background:'var(--surface)'}}>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px 24px',marginBottom:12}}>
+                    <div className="ir"><span className="ir-k">Activo</span><span className="ir-v" style={{fontWeight:700}}>{activo?.nombre || '—'}</span></div>
+                    <div className="ir"><span className="ir-k">Propietario</span><span className="ir-v">{activo?.propietario || '—'}</span></div>
+                    <div className="ir"><span className="ir-k">Uso</span><span className="ir-v">{activo?.uso || '—'}</span></div>
+                    <div className="ir"><span className="ir-k">SBA (m²)</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{activo?.sba ? activo.sba.toLocaleString('es-ES') : '—'}</span></div>
+                    <div className="ir"><span className="ir-k">Zona</span><span className="ir-v">{activo?.zona || '—'}</span></div>
+                    <div className="ir"><span className="ir-k">Subzona</span><span className="ir-v">{activo?.subzona || '—'}</span></div>
+                    <div className="ir"><span className="ir-k">Ciudad</span><span className="ir-v">{activo?.ciudad || '—'}</span></div>
+                    <div className="ir"><span className="ir-k">Ocupación</span><span className="ir-v" style={{fontWeight:700}}>{activo?.occupancy_rate != null ? `${activo.occupancy_rate}%` : '—'}</span></div>
+                  </div>
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                    <button style={{padding:'5px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
+                      <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v8M4 6l3 3 3-3"/><path d="M2 11h10" strokeLinecap="round"/></svg>
+                      Exportar .pdf
+                    </button>
+                    <button style={{padding:'5px 14px',background:'#7c3aed',color:'#fff',border:'none',borderRadius:5,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
+                      <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="10" height="10" rx="1"/><path d="M5 7h4M7 5v4"/></svg>
+                      Exportar .pptx
+                    </button>
+                    <button style={{padding:'5px 14px',background:'none',border:'1px solid var(--border)',color:'var(--text2)',borderRadius:5,fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
+                      🔗 Generar enlace
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Ficha detallada ── */}
+              <div style={{marginBottom:22}}>
+                <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Ficha detallada <span style={{fontSize:10,fontWeight:400,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>· INFORME TÉCNICO COMPLETO</span></div>
+                <div style={{border:'1px solid var(--border)',borderRadius:'var(--r2)',padding:'16px 18px',background:'var(--surface)'}}>
+                  <div style={{fontSize:11,color:'var(--text3)',marginBottom:12,lineHeight:1.5}}>
+                    Informe técnico completo con datos generales, superficies, características técnicas, ESG, stacking plan, rent roll, propietarios y arrendatarios.
+                  </div>
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                    <button style={{padding:'5px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
+                      <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v8M4 6l3 3 3-3"/><path d="M2 11h10" strokeLinecap="round"/></svg>
+                      Exportar .pdf
+                    </button>
+                    <button style={{padding:'5px 14px',background:'#7c3aed',color:'#fff',border:'none',borderRadius:5,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
+                      <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="10" height="10" rx="1"/><path d="M5 7h4M7 5v4"/></svg>
+                      Exportar .pptx
+                    </button>
+                    <button style={{padding:'5px 14px',background:'none',border:'1px solid var(--border)',color:'var(--text2)',borderRadius:5,fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
+                      🔗 Generar enlace
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               {/* ── Exportar ── */}
               <div style={{marginBottom:20}}>
