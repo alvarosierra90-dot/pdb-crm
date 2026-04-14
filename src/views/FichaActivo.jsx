@@ -1225,11 +1225,21 @@ const FOTO_SUB_FOTO = ['Interior','Exterior','Zonas comunes','Parking','Fotos a�
 const FOTO_SUB_PLAN = ['Plano de planta','Sección','Axonométrica']
 
 const MOCK_MEDIA = [
-  { id:1, tipo:'Fotografía', subtipo:'Exterior',       desc:'Fachada principal',     principal:true,  src:'🏢', date:'07/02/2026' },
-  { id:2, tipo:'Fotografía', subtipo:'Interior',        desc:'Lobby recepción',       principal:false, src:'🛋', date:'07/02/2026' },
-  { id:3, tipo:'Fotografía', subtipo:'Zonas comunes',   desc:'Cafetería P.B.',        principal:false, src:'☕', date:'07/02/2026' },
-  { id:4, tipo:'Plano',      subtipo:'Plano de planta', desc:'Planta tipo P2',        principal:false, src:'📐', date:'20/03/2026' },
-  { id:5, tipo:'Fotografía', subtipo:'Fotos aéreas',    desc:'Vista aérea conjunto',  principal:false, src:'🚁', date:'01/01/2026' },
+  { id:1,  tipo:'Fotografía', subtipo:'Exterior',        desc:'Fachada principal',          principal:true,  date:'07/02/2026', src:'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=80' },
+  { id:2,  tipo:'Fotografía', subtipo:'Exterior',        desc:'Fachada lateral',             principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80' },
+  { id:3,  tipo:'Fotografía', subtipo:'Exterior',        desc:'Acceso principal',            principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=800&q=80' },
+  { id:4,  tipo:'Fotografía', subtipo:'Interior',        desc:'Lobby recepción',             principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1497366754035-f200968a7db3?w=800&q=80' },
+  { id:5,  tipo:'Fotografía', subtipo:'Interior',        desc:'Planta tipo — open space',    principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80' },
+  { id:6,  tipo:'Fotografía', subtipo:'Interior',        desc:'Sala de reuniones',           principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&q=80' },
+  { id:7,  tipo:'Fotografía', subtipo:'Zonas comunes',   desc:'Recepción edificio',          principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1568992687947-868a62a9f521?w=800&q=80' },
+  { id:8,  tipo:'Fotografía', subtipo:'Zonas comunes',   desc:'Cafetería planta baja',       principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&q=80' },
+  { id:9,  tipo:'Fotografía', subtipo:'Zonas comunes',   desc:'Terraza / Rooftop',           principal:false, date:'01/03/2026', src:'https://images.unsplash.com/photo-1533616688419-b7a585564566?w=800&q=80' },
+  { id:10, tipo:'Fotografía', subtipo:'Parking',         desc:'Aparcamiento interior nivel -1', principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=800&q=80' },
+  { id:11, tipo:'Fotografía', subtipo:'Fotos aéreas',    desc:'Vista aérea conjunto',        principal:false, date:'01/01/2026', src:'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&q=80' },
+  { id:12, tipo:'Fotografía', subtipo:'Fotos aéreas',    desc:'Vista aérea fachada',         principal:false, date:'01/01/2026', src:'https://images.unsplash.com/photo-1573883430688-e1063f37b7c8?w=800&q=80' },
+  { id:13, tipo:'Plano',      subtipo:'Plano de planta', desc:'Planta tipo — distribución',  principal:false, date:'20/03/2026', src:'https://images.unsplash.com/photo-1541888846341-b14b40e47e34?w=800&q=80' },
+  { id:14, tipo:'Plano',      subtipo:'Plano de planta', desc:'Planta baja',                 principal:false, date:'20/03/2026', src:'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80' },
+  { id:15, tipo:'Plano',      subtipo:'Sección',         desc:'Sección transversal',         principal:false, date:'20/03/2026', src:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80' },
 ]
 
 function TabMultimedia() {
@@ -1305,16 +1315,20 @@ function TabMultimedia() {
       )}
 
       {/* Galería */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:12}}>
         {displayed.map(m=>(
           <div key={m.id} style={{border:`2px solid ${m.principal?'var(--accent)':'var(--border)'}`,borderRadius:8,overflow:'hidden',background:'var(--surface)',cursor:'pointer',position:'relative'}}
             onClick={()=>setLightbox(m)}>
-            <div style={{height:110,display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,background:'var(--gray-lt)'}}>
-              {m.src}
-              {m.principal && <span style={{position:'absolute',top:6,right:6,background:'var(--accent)',color:'#fff',fontSize:8,fontWeight:700,padding:'2px 6px',borderRadius:8}}>PRINCIPAL</span>}
+            <div style={{height:120,overflow:'hidden',position:'relative',background:'var(--gray-lt)'}}>
+              {m.src.startsWith('http') ? (
+                <img src={m.src} alt={m.desc} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} loading="lazy"/>
+              ) : (
+                <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:40}}>{m.src}</div>
+              )}
+              {m.principal && <span style={{position:'absolute',top:6,left:6,background:'var(--accent)',color:'#fff',fontSize:8,fontWeight:700,padding:'2px 7px',borderRadius:8,letterSpacing:'.03em'}}>PRINCIPAL</span>}
             </div>
             <div style={{padding:'6px 8px'}}>
-              <div style={{fontSize:10,fontWeight:600,color:'var(--text1)',marginBottom:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{m.desc}</div>
+              <div style={{fontSize:10,fontWeight:600,color:'var(--text1)',marginBottom:3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{m.desc}</div>
               <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
                 <span style={{fontSize:8,padding:'1px 5px',borderRadius:8,background:m.tipo==='Plano'?'#ede9fe':'#dbeafe',color:m.tipo==='Plano'?'#7c3aed':'#1e40af',fontWeight:600}}>{m.tipo}</span>
                 <span style={{fontSize:8,padding:'1px 5px',borderRadius:8,background:'var(--gray-lt)',color:'var(--text3)',border:'1px solid var(--border)'}}>{m.subtipo}</span>
@@ -1322,7 +1336,7 @@ function TabMultimedia() {
             </div>
             {!m.principal && (
               <button onClick={e=>{e.stopPropagation();setPrincipal(m.id)}}
-                style={{position:'absolute',bottom:6,right:6,padding:'2px 6px',fontSize:8,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:5,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)'}}>
+                style={{position:'absolute',bottom:6,right:6,padding:'2px 7px',fontSize:8,background:'rgba(255,255,255,.9)',border:'1px solid var(--border)',borderRadius:5,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)',backdropFilter:'blur(4px)'}}>
                 ★ Principal
               </button>
             )}
@@ -1332,20 +1346,26 @@ function TabMultimedia() {
 
       {/* Lightbox */}
       {lightbox && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.7)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}
           onClick={()=>setLightbox(null)}>
-          <div style={{background:'var(--surface)',borderRadius:12,padding:24,maxWidth:480,width:'90%'}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:60,textAlign:'center',marginBottom:12}}>{lightbox.src}</div>
-            <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>{lightbox.desc}</div>
-            <div style={{display:'flex',gap:6,marginBottom:12}}>
-              <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>{lightbox.tipo}</span>
-              <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'var(--gray-lt)',color:'var(--text3)',border:'1px solid var(--border)'}}>{lightbox.subtipo}</span>
-              {lightbox.principal && <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'var(--accent)',color:'#fff',fontWeight:700}}>PRINCIPAL</span>}
-            </div>
-            <div style={{fontSize:10,color:'var(--text4)',marginBottom:12}}>Subido el {lightbox.date}</div>
-            <div style={{display:'flex',gap:8}}>
-              {!lightbox.principal && <button onClick={()=>{setPrincipal(lightbox.id);setLightbox({...lightbox,principal:true})}} style={{padding:'5px 12px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>★ Marcar como principal</button>}
-              <button onClick={()=>setLightbox(null)} style={{padding:'5px 12px',background:'var(--surface)',color:'var(--text2)',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>Cerrar</button>
+          <div style={{background:'var(--surface)',borderRadius:12,overflow:'hidden',maxWidth:720,width:'92%',boxShadow:'0 24px 64px rgba(0,0,0,.4)'}} onClick={e=>e.stopPropagation()}>
+            {lightbox.src.startsWith('http') ? (
+              <img src={lightbox.src} alt={lightbox.desc} style={{width:'100%',maxHeight:440,objectFit:'cover',display:'block'}}/>
+            ) : (
+              <div style={{height:200,display:'flex',alignItems:'center',justifyContent:'center',fontSize:80,background:'var(--gray-lt)'}}>{lightbox.src}</div>
+            )}
+            <div style={{padding:'16px 20px'}}>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>{lightbox.desc}</div>
+              <div style={{display:'flex',gap:6,marginBottom:10}}>
+                <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>{lightbox.tipo}</span>
+                <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'var(--gray-lt)',color:'var(--text3)',border:'1px solid var(--border)'}}>{lightbox.subtipo}</span>
+                {lightbox.principal && <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'var(--accent)',color:'#fff',fontWeight:700}}>PRINCIPAL</span>}
+              </div>
+              <div style={{fontSize:10,color:'var(--text4)',marginBottom:14}}>Subido el {lightbox.date}</div>
+              <div style={{display:'flex',gap:8}}>
+                {!lightbox.principal && <button onClick={()=>{setPrincipal(lightbox.id);setLightbox({...lightbox,principal:true})}} style={{padding:'6px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>★ Marcar como principal</button>}
+                <button onClick={()=>setLightbox(null)} style={{padding:'6px 14px',background:'var(--surface)',color:'var(--text2)',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>Cerrar</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1680,8 +1700,12 @@ function MapaCarrusel({ activo }) {
         {ordenadas.length > 0 ? (
           <>
             {/* Foto principal */}
-            <div style={{ width: '100%', height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 56, background: '#f1f5f9' }}>
-              {ordenadas[carIdx]?.src}
+            <div style={{ width: '100%', height: 166, overflow: 'hidden', background: '#f1f5f9', position: 'relative' }}>
+              {ordenadas[carIdx]?.src?.startsWith('http') ? (
+                <img src={ordenadas[carIdx].src} alt={ordenadas[carIdx].desc} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 56 }}>{ordenadas[carIdx]?.src}</div>
+              )}
             </div>
             {/* Descripción */}
             <div style={{ padding: '6px 10px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1692,11 +1716,15 @@ function MapaCarrusel({ activo }) {
               {ordenadas[carIdx]?.principal && <span style={{ fontSize: 8, padding: '1px 6px', borderRadius: 8, background: 'var(--accent)', color: '#fff', fontWeight: 700 }}>PRINCIPAL</span>}
             </div>
             {/* Thumbnails scroll */}
-            <div style={{ display: 'flex', gap: 6, padding: '0 10px 8px', overflowX: 'auto' }}>
+            <div style={{ display: 'flex', gap: 5, padding: '0 10px 8px', overflowX: 'auto' }}>
               {ordenadas.map((f, i) => (
                 <div key={f.id} onClick={() => setCarIdx(i)}
-                  style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 5, border: `2px solid ${i === carIdx ? 'var(--accent)' : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, cursor: 'pointer', background: '#f8fafc' }}>
-                  {f.src}
+                  style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 5, border: `2px solid ${i === carIdx ? 'var(--accent)' : 'var(--border)'}`, overflow: 'hidden', cursor: 'pointer', background: '#f8fafc' }}>
+                  {f.src?.startsWith('http') ? (
+                    <img src={f.src} alt={f.desc} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy"/>
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{f.src}</div>
+                  )}
                 </div>
               ))}
             </div>
