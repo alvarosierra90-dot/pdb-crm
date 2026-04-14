@@ -1711,16 +1711,17 @@ const USO_CAT_MAP = {
   'Deportivo':               'Equipamiento / Deportivo',
 }
 async function fetchCatastro(lat, lng) {
-  // El Catastro devuelve XML con xmlns="http://www.catastro.meh.es/" — hay que
-  // eliminar los namespaces antes de parsear para que querySelector funcione.
-  function stripNs(xml) {
-    return xml
+  // Parsear como text/html evita todos los problemas de namespace XML en browsers:
+  // con text/xml, querySelector falla si el elemento está en un namespace aunque
+  // hayamos quitado la declaración xmlns del string.
+  function parseXml(xmlStr) {
+    const clean = xmlStr
       .replace(/\s+xmlns(?::[a-z0-9]+)?="[^"]*"/gi, '')
       .replace(/<([a-z0-9]+):/gi,  '<')
       .replace(/<\/([a-z0-9]+):/gi, '</')
+    return new DOMParser().parseFromString(clean, 'text/html')
   }
-  const q   = (doc, sel) => doc.querySelector(sel)?.textContent?.trim() || null
-  const parser = new DOMParser()
+  const q = (doc, sel) => doc.querySelector(sel)?.textContent?.trim() || null
 
   // ── Paso 1: coordenadas → refcat (tolerancia 100 m) ────────────────────
   const coordRes = await fetch(
@@ -1729,7 +1730,7 @@ async function fetchCatastro(lat, lng) {
     `?SRS=EPSG:4326&Coordenada_X=${lng}&Coordenada_Y=${lat}&Distancia=100`
   )
   if (!coordRes.ok) throw new Error(`Error HTTP ${coordRes.status} del Catastro`)
-  const coordDoc = parser.parseFromString(stripNs(await coordRes.text()), 'text/xml')
+  const coordDoc = parseXml(await coordRes.text())
 
   const errCod = q(coordDoc, 'cod')
   if (errCod && errCod !== '0') throw new Error(q(coordDoc, 'des') || 'Sin datos')
@@ -1738,46 +1739,40 @@ async function fetchCatastro(lat, lng) {
   if (!pc1 || !pc2) throw new Error('No hay inmueble catastral en esas coordenadas')
   const refcat = `${pc1}${pc2}${q(coordDoc,'car')||''}${q(coordDoc,'cc1')||''}${q(coordDoc,'cc2')||''}`
 
-  // ── Paso 2: refcat → datos completos (ASMX, misma política CORS que paso 1) ─
+  // ── Paso 2: refcat → datos del inmueble ────────────────────────────────
+  // Usamos la referencia de 14 chars (pc1+pc2) para el endpoint REST
   let uso_pgou = null, sup_parcela = null, anno_construccion = null,
       clasificacion_urb = null, calificacion_urb = null, edificabilidad = null
 
   try {
     const inmRes = await fetch(
-      `https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/` +
-      `OVCCallejero.asmx/Consulta_DNPRC?Provincia=&Municipio=&RC=${refcat}`
+      `https://ovc.catastro.meh.es/OVCServWeb/OVCWcfLibres/RESTServices.svc/` +
+      `Inmueble?RefCat=${pc1}${pc2}&SRS=EPSG:4326`
     )
-    if (inmRes.ok) {
-      const inmDoc = parser.parseFromString(stripNs(await inmRes.text()), 'text/xml')
+    if (!inmRes.ok) throw new Error(`HTTP ${inmRes.status}`)
+    const inmDoc = parseXml(await inmRes.text())
 
-      // Error del Catastro (cod distinto de 0)
-      const cod = q(inmDoc, 'cod')
-      if (cod && cod !== '0') throw new Error(q(inmDoc, 'des') || 'Error Catastro paso 2')
+    // Uso catastral → etiqueta PGOU
+    const uso_cat = q(inmDoc, 'luso') || ''
+    uso_pgou = USO_CAT_MAP[uso_cat] || uso_cat || null
 
-      // Uso catastral → etiqueta PGOU
-      const uso_cat = q(inmDoc, 'luso') || ''
-      uso_pgou = USO_CAT_MAP[uso_cat] || uso_cat || null
+    // Año de construcción (<ant>)
+    const ant = q(inmDoc, 'ant')
+    anno_construccion = ant ? parseInt(ant, 10) : null
 
-      // Año de construcción
-      const ant = q(inmDoc, 'ant')
-      anno_construccion = ant ? parseInt(ant, 10) : null
+    // Superficie parcela: <ssp> suelo parcela, fallback <stl> total local
+    const sspRaw = q(inmDoc, 'ssp') || q(inmDoc, 'stl')
+    sup_parcela = sspRaw ? Math.round(parseFloat(sspRaw)) : null
 
-      // Superficie parcela: <ssp> (suelo parcela), fallback <stl> (total local)
-      const sspRaw = q(inmDoc, 'ssp') || q(inmDoc, 'stl')
-      sup_parcela = sspRaw ? Math.round(parseFloat(sspRaw)) : null
-
-      // Datos urbanísticos del PGOU — disponibles en <loures> para algunos municipios
-      const loures = q(inmDoc, 'loures')
-      if (loures) {
-        const claseM = loures.match(/clase(?:\s+de\s+suelo)?[:\s]+([^·\n,;]+)/i)
-        if (claseM) clasificacion_urb = claseM[1].trim().replace(/\.$/, '')
-
-        const califM = loures.match(/calificaci[oó]n[:\s]+([^·\n,;]+)/i)
-        if (califM) calificacion_urb = califM[1].trim().replace(/\.$/, '')
-
-        const edifM = loures.match(/(?:edificabilidad|aprovechamiento)[:\s]+([^·\n,;]+)/i)
-        if (edifM) edificabilidad = edifM[1].trim().replace(/\.$/, '')
-      }
+    // Datos PGOU — presentes en <loures> solo en algunos municipios
+    const loures = q(inmDoc, 'loures')
+    if (loures) {
+      const m1 = loures.match(/clase(?:\s+de\s+suelo)?[:\s]+([^·\n,;]+)/i)
+      if (m1) clasificacion_urb = m1[1].trim().replace(/\.$/, '')
+      const m2 = loures.match(/calificaci[oó]n[:\s]+([^·\n,;]+)/i)
+      if (m2) calificacion_urb = m2[1].trim().replace(/\.$/, '')
+      const m3 = loures.match(/(?:edificabilidad|aprovechamiento)[:\s]+([^·\n,;]+)/i)
+      if (m3) edificabilidad = m3[1].trim().replace(/\.$/, '')
     }
   } catch (e) {
     console.warn('[Catastro paso 2]', e)
@@ -2413,44 +2408,48 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
   const handleSave = async () => {
     if (!activo?.ref) return
     setSaving(true)
-    const basePayload = {
-      nombre:              info.nombre               || null,
-      direccion:           info.direccion            || null,
-      ciudad:              info.ciudad               || null,
-      pais:                info.pais                 || null,
-      cp:                  info.cp                   || null,
-      coordenadas:         info.coordenadas          || null,
-      area:                info.area                 || null,
-      zona:                info.zona                 || null,
-      subzona:             info.subzona              || null,
-      tipo_activo:         info.tipo_activo          || null,
-      estado_construccion: info.estado_construccion  || null,
-      uso:                 info.uso                  || null,
-      uso_secundario:      info.uso_secundario       || null,
-      calidad:             info.calidad              || null,
-      asset_manager:       info.asset_manager        || null,
-      sba:                 info.sba ? parseFloat(info.sba) : null,
-      anno_construccion:   info.anno_construccion    ? parseInt(info.anno_construccion)   : null,
-      anno_rehabilitacion: info.anno_rehabilitacion  ? parseInt(info.anno_rehabilitacion) : null,
-      ref_catastral:       info.ref_catastral        || null,
-      uso_pgou:            info.uso_pgou             || null,
-      clasificacion_urb:   info.clasificacion_urb    || null,
-      calificacion_urb:    info.calificacion_urb     || null,
-      edificabilidad:      info.edificabilidad       || null,
-      sup_parcela:         info.sup_parcela ? parseFloat(info.sup_parcela) : null,
-    }
-    let { error } = await supabase.from('activos').update({
-      ...basePayload,
-      sup_planta_tipo: info.sup_planta_tipo ? parseFloat(info.sup_planta_tipo) : null,
-      ratio_perdida:   info.ratio_perdida   ? parseFloat(info.ratio_perdida)   : null,
-    }).eq('ref', activo.ref)
 
-    // Si la migración 005 aún no se ha ejecutado (PGRST204 = columna desconocida), reintenta sin esas columnas
-    if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache'))) {
-      const r2 = await supabase.from('activos').update(basePayload).eq('ref', activo.ref)
-      error = r2.error
+    // Construir payload solo con columnas que existen en la tabla
+    // (el SELECT * del activo ya devolvió los campos reales — si una clave no está en activo, la columna no existe)
+    const has = (col) => col in activo
+
+    const payload = {
+      // Columnas base — siempre presentes
+      nombre:   info.nombre   || null,
+      zona:     info.zona     || null,
+      subzona:  info.subzona  || null,
+      ciudad:   info.ciudad   || null,
+      uso:      info.uso      || null,
+      sba:      info.sba      ? parseFloat(info.sba) : null,
     }
 
+    // Columnas añadidas en migración 002+
+    if (has('direccion'))           payload.direccion           = info.direccion           || null
+    if (has('pais'))                payload.pais                = info.pais                || null
+    if (has('cp'))                  payload.cp                  = info.cp                  || null
+    if (has('coordenadas'))         payload.coordenadas         = info.coordenadas         || null
+    if (has('area'))                payload.area                = info.area                || null
+    if (has('tipo_activo'))         payload.tipo_activo         = info.tipo_activo         || null
+    if (has('estado_construccion')) payload.estado_construccion = info.estado_construccion || null
+    if (has('uso_secundario'))      payload.uso_secundario      = info.uso_secundario      || null
+    if (has('calidad'))             payload.calidad             = info.calidad             || null
+    if (has('asset_manager'))       payload.asset_manager       = info.asset_manager       || null
+    if (has('anno_construccion'))   payload.anno_construccion   = info.anno_construccion   ? parseInt(info.anno_construccion)   : null
+    if (has('anno_rehabilitacion')) payload.anno_rehabilitacion = info.anno_rehabilitacion ? parseInt(info.anno_rehabilitacion) : null
+
+    // Columnas catastro
+    if (has('ref_catastral'))     payload.ref_catastral     = info.ref_catastral     || null
+    if (has('uso_pgou'))          payload.uso_pgou          = info.uso_pgou          || null
+    if (has('clasificacion_urb')) payload.clasificacion_urb = info.clasificacion_urb || null
+    if (has('calificacion_urb'))  payload.calificacion_urb  = info.calificacion_urb  || null
+    if (has('edificabilidad'))    payload.edificabilidad    = info.edificabilidad    || null
+    if (has('sup_parcela'))       payload.sup_parcela       = info.sup_parcela ? parseFloat(info.sup_parcela) : null
+
+    // Migración 005
+    if (has('sup_planta_tipo'))   payload.sup_planta_tipo   = info.sup_planta_tipo ? parseFloat(info.sup_planta_tipo) : null
+    if (has('ratio_perdida'))     payload.ratio_perdida     = info.ratio_perdida    ? parseFloat(info.ratio_perdida)  : null
+
+    const { error } = await supabase.from('activos').update(payload).eq('ref', activo.ref)
     setSaving(false)
     if (error) { setSaveErr(error.message || 'Error al guardar'); return }
     setDirty(false); setSaveErr(''); setSaveOk(true); setTimeout(()=>setSaveOk(false),3000)
