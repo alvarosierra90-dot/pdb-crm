@@ -1162,7 +1162,7 @@ function AssetManagerSearch({ value, onChange }) {
    Añade aquí tu clave de Google Maps Platform (Places API).
    En Google Cloud Console activa: Maps JavaScript API + Places API.
    ──────────────────────────────────────────────────────────── */
-const GMAPS_API_KEY = 'AIzaSyCFTolf_TWvDY5P-sKODkRsYw9eLf5v7LA'
+const GMAPS_API_KEY = 'AIzaSyArChBWnXkvyrdP-6uxTCDwFMjluO_QiSo'
 
 function FLabel({ children }) {
   return <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>{children}</div>
