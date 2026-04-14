@@ -1556,7 +1556,122 @@ function NewActivoInfoTab({ newForm, setNF }) {
   )
 }
 
-function TabInfo({ navigate, plazas }) {
+function MapaCarrusel({ activo }) {
+  const mapElRef = useRef(null)
+  const mapObj   = useRef(null)
+  const [carIdx, setCarIdx] = useState(0)
+
+  const fotos = MOCK_MEDIA.filter(m => m.tipo === 'Fotografía')
+  const principal = fotos.find(m => m.principal) || fotos[0]
+  const ordenadas = principal
+    ? [principal, ...fotos.filter(m => m.id !== principal?.id)]
+    : fotos
+
+  useEffect(() => {
+    if (!GMAPS_API_KEY) return
+    const dir = activo?.direccion || 'Calle Santa Leonor 65, Madrid'
+
+    const setup = () => {
+      if (!mapElRef.current || !window.google?.maps) return
+      if (mapObj.current) return
+      const geocoder = new window.google.maps.Geocoder()
+      const center   = { lat: 40.4168, lng: -3.7038 }
+      mapObj.current = new window.google.maps.Map(mapElRef.current, {
+        center, zoom: 14,
+        mapTypeControl: false, streetViewControl: false, fullscreenControl: false,
+        styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }],
+      })
+      geocoder.geocode({ address: dir }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          const loc = results[0].geometry.location
+          mapObj.current.setCenter(loc)
+          mapObj.current.setZoom(16)
+          new window.google.maps.Marker({ map: mapObj.current, position: loc })
+        }
+      })
+    }
+
+    if (window.google?.maps) {
+      setup()
+    } else {
+      const existing = document.getElementById('gmaps-script')
+      if (existing) { existing.addEventListener('load', setup) }
+      else {
+        const s = document.createElement('script')
+        s.id = 'gmaps-script'; s.async = true; s.defer = true
+        s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_API_KEY}&libraries=places`
+        s.onload = setup
+        document.head.appendChild(s)
+      }
+    }
+  }, [activo?.direccion])
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+
+      {/* Mapa */}
+      <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', position: 'relative' }}>
+        {GMAPS_API_KEY ? (
+          <div ref={mapElRef} style={{ width: '100%', height: 220, background: '#e5e3df' }}/>
+        ) : (
+          <div style={{ width: '100%', height: 220, background: 'var(--gray-lt)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--text4)' }}>
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+            <div style={{ fontSize: 10 }}>Mapa no disponible</div>
+          </div>
+        )}
+        <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(255,255,255,.92)', borderRadius: 5, padding: '3px 8px', fontSize: 10, fontWeight: 600, color: 'var(--text2)', backdropFilter: 'blur(4px)', border: '1px solid var(--border)' }}>
+          {activo?.zona || 'M-30'} · {activo?.ciudad || 'Madrid'}
+        </div>
+      </div>
+
+      {/* Carrusel fotos */}
+      <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', position: 'relative', background: 'var(--gray-lt)' }}>
+        {ordenadas.length > 0 ? (
+          <>
+            {/* Foto principal */}
+            <div style={{ width: '100%', height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 56, background: '#f1f5f9' }}>
+              {ordenadas[carIdx]?.src}
+            </div>
+            {/* Descripción */}
+            <div style={{ padding: '6px 10px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text1)' }}>{ordenadas[carIdx]?.desc}</div>
+                <div style={{ fontSize: 9, color: 'var(--text4)' }}>{ordenadas[carIdx]?.subtipo}</div>
+              </div>
+              {ordenadas[carIdx]?.principal && <span style={{ fontSize: 8, padding: '1px 6px', borderRadius: 8, background: 'var(--accent)', color: '#fff', fontWeight: 700 }}>PRINCIPAL</span>}
+            </div>
+            {/* Thumbnails scroll */}
+            <div style={{ display: 'flex', gap: 6, padding: '0 10px 8px', overflowX: 'auto' }}>
+              {ordenadas.map((f, i) => (
+                <div key={f.id} onClick={() => setCarIdx(i)}
+                  style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 5, border: `2px solid ${i === carIdx ? 'var(--accent)' : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, cursor: 'pointer', background: '#f8fafc' }}>
+                  {f.src}
+                </div>
+              ))}
+            </div>
+            {/* Flechas nav */}
+            {ordenadas.length > 1 && (
+              <>
+                <button onClick={() => setCarIdx(i => (i - 1 + ordenadas.length) % ordenadas.length)}
+                  style={{ position: 'absolute', top: '50%', left: 6, transform: 'translateY(-50%)', width: 24, height: 24, borderRadius: '50%', background: 'rgba(255,255,255,.9)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -20 }}>‹</button>
+                <button onClick={() => setCarIdx(i => (i + 1) % ordenadas.length)}
+                  style={{ position: 'absolute', top: '50%', right: 6, transform: 'translateY(-50%)', width: 24, height: 24, borderRadius: '50%', background: 'rgba(255,255,255,.9)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -20 }}>›</button>
+              </>
+            )}
+          </>
+        ) : (
+          <div style={{ height: 220, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--text4)' }}>
+            <div style={{ fontSize: 28 }}>🖼</div>
+            <div style={{ fontSize: 11 }}>Sin imágenes · añade en Multimedia</div>
+          </div>
+        )}
+      </div>
+
+    </div>
+  )
+}
+
+function TabInfo({ navigate, plazas, activo }) {
   const [assetManager, setAssetManager] = useState('')
   const totalPlazas = plazas.reduce((s,p)=>s+p.cantidad,0)
   const byUbic = UBICACIONES.map(u=>({u, n:plazas.filter(p=>p.ubicacion===u).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
@@ -1565,6 +1680,9 @@ function TabInfo({ navigate, plazas }) {
   return (
     <div className="tab-content active">
       <div className="info-pad">
+
+        {/* ── Mapa + Carrusel ── */}
+        <MapaCarrusel activo={activo}/>
 
         {/* ── Fila 1: UBICACIÓN + TIPOLOGÍA ── */}
         <div className="info-2col" style={{marginBottom:12}}>
@@ -2243,7 +2361,7 @@ export default function FichaActivo() {
           {/* ── TAB: Información general ── */}
           {activeTab==='at-info' && (isNew
             ? <NewActivoInfoTab newForm={newForm} setNF={setNF}/>
-            : <TabInfo navigate={navigate} plazas={plazas}/>
+            : <TabInfo navigate={navigate} plazas={plazas} activo={activo}/>
           )}
 
           {/* ── TAB: Stacking Plan ── */}
