@@ -280,11 +280,108 @@ function getZoneData(ciudad, uso) { return (ZONES[uso]||{})[ciudad] || [] }
 function getAreas(ciudad, uso)    { return [...new Set(getZoneData(ciudad,uso).map(z=>z.area))] }
 function getZonas(ciudad, uso, area) { return [...new Set(getZoneData(ciudad,uso).filter(z=>z.area===area).map(z=>z.zona))] }
 function getSubzonas(ciudad, uso, area, zona) { return getZoneData(ciudad,uso).filter(z=>z.area===area&&z.zona===zona).map(z=>z.subzona) }
-const CARAC_CATEGORIAS_GEN = ['Altura','Modularidad','Suelo técnico','Falso techo','Climatización','Seguridad','Iluminación','Ascensores','Escaleras','Fachada','Cubierta','Accesibilidad','Otro (especificar)']
-const CARAC_CATEGORIAS_OF  = ['Configuración','Luminosidad','División','Terraza','Suelo técnico','Falso techo','Plantas diáfanas','Módulo mínimo','Otro (especificar)']
-const CARAC_CATEGORIAS_RT  = ['Frente de fachada','Altura libre','Carga/m²','Muelle','Acceso camiones','Escaparate','Otro (especificar)']
-const CARAC_CATEGORIAS_LG  = ['Altura libre','Carga/m²','Muelles','Playa maniobras','Acceso','Cámaras frigoríficas','Cross-docking','Otro (especificar)']
-const CARAC_CATEGORIAS_RES = ['Tipología','Altura libre','Orientación','Terraza','Trastero incluido','Plazas de garaje','Piscina','Zonas comunes','Otro (especificar)']
+/* ── Características generales (comunes a todos los usos) ── */
+const CARAC_GENERALES_FIELDS = [
+  { id:'altura_techo',   label:'Altura libre',    opciones:['Estándar (<2,7 m)','Normal (2,7–3 m)','Alto (>3 m)'] },
+  { id:'modulacion',     label:'Modulación',      opciones:['Libre','Fija','Mixta'] },
+  { id:'fachada_tipo',   label:'Fachada',         opciones:['Acristalada','Mixta','Opaca','Prefabricado','Ladrillo'] },
+  { id:'cubierta',       label:'Cubierta',        opciones:['Plana transitable','Plana no transitable','Inclinada','Sandwich'] },
+  { id:'escaleras',      label:'Escaleras',       opciones:['Sí','No'] },
+  { id:'accesibilidad',  label:'Accesibilidad',   opciones:['Adaptado PMR','Parcialmente adaptado','No adaptado'] },
+]
+
+/* ── Características técnicas por uso ── */
+const CARAC_USO_FIELDS = {
+  'Oficinas': [
+    { id:'iluminacion',    label:'Iluminación',              opciones:['LED','Fluorescentes','Sin iluminación'] },
+    { id:'suelo',          label:'Suelo',                    opciones:['Suelo técnico','Sin suelo técnico'] },
+    { id:'climatizacion',  label:'Climatización',            opciones:['Fan coils','VRV / VRF','Centralizada','Sin climatización'] },
+    { id:'techo',          label:'Techo',                    opciones:['Falso techo','Forjado visto','Sin falso techo'] },
+    { id:'implantada',     label:'Oficina implantada',       opciones:['Sí','No','Parcialmente implantada'] },
+    { id:'estado_impl',    label:'Estado de implantación',   opciones:['Implantada','En bruto','Reformada','A reformar'] },
+    { id:'cert_sost',      label:'Certificación sostenible', opciones:['LEED','BREEAM','WELL','Sin certificación'] },
+    { id:'comunicaciones', label:'Comunicaciones',           opciones:['Fibra óptica','Cableado perimetral','Cableado por suelo técnico','Sin infraestructura visible'] },
+    { id:'seguridad',      label:'Seguridad',                opciones:['Control de accesos','CCTV','Seguridad 24 h','Sin sistema específico'] },
+    { id:'ascensores',     label:'Ascensores',               opciones:['Sí','No'] },
+    { id:'montacargas',    label:'Montacargas',              opciones:['Sí','No'] },
+  ],
+  'Logístico': [
+    { id:'iluminacion',     label:'Iluminación',            opciones:['LED','Fluorescentes','Natural','Sin iluminación'] },
+    { id:'tipo_nave',       label:'Tipo de nave',           opciones:['Logística','Industrial','Cross-dock','Última milla'] },
+    { id:'muelles',         label:'Muelles de carga',       opciones:['Sí','No'] },
+    { id:'rampas',          label:'Rampas',                 opciones:['Sí','No'] },
+    { id:'altura_libre',    label:'Altura libre',           opciones:['< 7 m','7–10 m','> 10 m'] },
+    { id:'riesgo_incend',   label:'Riesgo contra incendios',opciones:['Medio','Alto','No definido'] },
+    { id:'pci',             label:'Sistema PCI',            opciones:['Sprinklers','BIES','Detección automática','Sin sistema específico'] },
+    { id:'solera',          label:'Solera',                 opciones:['Hormigón pulido','Alta resistencia','Estándar'] },
+    { id:'potencia',        label:'Potencia eléctrica',     opciones:['Baja','Media','Alta'] },
+    { id:'oficinas_anexas', label:'Oficinas anexas',        opciones:['Sí','No'] },
+    { id:'patio_maniobra',  label:'Patio de maniobra',      opciones:['Sí','No'] },
+  ],
+  'Retail': [
+    { id:'iluminacion',    label:'Iluminación',             opciones:['LED','Fluorescentes','Sin iluminación'] },
+    { id:'estado',         label:'Estado del local',        opciones:['Implantado','En bruto','Reformado','A reformar'] },
+    { id:'fachada',        label:'Fachada',                 opciones:['Amplia','Estándar','Escasa'] },
+    { id:'humos',          label:'Salida de humos',         opciones:['Sí','No'] },
+    { id:'climatizacion',  label:'Climatización',           opciones:['Sí','No'] },
+    { id:'almacen',        label:'Almacén',                 opciones:['Sí','No'] },
+    { id:'aseos',          label:'Aseos',                   opciones:['Sí','No'] },
+    { id:'acceso_calle',   label:'Acceso desde calle',      opciones:['Sí','No'] },
+    { id:'esquina',        label:'Esquina',                 opciones:['Sí','No'] },
+    { id:'terraza',        label:'Terraza',                 opciones:['Sí','No'] },
+  ],
+  'Centro comercial': [
+    { id:'iluminacion',    label:'Iluminación',             opciones:['LED','Fluorescentes','Sin iluminación'] },
+    { id:'tipo_unidad',    label:'Tipo de unidad',          opciones:['Local','Isla / kiosco','Restaurante','Ocio'] },
+    { id:'estado',         label:'Estado',                  opciones:['Implantado','En bruto','Reformado'] },
+    { id:'humos',          label:'Salida de humos',         opciones:['Sí','No'] },
+    { id:'almacen',        label:'Almacén',                 opciones:['Sí','No'] },
+    { id:'terraza',        label:'Terraza',                 opciones:['Sí','No'] },
+    { id:'visibilidad',    label:'Visibilidad interior',    opciones:['Alta','Media','Baja'] },
+    { id:'carga_descarga', label:'Acceso carga y descarga', opciones:['Sí','No'] },
+  ],
+  'Residencial': [
+    { id:'iluminacion',    label:'Iluminación',             opciones:['LED','Fluorescentes','Sin iluminación'] },
+    { id:'estado',         label:'Estado',                  opciones:['Nuevo','Reformado','A reformar','En construcción'] },
+    { id:'cocina',         label:'Cocina',                  opciones:['Equipada','Sin equipar','Parcialmente equipada'] },
+    { id:'amueblado',      label:'Amueblado',               opciones:['Sí','No','Parcialmente'] },
+    { id:'climatizacion',  label:'Climatización',           opciones:['Sí','No'] },
+    { id:'calefaccion',    label:'Calefacción',             opciones:['Individual','Central','Sin calefacción'] },
+    { id:'terraza',        label:'Terraza',                 opciones:['Sí','No'] },
+    { id:'trastero',       label:'Trastero',                opciones:['Sí','No'] },
+    { id:'garaje',         label:'Garaje',                  opciones:['Sí','No'] },
+    { id:'ascensor',       label:'Ascensor',                opciones:['Sí','No'] },
+  ],
+  'Hoteles': [
+    { id:'iluminacion',    label:'Iluminación',             opciones:['LED','Fluorescentes','Sin iluminación'] },
+    { id:'categoria',      label:'Categoría',               opciones:['1 estrella','2 estrellas','3 estrellas','4 estrellas','5 estrellas'] },
+    { id:'estado',         label:'Estado',                  opciones:['Operativo','Reformado','A reformar'] },
+    { id:'cocina',         label:'Cocina',                  opciones:['Sí','No'] },
+    { id:'restaurante',    label:'Restaurante',             opciones:['Sí','No'] },
+    { id:'salas_reunion',  label:'Salas de reuniones',      opciones:['Sí','No'] },
+    { id:'spa',            label:'Spa / gimnasio',          opciones:['Sí','No'] },
+    { id:'climatizacion',  label:'Climatización',           opciones:['Sí','No'] },
+    { id:'lavanderia',     label:'Lavandería',              opciones:['Sí','No'] },
+  ],
+  'Suelo': [
+    { id:'clasificacion',  label:'Clasificación del suelo', opciones:['Urbano','Urbanizable','Rústico'] },
+    { id:'estado_urb',     label:'Estado urbanístico',      opciones:['Finalista','En desarrollo','Pendiente de gestión'] },
+    { id:'uso_admisible',  label:'Uso admisible',           opciones:['Residencial','Industrial','Logístico','Terciario','Mixto'] },
+    { id:'topografia',     label:'Topografía',              opciones:['Llano','Con pendiente','Irregular'] },
+    { id:'accesos',        label:'Accesos',                 opciones:['Buen acceso','Acceso medio','Acceso limitado'] },
+    { id:'suministros',    label:'Suministros',             opciones:['Disponibles','Parciales','No disponibles'] },
+    { id:'vallado',        label:'Vallado',                 opciones:['Sí','No'] },
+  ],
+  'Data Center': [
+    { id:'redundancia',    label:'Redundancia',             opciones:['Tier I','Tier II','Tier III','Tier IV'] },
+    { id:'potencia',       label:'Potencia eléctrica',      opciones:['Baja','Media','Alta','Muy alta'] },
+    { id:'refrigeracion',  label:'Refrigeración',           opciones:['Aire forzado','Líquida','Mixta'] },
+    { id:'seguridad',      label:'Seguridad física',        opciones:['Control biométrico','Control de accesos','CCTV 24 h','Sin sistema'] },
+    { id:'conectividad',   label:'Conectividad',            opciones:['Fibra oscura','Multi-carrier','Carrier único'] },
+    { id:'ups',            label:'UPS / Generadores',       opciones:['Sí','No'] },
+  ],
+}
+
 const MEDIOS_TRANSPORTE = ['Metro','Autobús','Cercanías','Tren','Tranvía','BiciMAD / Bici pública','Coche','Taxi / VTC','Aeropuerto']
 const ESTADOS_CONSTRUCCION = ['Cambio de uso en trámite','Construcción existente','En construcción','En demolición','En rehabilitación','LC + ICO obtenidos','LC + ICO solicitados','Licencia de construcción','Licencia primera ocupación','Llave en mano','Nueva construcción / Obra nueva','Proyecto','Rehabilitación integral','Rehabilitación parcial']
 const USOS_PRINCIPALES = ['Build to Rent','Aparcamiento','Apartamentos turísticos','Build to Sell','Care homes','Trastero','Flex Living','Hotel','Industrial','Logística','Oficinas','Residencial','Retail','Senior Living']
@@ -2915,25 +3012,12 @@ export default function FichaActivo() {
   ])
   const [showAddTransp, setShowAddTransp] = useState(false)
   const [newTransp, setNewTransp] = useState({medio:'Metro', linea:'', descripcion:'', tiempo:''})
-  // Características generales (filas dinámicas)
-  const [caracGenerales, setCaracGenerales] = useState([
-    {id:1, categoria:'Altura', detalle:'Altura libre: 2,85 m'},
-    {id:2, categoria:'Modularidad', detalle:'Módulo mínimo: 300 m²'},
-    {id:3, categoria:'Suelo técnico', detalle:'Sí'},
-    {id:4, categoria:'Climatización', detalle:'Fan-coil 4 tubos'},
-    {id:5, categoria:'Seguridad', detalle:'24h'},
-  ])
-  const [showAddCarac, setShowAddCarac] = useState(false)
-  const [newCarac, setNewCarac] = useState({categoria:'', categoriaOtro:'', detalle:''})
-  // Características por uso (filas dinámicas)
-  const [caracUso, setCaracUso] = useState([
-    {id:1, categoria:'Configuración', detalle:'Planta abierta / diáfana'},
-    {id:2, categoria:'Falso techo', detalle:'Sí'},
-    {id:3, categoria:'Luminosidad', detalle:'Alta — fachada acristalada'},
-    {id:4, categoria:'Terraza', detalle:'Sí (planta 7)'},
-  ])
-  const [showAddCaracUso, setShowAddCaracUso] = useState(false)
-  const [newCaracUso, setNewCaracUso] = useState({categoria:'', categoriaOtro:'', detalle:''})
+  // Características generales { fieldId: { opcion:'', texto:'' } }
+  const [caracGenVal, setCaracGenVal] = useState({})
+  const setCGV = (id, key, val) => setCaracGenVal(p => ({...p, [id]: {...(p[id]||{}), [key]: val}}))
+  // Características técnicas por uso
+  const [caracUsoVal, setCaracUsoVal] = useState({})
+  const setCUV = (id, key, val) => setCaracUsoVal(p => ({...p, [id]: {...(p[id]||{}), [key]: val}}))
   const [newForm, setNewForm]           = useState(NEW_FORM_INIT)
   const [saving,  setSaving]            = useState(false)
   const [saveErr, setSaveErr]           = useState('')
@@ -3321,51 +3405,85 @@ export default function FichaActivo() {
                   </div>
                 )}
 
-                {/* Características generales — dinámico */}
-                {caracTab==='ct-generales' && (
-                  <div className="info-block">
-                    <div className="ib-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                      <span>CARACTERÍSTICAS GENERALES</span>
-                      {addRowBtn(()=>setShowAddCarac(v=>!v), showAddCarac)}
+                {/* Características generales (comunes) */}
+                {caracTab==='ct-generales' && (() => {
+                  const cSel = {padding:'4px 8px',border:'1px solid var(--border)',borderRadius:5,fontSize:11,fontFamily:'inherit',cursor:'pointer',outline:'none',minWidth:160}
+                  const cInp = {padding:'4px 8px',border:'1px solid var(--border)',borderRadius:5,fontSize:11,fontFamily:'inherit',outline:'none',flex:1,minWidth:120,background:'transparent'}
+                  const rowSt = {display:'grid',gridTemplateColumns:'160px 1fr 1fr',gap:8,padding:'8px 12px',borderBottom:'1px solid var(--border)',alignItems:'center'}
+                  const lblSt = {fontSize:11,fontWeight:600,color:'var(--text2)'}
+                  return (
+                    <div className="info-block">
+                      <div className="ib-title">CARACTERÍSTICAS GENERALES</div>
+                      <div style={{borderTop:'1px solid var(--border)'}}>
+                        <div style={{display:'grid',gridTemplateColumns:'160px 1fr 1fr',gap:8,padding:'5px 12px',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)'}}>
+                          <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Característica</span>
+                          <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Valor / Opción</span>
+                          <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Notas adicionales</span>
+                        </div>
+                        {CARAC_GENERALES_FIELDS.map(f => {
+                          const v = caracGenVal[f.id] || {}
+                          return (
+                            <div key={f.id} style={rowSt}>
+                              <span style={lblSt}>{f.label}</span>
+                              <select value={v.opcion||''} onChange={e=>setCGV(f.id,'opcion',e.target.value)}
+                                style={{...cSel, background: v.opcion ? 'var(--accent-lt)' : 'var(--surface)', color: v.opcion ? 'var(--accent)' : 'var(--text3)', fontWeight: v.opcion ? 600 : 400}}>
+                                <option value="">— seleccionar —</option>
+                                {f.opciones.map(o=><option key={o} value={o}>{o}</option>)}
+                              </select>
+                              <input type="text" value={v.texto||''} onChange={e=>setCGV(f.id,'texto',e.target.value)}
+                                placeholder="Notas adicionales..." style={{...cInp, background: v.texto ? 'var(--surface)' : 'transparent'}}/>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
-                    {showAddCarac && addRowForm(
-                      newCarac, setNewCarac,
-                      CARAC_CATEGORIAS_GEN,
-                      () => {
-                        if (!newCarac.categoria || !newCarac.detalle) return
-                        const maxId = caracGenerales.reduce((m,r)=>Math.max(m,r.id),0)
-                        setCaracGenerales(prev=>[...prev,{...newCarac,id:maxId+1}])
-                        setNewCarac({categoria:'',categoriaOtro:'',detalle:''})
-                        setShowAddCarac(false)
-                      },
-                      () => { setShowAddCarac(false); setNewCarac({categoria:'',categoriaOtro:'',detalle:''}) }
-                    )}
-                    {caracTable(caracGenerales, id=>setCaracGenerales(prev=>prev.filter(r=>r.id!==id)))}
-                  </div>
-                )}
+                  )
+                })()}
 
-                {/* Características por uso — condicional */}
-                {caracTab==='ct-uso' && (
-                  <div className="info-block">
-                    <div className="ib-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                      <span>{usoIco} {usoLabel.toUpperCase()}</span>
-                      {addRowBtn(()=>setShowAddCaracUso(v=>!v), showAddCaracUso)}
+                {/* Características técnicas por uso */}
+                {caracTab==='ct-uso' && (() => {
+                  const usoFields = CARAC_USO_FIELDS[usoActivo] || []
+                  const cSel = {padding:'4px 8px',border:'1px solid var(--border)',borderRadius:5,fontSize:11,fontFamily:'inherit',cursor:'pointer',outline:'none',minWidth:160}
+                  const cInp = {padding:'4px 8px',border:'1px solid var(--border)',borderRadius:5,fontSize:11,fontFamily:'inherit',outline:'none',flex:1,minWidth:120,background:'transparent'}
+                  const rowSt = {display:'grid',gridTemplateColumns:'160px 1fr 1fr',gap:8,padding:'8px 12px',borderBottom:'1px solid var(--border)',alignItems:'center'}
+                  const lblSt = {fontSize:11,fontWeight:600,color:'var(--text2)'}
+                  return (
+                    <div className="info-block">
+                      <div className="ib-title" style={{display:'flex',alignItems:'center',gap:8}}>
+                        <span>{usoIco} CARACTERÍSTICAS TÉCNICAS</span>
+                        <span style={{fontSize:9,fontWeight:400,color:'var(--text4)',textTransform:'none',letterSpacing:0}}>— uso: {usoActivo || 'no definido'} · heredado de Información general</span>
+                      </div>
+                      {usoFields.length === 0 ? (
+                        <div style={{padding:'24px',textAlign:'center',color:'var(--text4)',fontSize:12}}>
+                          {usoActivo ? `No hay características definidas para "${usoActivo}"` : 'Asigna un Uso principal en la pestaña Información general para ver las características correspondientes.'}
+                        </div>
+                      ) : (
+                        <div style={{borderTop:'1px solid var(--border)'}}>
+                          <div style={{display:'grid',gridTemplateColumns:'160px 1fr 1fr',gap:8,padding:'5px 12px',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)'}}>
+                            <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Característica</span>
+                            <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Valor / Opción</span>
+                            <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Notas adicionales</span>
+                          </div>
+                          {usoFields.map(f => {
+                            const v = caracUsoVal[f.id] || {}
+                            return (
+                              <div key={f.id} style={rowSt}>
+                                <span style={lblSt}>{f.label}</span>
+                                <select value={v.opcion||''} onChange={e=>setCUV(f.id,'opcion',e.target.value)}
+                                  style={{...cSel, background: v.opcion ? 'var(--accent-lt)' : 'var(--surface)', color: v.opcion ? 'var(--accent)' : 'var(--text3)', fontWeight: v.opcion ? 600 : 400}}>
+                                  <option value="">— seleccionar —</option>
+                                  {f.opciones.map(o=><option key={o} value={o}>{o}</option>)}
+                                </select>
+                                <input type="text" value={v.texto||''} onChange={e=>setCUV(f.id,'texto',e.target.value)}
+                                  placeholder="Notas adicionales..." style={{...cInp, background: v.texto ? 'var(--surface)' : 'transparent'}}/>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
-                    {showAddCaracUso && addRowForm(
-                      newCaracUso, setNewCaracUso,
-                      caracCatsByUso,
-                      () => {
-                        if (!newCaracUso.categoria || !newCaracUso.detalle) return
-                        const maxId = caracUso.reduce((m,r)=>Math.max(m,r.id),0)
-                        setCaracUso(prev=>[...prev,{...newCaracUso,id:maxId+1}])
-                        setNewCaracUso({categoria:'',categoriaOtro:'',detalle:''})
-                        setShowAddCaracUso(false)
-                      },
-                      () => { setShowAddCaracUso(false); setNewCaracUso({categoria:'',categoriaOtro:'',detalle:''}) }
-                    )}
-                    {caracTable(caracUso, id=>setCaracUso(prev=>prev.filter(r=>r.id!==id)))}
-                  </div>
-                )}
+                  )
+                })()}
 
                 {caracTab==='ct-plazas' && (()=>{
                   const totalPl = plazas.reduce((s,p)=>s+p.cantidad,0)
