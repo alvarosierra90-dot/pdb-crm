@@ -1781,7 +1781,9 @@ async function fetchCatastro(lat, lng) {
     }
   } catch (e) {
     console.warn('[Catastro paso 2]', e)
-    /* datos del inmueble son opcionales — solo ref_catastral es obligatorio */
+    return { ref_catastral: refcat, uso_pgou: null, sup_parcela: null, anno_construccion: null,
+             clasificacion_urb: null, calificacion_urb: null, edificabilidad: null,
+             _step2Error: e?.message || 'Sin datos del inmueble' }
   }
 
   return { ref_catastral: refcat, uso_pgou, sup_parcela, anno_construccion,
@@ -1807,7 +1809,11 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
       if (data.clasificacion_urb)          setNF('clasificacion_urb', data.clasificacion_urb)
       if (data.calificacion_urb)           setNF('calificacion_urb',  data.calificacion_urb)
       if (data.edificabilidad)             setNF('edificabilidad',    data.edificabilidad)
-      setCatMsg('ok'); setTimeout(() => setCatMsg(''), 4000)
+      if (data._step2Error) {
+        setCatMsg(`Ref. catastral obtenida. Sin datos urbanísticos: ${data._step2Error}`)
+      } else {
+        setCatMsg('ok'); setTimeout(() => setCatMsg(''), 4000)
+      }
     } catch (e) { setCatMsg(e.message || 'Error de red') }
     finally { setSyncingCat(false) }
   }
@@ -2476,7 +2482,11 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
         edificabilidad:    data.edificabilidad                            ?? p.edificabilidad,
       }))
       setDirty(true)
-      setCatMsg('ok'); setTimeout(() => setCatMsg(''), 4000)
+      if (data._step2Error) {
+        setCatMsg(`Ref. catastral obtenida. Sin datos urbanísticos: ${data._step2Error}`)
+      } else {
+        setCatMsg('ok'); setTimeout(() => setCatMsg(''), 4000)
+      }
     } catch (e) { setCatMsg(e.message || 'Error de red') }
     finally { setSyncingCat(false) }
   }
@@ -2648,13 +2658,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
             <span>🏛 DATOS URBANÍSTICOS</span>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--green)',fontWeight:600}}>✓ Sincronizado</span>}
-              {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--red)',maxWidth:200,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
-              <button
-                onClick={syncCatastro}
-                disabled={syncingCat}
-                style={{padding:'3px 10px',fontSize:10,fontWeight:600,fontFamily:'inherit',cursor:syncingCat?'wait':'pointer',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,display:'flex',alignItems:'center',gap:5,whiteSpace:'nowrap',opacity:syncingCat?0.7:1}}>
-                {syncingCat ? '⟳ Consultando...' : '⟳ Sincronizar Catastro'}
-              </button>
+              {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--red)',maxWidth:260,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
             </div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 24px'}}>
@@ -3223,6 +3227,7 @@ export default function FichaActivo() {
   const [liveEdifCount,   setLiveEdifCount]   = useState(null) // synced from StackingPlan
   const infoSaveRef = useRef(null) // ref to TabInfo's handleSave
   const infoSyncRef = useRef(null) // ref to TabInfo's syncCatastro
+  const [syncingFromBar, setSyncingFromBar] = useState(false)
 
   useEffect(() => {
     if (!params?.ref) return
@@ -3321,6 +3326,14 @@ export default function FichaActivo() {
           <>
             <button className="ab-btn save" onClick={() => infoSaveRef.current?.()}>💾 Guardar</button>
             <button className="ab-btn" onClick={async () => { await infoSaveRef.current?.(); navigate('activos', { highlightRef: activo?.ref ?? params?.ref }) }}>Guardar y cerrar</button>
+            <div className="ab-sep"/>
+            <button
+              className="ab-btn"
+              disabled={syncingFromBar}
+              onClick={async () => { setSyncingFromBar(true); await infoSyncRef.current?.(); setSyncingFromBar(false) }}
+              style={syncingFromBar ? {opacity:0.6} : undefined}>
+              {syncingFromBar ? '⟳ Sincronizando...' : '⟳ Sincronizar'}
+            </button>
             <div className="ab-sep"/>
             <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
           </>
@@ -3432,7 +3445,13 @@ export default function FichaActivo() {
               saveRef={infoSaveRef}
               syncRef={infoSyncRef}
               hidden={activeTab !== 'at-info'}
-              onInfoSaved={({nombre,direccion})=>{ if(nombre!==undefined) setDisplayNombre(nombre||null); if(direccion!==undefined) setDisplayDireccion(direccion||null) }}/>
+              onInfoSaved={async ({nombre,direccion})=>{
+                if(nombre!==undefined) setDisplayNombre(nombre||null)
+                if(direccion!==undefined) setDisplayDireccion(direccion||null)
+                // Reload activo so Información adicional reflects the latest saved data (ref_catastral, etc.)
+                const { data } = await supabase.from('activos').select('*').eq('ref', params.ref).single()
+                if (data) setActivo(data)
+              }}/>
           )}
 
           {/* ── TAB: Stacking Plan — always mounted to preserve state ── */}
