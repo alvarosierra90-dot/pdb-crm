@@ -2567,7 +2567,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, h
 }
 
 /* ── Panel derecho ── */
-function RightPanel({ navigate, nEdificios, plazas, esg }) {
+function RightPanel({ navigate, nEdificios, plazas, esg, activo }) {
   const [chatOpen, setChatOpen] = useState(false)
   const [chatMsg,  setChatMsg]  = useState('')
   const [chatLog,  setChatLog]  = useState([
@@ -2626,6 +2626,11 @@ function RightPanel({ navigate, nEdificios, plazas, esg }) {
       {/* 2. KPIs del activo */}
       {(()=>{
         const totalPlazas = (plazas||[]).reduce((s,p)=>s+p.cantidad,0)
+        const nArrendatarios = new Set(
+          RENT_ROLL_ROWS
+            .filter(r => r.arrendatario !== 'DISPONIBLE' && r.arrendatario !== '—' && r.uso !== 'Parking')
+            .map(r => r.arrendatario)
+        ).size
         const sellos = [
           esg?.leed        && {label:`LEED ${esg.leed}`,              cls:'tag-leed'},
           esg?.breeam      && {label:`BREEAM ${esg.breeam}`,          cls:'tag-esg'},
@@ -2638,12 +2643,20 @@ function RightPanel({ navigate, nEdificios, plazas, esg }) {
             <div className="rp-lbl">KPIs del activo</div>
             <div className="kf-grid">
               <div className="kf">
+                <div className="kf-lbl">SBA total</div>
+                <div className="kf-val">{activo?.sba ? activo.sba.toLocaleString('es-ES') + ' m²' : '—'}</div>
+              </div>
+              <div className="kf">
                 <div className="kf-lbl">Nº edificios</div>
                 <div className="kf-val">{nEdificios ?? 1}</div>
               </div>
               <div className="kf">
                 <div className="kf-lbl">Total plazas</div>
                 <div className="kf-val">{totalPlazas > 0 ? totalPlazas.toLocaleString('es-ES') : '—'}</div>
+              </div>
+              <div className="kf">
+                <div className="kf-lbl">Nº arrendatarios</div>
+                <div className="kf-val">{nArrendatarios}</div>
               </div>
             </div>
             <div style={{marginTop:8}}>
@@ -2675,7 +2688,6 @@ function RightPanel({ navigate, nEdificios, plazas, esg }) {
       <div className="rp-sec">
         <div className="rp-lbl">KPIs Financieros</div>
         <div className="kf-grid">
-          <div className="kf"><div className="kf-lbl">SBA total</div><div className="kf-val">46.956 m²</div></div>
           <div className="kf"><div className="kf-lbl">Ocupación</div><div className="kf-val amber">78,4%</div></div>
           <div className="kf"><div className="kf-lbl">Ingresos brutos</div><div className="kf-val">3,2 M€/año</div></div>
           <div className="kf"><div className="kf-lbl">WAULT</div><div className="kf-val">2,8 años</div></div>
@@ -3891,7 +3903,7 @@ export default function FichaActivo() {
 
         </div>{/* /ficha-main */}
 
-        <RightPanel navigate={navigate} nEdificios={liveEdifCount ?? activo?.n_edificios ?? 1} plazas={plazas} esg={esg}/>
+        <RightPanel navigate={navigate} nEdificios={liveEdifCount ?? activo?.n_edificios ?? 1} plazas={plazas} esg={esg} activo={activo}/>
 
       </div>{/* /ficha-wrap */}
       {showTarea && <AsignarTareaModal refTipo="Activo" refNombre="P.E Avalon" onClose={() => setShowTarea(false)} />}
