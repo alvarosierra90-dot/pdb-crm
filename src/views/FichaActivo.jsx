@@ -1693,19 +1693,23 @@ function TabMultimedia() {
   )
 }
 
-function NewActivoInfoTab({ newForm, setNF }) {
+function NewActivoInfoTab({ newForm, setNF, submitted }) {
   // Derived conditional zone data
   const nfAreas  = getAreas(newForm.ciudad, newForm.uso)
   const zonas    = newForm.area ? getZonas(newForm.ciudad, newForm.uso, newForm.area) : []
   const subzonas = newForm.area && newForm.zona ? getSubzonas(newForm.ciudad, newForm.uso, newForm.area, newForm.zona) : []
 
-  const inp = {padding:'5px 8px',border:'1px solid var(--accent-bd)',borderRadius:5,fontSize:12,fontFamily:'inherit',background:'var(--accent-lt)',color:'var(--text1)',width:'100%',boxSizing:'border-box',outline:'none'}
-  const sel = {...inp,cursor:'pointer'}
+  const err = (field) => submitted && !newForm[field]
+  const inp = (field) => ({padding:'5px 8px',border:`1px solid ${err(field)?'var(--red)':'var(--accent-bd)'}`,borderRadius:5,fontSize:12,fontFamily:'inherit',background:err(field)?'#fff5f5':'var(--accent-lt)',color:'var(--text1)',width:'100%',boxSizing:'border-box',outline:'none'})
+  const inpBase = {padding:'5px 8px',border:'1px solid var(--accent-bd)',borderRadius:5,fontSize:12,fontFamily:'inherit',background:'var(--accent-lt)',color:'var(--text1)',width:'100%',boxSizing:'border-box',outline:'none'}
+  const sel = (field) => ({...inpBase,cursor:'pointer',...(err(field)?{border:'1px solid var(--red)',background:'#fff5f5'}:{})})
   const selSt = {padding:'4px 7px',border:'1px solid var(--border)',borderRadius:5,fontSize:11,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',width:'100%'}
 
-  const Row = ({label, children}) => (
+  const Req = () => <span style={{color:'var(--red)',marginLeft:2,fontWeight:700}}>*</span>
+
+  const Row = ({label, required, children}) => (
     <div className="ir" style={{alignItems:'flex-start',gap:6}}>
-      <span className="ir-k">{label}</span>
+      <span className="ir-k">{label}{required && <Req/>}</span>
       <div style={{flex:1}}>{children}</div>
     </div>
   )
@@ -1726,23 +1730,24 @@ function NewActivoInfoTab({ newForm, setNF }) {
           <div className="info-block">
             <div className="ib-title">📍 UBICACIÓN</div>
             <Row label="Nombre del activo">
-              <input value={newForm.nombre} onChange={e=>setNF('nombre',e.target.value)} style={inp} placeholder="P.E Avalon, Torre Sevilla..."/>
+              <input value={newForm.nombre} onChange={e=>setNF('nombre',e.target.value)} style={inpBase} placeholder="P.E Avalon, Torre Sevilla..."/>
             </Row>
             <Row label="Propietario">
-              <input list="fa-cuentas-new" value={newForm.propietario} onChange={e=>setNF('propietario',e.target.value)} style={inp} placeholder="Buscar cuenta..."/>
+              <input list="fa-cuentas-new" value={newForm.propietario} onChange={e=>setNF('propietario',e.target.value)} style={inpBase} placeholder="Buscar cuenta..."/>
               <datalist id="fa-cuentas-new">{CUENTAS_FA.map(c=><option key={c} value={c}/>)}</datalist>
             </Row>
-            <Row label="Dirección">
-              <input value={newForm.direccion} onChange={e=>setNF('direccion',e.target.value)} style={inp} placeholder="Calle Serrano 41, Madrid..."/>
+            <Row label="Dirección" required>
+              <input value={newForm.direccion} onChange={e=>setNF('direccion',e.target.value)} style={inp('direccion')} placeholder="Calle Serrano 41, Madrid..."/>
+              {err('direccion') && <span style={{fontSize:10,color:'var(--red)'}}>Campo obligatorio</span>}
             </Row>
             <Row label="Ciudad">
-              <input value={newForm.ciudad} onChange={e=>{setNF('ciudad',e.target.value);setNF('area','');setNF('zona','');setNF('subzona','')}} style={inp} placeholder="Madrid"/>
+              <input value={newForm.ciudad} onChange={e=>{setNF('ciudad',e.target.value);setNF('area','');setNF('zona','');setNF('subzona','')}} style={inpBase} placeholder="Madrid"/>
             </Row>
             <Row label="País">
-              <input value={newForm.pais} onChange={e=>setNF('pais',e.target.value)} style={inp} placeholder="España"/>
+              <input value={newForm.pais} onChange={e=>setNF('pais',e.target.value)} style={inpBase} placeholder="España"/>
             </Row>
             <Row label="Código postal">
-              <input value={newForm.cp} onChange={e=>setNF('cp',e.target.value)} style={inp} placeholder="28037"/>
+              <input value={newForm.cp} onChange={e=>setNF('cp',e.target.value)} style={inpBase} placeholder="28037"/>
             </Row>
             <Row label="Coordenadas">
               <input value={newForm.coordenadas||''} onChange={e=>setNF('coordenadas',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="40.416775, -3.703790"/>
@@ -1774,42 +1779,42 @@ function NewActivoInfoTab({ newForm, setNF }) {
 
           <div className="info-block">
             <div className="ib-title">🏢 TIPOLOGÍA</div>
-            <Row label="Tipo de activo">
-              <select value={newForm.tipo_activo} onChange={e=>setNF('tipo_activo',e.target.value)} style={sel}>
+            <Row label="Tipo de activo" required>
+              <select value={newForm.tipo_activo} onChange={e=>setNF('tipo_activo',e.target.value)} style={sel('tipo_activo')}>
                 {['Edificio','Nave','Local','Parcela','Complejo','Torre','Centro comercial','Parque empresarial','Parque logístico','Residencia'].map(t=><option key={t}>{t}</option>)}
               </select>
             </Row>
             <Row label="Estado construcción">
-              <select value={newForm.estado_construccion} onChange={e=>setNF('estado_construccion',e.target.value)} style={sel}>
+              <select value={newForm.estado_construccion} onChange={e=>setNF('estado_construccion',e.target.value)} style={{...inpBase,cursor:'pointer'}}>
                 <option value="">—</option>{ESTADOS_CONSTRUCCION.map(e=><option key={e}>{e}</option>)}
               </select>
             </Row>
-            <Row label="Uso principal">
-              <select value={newForm.uso} onChange={e=>setNF('uso',e.target.value)} style={sel}>
+            <Row label="Uso principal" required>
+              <select value={newForm.uso} onChange={e=>setNF('uso',e.target.value)} style={sel('uso')}>
                 <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
               </select>
             </Row>
             <Row label="Uso secundario">
-              <select value={newForm.uso_secundario} onChange={e=>setNF('uso_secundario',e.target.value)} style={sel}>
+              <select value={newForm.uso_secundario} onChange={e=>setNF('uso_secundario',e.target.value)} style={{...inpBase,cursor:'pointer'}}>
                 <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
               </select>
             </Row>
             <Row label="Calidad">
-              <select value={newForm.calidad} onChange={e=>setNF('calidad',e.target.value)} style={sel}>
+              <select value={newForm.calidad} onChange={e=>setNF('calidad',e.target.value)} style={{...inpBase,cursor:'pointer'}}>
                 <option value="">—</option>{CALIDADES.map(c=><option key={c}>{c}</option>)}
               </select>
             </Row>
             <Row label="SBA (m²)">
-              <input type="number" value={newForm.sba} onChange={e=>setNF('sba',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0"/>
+              <input type="number" value={newForm.sba} onChange={e=>setNF('sba',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="0"/>
             </Row>
             <Row label="Año construcción">
-              <input type="number" value={newForm.anno_construccion} onChange={e=>setNF('anno_construccion',e.target.value)} style={inp} placeholder="—"/>
+              <input type="number" value={newForm.anno_construccion} onChange={e=>setNF('anno_construccion',e.target.value)} style={inpBase} placeholder="—"/>
             </Row>
             <Row label="Año rehabilitación">
-              <input type="number" value={newForm.anno_rehabilitacion} onChange={e=>setNF('anno_rehabilitacion',e.target.value)} style={inp} placeholder="—"/>
+              <input type="number" value={newForm.anno_rehabilitacion} onChange={e=>setNF('anno_rehabilitacion',e.target.value)} style={inpBase} placeholder="—"/>
             </Row>
             <Row label="Asset Manager">
-              <input value={newForm.asset_manager} onChange={e=>setNF('asset_manager',e.target.value)} style={inp} placeholder="—"/>
+              <input value={newForm.asset_manager} onChange={e=>setNF('asset_manager',e.target.value)} style={inpBase} placeholder="—"/>
             </Row>
             <div className="ir">
               <span className="ir-k">Nº edificios</span>
@@ -1823,16 +1828,16 @@ function NewActivoInfoTab({ newForm, setNF }) {
           <div className="ib-title">🏛 DATOS URBANÍSTICOS</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 24px'}}>
             <div>
-              <Row label="Ref. catastral"><input value={newForm.ref_catastral} onChange={e=>setNF('ref_catastral',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/></Row>
-              <Row label="Uso PGOU"><input value={newForm.uso_pgou} onChange={e=>setNF('uso_pgou',e.target.value)} style={inp} placeholder="—"/></Row>
+              <Row label="Ref. catastral"><input value={newForm.ref_catastral} onChange={e=>setNF('ref_catastral',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/></Row>
+              <Row label="Uso PGOU"><input value={newForm.uso_pgou} onChange={e=>setNF('uso_pgou',e.target.value)} style={inpBase} placeholder="—"/></Row>
             </div>
             <div>
-              <Row label="Clasificación"><input value={newForm.clasificacion_urb||''} onChange={e=>setNF('clasificacion_urb',e.target.value)} style={inp} placeholder="—"/></Row>
-              <Row label="Calificación"><input value={newForm.calificacion_urb} onChange={e=>setNF('calificacion_urb',e.target.value)} style={inp} placeholder="—"/></Row>
+              <Row label="Clasificación"><input value={newForm.clasificacion_urb||''} onChange={e=>setNF('clasificacion_urb',e.target.value)} style={inpBase} placeholder="—"/></Row>
+              <Row label="Calificación"><input value={newForm.calificacion_urb} onChange={e=>setNF('calificacion_urb',e.target.value)} style={inpBase} placeholder="—"/></Row>
             </div>
             <div>
-              <Row label="Edificabilidad"><input value={newForm.edificabilidad} onChange={e=>setNF('edificabilidad',e.target.value)} style={inp} placeholder="—"/></Row>
-              <Row label="Sup. parcela (m²)"><input type="number" value={newForm.sup_parcela} onChange={e=>setNF('sup_parcela',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="—"/></Row>
+              <Row label="Edificabilidad"><input value={newForm.edificabilidad} onChange={e=>setNF('edificabilidad',e.target.value)} style={inpBase} placeholder="—"/></Row>
+              <Row label="Sup. parcela (m²)"><input type="number" value={newForm.sup_parcela} onChange={e=>setNF('sup_parcela',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="—"/></Row>
             </div>
           </div>
         </div>
@@ -2954,6 +2959,7 @@ export default function FichaActivo() {
   const [newForm, setNewForm]           = useState(NEW_FORM_INIT)
   const [saving,  setSaving]            = useState(false)
   const [saveErr, setSaveErr]           = useState('')
+  const [submitted, setSubmitted]       = useState(false)
   const setNF = (k, v) => setNewForm(p => ({ ...p, [k]: v }))
 
   // Datos del activo desde Supabase
@@ -2975,8 +2981,13 @@ export default function FichaActivo() {
   }, [params?.ref])
 
   const handleCreateActivo = async () => {
-    const nombre = newForm.nombre || (newForm.direccion ? newForm.direccion.split(',')[0].trim() : '')
-    if (!nombre) { setSaveErr('El nombre o la dirección son obligatorios'); return }
+    setSubmitted(true)
+    const missing = []
+    if (!newForm.direccion) missing.push('Dirección')
+    if (!newForm.tipo_activo) missing.push('Tipo de activo')
+    if (!newForm.uso) missing.push('Uso principal')
+    if (missing.length) { setSaveErr(`Campos obligatorios: ${missing.join(', ')}`); return }
+    const nombre = newForm.nombre || newForm.direccion.split(',')[0].trim()
     setSaving(true); setSaveErr('')
     const ref = genRefFA(newForm.ciudad, newForm.uso)
     // Only insert columns guaranteed to exist in migration 001 schema
@@ -3129,7 +3140,7 @@ export default function FichaActivo() {
           </div>
 
           {/* ── TAB: Información general ── */}
-          {isNew && activeTab==='at-info' && <NewActivoInfoTab newForm={newForm} setNF={setNF}/>}
+          {isNew && activeTab==='at-info' && <NewActivoInfoTab newForm={newForm} setNF={setNF} submitted={submitted}/>}
           {!isNew && (
             <div style={{display: activeTab==='at-info' ? undefined : 'none'}}>
               <TabInfo navigate={navigate} plazas={plazas} activo={activo}
