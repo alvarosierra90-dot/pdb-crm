@@ -276,7 +276,16 @@ const ZONES = {
   },
 }
 
-function getZoneData(ciudad, uso) { return (ZONES[uso]||{})[ciudad] || [] }
+const CITY_NORMALIZE = {
+  'Alcobendas':'Madrid','Getafe':'Madrid','Leganés':'Madrid','Alcorcón':'Madrid',
+  'Coslada':'Madrid','Torrejón de Ardoz':'Madrid','Alcalá de Henares':'Madrid',
+  'Tres Cantos':'Madrid','Pozuelo de Alarcón':'Madrid','Las Rozas':'Madrid',
+  "L'Hospitalet de Llobregat":'Barcelona',"L'Hospitalet":'Barcelona',
+  'Cornellà':'Barcelona','Cornellà de Llobregat':'Barcelona',
+  'El Prat de Llobregat':'Barcelona','Sant Cugat del Vallès':'Barcelona',
+  'Paterna':'Valencia','Torrent':'Valencia',
+}
+function getZoneData(ciudad, uso) { const c = CITY_NORMALIZE[ciudad] || ciudad; return (ZONES[uso]||{})[c] || [] }
 function getAreas(ciudad, uso)    { return [...new Set(getZoneData(ciudad,uso).map(z=>z.area))] }
 function getZonas(ciudad, uso, area) { return [...new Set(getZoneData(ciudad,uso).filter(z=>z.area===area).map(z=>z.zona))] }
 function getSubzonas(ciudad, uso, area, zona) { return getZoneData(ciudad,uso).filter(z=>z.area===area&&z.zona===zona).map(z=>z.subzona) }
@@ -1665,8 +1674,14 @@ function TabMultimedia() {
                 {lightbox.principal && <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'var(--accent)',color:'#fff',fontWeight:700}}>PRINCIPAL</span>}
               </div>
               <div style={{fontSize:10,color:'var(--text4)',marginBottom:14}}>Subido el {lightbox.date}</div>
-              <div style={{display:'flex',gap:8}}>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                 {!lightbox.principal && <button onClick={()=>{setPrincipal(lightbox.id);setLightbox({...lightbox,principal:true})}} style={{padding:'6px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>★ Marcar como principal</button>}
+                {lightbox.src?.startsWith('http') && (
+                  <a href={lightbox.src} download={`${lightbox.desc||'imagen'}.jpg`} target="_blank" rel="noreferrer"
+                    style={{padding:'6px 14px',background:'#16a34a',color:'#fff',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:4}}>
+                    ⬇ Descargar JPG
+                  </a>
+                )}
                 <button onClick={()=>setLightbox(null)} style={{padding:'6px 14px',background:'var(--surface)',color:'var(--text2)',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>Cerrar</button>
               </div>
             </div>
@@ -1679,241 +1694,145 @@ function TabMultimedia() {
 }
 
 function NewActivoInfoTab({ newForm, setNF }) {
-  const addressRef = useRef(null)
-  const mapElRef   = useRef(null)
-  const mapObj     = useRef(null)
-  const markerRef  = useRef(null)
-  const acRef      = useRef(null)
-
   // Derived conditional zone data
-  const nfAreas   = getAreas(newForm.ciudad, newForm.uso)
-  const zonas     = newForm.area ? getZonas(newForm.ciudad, newForm.uso, newForm.area) : []
-  const subzonas  = newForm.area && newForm.zona ? getSubzonas(newForm.ciudad, newForm.uso, newForm.area, newForm.zona) : []
+  const nfAreas  = getAreas(newForm.ciudad, newForm.uso)
+  const zonas    = newForm.area ? getZonas(newForm.ciudad, newForm.uso, newForm.area) : []
+  const subzonas = newForm.area && newForm.zona ? getSubzonas(newForm.ciudad, newForm.uso, newForm.area, newForm.zona) : []
 
-  useEffect(() => {
-    if (!GMAPS_API_KEY) return
+  const inp = {padding:'5px 8px',border:'1px solid var(--accent-bd)',borderRadius:5,fontSize:12,fontFamily:'inherit',background:'var(--accent-lt)',color:'var(--text1)',width:'100%',boxSizing:'border-box',outline:'none'}
+  const sel = {...inp,cursor:'pointer'}
+  const selSt = {padding:'4px 7px',border:'1px solid var(--border)',borderRadius:5,fontSize:11,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',width:'100%'}
 
-    const setupMap = () => {
-      if (!mapElRef.current || !window.google?.maps?.places) return
-      if (mapObj.current) return // already initialized
-
-      const center = { lat: 40.4168, lng: -3.7038 }
-      mapObj.current = new window.google.maps.Map(mapElRef.current, {
-        center, zoom: 12,
-        mapTypeControl: false, streetViewControl: false, fullscreenControl: false,
-        styles: [{ featureType:'poi', stylers:[{ visibility:'off' }] }],
-      })
-      markerRef.current = new window.google.maps.Marker({
-        map: mapObj.current, position: center, visible: false,
-      })
-
-      if (addressRef.current) {
-        acRef.current = new window.google.maps.places.Autocomplete(addressRef.current, {
-          componentRestrictions: { country: 'es' },
-          fields: ['formatted_address','address_components','geometry'],
-        })
-        acRef.current.addListener('place_changed', () => {
-          const place = acRef.current.getPlace()
-          if (!place.geometry) return
-          const get = (type) => {
-            const c = (place.address_components || []).find(x => x.types.includes(type))
-            return c ? c.long_name : ''
-          }
-          setNF('direccion', place.formatted_address || '')
-          setNF('ciudad',    get('locality') || get('administrative_area_level_2') || '')
-          setNF('pais',      get('country') || '')
-          setNF('cp',        get('postal_code') || '')
-          const loc = place.geometry.location
-          mapObj.current.setCenter(loc)
-          mapObj.current.setZoom(16)
-          markerRef.current.setPosition(loc)
-          markerRef.current.setVisible(true)
-        })
-      }
-    }
-
-    if (window.google?.maps?.places) {
-      setupMap()
-    } else {
-      const existing = document.getElementById('gmaps-script')
-      if (existing) {
-        // Script already loading — wait for it
-        existing.addEventListener('load', setupMap)
-      } else {
-        const s = document.createElement('script')
-        s.id  = 'gmaps-script'
-        s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_API_KEY}&libraries=places`
-        s.async = true
-        s.defer = true
-        s.onload = setupMap
-        document.head.appendChild(s)
-      }
-    }
-  }, []) // run once on mount
-
-  const inp = { className:'of-inp', style:{width:'100%',boxSizing:'border-box'} }
-  const sel = { className:'of-sel', style:{width:'100%',boxSizing:'border-box'} }
+  const Row = ({label, children}) => (
+    <div className="ir" style={{alignItems:'flex-start',gap:6}}>
+      <span className="ir-k">{label}</span>
+      <div style={{flex:1}}>{children}</div>
+    </div>
+  )
 
   return (
     <div className="tab-content active">
       <div className="info-pad">
 
-        {/* ══ 1. UBICACIÓN ══ */}
-        <div style={{marginBottom:20}}>
-          <div style={{fontSize:12,fontWeight:700,color:'var(--text2)',marginBottom:10,paddingBottom:6,borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:6}}>
-            📍 Ubicación
+        {/* Mapa + carrusel */}
+        <MapaCarrusel activo={null} direccion={newForm.direccion}
+          onAddressChange={({direccion,ciudad,pais,cp,coordenadas})=>{
+            setNF('direccion',direccion); setNF('ciudad',ciudad); setNF('pais',pais||'España')
+            if(cp) setNF('cp',cp); if(coordenadas) setNF('coordenadas',coordenadas)
+          }}/>
+
+        {/* UBICACIÓN + TIPOLOGÍA */}
+        <div className="info-2col" style={{marginBottom:12}}>
+          <div className="info-block">
+            <div className="ib-title">📍 UBICACIÓN</div>
+            <Row label="Nombre del activo">
+              <input value={newForm.nombre} onChange={e=>setNF('nombre',e.target.value)} style={inp} placeholder="P.E Avalon, Torre Sevilla..."/>
+            </Row>
+            <Row label="Propietario">
+              <input list="fa-cuentas-new" value={newForm.propietario} onChange={e=>setNF('propietario',e.target.value)} style={inp} placeholder="Buscar cuenta..."/>
+              <datalist id="fa-cuentas-new">{CUENTAS_FA.map(c=><option key={c} value={c}/>)}</datalist>
+            </Row>
+            <Row label="Dirección">
+              <input value={newForm.direccion} onChange={e=>setNF('direccion',e.target.value)} style={inp} placeholder="Calle Serrano 41, Madrid..."/>
+            </Row>
+            <Row label="Ciudad">
+              <input value={newForm.ciudad} onChange={e=>{setNF('ciudad',e.target.value);setNF('area','');setNF('zona','');setNF('subzona','')}} style={inp} placeholder="Madrid"/>
+            </Row>
+            <Row label="País">
+              <input value={newForm.pais} onChange={e=>setNF('pais',e.target.value)} style={inp} placeholder="España"/>
+            </Row>
+            <Row label="Código postal">
+              <input value={newForm.cp} onChange={e=>setNF('cp',e.target.value)} style={inp} placeholder="28037"/>
+            </Row>
+            <Row label="Coordenadas">
+              <input value={newForm.coordenadas||''} onChange={e=>setNF('coordenadas',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="40.416775, -3.703790"/>
+            </Row>
+            {/* Área / Zona / Subzona */}
+            <div style={{marginTop:8,padding:'10px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:7}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:0}}>
+                <div>
+                  <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Área</div>
+                  {nfAreas.length > 0
+                    ? <select value={newForm.area} onChange={e=>{setNF('area',e.target.value);setNF('zona','');setNF('subzona','')}} style={selSt}><option value="">—</option>{nfAreas.map(a=><option key={a}>{a}</option>)}</select>
+                    : <input value={newForm.area} onChange={e=>setNF('area',e.target.value)} style={selSt} placeholder="—"/>}
+                </div>
+                <div>
+                  <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Zona</div>
+                  {zonas.length > 0
+                    ? <select value={newForm.zona} onChange={e=>{setNF('zona',e.target.value);setNF('subzona','')}} style={selSt}><option value="">—</option>{zonas.map(z=><option key={z}>{z}</option>)}</select>
+                    : <input value={newForm.zona} onChange={e=>setNF('zona',e.target.value)} style={selSt} placeholder="—"/>}
+                </div>
+                <div>
+                  <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Subzona</div>
+                  {subzonas.length > 0
+                    ? <select value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} style={selSt}><option value="">—</option>{subzonas.map(s=><option key={s}>{s}</option>)}</select>
+                    : <input value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} style={selSt} placeholder="—"/>}
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Mapa + campos side by side */}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:12}}>
+          <div className="info-block">
+            <div className="ib-title">🏢 TIPOLOGÍA</div>
+            <Row label="Tipo de activo">
+              <select value={newForm.tipo_activo} onChange={e=>setNF('tipo_activo',e.target.value)} style={sel}>
+                {['Edificio','Nave','Local','Parcela','Complejo','Torre','Centro comercial','Parque empresarial','Parque logístico','Residencia'].map(t=><option key={t}>{t}</option>)}
+              </select>
+            </Row>
+            <Row label="Estado construcción">
+              <select value={newForm.estado_construccion} onChange={e=>setNF('estado_construccion',e.target.value)} style={sel}>
+                <option value="">—</option>{ESTADOS_CONSTRUCCION.map(e=><option key={e}>{e}</option>)}
+              </select>
+            </Row>
+            <Row label="Uso principal">
+              <select value={newForm.uso} onChange={e=>setNF('uso',e.target.value)} style={sel}>
+                <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
+              </select>
+            </Row>
+            <Row label="Uso secundario">
+              <select value={newForm.uso_secundario} onChange={e=>setNF('uso_secundario',e.target.value)} style={sel}>
+                <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
+              </select>
+            </Row>
+            <Row label="Calidad">
+              <select value={newForm.calidad} onChange={e=>setNF('calidad',e.target.value)} style={sel}>
+                <option value="">—</option>{CALIDADES.map(c=><option key={c}>{c}</option>)}
+              </select>
+            </Row>
+            <Row label="SBA (m²)">
+              <input type="number" value={newForm.sba} onChange={e=>setNF('sba',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0"/>
+            </Row>
+            <Row label="Año construcción">
+              <input type="number" value={newForm.anno_construccion} onChange={e=>setNF('anno_construccion',e.target.value)} style={inp} placeholder="—"/>
+            </Row>
+            <Row label="Año rehabilitación">
+              <input type="number" value={newForm.anno_rehabilitacion} onChange={e=>setNF('anno_rehabilitacion',e.target.value)} style={inp} placeholder="—"/>
+            </Row>
+            <Row label="Asset Manager">
+              <input value={newForm.asset_manager} onChange={e=>setNF('asset_manager',e.target.value)} style={inp} placeholder="—"/>
+            </Row>
+            <div className="ir">
+              <span className="ir-k">Nº edificios</span>
+              <span className="ir-v" style={{fontSize:10,color:'var(--text4)',fontStyle:'italic'}}>Desde Stacking Plan</span>
+            </div>
+          </div>
+        </div>
 
-            {/* Mapa izquierda */}
+        {/* DATOS URBANÍSTICOS */}
+        <div className="info-block" style={{marginBottom:12}}>
+          <div className="ib-title">🏛 DATOS URBANÍSTICOS</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 24px'}}>
             <div>
-              <FLabel>Dirección · busca en el mapa</FLabel>
-              {GMAPS_API_KEY ? (
-                <>
-                  <input ref={addressRef} {...inp} placeholder="Calle Serrano 41, Madrid..." value={newForm.direccion} onChange={e=>setNF('direccion',e.target.value)} style={{...inp.style,marginBottom:8}}/>
-                  <div ref={mapElRef} style={{width:'100%',height:200,borderRadius:8,border:'1px solid var(--border)',overflow:'hidden',background:'#e5e3df'}}/>
-                </>
-              ) : (
-                <>
-                  <input {...inp} placeholder="Calle Serrano 41, Madrid..." value={newForm.direccion} onChange={e=>setNF('direccion',e.target.value)} style={{...inp.style,marginBottom:8}}/>
-                  <div style={{width:'100%',height:200,borderRadius:8,border:'1px dashed var(--border)',background:'var(--gray-lt)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,color:'var(--text4)'}}>
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                    <div style={{fontSize:11,textAlign:'center',padding:'0 16px'}}>Mapa Google Maps<br/><span style={{fontSize:10,color:'var(--accent)'}}>Añade tu API key en GMAPS_API_KEY para activarlo</span></div>
-                  </div>
-                </>
-              )}
+              <Row label="Ref. catastral"><input value={newForm.ref_catastral} onChange={e=>setNF('ref_catastral',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/></Row>
+              <Row label="Uso PGOU"><input value={newForm.uso_pgou} onChange={e=>setNF('uso_pgou',e.target.value)} style={inp} placeholder="—"/></Row>
             </div>
-
-            {/* Campos derecha */}
-            <div style={{display:'flex',flexDirection:'column',gap:10}}>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                <div><FLabel>Ciudad</FLabel>
-                  <input {...inp} placeholder="Madrid" value={newForm.ciudad} onChange={e=>{setNF('ciudad',e.target.value);setNF('area','');setNF('zona','');setNF('subzona','')}}/>
-                </div>
-                <div><FLabel>País</FLabel>
-                  <input {...inp} placeholder="España" value={newForm.pais} onChange={e=>setNF('pais',e.target.value)}/>
-                </div>
-              </div>
-              <div><FLabel>Código postal</FLabel>
-                <input {...inp} placeholder="28037" value={newForm.cp} onChange={e=>setNF('cp',e.target.value)}/>
-              </div>
-
-              {/* Área / Zona / Subzona — desplegables si hay datos, texto libre si no */}
-              <div><FLabel>Área</FLabel>
-                {nfAreas.length > 0 ? (
-                  <select {...sel} value={newForm.area} onChange={e=>{setNF('area',e.target.value);setNF('zona','');setNF('subzona','')}}>
-                    <option value="">Seleccionar área...</option>
-                    {nfAreas.map(a=><option key={a}>{a}</option>)}
-                  </select>
-                ) : <input {...inp} placeholder="CBD..." value={newForm.area} onChange={e=>setNF('area',e.target.value)}/>}
-              </div>
-              <div><FLabel>Zona</FLabel>
-                {zonas.length > 0 ? (
-                  <select {...sel} value={newForm.zona} onChange={e=>{setNF('zona',e.target.value);setNF('subzona','')}} disabled={!newForm.area}>
-                    <option value="">Seleccionar zona...</option>
-                    {zonas.map(z=><option key={z}>{z}</option>)}
-                  </select>
-                ) : <input {...inp} placeholder="M-30..." value={newForm.zona} onChange={e=>setNF('zona',e.target.value)}/>}
-              </div>
-              <div><FLabel>Sub-zona</FLabel>
-                {subzonas.length > 0 ? (
-                  <select {...sel} value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} disabled={!newForm.zona}>
-                    <option value="">Seleccionar sub-zona...</option>
-                    {subzonas.map(s=><option key={s}>{s}</option>)}
-                  </select>
-                ) : <input {...inp} placeholder="Azca..." value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)}/>}
-              </div>
+            <div>
+              <Row label="Clasificación"><input value={newForm.clasificacion_urb||''} onChange={e=>setNF('clasificacion_urb',e.target.value)} style={inp} placeholder="—"/></Row>
+              <Row label="Calificación"><input value={newForm.calificacion_urb} onChange={e=>setNF('calificacion_urb',e.target.value)} style={inp} placeholder="—"/></Row>
             </div>
-          </div>
-        </div>
-
-        {/* ══ 2. TIPOLOGÍA ══ */}
-        <div style={{marginBottom:20}}>
-          <div style={{fontSize:12,fontWeight:700,color:'var(--text2)',marginBottom:10,paddingBottom:6,borderBottom:'1px solid var(--border)'}}>
-            🏢 Tipología
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-            <div><FLabel>Tipo de activo</FLabel>
-              <select {...sel} value={newForm.tipo_activo} onChange={e=>setNF('tipo_activo',e.target.value)}>
-                <option>Edificio</option><option>Suelo</option>
-              </select>
-            </div>
-            <div><FLabel>Estado de construcción</FLabel>
-              <select {...sel} value={newForm.estado_construccion} onChange={e=>setNF('estado_construccion',e.target.value)}>
-                {ESTADOS_CONSTRUCCION.map(o=><option key={o}>{o}</option>)}
-              </select>
-            </div>
-            <div><FLabel>Uso principal</FLabel>
-              <select {...sel} value={newForm.uso} onChange={e=>setNF('uso',e.target.value)}>
-                {USOS_PRINCIPALES.map(o=><option key={o}>{o}</option>)}
-              </select>
-            </div>
-            <div><FLabel>Calidad</FLabel>
-              <select {...sel} value={newForm.calidad} onChange={e=>setNF('calidad',e.target.value)}>
-                {CALIDADES.map(o=><option key={o}>{o}</option>)}
-              </select>
-            </div>
-            <div><FLabel>Uso secundario <span style={{fontWeight:400,textTransform:'none',letterSpacing:0}}>(opcional)</span></FLabel>
-              <select {...sel} value={newForm.uso_secundario} onChange={e=>setNF('uso_secundario',e.target.value)}>
-                <option value="">—</option>
-                {USOS_PRINCIPALES.map(o=><option key={o}>{o}</option>)}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* ══ 3. DATOS GENERALES ══ */}
-        <div style={{marginBottom:20}}>
-          <div style={{fontSize:12,fontWeight:700,color:'var(--text2)',marginBottom:10,paddingBottom:6,borderBottom:'1px solid var(--border)'}}>
-            📋 Datos generales
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-            <div><FLabel>SBA (m²)</FLabel>
-              <input {...inp} type="number" placeholder="46956" value={newForm.sba} onChange={e=>setNF('sba',e.target.value)}/>
-            </div>
-            <div><FLabel>Asset Manager</FLabel>
-              <input {...inp} placeholder="Buscar usuario..." value={newForm.asset_manager} onChange={e=>setNF('asset_manager',e.target.value)}/>
-            </div>
-            <div><FLabel>Año de construcción</FLabel>
-              <input {...inp} type="number" placeholder="2003" value={newForm.anno_construccion} onChange={e=>setNF('anno_construccion',e.target.value)}/>
-            </div>
-            <div><FLabel>Año de rehabilitación <span style={{fontWeight:400,textTransform:'none',letterSpacing:0}}>(si aplica)</span></FLabel>
-              <input {...inp} type="number" placeholder="2018" value={newForm.anno_rehabilitacion} onChange={e=>setNF('anno_rehabilitacion',e.target.value)}/>
-            </div>
-            <div style={{gridColumn:'1/-1'}}>
-              <FLabel>Nº de edificios</FLabel>
-              <div style={{padding:'6px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:11,color:'var(--text4)',fontStyle:'italic'}}>
-                Se calculará automáticamente al crear el stacking plan
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ══ 4. DATOS URBANÍSTICOS ══ */}
-        <div>
-          <div style={{fontSize:12,fontWeight:700,color:'var(--text2)',marginBottom:10,paddingBottom:6,borderBottom:'1px solid var(--border)'}}>
-            🏛 Datos urbanísticos
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
-            <div><FLabel>Ref. catastral</FLabel>
-              <input {...inp} placeholder="1380341VK4718A0001FU" value={newForm.ref_catastral} onChange={e=>setNF('ref_catastral',e.target.value)}/>
-            </div>
-            <div><FLabel>Clasificación</FLabel>
-              <input {...inp} placeholder="Suelo urbano consolidado" value={newForm.clasificacion} onChange={e=>setNF('clasificacion',e.target.value)}/>
-            </div>
-            <div><FLabel>Uso PGOU</FLabel>
-              <input {...inp} placeholder="Terciario / Oficinas" value={newForm.uso_pgou} onChange={e=>setNF('uso_pgou',e.target.value)}/>
-            </div>
-            <div><FLabel>Calificación urbanística</FLabel>
-              <input {...inp} placeholder="ZVD — Zona Verde / Dotacional" value={newForm.calificacion_urb} onChange={e=>setNF('calificacion_urb',e.target.value)}/>
-            </div>
-            <div><FLabel>Edificabilidad (m²t/m²s)</FLabel>
-              <input {...inp} placeholder="1,5" value={newForm.edificabilidad} onChange={e=>setNF('edificabilidad',e.target.value)}/>
-            </div>
-            <div><FLabel>Sup. parcela (m²)</FLabel>
-              <input {...inp} type="number" placeholder="12400" value={newForm.sup_parcela} onChange={e=>setNF('sup_parcela',e.target.value)}/>
+            <div>
+              <Row label="Edificabilidad"><input value={newForm.edificabilidad} onChange={e=>setNF('edificabilidad',e.target.value)} style={inp} placeholder="—"/></Row>
+              <Row label="Sup. parcela (m²)"><input type="number" value={newForm.sup_parcela} onChange={e=>setNF('sup_parcela',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="—"/></Row>
             </div>
           </div>
         </div>
@@ -1966,9 +1885,11 @@ function MapaCarrusel({ activo, direccion, onAddressChange }) {
           if (onAddressChange) {
             const get = type => { const c = (place.address_components||[]).find(x=>x.types.includes(type)); return c?c.long_name:'' }
             onAddressChange({
-              direccion: place.formatted_address || '',
-              ciudad:    get('locality') || get('administrative_area_level_2') || '',
-              pais:      get('country') || '',
+              direccion:   place.formatted_address || '',
+              ciudad:      get('locality') || get('administrative_area_level_2') || '',
+              pais:        get('country') || '',
+              cp:          get('postal_code') || '',
+              coordenadas: `${loc.lat().toFixed(6)}, ${loc.lng().toFixed(6)}`,
             })
           }
         })
@@ -2296,9 +2217,9 @@ function AddressField({ value, ciudad, onSave }) {
   )
 }
 
-function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved }) {
+function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef }) {
   const INIT_INFO = {
-    nombre:'', direccion:'', ciudad:'', pais:'España',
+    nombre:'', direccion:'', ciudad:'', pais:'España', cp:'', coordenadas:'',
     area:'', zona:'', subzona:'',
     tipo_activo:'Edificio', estado_construccion:'Construcción existente',
     uso:'', uso_secundario:'', calidad:'',
@@ -2320,6 +2241,8 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved }) {
       direccion:           activo.direccion           || '',
       ciudad:              activo.ciudad              || '',
       pais:                activo.pais                || 'España',
+      cp:                  activo.cp                  || '',
+      coordenadas:         activo.coordenadas         || '',
       area:                activo.area                || '',
       zona:                activo.zona                || '',
       subzona:             activo.subzona             || '',
@@ -2352,6 +2275,8 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved }) {
       direccion:           info.direccion            || null,
       ciudad:              info.ciudad               || null,
       pais:                info.pais                 || null,
+      cp:                  info.cp                   || null,
+      coordenadas:         info.coordenadas          || null,
       area:                info.area                 || null,
       zona:                info.zona                 || null,
       subzona:             info.subzona              || null,
@@ -2376,6 +2301,8 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved }) {
     setDirty(false); setSaveErr(''); setSaveOk(true); setTimeout(()=>setSaveOk(false),3000)
     if (onInfoSaved) onInfoSaved({ nombre: info.nombre, direccion: info.direccion })
   }
+  // Expose handleSave via ref so parent action bar can trigger it
+  if (saveRef) saveRef.current = handleSave
 
   const totalPlazas = plazas.reduce((s,p)=>s+p.cantidad,0)
   const byUbic = UBICACIONES.map(u=>({u, n:plazas.filter(p=>p.ubicacion===u).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
@@ -2392,8 +2319,8 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved }) {
 
         {/* ── Mapa con barra búsqueda integrada + Carrusel ── */}
         <MapaCarrusel activo={activo} direccion={info.direccion}
-          onAddressChange={({direccion,ciudad,pais})=>{
-            setInfo(p=>({...p,direccion,ciudad,pais})); setDirty(true); setSaveOk(false)
+          onAddressChange={({direccion,ciudad,pais,cp,coordenadas})=>{
+            setInfo(p=>({...p,direccion,ciudad,pais,...(cp?{cp}:{}),...(coordenadas?{coordenadas}:{})})); setDirty(true); setSaveOk(false)
           }}/>
 
         {/* ── Save bar ── */}
@@ -2435,7 +2362,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved }) {
           <div className="info-block">
             <div className="ib-title">📍 UBICACIÓN</div>
             <InlineField label="Nombre del activo" value={info.nombre}
-              onSave={()=>setDirty(true)}>
+              onSave={()=>{ setDirty(true); if(onInfoSaved) onInfoSaved({nombre: info.nombre}) }}>
               <input value={info.nombre} onChange={e=>setI('nombre',e.target.value)} style={inp} placeholder="Nombre comercial del activo..."/>
             </InlineField>
             <AddressField value={info.direccion} ciudad={info.ciudad}
@@ -2445,6 +2372,12 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved }) {
             </InlineField>
             <InlineField label="País" value={info.pais} onSave={()=>setDirty(true)}>
               <input value={info.pais} onChange={e=>setI('pais',e.target.value)} style={inp} placeholder="—"/>
+            </InlineField>
+            <InlineField label="Código postal" value={info.cp||'—'} onSave={()=>setDirty(true)}>
+              <input value={info.cp} onChange={e=>setI('cp',e.target.value)} style={inp} placeholder="—"/>
+            </InlineField>
+            <InlineField label="Coordenadas" value={info.coordenadas||'—'} onSave={()=>setDirty(true)}>
+              <input value={info.coordenadas} onChange={e=>setI('coordenadas',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="40.416775, -3.703790"/>
             </InlineField>
             <ZonaBox info={info} setI={setI}/>
           </div>
@@ -3029,6 +2962,7 @@ export default function FichaActivo() {
   const [displayNombre,   setDisplayNombre]   = useState(null) // overrides activo.nombre after inline save
   const [displayDireccion,setDisplayDireccion] = useState(null) // overrides activo.direccion after inline save
   const [liveEdifCount,   setLiveEdifCount]   = useState(null) // synced from StackingPlan
+  const infoSaveRef = useRef(null) // ref to TabInfo's handleSave
 
   useEffect(() => {
     if (!params?.ref) return
@@ -3120,8 +3054,8 @@ export default function FichaActivo() {
           </>
         ) : (
           <>
-            <button className="ab-btn save">💾 Guardar</button>
-            <button className="ab-btn">Guardar y cerrar</button>
+            <button className="ab-btn save" onClick={() => infoSaveRef.current?.()}>💾 Guardar</button>
+            <button className="ab-btn" onClick={async () => { await infoSaveRef.current?.(); navigate('activos') }}>Guardar y cerrar</button>
             <button className="ab-btn">Nuevo</button>
             <button className="ab-btn">Desactivar</button>
             <div className="ab-sep"/>
@@ -3195,11 +3129,14 @@ export default function FichaActivo() {
           </div>
 
           {/* ── TAB: Información general ── */}
-          {activeTab==='at-info' && (isNew
-            ? <NewActivoInfoTab newForm={newForm} setNF={setNF}/>
-            : <TabInfo navigate={navigate} plazas={plazas} activo={activo}
+          {isNew && activeTab==='at-info' && <NewActivoInfoTab newForm={newForm} setNF={setNF}/>}
+          {!isNew && (
+            <div style={{display: activeTab==='at-info' ? undefined : 'none'}}>
+              <TabInfo navigate={navigate} plazas={plazas} activo={activo}
                 nEdificios={liveEdifCount ?? activo?.n_edificios ?? 1}
+                saveRef={infoSaveRef}
                 onInfoSaved={({nombre,direccion})=>{ if(nombre!==undefined) setDisplayNombre(nombre||null); if(direccion!==undefined) setDisplayDireccion(direccion||null) }}/>
+            </div>
           )}
 
           {/* ── TAB: Stacking Plan ── */}
@@ -3227,7 +3164,6 @@ export default function FichaActivo() {
             const usoActivo = activo?.uso || ''
             const usoLabel = usoActivo || 'Uso principal'
             const usoIco = USO_ICO[usoActivo] || '🏢'
-            const caracCatsByUso = usoActivo==='Retail' ? CARAC_CATEGORIAS_RT : usoActivo==='Logístico' ? CARAC_CATEGORIAS_LG : usoActivo==='Residencial' ? CARAC_CATEGORIAS_RES : CARAC_CATEGORIAS_OF
             const selSt = {padding:'5px 9px',fontSize:11,border:'1px solid var(--border)',borderRadius:5,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}
             const inpSt = {padding:'5px 9px',fontSize:11,border:'1px solid var(--border)',borderRadius:5,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',flex:1}
             const addRowBtn = (onClick, show) => (
@@ -3734,13 +3670,9 @@ export default function FichaActivo() {
                     <div className="ir"><span className="ir-k">Ocupación</span><span className="ir-v" style={{fontWeight:700}}>{activo?.occupancy_rate != null ? `${activo.occupancy_rate}%` : '—'}</span></div>
                   </div>
                   <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                    <button style={{padding:'5px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
+                    <button onClick={()=>exportFichaActivo()} style={{padding:'5px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
                       <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v8M4 6l3 3 3-3"/><path d="M2 11h10" strokeLinecap="round"/></svg>
                       Exportar .pdf
-                    </button>
-                    <button style={{padding:'5px 14px',background:'#7c3aed',color:'#fff',border:'none',borderRadius:5,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
-                      <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="10" height="10" rx="1"/><path d="M5 7h4M7 5v4"/></svg>
-                      Exportar .pptx
                     </button>
                     <button style={{padding:'5px 14px',background:'none',border:'1px solid var(--border)',color:'var(--text2)',borderRadius:5,fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
                       🔗 Generar enlace
@@ -3757,13 +3689,9 @@ export default function FichaActivo() {
                     Informe técnico completo con datos generales, superficies, características técnicas, ESG, stacking plan, rent roll, propietarios y arrendatarios.
                   </div>
                   <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                    <button style={{padding:'5px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
+                    <button onClick={()=>exportFichaActivo()} style={{padding:'5px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
                       <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v8M4 6l3 3 3-3"/><path d="M2 11h10" strokeLinecap="round"/></svg>
                       Exportar .pdf
-                    </button>
-                    <button style={{padding:'5px 14px',background:'#7c3aed',color:'#fff',border:'none',borderRadius:5,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
-                      <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="10" height="10" rx="1"/><path d="M5 7h4M7 5v4"/></svg>
-                      Exportar .pptx
                     </button>
                     <button style={{padding:'5px 14px',background:'none',border:'1px solid var(--border)',color:'var(--text2)',borderRadius:5,fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
                       🔗 Generar enlace
