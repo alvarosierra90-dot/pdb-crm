@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
@@ -1605,6 +1605,20 @@ export default function FichaActivo() {
   const [saveErr, setSaveErr]           = useState('')
   const setNF = (k, v) => setNewForm(p => ({ ...p, [k]: v }))
 
+  // Datos del activo desde Supabase
+  const [activo, setActivo] = useState(null)
+  const [loadingActivo, setLoadingActivo] = useState(false)
+
+  useEffect(() => {
+    if (!params?.ref) return
+    setLoadingActivo(true)
+    supabase.from('activos').select('*').eq('ref', params.ref).single()
+      .then(({ data }) => {
+        if (data) setActivo(data)
+        setLoadingActivo(false)
+      })
+  }, [params?.ref])
+
   const handleCreateActivo = async () => {
     if (!newForm.direccion) { setSaveErr('La dirección es obligatoria'); return }
     setSaving(true); setSaveErr('')
@@ -1711,22 +1725,26 @@ export default function FichaActivo() {
                       </div>
                     </div>
                   </div>
+                ) : loadingActivo ? (
+                  <div style={{padding:'8px 0',color:'var(--text4)',fontSize:13}}>Cargando...</div>
                 ) : (
                   /* ── ACTIVO EXISTENTE ── */
                   <>
                     <div className="ah-ref">
                       <span className="ref-badge-activo">ACTIVO</span>
-                      <span className="asset-link" style={{fontFamily:'var(--mono)'}}>MAD-OF-00189</span>
+                      <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{activo?.ref || params?.ref}</span>
                     </div>
-                    <div className="ah-name">P.E Avalon</div>
-                    <div className="ah-addr">📍 Calle Santa Leonor 65, 28037 Madrid · Área: Centro · Zona: M-30 · Sub-zona: M.Álvaro</div>
+                    <div className="ah-name">{activo?.nombre || '—'}</div>
+                    <div className="ah-addr">
+                      {activo?.direccion && <>📍 {activo.direccion} · </>}
+                      {[activo?.zona, activo?.subzona, activo?.ciudad].filter(Boolean).join(' · ')}
+                    </div>
                     <div className="ah-tags">
-                      <span className="tag tag-blue">Oficinas</span>
-                      <span className="tag tag-gray">Construcción existente</span>
-                      <span className="tag tag-leed">LEED Gold</span>
-                      <span className="tag tag-esg">ESG A</span>
-                      <span className="tag tag-gray">4 edificios</span>
-                      <span className="dias-pill">📅 127 días en comercialización</span>
+                      {activo?.uso && <span className={`tag ${activo.uso === 'Oficinas' ? 'tag-blue' : activo.uso === 'Logístico' ? 'tag-teal' : activo.uso === 'Data Center' ? 'tag-blue' : activo.uso === 'Residencial' ? 'tag-amber' : 'tag-purple'}`}>{activo.uso}</span>}
+                      {activo?.leed && <span className="tag tag-leed">LEED {activo.leed}</span>}
+                      {activo?.esg_rating && <span className="tag tag-esg">ESG {activo.esg_rating}</span>}
+                      {activo?.n_edificios > 1 && <span className="tag tag-gray">{activo.n_edificios} edificios</span>}
+                      {activo?.dias_comercializacion > 0 && <span className="dias-pill">📅 {activo.dias_comercializacion} días en comercialización</span>}
                     </div>
                   </>
                 )}

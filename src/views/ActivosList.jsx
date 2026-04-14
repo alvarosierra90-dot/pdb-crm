@@ -39,12 +39,13 @@ export default function ActivosList() {
   const { navigate } = useNav()
   const [query,   setQuery]   = useState('')
   const [activos, setActivos] = useState(ACTIVOS)
+  const [loading, setLoading] = useState(true)
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ uso: '', estado: '', ciudad: '', zona: '', sbaMin: '', sbaMax: '', occMin: '', occMax: '' })
   const [vis, setVis] = useVisibleCols('activos', COLS)
 
   useEffect(() => {
-    supabase.from('activos').select('*').then(({ data, error }) => {
+    supabase.from('activos').select('*').order('nombre').then(({ data, error }) => {
       if (!error && data && data.length > 0) {
         setActivos(data.map(a => ({
           ref:    a.ref,
@@ -62,6 +63,7 @@ export default function ActivosList() {
           dias:   a.dias_comercializacion || 0,
         })))
       }
+      setLoading(false)
     })
   }, [])
 
@@ -131,20 +133,24 @@ export default function ActivosList() {
       )}
 
       <div className="tbl-wrap">
-        <table className="main-tbl">
-          <thead>
-            <tr>
-              {visibleCols.map(c =>
-                c.id === '_chk' ? <th key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} /></th> :
-                c.sys ? <th key={c.id}>{c.label}</th> :
-                <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={activos} />
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {result.map(a => <tr key={a.ref} onClick={() => navigate('ficha-activo', { ref: a.ref })}>{visibleCols.map(c => cell(a)[c.id])}</tr>)}
-          </tbody>
-        </table>
+        {loading ? (
+          <div style={{ padding: '40px 24px', color: 'var(--text4)', fontSize: 13, textAlign: 'center' }}>Cargando activos...</div>
+        ) : (
+          <table className="main-tbl">
+            <thead>
+              <tr>
+                {visibleCols.map(c =>
+                  c.id === '_chk' ? <th key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} /></th> :
+                  c.sys ? <th key={c.id}>{c.label}</th> :
+                  <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={activos} />
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {result.map(a => <tr key={a.ref} onClick={() => navigate('ficha-activo', { ref: a.ref })}>{visibleCols.map(c => cell(a)[c.id])}</tr>)}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   )
