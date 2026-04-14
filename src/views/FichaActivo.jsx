@@ -2659,6 +2659,12 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--green)',fontWeight:600}}>✓ Sincronizado</span>}
               {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--red)',maxWidth:260,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
+              <button
+                onClick={syncCatastro}
+                disabled={syncingCat}
+                style={{padding:'3px 10px',fontSize:10,fontWeight:600,fontFamily:'inherit',cursor:syncingCat?'wait':'pointer',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,display:'flex',alignItems:'center',gap:5,whiteSpace:'nowrap',opacity:syncingCat?0.7:1}}>
+                {syncingCat ? '⟳ Consultando...' : '⟳ Sincronizar'}
+              </button>
             </div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 24px'}}>
@@ -3226,8 +3232,7 @@ export default function FichaActivo() {
   const [editNombreVal,   setEditNombreVal]   = useState('')
   const [liveEdifCount,   setLiveEdifCount]   = useState(null) // synced from StackingPlan
   const infoSaveRef = useRef(null) // ref to TabInfo's handleSave
-  const infoSyncRef = useRef(null) // ref to TabInfo's syncCatastro
-  const [syncingFromBar, setSyncingFromBar] = useState(false)
+  const infoSyncRef = useRef(null) // ref to TabInfo's syncCatastro (available for future use)
 
   useEffect(() => {
     if (!params?.ref) return
@@ -3326,14 +3331,6 @@ export default function FichaActivo() {
           <>
             <button className="ab-btn save" onClick={() => infoSaveRef.current?.()}>💾 Guardar</button>
             <button className="ab-btn" onClick={async () => { await infoSaveRef.current?.(); navigate('activos', { highlightRef: activo?.ref ?? params?.ref }) }}>Guardar y cerrar</button>
-            <div className="ab-sep"/>
-            <button
-              className="ab-btn"
-              disabled={syncingFromBar}
-              onClick={async () => { setSyncingFromBar(true); await infoSyncRef.current?.(); setSyncingFromBar(false) }}
-              style={syncingFromBar ? {opacity:0.6} : undefined}>
-              {syncingFromBar ? '⟳ Sincronizando...' : '⟳ Sincronizar'}
-            </button>
             <div className="ab-sep"/>
             <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
           </>
