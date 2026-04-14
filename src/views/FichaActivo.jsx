@@ -3340,25 +3340,18 @@ export default function FichaActivo() {
               onInfoSaved={({nombre,direccion})=>{ if(nombre!==undefined) setDisplayNombre(nombre||null); if(direccion!==undefined) setDisplayDireccion(direccion||null) }}/>
           )}
 
-          {/* ── TAB: Stacking Plan ── */}
-          {activeTab==='at-stacking' && (
-            <div className="tab-content active">
-              <div className="info-pad">
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-                  <div>
-                    <div style={{fontSize:14,fontWeight:600}}>Stacking Plan</div>
-                    <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Distribución de usos, propietarios y arrendatarios por planta y edificio</div>
-                  </div>
-                  <div style={{display:'flex',gap:10,alignItems:'center'}}>
-                    <span style={{fontSize:11,color:'var(--text4)'}}>Disponible: <strong style={{color:'var(--amber)'}}>10.142 m²</strong></span>
-                    <span style={{fontSize:11,color:'var(--text4)'}}>·</span>
-                    <span style={{fontSize:11,color:'var(--text4)'}}>Ocupado: <strong style={{color:'var(--green)'}}>36.814 m²</strong></span>
-                  </div>
+          {/* ── TAB: Stacking Plan — always mounted to preserve state ── */}
+          <div className="tab-content active" style={activeTab !== 'at-stacking' ? {display:'none'} : undefined}>
+            <div className="info-pad">
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                <div>
+                  <div style={{fontSize:14,fontWeight:600}}>Stacking Plan</div>
+                  <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Distribución de usos, propietarios y arrendatarios por planta y edificio</div>
                 </div>
-                <StackingPlan initBuildings={isNew ? [] : (BUILDINGS_BY_ACTIVO[params?.ref] || undefined)} onCountChange={setLiveEdifCount}/>
               </div>
+              <StackingPlan initBuildings={isNew ? [] : (BUILDINGS_BY_ACTIVO[params?.ref] || undefined)} onCountChange={setLiveEdifCount}/>
             </div>
-          )}
+          </div>
 
           {/* ── TAB: Características ── */}
           {activeTab==='at-caract' && (()=>{
