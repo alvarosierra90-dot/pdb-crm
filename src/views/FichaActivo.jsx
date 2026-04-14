@@ -563,7 +563,7 @@ const OFERTAS_ACTIVAS = [
   { ref:'OLB003', contraparte:'Oracle Spain SL', sup:13486, estado:'Finalista', color:'#7c3aed', bg:'#faf5ff', border:'#e9d5ff' },
 ]
 
-function StackingPlan({ initBuildings, onCountChange }) {
+function StackingPlan({ initBuildings, onCountChange, extraOwners=[], extraTenants=[], onAddOwner, onAddTenant }) {
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
   const [setupForm, setSetupForm]       = useState({ label:'', sobre:'5', bajo:'1', sup:'1500' })
@@ -1085,7 +1085,7 @@ function StackingPlan({ initBuildings, onCountChange }) {
       {/* ══ PROPIETARIOS ══ */}
       {view==='prop' && (()=>{
         const PROP_COLORS = ['#3b82f6','#8b5cf6','#14b8a6','#f97316','#ec4899','#22c55e']
-        const ownerSet = [...new Set((edif.prop||[]).flatMap(r=>r.units.map(u=>u.n)))]
+        const ownerSet = [...new Set([...extraOwners, ...(edif.prop||[]).flatMap(r=>r.units.map(u=>u.n))])]
         const ownerColor = (n) => PROP_COLORS[ownerSet.indexOf(n)%PROP_COLORS.length]
         // Helper: upsert a prop row on drop
         const dropProp = (floorId, floorSup, ownerName) => {
@@ -1130,7 +1130,7 @@ function StackingPlan({ initBuildings, onCountChange }) {
                   )
                 })}
               </div>
-              <button style={{marginTop:8,padding:'5px 8px',background:'none',border:'1px dashed var(--border)',borderRadius:5,fontSize:10,color:'var(--text4)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+              <button onClick={onAddOwner} style={{marginTop:8,padding:'5px 8px',background:'none',border:'1px dashed var(--accent-bd)',borderRadius:5,fontSize:10,color:'var(--accent)',cursor:'pointer',fontFamily:'inherit',textAlign:'left',width:'100%'}}>
                 + Añadir propietario
               </button>
             </div>
@@ -1240,7 +1240,7 @@ function StackingPlan({ initBuildings, onCountChange }) {
 
       {/* ══ ARRENDATARIOS ══ */}
       {view==='arr' && (()=>{
-        const tenantSet = [...new Set((edif.arr||[]).flatMap(r=>r.units.filter(u=>u.type==='ten'||u.type==='rt'||u.type==='pk').map(u=>u.n)))]
+        const tenantSet = [...new Set([...extraTenants, ...(edif.arr||[]).flatMap(r=>r.units.filter(u=>u.type==='ten'||u.type==='rt'||u.type==='pk').map(u=>u.n))])]
         const ARR_COLORS = ['#1e40af','#0f766e','#7c3aed','#b45309','#be185d','#065f46']
         const tenantColor = (n) => ARR_COLORS[tenantSet.indexOf(n)%ARR_COLORS.length]
         const TYPE_COLORS = {
@@ -1284,7 +1284,7 @@ function StackingPlan({ initBuildings, onCountChange }) {
                   )
                 })}
               </div>
-              <button style={{marginTop:4,padding:'5px 8px',background:'none',border:'1px dashed var(--border)',borderRadius:5,fontSize:10,color:'var(--text4)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+              <button onClick={onAddTenant} style={{marginTop:4,padding:'5px 8px',background:'none',border:'1px dashed var(--accent-bd)',borderRadius:5,fontSize:10,color:'var(--accent)',cursor:'pointer',fontFamily:'inherit',textAlign:'left',width:'100%'}}>
                 + Añadir arrendatario
               </button>
               <div style={{borderTop:'1px solid var(--border)',marginTop:10,paddingTop:8}}>
@@ -3182,6 +3182,253 @@ async function exportFichaActivo(navigate_) {
   doc.save(`FichaActivo_P.E_Avalon_${new Date().toLocaleDateString('es-ES').replace(/\//g,'-')}.pdf`)
 }
 
+/* ── Helpers compartidos por los modales ── */
+const _inp = {padding:'5px 9px',border:'1px solid var(--border)',borderRadius:5,fontSize:12,fontFamily:'inherit',width:'100%',boxSizing:'border-box',outline:'none',background:'var(--surface)',color:'var(--text1)'}
+const _sel = {..._inp,cursor:'pointer'}
+const _ro  = {..._inp,background:'var(--gray-lt)',color:'var(--text3)'}
+function ModalField({label,children}){
+  return <div><div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>{label}</div>{children}</div>
+}
+function CuentaSearch({value, onChange}){
+  const [open,setOpen]=useState(false)
+  const filtered = CUENTAS_FA.filter(c=>c.toLowerCase().includes(value.toLowerCase())).slice(0,8)
+  return (
+    <div style={{position:'relative'}}>
+      <div style={{display:'flex',alignItems:'center',border:'1px solid var(--accent-bd)',borderRadius:5,background:'var(--accent-lt)',overflow:'hidden'}}>
+        <input value={value} onChange={e=>{onChange(e.target.value);setOpen(true)}} onFocus={()=>setOpen(true)}
+          placeholder="Buscar cuenta…"
+          style={{flex:1,padding:'5px 9px',border:'none',background:'none',fontSize:12,fontFamily:'inherit',outline:'none'}}/>
+        <span style={{padding:'0 10px',fontSize:14,color:'var(--accent)',userSelect:'none'}}>🔍</span>
+      </div>
+      {open && filtered.length>0 && (
+        <div style={{position:'absolute',top:'100%',left:0,right:0,marginTop:2,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:5,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:2100,maxHeight:220,overflowY:'auto'}}>
+          {filtered.map(c=>(
+            <div key={c} onMouseDown={e=>{e.preventDefault();onChange(c);setOpen(false)}}
+              style={{padding:'8px 12px',fontSize:12,cursor:'pointer',borderBottom:'1px solid var(--border)'}}
+              onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
+              onMouseLeave={e=>e.currentTarget.style.background=''}>
+              {c}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function NuevoPropietarioModal({activo, onClose, onSave}){
+  const [f,setF]=useState({
+    cuenta:'', tipologia:'Asset deal', anyo_compra:'', trimestre:'Q1',
+    precio_compra:'', regimen:'Propiedad 100%', perfil:'Core',
+    cap_rate:'', yield_pct:'', estrategia:'Hold', estado:'Activo',
+  })
+  const set=(k,v)=>setF(p=>({...p,[k]:v}))
+  const handleSave=()=>{
+    if(!f.cuenta.trim()){alert('Selecciona una cuenta');return}
+    onSave({
+      id:`PRO-${Date.now()}`, propietario:f.cuenta,
+      activo:activo?.nombre||'', activo_ref:activo?.ref||'',
+      zona:activo?.zona||'', area:activo?.area||'', uso:activo?.uso||'',
+      sba:activo?.sba||0,
+      tipologia:f.tipologia, anyo_compra:f.anyo_compra, trimestre:f.trimestre,
+      precio_compra:f.precio_compra, regimen:f.regimen, perfil:f.perfil,
+      cap_rate:f.cap_rate, yield_pct:f.yield_pct, estrategia:f.estrategia, estado:f.estado,
+    })
+  }
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+      <div style={{background:'var(--surface)',borderRadius:'var(--r2)',width:'100%',maxWidth:620,maxHeight:'92vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
+        {/* Cabecera */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderBottom:'1px solid var(--border)',position:'sticky',top:0,background:'var(--surface)',zIndex:1}}>
+          <div>
+            <div style={{fontSize:14,fontWeight:700}}>Nuevo propietario</div>
+            <div style={{fontSize:11,color:'var(--text3)',marginTop:1}}>Activo: <strong>{activo?.nombre||'—'}</strong></div>
+          </div>
+          <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',fontSize:20,color:'var(--text3)',lineHeight:1,padding:'0 4px'}}>✕</button>
+        </div>
+        <div style={{padding:20,display:'flex',flexDirection:'column',gap:14}}>
+          {/* CUENTA */}
+          <ModalField label="Cuenta *">
+            <CuentaSearch value={f.cuenta} onChange={v=>set('cuenta',v)}/>
+          </ModalField>
+          {/* Activo auto-rellenado */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <ModalField label="Activo"><input value={activo?.nombre||'—'} readOnly style={_ro}/></ModalField>
+            <ModalField label="Uso"><input value={activo?.uso||'—'} readOnly style={_ro}/></ModalField>
+            <ModalField label="SBA (m²)"><input value={activo?.sba?.toLocaleString('es-ES')||'—'} readOnly style={_ro}/></ModalField>
+            <ModalField label="Zona"><input value={activo?.zona||'—'} readOnly style={_ro}/></ModalField>
+          </div>
+          <div style={{height:1,background:'var(--border)'}}/>
+          {/* Campos a rellenar */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+            <ModalField label="Tipología">
+              <select value={f.tipologia} onChange={e=>set('tipologia',e.target.value)} style={_sel}>
+                <option>Asset deal</option><option>Share deal</option><option>Cartera</option><option>Sale &amp; leaseback</option><option>Otro</option>
+              </select>
+            </ModalField>
+            <ModalField label="Año compra">
+              <input type="number" value={f.anyo_compra} onChange={e=>set('anyo_compra',e.target.value)} placeholder="2024" style={_inp}/>
+            </ModalField>
+            <ModalField label="Trimestre">
+              <select value={f.trimestre} onChange={e=>set('trimestre',e.target.value)} style={_sel}>
+                <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
+              </select>
+            </ModalField>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <ModalField label="Precio compra">
+              <input value={f.precio_compra} onChange={e=>set('precio_compra',e.target.value)} placeholder="130 M€" style={_inp}/>
+            </ModalField>
+            <ModalField label="Régimen">
+              <select value={f.regimen} onChange={e=>set('regimen',e.target.value)} style={_sel}>
+                <option>Propiedad 100%</option><option>Copropietario</option><option>Usufructo</option><option>Nuda propiedad</option>
+              </select>
+            </ModalField>
+            <ModalField label="Perfil inversor">
+              <select value={f.perfil} onChange={e=>set('perfil',e.target.value)} style={_sel}>
+                <option>Core</option><option>Core+</option><option>Value-add</option><option>Oportunista</option><option>Institucional</option><option>Privado</option>
+              </select>
+            </ModalField>
+            <ModalField label="Estrategia">
+              <select value={f.estrategia} onChange={e=>set('estrategia',e.target.value)} style={_sel}>
+                <option>Hold</option><option>Sell</option><option>Reposition</option><option>Desarrollo</option>
+              </select>
+            </ModalField>
+            <ModalField label="Cap Rate compra (%)">
+              <input type="number" step="0.1" value={f.cap_rate} onChange={e=>set('cap_rate',e.target.value)} placeholder="5.1" style={_inp}/>
+            </ModalField>
+            <ModalField label="Yield (%)">
+              <input type="number" step="0.1" value={f.yield_pct} onChange={e=>set('yield_pct',e.target.value)} placeholder="5.4" style={_inp}/>
+            </ModalField>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:8,justifyContent:'flex-end',padding:'12px 20px',borderTop:'1px solid var(--border)',position:'sticky',bottom:0,background:'var(--surface)'}}>
+          <button onClick={onClose} style={{padding:'7px 16px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>Cancelar</button>
+          <button onClick={handleSave} style={{padding:'7px 20px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>💾 Guardar propietario</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function NuevoArrendatarioModal({activo, propietarioActivo, onClose, onSave}){
+  const [f,setF]=useState({
+    cuenta:'', edificio:'', planta:'', sup:'', uso:activo?.uso||'',
+    anyo_firma:'', trimestre:'Q1', tipo_contrato:'Alquiler comercial',
+    fecha_inicio:'', fecha_fin:'', break_option:'',
+    closing_rent:'', carencia:'0', plazas_int:'0', plazas_ext:'0',
+    estado:'Arrendado', sector:'',
+  })
+  const set=(k,v)=>setF(p=>({...p,[k]:v}))
+  const handleSave=()=>{
+    if(!f.cuenta.trim()){alert('Selecciona una cuenta');return}
+    onSave({
+      id:`ARR-${Date.now()}`, tenant:f.cuenta,
+      activo:activo?.nombre||'', activo_ref:activo?.ref||'',
+      propietario:propietarioActivo||'—',
+      edificio:f.edificio, planta:f.planta,
+      sup:f.sup ? parseFloat(f.sup) : 0,
+      uso:f.uso, anyo_firma:f.anyo_firma, trimestre:f.trimestre,
+      tipo_contrato:f.tipo_contrato,
+      fecha_inicio:f.fecha_inicio, fecha_fin:f.fecha_fin, break_option:f.break_option,
+      closing_rent:f.closing_rent, carencia:f.carencia,
+      plazas_int:f.plazas_int, plazas_ext:f.plazas_ext,
+      estado:f.estado, sector:f.sector,
+    })
+  }
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+      <div style={{background:'var(--surface)',borderRadius:'var(--r2)',width:'100%',maxWidth:640,maxHeight:'92vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderBottom:'1px solid var(--border)',position:'sticky',top:0,background:'var(--surface)',zIndex:1}}>
+          <div>
+            <div style={{fontSize:14,fontWeight:700}}>Nuevo arrendatario</div>
+            <div style={{fontSize:11,color:'var(--text3)',marginTop:1}}>Activo: <strong>{activo?.nombre||'—'}</strong></div>
+          </div>
+          <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',fontSize:20,color:'var(--text3)',lineHeight:1,padding:'0 4px'}}>✕</button>
+        </div>
+        <div style={{padding:20,display:'flex',flexDirection:'column',gap:14}}>
+          <ModalField label="Cuenta / Arrendatario *">
+            <CuentaSearch value={f.cuenta} onChange={v=>set('cuenta',v)}/>
+          </ModalField>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <ModalField label="Activo"><input value={activo?.nombre||'—'} readOnly style={_ro}/></ModalField>
+            <ModalField label="Propietario"><input value={propietarioActivo||'—'} readOnly style={_ro}/></ModalField>
+          </div>
+          <div style={{height:1,background:'var(--border)'}}/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+            <ModalField label="Edificio">
+              <input value={f.edificio} onChange={e=>set('edificio',e.target.value)} placeholder="Edif. A" style={_inp}/>
+            </ModalField>
+            <ModalField label="Planta(s)">
+              <input value={f.planta} onChange={e=>set('planta',e.target.value)} placeholder="P3 — P5" style={_inp}/>
+            </ModalField>
+            <ModalField label="Superficie (m²)">
+              <input type="number" value={f.sup} onChange={e=>set('sup',e.target.value)} placeholder="2500" style={_inp}/>
+            </ModalField>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <ModalField label="Uso">
+              <select value={f.uso} onChange={e=>set('uso',e.target.value)} style={_sel}>
+                <option>Oficinas</option><option>Logístico</option><option>Retail</option><option>Parking</option><option>Residencial</option><option>Otro</option>
+              </select>
+            </ModalField>
+            <ModalField label="Sector">
+              <input value={f.sector} onChange={e=>set('sector',e.target.value)} placeholder="Tecnología, Banca…" style={_inp}/>
+            </ModalField>
+            <ModalField label="Año firma">
+              <input type="number" value={f.anyo_firma} onChange={e=>set('anyo_firma',e.target.value)} placeholder="2024" style={_inp}/>
+            </ModalField>
+            <ModalField label="Trimestre">
+              <select value={f.trimestre} onChange={e=>set('trimestre',e.target.value)} style={_sel}>
+                <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
+              </select>
+            </ModalField>
+            <ModalField label="Tipo contrato">
+              <select value={f.tipo_contrato} onChange={e=>set('tipo_contrato',e.target.value)} style={_sel}>
+                <option>Alquiler comercial</option><option>Alquiler residencial</option><option>Precario</option><option>Cesión de uso</option>
+              </select>
+            </ModalField>
+            <ModalField label="Estado">
+              <select value={f.estado} onChange={e=>set('estado',e.target.value)} style={_sel}>
+                <option>Arrendado</option><option>Próximo a vencimiento</option><option>En negociación</option><option>Vacío</option>
+              </select>
+            </ModalField>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+            <ModalField label="Fecha inicio">
+              <input type="date" value={f.fecha_inicio} onChange={e=>set('fecha_inicio',e.target.value)} style={_inp}/>
+            </ModalField>
+            <ModalField label="Fecha fin / Vencimiento">
+              <input type="date" value={f.fecha_fin} onChange={e=>set('fecha_fin',e.target.value)} style={_inp}/>
+            </ModalField>
+            <ModalField label="Break option">
+              <input type="date" value={f.break_option} onChange={e=>set('break_option',e.target.value)} style={_inp}/>
+            </ModalField>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:12}}>
+            <ModalField label="Closing rent (€/m²/mes)">
+              <input type="number" step="0.01" value={f.closing_rent} onChange={e=>set('closing_rent',e.target.value)} placeholder="12.50" style={_inp}/>
+            </ModalField>
+            <ModalField label="Carencia (meses)">
+              <input type="number" value={f.carencia} onChange={e=>set('carencia',e.target.value)} placeholder="0" style={_inp}/>
+            </ModalField>
+            <ModalField label="Plazas int.">
+              <input type="number" value={f.plazas_int} onChange={e=>set('plazas_int',e.target.value)} placeholder="0" style={_inp}/>
+            </ModalField>
+            <ModalField label="Plazas ext.">
+              <input type="number" value={f.plazas_ext} onChange={e=>set('plazas_ext',e.target.value)} placeholder="0" style={_inp}/>
+            </ModalField>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:8,justifyContent:'flex-end',padding:'12px 20px',borderTop:'1px solid var(--border)',position:'sticky',bottom:0,background:'var(--surface)'}}>
+          <button onClick={onClose} style={{padding:'7px 16px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>Cancelar</button>
+          <button onClick={handleSave} style={{padding:'7px 20px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>💾 Guardar arrendatario</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ══════════════════════════════════════════════════════════ */
 export default function FichaActivo() {
   const { navigate, params } = useNav()
@@ -3190,6 +3437,15 @@ export default function FichaActivo() {
   const [caracTab, setCaracTab]         = useState('ct-transporte')
   const [docCat,   setDocCat]           = useState('todos')
   const [showTarea, setShowTarea]       = useState(false)
+  const [showNuevoProp, setShowNuevoProp] = useState(false)
+  const [showNuevoArr,  setShowNuevoArr]  = useState(false)
+  const [propietariosReg, setPropietariosReg] = useState([
+    { id:'PRO-001', propietario:'Barings Core Spain SOCIMI', perfil:'Fondo inversión', sba:'46.956', yield_pct:'5.2', precio_compra:'130 M€', anyo_compra:'2018', trimestre:'Q2' },
+  ])
+  const [arrendatariosReg, setArrendatariosReg] = useState([
+    { id:'ARR-001', tenant:'Celonis',  uso:'Oficinas', sup:2702,  closing_rent:'14,50', break_option:'Oct 2025', fecha_fin:'Oct 2026', anyo_firma:'2021', trimestre:'Q3' },
+    { id:'ARR-002', tenant:'Repsol',   uso:'Oficinas', sup:1967,  closing_rent:'13,80', break_option:'Jun 2027', fecha_fin:'Jun 2029', anyo_firma:'2022', trimestre:'Q1' },
+  ])
   const [plazas, setPlazas]             = useState(INIT_PLAZAS)
   const [showAddPlaza, setShowAddPlaza] = useState(false)
   const [newPlaza, setNewPlaza]         = useState({ubicacion:'Interior',tipo:'Simple',vehiculo:'Coches',cantidad:1})
@@ -3455,7 +3711,14 @@ export default function FichaActivo() {
                   <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Distribución de usos, propietarios y arrendatarios por planta y edificio</div>
                 </div>
               </div>
-              <StackingPlan initBuildings={isNew ? [] : (BUILDINGS_BY_ACTIVO[params?.ref] || undefined)} onCountChange={setLiveEdifCount}/>
+              <StackingPlan
+                initBuildings={isNew ? [] : (BUILDINGS_BY_ACTIVO[params?.ref] || undefined)}
+                onCountChange={setLiveEdifCount}
+                extraOwners={propietariosReg.map(p=>p.propietario)}
+                extraTenants={arrendatariosReg.map(a=>a.tenant)}
+                onAddOwner={()=>setShowNuevoProp(true)}
+                onAddTenant={()=>setShowNuevoArr(true)}
+              />
             </div>
           </div>
 
@@ -3845,45 +4108,49 @@ export default function FichaActivo() {
                 {/* PROPIETARIOS */}
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                   <div style={{fontSize:13,fontWeight:700,letterSpacing:'.01em',color:'var(--text1)'}}>PROPIETARIOS</div>
-                  <button className="ab-btn blue" onClick={()=>navigate('ficha-propietario')}>+ Crear propietario</button>
+                  <button className="ab-btn blue" onClick={()=>setShowNuevoProp(true)}>+ Nuevo propietario</button>
                 </div>
                 <table className="pat-table" style={{marginBottom:20}}>
                   <thead><tr><th>Perfil</th><th>Propietario</th><th>SBA</th><th>Yield</th><th>Precio compra</th><th>Año compra</th><th>Trim.</th><th></th></tr></thead>
                   <tbody>
-                    <tr>
-                      <td>Fondo inversión</td>
-                      <td><span className="pat-link">Barings Core Spain SOCIMI</span></td>
-                      <td>46.956</td><td>5.2%</td><td>130 M€</td>
-                      <td>2018</td><td><span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>Q2</span></td>
-                      <td><button className="ra">Ver</button></td>
-                    </tr>
+                    {propietariosReg.map(p=>(
+                      <tr key={p.id}>
+                        <td>{p.perfil||'—'}</td>
+                        <td><span className="pat-link">{p.propietario}</span></td>
+                        <td>{p.sba ? Number(p.sba).toLocaleString('es-ES') : (activo?.sba?.toLocaleString('es-ES')||'—')}</td>
+                        <td>{p.yield_pct ? p.yield_pct+'%' : '—'}</td>
+                        <td>{p.precio_compra||'—'}</td>
+                        <td>{p.anyo_compra||'—'}</td>
+                        <td>{p.trimestre && <span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>{p.trimestre}</span>}</td>
+                        <td><button className="ra" onClick={()=>navigate('ficha-propietario')}>Ver</button></td>
+                      </tr>
+                    ))}
+                    {propietariosReg.length===0 && <tr><td colSpan={8} style={{textAlign:'center',color:'var(--text4)',fontSize:12,padding:16}}>Sin propietarios — añade uno con el botón</td></tr>}
                   </tbody>
                 </table>
 
                 {/* ARRENDATARIOS */}
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                   <div style={{fontSize:13,fontWeight:700,letterSpacing:'.01em',color:'var(--text1)'}}>ARRENDATARIOS</div>
-                  <button className="ab-btn blue" onClick={()=>navigate('ficha-arrendatario')}>+ Crear arrendatario</button>
+                  <button className="ab-btn blue" onClick={()=>setShowNuevoArr(true)}>+ Nuevo arrendatario</button>
                 </div>
                 <table className="pat-table" style={{marginBottom:20}}>
                   <thead><tr><th>Arrendatario</th><th>Uso</th><th>Sup. (m²)</th><th>Renta</th><th>Break option</th><th>Vencimiento</th><th>Año alquiler</th><th>Trim.</th><th></th></tr></thead>
                   <tbody>
-                    <tr>
-                      <td><span className="pat-link">Celonis</span></td>
-                      <td>Oficinas</td><td>2.702</td><td>14,50</td>
-                      <td style={{color:'var(--amber)',fontWeight:600}}>Oct 2025</td>
-                      <td style={{color:'var(--amber)',fontWeight:600}}>Oct 2026</td>
-                      <td>2021</td><td><span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>Q3</span></td>
-                      <td><button className="ra">Ver</button></td>
-                    </tr>
-                    <tr>
-                      <td><span className="pat-link">Repsol</span></td>
-                      <td>Oficinas</td><td>1.967</td><td>13,80</td>
-                      <td style={{color:'var(--green)',fontWeight:600}}>Jun 2027</td>
-                      <td style={{color:'var(--green)',fontWeight:600}}>Jun 2029</td>
-                      <td>2022</td><td><span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>Q1</span></td>
-                      <td><button className="ra">Ver</button></td>
-                    </tr>
+                    {arrendatariosReg.map(a=>(
+                      <tr key={a.id}>
+                        <td><span className="pat-link">{a.tenant}</span></td>
+                        <td>{a.uso||'—'}</td>
+                        <td>{a.sup ? Number(a.sup).toLocaleString('es-ES') : '—'}</td>
+                        <td>{a.closing_rent||'—'}</td>
+                        <td style={{color:'var(--amber)',fontWeight:600}}>{a.break_option||'—'}</td>
+                        <td style={{color:'var(--green)',fontWeight:600}}>{a.fecha_fin||'—'}</td>
+                        <td>{a.anyo_firma||'—'}</td>
+                        <td>{a.trimestre && <span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>{a.trimestre}</span>}</td>
+                        <td><button className="ra" onClick={()=>navigate('ficha-arrendatario')}>Ver</button></td>
+                      </tr>
+                    ))}
+                    {arrendatariosReg.length===0 && <tr><td colSpan={9} style={{textAlign:'center',color:'var(--text4)',fontSize:12,padding:16}}>Sin arrendatarios — añade uno con el botón</td></tr>}
                   </tbody>
                 </table>
 
@@ -4208,6 +4475,27 @@ export default function FichaActivo() {
 
       </div>{/* /ficha-wrap */}
       {showTarea && <AsignarTareaModal refTipo="Activo" refNombre="P.E Avalon" onClose={() => setShowTarea(false)} />}
+      {showNuevoProp && (
+        <NuevoPropietarioModal
+          activo={activo}
+          onClose={()=>setShowNuevoProp(false)}
+          onSave={data=>{
+            setPropietariosReg(p=>[...p, data])
+            setShowNuevoProp(false)
+          }}
+        />
+      )}
+      {showNuevoArr && (
+        <NuevoArrendatarioModal
+          activo={activo}
+          propietarioActivo={propietariosReg[0]?.propietario || activo?.propietario || ''}
+          onClose={()=>setShowNuevoArr(false)}
+          onSave={data=>{
+            setArrendatariosReg(p=>[...p, data])
+            setShowNuevoArr(false)
+          }}
+        />
+      )}
     </div>
   )
 }
