@@ -15,59 +15,271 @@ function genRefFA(ciudad, uso) {
 const CUENTAS_FA = ['Colonial SOCIMI','Merlin Properties','GMP','Barings Real Estate','Allianz Real Estate','Prologis','CBRE Investment Management','Grosvenor','IBA Capital','Neinor Homes','Axa IM Real Assets','Blackstone','Brookfield']
 const USO_ICO    = { 'Oficinas':'🏢', 'Logístico':'🏭', 'Retail':'🛍', 'Data Center':'🖥', 'Residencial':'🏘', 'Hoteles':'🏨', 'Suelo':'🟫' }
 
-/* ── ZONAS MADRID (área → zona → subzona) ── */
-const MADRID_ZONES = [
-  { area:'CBD',            zona:'M-30', subzona:'4 Torres' },
-  { area:'CBD',            zona:'M-30', subzona:'Azca' },
-  { area:'CBD',            zona:'M-30', subzona:'B. Salamanca' },
-  { area:'CBD',            zona:'M-30', subzona:'Castellana' },
-  { area:'CBD',            zona:'M-30', subzona:'Chamberí' },
-  { area:'CBD',            zona:'M-30', subzona:'Cuzco' },
-  { area:'CBD',            zona:'M-30', subzona:'Jerónimos' },
-  { area:'CBD',            zona:'M-30', subzona:'Recoletos' },
-  { area:'CBD',            zona:'M-30', subzona:'Retiro' },
-  { area:'Centro',         zona:'M-30', subzona:'Centro' },
-  { area:'Centro',         zona:'M-30', subzona:'Chamartín' },
-  { area:'Centro',         zona:'M-30', subzona:'M. Álvaro' },
-  { area:'Centro',         zona:'M-30', subzona:'Prosperidad' },
-  { area:'Centro',         zona:'M-30', subzona:'Tetuán' },
-  { area:'Centro',         zona:'M-30', subzona:'Viso' },
-  { area:'Centro',         zona:'M-30', subzona:'Ciudad Universitaria' },
-  { area:'Descentralizado',zona:'A-1',  subzona:'Manoteras' },
-  { area:'Descentralizado',zona:'A-1',  subzona:'Las Tablas' },
-  { area:'Descentralizado',zona:'A-1',  subzona:'Fuencarral' },
-  { area:'Descentralizado',zona:'A-1',  subzona:'Mirasierra' },
-  { area:'Descentralizado',zona:'A-1',  subzona:'Sanchinarro' },
-  { area:'Descentralizado',zona:'A-2',  subzona:'Arturo Soria' },
-  { area:'Descentralizado',zona:'A-2',  subzona:'Madbit' },
-  { area:'Descentralizado',zona:'A-2',  subzona:'Joséfa Valcárcel / LLT' },
-  { area:'Descentralizado',zona:'M-40', subzona:'Vía de los Poblados' },
-  { area:'Descentralizado',zona:'M-40', subzona:'Campo de las Naciones / IFEMA' },
-  { area:'Periferia',      zona:'A-1',  subzona:'Alcobendas Avda. Europa' },
-  { area:'Periferia',      zona:'A-1',  subzona:'Alcobendas Polígono' },
-  { area:'Periferia',      zona:'A-1',  subzona:'Alcobendas / Arroyo de la Vega' },
-  { area:'Periferia',      zona:'A-1',  subzona:'Alcobendas La Moraleja' },
-  { area:'Periferia',      zona:'A-1',  subzona:'San Sebastián de los Reyes' },
-  { area:'Periferia',      zona:'A-2',  subzona:'Las Mercedes' },
-  { area:'Periferia',      zona:'A-2',  subzona:'San Fernando de Henares' },
-  { area:'Periferia',      zona:'A-2',  subzona:'Barajas / Nudo Eisenhower' },
-  { area:'Periferia',      zona:'A-3',  subzona:'Vallecas' },
-  { area:'Periferia',      zona:'A-3',  subzona:'Rivas' },
-  { area:'Periferia',      zona:'A-5',  subzona:'Alcorcón' },
-  { area:'Periferia',      zona:'A-5',  subzona:'Carabanchel' },
-  { area:'Periferia',      zona:'A-6',  subzona:'Aravaca' },
-  { area:'Periferia',      zona:'A-6',  subzona:'La Florida' },
-  { area:'Periferia',      zona:'A-6',  subzona:'Las Rozas' },
-  { area:'Periferia',      zona:'A-6',  subzona:'El Plantío' },
-  { area:'Periferia',      zona:'A-6',  subzona:'Ciudad de la Imagen' },
-  { area:'Periferia',      zona:'A-6',  subzona:'Boadilla del Monte' },
-  { area:'Periferia',      zona:'A-6',  subzona:'Majadahonda' },
-  { area:'Periferia',      zona:'A-6',  subzona:'La Finca' },
-  { area:'Periferia',      zona:'A-6',  subzona:'Pozuelo de Alarcón' },
-  { area:'Periferia',      zona:'Tres Cantos', subzona:'Tres Cantos' },
-]
+/* ── ZONAS por USO y CIUDAD (área → zona → subzona) ── */
+const ZONES = {
+  'Oficinas': {
+    'Madrid': [
+      { area:'Centro',         zona:'M-30',       subzona:'Azca' },
+      { area:'Centro',         zona:'M-30',       subzona:'Castellana' },
+      { area:'Centro',         zona:'M-30',       subzona:'Salamanca' },
+      { area:'Centro',         zona:'M-30',       subzona:'Chamberí' },
+      { area:'Centro',         zona:'M-30',       subzona:'Chamartín' },
+      { area:'Centro',         zona:'M-30',       subzona:'Centro' },
+      { area:'Centro',         zona:'M-30',       subzona:'Jerónimos' },
+      { area:'Centro',         zona:'M-30',       subzona:'Recoletos' },
+      { area:'Centro',         zona:'M-30',       subzona:'Retiro' },
+      { area:'Centro',         zona:'M-30',       subzona:'Tetuán' },
+      { area:'Centro',         zona:'M-30',       subzona:'Viso' },
+      { area:'Centro',         zona:'M-30',       subzona:'M. Álvaro' },
+      { area:'Centro',         zona:'M-30',       subzona:'Prosperidad' },
+      { area:'Centro',         zona:'M-30',       subzona:'Ciudad Universitaria' },
+      { area:'Descentralizado',zona:'M-40',       subzona:'Vía de los Poblados' },
+      { area:'Descentralizado',zona:'M-40',       subzona:'Campo de las Naciones / IFEMA' },
+      { area:'Descentralizado',zona:'A-1',        subzona:'Alcobendas Europa' },
+      { area:'Descentralizado',zona:'A-1',        subzona:'Alcobendas Polígono' },
+      { area:'Descentralizado',zona:'A-1',        subzona:'Alcobendas Arroyo de la Vega' },
+      { area:'Descentralizado',zona:'A-1',        subzona:'Alcobendas La Moraleja' },
+      { area:'Descentralizado',zona:'A-1',        subzona:'San Sebastián de los Reyes' },
+      { area:'Descentralizado',zona:'A-1',        subzona:'Las Tablas' },
+      { area:'Descentralizado',zona:'A-1',        subzona:'Sanchinarro' },
+      { area:'Descentralizado',zona:'A-1',        subzona:'Fuencarral' },
+      { area:'Descentralizado',zona:'A-1',        subzona:'Mirasierra' },
+      { area:'Descentralizado',zona:'A-2',        subzona:'Arturo Soria' },
+      { area:'Descentralizado',zona:'A-2',        subzona:'Las Mercedes' },
+      { area:'Descentralizado',zona:'A-2',        subzona:'Madbit' },
+      { area:'Descentralizado',zona:'A-2',        subzona:'Julián Camarillo' },
+      { area:'Descentralizado',zona:'A-2',        subzona:'San Fernando de Henares' },
+      { area:'Descentralizado',zona:'A-2',        subzona:'Barajas / Eisenhower' },
+      { area:'Periferia',      zona:'A-3',        subzona:'Vallecas' },
+      { area:'Periferia',      zona:'A-3',        subzona:'Rivas' },
+      { area:'Periferia',      zona:'A-5',        subzona:'Alcorcón' },
+      { area:'Periferia',      zona:'A-5',        subzona:'Carabanchel' },
+      { area:'Periferia',      zona:'A-6',        subzona:'Aravaca' },
+      { area:'Periferia',      zona:'A-6',        subzona:'La Florida' },
+      { area:'Periferia',      zona:'A-6',        subzona:'Pozuelo' },
+      { area:'Periferia',      zona:'A-6',        subzona:'Majadahonda' },
+      { area:'Periferia',      zona:'A-6',        subzona:'Las Rozas' },
+      { area:'Periferia',      zona:'A-6',        subzona:'El Plantío' },
+      { area:'Periferia',      zona:'A-6',        subzona:'Ciudad de la Imagen' },
+      { area:'Periferia',      zona:'A-6',        subzona:'Boadilla del Monte' },
+      { area:'Periferia',      zona:'A-6',        subzona:'La Finca' },
+      { area:'Periferia',      zona:'Tres Cantos', subzona:'Tres Cantos' },
+    ],
+    'Barcelona': [
+      { area:'CBD',            zona:'Diagonal',   subzona:'Paseo de Gracia / Diagonal' },
+      { area:'CBD',            zona:'Diagonal',   subzona:'Les Corts' },
+      { area:'CBD',            zona:'Eixample',   subzona:'Eixample Derecho' },
+      { area:'CBD',            zona:'Eixample',   subzona:'Eixample Izquierdo' },
+      { area:'CBD',            zona:'Eixample',   subzona:'Sarrià - Sant Gervasi' },
+      { area:'Descentralizado',zona:'22@',        subzona:'Poblenou Norte' },
+      { area:'Descentralizado',zona:'22@',        subzona:'Poblenou Sur' },
+      { area:'Descentralizado',zona:'22@',        subzona:'Rambla del Poblenou' },
+      { area:'Descentralizado',zona:"Gran Vía L'H",subzona:"L'Hospitalet Norte" },
+      { area:'Descentralizado',zona:"Gran Vía L'H",subzona:"L'Hospitalet Sur" },
+      { area:'Periferia',      zona:'Sant Cugat', subzona:'Sant Cugat del Vallès' },
+      { area:'Periferia',      zona:'Cornellà',   subzona:'Cornellà de Llobregat' },
+      { area:'Periferia',      zona:'Esplugues',  subzona:'Esplugues de Llobregat' },
+      { area:'Periferia',      zona:'El Prat',    subzona:'El Prat de Llobregat' },
+    ],
+    'Valencia': [
+      { area:'CBD',            zona:'Centro',     subzona:'Centro histórico' },
+      { area:'CBD',            zona:'Ensanche',   subzona:'Ensanche' },
+      { area:'CBD',            zona:'Ensanche',   subzona:'Gran Vía Marqués del Turia' },
+      { area:'Descentralizado',zona:'Mestalla',   subzona:'Mestalla' },
+      { area:'Descentralizado',zona:'Mestalla',   subzona:'Benimaclet' },
+      { area:'Descentralizado',zona:'Campanar',   subzona:'Campanar' },
+      { area:'Descentralizado',zona:'Campanar',   subzona:'Patraix' },
+      { area:'Periferia',      zona:'Paterna',    subzona:'Parque Tecnológico Paterna' },
+      { area:'Periferia',      zona:'Torrent',    subzona:'Torrent' },
+    ],
+  },
+  'Logístico': {
+    'Madrid': [
+      { area:'Corredor del Henares',zona:'A-2', subzona:'Coslada' },
+      { area:'Corredor del Henares',zona:'A-2', subzona:'San Fernando de Henares' },
+      { area:'Corredor del Henares',zona:'A-2', subzona:'Torrejón de Ardoz' },
+      { area:'Corredor del Henares',zona:'A-2', subzona:'Alcalá de Henares' },
+      { area:'Corredor del Henares',zona:'A-2', subzona:'Meco' },
+      { area:'Corredor del Henares',zona:'A-2', subzona:'Cabanillas del Campo' },
+      { area:'Sur Madrid',          zona:'A-4', subzona:'Getafe' },
+      { area:'Sur Madrid',          zona:'A-4', subzona:'Pinto' },
+      { area:'Sur Madrid',          zona:'A-4', subzona:'Valdemoro' },
+      { area:'Sur Madrid',          zona:'A-4', subzona:'Ciempozuelos' },
+      { area:'Sur Madrid',          zona:'A-4', subzona:'Seseña' },
+      { area:'Norte Madrid',        zona:'A-1', subzona:'Alcobendas' },
+      { area:'Norte Madrid',        zona:'A-1', subzona:'San Sebastián de los Reyes' },
+      { area:'Oeste Madrid',        zona:'A-5', subzona:'Leganés' },
+      { area:'Oeste Madrid',        zona:'A-5', subzona:'Alcorcón' },
+      { area:'Oeste Madrid',        zona:'A-5', subzona:'Móstoles' },
+    ],
+    'Barcelona': [
+      { area:'Zona Franca / Puerto',zona:'Puerto',       subzona:'Zona Franca' },
+      { area:'Zona Franca / Puerto',zona:'Puerto',       subzona:'Mercabarna' },
+      { area:'Corredor Llobregat',  zona:'A-2',          subzona:'El Prat de Llobregat' },
+      { area:'Corredor Llobregat',  zona:'A-2',          subzona:'Cornellà' },
+      { area:'Corredor Llobregat',  zona:'A-2',          subzona:'Gavà' },
+      { area:'Corredor Llobregat',  zona:'A-2',          subzona:'Castellbisbal' },
+      { area:'Corredor Vallès',     zona:'A-7',          subzona:'Barberà del Vallès' },
+      { area:'Corredor Vallès',     zona:'A-7',          subzona:'Mollet del Vallès' },
+      { area:'Corredor Vallès',     zona:'A-7',          subzona:'Parets del Vallès' },
+      { area:'Corredor Vallès',     zona:'A-7',          subzona:'Granollers' },
+    ],
+    'Valencia': [
+      { area:'Puerto Valencia',     zona:'Zona Industrial', subzona:'Quart de Poblet' },
+      { area:'Puerto Valencia',     zona:'Zona Industrial', subzona:'Riba-roja de Túria' },
+      { area:'Corredor A-3',        zona:'A-3',          subzona:'Paterna' },
+      { area:'Corredor A-3',        zona:'A-3',          subzona:'Torrent' },
+      { area:'Corredor A-3',        zona:'A-3',          subzona:'Picassent' },
+      { area:'Corredor A-7',        zona:'A-7',          subzona:'Sagunto' },
+      { area:'Corredor A-7',        zona:'A-7',          subzona:'Almussafes' },
+    ],
+  },
+  'Retail': {
+    'Madrid': [
+      { area:'Centro',        zona:'M-30', subzona:'Gran Vía' },
+      { area:'Centro',        zona:'M-30', subzona:'Preciados / Sol' },
+      { area:'Centro',        zona:'M-30', subzona:'Serrano / Salamanca' },
+      { area:'Centro',        zona:'M-30', subzona:'Fuencarral' },
+      { area:'Centro',        zona:'M-30', subzona:'Goya' },
+      { area:'Centro',        zona:'M-30', subzona:'Orense / Azca' },
+      { area:'Descentralizado',zona:'M-40', subzona:'Manoteras' },
+      { area:'Descentralizado',zona:'M-40', subzona:'Las Rosas' },
+      { area:'Descentralizado',zona:'M-40', subzona:'Vallecas' },
+      { area:'Descentralizado',zona:'M-40', subzona:'Usera' },
+      { area:'Periferia Sur', zona:'A-4', subzona:'Getafe' },
+      { area:'Periferia Sur', zona:'A-4', subzona:'Leganés' },
+      { area:'Periferia Sur', zona:'A-4', subzona:'Parla' },
+      { area:'Periferia Norte',zona:'A-1', subzona:'Alcobendas' },
+      { area:'Periferia Norte',zona:'A-1', subzona:'San Sebastián de los Reyes' },
+      { area:'Periferia Oeste',zona:'A-6', subzona:'Pozuelo' },
+      { area:'Periferia Oeste',zona:'A-6', subzona:'Majadahonda' },
+      { area:'Periferia Oeste',zona:'A-6', subzona:'Las Rozas' },
+    ],
+    'Barcelona': [
+      { area:'CBD',           zona:'Paseo de Gracia', subzona:'Paseo de Gracia' },
+      { area:'CBD',           zona:'Paseo de Gracia', subzona:"Portal de l'Àngel" },
+      { area:'CBD',           zona:'Paseo de Gracia', subzona:'Rambla Catalunya' },
+      { area:'Descentralizado',zona:'Diagonal',       subzona:'Diagonal Mar' },
+      { area:'Descentralizado',zona:'Diagonal',       subzona:'Les Corts' },
+      { area:'Periferia',     zona:"L'Hospitalet",    subzona:"Gran Via L'Hospitalet" },
+      { area:'Periferia',     zona:'Sant Cugat',      subzona:'Sant Cugat' },
+    ],
+    'Valencia': [
+      { area:'CBD',           zona:'Centro',    subzona:'Centro / Mercado Central' },
+      { area:'CBD',           zona:'Centro',    subzona:'Colón / Marqués del Turia' },
+      { area:'Descentralizado',zona:'Mestalla', subzona:'Nuevo Centro' },
+      { area:'Periferia',     zona:'Paterna',   subzona:'Paterna / Parque Ademuz' },
+    ],
+  },
+  'Data Center': {
+    'Madrid': [
+      { area:'Corredor del Henares',zona:'A-2', subzona:'Alcalá de Henares' },
+      { area:'Corredor del Henares',zona:'A-2', subzona:'Coslada' },
+      { area:'Corredor del Henares',zona:'A-2', subzona:'Torrejón de Ardoz' },
+      { area:'Sur Madrid',         zona:'A-4', subzona:'Getafe' },
+      { area:'Sur Madrid',         zona:'A-4', subzona:'Rivas Vaciamadrid' },
+      { area:'Norte Madrid',       zona:'A-1', subzona:'Tres Cantos' },
+      { area:'Norte Madrid',       zona:'A-1', subzona:'Alcobendas' },
+      { area:'Ciudad',             zona:'M-40', subzona:'Vallecas' },
+      { area:'Ciudad',             zona:'M-40', subzona:'Hortaleza' },
+    ],
+    'Barcelona': [
+      { area:'Zona Franca',        zona:'Puerto',   subzona:'Zona Franca' },
+      { area:'Corredor Llobregat', zona:'A-2',      subzona:'El Prat de Llobregat' },
+      { area:'Corredor Llobregat', zona:'A-2',      subzona:'Sant Cugat del Vallès' },
+    ],
+  },
+  'Residencial': {
+    'Madrid': [
+      { area:'CBD',           zona:'M-30', subzona:'Salamanca' },
+      { area:'CBD',           zona:'M-30', subzona:'Chamberí' },
+      { area:'CBD',           zona:'M-30', subzona:'Chamartín' },
+      { area:'CBD',           zona:'M-30', subzona:'Retiro' },
+      { area:'CBD',           zona:'M-30', subzona:'Centro' },
+      { area:'CBD',           zona:'M-30', subzona:'Argüelles' },
+      { area:'Descentralizado',zona:'M-40', subzona:'Sanchinarro' },
+      { area:'Descentralizado',zona:'M-40', subzona:'Hortaleza' },
+      { area:'Descentralizado',zona:'M-40', subzona:'Valdebebas' },
+      { area:'Descentralizado',zona:'M-40', subzona:'Las Tablas' },
+      { area:'Descentralizado',zona:'A-1', subzona:'Alcobendas' },
+      { area:'Descentralizado',zona:'A-1', subzona:'La Moraleja' },
+      { area:'Descentralizado',zona:'A-2', subzona:'Arturo Soria' },
+      { area:'Periferia',     zona:'A-6', subzona:'Pozuelo de Alarcón' },
+      { area:'Periferia',     zona:'A-6', subzona:'Majadahonda' },
+      { area:'Periferia',     zona:'A-6', subzona:'Las Rozas' },
+      { area:'Periferia',     zona:'A-6', subzona:'Boadilla del Monte' },
+      { area:'Periferia',     zona:'A-6', subzona:'La Finca' },
+      { area:'Periferia',     zona:'A-6', subzona:'Aravaca' },
+      { area:'Periferia',     zona:'A-3', subzona:'Rivas Vaciamadrid' },
+      { area:'Periferia',     zona:'Sur', subzona:'Getafe' },
+      { area:'Periferia',     zona:'Sur', subzona:'Leganés' },
+    ],
+    'Barcelona': [
+      { area:'CBD',           zona:'Eixample',  subzona:'Eixample Derecho' },
+      { area:'CBD',           zona:'Eixample',  subzona:'Eixample Izquierdo' },
+      { area:'CBD',           zona:'Gràcia',    subzona:'Vila de Gràcia' },
+      { area:'CBD',           zona:'Sarrià',    subzona:'Sarrià - Sant Gervasi' },
+      { area:'Descentralizado',zona:'Poblenou', subzona:'Poblenou' },
+      { area:'Descentralizado',zona:'Poblenou', subzona:'Diagonal Mar' },
+      { area:'Periferia',     zona:'Sant Cugat',subzona:'Sant Cugat del Vallès' },
+      { area:'Periferia',     zona:'Gavà',      subzona:'Gavà Mar' },
+    ],
+    'Valencia': [
+      { area:'CBD',           zona:'Centro',   subzona:'Centro histórico' },
+      { area:'CBD',           zona:'Ensanche', subzona:'Ensanche' },
+      { area:'Descentralizado',zona:'Mestalla',subzona:'Mestalla' },
+      { area:'Descentralizado',zona:'Campanar',subzona:'Campanar' },
+      { area:'Periferia',     zona:'Paterna',  subzona:'Paterna' },
+      { area:'Periferia',     zona:'Torrent',  subzona:'Torrent' },
+    ],
+  },
+  'Hoteles': {
+    'Madrid': [
+      { area:'CBD',           zona:'M-30',    subzona:'Gran Vía' },
+      { area:'CBD',           zona:'M-30',    subzona:'Castellana' },
+      { area:'CBD',           zona:'M-30',    subzona:'Salamanca' },
+      { area:'CBD',           zona:'M-30',    subzona:'Centro / Recoletos' },
+      { area:'CBD',           zona:'M-30',    subzona:'Chamberí' },
+      { area:'Aeropuerto',    zona:'Barajas', subzona:'Barajas' },
+      { area:'Descentralizado',zona:'M-40',  subzona:'Campo de las Naciones / IFEMA' },
+      { area:'Periferia',     zona:'A-1',     subzona:'Alcobendas' },
+    ],
+    'Barcelona': [
+      { area:'CBD',           zona:'Ramblas',    subzona:'Las Ramblas / Gótico' },
+      { area:'CBD',           zona:'Eixample',   subzona:'Eixample' },
+      { area:'CBD',           zona:'Diagonal',   subzona:'Diagonal' },
+      { area:'Puerto',        zona:'Barceloneta',subzona:'Barceloneta / Port Olímpic' },
+      { area:'Periferia',     zona:'Aeropuerto', subzona:'El Prat' },
+    ],
+    'Valencia': [
+      { area:'CBD',           zona:'Centro',  subzona:'Centro / Casco Antiguo' },
+      { area:'CBD',           zona:'Centro',  subzona:'Ensanche' },
+      { area:'Puerto',        zona:'Playa',   subzona:'La Malvarrosa / Las Arenas' },
+    ],
+  },
+  'Suelo': {
+    'Madrid': [
+      { area:'Descentralizado',zona:'M-40', subzona:'Valdebebas' },
+      { area:'Descentralizado',zona:'M-40', subzona:'Las Tablas' },
+      { area:'Descentralizado',zona:'A-2',  subzona:'Barajas' },
+      { area:'Corredor del Henares',zona:'A-2', subzona:'San Fernando de Henares' },
+      { area:'Sur Madrid',    zona:'A-4',   subzona:'Getafe' },
+      { area:'Sur Madrid',    zona:'A-4',   subzona:'Valdemoro' },
+      { area:'Periferia',     zona:'A-6',   subzona:'Pozuelo' },
+      { area:'Periferia',     zona:'A-6',   subzona:'Las Rozas' },
+    ],
+    'Barcelona': [
+      { area:'22@',           zona:'Poblenou',  subzona:'Poblenou' },
+      { area:'Periferia',     zona:'A-2',       subzona:'Gavà' },
+      { area:'Periferia',     zona:'A-7',       subzona:'Granollers' },
+    ],
+  },
+}
 
-const AREAS_MAD  = [...new Set(MADRID_ZONES.map(z => z.area))]
+function getZoneData(ciudad, uso) { return (ZONES[uso]||{})[ciudad] || [] }
+function getAreas(ciudad, uso)    { return [...new Set(getZoneData(ciudad,uso).map(z=>z.area))] }
+function getZonas(ciudad, uso, area) { return [...new Set(getZoneData(ciudad,uso).filter(z=>z.area===area).map(z=>z.zona))] }
+function getSubzonas(ciudad, uso, area, zona) { return getZoneData(ciudad,uso).filter(z=>z.area===area&&z.zona===zona).map(z=>z.subzona) }
 const CARAC_CATEGORIAS_GEN = ['Altura','Modularidad','Suelo técnico','Falso techo','Climatización','Seguridad','Iluminación','Ascensores','Escaleras','Fachada','Cubierta','Accesibilidad','Otro (especificar)']
 const CARAC_CATEGORIAS_OF  = ['Configuración','Luminosidad','División','Terraza','Suelo técnico','Falso techo','Plantas diáfanas','Módulo mínimo','Otro (especificar)']
 const CARAC_CATEGORIAS_RT  = ['Frente de fachada','Altura libre','Carga/m²','Muelle','Acceso camiones','Escaparate','Otro (especificar)']
@@ -1374,12 +1586,9 @@ function NewActivoInfoTab({ newForm, setNF }) {
   const acRef      = useRef(null)
 
   // Derived conditional zone data
-  const zonas    = newForm.ciudad === 'Madrid' && newForm.area
-    ? [...new Set(MADRID_ZONES.filter(z => z.area === newForm.area).map(z => z.zona))]
-    : []
-  const subzonas = newForm.ciudad === 'Madrid' && newForm.area && newForm.zona
-    ? MADRID_ZONES.filter(z => z.area === newForm.area && z.zona === newForm.zona).map(z => z.subzona)
-    : []
+  const nfAreas   = getAreas(newForm.ciudad, newForm.uso)
+  const zonas     = newForm.area ? getZonas(newForm.ciudad, newForm.uso, newForm.area) : []
+  const subzonas  = newForm.area && newForm.zona ? getSubzonas(newForm.ciudad, newForm.uso, newForm.area, newForm.zona) : []
 
   useEffect(() => {
     if (!GMAPS_API_KEY) return
@@ -1491,35 +1700,31 @@ function NewActivoInfoTab({ newForm, setNF }) {
                 <input {...inp} placeholder="28037" value={newForm.cp} onChange={e=>setNF('cp',e.target.value)}/>
               </div>
 
-              {/* Área / Zona / Subzona condicional */}
-              {newForm.ciudad === 'Madrid' ? (
-                <>
-                  <div><FLabel>Área</FLabel>
-                    <select {...sel} value={newForm.area} onChange={e=>{setNF('area',e.target.value);setNF('zona','');setNF('subzona','')}}>
-                      <option value="">Seleccionar área...</option>
-                      {AREAS_MAD.map(a=><option key={a}>{a}</option>)}
-                    </select>
-                  </div>
-                  <div><FLabel>Zona</FLabel>
-                    <select {...sel} value={newForm.zona} onChange={e=>{setNF('zona',e.target.value);setNF('subzona','')}} disabled={!newForm.area}>
-                      <option value="">Seleccionar zona...</option>
-                      {zonas.map(z=><option key={z}>{z}</option>)}
-                    </select>
-                  </div>
-                  <div><FLabel>Sub-zona</FLabel>
-                    <select {...sel} value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} disabled={!newForm.zona}>
-                      <option value="">Seleccionar sub-zona...</option>
-                      {subzonas.map(s=><option key={s}>{s}</option>)}
-                    </select>
-                  </div>
-                </>
-              ) : (
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
-                  <div><FLabel>Área</FLabel><input {...inp} placeholder="CBD..." value={newForm.area} onChange={e=>setNF('area',e.target.value)}/></div>
-                  <div><FLabel>Zona</FLabel><input {...inp} placeholder="M-30..." value={newForm.zona} onChange={e=>setNF('zona',e.target.value)}/></div>
-                  <div><FLabel>Sub-zona</FLabel><input {...inp} placeholder="Azca..." value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)}/></div>
-                </div>
-              )}
+              {/* Área / Zona / Subzona — desplegables si hay datos, texto libre si no */}
+              <div><FLabel>Área</FLabel>
+                {nfAreas.length > 0 ? (
+                  <select {...sel} value={newForm.area} onChange={e=>{setNF('area',e.target.value);setNF('zona','');setNF('subzona','')}}>
+                    <option value="">Seleccionar área...</option>
+                    {nfAreas.map(a=><option key={a}>{a}</option>)}
+                  </select>
+                ) : <input {...inp} placeholder="CBD..." value={newForm.area} onChange={e=>setNF('area',e.target.value)}/>}
+              </div>
+              <div><FLabel>Zona</FLabel>
+                {zonas.length > 0 ? (
+                  <select {...sel} value={newForm.zona} onChange={e=>{setNF('zona',e.target.value);setNF('subzona','')}} disabled={!newForm.area}>
+                    <option value="">Seleccionar zona...</option>
+                    {zonas.map(z=><option key={z}>{z}</option>)}
+                  </select>
+                ) : <input {...inp} placeholder="M-30..." value={newForm.zona} onChange={e=>setNF('zona',e.target.value)}/>}
+              </div>
+              <div><FLabel>Sub-zona</FLabel>
+                {subzonas.length > 0 ? (
+                  <select {...sel} value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} disabled={!newForm.zona}>
+                    <option value="">Seleccionar sub-zona...</option>
+                    {subzonas.map(s=><option key={s}>{s}</option>)}
+                  </select>
+                ) : <input {...inp} placeholder="Azca..." value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)}/>}
+              </div>
             </div>
           </div>
         </div>
@@ -1851,12 +2056,9 @@ function ZonaBox({ info, setI }) {
   const [hover,   setHover]   = useState(false)
   const [draft, setDraft] = useState({ area: info.area, zona: info.zona, subzona: info.subzona })
 
-  const zonas    = info.ciudad === 'Madrid' && draft.area
-    ? [...new Set(MADRID_ZONES.filter(z => z.area === draft.area).map(z => z.zona))]
-    : []
-  const subzonas = info.ciudad === 'Madrid' && draft.area && draft.zona
-    ? MADRID_ZONES.filter(z => z.area === draft.area && z.zona === draft.zona).map(z => z.subzona)
-    : []
+  const areas    = getAreas(info.ciudad, info.uso)
+  const zonas    = draft.area ? getZonas(info.ciudad, info.uso, draft.area) : []
+  const subzonas = draft.area && draft.zona ? getSubzonas(info.ciudad, info.uso, draft.area, draft.zona) : []
 
   const selSt = {padding:'4px 7px',border:'1px solid var(--border)',borderRadius:5,fontSize:11,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',width:'100%'}
 
@@ -1865,9 +2067,9 @@ function ZonaBox({ info, setI }) {
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:8}}>
         <div>
           <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Área</div>
-          {info.ciudad === 'Madrid' ? (
+          {areas.length > 0 ? (
             <select value={draft.area} onChange={e=>setDraft(p=>({...p,area:e.target.value,zona:'',subzona:''}))} style={selSt}>
-              <option value="">—</option>{AREAS_MAD.map(a=><option key={a}>{a}</option>)}
+              <option value="">—</option>{areas.map(a=><option key={a}>{a}</option>)}
             </select>
           ) : <input value={draft.area} onChange={e=>setDraft(p=>({...p,area:e.target.value}))} style={selSt} placeholder="—"/>}
         </div>
@@ -2063,7 +2265,7 @@ function TabInfo({ navigate, plazas, activo, onInfoSaved }) {
       sup_parcela:         info.sup_parcela ? parseFloat(info.sup_parcela) : null,
     }).eq('ref', activo.ref)
     setSaving(false)
-    if (!error) { setDirty(false); setSaveOk(true); setTimeout(()=>setSaveOk(false),3000); if (onInfoSaved) onInfoSaved({ nombre: info.nombre }) }
+    if (!error) { setDirty(false); setSaveOk(true); setTimeout(()=>setSaveOk(false),3000); if (onInfoSaved) onInfoSaved({ nombre: info.nombre, direccion: info.direccion }) }
   }
 
   const totalPlazas = plazas.reduce((s,p)=>s+p.cantidad,0)
@@ -2713,7 +2915,8 @@ export default function FichaActivo() {
   // Datos del activo desde Supabase
   const [activo, setActivo] = useState(null)
   const [loadingActivo, setLoadingActivo] = useState(false)
-  const [displayNombre, setDisplayNombre] = useState(null) // overrides activo.nombre in header after inline edit
+  const [displayNombre,   setDisplayNombre]   = useState(null) // overrides activo.nombre after inline save
+  const [displayDireccion,setDisplayDireccion] = useState(null) // overrides activo.direccion after inline save
 
   useEffect(() => {
     if (!params?.ref) return
@@ -2856,7 +3059,7 @@ export default function FichaActivo() {
                     </div>
                     <div className="ah-name">{displayNombre ?? activo?.nombre ?? '—'}</div>
                     <div className="ah-addr">
-                      {activo?.direccion && <>📍 {activo.direccion} · </>}
+                      {(displayDireccion ?? activo?.direccion) && <>📍 {displayDireccion ?? activo.direccion} · </>}
                       {[activo?.zona, activo?.subzona, activo?.ciudad].filter(Boolean).join(' · ')}
                     </div>
                     <div className="ah-tags">
@@ -2882,7 +3085,8 @@ export default function FichaActivo() {
           {/* ── TAB: Información general ── */}
           {activeTab==='at-info' && (isNew
             ? <NewActivoInfoTab newForm={newForm} setNF={setNF}/>
-            : <TabInfo navigate={navigate} plazas={plazas} activo={activo} onInfoSaved={({nombre})=>setDisplayNombre(nombre||null)}/>
+            : <TabInfo navigate={navigate} plazas={plazas} activo={activo}
+                onInfoSaved={({nombre,direccion})=>{ if(nombre!==undefined) setDisplayNombre(nombre||null); if(direccion!==undefined) setDisplayDireccion(direccion||null) }}/>
           )}
 
           {/* ── TAB: Stacking Plan ── */}
