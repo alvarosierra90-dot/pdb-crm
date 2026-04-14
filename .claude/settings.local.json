@@ -12,7 +12,8 @@
       "Bash(npx vite:*)",
       "Bash(npm list:*)",
       "Bash(grep -rn \"Seguimiento comercial\\\\|seguimiento\\\\|actividades\\\\|dem-seg\\\\|dem-act\\\\|of-seg\\\\|of-act\\\\|at-followup\\\\|followup\" C:/Users/alvar/pdb-crm/src/views/Ficha*.jsx)",
-      "Bash(grep -n \"^function NewActivoInfoTab\\\\|^}\\\\s*$\\\\|^function \" \"C:\\\\Users\\\\alvar\\\\pdb-crm\\\\src\\\\views\\\\FichaActivo.jsx\")"
+      "Bash(grep -n \"^function NewActivoInfoTab\\\\|^}\\\\s*$\\\\|^function \" \"C:\\\\Users\\\\alvar\\\\pdb-crm\\\\src\\\\views\\\\FichaActivo.jsx\")",
+      "Bash(grep -v \"^\\\\s*//\")"
     ]
   }
 }

@@ -2352,7 +2352,7 @@ function AddressField({ value, ciudad, onSave }) {
   )
 }
 
-function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, hidden }) {
+function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, syncRef, hidden }) {
   const INIT_INFO = {
     nombre:'', direccion:'', ciudad:'', pais:'España', cp:'', coordenadas:'',
     area:'', zona:'', subzona:'',
@@ -2453,7 +2453,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, h
     setDirty(false); setSaveErr(''); setSaveOk(true); setTimeout(()=>setSaveOk(false),3000)
     if (onInfoSaved) onInfoSaved({ nombre: info.nombre, direccion: info.direccion })
   }
-  // Expose handleSave via ref so parent action bar can trigger it
+  // Expose handleSave and syncCatastro via refs so parent action bar can trigger them
   if (saveRef) saveRef.current = handleSave
 
   // ── Sincronización con Catastro (llamada directa desde browser) ────────
@@ -2480,6 +2480,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, h
     } catch (e) { setCatMsg(e.message || 'Error de red') }
     finally { setSyncingCat(false) }
   }
+  if (syncRef) syncRef.current = syncCatastro
 
   const totalPlazas = plazas.reduce((s,p)=>s+p.cantidad,0)
   const byUbic = UBICACIONES.map(u=>({u, n:plazas.filter(p=>p.ubicacion===u).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
@@ -3221,6 +3222,7 @@ export default function FichaActivo() {
   const [editNombreVal,   setEditNombreVal]   = useState('')
   const [liveEdifCount,   setLiveEdifCount]   = useState(null) // synced from StackingPlan
   const infoSaveRef = useRef(null) // ref to TabInfo's handleSave
+  const infoSyncRef = useRef(null) // ref to TabInfo's syncCatastro
 
   useEffect(() => {
     if (!params?.ref) return
@@ -3428,6 +3430,7 @@ export default function FichaActivo() {
             <TabInfo navigate={navigate} plazas={plazas} activo={activo}
               nEdificios={liveEdifCount ?? activo?.n_edificios ?? 1}
               saveRef={infoSaveRef}
+              syncRef={infoSyncRef}
               hidden={activeTab !== 'at-info'}
               onInfoSaved={({nombre,direccion})=>{ if(nombre!==undefined) setDisplayNombre(nombre||null); if(direccion!==undefined) setDisplayDireccion(direccion||null) }}/>
           )}
