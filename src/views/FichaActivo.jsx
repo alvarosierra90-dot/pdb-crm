@@ -1309,6 +1309,7 @@ function NewActivoInfoTab({ newForm, setNF }) {
   const mapElRef   = useRef(null)
   const mapObj     = useRef(null)
   const markerRef  = useRef(null)
+  const acRef      = useRef(null)
 
   // Derived conditional zone data
   const zonas    = newForm.ciudad === 'Madrid' && newForm.area
@@ -1318,52 +1319,66 @@ function NewActivoInfoTab({ newForm, setNF }) {
     ? MADRID_ZONES.filter(z => z.area === newForm.area && z.zona === newForm.zona).map(z => z.subzona)
     : []
 
-  const initMap = () => {
-    if (!mapElRef.current || !window.google) return
-    const center = { lat: 40.4168, lng: -3.7038 }
-    mapObj.current = new window.google.maps.Map(mapElRef.current, {
-      center, zoom: 12,
-      mapTypeControl: false, streetViewControl: false, fullscreenControl: false,
-      styles: [{ featureType:'poi', stylers:[{ visibility:'off' }] }],
-    })
-    markerRef.current = new window.google.maps.Marker({ map: mapObj.current, position: center, visible: false })
-    if (addressRef.current) {
-      const ac = new window.google.maps.places.Autocomplete(addressRef.current, {
-        componentRestrictions: { country: 'es' },
-      })
-      ac.addListener('place_changed', () => {
-        const place = ac.getPlace()
-        if (!place.geometry) return
-        const get = (type, short) => {
-          const c = (place.address_components || []).find(x => x.types.includes(type))
-          return c ? (short ? c.short_name : c.long_name) : ''
-        }
-        setNF('direccion', place.formatted_address || '')
-        setNF('ciudad',    get('locality') || get('administrative_area_level_2') || '')
-        setNF('pais',      get('country') || '')
-        setNF('cp',        get('postal_code') || '')
-        const loc = place.geometry.location
-        mapObj.current.setCenter(loc); mapObj.current.setZoom(16)
-        markerRef.current.setPosition(loc); markerRef.current.setVisible(true)
-      })
-    }
-  }
-
   useEffect(() => {
     if (!GMAPS_API_KEY) return
-    if (window.google?.maps) { initMap(); return }
-    if (document.getElementById('gmaps-script')) return
-    const s = document.createElement('script')
-    s.id  = 'gmaps-script'
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_API_KEY}&libraries=places&callback=__gmapsReady`
-    window.__gmapsReady = initMap
-    document.head.appendChild(s)
-  }, [])
 
-  // When map div mounts and google already loaded
-  useEffect(() => {
-    if (window.google?.maps && mapElRef.current && !mapObj.current) initMap()
-  })
+    const setupMap = () => {
+      if (!mapElRef.current || !window.google?.maps?.places) return
+      if (mapObj.current) return // already initialized
+
+      const center = { lat: 40.4168, lng: -3.7038 }
+      mapObj.current = new window.google.maps.Map(mapElRef.current, {
+        center, zoom: 12,
+        mapTypeControl: false, streetViewControl: false, fullscreenControl: false,
+        styles: [{ featureType:'poi', stylers:[{ visibility:'off' }] }],
+      })
+      markerRef.current = new window.google.maps.Marker({
+        map: mapObj.current, position: center, visible: false,
+      })
+
+      if (addressRef.current) {
+        acRef.current = new window.google.maps.places.Autocomplete(addressRef.current, {
+          componentRestrictions: { country: 'es' },
+          fields: ['formatted_address','address_components','geometry'],
+        })
+        acRef.current.addListener('place_changed', () => {
+          const place = acRef.current.getPlace()
+          if (!place.geometry) return
+          const get = (type) => {
+            const c = (place.address_components || []).find(x => x.types.includes(type))
+            return c ? c.long_name : ''
+          }
+          setNF('direccion', place.formatted_address || '')
+          setNF('ciudad',    get('locality') || get('administrative_area_level_2') || '')
+          setNF('pais',      get('country') || '')
+          setNF('cp',        get('postal_code') || '')
+          const loc = place.geometry.location
+          mapObj.current.setCenter(loc)
+          mapObj.current.setZoom(16)
+          markerRef.current.setPosition(loc)
+          markerRef.current.setVisible(true)
+        })
+      }
+    }
+
+    if (window.google?.maps?.places) {
+      setupMap()
+    } else {
+      const existing = document.getElementById('gmaps-script')
+      if (existing) {
+        // Script already loading — wait for it
+        existing.addEventListener('load', setupMap)
+      } else {
+        const s = document.createElement('script')
+        s.id  = 'gmaps-script'
+        s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_API_KEY}&libraries=places`
+        s.async = true
+        s.defer = true
+        s.onload = setupMap
+        document.head.appendChild(s)
+      }
+    }
+  }, []) // run once on mount
 
   const inp = { className:'of-inp', style:{width:'100%',boxSizing:'border-box'} }
   const sel = { className:'of-sel', style:{width:'100%',boxSizing:'border-box'} }
