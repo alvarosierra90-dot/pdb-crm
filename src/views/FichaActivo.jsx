@@ -1738,16 +1738,21 @@ async function fetchCatastro(lat, lng) {
   if (!pc1 || !pc2) throw new Error('No hay inmueble catastral en esas coordenadas')
   const refcat = `${pc1}${pc2}${q(coordDoc,'car')||''}${q(coordDoc,'cc1')||''}${q(coordDoc,'cc2')||''}`
 
-  // ── Paso 2: refcat → datos completos del inmueble ───────────────────────
+  // ── Paso 2: refcat → datos completos (ASMX, misma política CORS que paso 1) ─
   let uso_pgou = null, sup_parcela = null, anno_construccion = null,
       clasificacion_urb = null, calificacion_urb = null, edificabilidad = null
 
   try {
     const inmRes = await fetch(
-      `https://ovc.catastro.meh.es/OVCServWeb/OVCWcfLibres/RESTServices.svc/Inmueble?RefCat=${refcat}&SRS=EPSG:4326`
+      `https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/` +
+      `OVCCallejero.asmx/Consulta_DNPRC?Provincia=&Municipio=&RC=${refcat}`
     )
     if (inmRes.ok) {
       const inmDoc = parser.parseFromString(stripNs(await inmRes.text()), 'text/xml')
+
+      // Error del Catastro (cod distinto de 0)
+      const cod = q(inmDoc, 'cod')
+      if (cod && cod !== '0') throw new Error(q(inmDoc, 'des') || 'Error Catastro paso 2')
 
       // Uso catastral → etiqueta PGOU
       const uso_cat = q(inmDoc, 'luso') || ''
@@ -1764,7 +1769,6 @@ async function fetchCatastro(lat, lng) {
       // Datos urbanísticos del PGOU — disponibles en <loures> para algunos municipios
       const loures = q(inmDoc, 'loures')
       if (loures) {
-        // "Clase de suelo: Urbano Consolidado · Calificación: ..." etc.
         const claseM = loures.match(/clase(?:\s+de\s+suelo)?[:\s]+([^·\n,;]+)/i)
         if (claseM) clasificacion_urb = claseM[1].trim().replace(/\.$/, '')
 
@@ -1775,7 +1779,10 @@ async function fetchCatastro(lat, lng) {
         if (edifM) edificabilidad = edifM[1].trim().replace(/\.$/, '')
       }
     }
-  } catch { /* datos del inmueble son opcionales */ }
+  } catch (e) {
+    console.warn('[Catastro paso 2]', e)
+    /* datos del inmueble son opcionales — solo ref_catastral es obligatorio */
+  }
 
   return { ref_catastral: refcat, uso_pgou, sup_parcela, anno_construccion,
            clasificacion_urb, calificacion_urb, edificabilidad }
@@ -2403,7 +2410,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, h
   const handleSave = async () => {
     if (!activo?.ref) return
     setSaving(true)
-    const { error } = await supabase.from('activos').update({
+    const basePayload = {
       nombre:              info.nombre               || null,
       direccion:           info.direccion            || null,
       ciudad:              info.ciudad               || null,
@@ -2420,8 +2427,6 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, h
       calidad:             info.calidad              || null,
       asset_manager:       info.asset_manager        || null,
       sba:                 info.sba ? parseFloat(info.sba) : null,
-      sup_planta_tipo:     info.sup_planta_tipo ? parseFloat(info.sup_planta_tipo) : null,
-      ratio_perdida:       info.ratio_perdida ? parseFloat(info.ratio_perdida) : null,
       anno_construccion:   info.anno_construccion    ? parseInt(info.anno_construccion)   : null,
       anno_rehabilitacion: info.anno_rehabilitacion  ? parseInt(info.anno_rehabilitacion) : null,
       ref_catastral:       info.ref_catastral        || null,
@@ -2430,7 +2435,19 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, h
       calificacion_urb:    info.calificacion_urb     || null,
       edificabilidad:      info.edificabilidad       || null,
       sup_parcela:         info.sup_parcela ? parseFloat(info.sup_parcela) : null,
+    }
+    let { error } = await supabase.from('activos').update({
+      ...basePayload,
+      sup_planta_tipo: info.sup_planta_tipo ? parseFloat(info.sup_planta_tipo) : null,
+      ratio_perdida:   info.ratio_perdida   ? parseFloat(info.ratio_perdida)   : null,
     }).eq('ref', activo.ref)
+
+    // Si la migración 005 aún no se ha ejecutado, reintenta sin esas columnas
+    if (error && (error.message?.includes('ratio_perdida') || error.message?.includes('sup_planta_tipo') || error.code === '42703')) {
+      const r2 = await supabase.from('activos').update(basePayload).eq('ref', activo.ref)
+      error = r2.error
+    }
+
     setSaving(false)
     if (error) { setSaveErr(error.message || 'Error al guardar'); return }
     setDirty(false); setSaveErr(''); setSaveOk(true); setTimeout(()=>setSaveOk(false),3000)
@@ -3200,6 +3217,8 @@ export default function FichaActivo() {
   const [loadingActivo, setLoadingActivo] = useState(false)
   const [displayNombre,   setDisplayNombre]   = useState(null) // overrides activo.nombre after inline save
   const [displayDireccion,setDisplayDireccion] = useState(null) // overrides activo.direccion after inline save
+  const [editingNombre,   setEditingNombre]   = useState(false)
+  const [editNombreVal,   setEditNombreVal]   = useState('')
   const [liveEdifCount,   setLiveEdifCount]   = useState(null) // synced from StackingPlan
   const infoSaveRef = useRef(null) // ref to TabInfo's handleSave
 
@@ -3299,12 +3318,7 @@ export default function FichaActivo() {
         ) : (
           <>
             <button className="ab-btn save" onClick={() => infoSaveRef.current?.()}>💾 Guardar</button>
-            <button className="ab-btn" onClick={async () => { await infoSaveRef.current?.(); navigate('activos') }}>Guardar y cerrar</button>
-            <button className="ab-btn">Nuevo</button>
-            <button className="ab-btn">Desactivar</button>
-            <div className="ab-sep"/>
-            <button className="ab-btn">Actualizar</button>
-            <button className="ab-btn">📄 Plantillas word</button>
+            <button className="ab-btn" onClick={async () => { await infoSaveRef.current?.(); navigate('activos', { highlightRef: activo?.ref ?? params?.ref }) }}>Guardar y cerrar</button>
             <div className="ab-sep"/>
             <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
           </>
@@ -3347,7 +3361,43 @@ export default function FichaActivo() {
                       <span className="ref-badge-activo">ACTIVO</span>
                       <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{activo?.ref || params?.ref}</span>
                     </div>
-                    <div className="ah-name">{displayNombre ?? activo?.nombre ?? '—'}</div>
+                    {editingNombre ? (
+                      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
+                        <input
+                          autoFocus
+                          className="of-inp"
+                          value={editNombreVal}
+                          onChange={e => setEditNombreVal(e.target.value)}
+                          onKeyDown={async e => {
+                            if (e.key === 'Enter') {
+                              const n = editNombreVal.trim()
+                              if (n && n !== (displayNombre ?? activo?.nombre)) {
+                                await supabase.from('activos').update({ nombre: n }).eq('ref', activo.ref)
+                                setDisplayNombre(n)
+                              }
+                              setEditingNombre(false)
+                            } else if (e.key === 'Escape') {
+                              setEditingNombre(false)
+                            }
+                          }}
+                          style={{fontSize:18,fontWeight:700,padding:'3px 8px',minWidth:280}}
+                        />
+                        <button onClick={async () => {
+                          const n = editNombreVal.trim()
+                          if (n && n !== (displayNombre ?? activo?.nombre)) {
+                            await supabase.from('activos').update({ nombre: n }).eq('ref', activo.ref)
+                            setDisplayNombre(n)
+                          }
+                          setEditingNombre(false)
+                        }} style={{padding:'3px 10px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>✓</button>
+                        <button onClick={() => setEditingNombre(false)} style={{padding:'3px 8px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)'}}>✕</button>
+                      </div>
+                    ) : (
+                      <div className="ah-name" style={{cursor:'text',display:'flex',alignItems:'center',gap:6}} onClick={() => { setEditNombreVal(displayNombre ?? activo?.nombre ?? ''); setEditingNombre(true) }}>
+                        {displayNombre ?? activo?.nombre ?? '—'}
+                        <span style={{fontSize:11,color:'var(--text4)',fontWeight:400,opacity:0.6}}>✎</span>
+                      </div>
+                    )}
                     <div className="ah-addr">
                       {(displayDireccion ?? activo?.direccion) && <>📍 {displayDireccion ?? activo.direccion} · </>}
                       {[activo?.zona, activo?.subzona, activo?.ciudad].filter(Boolean).join(' · ')}

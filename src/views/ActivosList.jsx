@@ -40,7 +40,8 @@ const COLS = [
 
 
 export default function ActivosList() {
-  const { navigate } = useNav()
+  const { navigate, params } = useNav()
+  const highlightRef = params?.highlightRef || null
   const [query,   setQuery]   = useState('')
   const [activos, setActivos] = useState(ACTIVOS)
   const [loading, setLoading] = useState(true)
@@ -51,7 +52,7 @@ export default function ActivosList() {
   useEffect(() => {
     supabase.from('activos').select('*').order('nombre').then(({ data, error }) => {
       if (!error && data && data.length > 0) {
-        setActivos(data.map(a => ({
+        const mapped = data.map(a => ({
           ref:    a.ref,
           name:   a.nombre,
           propietario: a.propietario || '—',
@@ -68,11 +69,17 @@ export default function ActivosList() {
           uso_secundario: a.uso_secundario || '',
           sup_planta_tipo: a.sup_planta_tipo || 0,
           sup_neta: (a.sba && a.ratio_perdida) ? Math.round(a.sba * (1 - a.ratio_perdida / 100)) : null,
-        })))
+        }))
+        // Si venimos de "Guardar y cerrar", poner ese activo primero
+        if (highlightRef) {
+          const idx = mapped.findIndex(a => a.ref === highlightRef)
+          if (idx > 0) mapped.unshift(mapped.splice(idx, 1)[0])
+        }
+        setActivos(mapped)
       }
       setLoading(false)
     })
-  }, [])
+  }, [highlightRef])
 
   const advCount = Object.values(af).filter(Boolean).length
 
@@ -158,7 +165,7 @@ export default function ActivosList() {
               </tr>
             </thead>
             <tbody>
-              {result.map(a => <tr key={a.ref} onClick={() => navigate('ficha-activo', { ref: a.ref })}>{visibleCols.map(c => cell(a)[c.id])}</tr>)}
+              {result.map(a => <tr key={a.ref} onClick={() => navigate('ficha-activo', { ref: a.ref })} style={a.ref === highlightRef ? {background:'var(--accent-lt)',outline:'1px solid var(--accent-bd)'} : undefined}>{visibleCols.map(c => cell(a)[c.id])}</tr>)}
             </tbody>
           </table>
         )}
