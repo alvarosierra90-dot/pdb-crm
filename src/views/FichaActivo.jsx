@@ -1694,6 +1694,34 @@ function TabMultimedia() {
 }
 
 function NewActivoInfoTab({ newForm, setNF, submitted }) {
+  const [syncingCat, setSyncingCat] = useState(false)
+  const [catMsg,  setCatMsg]  = useState('')
+
+  async function syncCatastro() {
+    const coords = newForm.coordenadas || ''
+    if (!coords) { setCatMsg('Sin coordenadas — busca la dirección en el mapa primero'); return }
+    const [latStr, lngStr] = coords.split(',').map(s => s.trim())
+    if (!latStr || !lngStr || isNaN(latStr) || isNaN(lngStr)) {
+      setCatMsg('Coordenadas inválidas'); return
+    }
+    setSyncingCat(true); setCatMsg('')
+    try {
+      const res  = await fetch(`/api/catastro?lat=${latStr}&lng=${lngStr}`)
+      const data = await res.json()
+      if (!res.ok) { setCatMsg(data.error || 'Error del servidor'); return }
+      if (data.ref_catastral)    setNF('ref_catastral',    data.ref_catastral)
+      if (data.uso_pgou)         setNF('uso_pgou',         data.uso_pgou)
+      if (data.sup_parcela != null) setNF('sup_parcela',   String(data.sup_parcela))
+      if (data.anno_construccion != null) setNF('anno_construccion', String(data.anno_construccion))
+      setCatMsg('ok')
+      setTimeout(() => setCatMsg(''), 4000)
+    } catch (e) {
+      setCatMsg(e.message || 'Error de red')
+    } finally {
+      setSyncingCat(false)
+    }
+  }
+
   // Derived conditional zone data
   const nfAreas  = getAreas(newForm.ciudad, newForm.uso)
   const zonas    = newForm.area ? getZonas(newForm.ciudad, newForm.uso, newForm.area) : []
@@ -1825,7 +1853,19 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
 
         {/* DATOS URBANÍSTICOS */}
         <div className="info-block" style={{marginBottom:12}}>
-          <div className="ib-title">🏛 DATOS URBANÍSTICOS</div>
+          <div className="ib-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <span>🏛 DATOS URBANÍSTICOS</span>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--green)',fontWeight:600}}>✓ Sincronizado</span>}
+              {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--red)',maxWidth:200,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
+              <button
+                onClick={syncCatastro}
+                disabled={syncingCat}
+                style={{padding:'3px 10px',fontSize:10,fontWeight:600,fontFamily:'inherit',cursor:syncingCat?'wait':'pointer',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,display:'flex',alignItems:'center',gap:5,whiteSpace:'nowrap',opacity:syncingCat?0.7:1}}>
+                {syncingCat ? '⟳ Consultando...' : '⟳ Sincronizar Catastro'}
+              </button>
+            </div>
+          </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 24px'}}>
             <div>
               <Row label="Ref. catastral"><input value={newForm.ref_catastral} onChange={e=>setNF('ref_catastral',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/></Row>
@@ -2238,6 +2278,8 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, h
   const [saving, setSaving] = useState(false)
   const [saveOk, setSaveOk] = useState(false)
   const [saveErr, setSaveErr] = useState('')
+  const [syncingCat, setSyncingCat] = useState(false)
+  const [catMsg,  setCatMsg]  = useState('')  // '' | 'ok' | error text
 
   // Init from activo (Supabase)
   useEffect(() => {
@@ -2313,6 +2355,36 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, h
   }
   // Expose handleSave via ref so parent action bar can trigger it
   if (saveRef) saveRef.current = handleSave
+
+  // ── Sincronización con Catastro ─────────────────────────────────────────
+  async function syncCatastro() {
+    const coords = info.coordenadas || ''
+    if (!coords) { setCatMsg('Sin coordenadas — busca la dirección en el mapa primero'); return }
+    const [latStr, lngStr] = coords.split(',').map(s => s.trim())
+    if (!latStr || !lngStr || isNaN(latStr) || isNaN(lngStr)) {
+      setCatMsg('Coordenadas inválidas'); return
+    }
+    setSyncingCat(true); setCatMsg('')
+    try {
+      const res  = await fetch(`/api/catastro?lat=${latStr}&lng=${lngStr}`)
+      const data = await res.json()
+      if (!res.ok) { setCatMsg(data.error || 'Error del servidor'); return }
+      setInfo(p => ({
+        ...p,
+        ref_catastral:    data.ref_catastral    ?? p.ref_catastral,
+        uso_pgou:         data.uso_pgou         ?? p.uso_pgou,
+        sup_parcela:      data.sup_parcela      != null ? String(data.sup_parcela) : p.sup_parcela,
+        anno_construccion: data.anno_construccion != null ? String(data.anno_construccion) : p.anno_construccion,
+      }))
+      setDirty(true)
+      setCatMsg('ok')
+      setTimeout(() => setCatMsg(''), 4000)
+    } catch (e) {
+      setCatMsg(e.message || 'Error de red')
+    } finally {
+      setSyncingCat(false)
+    }
+  }
 
   const totalPlazas = plazas.reduce((s,p)=>s+p.cantidad,0)
   const byUbic = UBICACIONES.map(u=>({u, n:plazas.filter(p=>p.ubicacion===u).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
@@ -2476,7 +2548,19 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, h
 
         {/* ── DATOS URBANÍSTICOS ── */}
         <div className="info-block" style={{marginBottom:12}}>
-          <div className="ib-title">🏛 DATOS URBANÍSTICOS<span className="ir-v link" style={{fontSize:10,marginLeft:10}}>Consultar Visor ↗</span></div>
+          <div className="ib-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <span>🏛 DATOS URBANÍSTICOS</span>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--green)',fontWeight:600}}>✓ Sincronizado</span>}
+              {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--red)',maxWidth:200,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
+              <button
+                onClick={syncCatastro}
+                disabled={syncingCat}
+                style={{padding:'3px 10px',fontSize:10,fontWeight:600,fontFamily:'inherit',cursor:syncingCat?'wait':'pointer',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,display:'flex',alignItems:'center',gap:5,whiteSpace:'nowrap',opacity:syncingCat?0.7:1}}>
+                {syncingCat ? '⟳ Consultando...' : '⟳ Sincronizar Catastro'}
+              </button>
+            </div>
+          </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 24px'}}>
             <div>
               <InlineField label="Ref. catastral" value={info.ref_catastral||'—'} onSave={()=>setDirty(true)}>
