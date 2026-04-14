@@ -6,8 +6,20 @@
 -- Ejecutar en Supabase SQL Editor
 -- ============================================================
 
--- 1. Añadir columna propietario si no existe
-ALTER TABLE activos ADD COLUMN IF NOT EXISTS propietario text;
+-- 1. Añadir columnas nuevas si no existen
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS propietario         text;
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS pais                text DEFAULT 'España';
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS cp                  text;
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS area                text;
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS tipo_activo         text DEFAULT 'Edificio';
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS estado_construccion text DEFAULT 'Construcción existente';
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS uso_secundario      text;
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS asset_manager       text;
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS clasificacion_urb   text;
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS uso_pgou            text;
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS calificacion_urb    text;
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS edificabilidad      text;
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS sup_parcela         numeric;
 
 -- 2. Actualizar los 8 activos ya insertados con propietario y subzona correctos
 UPDATE activos SET propietario = 'Barings RE',   subzona = 'Julián Camarillo' WHERE ref = 'MAD-OF-00189';

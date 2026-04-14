@@ -20,18 +20,19 @@ function usoColor(uso) {
 }
 
 const COLS = [
-  { id: '_chk',    label: '',              sys: true },
-  { id: 'nombre',  label: 'Activo',        required: true, type:'text',   getValue: r => r.name },
-  { id: 'area',    label: 'Área (m²)',                    type:'number', getValue: r => r.sba },
-  { id: 'zona',    label: 'Zona',                         type:'enum',   getValue: r => r.zona },
-  { id: 'subzona', label: 'Sub-zona',                     type:'enum',   getValue: r => r.subzona },
-  { id: 'ciudad',  label: 'Ciudad',                       type:'enum',   getValue: r => r.ciudad },
-  { id: 'uso',     label: 'Uso',                          type:'enum',   getValue: r => r.uso },
-  { id: 'occ',     label: 'Ocupación',                    type:'number', getValue: r => r.occ },
-  { id: 'valor',   label: 'Valor',                        type:'text',   getValue: r => r.valor },
-  { id: 'estado',  label: 'Estado',                       type:'enum',   getValue: r => r.estado },
-  { id: 'dias',    label: 'Días comerc.',                 type:'number', getValue: r => r.dias },
-  { id: '_act',    label: '',              sys: true },
+  { id: '_chk',       label: '',                    sys: true },
+  { id: 'nombre',     label: 'Activo',              required: true, type:'text',   getValue: r => r.name },
+  { id: 'area',       label: 'Superficie (m²)',                     type:'number', getValue: r => r.sba },
+  { id: 'zona',       label: 'Zona',                               type:'enum',   getValue: r => r.zona },
+  { id: 'subzona',    label: 'Sub-zona',                           type:'enum',   getValue: r => r.subzona },
+  { id: 'ciudad',     label: 'Ciudad',                             type:'enum',   getValue: r => r.ciudad },
+  { id: 'uso',        label: 'Uso principal',                      type:'enum',   getValue: r => r.uso },
+  { id: 'occ',        label: 'Ocupación',                          type:'number', getValue: r => r.occ },
+  { id: 'valor',      label: 'Precio Adquisición',                 type:'text',   getValue: r => r.valor },
+  { id: 'estado',     label: 'Estado',                             type:'enum',   getValue: r => r.estado },
+  { id: 'dias',       label: 'Días comerc.',                       type:'number', getValue: r => r.dias },
+  { id: 'propietario',label: 'Propietario',                        type:'enum',   getValue: r => r.propietario },
+  { id: '_act',       label: '',                    sys: true },
 ]
 
 
@@ -96,8 +97,9 @@ export default function ActivosList() {
     uso:     <td key="uso"><span className={`tag ${a.uso === 'Oficinas' ? 'tag-blue' : a.uso === 'Logístico' ? 'tag-teal' : a.uso === 'Data Center' ? 'tag-blue' : a.uso === 'Residencial' ? 'tag-amber' : 'tag-purple'}`}>{a.uso}</span></td>,
     occ:     <td key="occ"><div className="occ-cell"><div className="occ-bar"><div className="occ-bar-fill" style={{ width: `${a.occ}%`, background: occColor(a.occ) }} /></div><span style={{ fontSize: 11, color: occColor(a.occ) }}>{a.occ}%</span></div></td>,
     valor:   <td key="valor" className="mono">{a.valor}</td>,
-    estado:  <td key="estado"><span className={`tag ${a.estado === 'Activo' ? 'tag-green' : a.estado === 'En comercialización' ? 'tag-amber' : 'tag-gray'}`}>{a.estado}</span></td>,
+    estado:  <td key="estado"><span className={`tag ${a.estado === 'Totalmente ocupado' ? 'tag-green' : a.estado === 'Activo' ? 'tag-green' : a.estado === 'Parcialmente disponible' ? 'tag-amber' : a.estado === 'En comercialización' ? 'tag-amber' : a.estado === 'Vacío al completo' ? 'tag-red' : 'tag-gray'}`}>{a.estado}</span></td>,
     dias:    <td key="dias">{a.dias > 0 ? <span style={{ color: a.dias > 90 ? 'var(--red)' : a.dias > 60 ? 'var(--amber)' : 'var(--text3)', fontWeight: 600 }}>{a.dias}d</span> : '—'}</td>,
+    propietario: <td key="propietario" style={{ fontSize: 11 }}>{a.propietario}</td>,
     _act:    <td key="_act"><div className="ra-cell"><button className="ra" onClick={e => { e.stopPropagation(); navigate('ficha-activo', { ref: a.ref }) }}>Ver</button><button className="ra p" onClick={e => e.stopPropagation()}>Editar</button></div></td>,
   })
 
@@ -121,7 +123,7 @@ export default function ActivosList() {
       {showAdv && (
         <div style={{ padding: '10px 16px', background: 'var(--gray-lt)', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
           <Field label="Uso"><select className="fsel" value={af.uso} onChange={e => setAf(p => ({ ...p, uso: e.target.value }))}><option value="">Todos</option><option>Oficinas</option><option>Logístico</option><option>Retail</option><option>Data Center</option><option>Residencial</option></select></Field>
-          <Field label="Estado"><select className="fsel" value={af.estado} onChange={e => setAf(p => ({ ...p, estado: e.target.value }))}><option value="">Todos</option><option>Activo</option><option>En comercialización</option></select></Field>
+          <Field label="Estado"><select className="fsel" value={af.estado} onChange={e => setAf(p => ({ ...p, estado: e.target.value }))}><option value="">Todos</option><option>Activo</option><option>En comercialización</option><option>Totalmente ocupado</option><option>Parcialmente disponible</option><option>Vacío al completo</option></select></Field>
           <Field label="Zona"><select className="fsel" value={af.zona} onChange={e => setAf(p => ({ ...p, zona: e.target.value }))}><option value="">Todas</option><option>M-30</option><option>A-1</option><option>22@</option><option>Corredor del Henares</option><option>Sur Madrid</option><option>Mestalla</option></select></Field>
           <Field label="Ciudad"><input className="fsel" placeholder="Madrid..." value={af.ciudad} onChange={e => setAf(p => ({ ...p, ciudad: e.target.value }))} /></Field>
           <Field label="Área mín. m²"><input className="fsel" type="number" placeholder="0" value={af.sbaMin} onChange={e => setAf(p => ({ ...p, sbaMin: e.target.value }))} /></Field>

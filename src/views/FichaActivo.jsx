@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
@@ -14,10 +14,76 @@ function genRefFA(ciudad, uso) {
 }
 const CUENTAS_FA = ['Colonial SOCIMI','Merlin Properties','GMP','Barings Real Estate','Allianz Real Estate','Prologis','CBRE Investment Management','Grosvenor','IBA Capital','Neinor Homes','Axa IM Real Assets','Blackstone','Brookfield']
 const USO_ICO    = { 'Oficinas':'🏢', 'Logístico':'🏭', 'Retail':'🛍', 'Data Center':'🖥', 'Residencial':'🏘', 'Hoteles':'🏨', 'Suelo':'🟫' }
-const NEW_FORM_INIT = { nombre:'', direccion:'', ciudad:'Madrid', uso:'Oficinas', propietario:'' }
+
+/* ── ZONAS MADRID (área → zona → subzona) ── */
+const MADRID_ZONES = [
+  { area:'CBD',            zona:'M-30', subzona:'4 Torres' },
+  { area:'CBD',            zona:'M-30', subzona:'Azca' },
+  { area:'CBD',            zona:'M-30', subzona:'B. Salamanca' },
+  { area:'CBD',            zona:'M-30', subzona:'Castellana' },
+  { area:'CBD',            zona:'M-30', subzona:'Chamberí' },
+  { area:'CBD',            zona:'M-30', subzona:'Cuzco' },
+  { area:'CBD',            zona:'M-30', subzona:'Jerónimos' },
+  { area:'CBD',            zona:'M-30', subzona:'Recoletos' },
+  { area:'CBD',            zona:'M-30', subzona:'Retiro' },
+  { area:'Centro',         zona:'M-30', subzona:'Centro' },
+  { area:'Centro',         zona:'M-30', subzona:'Chamartín' },
+  { area:'Centro',         zona:'M-30', subzona:'M. Álvaro' },
+  { area:'Centro',         zona:'M-30', subzona:'Prosperidad' },
+  { area:'Centro',         zona:'M-30', subzona:'Tetuán' },
+  { area:'Centro',         zona:'M-30', subzona:'Viso' },
+  { area:'Centro',         zona:'M-30', subzona:'Ciudad Universitaria' },
+  { area:'Descentralizado',zona:'A-1',  subzona:'Manoteras' },
+  { area:'Descentralizado',zona:'A-1',  subzona:'Las Tablas' },
+  { area:'Descentralizado',zona:'A-1',  subzona:'Fuencarral' },
+  { area:'Descentralizado',zona:'A-1',  subzona:'Mirasierra' },
+  { area:'Descentralizado',zona:'A-1',  subzona:'Sanchinarro' },
+  { area:'Descentralizado',zona:'A-2',  subzona:'Arturo Soria' },
+  { area:'Descentralizado',zona:'A-2',  subzona:'Madbit' },
+  { area:'Descentralizado',zona:'A-2',  subzona:'Joséfa Valcárcel / LLT' },
+  { area:'Descentralizado',zona:'M-40', subzona:'Vía de los Poblados' },
+  { area:'Descentralizado',zona:'M-40', subzona:'Campo de las Naciones / IFEMA' },
+  { area:'Periferia',      zona:'A-1',  subzona:'Alcobendas Avda. Europa' },
+  { area:'Periferia',      zona:'A-1',  subzona:'Alcobendas Polígono' },
+  { area:'Periferia',      zona:'A-1',  subzona:'Alcobendas / Arroyo de la Vega' },
+  { area:'Periferia',      zona:'A-1',  subzona:'Alcobendas La Moraleja' },
+  { area:'Periferia',      zona:'A-1',  subzona:'San Sebastián de los Reyes' },
+  { area:'Periferia',      zona:'A-2',  subzona:'Las Mercedes' },
+  { area:'Periferia',      zona:'A-2',  subzona:'San Fernando de Henares' },
+  { area:'Periferia',      zona:'A-2',  subzona:'Barajas / Nudo Eisenhower' },
+  { area:'Periferia',      zona:'A-3',  subzona:'Vallecas' },
+  { area:'Periferia',      zona:'A-3',  subzona:'Rivas' },
+  { area:'Periferia',      zona:'A-5',  subzona:'Alcorcón' },
+  { area:'Periferia',      zona:'A-5',  subzona:'Carabanchel' },
+  { area:'Periferia',      zona:'A-6',  subzona:'Aravaca' },
+  { area:'Periferia',      zona:'A-6',  subzona:'La Florida' },
+  { area:'Periferia',      zona:'A-6',  subzona:'Las Rozas' },
+  { area:'Periferia',      zona:'A-6',  subzona:'El Plantío' },
+  { area:'Periferia',      zona:'A-6',  subzona:'Ciudad de la Imagen' },
+  { area:'Periferia',      zona:'A-6',  subzona:'Boadilla del Monte' },
+  { area:'Periferia',      zona:'A-6',  subzona:'Majadahonda' },
+  { area:'Periferia',      zona:'A-6',  subzona:'La Finca' },
+  { area:'Periferia',      zona:'A-6',  subzona:'Pozuelo de Alarcón' },
+  { area:'Periferia',      zona:'Tres Cantos', subzona:'Tres Cantos' },
+]
+
+const AREAS_MAD  = [...new Set(MADRID_ZONES.map(z => z.area))]
+const ESTADOS_CONSTRUCCION = ['Cambio de uso en trámite','Construcción existente','En construcción','En demolición','En rehabilitación','LC + ICO obtenidos','LC + ICO solicitados','Licencia de construcción','Licencia primera ocupación','Llave en mano','Nueva construcción / Obra nueva','Proyecto','Rehabilitación integral','Rehabilitación parcial']
+const USOS_PRINCIPALES = ['Build to Rent','Aparcamiento','Apartamentos turísticos','Build to Sell','Care homes','Trastero','Flex Living','Hotel','Industrial','Logística','Oficinas','Residencial','Retail','Senior Living']
+const CALIDADES = ['A+','A','B+','B','C','D']
+
+const NEW_FORM_INIT = {
+  nombre:'', direccion:'', ciudad:'Madrid', pais:'España', cp:'',
+  area:'', zona:'', subzona:'',
+  tipo_activo:'Edificio', estado_construccion:'Construcción existente',
+  uso:'Oficinas', uso_secundario:'', calidad:'A',
+  propietario:'', asset_manager:'',
+  sba:'', anno_construccion:'', anno_rehabilitacion:'',
+  ref_catastral:'', clasificacion:'', uso_pgou:'', calificacion_urb:'', edificabilidad:'', sup_parcela:'',
+}
 
 const TABS = ['at-info','at-stacking','at-caract','at-prop','at-fotos','at-docs','at-adicional','at-360','at-followup']
-const TAB_LABELS = ['Información general','Stacking Plan','Características','Propietarios y arrendatarios','Fotografías','Documentos','Información adicional','Vista 360','Follow-up']
+const TAB_LABELS = ['Información general','Stacking Plan','Características','Propietarios y arrendatarios','Multimedia','Documentos','Información adicional','Vista 360°','Follow-up']
 
 /* ── PLAZAS DE APARCAMIENTO ── */
 const UBICACIONES  = ['Interior','Exterior']
@@ -1092,6 +1158,389 @@ function AssetManagerSearch({ value, onChange }) {
   )
 }
 
+/* ── GOOGLE MAPS API KEY ─────────────────────────────────────
+   Añade aquí tu clave de Google Maps Platform (Places API).
+   En Google Cloud Console activa: Maps JavaScript API + Places API.
+   ──────────────────────────────────────────────────────────── */
+const GMAPS_API_KEY = 'AIzaSyCFTolf_TWvDY5P-sKODkRsYw9eLf5v7LA'
+
+function FLabel({ children }) {
+  return <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>{children}</div>
+}
+
+/* ── MULTIMEDIA TAB ── */
+const FOTO_TIPOS   = ['Fotografía','Plano']
+const FOTO_SUB_FOTO = ['Interior','Exterior','Zonas comunes','Parking','Fotos aéreas']
+const FOTO_SUB_PLAN = ['Plano de planta','Sección','Axonométrica']
+
+const MOCK_MEDIA = [
+  { id:1, tipo:'Fotografía', subtipo:'Exterior',       desc:'Fachada principal',     principal:true,  src:'🏢', date:'07/02/2026' },
+  { id:2, tipo:'Fotografía', subtipo:'Interior',        desc:'Lobby recepción',       principal:false, src:'🛋', date:'07/02/2026' },
+  { id:3, tipo:'Fotografía', subtipo:'Zonas comunes',   desc:'Cafetería P.B.',        principal:false, src:'☕', date:'07/02/2026' },
+  { id:4, tipo:'Plano',      subtipo:'Plano de planta', desc:'Planta tipo P2',        principal:false, src:'📐', date:'20/03/2026' },
+  { id:5, tipo:'Fotografía', subtipo:'Fotos aéreas',    desc:'Vista aérea conjunto',  principal:false, src:'🚁', date:'01/01/2026' },
+]
+
+function TabMultimedia() {
+  const [media, setMedia]       = useState(MOCK_MEDIA)
+  const [filter, setFilter]     = useState('todos')
+  const [dragging, setDragging] = useState(false)
+  const [uploadMode, setUpload] = useState(false)
+  const [newTipo, setNewTipo]   = useState('Fotografía')
+  const [newSub,  setNewSub]    = useState('Exterior')
+  const [newDesc, setNewDesc]   = useState('')
+  const [lightbox, setLightbox] = useState(null)
+
+  const displayed = filter === 'todos' ? media
+    : filter === 'fotografias' ? media.filter(m=>m.tipo==='Fotografía')
+    : media.filter(m=>m.tipo==='Plano')
+
+  const setPrincipal = (id) => setMedia(prev => prev.map(m => ({...m, principal: m.id === id})))
+
+  const addMedia = () => {
+    const id = Math.max(0,...media.map(m=>m.id))+1
+    setMedia(prev => [...prev, { id, tipo:newTipo, subtipo:newSub, desc:newDesc||`${newSub} ${id}`, principal:false, src:newTipo==='Plano'?'📐':'🖼', date:'14/04/2026' }])
+    setUpload(false); setNewDesc('')
+  }
+
+  return (
+    <div className="tab-content active"><div className="info-pad">
+      {/* Header */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+        <div style={{fontSize:14,fontWeight:600}}>Multimedia</div>
+        <div style={{display:'flex',gap:8}}>
+          {['todos','fotografias','planos'].map(f=>(
+            <button key={f} onClick={()=>setFilter(f)}
+              style={{padding:'4px 12px',fontSize:11,border:'1px solid var(--border)',borderRadius:5,cursor:'pointer',fontFamily:'inherit',
+                background:filter===f?'var(--accent)':'var(--surface)',color:filter===f?'#fff':'var(--text2)',fontWeight:filter===f?600:400}}>
+              {f==='todos'?'Todos':f==='fotografias'?'Fotografías':'Planos'}
+            </button>
+          ))}
+          <button className="ab-btn blue" onClick={()=>setUpload(v=>!v)}>↑ Cargar</button>
+        </div>
+      </div>
+
+      {/* Upload area */}
+      {uploadMode && (
+        <div style={{border:'2px dashed var(--accent)',borderRadius:8,padding:20,marginBottom:16,background:'var(--accent-lt)'}}>
+          <div style={{textAlign:'center',marginBottom:14}}>
+            <div onDragOver={e=>{e.preventDefault();setDragging(true)}} onDragLeave={()=>setDragging(false)} onDrop={e=>{e.preventDefault();setDragging(false)}}
+              style={{padding:'24px 0',background:dragging?'rgba(37,99,235,.08)':'transparent',borderRadius:6,transition:'background .15s'}}>
+              <div style={{fontSize:28,marginBottom:6}}>⬆</div>
+              <div style={{fontSize:12,color:'var(--text3)'}}>Arrastra archivos JPEG aquí o <span style={{color:'var(--accent)',cursor:'pointer',fontWeight:600}}>haz clic para cargar</span></div>
+              <div style={{fontSize:10,color:'var(--text4)',marginTop:4}}>Solo se admiten archivos .jpg / .jpeg</div>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr auto',gap:10,alignItems:'flex-end'}}>
+            <div>
+              <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Tipo</div>
+              <select className="fsel" style={{width:'100%'}} value={newTipo} onChange={e=>{setNewTipo(e.target.value);setNewSub(e.target.value==='Fotografía'?'Exterior':'Plano de planta')}}>
+                {FOTO_TIPOS.map(t=><option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Subtipo</div>
+              <select className="fsel" style={{width:'100%'}} value={newSub} onChange={e=>setNewSub(e.target.value)}>
+                {(newTipo==='Fotografía'?FOTO_SUB_FOTO:FOTO_SUB_PLAN).map(s=><option key={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Descripción (opcional)</div>
+              <input className="of-inp" style={{width:'100%',boxSizing:'border-box'}} placeholder="Fachada principal..." value={newDesc} onChange={e=>setNewDesc(e.target.value)}/>
+            </div>
+            <button onClick={addMedia} style={{padding:'5px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Añadir</button>
+          </div>
+        </div>
+      )}
+
+      {/* Galería */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}}>
+        {displayed.map(m=>(
+          <div key={m.id} style={{border:`2px solid ${m.principal?'var(--accent)':'var(--border)'}`,borderRadius:8,overflow:'hidden',background:'var(--surface)',cursor:'pointer',position:'relative'}}
+            onClick={()=>setLightbox(m)}>
+            <div style={{height:110,display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,background:'var(--gray-lt)'}}>
+              {m.src}
+              {m.principal && <span style={{position:'absolute',top:6,right:6,background:'var(--accent)',color:'#fff',fontSize:8,fontWeight:700,padding:'2px 6px',borderRadius:8}}>PRINCIPAL</span>}
+            </div>
+            <div style={{padding:'6px 8px'}}>
+              <div style={{fontSize:10,fontWeight:600,color:'var(--text1)',marginBottom:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{m.desc}</div>
+              <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                <span style={{fontSize:8,padding:'1px 5px',borderRadius:8,background:m.tipo==='Plano'?'#ede9fe':'#dbeafe',color:m.tipo==='Plano'?'#7c3aed':'#1e40af',fontWeight:600}}>{m.tipo}</span>
+                <span style={{fontSize:8,padding:'1px 5px',borderRadius:8,background:'var(--gray-lt)',color:'var(--text3)',border:'1px solid var(--border)'}}>{m.subtipo}</span>
+              </div>
+            </div>
+            {!m.principal && (
+              <button onClick={e=>{e.stopPropagation();setPrincipal(m.id)}}
+                style={{position:'absolute',bottom:6,right:6,padding:'2px 6px',fontSize:8,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:5,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)'}}>
+                ★ Principal
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.7)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={()=>setLightbox(null)}>
+          <div style={{background:'var(--surface)',borderRadius:12,padding:24,maxWidth:480,width:'90%'}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:60,textAlign:'center',marginBottom:12}}>{lightbox.src}</div>
+            <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>{lightbox.desc}</div>
+            <div style={{display:'flex',gap:6,marginBottom:12}}>
+              <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>{lightbox.tipo}</span>
+              <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'var(--gray-lt)',color:'var(--text3)',border:'1px solid var(--border)'}}>{lightbox.subtipo}</span>
+              {lightbox.principal && <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'var(--accent)',color:'#fff',fontWeight:700}}>PRINCIPAL</span>}
+            </div>
+            <div style={{fontSize:10,color:'var(--text4)',marginBottom:12}}>Subido el {lightbox.date}</div>
+            <div style={{display:'flex',gap:8}}>
+              {!lightbox.principal && <button onClick={()=>{setPrincipal(lightbox.id);setLightbox({...lightbox,principal:true})}} style={{padding:'5px 12px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>★ Marcar como principal</button>}
+              <button onClick={()=>setLightbox(null)} style={{padding:'5px 12px',background:'var(--surface)',color:'var(--text2)',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div></div>
+  )
+}
+
+function NewActivoInfoTab({ newForm, setNF }) {
+  const addressRef = useRef(null)
+  const mapElRef   = useRef(null)
+  const mapObj     = useRef(null)
+  const markerRef  = useRef(null)
+
+  // Derived conditional zone data
+  const zonas    = newForm.ciudad === 'Madrid' && newForm.area
+    ? [...new Set(MADRID_ZONES.filter(z => z.area === newForm.area).map(z => z.zona))]
+    : []
+  const subzonas = newForm.ciudad === 'Madrid' && newForm.area && newForm.zona
+    ? MADRID_ZONES.filter(z => z.area === newForm.area && z.zona === newForm.zona).map(z => z.subzona)
+    : []
+
+  const initMap = () => {
+    if (!mapElRef.current || !window.google) return
+    const center = { lat: 40.4168, lng: -3.7038 }
+    mapObj.current = new window.google.maps.Map(mapElRef.current, {
+      center, zoom: 12,
+      mapTypeControl: false, streetViewControl: false, fullscreenControl: false,
+      styles: [{ featureType:'poi', stylers:[{ visibility:'off' }] }],
+    })
+    markerRef.current = new window.google.maps.Marker({ map: mapObj.current, position: center, visible: false })
+    if (addressRef.current) {
+      const ac = new window.google.maps.places.Autocomplete(addressRef.current, {
+        componentRestrictions: { country: 'es' },
+      })
+      ac.addListener('place_changed', () => {
+        const place = ac.getPlace()
+        if (!place.geometry) return
+        const get = (type, short) => {
+          const c = (place.address_components || []).find(x => x.types.includes(type))
+          return c ? (short ? c.short_name : c.long_name) : ''
+        }
+        setNF('direccion', place.formatted_address || '')
+        setNF('ciudad',    get('locality') || get('administrative_area_level_2') || '')
+        setNF('pais',      get('country') || '')
+        setNF('cp',        get('postal_code') || '')
+        const loc = place.geometry.location
+        mapObj.current.setCenter(loc); mapObj.current.setZoom(16)
+        markerRef.current.setPosition(loc); markerRef.current.setVisible(true)
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (!GMAPS_API_KEY) return
+    if (window.google?.maps) { initMap(); return }
+    if (document.getElementById('gmaps-script')) return
+    const s = document.createElement('script')
+    s.id  = 'gmaps-script'
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_API_KEY}&libraries=places&callback=__gmapsReady`
+    window.__gmapsReady = initMap
+    document.head.appendChild(s)
+  }, [])
+
+  // When map div mounts and google already loaded
+  useEffect(() => {
+    if (window.google?.maps && mapElRef.current && !mapObj.current) initMap()
+  })
+
+  const inp = { className:'of-inp', style:{width:'100%',boxSizing:'border-box'} }
+  const sel = { className:'of-sel', style:{width:'100%',boxSizing:'border-box'} }
+
+  return (
+    <div className="tab-content active">
+      <div className="info-pad">
+
+        {/* ══ 1. UBICACIÓN ══ */}
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:12,fontWeight:700,color:'var(--text2)',marginBottom:10,paddingBottom:6,borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:6}}>
+            📍 Ubicación
+          </div>
+
+          {/* Mapa + campos side by side */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:12}}>
+
+            {/* Mapa izquierda */}
+            <div>
+              <FLabel>Dirección · busca en el mapa</FLabel>
+              {GMAPS_API_KEY ? (
+                <>
+                  <input ref={addressRef} {...inp} placeholder="Calle Serrano 41, Madrid..." value={newForm.direccion} onChange={e=>setNF('direccion',e.target.value)} style={{...inp.style,marginBottom:8}}/>
+                  <div ref={mapElRef} style={{width:'100%',height:200,borderRadius:8,border:'1px solid var(--border)',overflow:'hidden',background:'#e5e3df'}}/>
+                </>
+              ) : (
+                <>
+                  <input {...inp} placeholder="Calle Serrano 41, Madrid..." value={newForm.direccion} onChange={e=>setNF('direccion',e.target.value)} style={{...inp.style,marginBottom:8}}/>
+                  <div style={{width:'100%',height:200,borderRadius:8,border:'1px dashed var(--border)',background:'var(--gray-lt)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,color:'var(--text4)'}}>
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                    <div style={{fontSize:11,textAlign:'center',padding:'0 16px'}}>Mapa Google Maps<br/><span style={{fontSize:10,color:'var(--accent)'}}>Añade tu API key en GMAPS_API_KEY para activarlo</span></div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Campos derecha */}
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                <div><FLabel>Ciudad</FLabel>
+                  <input {...inp} placeholder="Madrid" value={newForm.ciudad} onChange={e=>{setNF('ciudad',e.target.value);setNF('area','');setNF('zona','');setNF('subzona','')}}/>
+                </div>
+                <div><FLabel>País</FLabel>
+                  <input {...inp} placeholder="España" value={newForm.pais} onChange={e=>setNF('pais',e.target.value)}/>
+                </div>
+              </div>
+              <div><FLabel>Código postal</FLabel>
+                <input {...inp} placeholder="28037" value={newForm.cp} onChange={e=>setNF('cp',e.target.value)}/>
+              </div>
+
+              {/* Área / Zona / Subzona condicional */}
+              {newForm.ciudad === 'Madrid' ? (
+                <>
+                  <div><FLabel>Área</FLabel>
+                    <select {...sel} value={newForm.area} onChange={e=>{setNF('area',e.target.value);setNF('zona','');setNF('subzona','')}}>
+                      <option value="">Seleccionar área...</option>
+                      {AREAS_MAD.map(a=><option key={a}>{a}</option>)}
+                    </select>
+                  </div>
+                  <div><FLabel>Zona</FLabel>
+                    <select {...sel} value={newForm.zona} onChange={e=>{setNF('zona',e.target.value);setNF('subzona','')}} disabled={!newForm.area}>
+                      <option value="">Seleccionar zona...</option>
+                      {zonas.map(z=><option key={z}>{z}</option>)}
+                    </select>
+                  </div>
+                  <div><FLabel>Sub-zona</FLabel>
+                    <select {...sel} value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} disabled={!newForm.zona}>
+                      <option value="">Seleccionar sub-zona...</option>
+                      {subzonas.map(s=><option key={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </>
+              ) : (
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+                  <div><FLabel>Área</FLabel><input {...inp} placeholder="CBD..." value={newForm.area} onChange={e=>setNF('area',e.target.value)}/></div>
+                  <div><FLabel>Zona</FLabel><input {...inp} placeholder="M-30..." value={newForm.zona} onChange={e=>setNF('zona',e.target.value)}/></div>
+                  <div><FLabel>Sub-zona</FLabel><input {...inp} placeholder="Azca..." value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)}/></div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ══ 2. TIPOLOGÍA ══ */}
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:12,fontWeight:700,color:'var(--text2)',marginBottom:10,paddingBottom:6,borderBottom:'1px solid var(--border)'}}>
+            🏢 Tipología
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div><FLabel>Tipo de activo</FLabel>
+              <select {...sel} value={newForm.tipo_activo} onChange={e=>setNF('tipo_activo',e.target.value)}>
+                <option>Edificio</option><option>Suelo</option>
+              </select>
+            </div>
+            <div><FLabel>Estado de construcción</FLabel>
+              <select {...sel} value={newForm.estado_construccion} onChange={e=>setNF('estado_construccion',e.target.value)}>
+                {ESTADOS_CONSTRUCCION.map(o=><option key={o}>{o}</option>)}
+              </select>
+            </div>
+            <div><FLabel>Uso principal</FLabel>
+              <select {...sel} value={newForm.uso} onChange={e=>setNF('uso',e.target.value)}>
+                {USOS_PRINCIPALES.map(o=><option key={o}>{o}</option>)}
+              </select>
+            </div>
+            <div><FLabel>Calidad</FLabel>
+              <select {...sel} value={newForm.calidad} onChange={e=>setNF('calidad',e.target.value)}>
+                {CALIDADES.map(o=><option key={o}>{o}</option>)}
+              </select>
+            </div>
+            <div><FLabel>Uso secundario <span style={{fontWeight:400,textTransform:'none',letterSpacing:0}}>(opcional)</span></FLabel>
+              <select {...sel} value={newForm.uso_secundario} onChange={e=>setNF('uso_secundario',e.target.value)}>
+                <option value="">—</option>
+                {USOS_PRINCIPALES.map(o=><option key={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* ══ 3. DATOS GENERALES ══ */}
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:12,fontWeight:700,color:'var(--text2)',marginBottom:10,paddingBottom:6,borderBottom:'1px solid var(--border)'}}>
+            📋 Datos generales
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div><FLabel>SBA (m²)</FLabel>
+              <input {...inp} type="number" placeholder="46956" value={newForm.sba} onChange={e=>setNF('sba',e.target.value)}/>
+            </div>
+            <div><FLabel>Asset Manager</FLabel>
+              <input {...inp} placeholder="Buscar usuario..." value={newForm.asset_manager} onChange={e=>setNF('asset_manager',e.target.value)}/>
+            </div>
+            <div><FLabel>Año de construcción</FLabel>
+              <input {...inp} type="number" placeholder="2003" value={newForm.anno_construccion} onChange={e=>setNF('anno_construccion',e.target.value)}/>
+            </div>
+            <div><FLabel>Año de rehabilitación <span style={{fontWeight:400,textTransform:'none',letterSpacing:0}}>(si aplica)</span></FLabel>
+              <input {...inp} type="number" placeholder="2018" value={newForm.anno_rehabilitacion} onChange={e=>setNF('anno_rehabilitacion',e.target.value)}/>
+            </div>
+            <div style={{gridColumn:'1/-1'}}>
+              <FLabel>Nº de edificios</FLabel>
+              <div style={{padding:'6px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:11,color:'var(--text4)',fontStyle:'italic'}}>
+                Se calculará automáticamente al crear el stacking plan
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ══ 4. DATOS URBANÍSTICOS ══ */}
+        <div>
+          <div style={{fontSize:12,fontWeight:700,color:'var(--text2)',marginBottom:10,paddingBottom:6,borderBottom:'1px solid var(--border)'}}>
+            🏛 Datos urbanísticos
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+            <div><FLabel>Ref. catastral</FLabel>
+              <input {...inp} placeholder="1380341VK4718A0001FU" value={newForm.ref_catastral} onChange={e=>setNF('ref_catastral',e.target.value)}/>
+            </div>
+            <div><FLabel>Clasificación</FLabel>
+              <input {...inp} placeholder="Suelo urbano consolidado" value={newForm.clasificacion} onChange={e=>setNF('clasificacion',e.target.value)}/>
+            </div>
+            <div><FLabel>Uso PGOU</FLabel>
+              <input {...inp} placeholder="Terciario / Oficinas" value={newForm.uso_pgou} onChange={e=>setNF('uso_pgou',e.target.value)}/>
+            </div>
+            <div><FLabel>Calificación urbanística</FLabel>
+              <input {...inp} placeholder="ZVD — Zona Verde / Dotacional" value={newForm.calificacion_urb} onChange={e=>setNF('calificacion_urb',e.target.value)}/>
+            </div>
+            <div><FLabel>Edificabilidad (m²t/m²s)</FLabel>
+              <input {...inp} placeholder="1,5" value={newForm.edificabilidad} onChange={e=>setNF('edificabilidad',e.target.value)}/>
+            </div>
+            <div><FLabel>Sup. parcela (m²)</FLabel>
+              <input {...inp} type="number" placeholder="12400" value={newForm.sup_parcela} onChange={e=>setNF('sup_parcela',e.target.value)}/>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  )
+}
+
 function TabInfo({ navigate, plazas }) {
   const [assetManager, setAssetManager] = useState('')
   const totalPlazas = plazas.reduce((s,p)=>s+p.cantidad,0)
@@ -1172,11 +1621,10 @@ function TabInfo({ navigate, plazas }) {
           </div>
         </div>
 
-        {/* ── SEGUIMIENTO COMERCIAL ── */}
+        {/* ── SEGUIMIENTO COMERCIAL (solo lectura) ── */}
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
           <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-            <div style={{fontSize:11,fontWeight:600}}>📋 Seguimiento comercial</div>
-            <button className="ab-btn blue" style={{padding:'3px 9px',fontSize:10}}>+ Registrar</button>
+            <div style={{fontSize:11,fontWeight:600}}>📋 Seguimiento comercial <span style={{fontSize:9,color:'var(--text4)',fontWeight:400}}>· Sincronizado desde Ofertas y Demandas</span></div>
           </div>
           <div className="seg-2col">
             <div className="seg-block">
@@ -1203,11 +1651,10 @@ function TabInfo({ navigate, plazas }) {
           </div>
         </div>
 
-        {/* ── TRANSACCIONES Y OFERTAS ── */}
-        <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+        {/* ── OFERTAS ACTIVAS (solo lectura) ── */}
+        <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
           <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-            <div style={{fontSize:11,fontWeight:600}}>📄 Transacciones y ofertas activas</div>
-            <button className="ab-btn blue" style={{padding:'3px 9px',fontSize:10}}>+ Nueva oferta</button>
+            <div style={{fontSize:11,fontWeight:600}}>📄 Ofertas activas <span style={{fontSize:9,color:'var(--text4)',fontWeight:400}}>· Gestionadas desde el módulo Ofertas</span></div>
           </div>
           <table className="dtbl">
             <thead><tr><th>Nº Oferta</th><th>Módulo</th><th>Sup. (m²)</th><th>Renta asking</th><th>Días comerc.</th><th>Estado</th><th></th></tr></thead>
@@ -1241,24 +1688,76 @@ function TabInfo({ navigate, plazas }) {
 
 /* ── Panel derecho ── */
 function RightPanel({ navigate }) {
+  const [chatOpen, setChatOpen] = useState(false)
+  const [chatMsg,  setChatMsg]  = useState('')
+  const [chatLog,  setChatLog]  = useState([
+    { role:'ai', text:'Hola. Puedo consultarte cualquier dato de este activo — disponibilidad, rentas, vencimientos, arrendatarios, comparables. ¿En qué te ayudo?' }
+  ])
+
+  const sendChat = () => {
+    if (!chatMsg.trim()) return
+    const q = chatMsg.trim()
+    setChatLog(p=>[...p,{role:'user',text:q}])
+    setChatMsg('')
+    setTimeout(()=>setChatLog(p=>[...p,{role:'ai',text:`Consultando datos del activo para: "${q}"... (conecta la API de IA para respuestas en tiempo real)`}]),600)
+  }
+
   return (
     <div className="ficha-right">
 
-      {/* Mapa */}
+      {/* 1. Asistente IA — PRIMERO */}
       <div className="rp-sec">
-        <div className="rp-lbl">Ubicación</div>
+        <div className="rp-lbl">Asistente IA</div>
+        <div className="ai-box">
+          <div className="ai-head">
+            <div className="ai-ico">✦</div>
+            <span className="ai-lbl">Insight activo</span>
+            <span className="ai-badge">Tiempo real</span>
+          </div>
+          <div className="ai-text">
+            <strong>10.142 m² disponibles</strong> (21,6%). 2 break options vencidas o próximas. Renta zona 10,5 €/m² — margen de subida. Oracle en fase finalista para P1–P4.
+          </div>
+          <div className="ai-cta" onClick={()=>setChatOpen(v=>!v)}>✎ {chatOpen?'Cerrar chat':'Preguntar a la IA'}</div>
+        </div>
+        {chatOpen && (
+          <div style={{marginTop:8,border:'1px solid var(--border)',borderRadius:8,overflow:'hidden',background:'var(--surface)'}}>
+            <div style={{maxHeight:180,overflowY:'auto',padding:'8px 10px',display:'flex',flexDirection:'column',gap:6}}>
+              {chatLog.map((m,i)=>(
+                <div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}>
+                  <div style={{maxWidth:'85%',padding:'5px 9px',borderRadius:8,fontSize:11,lineHeight:1.4,
+                    background:m.role==='user'?'var(--accent)':'var(--gray-lt)',
+                    color:m.role==='user'?'#fff':'var(--text2)',
+                    border:m.role==='ai'?'1px solid var(--border)':'none'
+                  }}>{m.text}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{display:'flex',borderTop:'1px solid var(--border)',padding:'6px 8px',gap:6}}>
+              <input style={{flex:1,border:'none',outline:'none',fontSize:11,fontFamily:'inherit',background:'transparent',color:'var(--text1)'}}
+                placeholder="Pregunta sobre el activo..."
+                value={chatMsg} onChange={e=>setChatMsg(e.target.value)}
+                onKeyDown={e=>{if(e.key==='Enter')sendChat()}}/>
+              <button onClick={sendChat} style={{padding:'3px 10px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>→</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 2. Ubicación / datos de zona */}
+      <div className="rp-sec">
+        <div className="rp-lbl">Ubicación · datos de zona</div>
         <div className="map-ph">
           <div style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>M-30 · Madrid</div>
           <div style={{fontSize:10,color:'var(--text3)'}}>Calle Santa Leonor 65</div>
           <div style={{fontSize:10,background:'var(--accent)',color:'#fff',padding:'3px 8px',borderRadius:4,marginTop:2}}>Ver en Google Maps</div>
         </div>
         <div className="kf-grid">
-          <div className="kf"><div className="kf-lbl">Renta zona</div><div className="kf-val">10,5 €/m²</div></div>
+          <div className="kf"><div className="kf-lbl">Renta zona (media oferta)</div><div className="kf-val">10,5 €/m²</div></div>
           <div className="kf"><div className="kf-lbl">Disponibilidad zona</div><div className="kf-val amber">11,4%</div></div>
         </div>
       </div>
 
-      {/* KPIs Financieros */}
+      {/* 3. KPIs Financieros */}
       <div className="rp-sec">
         <div className="rp-lbl">KPIs Financieros</div>
         <div className="kf-grid">
@@ -1267,18 +1766,18 @@ function RightPanel({ navigate }) {
           <div className="kf"><div className="kf-lbl">Ingresos brutos</div><div className="kf-val">3,2 M€/año</div></div>
           <div className="kf"><div className="kf-lbl">WAULT</div><div className="kf-val">2,8 años</div></div>
           <div className="kf"><div className="kf-lbl">Yield</div><div className="kf-val">5,2%</div></div>
-          <div className="kf"><div className="kf-lbl">Precio compra</div><div className="kf-val">130 M€</div></div>
+          <div className="kf"><div className="kf-lbl">Precio Adquisición</div><div className="kf-val">130 M€</div></div>
         </div>
       </div>
 
-      {/* Vencimientos con timeline */}
+      {/* 4. Vencimientos contractuales */}
       <div className="rp-sec">
         <div className="rp-lbl">Vencimientos contractuales</div>
         {[
-          {color:'var(--red)',   label:'Celonis — Break option', sub:'Oct 2025 · 2.702 m²',     urgency:'Vencido'},
-          {color:'var(--amber)', label:'Oracle — Contrato',      sub:'Mar 2026 · 13.486 m²',    urgency:'Próximo'},
-          {color:'var(--amber)', label:'Empresa XYZ — Break',    sub:'Dic 2026 · 1.000 m²',     urgency:'6 meses'},
-          {color:'var(--gray)',  label:'Repsol — Break option',  sub:'Jun 2027 · 1.967 m²',     urgency:''},
+          {color:'var(--red)',    label:'Celonis — Break option', sub:'Oct 2025 · 2.702 m²',  urgency:'Vencido'},
+          {color:'var(--amber)', label:'Oracle — Contrato',       sub:'Mar 2026 · 13.486 m²', urgency:'Próximo'},
+          {color:'var(--amber)', label:'Empresa XYZ — Break',     sub:'Dic 2026 · 1.000 m²',  urgency:'6 meses'},
+          {color:'var(--gray)',  label:'Repsol — Break option',   sub:'Jun 2027 · 1.967 m²',  urgency:''},
         ].map((v,i)=>(
           <div key={i} className="venc-item">
             <div className="vd" style={{background:v.color,marginTop:4}}/>
@@ -1291,9 +1790,9 @@ function RightPanel({ navigate }) {
         ))}
       </div>
 
-      {/* Proyectos en curso */}
+      {/* 5. Propuestas / Proyectos en curso */}
       <div className="rp-sec">
-        <div className="rp-lbl">Proyectos en curso</div>
+        <div className="rp-lbl">Propuestas / Proyectos en curso</div>
         {[
           {ico:'🏗',label:'Reforma integral lobby',sub:'Arquitectura · En curso',color:'var(--amber)'},
           {ico:'📋',label:'Mandato captación P4-P5',sub:'Leasing · Activo',color:'var(--accent)'},
@@ -1307,10 +1806,9 @@ function RightPanel({ navigate }) {
             <div style={{width:6,height:6,borderRadius:'50%',background:p.color,flexShrink:0,marginTop:5}}/>
           </div>
         ))}
-        <span className="add-link">+ Añadir proyecto</span>
       </div>
 
-      {/* Historial proyectos */}
+      {/* 6. Historial */}
       <div className="rp-sec">
         <div className="rp-lbl">Historial</div>
         {[
@@ -1328,23 +1826,7 @@ function RightPanel({ navigate }) {
         ))}
       </div>
 
-      {/* Asistente IA */}
-      <div className="rp-sec">
-        <div className="rp-lbl">Asistente IA</div>
-        <div className="ai-box">
-          <div className="ai-head">
-            <div className="ai-ico">✦</div>
-            <span className="ai-lbl">Insight activo</span>
-            <span className="ai-badge">Tiempo real</span>
-          </div>
-          <div className="ai-text">
-            <strong>10.142 m² disponibles</strong> (21,6%). 2 break options vencidas o próximas. Renta zona 10,5 €/m² — margen de subida. Oracle en fase finalista para P1–P4.
-          </div>
-          <div className="ai-cta">✎ Preguntar a la IA</div>
-        </div>
-      </div>
-
-      {/* Propietario y contactos */}
+      {/* 7. Propietario y contactos */}
       <div className="rp-sec">
         <div className="rp-lbl">Propietario</div>
         <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:8}}>
@@ -1364,7 +1846,7 @@ function RightPanel({ navigate }) {
         </div>
       </div>
 
-      {/* Documentos recientes */}
+      {/* 8. Documentos recientes */}
       <div className="rp-sec">
         <div className="rp-lbl">Documentos recientes</div>
         {[
@@ -1622,14 +2104,23 @@ export default function FichaActivo() {
   const handleCreateActivo = async () => {
     if (!newForm.direccion) { setSaveErr('La dirección es obligatoria'); return }
     setSaving(true); setSaveErr('')
-    const ref = genRefFA(newForm.ciudad, newForm.uso)
+    const ref   = genRefFA(newForm.ciudad, newForm.uso)
     const nombre = newForm.nombre || newForm.direccion.split(',')[0].trim()
     const { error } = await supabase.from('activos').insert({
       ref, nombre,
-      propietario: newForm.propietario || null,
-      ciudad:      newForm.ciudad || null,
-      uso:         newForm.uso || null,
-      estado:      'Activo',
+      direccion:             newForm.direccion   || null,
+      ciudad:                newForm.ciudad       || null,
+      pais:                  newForm.pais         || null,
+      zona:                  newForm.zona         || null,
+      subzona:               newForm.subzona      || null,
+      uso:                   newForm.uso          || null,
+      propietario:           newForm.propietario  || null,
+      calidad:               newForm.calidad      || null,
+      sba:                   newForm.sba ? parseFloat(newForm.sba) : null,
+      anno_construccion:     newForm.anno_construccion  ? parseInt(newForm.anno_construccion)  : null,
+      anno_rehabilitacion:   newForm.anno_rehabilitacion? parseInt(newForm.anno_rehabilitacion): null,
+      ref_catastral:         newForm.ref_catastral || null,
+      estado:                'Activo',
       dias_comercializacion: 0,
     })
     setSaving(false)
@@ -1682,13 +2173,13 @@ export default function FichaActivo() {
               <div className="ah-ico">{isNew ? (USO_ICO[newForm.uso] || '🏢') : '🏢'}</div>
               <div style={{flex:1}}>
                 {isNew ? (
-                  /* ── NUEVO ACTIVO: campos editables ── */
+                  /* ── NUEVO ACTIVO: cabecera ── */
                   <div>
-                    <div className="ah-ref" style={{marginBottom:10}}>
+                    <div className="ah-ref" style={{marginBottom:6}}>
                       <span className="ref-badge-activo">NUEVO ACTIVO</span>
                       <span style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--text4)'}}>Ref. auto-generada al guardar</span>
                     </div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:4}}>
                       <div>
                         <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Nombre del activo</div>
                         <input className="of-inp" placeholder="P.E Avalon, Torre Sevilla..." value={newForm.nombre} onChange={e=>setNF('nombre',e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/>
@@ -1697,31 +2188,6 @@ export default function FichaActivo() {
                         <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Propietario · <span style={{fontWeight:400,textTransform:'none',letterSpacing:0}}>desde Cuentas</span></div>
                         <input className="of-inp" list="fa-cuentas-list" placeholder="Buscar cuenta..." value={newForm.propietario} onChange={e=>setNF('propietario',e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/>
                         <datalist id="fa-cuentas-list">{CUENTAS_FA.map(c=><option key={c} value={c}/>)}</datalist>
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Dirección *</div>
-                      <div style={{position:'relative',marginBottom:10}}>
-                        <input className="of-inp" placeholder="Calle Serrano 41, Madrid..." value={newForm.direccion} onChange={e=>setNF('direccion',e.target.value)} style={{width:'100%',boxSizing:'border-box',paddingLeft:30}}/>
-                        <svg style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',opacity:.4}} viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 2C5.8 2 4 3.8 4 6c0 3 4 8 4 8s4-5 4-8c0-2.2-1.8-4-4-4z"/><circle cx="8" cy="6" r="1.5"/></svg>
-                      </div>
-                    </div>
-                    <div style={{display:'flex',gap:10}}>
-                      <div>
-                        <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Ciudad</div>
-                        <select className="of-sel" value={newForm.ciudad} onChange={e=>setNF('ciudad',e.target.value)}>
-                          {['Madrid','Barcelona','Valencia','Sevilla','Bilbao','Guadalajara','Otras'].map(o=><option key={o}>{o}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Uso principal</div>
-                        <select className="of-sel" value={newForm.uso} onChange={e=>setNF('uso',e.target.value)}>
-                          {['Oficinas','Logístico','Retail','Data Center','Residencial','Hoteles','Suelo'].map(o=><option key={o}>{o}</option>)}
-                        </select>
-                      </div>
-                      <div style={{display:'flex',alignItems:'flex-end',paddingBottom:2}}>
-                        <span style={{fontSize:10,color:'var(--text4)'}}>Ref: </span>
-                        <span style={{fontFamily:'var(--mono)',fontSize:11,fontWeight:700,color:'var(--accent)',marginLeft:4}}>{genRefFA(newForm.ciudad,newForm.uso).replace(/\d{5}/,'XXXXX')}</span>
                       </div>
                     </div>
                   </div>
@@ -1760,7 +2226,10 @@ export default function FichaActivo() {
           </div>
 
           {/* ── TAB: Información general ── */}
-          {activeTab==='at-info' && <TabInfo navigate={navigate} plazas={plazas}/>}
+          {activeTab==='at-info' && (isNew
+            ? <NewActivoInfoTab newForm={newForm} setNF={setNF}/>
+            : <TabInfo navigate={navigate} plazas={plazas}/>
+          )}
 
           {/* ── TAB: Stacking Plan ── */}
           {activeTab==='at-stacking' && (
@@ -1962,44 +2431,63 @@ export default function FichaActivo() {
           {activeTab==='at-prop' && (
             <div className="tab-content active">
               <div className="info-pad">
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-                  <div style={{fontSize:14,fontWeight:600}}>Propietarios y Arrendatarios</div>
-                  <button className="ab-btn blue">+ Crear tenant</button>
+
+                {/* PROPIETARIOS */}
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                  <div style={{fontSize:13,fontWeight:700,letterSpacing:'.01em',color:'var(--text1)'}}>PROPIETARIOS</div>
+                  <button className="ab-btn blue" onClick={()=>navigate('ficha-propietario')}>+ Crear propietario</button>
                 </div>
-                <div className="pat-section-title">PROPIETARIOS</div>
-                <table className="pat-table" style={{marginBottom:16}}>
-                  <thead><tr><th>Perfil</th><th>Propietario</th><th>SBA</th><th>Yield</th><th>Precio compra</th></tr></thead>
-                  <tbody><tr><td>Fondo inversión</td><td><span className="pat-link">Barings Core Spain SOCIMI</span></td><td>46.956</td><td>5.2%</td><td>130 M€</td></tr></tbody>
-                </table>
-                <div className="pat-section-title">ARRENDATARIOS</div>
-                <table className="pat-table" style={{marginBottom:16}}>
-                  <thead><tr><th>Arrendatario</th><th>Uso</th><th>Sup. (m²)</th><th>Renta</th><th>Break option</th><th></th></tr></thead>
+                <table className="pat-table" style={{marginBottom:20}}>
+                  <thead><tr><th>Perfil</th><th>Propietario</th><th>SBA</th><th>Yield</th><th>Precio compra</th><th>Año compra</th><th>Trim.</th><th></th></tr></thead>
                   <tbody>
-                    <tr><td><span className="pat-link">Celonis</span></td><td>Oficinas</td><td>2.702</td><td>14,50</td><td style={{color:'var(--amber)',fontWeight:600}}>Oct 2025</td><td><button className="ra">Ver</button></td></tr>
-                    <tr><td><span className="pat-link">Repsol</span></td><td>Oficinas</td><td>1.967</td><td>13,80</td><td style={{color:'var(--green)',fontWeight:600}}>Jun 2027</td><td><button className="ra">Ver</button></td></tr>
+                    <tr>
+                      <td>Fondo inversión</td>
+                      <td><span className="pat-link">Barings Core Spain SOCIMI</span></td>
+                      <td>46.956</td><td>5.2%</td><td>130 M€</td>
+                      <td>2018</td><td><span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>Q2</span></td>
+                      <td><button className="ra">Ver</button></td>
+                    </tr>
                   </tbody>
                 </table>
-                <div className="pat-section-title">DISPONIBILIDAD / OFERTA ACTIVA</div>
-                <table className="pat-table">
-                  <thead><tr><th>Nº Oferta</th><th>Módulo</th><th>Sup. (m²)</th><th>Renta asking</th><th>Días comerc.</th><th>Estado</th><th></th></tr></thead>
+
+                {/* ARRENDATARIOS */}
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                  <div style={{fontSize:13,fontWeight:700,letterSpacing:'.01em',color:'var(--text1)'}}>ARRENDATARIOS</div>
+                  <button className="ab-btn blue" onClick={()=>navigate('ficha-arrendatario')}>+ Crear arrendatario</button>
+                </div>
+                <table className="pat-table" style={{marginBottom:20}}>
+                  <thead><tr><th>Arrendatario</th><th>Uso</th><th>Sup. (m²)</th><th>Renta</th><th>Break option</th><th>Vencimiento</th><th>Año alquiler</th><th>Trim.</th><th></th></tr></thead>
                   <tbody>
-                    <tr><td className="pat-link" onClick={()=>navigate('ficha-oferta')}>OLB001</td><td>P5 + PB</td><td>698</td><td>10.5–14.5 €/m²</td><td><span className="dias-pill">📅 127d</span></td><td style={{color:'var(--accent)',fontWeight:600}}>En curso</td><td><button className="ra p" onClick={()=>navigate('ficha-oferta')}>Ver</button></td></tr>
+                    <tr>
+                      <td><span className="pat-link">Celonis</span></td>
+                      <td>Oficinas</td><td>2.702</td><td>14,50</td>
+                      <td style={{color:'var(--amber)',fontWeight:600}}>Oct 2025</td>
+                      <td style={{color:'var(--amber)',fontWeight:600}}>Oct 2026</td>
+                      <td>2021</td><td><span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>Q3</span></td>
+                      <td><button className="ra">Ver</button></td>
+                    </tr>
+                    <tr>
+                      <td><span className="pat-link">Repsol</span></td>
+                      <td>Oficinas</td><td>1.967</td><td>13,80</td>
+                      <td style={{color:'var(--green)',fontWeight:600}}>Jun 2027</td>
+                      <td style={{color:'var(--green)',fontWeight:600}}>Jun 2029</td>
+                      <td>2022</td><td><span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>Q1</span></td>
+                      <td><button className="ra">Ver</button></td>
+                    </tr>
                   </tbody>
                 </table>
+
+                {/* NOTA read-only */}
+                <div style={{padding:'10px 14px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:11,color:'var(--text4)',marginBottom:16}}>
+                  Las <strong>ofertas activas</strong> y las <strong>transacciones</strong> se gestionan desde sus módulos correspondientes y se sincronizan automáticamente con este activo.
+                </div>
+
               </div>
             </div>
           )}
 
-          {/* ── TAB: Fotografías ── */}
-          {activeTab==='at-fotos' && (
-            <div className="tab-content active"><div className="info-pad">
-              <div className="foto-grid">
-                <div className="foto-thumb principal">🏢</div>
-                <div className="foto-thumb">🏙</div>
-                <div className="foto-thumb">🖼</div>
-              </div>
-            </div></div>
-          )}
+          {/* ── TAB: Multimedia ── */}
+          {activeTab==='at-fotos' && <TabMultimedia/>}
 
           {/* ── TAB: Documentos ── */}
           {activeTab==='at-docs' && (
@@ -2083,11 +2571,28 @@ export default function FichaActivo() {
             </div></div>
           )}
 
-          {/* ── TAB: Vista 360 ── */}
+          {/* ── TAB: Vista 360° — Actividad transversal + Seguimiento ── */}
           {activeTab==='at-360' && (
             <div className="tab-content active"><div className="info-pad">
-              <div style={{fontSize:13,fontWeight:600,marginBottom:14}}>Vista 360° — Actividad transversal</div>
-              <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+
+              {/* KPI strip */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:14}}>
+                {[
+                  {lbl:'Total actividades', val:FOLLOWUP_ACTS.length,                                                          color:'var(--text1)'},
+                  {lbl:'Reuniones / Visitas',val:FOLLOWUP_ACTS.filter(a=>a.tipo==='Reunión'||a.tipo==='Visita').length,         color:'var(--purple)'},
+                  {lbl:'Emails / Llamadas', val:FOLLOWUP_ACTS.filter(a=>a.tipo==='Email'||a.tipo==='Llamada').length,           color:'var(--accent)'},
+                  {lbl:'Pendientes',        val:FOLLOWUP_ACTS.filter(a=>a.estado==='Abierto'||a.estado==='En curso').length,    color:'var(--red)'},
+                ].map(k=>(
+                  <div key={k.lbl} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'8px 12px',textAlign:'center'}}>
+                    <div style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>{k.lbl}</div>
+                    <div style={{fontSize:18,fontWeight:800,fontFamily:'var(--mono)',color:k.color}}>{k.val}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Timeline de actividad */}
+              <div style={{fontSize:11,fontWeight:600,marginBottom:8}}>Actividad transversal · Timeline</div>
+              <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:16}}>
                 {[
                   {av:'AI',bg:'var(--purple-lt)',color:'var(--purple)',name:'IA',msg:'10.142 m² disponibles. 2 break options próximas.',badge:{bg:'var(--purple-lt)',color:'var(--purple)',bc:'var(--purple-bd)',lbl:'IA'},time:'Hoy · Automático'},
                   {av:'AS',bg:'#dbeafe',color:'#1e40af',name:'Álvaro Sierra',msg:'registró visita con Oracle',badge:{bg:'var(--accent-lt)',color:'var(--accent)',bc:'var(--accent-bd)',lbl:'VISITA'},time:'Ayer, 16:30'},
@@ -2103,29 +2608,10 @@ export default function FichaActivo() {
                   </div>
                 ))}
               </div>
-            </div></div>
-          )}
 
-          {/* ── TAB: Follow-up ── */}
-          {activeTab==='at-followup' && (
-            <div className="tab-content active"><div className="info-pad">
-              {/* KPI strip */}
-              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:14}}>
-                {[
-                  {lbl:'Total actividades', val:FOLLOWUP_ACTS.length,                                                          color:'var(--text1)'},
-                  {lbl:'Reuniones / Visitas',val:FOLLOWUP_ACTS.filter(a=>a.tipo==='Reunión'||a.tipo==='Visita').length,         color:'var(--purple)'},
-                  {lbl:'Emails / Llamadas', val:FOLLOWUP_ACTS.filter(a=>a.tipo==='Email'||a.tipo==='Llamada').length,           color:'var(--accent)'},
-                  {lbl:'Pendientes',        val:FOLLOWUP_ACTS.filter(a=>a.estado==='Abierto'||a.estado==='En curso').length,    color:'var(--red)'},
-                ].map(k=>(
-                  <div key={k.lbl} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'8px 12px',textAlign:'center'}}>
-                    <div style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>{k.lbl}</div>
-                    <div style={{fontSize:18,fontWeight:800,fontFamily:'var(--mono)',color:k.color}}>{k.val}</div>
-                  </div>
-                ))}
-              </div>
+              {/* Seguimiento comercial (solo lectura) */}
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-                <div style={{fontSize:11,fontWeight:600}}>Seguimiento comercial del activo</div>
-                <button className="ab-btn blue">+ Registrar actividad</button>
+                <div style={{fontSize:11,fontWeight:600}}>Seguimiento comercial del activo <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:4}}>· Sincronizado desde Ofertas y Demandas</span></div>
               </div>
               <div className="info-block" style={{padding:0,overflow:'hidden'}}>
                 <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
@@ -2150,6 +2636,34 @@ export default function FichaActivo() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div></div>
+          )}
+
+          {/* ── TAB: Follow-up — Trazabilidad de cambios ── */}
+          {activeTab==='at-followup' && (
+            <div className="tab-content active"><div className="info-pad">
+              <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Follow-up · Trazabilidad del activo</div>
+              <div style={{fontSize:11,color:'var(--text4)',marginBottom:14}}>Registro de última modificación y auditoría de cambios.</div>
+              <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
+                {[
+                  {u:'AS',bg:'#dbeafe',color:'#1e40af',nombre:'Álvaro Sierra',cambio:'Actualización SBA y subida de planos P2',fecha:'04/04/2026',hora:'12:32'},
+                  {u:'AS',bg:'#dbeafe',color:'#1e40af',nombre:'Álvaro Sierra',cambio:'Modificación occupancy rate → 78.4%',fecha:'01/04/2026',hora:'09:15'},
+                  {u:'JL',bg:'#dcfce7',color:'#166534',nombre:'Jorge López',  cambio:'Subida Valoración Q1 2026 a Documentos',fecha:'20/03/2026',hora:'11:48'},
+                  {u:'MR',bg:'#fce7f3',color:'#9d174d',nombre:'María Ruiz',   cambio:'Actualización datos urbanísticos',fecha:'15/03/2026',hora:'17:05'},
+                ].map((item,i,arr)=>(
+                  <div key={i} style={{display:'grid',gridTemplateColumns:'36px 1fr auto',gap:10,padding:'12px 16px',borderBottom:i<arr.length-1?'1px solid var(--border)':'none',alignItems:'start'}}>
+                    <div style={{width:30,height:30,borderRadius:'50%',background:item.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:item.color}}>{item.u}</div>
+                    <div>
+                      <div style={{fontSize:12,fontWeight:600,color:'var(--text1)',marginBottom:2}}>{item.nombre}</div>
+                      <div style={{fontSize:11,color:'var(--text3)'}}>{item.cambio}</div>
+                    </div>
+                    <div style={{textAlign:'right',flexShrink:0}}>
+                      <div style={{fontSize:11,color:'var(--text2)',fontWeight:500}}>{item.fecha}</div>
+                      <div style={{fontSize:10,color:'var(--text4)'}}>{item.hora}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div></div>
           )}
