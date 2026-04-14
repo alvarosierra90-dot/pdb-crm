@@ -1618,9 +1618,12 @@ function NewActivoInfoTab({ newForm, setNF }) {
   )
 }
 
-function MapaCarrusel({ activo, direccion }) {
-  const mapElRef = useRef(null)
-  const mapObj   = useRef(null)
+function MapaCarrusel({ activo, direccion, onAddressChange }) {
+  const mapElRef   = useRef(null)
+  const mapObj     = useRef(null)
+  const markerRef  = useRef(null)
+  const searchRef  = useRef(null)
+  const acRef      = useRef(null)
   const [carIdx, setCarIdx] = useState(0)
 
   const fotos = MOCK_MEDIA.filter(m => m.tipo === 'Fotografía')
@@ -1629,9 +1632,7 @@ function MapaCarrusel({ activo, direccion }) {
     ? [principal, ...fotos.filter(m => m.id !== principal?.id)]
     : fotos
 
-  const markerRef = useRef(null)
-
-  // Init map (once)
+  // Init map + Places search bar (once)
   useEffect(() => {
     if (!GMAPS_API_KEY) return
     const initMap = () => {
@@ -1643,6 +1644,30 @@ function MapaCarrusel({ activo, direccion }) {
         styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }],
       })
       markerRef.current = new window.google.maps.Marker({ map: mapObj.current, position: center, visible: false })
+
+      // Attach Places Autocomplete to the search input overlay
+      if (searchRef.current && window.google.maps.places && !acRef.current) {
+        acRef.current = new window.google.maps.places.Autocomplete(searchRef.current, {
+          fields: ['formatted_address', 'geometry', 'address_components'],
+        })
+        acRef.current.addListener('place_changed', () => {
+          const place = acRef.current.getPlace()
+          if (!place.geometry) return
+          const loc = place.geometry.location
+          mapObj.current.setCenter(loc)
+          mapObj.current.setZoom(17)
+          markerRef.current.setPosition(loc)
+          markerRef.current.setVisible(true)
+          if (onAddressChange) {
+            const get = type => { const c = (place.address_components||[]).find(x=>x.types.includes(type)); return c?c.long_name:'' }
+            onAddressChange({
+              direccion: place.formatted_address || '',
+              ciudad:    get('locality') || get('administrative_area_level_2') || '',
+              pais:      get('country') || '',
+            })
+          }
+        })
+      }
     }
     if (window.google?.maps) initMap()
     else {
@@ -1658,7 +1683,7 @@ function MapaCarrusel({ activo, direccion }) {
     }
   }, [])
 
-  // Geocode when address changes
+  // Geocode when address prop changes
   useEffect(() => {
     if (!GMAPS_API_KEY) return
     const dir = direccion || activo?.direccion
@@ -1682,7 +1707,7 @@ function MapaCarrusel({ activo, direccion }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
 
-      {/* Mapa */}
+      {/* Mapa con barra de búsqueda integrada */}
       <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', position: 'relative' }}>
         {GMAPS_API_KEY ? (
           <div ref={mapElRef} style={{ width: '100%', height: 220, background: '#e5e3df' }}/>
@@ -1692,6 +1717,21 @@ function MapaCarrusel({ activo, direccion }) {
             <div style={{ fontSize: 10 }}>Mapa no disponible</div>
           </div>
         )}
+        {/* Search bar overlay — always visible at top of map */}
+        <div style={{ position: 'absolute', top: 8, left: 8, right: 8, zIndex: 10 }}>
+          <div style={{ position: 'relative' }}>
+            <svg viewBox="0 0 16 16" fill="none" stroke="var(--text3)" strokeWidth="1.5"
+              style={{ position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', width:12, height:12, pointerEvents:'none', zIndex:1 }}>
+              <circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/>
+            </svg>
+            <input ref={searchRef} type="text"
+              placeholder="Buscar dirección en el mapa..."
+              style={{ width:'100%', boxSizing:'border-box', padding:'7px 10px 7px 26px',
+                background:'rgba(255,255,255,.96)', border:'1px solid rgba(0,0,0,.12)',
+                borderRadius:6, fontSize:11, fontFamily:'inherit', color:'var(--text1)',
+                boxShadow:'0 2px 6px rgba(0,0,0,.15)', outline:'none' }}/>
+          </div>
+        </div>
         <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(255,255,255,.92)', borderRadius: 5, padding: '3px 8px', fontSize: 10, fontWeight: 600, color: 'var(--text2)', backdropFilter: 'blur(4px)', border: '1px solid var(--border)' }}>
           {activo?.zona || 'M-30'} · {activo?.ciudad || 'Madrid'}
         </div>
@@ -1752,9 +1792,205 @@ function MapaCarrusel({ activo, direccion }) {
   )
 }
 
-function TabInfo({ navigate, plazas, activo }) {
+/* ── Pencil icon SVG ── */
+const PencilIco = () => (
+  <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9.5 2L12 4.5 5 11.5H2.5V9L9.5 2z"/>
+  </svg>
+)
+const CheckIco = () => (
+  <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 7l4 4 6-6"/>
+  </svg>
+)
+const XIco = () => (
+  <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M2 2l10 10M12 2L2 12"/>
+  </svg>
+)
+
+function InlineField({ label, value, display, onSave, children, wide }) {
+  const [editing, setEditing] = useState(false)
+  const [hover,   setHover]   = useState(false)
+  const shown = display ?? (value || '—')
+
+  if (editing) return (
+    <div className="ir" style={{alignItems:'flex-start',gap:6}}>
+      <span className="ir-k">{label}</span>
+      <div style={{flex:1,display:'flex',flexDirection:'column',gap:4}}>
+        {children}
+        <div style={{display:'flex',gap:4,marginTop:2}}>
+          <button onClick={()=>{ onSave(); setEditing(false) }}
+            style={{display:'flex',alignItems:'center',gap:3,padding:'2px 8px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:4,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+            <CheckIco/> Guardar
+          </button>
+          <button onClick={()=>setEditing(false)}
+            style={{display:'flex',alignItems:'center',gap:3,padding:'2px 8px',background:'none',border:'1px solid var(--border)',borderRadius:4,fontSize:10,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)'}}>
+            <XIco/> Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="ir" onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}>
+      <span className="ir-k">{label}</span>
+      <span className="ir-v" style={{flex:1}}>{shown}</span>
+      <button onClick={()=>setEditing(true)}
+        style={{opacity: hover ? 1 : 0, transition:'opacity .15s', background:'none', border:'none', cursor:'pointer', padding:'2px 4px', color:'var(--text4)', display:'flex', alignItems:'center', borderRadius:4, flexShrink:0}}
+        title={`Editar ${label}`}>
+        <PencilIco/>
+      </button>
+    </div>
+  )
+}
+
+function ZonaBox({ info, setI }) {
+  const [editing, setEditing] = useState(false)
+  const [hover,   setHover]   = useState(false)
+  const [draft, setDraft] = useState({ area: info.area, zona: info.zona, subzona: info.subzona })
+
+  const zonas    = info.ciudad === 'Madrid' && draft.area
+    ? [...new Set(MADRID_ZONES.filter(z => z.area === draft.area).map(z => z.zona))]
+    : []
+  const subzonas = info.ciudad === 'Madrid' && draft.area && draft.zona
+    ? MADRID_ZONES.filter(z => z.area === draft.area && z.zona === draft.zona).map(z => z.subzona)
+    : []
+
+  const selSt = {padding:'4px 7px',border:'1px solid var(--border)',borderRadius:5,fontSize:11,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',width:'100%'}
+
+  if (editing) return (
+    <div style={{marginTop:8,padding:'10px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:7}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:8}}>
+        <div>
+          <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Área</div>
+          {info.ciudad === 'Madrid' ? (
+            <select value={draft.area} onChange={e=>setDraft(p=>({...p,area:e.target.value,zona:'',subzona:''}))} style={selSt}>
+              <option value="">—</option>{AREAS_MAD.map(a=><option key={a}>{a}</option>)}
+            </select>
+          ) : <input value={draft.area} onChange={e=>setDraft(p=>({...p,area:e.target.value}))} style={selSt} placeholder="—"/>}
+        </div>
+        <div>
+          <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Zona</div>
+          {zonas.length > 0 ? (
+            <select value={draft.zona} onChange={e=>setDraft(p=>({...p,zona:e.target.value,subzona:''}))} style={selSt}>
+              <option value="">—</option>{zonas.map(z=><option key={z}>{z}</option>)}
+            </select>
+          ) : <input value={draft.zona} onChange={e=>setDraft(p=>({...p,zona:e.target.value}))} style={selSt} placeholder="—"/>}
+        </div>
+        <div>
+          <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Subzona</div>
+          {subzonas.length > 0 ? (
+            <select value={draft.subzona} onChange={e=>setDraft(p=>({...p,subzona:e.target.value}))} style={selSt}>
+              <option value="">—</option>{subzonas.map(s=><option key={s}>{s}</option>)}
+            </select>
+          ) : <input value={draft.subzona} onChange={e=>setDraft(p=>({...p,subzona:e.target.value}))} style={selSt} placeholder="—"/>}
+        </div>
+      </div>
+      <div style={{display:'flex',gap:6}}>
+        <button onClick={()=>{ setI('area',draft.area); setI('zona',draft.zona); setI('subzona',draft.subzona); setEditing(false) }}
+          style={{display:'flex',alignItems:'center',gap:3,padding:'3px 10px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:4,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+          <CheckIco/> Guardar
+        </button>
+        <button onClick={()=>{ setDraft({area:info.area,zona:info.zona,subzona:info.subzona}); setEditing(false) }}
+          style={{display:'flex',alignItems:'center',gap:3,padding:'3px 10px',background:'none',border:'1px solid var(--border)',borderRadius:4,fontSize:10,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)'}}>
+          <XIco/> Cancelar
+        </button>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="zona-box" onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
+      style={{position:'relative',cursor:'default'}}>
+      <div className="zona-cell"><div className="zona-lbl">Área</div><div className="zona-val">{info.area||'—'}</div></div>
+      <div className="zona-cell"><div className="zona-lbl">Zona</div><div className="zona-val">{info.zona||'—'}</div></div>
+      <div className="zona-cell"><div className="zona-lbl">Subzona</div><div className="zona-val">{info.subzona||'—'}</div></div>
+      <button onClick={()=>{ setDraft({area:info.area,zona:info.zona,subzona:info.subzona}); setEditing(true) }}
+        style={{position:'absolute',top:6,right:6,opacity:hover?1:0,transition:'opacity .15s',background:'none',border:'none',cursor:'pointer',padding:'2px 4px',color:'var(--text4)',display:'flex',alignItems:'center'}}
+        title="Editar zona">
+        <PencilIco/>
+      </button>
+    </div>
+  )
+}
+
+function AddressField({ value, ciudad, onSave }) {
+  const [editing, setEditing] = useState(false)
+  const [hover,   setHover]   = useState(false)
+  const [draft, setDraft] = useState({ direccion: value, ciudad, pais: '' })
+  const addressRef = useRef(null)
+  const acRef = useRef(null)
+
+  useEffect(() => {
+    if (!editing || !GMAPS_API_KEY) return
+    const setup = () => {
+      if (!addressRef.current || !window.google?.maps?.places || acRef.current) return
+      acRef.current = new window.google.maps.places.Autocomplete(addressRef.current, {
+        componentRestrictions: { country: 'es' },
+        fields: ['formatted_address','address_components','geometry'],
+      })
+      acRef.current.addListener('place_changed', () => {
+        const place = acRef.current.getPlace()
+        if (!place.geometry) return
+        const get = type => { const c=(place.address_components||[]).find(x=>x.types.includes(type)); return c?c.long_name:'' }
+        setDraft({ direccion: place.formatted_address||'', ciudad: get('locality')||get('administrative_area_level_2')||'', pais: get('country')||'' })
+      })
+    }
+    if (window.google?.maps?.places) setup()
+    else {
+      const ex = document.getElementById('gmaps-script')
+      if (ex) ex.addEventListener('load', setup)
+    }
+    return () => { acRef.current = null }
+  }, [editing])
+
+  if (editing) return (
+    <div className="ir" style={{alignItems:'flex-start',gap:6}}>
+      <span className="ir-k">Dirección</span>
+      <div style={{flex:1,display:'flex',flexDirection:'column',gap:4}}>
+        <div style={{position:'relative'}}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="var(--text4)" strokeWidth="1.5"
+            style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',width:12,height:12,pointerEvents:'none'}}>
+            <circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/>
+          </svg>
+          <input ref={addressRef} type="text" defaultValue={draft.direccion}
+            onChange={e=>setDraft(p=>({...p,direccion:e.target.value}))}
+            placeholder="Buscar con Google Maps..."
+            style={{padding:'5px 8px 5px 24px',border:'1px solid var(--accent-bd)',borderRadius:5,fontSize:12,fontFamily:'inherit',background:'var(--accent-lt)',color:'var(--text1)',width:'100%',boxSizing:'border-box'}}
+            autoFocus/>
+        </div>
+        {draft.ciudad && <span style={{fontSize:10,color:'var(--text3)'}}>📍 {draft.ciudad} · {draft.pais}</span>}
+        <div style={{display:'flex',gap:4}}>
+          <button onClick={()=>{ onSave(draft); setEditing(false); acRef.current=null }}
+            style={{display:'flex',alignItems:'center',gap:3,padding:'2px 8px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:4,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+            <CheckIco/> Guardar
+          </button>
+          <button onClick={()=>{ setDraft({direccion:value,ciudad,pais:''}); setEditing(false); acRef.current=null }}
+            style={{display:'flex',alignItems:'center',gap:3,padding:'2px 8px',background:'none',border:'1px solid var(--border)',borderRadius:4,fontSize:10,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)'}}>
+            <XIco/> Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="ir" onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}>
+      <span className="ir-k">Dirección</span>
+      <span className="ir-v" style={{flex:1}}>{value || '—'}</span>
+      <button onClick={()=>{ setDraft({direccion:value,ciudad,pais:''}); setEditing(true) }}
+        style={{opacity:hover?1:0,transition:'opacity .15s',background:'none',border:'none',cursor:'pointer',padding:'2px 4px',color:'var(--text4)',display:'flex',alignItems:'center',borderRadius:4,flexShrink:0}}>
+        <PencilIco/>
+      </button>
+    </div>
+  )
+}
+
+function TabInfo({ navigate, plazas, activo, onInfoSaved }) {
   const INIT_INFO = {
-    direccion:'', ciudad:'', pais:'España',
+    nombre:'', direccion:'', ciudad:'', pais:'España',
     area:'', zona:'', subzona:'',
     tipo_activo:'Edificio', estado_construccion:'Construcción existente',
     uso:'', uso_secundario:'', calidad:'',
@@ -1762,15 +1998,16 @@ function TabInfo({ navigate, plazas, activo }) {
     ref_catastral:'', uso_pgou:'', clasificacion_urb:'', calificacion_urb:'',
     edificabilidad:'', sup_parcela:'',
   }
-  const [info, setInfo] = useState(INIT_INFO)
+  const [info, setInfo]   = useState(INIT_INFO)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveOk, setSaveOk] = useState(false)
-  const addressRef = useRef(null)
-  const acRef = useRef(null)
 
+  // Init from activo (Supabase)
   useEffect(() => {
-    if (activo) setInfo({
+    if (!activo) return
+    setInfo({
+      nombre:              activo.nombre              || '',
       direccion:           activo.direccion           || '',
       ciudad:              activo.ciudad              || '',
       pais:                activo.pais                || 'España',
@@ -1793,81 +2030,40 @@ function TabInfo({ navigate, plazas, activo }) {
       edificabilidad:      activo.edificabilidad      || '',
       sup_parcela:         activo.sup_parcela         || '',
     })
+    setDirty(false)
   }, [activo])
 
   const setI = (k, v) => { setInfo(p => ({...p, [k]: v})); setDirty(true); setSaveOk(false) }
-
-  // Derived zone dropdowns (Madrid)
-  const zonas    = info.ciudad === 'Madrid' && info.area
-    ? [...new Set(MADRID_ZONES.filter(z => z.area === info.area).map(z => z.zona))]
-    : []
-  const subzonas = info.ciudad === 'Madrid' && info.area && info.zona
-    ? MADRID_ZONES.filter(z => z.area === info.area && z.zona === info.zona).map(z => z.subzona)
-    : []
-
-  // Google Places autocomplete on the address bar
-  useEffect(() => {
-    if (!GMAPS_API_KEY) return
-    const setup = () => {
-      if (!addressRef.current || !window.google?.maps?.places) return
-      if (acRef.current) return
-      acRef.current = new window.google.maps.places.Autocomplete(addressRef.current, {
-        componentRestrictions: { country: 'es' },
-        fields: ['formatted_address','address_components','geometry'],
-      })
-      acRef.current.addListener('place_changed', () => {
-        const place = acRef.current.getPlace()
-        if (!place.geometry) return
-        const get = type => { const c=(place.address_components||[]).find(x=>x.types.includes(type)); return c?c.long_name:'' }
-        const addr = place.formatted_address || ''
-        const city = get('locality') || get('administrative_area_level_2') || ''
-        const country = get('country') || ''
-        setInfo(p => ({...p, direccion: addr, ciudad: city, pais: country}))
-        setDirty(true); setSaveOk(false)
-      })
-    }
-    if (window.google?.maps?.places) setup()
-    else {
-      const ex = document.getElementById('gmaps-script')
-      if (ex) ex.addEventListener('load', setup)
-      else {
-        const s = document.createElement('script')
-        s.id = 'gmaps-script'; s.async = true; s.defer = true
-        s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_API_KEY}&libraries=places`
-        s.onload = setup
-        document.head.appendChild(s)
-      }
-    }
-  }, [])
 
   const handleSave = async () => {
     if (!activo?.ref) return
     setSaving(true)
     const { error } = await supabase.from('activos').update({
-      direccion:           info.direccion           || null,
-      ciudad:              info.ciudad              || null,
-      pais:                info.pais                || null,
-      area:                info.area                || null,
-      zona:                info.zona                || null,
-      subzona:             info.subzona             || null,
-      tipo_activo:         info.tipo_activo         || null,
-      estado_construccion: info.estado_construccion || null,
-      uso:                 info.uso                 || null,
-      uso_secundario:      info.uso_secundario      || null,
-      calidad:             info.calidad             || null,
-      asset_manager:       info.asset_manager       || null,
+      nombre:              info.nombre               || null,
+      direccion:           info.direccion            || null,
+      ciudad:              info.ciudad               || null,
+      pais:                info.pais                 || null,
+      area:                info.area                 || null,
+      zona:                info.zona                 || null,
+      subzona:             info.subzona              || null,
+      tipo_activo:         info.tipo_activo          || null,
+      estado_construccion: info.estado_construccion  || null,
+      uso:                 info.uso                  || null,
+      uso_secundario:      info.uso_secundario       || null,
+      calidad:             info.calidad              || null,
+      asset_manager:       info.asset_manager        || null,
       sba:                 info.sba ? parseFloat(info.sba) : null,
-      anno_construccion:   info.anno_construccion   ? parseInt(info.anno_construccion)   : null,
-      anno_rehabilitacion: info.anno_rehabilitacion ? parseInt(info.anno_rehabilitacion) : null,
-      ref_catastral:       info.ref_catastral       || null,
-      uso_pgou:            info.uso_pgou            || null,
-      clasificacion_urb:   info.clasificacion_urb   || null,
-      calificacion_urb:    info.calificacion_urb    || null,
-      edificabilidad:      info.edificabilidad      || null,
+      anno_construccion:   info.anno_construccion    ? parseInt(info.anno_construccion)   : null,
+      anno_rehabilitacion: info.anno_rehabilitacion  ? parseInt(info.anno_rehabilitacion) : null,
+      ref_catastral:       info.ref_catastral        || null,
+      uso_pgou:            info.uso_pgou             || null,
+      clasificacion_urb:   info.clasificacion_urb    || null,
+      calificacion_urb:    info.calificacion_urb     || null,
+      edificabilidad:      info.edificabilidad       || null,
       sup_parcela:         info.sup_parcela ? parseFloat(info.sup_parcela) : null,
     }).eq('ref', activo.ref)
     setSaving(false)
-    if (!error) { setDirty(false); setSaveOk(true); setTimeout(()=>setSaveOk(false), 3000) }
+    if (!error) { setDirty(false); setSaveOk(true); setTimeout(()=>setSaveOk(false),3000); if (onInfoSaved) onInfoSaved({ nombre: info.nombre }) }
   }
 
   const totalPlazas = plazas.reduce((s,p)=>s+p.cantidad,0)
@@ -1875,164 +2071,107 @@ function TabInfo({ navigate, plazas, activo }) {
   const byTipo = TIPOS_PLAZA.map(t=>({t, n:plazas.filter(p=>p.tipo===t).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
   const byVeh  = TIPOS_VEHICULO.map(v=>({v, n:plazas.filter(p=>p.vehiculo===v).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
 
-  const inpSt = {padding:'4px 8px',border:'1px solid var(--border)',borderRadius:5,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',width:'100%',boxSizing:'border-box'}
-  const selSt = {...inpSt, cursor:'pointer'}
+  // Shared input/select style for inline edit inputs
+  const inp = {padding:'5px 8px',border:'1px solid var(--accent-bd)',borderRadius:5,fontSize:12,fontFamily:'inherit',background:'var(--accent-lt)',color:'var(--text1)',width:'100%',boxSizing:'border-box',outline:'none'}
+  const sel = {...inp,cursor:'pointer'}
 
   return (
     <div className="tab-content active">
       <div className="info-pad">
 
-        {/* ── Mapa + Carrusel ── */}
-        <MapaCarrusel activo={activo} direccion={info.direccion}/>
+        {/* ── Mapa con barra búsqueda integrada + Carrusel ── */}
+        <MapaCarrusel activo={activo} direccion={info.direccion}
+          onAddressChange={({direccion,ciudad,pais})=>{
+            setInfo(p=>({...p,direccion,ciudad,pais})); setDirty(true); setSaveOk(false)
+          }}/>
 
         {/* ── Save bar ── */}
-        {dirty && (
-          <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 14px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:7,marginBottom:12}}>
-            <span style={{fontSize:11,color:'var(--accent)',fontWeight:600,flex:1}}>Hay cambios sin guardar</span>
-            <button onClick={handleSave} disabled={saving}
-              style={{padding:'5px 16px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
-              {saving ? 'Guardando...' : '💾 Guardar'}
-            </button>
-            <button onClick={()=>{setInfo(activo ? {...INIT_INFO,...activo} : INIT_INFO);setDirty(false)}}
-              style={{padding:'5px 10px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)'}}>
-              Descartar
-            </button>
-          </div>
-        )}
-        {saveOk && (
-          <div style={{padding:'7px 14px',background:'#f0fdf4',border:'1px solid #86efac',borderRadius:7,marginBottom:12,fontSize:11,color:'#15803d',fontWeight:600}}>
-            ✓ Guardado correctamente
+        {(dirty || saveOk) && (
+          <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 14px',
+            background: saveOk ? '#f0fdf4' : 'var(--accent-lt)',
+            border: `1px solid ${saveOk ? '#86efac' : 'var(--accent-bd)'}`,
+            borderRadius:7,marginBottom:12}}>
+            {saveOk ? (
+              <span style={{fontSize:11,color:'#15803d',fontWeight:600,flex:1}}>✓ Guardado correctamente</span>
+            ) : (
+              <>
+                <span style={{fontSize:11,color:'var(--accent)',fontWeight:600,flex:1}}>Cambios sin guardar</span>
+                <button onClick={handleSave} disabled={saving}
+                  style={{padding:'5px 16px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+                  {saving ? 'Guardando...' : '💾 Guardar'}
+                </button>
+                <button onClick={()=>{setInfo(activo ? {...INIT_INFO,nombre:activo.nombre||'',...activo} : INIT_INFO);setDirty(false)}}
+                  style={{padding:'5px 10px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)'}}>
+                  Descartar
+                </button>
+              </>
+            )}
           </div>
         )}
 
-        {/* ── Fila 1: UBICACIÓN + TIPOLOGÍA ── */}
+        {/* ── UBICACIÓN + TIPOLOGÍA ── */}
         <div className="info-2col" style={{marginBottom:12}}>
 
           {/* UBICACIÓN */}
           <div className="info-block">
             <div className="ib-title">📍 UBICACIÓN</div>
-
-            {/* Barra Google Places */}
-            <div style={{marginBottom:10}}>
-              <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:4}}>Buscar dirección (Google)</div>
-              <div style={{position:'relative'}}>
-                <svg viewBox="0 0 16 16" fill="none" stroke="var(--text4)" strokeWidth="1.5"
-                  style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',width:13,height:13,pointerEvents:'none'}}>
-                  <circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/>
-                </svg>
-                <input ref={addressRef} type="text"
-                  defaultValue={info.direccion}
-                  placeholder="Escribe o busca una dirección..."
-                  style={{...inpSt, paddingLeft:26, background:'var(--gray-lt)'}}
-                  onChange={e=>setI('direccion', e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="ir">
-              <span className="ir-k">Dirección</span>
-              <input value={info.direccion} onChange={e=>setI('direccion',e.target.value)} style={inpSt} placeholder="—"/>
-            </div>
-            <div className="ir">
-              <span className="ir-k">Ciudad</span>
-              <input value={info.ciudad} onChange={e=>setI('ciudad',e.target.value)} style={inpSt} placeholder="—"/>
-            </div>
-            <div className="ir">
-              <span className="ir-k">País</span>
-              <input value={info.pais} onChange={e=>setI('pais',e.target.value)} style={inpSt} placeholder="—"/>
-            </div>
-
-            {/* Área / Zona / Subzona — desplegables condicionales */}
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginTop:8,padding:'10px 10px 8px',background:'var(--gray-lt)',borderRadius:7,border:'1px solid var(--border)'}}>
-              <div>
-                <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Área</div>
-                {info.ciudad === 'Madrid' ? (
-                  <select value={info.area} onChange={e=>{setI('area',e.target.value);setInfo(p=>({...p,zona:'',subzona:''}))}} style={selSt}>
-                    <option value="">—</option>
-                    {AREAS_MAD.map(a=><option key={a}>{a}</option>)}
-                  </select>
-                ) : (
-                  <input value={info.area} onChange={e=>setI('area',e.target.value)} style={inpSt} placeholder="—"/>
-                )}
-              </div>
-              <div>
-                <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Zona</div>
-                {zonas.length > 0 ? (
-                  <select value={info.zona} onChange={e=>{setI('zona',e.target.value);setInfo(p=>({...p,subzona:''}))}} style={selSt}>
-                    <option value="">—</option>
-                    {zonas.map(z=><option key={z}>{z}</option>)}
-                  </select>
-                ) : (
-                  <input value={info.zona} onChange={e=>setI('zona',e.target.value)} style={inpSt} placeholder="—"/>
-                )}
-              </div>
-              <div>
-                <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Subzona</div>
-                {subzonas.length > 0 ? (
-                  <select value={info.subzona} onChange={e=>setI('subzona',e.target.value)} style={selSt}>
-                    <option value="">—</option>
-                    {subzonas.map(s=><option key={s}>{s}</option>)}
-                  </select>
-                ) : (
-                  <input value={info.subzona} onChange={e=>setI('subzona',e.target.value)} style={inpSt} placeholder="—"/>
-                )}
-              </div>
-            </div>
+            <InlineField label="Nombre del activo" value={info.nombre}
+              onSave={()=>setDirty(true)}>
+              <input value={info.nombre} onChange={e=>setI('nombre',e.target.value)} style={inp} placeholder="Nombre comercial del activo..."/>
+            </InlineField>
+            <AddressField value={info.direccion} ciudad={info.ciudad}
+              onSave={d=>{ setI('direccion',d.direccion); if(d.ciudad) setI('ciudad',d.ciudad); if(d.pais) setI('pais',d.pais) }}/>
+            <InlineField label="Ciudad" value={info.ciudad} onSave={()=>setDirty(true)}>
+              <input value={info.ciudad} onChange={e=>setI('ciudad',e.target.value)} style={inp} placeholder="—"/>
+            </InlineField>
+            <InlineField label="País" value={info.pais} onSave={()=>setDirty(true)}>
+              <input value={info.pais} onChange={e=>setI('pais',e.target.value)} style={inp} placeholder="—"/>
+            </InlineField>
+            <ZonaBox info={info} setI={setI}/>
           </div>
 
           {/* TIPOLOGÍA */}
           <div className="info-block">
             <div className="ib-title">🏢 TIPOLOGÍA</div>
-            <div className="ir">
-              <span className="ir-k">Tipo de activo</span>
-              <select value={info.tipo_activo} onChange={e=>setI('tipo_activo',e.target.value)} style={selSt}>
+            <InlineField label="Tipo de activo" value={info.tipo_activo} onSave={()=>setDirty(true)}>
+              <select value={info.tipo_activo} onChange={e=>setI('tipo_activo',e.target.value)} style={sel}>
                 {['Edificio','Nave','Local','Parcela','Complejo','Torre','Centro comercial','Parque empresarial','Parque logístico','Residencia'].map(t=><option key={t}>{t}</option>)}
               </select>
-            </div>
-            <div className="ir">
-              <span className="ir-k">Estado construcción</span>
-              <select value={info.estado_construccion} onChange={e=>setI('estado_construccion',e.target.value)} style={selSt}>
-                <option value="">—</option>
-                {ESTADOS_CONSTRUCCION.map(e=><option key={e}>{e}</option>)}
+            </InlineField>
+            <InlineField label="Estado construcción" value={info.estado_construccion} onSave={()=>setDirty(true)}>
+              <select value={info.estado_construccion} onChange={e=>setI('estado_construccion',e.target.value)} style={sel}>
+                <option value="">—</option>{ESTADOS_CONSTRUCCION.map(e=><option key={e}>{e}</option>)}
               </select>
-            </div>
-            <div className="ir">
-              <span className="ir-k">Uso principal</span>
-              <select value={info.uso} onChange={e=>setI('uso',e.target.value)} style={selSt}>
-                <option value="">—</option>
-                {USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
+            </InlineField>
+            <InlineField label="Uso principal" value={info.uso} onSave={()=>setDirty(true)}>
+              <select value={info.uso} onChange={e=>setI('uso',e.target.value)} style={sel}>
+                <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
               </select>
-            </div>
-            <div className="ir">
-              <span className="ir-k">Uso secundario</span>
-              <select value={info.uso_secundario} onChange={e=>setI('uso_secundario',e.target.value)} style={selSt}>
-                <option value="">—</option>
-                {USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
+            </InlineField>
+            <InlineField label="Uso secundario" value={info.uso_secundario||'—'} onSave={()=>setDirty(true)}>
+              <select value={info.uso_secundario} onChange={e=>setI('uso_secundario',e.target.value)} style={sel}>
+                <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
               </select>
-            </div>
-            <div className="ir">
-              <span className="ir-k">Calidad</span>
-              <select value={info.calidad} onChange={e=>setI('calidad',e.target.value)} style={selSt}>
-                <option value="">—</option>
-                {CALIDADES.map(c=><option key={c}>{c}</option>)}
+            </InlineField>
+            <InlineField label="Calidad" value={info.calidad||'—'} onSave={()=>setDirty(true)}>
+              <select value={info.calidad} onChange={e=>setI('calidad',e.target.value)} style={sel}>
+                <option value="">—</option>{CALIDADES.map(c=><option key={c}>{c}</option>)}
               </select>
-            </div>
-            <div className="ir">
-              <span className="ir-k">SBA (m²)</span>
-              <input type="number" value={info.sba} onChange={e=>setI('sba',e.target.value)} style={{...inpSt,fontFamily:'var(--mono)',fontWeight:700}} placeholder="0"/>
-            </div>
-            <div className="ir">
-              <span className="ir-k">Año construcción</span>
-              <input type="number" value={info.anno_construccion} onChange={e=>setI('anno_construccion',e.target.value)} style={inpSt} placeholder="—"/>
-            </div>
-            <div className="ir">
-              <span className="ir-k">Año rehabilitación</span>
-              <input type="number" value={info.anno_rehabilitacion} onChange={e=>setI('anno_rehabilitacion',e.target.value)} style={inpSt} placeholder="—"/>
-            </div>
-            <div className="ir">
-              <span className="ir-k">Asset Manager</span>
+            </InlineField>
+            <InlineField label="SBA (m²)" value={info.sba ? Number(info.sba).toLocaleString('es-ES')+' m²' : '—'}
+              display={<span style={{fontWeight:700,fontFamily:'var(--mono)',fontSize:14}}>{info.sba ? Number(info.sba).toLocaleString('es-ES') : '—'}</span>}
+              onSave={()=>setDirty(true)}>
+              <input type="number" value={info.sba} onChange={e=>setI('sba',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0"/>
+            </InlineField>
+            <InlineField label="Año construcción" value={info.anno_construccion||'—'} onSave={()=>setDirty(true)}>
+              <input type="number" value={info.anno_construccion} onChange={e=>setI('anno_construccion',e.target.value)} style={inp} placeholder="—"/>
+            </InlineField>
+            <InlineField label="Año rehabilitación" value={info.anno_rehabilitacion||'—'} onSave={()=>setDirty(true)}>
+              <input type="number" value={info.anno_rehabilitacion} onChange={e=>setI('anno_rehabilitacion',e.target.value)} style={inp} placeholder="—"/>
+            </InlineField>
+            <InlineField label="Asset Manager" value={info.asset_manager||'—'} onSave={()=>setDirty(true)}>
               <AssetManagerSearch value={info.asset_manager} onChange={v=>setI('asset_manager',v)}/>
-            </div>
+            </InlineField>
             {totalPlazas>0 && (
               <div className="ir" style={{alignItems:'flex-start',paddingTop:6,borderTop:'1px solid var(--border)',marginTop:4}}>
                 <span className="ir-k">🅿 Plazas apar.</span>
@@ -2054,16 +2193,28 @@ function TabInfo({ navigate, plazas, activo }) {
           <div className="ib-title">🏛 DATOS URBANÍSTICOS<span className="ir-v link" style={{fontSize:10,marginLeft:10}}>Consultar Visor ↗</span></div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 24px'}}>
             <div>
-              <div className="ir"><span className="ir-k">Ref. catastral</span><input value={info.ref_catastral} onChange={e=>setI('ref_catastral',e.target.value)} style={{...inpSt,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/></div>
-              <div className="ir"><span className="ir-k">Uso PGOU</span><input value={info.uso_pgou} onChange={e=>setI('uso_pgou',e.target.value)} style={inpSt} placeholder="—"/></div>
+              <InlineField label="Ref. catastral" value={info.ref_catastral||'—'} onSave={()=>setDirty(true)}>
+                <input value={info.ref_catastral} onChange={e=>setI('ref_catastral',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/>
+              </InlineField>
+              <InlineField label="Uso PGOU" value={info.uso_pgou||'—'} onSave={()=>setDirty(true)}>
+                <input value={info.uso_pgou} onChange={e=>setI('uso_pgou',e.target.value)} style={inp} placeholder="—"/>
+              </InlineField>
             </div>
             <div>
-              <div className="ir"><span className="ir-k">Clasificación</span><input value={info.clasificacion_urb} onChange={e=>setI('clasificacion_urb',e.target.value)} style={inpSt} placeholder="—"/></div>
-              <div className="ir"><span className="ir-k">Calificación</span><input value={info.calificacion_urb} onChange={e=>setI('calificacion_urb',e.target.value)} style={inpSt} placeholder="—"/></div>
+              <InlineField label="Clasificación" value={info.clasificacion_urb||'—'} onSave={()=>setDirty(true)}>
+                <input value={info.clasificacion_urb} onChange={e=>setI('clasificacion_urb',e.target.value)} style={inp} placeholder="—"/>
+              </InlineField>
+              <InlineField label="Calificación" value={info.calificacion_urb||'—'} onSave={()=>setDirty(true)}>
+                <input value={info.calificacion_urb} onChange={e=>setI('calificacion_urb',e.target.value)} style={inp} placeholder="—"/>
+              </InlineField>
             </div>
             <div>
-              <div className="ir"><span className="ir-k">Edificabilidad</span><input value={info.edificabilidad} onChange={e=>setI('edificabilidad',e.target.value)} style={inpSt} placeholder="—"/></div>
-              <div className="ir"><span className="ir-k">Sup. parcela (m²)</span><input type="number" value={info.sup_parcela} onChange={e=>setI('sup_parcela',e.target.value)} style={{...inpSt,fontFamily:'var(--mono)'}} placeholder="—"/></div>
+              <InlineField label="Edificabilidad" value={info.edificabilidad||'—'} onSave={()=>setDirty(true)}>
+                <input value={info.edificabilidad} onChange={e=>setI('edificabilidad',e.target.value)} style={inp} placeholder="—"/>
+              </InlineField>
+              <InlineField label="Sup. parcela (m²)" value={info.sup_parcela ? Number(info.sup_parcela).toLocaleString('es-ES')+' m²' : '—'} onSave={()=>setDirty(true)}>
+                <input type="number" value={info.sup_parcela} onChange={e=>setI('sup_parcela',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="—"/>
+              </InlineField>
             </div>
           </div>
         </div>
@@ -2562,6 +2713,7 @@ export default function FichaActivo() {
   // Datos del activo desde Supabase
   const [activo, setActivo] = useState(null)
   const [loadingActivo, setLoadingActivo] = useState(false)
+  const [displayNombre, setDisplayNombre] = useState(null) // overrides activo.nombre in header after inline edit
 
   useEffect(() => {
     if (!params?.ref) return
@@ -2702,7 +2854,7 @@ export default function FichaActivo() {
                       <span className="ref-badge-activo">ACTIVO</span>
                       <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{activo?.ref || params?.ref}</span>
                     </div>
-                    <div className="ah-name">{activo?.nombre || '—'}</div>
+                    <div className="ah-name">{displayNombre ?? activo?.nombre ?? '—'}</div>
                     <div className="ah-addr">
                       {activo?.direccion && <>📍 {activo.direccion} · </>}
                       {[activo?.zona, activo?.subzona, activo?.ciudad].filter(Boolean).join(' · ')}
@@ -2730,7 +2882,7 @@ export default function FichaActivo() {
           {/* ── TAB: Información general ── */}
           {activeTab==='at-info' && (isNew
             ? <NewActivoInfoTab newForm={newForm} setNF={setNF}/>
-            : <TabInfo navigate={navigate} plazas={plazas} activo={activo}/>
+            : <TabInfo navigate={navigate} plazas={plazas} activo={activo} onInfoSaved={({nombre})=>setDisplayNombre(nombre||null)}/>
           )}
 
           {/* ── TAB: Stacking Plan ── */}
