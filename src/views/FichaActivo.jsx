@@ -1954,11 +1954,8 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--green)',fontWeight:600}}>✓ Sincronizado</span>}
               {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--red)',maxWidth:200,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
-              <button
-                onClick={syncCatastro}
-                disabled={syncingCat}
-                style={{padding:'3px 10px',fontSize:10,fontWeight:600,fontFamily:'inherit',cursor:syncingCat?'wait':'pointer',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,display:'flex',alignItems:'center',gap:5,whiteSpace:'nowrap',opacity:syncingCat?0.7:1}}>
-                {syncingCat ? '⟳ Consultando...' : '⟳ Sincronizar Catastro'}
+              <button className="ab-btn blue" onClick={syncCatastro} disabled={syncingCat}>
+                {syncingCat ? '⟳ Consultando...' : '⟳ Sincronizar'}
               </button>
             </div>
           </div>
@@ -2448,8 +2445,8 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
       ratio_perdida:   info.ratio_perdida   ? parseFloat(info.ratio_perdida)   : null,
     }).eq('ref', activo.ref)
 
-    // Si la migración 005 aún no se ha ejecutado, reintenta sin esas columnas
-    if (error && (error.message?.includes('ratio_perdida') || error.message?.includes('sup_planta_tipo') || error.code === '42703')) {
+    // Si la migración 005 aún no se ha ejecutado (PGRST204 = columna desconocida), reintenta sin esas columnas
+    if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache'))) {
       const r2 = await supabase.from('activos').update(basePayload).eq('ref', activo.ref)
       error = r2.error
     }
@@ -2659,10 +2656,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--green)',fontWeight:600}}>✓ Sincronizado</span>}
               {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--red)',maxWidth:260,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
-              <button
-                onClick={syncCatastro}
-                disabled={syncingCat}
-                style={{padding:'3px 10px',fontSize:10,fontWeight:600,fontFamily:'inherit',cursor:syncingCat?'wait':'pointer',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,display:'flex',alignItems:'center',gap:5,whiteSpace:'nowrap',opacity:syncingCat?0.7:1}}>
+              <button className="ab-btn blue" onClick={syncCatastro} disabled={syncingCat}>
                 {syncingCat ? '⟳ Consultando...' : '⟳ Sincronizar'}
               </button>
             </div>
@@ -4042,6 +4036,9 @@ export default function FichaActivo() {
                       calificacion_urb:  data.calificacion_urb  || null,
                       edificabilidad:    data.edificabilidad    || null,
                     }).eq('ref', activo.ref)
+                    // Recargar activo para que los links aparezcan inmediatamente
+                    const { data: fresh } = await supabase.from('activos').select('*').eq('ref', activo.ref).single()
+                    if (fresh) setActivo(fresh)
                     setCatSyncMsgAd('ok'); setTimeout(()=>setCatSyncMsgAd(''),4000)
                   } catch(e) { setCatSyncMsgAd(e.message||'Error') }
                   finally { setCatSyncAd(false) }
@@ -4086,7 +4083,7 @@ export default function FichaActivo() {
                       <div className="info-block">
                         <div className="ib-title">🗺 Visor Urbanístico</div>
                         {[
-                          {ciudad:'Madrid',    lbl:'SIGUR Madrid',     url:'https://sig.madrid.es/VisoresMap/visores/urbanismo.aspx'},
+                          {ciudad:'Madrid',    lbl:'SIGUR Madrid',     url:'https://sig.madrid.es/SigGeoportal/'},
                           {ciudad:'Barcelona', lbl:'Urbanisme BCN',    url:'https://w133.bcn.cat/APPS/geoportal/AppGeoportal.html'},
                           {ciudad:'Valencia',  lbl:'SIT Valencia',     url:'https://sit.valencia.es/GEOSAT/'},
                         ].map(v=>(
