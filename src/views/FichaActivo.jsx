@@ -1711,38 +1711,74 @@ const USO_CAT_MAP = {
   'Deportivo':               'Equipamiento / Deportivo',
 }
 async function fetchCatastro(lat, lng) {
+  // El Catastro devuelve XML con xmlns="http://www.catastro.meh.es/" — hay que
+  // eliminar los namespaces antes de parsear para que querySelector funcione.
+  function stripNs(xml) {
+    return xml
+      .replace(/\s+xmlns(?::[a-z0-9]+)?="[^"]*"/gi, '')
+      .replace(/<([a-z0-9]+):/gi,  '<')
+      .replace(/<\/([a-z0-9]+):/gi, '</')
+  }
+  const q   = (doc, sel) => doc.querySelector(sel)?.textContent?.trim() || null
   const parser = new DOMParser()
-  // Paso 1: coordenadas → refcat (tolerancia 100 m)
-  const coordUrl =
+
+  // ── Paso 1: coordenadas → refcat (tolerancia 100 m) ────────────────────
+  const coordRes = await fetch(
     `https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/` +
     `OVCCoordenadas.asmx/Consulta_RCCOOR_Distancia` +
     `?SRS=EPSG:4326&Coordenada_X=${lng}&Coordenada_Y=${lat}&Distancia=100`
-  const coordRes = await fetch(coordUrl)
+  )
   if (!coordRes.ok) throw new Error(`Error HTTP ${coordRes.status} del Catastro`)
-  const coordDoc = parser.parseFromString(await coordRes.text(), 'text/xml')
-  const errCod = coordDoc.querySelector('cod')?.textContent?.trim()
-  if (errCod && errCod !== '0') {
-    throw new Error(coordDoc.querySelector('des')?.textContent || 'Sin datos para esas coordenadas')
-  }
-  const pc1 = coordDoc.querySelector('pc1')?.textContent?.trim()
-  const pc2 = coordDoc.querySelector('pc2')?.textContent?.trim()
+  const coordDoc = parser.parseFromString(stripNs(await coordRes.text()), 'text/xml')
+
+  const errCod = q(coordDoc, 'cod')
+  if (errCod && errCod !== '0') throw new Error(q(coordDoc, 'des') || 'Sin datos')
+
+  const pc1 = q(coordDoc, 'pc1'), pc2 = q(coordDoc, 'pc2')
   if (!pc1 || !pc2) throw new Error('No hay inmueble catastral en esas coordenadas')
-  const refcat = `${pc1}${pc2}${coordDoc.querySelector('car')?.textContent?.trim()||''}${coordDoc.querySelector('cc1')?.textContent?.trim()||''}${coordDoc.querySelector('cc2')?.textContent?.trim()||''}`
-  // Paso 2: refcat → datos del inmueble
-  let uso_pgou = null, sup_parcela = null, anno_construccion = null
+  const refcat = `${pc1}${pc2}${q(coordDoc,'car')||''}${q(coordDoc,'cc1')||''}${q(coordDoc,'cc2')||''}`
+
+  // ── Paso 2: refcat → datos completos del inmueble ───────────────────────
+  let uso_pgou = null, sup_parcela = null, anno_construccion = null,
+      clasificacion_urb = null, calificacion_urb = null, edificabilidad = null
+
   try {
-    const inmRes = await fetch(`https://ovc.catastro.meh.es/OVCServWeb/OVCWcfLibres/RESTServices.svc/Inmueble?RefCat=${refcat}&SRS=EPSG:4326`)
+    const inmRes = await fetch(
+      `https://ovc.catastro.meh.es/OVCServWeb/OVCWcfLibres/RESTServices.svc/Inmueble?RefCat=${refcat}&SRS=EPSG:4326`
+    )
     if (inmRes.ok) {
-      const inmDoc = parser.parseFromString(await inmRes.text(), 'text/xml')
-      const uso_cat = inmDoc.querySelector('luso')?.textContent?.trim() || ''
+      const inmDoc = parser.parseFromString(stripNs(await inmRes.text()), 'text/xml')
+
+      // Uso catastral → etiqueta PGOU
+      const uso_cat = q(inmDoc, 'luso') || ''
       uso_pgou = USO_CAT_MAP[uso_cat] || uso_cat || null
-      const ant = inmDoc.querySelector('ant')?.textContent?.trim()
+
+      // Año de construcción
+      const ant = q(inmDoc, 'ant')
       anno_construccion = ant ? parseInt(ant, 10) : null
-      const sspEl = inmDoc.querySelector('ssp') || inmDoc.querySelector('stl')
-      sup_parcela = sspEl ? Math.round(parseFloat(sspEl.textContent)) : null
+
+      // Superficie parcela: <ssp> (suelo parcela), fallback <stl> (total local)
+      const sspRaw = q(inmDoc, 'ssp') || q(inmDoc, 'stl')
+      sup_parcela = sspRaw ? Math.round(parseFloat(sspRaw)) : null
+
+      // Datos urbanísticos del PGOU — disponibles en <loures> para algunos municipios
+      const loures = q(inmDoc, 'loures')
+      if (loures) {
+        // "Clase de suelo: Urbano Consolidado · Calificación: ..." etc.
+        const claseM = loures.match(/clase(?:\s+de\s+suelo)?[:\s]+([^·\n,;]+)/i)
+        if (claseM) clasificacion_urb = claseM[1].trim().replace(/\.$/, '')
+
+        const califM = loures.match(/calificaci[oó]n[:\s]+([^·\n,;]+)/i)
+        if (califM) calificacion_urb = califM[1].trim().replace(/\.$/, '')
+
+        const edifM = loures.match(/(?:edificabilidad|aprovechamiento)[:\s]+([^·\n,;]+)/i)
+        if (edifM) edificabilidad = edifM[1].trim().replace(/\.$/, '')
+      }
     }
-  } catch { /* datos del inmueble opcionales */ }
-  return { ref_catastral: refcat, uso_pgou, sup_parcela, anno_construccion }
+  } catch { /* datos del inmueble son opcionales */ }
+
+  return { ref_catastral: refcat, uso_pgou, sup_parcela, anno_construccion,
+           clasificacion_urb, calificacion_urb, edificabilidad }
 }
 
 function NewActivoInfoTab({ newForm, setNF, submitted }) {
@@ -1757,10 +1793,13 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
     setSyncingCat(true); setCatMsg('')
     try {
       const data = await fetchCatastro(latStr, lngStr)
-      if (data.ref_catastral)             setNF('ref_catastral',    data.ref_catastral)
-      if (data.uso_pgou)                  setNF('uso_pgou',         data.uso_pgou)
-      if (data.sup_parcela      != null)  setNF('sup_parcela',      String(data.sup_parcela))
-      if (data.anno_construccion != null) setNF('anno_construccion', String(data.anno_construccion))
+      if (data.ref_catastral)              setNF('ref_catastral',    data.ref_catastral)
+      if (data.uso_pgou)                   setNF('uso_pgou',         data.uso_pgou)
+      if (data.sup_parcela       != null)  setNF('sup_parcela',      String(data.sup_parcela))
+      if (data.anno_construccion != null)  setNF('anno_construccion', String(data.anno_construccion))
+      if (data.clasificacion_urb)          setNF('clasificacion_urb', data.clasificacion_urb)
+      if (data.calificacion_urb)           setNF('calificacion_urb',  data.calificacion_urb)
+      if (data.edificabilidad)             setNF('edificabilidad',    data.edificabilidad)
       setCatMsg('ok'); setTimeout(() => setCatMsg(''), 4000)
     } catch (e) { setCatMsg(e.message || 'Error de red') }
     finally { setSyncingCat(false) }
@@ -2411,10 +2450,13 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, h
       const data = await fetchCatastro(latStr, lngStr)
       setInfo(p => ({
         ...p,
-        ref_catastral:     data.ref_catastral                          ?? p.ref_catastral,
-        uso_pgou:          data.uso_pgou                               ?? p.uso_pgou,
-        sup_parcela:       data.sup_parcela      != null ? String(data.sup_parcela)      : p.sup_parcela,
+        ref_catastral:     data.ref_catastral                             ?? p.ref_catastral,
+        uso_pgou:          data.uso_pgou                                  ?? p.uso_pgou,
+        sup_parcela:       data.sup_parcela      != null ? String(data.sup_parcela)       : p.sup_parcela,
         anno_construccion: data.anno_construccion != null ? String(data.anno_construccion) : p.anno_construccion,
+        clasificacion_urb: data.clasificacion_urb                         ?? p.clasificacion_urb,
+        calificacion_urb:  data.calificacion_urb                          ?? p.calificacion_urb,
+        edificabilidad:    data.edificabilidad                            ?? p.edificabilidad,
       }))
       setDirty(true)
       setCatMsg('ok'); setTimeout(() => setCatMsg(''), 4000)
@@ -3927,6 +3969,9 @@ export default function FichaActivo() {
                       uso_pgou:          data.uso_pgou          || null,
                       sup_parcela:       data.sup_parcela       ?? null,
                       anno_construccion: data.anno_construccion ?? null,
+                      clasificacion_urb: data.clasificacion_urb || null,
+                      calificacion_urb:  data.calificacion_urb  || null,
+                      edificabilidad:    data.edificabilidad    || null,
                     }).eq('ref', activo.ref)
                     setCatSyncMsgAd('ok'); setTimeout(()=>setCatSyncMsgAd(''),4000)
                   } catch(e) { setCatSyncMsgAd(e.message||'Error') }
