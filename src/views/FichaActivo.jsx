@@ -1225,21 +1225,12 @@ const FOTO_SUB_FOTO = ['Interior','Exterior','Zonas comunes','Parking','Fotos a�
 const FOTO_SUB_PLAN = ['Plano de planta','Sección','Axonométrica']
 
 const MOCK_MEDIA = [
-  { id:1,  tipo:'Fotografía', subtipo:'Exterior',        desc:'Fachada principal',          principal:true,  date:'07/02/2026', src:'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=80' },
-  { id:2,  tipo:'Fotografía', subtipo:'Exterior',        desc:'Fachada lateral',             principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80' },
-  { id:3,  tipo:'Fotografía', subtipo:'Exterior',        desc:'Acceso principal',            principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=800&q=80' },
-  { id:4,  tipo:'Fotografía', subtipo:'Interior',        desc:'Lobby recepción',             principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1497366754035-f200968a7db3?w=800&q=80' },
-  { id:5,  tipo:'Fotografía', subtipo:'Interior',        desc:'Planta tipo — open space',    principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80' },
-  { id:6,  tipo:'Fotografía', subtipo:'Interior',        desc:'Sala de reuniones',           principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&q=80' },
-  { id:7,  tipo:'Fotografía', subtipo:'Zonas comunes',   desc:'Recepción edificio',          principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1568992687947-868a62a9f521?w=800&q=80' },
-  { id:8,  tipo:'Fotografía', subtipo:'Zonas comunes',   desc:'Cafetería planta baja',       principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&q=80' },
-  { id:9,  tipo:'Fotografía', subtipo:'Zonas comunes',   desc:'Terraza / Rooftop',           principal:false, date:'01/03/2026', src:'https://images.unsplash.com/photo-1533616688419-b7a585564566?w=800&q=80' },
-  { id:10, tipo:'Fotografía', subtipo:'Parking',         desc:'Aparcamiento interior nivel -1', principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=800&q=80' },
-  { id:11, tipo:'Fotografía', subtipo:'Fotos aéreas',    desc:'Vista aérea conjunto',        principal:false, date:'01/01/2026', src:'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&q=80' },
-  { id:12, tipo:'Fotografía', subtipo:'Fotos aéreas',    desc:'Vista aérea fachada',         principal:false, date:'01/01/2026', src:'https://images.unsplash.com/photo-1573883430688-e1063f37b7c8?w=800&q=80' },
-  { id:13, tipo:'Plano',      subtipo:'Plano de planta', desc:'Planta tipo — distribución',  principal:false, date:'20/03/2026', src:'https://images.unsplash.com/photo-1541888846341-b14b40e47e34?w=800&q=80' },
-  { id:14, tipo:'Plano',      subtipo:'Plano de planta', desc:'Planta baja',                 principal:false, date:'20/03/2026', src:'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80' },
-  { id:15, tipo:'Plano',      subtipo:'Sección',         desc:'Sección transversal',         principal:false, date:'20/03/2026', src:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80' },
+  { id:1, tipo:'Fotografía', subtipo:'Exterior',        desc:'Fachada principal',        principal:true,  date:'07/02/2026', src:'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=80' },
+  { id:2, tipo:'Fotografía', subtipo:'Interior',        desc:'Planta tipo — open space', principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80' },
+  { id:3, tipo:'Fotografía', subtipo:'Interior',        desc:'Sala de reuniones',        principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1497366754035-f200968a7db3?w=800&q=80' },
+  { id:4, tipo:'Fotografía', subtipo:'Zonas comunes',   desc:'Lobby recepción',          principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1568992687947-868a62a9f521?w=800&q=80' },
+  { id:5, tipo:'Fotografía', subtipo:'Fotos aéreas',    desc:'Vista aérea conjunto',     principal:false, date:'01/01/2026', src:'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&q=80' },
+  { id:6, tipo:'Plano',      subtipo:'Plano de planta', desc:'Planta tipo — distribución', principal:false, date:'20/03/2026', src:'https://images.unsplash.com/photo-1541888846341-b14b40e47e34?w=800&q=80' },
 ]
 
 function TabMultimedia() {
@@ -1627,7 +1618,7 @@ function NewActivoInfoTab({ newForm, setNF }) {
   )
 }
 
-function MapaCarrusel({ activo }) {
+function MapaCarrusel({ activo, direccion }) {
   const mapElRef = useRef(null)
   const mapObj   = useRef(null)
   const [carIdx, setCarIdx] = useState(0)
@@ -1638,44 +1629,55 @@ function MapaCarrusel({ activo }) {
     ? [principal, ...fotos.filter(m => m.id !== principal?.id)]
     : fotos
 
+  const markerRef = useRef(null)
+
+  // Init map (once)
   useEffect(() => {
     if (!GMAPS_API_KEY) return
-    const dir = activo?.direccion || 'Calle Santa Leonor 65, Madrid'
-
-    const setup = () => {
-      if (!mapElRef.current || !window.google?.maps) return
-      if (mapObj.current) return
-      const geocoder = new window.google.maps.Geocoder()
-      const center   = { lat: 40.4168, lng: -3.7038 }
+    const initMap = () => {
+      if (!mapElRef.current || !window.google?.maps || mapObj.current) return
+      const center = { lat: 40.4168, lng: -3.7038 }
       mapObj.current = new window.google.maps.Map(mapElRef.current, {
-        center, zoom: 14,
+        center, zoom: 13,
         mapTypeControl: false, streetViewControl: false, fullscreenControl: false,
         styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }],
       })
+      markerRef.current = new window.google.maps.Marker({ map: mapObj.current, position: center, visible: false })
+    }
+    if (window.google?.maps) initMap()
+    else {
+      const ex = document.getElementById('gmaps-script')
+      if (ex) ex.addEventListener('load', initMap)
+      else {
+        const s = document.createElement('script')
+        s.id = 'gmaps-script'; s.async = true; s.defer = true
+        s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_API_KEY}&libraries=places`
+        s.onload = initMap
+        document.head.appendChild(s)
+      }
+    }
+  }, [])
+
+  // Geocode when address changes
+  useEffect(() => {
+    if (!GMAPS_API_KEY) return
+    const dir = direccion || activo?.direccion
+    if (!dir) return
+    const geocode = () => {
+      if (!window.google?.maps || !mapObj.current) return
+      const geocoder = new window.google.maps.Geocoder()
       geocoder.geocode({ address: dir }, (results, status) => {
         if (status === 'OK' && results[0]) {
           const loc = results[0].geometry.location
           mapObj.current.setCenter(loc)
           mapObj.current.setZoom(16)
-          new window.google.maps.Marker({ map: mapObj.current, position: loc })
+          if (markerRef.current) { markerRef.current.setPosition(loc); markerRef.current.setVisible(true) }
         }
       })
     }
-
-    if (window.google?.maps) {
-      setup()
-    } else {
-      const existing = document.getElementById('gmaps-script')
-      if (existing) { existing.addEventListener('load', setup) }
-      else {
-        const s = document.createElement('script')
-        s.id = 'gmaps-script'; s.async = true; s.defer = true
-        s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_API_KEY}&libraries=places`
-        s.onload = setup
-        document.head.appendChild(s)
-      }
-    }
-  }, [activo?.direccion])
+    if (window.google?.maps && mapObj.current) geocode()
+    else setTimeout(geocode, 1500)
+  }, [direccion, activo?.direccion])
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
@@ -1751,59 +1753,295 @@ function MapaCarrusel({ activo }) {
 }
 
 function TabInfo({ navigate, plazas, activo }) {
-  const [assetManager, setAssetManager] = useState('')
+  const INIT_INFO = {
+    direccion:'', ciudad:'', pais:'España',
+    area:'', zona:'', subzona:'',
+    tipo_activo:'Edificio', estado_construccion:'Construcción existente',
+    uso:'', uso_secundario:'', calidad:'',
+    asset_manager:'', sba:'', anno_construccion:'', anno_rehabilitacion:'',
+    ref_catastral:'', uso_pgou:'', clasificacion_urb:'', calificacion_urb:'',
+    edificabilidad:'', sup_parcela:'',
+  }
+  const [info, setInfo] = useState(INIT_INFO)
+  const [dirty, setDirty] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveOk, setSaveOk] = useState(false)
+  const addressRef = useRef(null)
+  const acRef = useRef(null)
+
+  useEffect(() => {
+    if (activo) setInfo({
+      direccion:           activo.direccion           || '',
+      ciudad:              activo.ciudad              || '',
+      pais:                activo.pais                || 'España',
+      area:                activo.area                || '',
+      zona:                activo.zona                || '',
+      subzona:             activo.subzona             || '',
+      tipo_activo:         activo.tipo_activo         || 'Edificio',
+      estado_construccion: activo.estado_construccion || 'Construcción existente',
+      uso:                 activo.uso                 || '',
+      uso_secundario:      activo.uso_secundario      || '',
+      calidad:             activo.calidad             || '',
+      asset_manager:       activo.asset_manager       || '',
+      sba:                 activo.sba                 || '',
+      anno_construccion:   activo.anno_construccion   || '',
+      anno_rehabilitacion: activo.anno_rehabilitacion || '',
+      ref_catastral:       activo.ref_catastral       || '',
+      uso_pgou:            activo.uso_pgou            || '',
+      clasificacion_urb:   activo.clasificacion_urb   || '',
+      calificacion_urb:    activo.calificacion_urb    || '',
+      edificabilidad:      activo.edificabilidad      || '',
+      sup_parcela:         activo.sup_parcela         || '',
+    })
+  }, [activo])
+
+  const setI = (k, v) => { setInfo(p => ({...p, [k]: v})); setDirty(true); setSaveOk(false) }
+
+  // Derived zone dropdowns (Madrid)
+  const zonas    = info.ciudad === 'Madrid' && info.area
+    ? [...new Set(MADRID_ZONES.filter(z => z.area === info.area).map(z => z.zona))]
+    : []
+  const subzonas = info.ciudad === 'Madrid' && info.area && info.zona
+    ? MADRID_ZONES.filter(z => z.area === info.area && z.zona === info.zona).map(z => z.subzona)
+    : []
+
+  // Google Places autocomplete on the address bar
+  useEffect(() => {
+    if (!GMAPS_API_KEY) return
+    const setup = () => {
+      if (!addressRef.current || !window.google?.maps?.places) return
+      if (acRef.current) return
+      acRef.current = new window.google.maps.places.Autocomplete(addressRef.current, {
+        componentRestrictions: { country: 'es' },
+        fields: ['formatted_address','address_components','geometry'],
+      })
+      acRef.current.addListener('place_changed', () => {
+        const place = acRef.current.getPlace()
+        if (!place.geometry) return
+        const get = type => { const c=(place.address_components||[]).find(x=>x.types.includes(type)); return c?c.long_name:'' }
+        const addr = place.formatted_address || ''
+        const city = get('locality') || get('administrative_area_level_2') || ''
+        const country = get('country') || ''
+        setInfo(p => ({...p, direccion: addr, ciudad: city, pais: country}))
+        setDirty(true); setSaveOk(false)
+      })
+    }
+    if (window.google?.maps?.places) setup()
+    else {
+      const ex = document.getElementById('gmaps-script')
+      if (ex) ex.addEventListener('load', setup)
+      else {
+        const s = document.createElement('script')
+        s.id = 'gmaps-script'; s.async = true; s.defer = true
+        s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_API_KEY}&libraries=places`
+        s.onload = setup
+        document.head.appendChild(s)
+      }
+    }
+  }, [])
+
+  const handleSave = async () => {
+    if (!activo?.ref) return
+    setSaving(true)
+    const { error } = await supabase.from('activos').update({
+      direccion:           info.direccion           || null,
+      ciudad:              info.ciudad              || null,
+      pais:                info.pais                || null,
+      area:                info.area                || null,
+      zona:                info.zona                || null,
+      subzona:             info.subzona             || null,
+      tipo_activo:         info.tipo_activo         || null,
+      estado_construccion: info.estado_construccion || null,
+      uso:                 info.uso                 || null,
+      uso_secundario:      info.uso_secundario      || null,
+      calidad:             info.calidad             || null,
+      asset_manager:       info.asset_manager       || null,
+      sba:                 info.sba ? parseFloat(info.sba) : null,
+      anno_construccion:   info.anno_construccion   ? parseInt(info.anno_construccion)   : null,
+      anno_rehabilitacion: info.anno_rehabilitacion ? parseInt(info.anno_rehabilitacion) : null,
+      ref_catastral:       info.ref_catastral       || null,
+      uso_pgou:            info.uso_pgou            || null,
+      clasificacion_urb:   info.clasificacion_urb   || null,
+      calificacion_urb:    info.calificacion_urb    || null,
+      edificabilidad:      info.edificabilidad      || null,
+      sup_parcela:         info.sup_parcela ? parseFloat(info.sup_parcela) : null,
+    }).eq('ref', activo.ref)
+    setSaving(false)
+    if (!error) { setDirty(false); setSaveOk(true); setTimeout(()=>setSaveOk(false), 3000) }
+  }
+
   const totalPlazas = plazas.reduce((s,p)=>s+p.cantidad,0)
   const byUbic = UBICACIONES.map(u=>({u, n:plazas.filter(p=>p.ubicacion===u).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
   const byTipo = TIPOS_PLAZA.map(t=>({t, n:plazas.filter(p=>p.tipo===t).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
   const byVeh  = TIPOS_VEHICULO.map(v=>({v, n:plazas.filter(p=>p.vehiculo===v).reduce((s,p)=>s+p.cantidad,0)})).filter(x=>x.n>0)
+
+  const inpSt = {padding:'4px 8px',border:'1px solid var(--border)',borderRadius:5,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',width:'100%',boxSizing:'border-box'}
+  const selSt = {...inpSt, cursor:'pointer'}
+
   return (
     <div className="tab-content active">
       <div className="info-pad">
 
         {/* ── Mapa + Carrusel ── */}
-        <MapaCarrusel activo={activo}/>
+        <MapaCarrusel activo={activo} direccion={info.direccion}/>
+
+        {/* ── Save bar ── */}
+        {dirty && (
+          <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 14px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:7,marginBottom:12}}>
+            <span style={{fontSize:11,color:'var(--accent)',fontWeight:600,flex:1}}>Hay cambios sin guardar</span>
+            <button onClick={handleSave} disabled={saving}
+              style={{padding:'5px 16px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+              {saving ? 'Guardando...' : '💾 Guardar'}
+            </button>
+            <button onClick={()=>{setInfo(activo ? {...INIT_INFO,...activo} : INIT_INFO);setDirty(false)}}
+              style={{padding:'5px 10px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)'}}>
+              Descartar
+            </button>
+          </div>
+        )}
+        {saveOk && (
+          <div style={{padding:'7px 14px',background:'#f0fdf4',border:'1px solid #86efac',borderRadius:7,marginBottom:12,fontSize:11,color:'#15803d',fontWeight:600}}>
+            ✓ Guardado correctamente
+          </div>
+        )}
 
         {/* ── Fila 1: UBICACIÓN + TIPOLOGÍA ── */}
         <div className="info-2col" style={{marginBottom:12}}>
+
+          {/* UBICACIÓN */}
           <div className="info-block">
             <div className="ib-title">📍 UBICACIÓN</div>
-            <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v">Calle Santa Leonor 65</span></div>
-            <div className="ir"><span className="ir-k">Nombre edificio</span><span className="ir-v">P.E Avalon</span></div>
-            <div className="ir"><span className="ir-k">Ciudad</span><span className="ir-v">Madrid</span></div>
-            <div className="ir"><span className="ir-k">País</span><span className="ir-v">España</span></div>
-            <div className="zona-box">
-              <div className="zona-cell"><div className="zona-lbl">Área</div><div className="zona-val">Centro</div></div>
-              <div className="zona-cell"><div className="zona-lbl">Zona</div><div className="zona-val">M-30</div></div>
-              <div className="zona-cell"><div className="zona-lbl">Sub-zona</div><div className="zona-val">M.Álvaro</div></div>
+
+            {/* Barra Google Places */}
+            <div style={{marginBottom:10}}>
+              <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:4}}>Buscar dirección (Google)</div>
+              <div style={{position:'relative'}}>
+                <svg viewBox="0 0 16 16" fill="none" stroke="var(--text4)" strokeWidth="1.5"
+                  style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',width:13,height:13,pointerEvents:'none'}}>
+                  <circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/>
+                </svg>
+                <input ref={addressRef} type="text"
+                  defaultValue={info.direccion}
+                  placeholder="Escribe o busca una dirección..."
+                  style={{...inpSt, paddingLeft:26, background:'var(--gray-lt)'}}
+                  onChange={e=>setI('direccion', e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="ir">
+              <span className="ir-k">Dirección</span>
+              <input value={info.direccion} onChange={e=>setI('direccion',e.target.value)} style={inpSt} placeholder="—"/>
+            </div>
+            <div className="ir">
+              <span className="ir-k">Ciudad</span>
+              <input value={info.ciudad} onChange={e=>setI('ciudad',e.target.value)} style={inpSt} placeholder="—"/>
+            </div>
+            <div className="ir">
+              <span className="ir-k">País</span>
+              <input value={info.pais} onChange={e=>setI('pais',e.target.value)} style={inpSt} placeholder="—"/>
+            </div>
+
+            {/* Área / Zona / Subzona — desplegables condicionales */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginTop:8,padding:'10px 10px 8px',background:'var(--gray-lt)',borderRadius:7,border:'1px solid var(--border)'}}>
+              <div>
+                <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Área</div>
+                {info.ciudad === 'Madrid' ? (
+                  <select value={info.area} onChange={e=>{setI('area',e.target.value);setInfo(p=>({...p,zona:'',subzona:''}))}} style={selSt}>
+                    <option value="">—</option>
+                    {AREAS_MAD.map(a=><option key={a}>{a}</option>)}
+                  </select>
+                ) : (
+                  <input value={info.area} onChange={e=>setI('area',e.target.value)} style={inpSt} placeholder="—"/>
+                )}
+              </div>
+              <div>
+                <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Zona</div>
+                {zonas.length > 0 ? (
+                  <select value={info.zona} onChange={e=>{setI('zona',e.target.value);setInfo(p=>({...p,subzona:''}))}} style={selSt}>
+                    <option value="">—</option>
+                    {zonas.map(z=><option key={z}>{z}</option>)}
+                  </select>
+                ) : (
+                  <input value={info.zona} onChange={e=>setI('zona',e.target.value)} style={inpSt} placeholder="—"/>
+                )}
+              </div>
+              <div>
+                <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Subzona</div>
+                {subzonas.length > 0 ? (
+                  <select value={info.subzona} onChange={e=>setI('subzona',e.target.value)} style={selSt}>
+                    <option value="">—</option>
+                    {subzonas.map(s=><option key={s}>{s}</option>)}
+                  </select>
+                ) : (
+                  <input value={info.subzona} onChange={e=>setI('subzona',e.target.value)} style={inpSt} placeholder="—"/>
+                )}
+              </div>
             </div>
           </div>
 
+          {/* TIPOLOGÍA */}
           <div className="info-block">
             <div className="ib-title">🏢 TIPOLOGÍA</div>
-            <div className="ir"><span className="ir-k">Tipo de activo</span><span className="ir-v"><span className="tag tag-gray">Construcción existente</span></span></div>
-            <div className="ir"><span className="ir-k">Estado</span><span className="ir-v"><span className="tag tag-green">Activo</span></span></div>
-            <div className="ir"><span className="ir-k">Uso principal</span><span className="ir-v"><span className="tag tag-blue">Oficinas</span></span></div>
-            <div className="ir"><span className="ir-k">Uso secundario</span><span className="ir-v"><span className="tag tag-gray">—</span></span></div>
-            <div className="ir"><span className="ir-k">Asset Manager</span><span className="ir-v" style={{flex:1,minWidth:0}}><AssetManagerSearch value={assetManager} onChange={setAssetManager}/></span></div>
-            <div className="ir"><span className="ir-k">SBA (m²)</span><span className="ir-v" style={{fontSize:14,fontWeight:700}}>46.956</span></div>
-            <div className="ir"><span className="ir-k">Calidad</span><span className="ir-v"><span className="tag tag-amber">Prime</span></span></div>
-            <div className="ir"><span className="ir-k">Año construcción</span><span className="ir-v">2003 · Rehab: 2018</span></div>
-            <div className="ir"><span className="ir-k">Nº edificios</span><span className="ir-v">4</span></div>
+            <div className="ir">
+              <span className="ir-k">Tipo de activo</span>
+              <select value={info.tipo_activo} onChange={e=>setI('tipo_activo',e.target.value)} style={selSt}>
+                {['Edificio','Nave','Local','Parcela','Complejo','Torre','Centro comercial','Parque empresarial','Parque logístico','Residencia'].map(t=><option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="ir">
+              <span className="ir-k">Estado construcción</span>
+              <select value={info.estado_construccion} onChange={e=>setI('estado_construccion',e.target.value)} style={selSt}>
+                <option value="">—</option>
+                {ESTADOS_CONSTRUCCION.map(e=><option key={e}>{e}</option>)}
+              </select>
+            </div>
+            <div className="ir">
+              <span className="ir-k">Uso principal</span>
+              <select value={info.uso} onChange={e=>setI('uso',e.target.value)} style={selSt}>
+                <option value="">—</option>
+                {USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
+              </select>
+            </div>
+            <div className="ir">
+              <span className="ir-k">Uso secundario</span>
+              <select value={info.uso_secundario} onChange={e=>setI('uso_secundario',e.target.value)} style={selSt}>
+                <option value="">—</option>
+                {USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
+              </select>
+            </div>
+            <div className="ir">
+              <span className="ir-k">Calidad</span>
+              <select value={info.calidad} onChange={e=>setI('calidad',e.target.value)} style={selSt}>
+                <option value="">—</option>
+                {CALIDADES.map(c=><option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="ir">
+              <span className="ir-k">SBA (m²)</span>
+              <input type="number" value={info.sba} onChange={e=>setI('sba',e.target.value)} style={{...inpSt,fontFamily:'var(--mono)',fontWeight:700}} placeholder="0"/>
+            </div>
+            <div className="ir">
+              <span className="ir-k">Año construcción</span>
+              <input type="number" value={info.anno_construccion} onChange={e=>setI('anno_construccion',e.target.value)} style={inpSt} placeholder="—"/>
+            </div>
+            <div className="ir">
+              <span className="ir-k">Año rehabilitación</span>
+              <input type="number" value={info.anno_rehabilitacion} onChange={e=>setI('anno_rehabilitacion',e.target.value)} style={inpSt} placeholder="—"/>
+            </div>
+            <div className="ir">
+              <span className="ir-k">Asset Manager</span>
+              <AssetManagerSearch value={info.asset_manager} onChange={v=>setI('asset_manager',v)}/>
+            </div>
             {totalPlazas>0 && (
               <div className="ir" style={{alignItems:'flex-start',paddingTop:6,borderTop:'1px solid var(--border)',marginTop:4}}>
                 <span className="ir-k">🅿 Plazas apar.</span>
                 <span className="ir-v" style={{display:'flex',flexDirection:'column',gap:3}}>
                   <span style={{fontSize:15,fontWeight:700,color:'var(--text1)',fontFamily:'var(--mono)',lineHeight:1}}>{totalPlazas.toLocaleString('es-ES')}</span>
                   <span style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:2}}>
-                    {byUbic.map(x=>(
-                      <span key={x.u} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#f1f5f9',border:'1px solid #cbd5e1',color:'#475569',fontWeight:600}}>{x.u} {x.n}</span>
-                    ))}
-                    {byTipo.map(x=>(
-                      <span key={x.t} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#ede9fe',border:'1px solid #c4b5fd',color:'#7c3aed',fontWeight:600}}>{x.t} {x.n}</span>
-                    ))}
-                    {byVeh.map(x=>(
-                      <span key={x.v} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#f0fdf4',border:'1px solid #86efac',color:'#15803d',fontWeight:600}}>{x.v} {x.n}</span>
-                    ))}
+                    {byUbic.map(x=><span key={x.u} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#f1f5f9',border:'1px solid #cbd5e1',color:'#475569',fontWeight:600}}>{x.u} {x.n}</span>)}
+                    {byTipo.map(x=><span key={x.t} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#ede9fe',border:'1px solid #c4b5fd',color:'#7c3aed',fontWeight:600}}>{x.t} {x.n}</span>)}
+                    {byVeh.map(x=><span key={x.v} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#f0fdf4',border:'1px solid #86efac',color:'#15803d',fontWeight:600}}>{x.v} {x.n}</span>)}
                   </span>
                 </span>
               </div>
@@ -1813,29 +2051,26 @@ function TabInfo({ navigate, plazas, activo }) {
 
         {/* ── DATOS URBANÍSTICOS ── */}
         <div className="info-block" style={{marginBottom:12}}>
-          <div className="ib-title">
-            🏛 DATOS URBANÍSTICOS
-            <span className="ir-v link" style={{fontSize:10}}>Consultar Visor ↗</span>
-          </div>
+          <div className="ib-title">🏛 DATOS URBANÍSTICOS<span className="ir-v link" style={{fontSize:10,marginLeft:10}}>Consultar Visor ↗</span></div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 24px'}}>
             <div>
-              <div className="ir"><span className="ir-k">Ref. catastral</span><span className="ir-v link mono" style={{fontSize:10}}>1380341VK4718A0001FU</span></div>
-              <div className="ir"><span className="ir-k">Uso PGOU</span><span className="ir-v">Terciario / Oficinas</span></div>
+              <div className="ir"><span className="ir-k">Ref. catastral</span><input value={info.ref_catastral} onChange={e=>setI('ref_catastral',e.target.value)} style={{...inpSt,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/></div>
+              <div className="ir"><span className="ir-k">Uso PGOU</span><input value={info.uso_pgou} onChange={e=>setI('uso_pgou',e.target.value)} style={inpSt} placeholder="—"/></div>
             </div>
             <div>
-              <div className="ir"><span className="ir-k">Clasificación</span><span className="ir-v">Suelo urbano consolidado</span></div>
-              <div className="ir"><span className="ir-k">Calificación</span><span className="ir-v">ZVD — Zona Verde / Dotacional</span></div>
+              <div className="ir"><span className="ir-k">Clasificación</span><input value={info.clasificacion_urb} onChange={e=>setI('clasificacion_urb',e.target.value)} style={inpSt} placeholder="—"/></div>
+              <div className="ir"><span className="ir-k">Calificación</span><input value={info.calificacion_urb} onChange={e=>setI('calificacion_urb',e.target.value)} style={inpSt} placeholder="—"/></div>
             </div>
             <div>
-              <div className="ir"><span className="ir-k">Edificabilidad</span><span className="ir-v">1,5 m²t/m²s</span></div>
-              <div className="ir"><span className="ir-k">Sup. parcela (m²)</span><span className="ir-v">12.400</span></div>
+              <div className="ir"><span className="ir-k">Edificabilidad</span><input value={info.edificabilidad} onChange={e=>setI('edificabilidad',e.target.value)} style={inpSt} placeholder="—"/></div>
+              <div className="ir"><span className="ir-k">Sup. parcela (m²)</span><input type="number" value={info.sup_parcela} onChange={e=>setI('sup_parcela',e.target.value)} style={{...inpSt,fontFamily:'var(--mono)'}} placeholder="—"/></div>
             </div>
           </div>
         </div>
 
-        {/* ── SEGUIMIENTO COMERCIAL (solo lectura) ── */}
+        {/* ── SEGUIMIENTO COMERCIAL ── */}
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
-          <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)'}}>
             <div style={{fontSize:11,fontWeight:600}}>📋 Seguimiento comercial <span style={{fontSize:9,color:'var(--text4)',fontWeight:400}}>· Sincronizado desde Ofertas y Demandas</span></div>
           </div>
           <div className="seg-2col">
@@ -1863,9 +2098,9 @@ function TabInfo({ navigate, plazas, activo }) {
           </div>
         </div>
 
-        {/* ── OFERTAS ACTIVAS (solo lectura) ── */}
+        {/* ── OFERTAS ACTIVAS ── */}
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
-          <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)'}}>
             <div style={{fontSize:11,fontWeight:600}}>📄 Ofertas activas <span style={{fontSize:9,color:'var(--text4)',fontWeight:400}}>· Gestionadas desde el módulo Ofertas</span></div>
           </div>
           <table className="dtbl">
@@ -1873,18 +2108,14 @@ function TabInfo({ navigate, plazas, activo }) {
             <tbody>
               <tr>
                 <td className="mono dtbl-link" onClick={()=>navigate('ficha-oferta')}>OLB001</td>
-                <td>P5 + PB — Edif. A</td>
-                <td>698</td>
-                <td className="mono">10,5–14,5 €/m²</td>
+                <td>P5 + PB — Edif. A</td><td>698</td><td className="mono">10,5–14,5 €/m²</td>
                 <td><span className="dias-pill">📅 127d</span></td>
                 <td><span className="tag tag-blue">En curso</span></td>
                 <td><button className="ra p" onClick={()=>navigate('ficha-oferta')}>Ver</button></td>
               </tr>
               <tr>
                 <td className="mono dtbl-link">OLB002</td>
-                <td>P2 — Edif. A</td>
-                <td>400</td>
-                <td className="mono">13,0 €/m²</td>
+                <td>P2 — Edif. A</td><td>400</td><td className="mono">13,0 €/m²</td>
                 <td><span className="dias-pill">📅 45d</span></td>
                 <td><span className="tag tag-amber">En revisión</span></td>
                 <td><button className="ra">Ver</button></td>
