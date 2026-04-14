@@ -2222,13 +2222,14 @@ function AddressField({ value, ciudad, onSave }) {
   )
 }
 
-function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef }) {
+function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, hidden }) {
   const INIT_INFO = {
     nombre:'', direccion:'', ciudad:'', pais:'España', cp:'', coordenadas:'',
     area:'', zona:'', subzona:'',
     tipo_activo:'Edificio', estado_construccion:'Construcción existente',
     uso:'', uso_secundario:'', calidad:'',
-    asset_manager:'', sba:'', anno_construccion:'', anno_rehabilitacion:'',
+    asset_manager:'', sba:'', sup_planta_tipo:'', ratio_perdida:'',
+    anno_construccion:'', anno_rehabilitacion:'',
     ref_catastral:'', uso_pgou:'', clasificacion_urb:'', calificacion_urb:'',
     edificabilidad:'', sup_parcela:'',
   }
@@ -2258,6 +2259,8 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef })
       calidad:             activo.calidad             || '',
       asset_manager:       activo.asset_manager       || '',
       sba:                 activo.sba                 || '',
+      sup_planta_tipo:     activo.sup_planta_tipo     || '',
+      ratio_perdida:       activo.ratio_perdida       || '',
       anno_construccion:   activo.anno_construccion   || '',
       anno_rehabilitacion: activo.anno_rehabilitacion || '',
       ref_catastral:       activo.ref_catastral       || '',
@@ -2292,6 +2295,8 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef })
       calidad:             info.calidad              || null,
       asset_manager:       info.asset_manager        || null,
       sba:                 info.sba ? parseFloat(info.sba) : null,
+      sup_planta_tipo:     info.sup_planta_tipo ? parseFloat(info.sup_planta_tipo) : null,
+      ratio_perdida:       info.ratio_perdida ? parseFloat(info.ratio_perdida) : null,
       anno_construccion:   info.anno_construccion    ? parseInt(info.anno_construccion)   : null,
       anno_rehabilitacion: info.anno_rehabilitacion  ? parseInt(info.anno_rehabilitacion) : null,
       ref_catastral:       info.ref_catastral        || null,
@@ -2319,7 +2324,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef })
   const sel = {...inp,cursor:'pointer'}
 
   return (
-    <div className="tab-content active">
+    <div className="tab-content active" style={hidden ? {display:'none'} : undefined}>
       <div className="info-pad">
 
         {/* ── Mapa con barra búsqueda integrada + Carrusel ── */}
@@ -2420,6 +2425,23 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef })
               onSave={()=>setDirty(true)}>
               <input type="number" value={info.sba} onChange={e=>setI('sba',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0"/>
             </InlineField>
+            <InlineField label="Sup. planta tipo (m²)" value={info.sup_planta_tipo ? Number(info.sup_planta_tipo).toLocaleString('es-ES')+' m²' : '—'} onSave={()=>setDirty(true)}>
+              <input type="number" value={info.sup_planta_tipo} onChange={e=>setI('sup_planta_tipo',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0"/>
+            </InlineField>
+            <InlineField label="Ratio de pérdida (%)"
+              value={info.ratio_perdida ? `${info.ratio_perdida}%` : '—'}
+              display={<span style={{fontFamily:'var(--mono)'}}>{info.ratio_perdida ? `${info.ratio_perdida}%` : '—'}</span>}
+              onSave={()=>setDirty(true)}>
+              <input type="number" min="0" max="100" value={info.ratio_perdida} onChange={e=>setI('ratio_perdida',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0"/>
+            </InlineField>
+            {(info.sba && info.ratio_perdida) && (
+              <div className="ir">
+                <span className="ir-k">Superficie neta (m²)</span>
+                <span className="ir-v" style={{fontWeight:700,fontFamily:'var(--mono)',fontSize:14,color:'var(--accent)'}}>
+                  {Math.round(Number(info.sba) * (1 - Number(info.ratio_perdida)/100)).toLocaleString('es-ES')} m²
+                </span>
+              </div>
+            )}
             <InlineField label="Año construcción" value={info.anno_construccion||'—'} onSave={()=>setDirty(true)}>
               <input type="number" value={info.anno_construccion} onChange={e=>setI('anno_construccion',e.target.value)} style={inp} placeholder="—"/>
             </InlineField>
@@ -2934,7 +2956,7 @@ export default function FichaActivo() {
   const { navigate, params } = useNav()
   const isNew = !!params?.new && !params?.ref
   const [activeTab, setActiveTab]       = useState('at-info')
-  const [caracTab, setCaracTab]         = useState('ct-estado')
+  const [caracTab, setCaracTab]         = useState('ct-transporte')
   const [docCat,   setDocCat]           = useState('todos')
   const [showTarea, setShowTarea]       = useState(false)
   const [plazas, setPlazas]             = useState(INIT_PLAZAS)
@@ -3142,12 +3164,11 @@ export default function FichaActivo() {
           {/* ── TAB: Información general ── */}
           {isNew && activeTab==='at-info' && <NewActivoInfoTab newForm={newForm} setNF={setNF} submitted={submitted}/>}
           {!isNew && (
-            <div style={{display: activeTab==='at-info' ? undefined : 'none'}}>
-              <TabInfo navigate={navigate} plazas={plazas} activo={activo}
-                nEdificios={liveEdifCount ?? activo?.n_edificios ?? 1}
-                saveRef={infoSaveRef}
-                onInfoSaved={({nombre,direccion})=>{ if(nombre!==undefined) setDisplayNombre(nombre||null); if(direccion!==undefined) setDisplayDireccion(direccion||null) }}/>
-            </div>
+            <TabInfo navigate={navigate} plazas={plazas} activo={activo}
+              nEdificios={liveEdifCount ?? activo?.n_edificios ?? 1}
+              saveRef={infoSaveRef}
+              hidden={activeTab !== 'at-info'}
+              onInfoSaved={({nombre,direccion})=>{ if(nombre!==undefined) setDisplayNombre(nombre||null); if(direccion!==undefined) setDisplayDireccion(direccion||null) }}/>
           )}
 
           {/* ── TAB: Stacking Plan ── */}
@@ -3222,33 +3243,10 @@ export default function FichaActivo() {
               <div className="info-pad">
                 <div style={{fontSize:14,fontWeight:600,marginBottom:14}}>Características técnicas</div>
                 <div className="carac-tabs">
-                  {[['ct-estado','Estado'],['ct-transporte','Transporte'],['ct-normativa','Normativa / ESG'],['ct-generales','Características generales'],[`ct-uso`,`${usoIco} ${usoLabel}`],['ct-plazas','Plazas']].map(([k,l])=>(
+                  {[['ct-transporte','Transporte'],['ct-normativa','Normativa / ESG'],['ct-generales','Características generales'],[`ct-uso`,`${usoIco} ${usoLabel}`],['ct-plazas','Plazas']].map(([k,l])=>(
                     <div key={k} className={`ct ${caracTab===k?'active':''}`} onClick={()=>setCaracTab(k)}>{l}</div>
                   ))}
                 </div>
-
-                {/* Estado — read-only, sincronizado */}
-                {caracTab==='ct-estado' && (
-                  <div className="info-2col">
-                    <div className="info-block">
-                      <div className="ib-title">DATOS DEL INMUEBLE <span style={{fontSize:9,fontWeight:400,color:'var(--text4)',textTransform:'none',letterSpacing:0}}>— sincronizado desde Info general</span></div>
-                      <div className="ir"><span className="ir-k">Año de construcción</span><span className="ir-v">{activo?.anno_construccion || '2003'}</span></div>
-                      <div className="ir"><span className="ir-k">Año de rehabilitación</span><span className="ir-v">{activo?.anno_rehabilitacion || '2018'}</span></div>
-                      <div className="ir"><span className="ir-k">Estado actual</span><span className="ir-v">{activo?.estado_construccion || 'Construcción existente'}</span></div>
-                      <div className="ir"><span className="ir-k">Calidad</span><span className="ir-v">{activo?.calidad || '—'}</span></div>
-                      <div className="ir"><span className="ir-k">Nº de edificios</span><span className="ir-v">{activo ? '—' : '4'}</span></div>
-                      <div className="ir"><span className="ir-k">Nº plantas sobre rasante</span><span className="ir-v">—</span></div>
-                      <div className="ir"><span className="ir-k">Nº plantas bajo rasante</span><span className="ir-v">—</span></div>
-                    </div>
-                    <div className="info-block">
-                      <div className="ib-title">SUPERFICIES <span style={{fontSize:9,fontWeight:400,color:'var(--text4)',textTransform:'none',letterSpacing:0}}>— sincronizado desde Info general</span></div>
-                      <div className="ir"><span className="ir-k">SBA (m²)</span><span className="ir-v" style={{fontWeight:700}}>{activo?.sba ? activo.sba.toLocaleString('es-ES') : '46.956'}</span></div>
-                      <div className="ir"><span className="ir-k">Sup. planta tipo (m²)</span><span className="ir-v">—</span></div>
-                      <div className="ir"><span className="ir-k">Sup. parcela (m²)</span><span className="ir-v">{activo?.sup_parcela ? activo.sup_parcela.toLocaleString('es-ES') : '—'}</span></div>
-                      <div className="ir"><span className="ir-k">Plazas de aparcamiento</span><span className="ir-v">{plazas.reduce((s,p)=>s+p.cantidad,0).toLocaleString('es-ES')}</span></div>
-                    </div>
-                  </div>
-                )}
 
                 {/* Transporte — dinámico */}
                 {caracTab==='ct-transporte' && (
