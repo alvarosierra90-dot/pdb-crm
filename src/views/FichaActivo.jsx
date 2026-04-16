@@ -563,11 +563,11 @@ const OFERTAS_ACTIVAS = [
   { ref:'OLB003', contraparte:'Oracle Spain SL', sup:13486, estado:'Finalista', color:'#7c3aed', bg:'#faf5ff', border:'#e9d5ff' },
 ]
 
-function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwners=[], extraTenants=[], onAddOwner, onAddTenant }) {
+function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal' }) {
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
   const [setupForm, setSetupForm]       = useState({ label:'', sobre:'5', bajo:'1', sup:'1500' })
-  const [view, setView]                 = useState('principal')
+  const [view, setView]                 = useState(initView)
   const [dragging, setDragging]         = useState(null)
   const [dragTarget, setDragTarget]     = useState(null)
   const [editFloor, setEditFloor]       = useState(null) // {floorId, idx, layer}
@@ -1326,6 +1326,36 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwner
                     </div>
                   )
                 })}
+                {/* ── Ofertas venidas desde FichaOferta ── */}
+                {extraOfertas.length > 0 && (
+                  <>
+                    <div style={{fontSize:9,fontWeight:700,color:'var(--accent)',textTransform:'uppercase',letterSpacing:'.04em',marginTop:8,marginBottom:4}}>Desde esta oferta</div>
+                    {extraOfertas.map((ofr,idx)=>{
+                      const COLS=['#16a34a','#2563eb','#d97706','#7c3aed']
+                      const col=COLS[idx%COLS.length]
+                      const dragKey='ofr:'+ofr.nombre
+                      return (
+                        <div key={ofr.id} draggable
+                          onDragStart={()=>setDragging(dragKey)}
+                          onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                          style={{
+                            display:'flex',flexDirection:'column',gap:2,padding:'6px 9px',marginBottom:4,
+                            borderRadius:5,cursor:'grab',userSelect:'none',
+                            border:`1px solid ${col}55`,background:col+'12',
+                            opacity:dragging&&dragging!==dragKey?0.4:1,
+                            transition:'opacity .15s',
+                          }}
+                        >
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:4}}>
+                            <span style={{fontSize:11,fontWeight:700,color:col}}>{ofr.nombre}</span>
+                            <span style={{fontSize:8,fontWeight:600,color:col,background:'#fff',border:`1px solid ${col}44`,borderRadius:3,padding:'0 4px'}}>Pendiente</span>
+                          </div>
+                          <div style={{fontSize:9,color:'var(--text4)'}}>Arrastra para asignar plantas</div>
+                        </div>
+                      )
+                    })}
+                  </>
+                )}
                 <button style={{marginTop:2,padding:'5px 8px',background:'none',border:'1px dashed var(--border)',borderRadius:5,fontSize:10,color:'var(--text4)',cursor:'pointer',fontFamily:'inherit',textAlign:'left',width:'100%'}}>
                   + Nueva oferta
                 </button>
@@ -1373,7 +1403,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwner
                         dropArr({type:'ten',n:dragging.slice(4)})
                       } else if(dragging.startsWith('ofr:')){
                         const ref=dragging.slice(4)
-                        const ofr=OFERTAS_ACTIVAS.find(o=>o.ref===ref)
+                        const ofr=OFERTAS_ACTIVAS.find(o=>o.ref===ref) || extraOfertas.find(o=>o.nombre===ref)
                         dropArr({type:'vac',oferta:ref,sup:ofr?.sup??0})
                       }
                       setDragging(null)
@@ -3453,7 +3483,7 @@ function NuevoArrendatarioModal({activo, propietarioActivo, onClose, onSave}){
 export default function FichaActivo() {
   const { navigate, params } = useNav()
   const isNew = !!params?.new && !params?.ref
-  const [activeTab, setActiveTab]       = useState('at-info')
+  const [activeTab, setActiveTab]       = useState(params?.tab || 'at-info')
   const [caracTab, setCaracTab]         = useState('ct-transporte')
   const [docCat,   setDocCat]           = useState('todos')
   const [showTarea, setShowTarea]       = useState(false)
@@ -3740,6 +3770,8 @@ export default function FichaActivo() {
                 extraTenants={arrendatariosReg.map(a=>a.tenant)}
                 onAddOwner={()=>setShowNuevoProp(true)}
                 onAddTenant={()=>setShowNuevoArr(true)}
+                extraOfertas={params?.ofertasFromOferta || []}
+                initView={params?.stackingView || 'principal'}
               />
             </div>
           </div>
