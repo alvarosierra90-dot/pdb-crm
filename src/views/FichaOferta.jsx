@@ -13,6 +13,28 @@ const ASSET = {
   propietario: { sociedad:'FREO Investments Spain SL', contacto:'Baena Borja', telFijo:'+34 910 888 998', telMovil:'629 846 923', email:'b.baena@freogroup.com' },
 }
 
+// Características técnicas del activo (dato maestro — solo lectura en la oferta)
+const ASSET_CARACT = [
+  { id:1,  tipo:'Rehabilitación integral',   detalle:'Fachada, estructura e instalaciones',  año:2023, comentario:'Proyecto Arquitectura Aedas' },
+  { id:2,  tipo:'Certificación energética',  detalle:'Calificación A',                        año:2023, comentario:'—' },
+  { id:3,  tipo:'Certificación BREEAM',      detalle:'BREEAM Excellent',                      año:2024, comentario:'—' },
+  { id:4,  tipo:'Altura libre',              detalle:'2,85 m planta tipo',                    año:null, comentario:'Plantas 1–4' },
+  { id:5,  tipo:'Suelo técnico',             detalle:'Suelo técnico elevado 15 cm',           año:null, comentario:'—' },
+  { id:6,  tipo:'Climatización',             detalle:'Fan-coil + VRF individualizado',        año:2023, comentario:'—' },
+  { id:7,  tipo:'Conectividad',              detalle:'Fibra óptica redundante 10 Gbps',       año:null, comentario:'Carrier neutral' },
+  { id:8,  tipo:'Control de accesos',        detalle:'Tornos biométricos + CCTV 24h',         año:2023, comentario:'—' },
+  { id:9,  tipo:'Seguridad',                 detalle:'Vigilancia 24/7 + monitorización remota',año:null, comentario:'—' },
+  { id:10, tipo:'Ascensores',                detalle:'6 ascensores de alta velocidad',        año:2023, comentario:'Capacidad 13 personas' },
+  { id:11, tipo:'Accesibilidad PMR',         detalle:'Adaptado normativa accesibilidad',      año:2023, comentario:'—' },
+  { id:12, tipo:'Parking',                   detalle:'322 plazas interiores, ratio 1:22 m²',  año:null, comentario:'Nivel S1 y S2' },
+  { id:13, tipo:'Zonas comunes',             detalle:'Hall de doble altura reformado',        año:2023, comentario:'—' },
+  { id:14, tipo:'Terraza',                   detalle:'Terraza privativa en planta 4',         año:2023, comentario:'290 m²' },
+  { id:15, tipo:'Cafetería',                 detalle:'Restaurante / cafetería en PB',         año:null, comentario:'Concesionario externo' },
+  { id:16, tipo:'Gimnasio',                  detalle:'Gimnasio equipado para usuarios',       año:2023, comentario:'—' },
+  { id:17, tipo:'Zonas ajardinadas',         detalle:'Jardines perimetrales y patio interior',año:null, comentario:'3.200 m²' },
+  { id:18, tipo:'Eficiencia energética',     detalle:'Paneles solares fotovoltaicos',         año:2023, comentario:'180 kWp instalados' },
+]
+
 const TIPOLOGIA_MAP = {
   'Oficinas':['Oficina tradicional','Coworking','Subarriendo','Business park','Sede única (HQ)'],
   'Logístico':['Nave logística','Nave industrial','Última milla','Plataforma logística','Cross-docking'],
@@ -96,6 +118,13 @@ export default function FichaOferta() {
   const [nextOfertaId, setNextOfertaId] = useState(2)
   const [editNombreId, setEditNombreId] = useState(null)
   const [editNombreVal, setEditNombreVal] = useState('')
+
+  // Características (filtro comercial sobre el activo)
+  const [caracteristicas, setCaracteristicas] = useState(null) // null = no importadas aún
+
+  function importarCaracteristicas() {
+    setCaracteristicas(ASSET_CARACT.map(c => ({ ...c, incluir: true })))
+  }
 
   // Plazas de aparcamiento (dentro de Espacios comerciales)
   const [plazas, setPlazas] = useState([])
@@ -619,15 +648,66 @@ export default function FichaOferta() {
               {activeTab==='of-caract' && (
                 <div className="tab-content active"><div className="info-pad">
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-                    <div style={{ fontSize:14, fontWeight:600 }}>Características · Importadas del activo</div>
-                    <button className="ab-btn blue" style={{ padding:'3px 9px', fontSize:10 }}>↩ Recuperar</button>
+                    <div>
+                      <div style={{ fontSize:14, fontWeight:600 }}>Características · Filtro comercial</div>
+                      <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>Selecciona qué características del activo aparecerán en la ficha comercial y exportaciones</div>
+                    </div>
+                    <button className="ab-btn blue" style={{ padding:'4px 12px', fontSize:10 }} onClick={importarCaracteristicas}>
+                      {caracteristicas ? '↩ Re-importar del activo' : '↩ Recuperar del activo'}
+                    </button>
                   </div>
-                  <div style={{ background:'var(--green-lt)', border:'1px solid var(--green-bd)', borderRadius:'var(--r)', padding:'6px 10px', marginBottom:10, fontSize:11, color:'var(--green)' }}>
-                    ↈ Características recuperadas del activo. Edita sin modificar el dato maestro.
-                    <span style={{ background:'var(--green-lt)', color:'var(--green)', border:'1px solid var(--green-bd)', padding:'1px 7px', borderRadius:10, fontSize:9, fontWeight:700, marginLeft:6 }}>+ Importado</span>
-                  </div>
-                  <table className="pat-table"><thead><tr><th>¿Incluido?</th><th>Proponer</th><th>Tipo</th><th>Año</th><th>Comentario</th></tr></thead>
-                  <tbody><tr><td><input type="checkbox" defaultChecked style={{ accentColor:'var(--accent)' }} /></td><td><input type="checkbox" style={{ accentColor:'var(--accent)' }} /></td><td>Rehabilitación integral</td><td>2023</td><td style={{ color:'var(--text4)' }}>—</td></tr></tbody></table>
+
+                  {!caracteristicas ? (
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 20px', border:'2px dashed var(--border)', borderRadius:'var(--r2)', gap:12 }}>
+                      <div style={{ fontSize:32 }}>📋</div>
+                      <div style={{ fontSize:13, fontWeight:600, color:'var(--text2)' }}>Sin características importadas</div>
+                      <div style={{ fontSize:11, color:'var(--text3)', textAlign:'center', maxWidth:380, lineHeight:1.6 }}>
+                        Pulsa <strong>Recuperar del activo</strong> para importar todas las características técnicas de <em>{ASSET.nombre}</em>. Después podrás elegir cuáles mostrar en la ficha comercial.
+                      </div>
+                      <button className="ab-btn blue" style={{ marginTop:4 }} onClick={importarCaracteristicas}>↩ Recuperar del activo</button>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:'var(--green-lt)', border:'1px solid var(--green-bd)', borderRadius:'var(--r)', marginBottom:12, fontSize:11 }}>
+                        <span style={{ color:'var(--green)', fontWeight:700 }}>ↈ Importado</span>
+                        <span style={{ color:'var(--text2)' }}>
+                          <strong style={{ color:'var(--green)' }}>{caracteristicas.filter(c=>c.incluir).length}</strong> de {caracteristicas.length} características incluidas en la ficha comercial
+                        </span>
+                        <span style={{ marginLeft:'auto', fontSize:9, color:'var(--text4)' }}>Solo afecta a la oferta — el activo no se modifica</span>
+                      </div>
+
+                      <div className="info-block" style={{ padding:0, overflow:'hidden' }}>
+                        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                          <thead><tr>
+                            {['Incluir','Tipo','Detalle','Año','Comentario'].map(h =>
+                              <th key={h} style={{ padding:'7px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:h==='Incluir'?'center':'left', background:'var(--gray-lt)', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap' }}>{h}</th>
+                            )}
+                          </tr></thead>
+                          <tbody>
+                            {caracteristicas.map((c, i) => (
+                              <tr key={c.id} style={{ borderBottom:'1px solid var(--border)', background:c.incluir?'var(--surface)':'var(--gray-lt)', opacity:c.incluir?1:.55, transition:'opacity .15s,background .15s' }}>
+                                <td style={{ padding:'8px 12px', textAlign:'center', width:60 }}>
+                                  <input type="checkbox" checked={c.incluir} onChange={() => setCaracteristicas(prev => prev.map((x,j) => j===i ? {...x, incluir:!x.incluir} : x))}
+                                    style={{ accentColor:'var(--accent)', width:15, height:15, cursor:'pointer' }} />
+                                </td>
+                                <td style={{ padding:'8px 12px', fontWeight:c.incluir?600:400 }}>{c.tipo}</td>
+                                <td style={{ padding:'8px 12px', color:'var(--text2)' }}>{c.detalle}</td>
+                                <td style={{ padding:'8px 12px', fontFamily:'var(--mono)', color:'var(--text3)' }}>{c.año ?? '—'}</td>
+                                <td style={{ padding:'8px 12px', color:'var(--text4)' }}>{c.comentario}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <div style={{ padding:'8px 14px', background:'var(--gray-lt)', borderTop:'1px solid var(--border)', display:'flex', gap:10 }}>
+                          <button className="ab-btn" style={{ fontSize:10 }} onClick={() => setCaracteristicas(prev=>prev.map(c=>({...c,incluir:true})))}>✓ Incluir todas</button>
+                          <button className="ab-btn" style={{ fontSize:10 }} onClick={() => setCaracteristicas(prev=>prev.map(c=>({...c,incluir:false})))}>✗ Excluir todas</button>
+                          <span style={{ marginLeft:'auto', fontSize:10, color:'var(--text4)', alignSelf:'center' }}>
+                            Las excluidas aparecen en gris y no se exportarán
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div></div>
               )}
 
