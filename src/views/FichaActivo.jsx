@@ -557,7 +557,7 @@ const INIT_BUILDINGS = [
 ]
 
 
-function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal' }) {
+function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal' }) {
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
   const [setupForm, setSetupForm]       = useState({ label:'', sobre:'5', bajo:'1', sup:'1500' })
@@ -1441,10 +1441,9 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                                       <button onClick={e=>{e.stopPropagation();removeArrUnit(floor.id,i)}}
                                         style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
                                       <span style={{fontSize:10,fontWeight:700,color:col,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>{label}</span>
-                                      {u.type==='vac'&&u.oferta&&(()=>{
-                                        const mo=extraOfertas.find(o=>o.nombre===u.oferta)
-                                        return mo?.cuenta ? <span style={{fontSize:9,color:col,opacity:.65,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>{mo.cuenta}</span> : null
-                                      })()}
+                                      {u.type==='vac'&&u.oferta&&activoPropietario&&(
+                                        <span style={{fontSize:8,color:col,opacity:.6,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>🏠 {activoPropietario}</span>
+                                      )}
                                       <span style={{fontSize:9,color:col,opacity:.75,fontFamily:'var(--mono)',fontWeight:600}}>{u.sup.toLocaleString('es-ES')} m²{u.renta>0?` · ${u.renta}€/m²`:''}</span>
                                       {u.brk&&<span style={{fontSize:8,color:u.brkColor||col,fontWeight:600,whiteSpace:'nowrap'}}>⊙ {u.brk}</span>}
                                       {u.nota&&<span style={{fontSize:8,color:col,opacity:.6}}>{u.nota}</span>}
@@ -3801,6 +3800,7 @@ export default function FichaActivo() {
                 onCountChange={setLiveEdifCount}
                 onOwnersChange={setLiveOwnerCount}
                 onBuildingsChange={(blds) => { liveStackingRef.current = blds }}
+                activoPropietario={activo?.propietario || ''}
                 extraOwners={propietariosReg.map(p=>p.propietario)}
                 extraTenants={arrendatariosReg.map(a=>a.tenant)}
                 onAddOwner={()=>setShowNuevoProp(true)}

@@ -114,13 +114,19 @@ export default function FichaOferta() {
   const [addingMiembro, setAddingMiembro] = useState(false)
   const [newMiembro, setNewMiembro] = useState('')
 
+  // Activo selector
+  const [activosDB, setActivosDB] = useState([])
+  const [activoSeleccionado, setActivoSeleccionado] = useState(null)
+  const [activoBuscador, setActivoBuscador] = useState('')
+  const [showActivoDropdown, setShowActivoDropdown] = useState(false)
+
   // Tab 3 + Stacking
   const [fechaDispGlobal, setFechaDispGlobal] = useState('2026-06-01')
   const [divisibleGlobal, setDivisibleGlobal] = useState(true)
   const [supAprox, setSupAprox] = useState(false)
   const [plantaTipo, setPlantaTipo] = useState(2790)
   const [ofertasDesglose, setOfertasDesglose] = useState([
-    { id:1, nombre:'Oferta 1', cuenta:'', divisible:true, cargasM2:3.01 },
+    { id:1, nombre:'Oferta 1', divisible:true, cargasM2:3.01 },
   ])
   const [nextOfertaId, setNextOfertaId] = useState(2)
   const [editNombreId, setEditNombreId] = useState(null)
@@ -130,7 +136,8 @@ export default function FichaOferta() {
   const [caracteristicas, setCaracteristicas] = useState(null) // null = no importadas aún
 
   function importarCaracteristicas() {
-    setCaracteristicas(ASSET_CARACT.map(c => ({ ...c, incluir: true })))
+    const src = activoSeleccionado ? ASSET_CARACT : ASSET_CARACT
+    setCaracteristicas(src.map(c => ({ ...c, incluir: true })))
   }
 
   // Plazas de aparcamiento (dentro de Espacios comerciales)
@@ -139,17 +146,13 @@ export default function FichaOferta() {
   const [addingPlaza, setAddingPlaza] = useState(false)
   const [newPlaza, setNewPlaza] = useState({ intExt:'Interior', tipo:'Coches', formato:'Simple', cantidad:1, renta:'', precio:'' })
 
-  // Espacios comercializables (mock — se actualizan desde el stacking plan del activo)
-  const espaciosComercializables = [
-    { edificio:'Edificio Albatros D', modulo:'D-P4', planta:'P4', uso:'Oficina', sup:2577, renta:12.50, ofertaNombre:'Oferta 1' },
-    { edificio:'Edificio Albatros D', modulo:'D-P3', planta:'P3', uso:'Oficina', sup:2790, renta:12.50, ofertaNombre:'Oferta 1' },
-    { edificio:'Edificio Albatros D', modulo:'D-P1', planta:'P1', uso:'Oficina', sup:2793, renta:12.50, ofertaNombre:'Oferta 1' },
-  ]
+  // Espacios comercializables — poblados desde asignaciones_stacking, vacíos por defecto
+  const [espaciosComercializables, setEspaciosComercializables] = useState([])
   const supTotal = espaciosComercializables.reduce((s, e) => s + e.sup, 0)
 
   function addOferta() {
     const id = nextOfertaId
-    setOfertasDesglose(prev => [...prev, { id, nombre:`Oferta ${id}`, cuenta:'', divisible:divisibleGlobal, cargasM2:3.01 }])
+    setOfertasDesglose(prev => [...prev, { id, nombre:`Oferta ${id}`, divisible:divisibleGlobal, cargasM2:3.01 }])
     setNextOfertaId(id + 1)
   }
 
@@ -160,9 +163,15 @@ export default function FichaOferta() {
     return base
   }
 
-  const tipologiaOpciones = TIPOLOGIA_MAP[ASSET.usoPrincipal] || []
+  const tipologiaOpciones = TIPOLOGIA_MAP[activoSeleccionado?.uso || ''] || []
 
-  // ── Load oferta from Supabase ──────────────────────────────────
+  // ── Always load activos for the selector ──────────────────────
+  useEffect(() => {
+    supabase.from('activos').select('ref,nombre,uso,estado_construccion,direccion,zona,subzona,ciudad,propietario').order('nombre')
+      .then(({ data }) => { if (data) setActivosDB(data) })
+  }, [])
+
+  // ── Load oferta from Supabase (chained: oferta → sub-tables) ──
   useEffect(() => {
     if (!params?.ofertaRef) return
     supabase.from('ofertas').select('*').eq('ref', params.ofertaRef).single()
@@ -176,31 +185,58 @@ export default function FichaOferta() {
         if (data.origen_oferta)         setOrigenOferta(data.origen_oferta)
         if (data.modalidad_visita)      setModalidadVisita(data.modalidad_visita)
         if (data.confidencial != null)  setConfidential(data.confidencial)
-        if (data.equipo)                setEquipoMembers(data.equipo)
-        if (data.colaboradores)         setColaboradores(data.colaboradores)
-      })
-    // Load desglose
-    supabase.from('desglose_ofertas').select('*').eq('oferta_id', params.ofertaRef).order('orden')
-      .then(({ data }) => {
-        if (data?.length > 0) {
-          setOfertasDesglose(data.map(d => ({ id: d.id, nombre: d.nombre, cuenta: d.cuenta||'', divisible: d.divisible, cargasM2: d.cargas_m2||0 })))
-          setNextOfertaId(data.length + 1)
+        if (data.equipo?.length)        setEquipoMembers(data.equipo)
+        if (data.colaboradores?.length) setColaboradores(data.colaboradores)
+
+        const ofertaId = data.id  // UUID — used for sub-table joins
+
+        // Load activo vinculado
+        if (data.activo_ref) {
+          supabase.from('activos').select('*').eq('ref', data.activo_ref).single()
+            .then(({ data: a }) => { if (a) setActivoSeleccionado(a) })
         }
-      })
-    // Load plazas
-    supabase.from('plazas_oferta').select('*').eq('oferta_id', params.ofertaRef)
-      .then(({ data }) => {
-        if (data?.length > 0) {
-          setPlazas(data.map((p, i) => ({ id: i + 1, intExt: p.int_ext, tipo: p.tipo, formato: p.formato, cantidad: p.cantidad, renta: p.renta||'', precio: p.precio||'' })))
-          setNextPlazaId(data.length + 1)
-        }
-      })
-    // Load caracteristicas
-    supabase.from('caracteristicas_oferta').select('*').eq('oferta_id', params.ofertaRef)
-      .then(({ data }) => {
-        if (data?.length > 0) {
-          setCaracteristicas(data.map(c => ({ id: c.caracteristica_origen_id, tipo: c.tipo, detalle: c.detalle, año: c.anno, comentario: c.comentario, incluir: c.incluir })))
-        }
+
+        // Load desglose_ofertas
+        supabase.from('desglose_ofertas').select('*').eq('oferta_id', ofertaId).order('orden')
+          .then(({ data: d }) => {
+            if (d?.length > 0) {
+              setOfertasDesglose(d.map(x => ({ id: x.id, nombre: x.nombre, divisible: x.divisible, cargasM2: x.cargas_m2||0 })))
+              setNextOfertaId(d.length + 1)
+            }
+          })
+
+        // Load plazas_oferta
+        supabase.from('plazas_oferta').select('*').eq('oferta_id', ofertaId)
+          .then(({ data: d }) => {
+            if (d?.length > 0) {
+              setPlazas(d.map((p, i) => ({ id: i+1, intExt: p.int_ext, tipo: p.tipo, formato: p.formato, cantidad: p.cantidad, renta: p.renta||'', precio: p.precio||'' })))
+              setNextPlazaId(d.length + 1)
+            }
+          })
+
+        // Load caracteristicas_oferta
+        supabase.from('caracteristicas_oferta').select('*').eq('oferta_id', ofertaId)
+          .then(({ data: d }) => {
+            if (d?.length > 0) {
+              setCaracteristicas(d.map(c => ({ id: c.caracteristica_origen_id, tipo: c.tipo, detalle: c.detalle, año: c.anno, comentario: c.comentario, incluir: c.incluir })))
+            }
+          })
+
+        // Load asignaciones_stacking → espacios comercializables
+        supabase.from('asignaciones_stacking').select('*, desglose_ofertas(nombre)').eq('oferta_id', ofertaId)
+          .then(({ data: d }) => {
+            if (d?.length > 0) {
+              setEspaciosComercializables(d.map(a => ({
+                edificio: a.edificio_id,
+                modulo:   `${a.edificio_id}-${a.planta_id}`,
+                planta:   a.planta_id,
+                uso:      'Oficina',
+                sup:      a.sup || 0,
+                renta:    a.renta || 0,
+                ofertaNombre: a.desglose_ofertas?.nombre || '—',
+              })))
+            }
+          })
       })
   }, [params?.ofertaRef])
 
@@ -209,12 +245,13 @@ export default function FichaOferta() {
     if (!oferta?.id) return
     setSaving(true); setSaveErr(''); setSaveOk(false)
     const { error } = await supabase.from('ofertas').update({
-      tipo_comercializacion: tipoComercializacion || null,
-      tipologia:             tipologia            || null,
-      estado_espacio:        estadoEspacio        || null,
-      tipo_operacion:        tipoOperacion        || null,
-      origen_oferta:         origenOferta         || null,
-      modalidad_visita:      modalidadVisita      || null,
+      activo_ref:            activoSeleccionado?.ref || null,
+      tipo_comercializacion: tipoComercializacion    || null,
+      tipologia:             tipologia               || null,
+      estado_espacio:        estadoEspacio           || null,
+      tipo_operacion:        tipoOperacion           || null,
+      origen_oferta:         origenOferta            || null,
+      modalidad_visita:      modalidadVisita         || null,
       confidencial,
       equipo:                equipoMembers,
       colaboradores,
@@ -222,14 +259,12 @@ export default function FichaOferta() {
     if (error) { setSaveErr(error.message); setSaving(false); return }
 
     // Upsert desglose_ofertas
+    await supabase.from('desglose_ofertas').delete().eq('oferta_id', oferta.id)
     if (ofertasDesglose.length > 0) {
-      // Delete old + reinsert (simpler than diff)
-      await supabase.from('desglose_ofertas').delete().eq('oferta_id', oferta.id)
       await supabase.from('desglose_ofertas').insert(
         ofertasDesglose.map((d, i) => ({
           oferta_id: oferta.id,
           nombre:    d.nombre,
-          cuenta:    d.cuenta || null,
           divisible: d.divisible,
           cargas_m2: d.cargasM2 || 0,
           orden:     i,
@@ -269,6 +304,10 @@ export default function FichaOferta() {
       )
     }
 
+    // Reload oferta after save so activo_ref is reflected
+    const { data: refreshed } = await supabase.from('ofertas').select('*').eq('id', oferta.id).single()
+    if (refreshed) setOferta(refreshed)
+
     setSaving(false); setSaveOk(true); setTimeout(() => setSaveOk(false), 3000)
   }
 
@@ -283,7 +322,8 @@ export default function FichaOferta() {
         <button className="ab-btn">Nuevo</button>
         <button className="ab-btn">Desactivar</button>
         <div className="ab-sep" />
-        <button className="ab-btn blue" onClick={() => navigate('ficha-activo', { ref: oferta?.activo_ref || 'ALC-OF-00231', tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose })}>
+        <button className="ab-btn blue" disabled={!activoSeleccionado}
+          onClick={() => navigate('ficha-activo', { ref: activoSeleccionado?.ref, tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose })}>
           📊 Stacking plan
         </button>
         <button className="ab-btn">📄 Crear ficha</button>
@@ -302,27 +342,33 @@ export default function FichaOferta() {
               <div style={{ flex:1 }}>
                 <div className="ah-ref">
                   <span className="ref-badge-oferta">OFERTA</span>
-                  <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>OLBUR2315645</span>
+                  <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{oferta?.ref || '—'}</span>
                   {confidential && <span style={{ background:'#1e293b',color:'#f8fafc',border:'1px solid #334155',padding:'0 7px',borderRadius:3,fontSize:9,fontWeight:700,letterSpacing:'.04em' }}>🔒 CONFIDENCIAL</span>}
-                  <span style={{ color:'var(--text3)' }}>· Activo: <span className="pat-link" onClick={() => navigate('ficha-activo')}>Albatros — C. Anabel Segura 9-11, Alcobendas</span></span>
-                  <span className="tag tag-green" style={{ fontSize:9 }}>+ Vinculado</span>
+                  {activoSeleccionado && (
+                    <span style={{ color:'var(--text3)' }}>· Activo: <span className="pat-link" onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref })}>{activoSeleccionado.nombre}</span></span>
+                  )}
+                  {activoSeleccionado && <span className="tag tag-green" style={{ fontSize:9 }}>+ Vinculado</span>}
                 </div>
-                <div className="ah-name">Albatros — Calle de Anabel Segura 9-11, 28108 Alcobendas</div>
-                <div className="ah-addr">📍 Alcobendas · Área: Periferia · Zona: A-1 · Sub-zona: Alcobendas / Arroyo de la Vega</div>
+                <div className="ah-name">
+                  {activoSeleccionado ? activoSeleccionado.nombre : <span style={{ color:'var(--text4)', fontStyle:'italic' }}>Sin activo asignado — selecciona uno en la pestaña Información</span>}
+                </div>
+                {activoSeleccionado && (
+                  <div className="ah-addr">📍 {activoSeleccionado.ciudad} · {activoSeleccionado.zona}{activoSeleccionado.subzona ? ` · ${activoSeleccionado.subzona}` : ''}</div>
+                )}
                 <div className="ah-tags">
-                  <span className="tag tag-blue">Oficinas</span>
-                  <span className="tag tag-purple">Mandato Savills</span>
-                  <span className="tag tag-teal">Alquiler</span>
-                  <span className="tag tag-green">En curso</span>
-                  <span className="dias-pill">📅 127 días en comercialización</span>
+                  {activoSeleccionado?.uso && <span className="tag tag-blue">{activoSeleccionado.uso}</span>}
+                  {tipoComercializacion && <span className="tag tag-purple">{tipoComercializacion}</span>}
+                  {tipoOperacion && <span className="tag tag-teal">{tipoOperacion}</span>}
+                  {oferta?.estado && <span className="tag tag-green">{oferta.estado}</span>}
+                  {oferta?.dias_comercializacion > 0 && <span className="dias-pill">📅 {oferta.dias_comercializacion} días en comercialización</span>}
                 </div>
               </div>
               <div style={{ textAlign:'right', flexShrink:0 }}>
                 <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase' }}>Equipo</div>
-                <div style={{ fontSize:11, fontWeight:600 }}>Transaction Spain</div>
+                <div style={{ fontSize:11, fontWeight:600 }}>{equipoMembers[0]?.team || 'Transaction Spain'}</div>
                 <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:4, justifyContent:'flex-end' }}>
-                  <div className="c-av" style={{ background:'#dbeafe', color:'#1e40af', width:22, height:22, fontSize:8 }}>AS</div>
-                  <span style={{ fontSize:11 }}>Sierra Álvaro</span>
+                  <div className="c-av" style={{ background: equipoMembers[0]?.bg || '#dbeafe', color: equipoMembers[0]?.color || '#1e40af', width:22, height:22, fontSize:8 }}>{equipoMembers[0]?.initials || 'AS'}</div>
+                  <span style={{ fontSize:11 }}>{equipoMembers[0]?.name || 'Sierra Álvaro'}</span>
                 </div>
               </div>
             </div>
@@ -341,12 +387,38 @@ export default function FichaOferta() {
                       <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                         <div>
                           <FieldLbl req>Activo / Asset</FieldLbl>
-                          <div style={{ padding:'6px 9px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', fontSize:12, color:'var(--accent)', cursor:'pointer', background:'var(--accent-lt)', display:'flex', alignItems:'center', gap:6 }} onClick={() => navigate('ficha-activo')}>
-                            <span>🏢</span><span style={{ flex:1, fontWeight:500 }}>Albatros — C. Anabel Segura 9-11, Alcobendas</span><span style={{ fontSize:9, fontWeight:700 }}>↗</span>
-                          </div>
+                          {activoSeleccionado ? (
+                            <div style={{ padding:'6px 9px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)', display:'flex', alignItems:'center', gap:6 }}>
+                              <span>🏢</span>
+                              <span style={{ flex:1, fontSize:12, fontWeight:500, color:'var(--accent)' }}>{activoSeleccionado.nombre}</span>
+                              <button onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref })} style={{ fontSize:9, fontWeight:700, color:'var(--accent)', background:'none', border:'none', cursor:'pointer', padding:'0 3px' }}>↗</button>
+                              <button onClick={() => setActivoSeleccionado(null)} style={{ fontSize:11, color:'var(--text4)', background:'none', border:'none', cursor:'pointer', padding:'0 3px' }}>✕</button>
+                            </div>
+                          ) : (
+                            <div style={{ position:'relative' }}>
+                              <input className="of-inp" placeholder="🔍 Buscar activo por nombre..." value={activoBuscador}
+                                onChange={e => { setActivoBuscador(e.target.value); setShowActivoDropdown(true) }}
+                                onFocus={() => setShowActivoDropdown(true)}
+                                onBlur={() => setTimeout(() => setShowActivoDropdown(false), 150)} />
+                              {showActivoDropdown && (
+                                <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 4px 12px rgba(0,0,0,.12)', zIndex:200, maxHeight:200, overflowY:'auto' }}>
+                                  {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).slice(0,8).map(a => (
+                                    <div key={a.ref} onMouseDown={() => { setActivoSeleccionado(a); setActivoBuscador(''); setShowActivoDropdown(false) }}
+                                      style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
+                                      <div style={{ fontWeight:600 }}>{a.nombre}</div>
+                                      <div style={{ color:'var(--text4)', fontSize:10 }}>{a.ref} · {a.uso}</div>
+                                    </div>
+                                  ))}
+                                  {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).length === 0 && (
+                                    <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Sin resultados</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <div><FieldLbl>Uso principal</FieldLbl><ReadonlyPill value={ASSET.usoPrincipal} /></div>
-                        <div><FieldLbl>Estado de construcción</FieldLbl><ReadonlyPill value={ASSET.estadoConstruccion} /></div>
+                        <div><FieldLbl>Uso principal</FieldLbl><ReadonlyPill value={activoSeleccionado?.uso || '—'} /></div>
+                        <div><FieldLbl>Estado de construcción</FieldLbl><ReadonlyPill value={activoSeleccionado?.estado_construccion || '—'} /></div>
                         <div>
                           <FieldLbl req>Tipología de comercialización</FieldLbl>
                           <select className="of-sel" value={tipoComercializacion} onChange={e => setTipoComercializacion(e.target.value)}>
@@ -359,7 +431,7 @@ export default function FichaOferta() {
                             <option value="">— Seleccionar —</option>
                             {tipologiaOpciones.map(t => <option key={t}>{t}</option>)}
                           </select>
-                          {tipologiaOpciones.length > 0 && <div style={{ fontSize:9, color:'var(--text4)', marginTop:2 }}>Opciones para <strong>{ASSET.usoPrincipal}</strong></div>}
+                          {tipologiaOpciones.length > 0 && activoSeleccionado?.uso && <div style={{ fontSize:9, color:'var(--text4)', marginTop:2 }}>Opciones para <strong>{activoSeleccionado.uso}</strong></div>}
                         </div>
                         <div>
                           <FieldLbl>Estado del espacio</FieldLbl>
@@ -395,19 +467,26 @@ export default function FichaOferta() {
                         <div>
                           <FieldLbl>Ubicación · Georreferenciado desde activo</FieldLbl>
                           <div style={{ borderRadius:'var(--r2)', overflow:'hidden', border:'1px solid var(--border)', height:280 }}>
-                            <iframe title="Mapa oferta" width="100%" height="100%" style={{ border:0 }} loading="lazy"
-                              src="https://maps.google.com/maps?q=Calle+de+Anabel+Segura+9-11,+Alcobendas,+Madrid&z=15&output=embed" />
+                            {activoSeleccionado?.direccion ? (
+                              <iframe title="Mapa oferta" width="100%" height="100%" style={{ border:0 }} loading="lazy"
+                                src={`https://maps.google.com/maps?q=${encodeURIComponent(activoSeleccionado.direccion)}&z=15&output=embed`} />
+                            ) : (
+                              <div style={{ width:'100%', height:'100%', background:'var(--gray-lt)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, color:'var(--text4)' }}>
+                                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                                <div style={{ fontSize:11 }}>Selecciona un activo para ver el mapa</div>
+                              </div>
+                            )}
                           </div>
                           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:8 }}>
                             <div style={{ background:'var(--gray-lt)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'7px 10px', fontSize:11 }}>
                               <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em' }}>Dirección</div>
-                              <div style={{ color:'var(--text2)', marginTop:2 }}>Calle de Anabel Segura 9-11</div>
-                              <div style={{ color:'var(--text3)' }}>28108 Alcobendas, Madrid</div>
+                              <div style={{ color:'var(--text2)', marginTop:2 }}>{activoSeleccionado?.direccion || '—'}</div>
+                              <div style={{ color:'var(--text3)' }}>{activoSeleccionado?.ciudad || ''}</div>
                             </div>
                             <div style={{ background:'var(--gray-lt)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'7px 10px', fontSize:11 }}>
                               <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em' }}>Zona</div>
-                              <div style={{ color:'var(--text2)', marginTop:2 }}>A-1 · Alcobendas</div>
-                              <div style={{ color:'var(--text3)' }}>Arroyo de la Vega</div>
+                              <div style={{ color:'var(--text2)', marginTop:2 }}>{activoSeleccionado?.zona || '—'}</div>
+                              <div style={{ color:'var(--text3)' }}>{activoSeleccionado?.subzona || ''}</div>
                             </div>
                           </div>
                         </div>
@@ -420,15 +499,18 @@ export default function FichaOferta() {
                       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
                         <div className="info-block">
                           <div className="ib-title">🏠 PROPIETARIO</div>
-                          <div style={{ fontSize:9, color:'var(--text4)', marginBottom:8, fontWeight:600, letterSpacing:'.04em' }}>Sincronizado desde el activo</div>
-                          <div style={{ fontSize:12, fontWeight:600, marginBottom:2 }}>{ASSET.propietario.sociedad}</div>
-                          <div style={{ fontSize:11, color:'var(--accent)', fontWeight:500, marginBottom:8 }}>{ASSET.propietario.contacto}</div>
-                          <div style={{ background:'var(--gray-lt)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:10, fontSize:11, display:'flex', flexDirection:'column', gap:4 }}>
-                            <div>📞 {ASSET.propietario.telFijo}</div>
-                            <div>📱 {ASSET.propietario.telMovil}</div>
-                            <div style={{ color:'var(--accent)' }}>✉ {ASSET.propietario.email}</div>
-                          </div>
-                          <div style={{ marginTop:8 }}><span style={{ fontSize:9, background:'var(--green-lt)', color:'var(--green)', border:'1px solid var(--green-bd)', padding:'2px 7px', borderRadius:10, fontWeight:700 }}>ↈ Sincronizado</span></div>
+                          <div style={{ fontSize:9, color:'var(--text4)', marginBottom:8, fontWeight:600, letterSpacing:'.04em' }}>Heredado del activo · Solo lectura</div>
+                          {activoSeleccionado?.propietario ? (
+                            <>
+                              <div style={{ fontSize:12, fontWeight:600, marginBottom:6 }}>{activoSeleccionado.propietario}</div>
+                              <div style={{ fontSize:10, color:'var(--text4)', fontStyle:'italic' }}>Para contacto detallado, consulta la ficha del activo.</div>
+                              <div style={{ marginTop:8 }}><span style={{ fontSize:9, background:'var(--green-lt)', color:'var(--green)', border:'1px solid var(--green-bd)', padding:'2px 7px', borderRadius:10, fontWeight:700 }}>ↈ Sincronizado</span></div>
+                            </>
+                          ) : (
+                            <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>
+                              {activoSeleccionado ? 'Sin propietario registrado en el activo.' : 'Selecciona un activo para ver el propietario.'}
+                            </div>
+                          )}
                         </div>
                         <div className="info-block">
                           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
@@ -543,7 +625,10 @@ export default function FichaOferta() {
                             </div>
                           ))}
                         </div>
-                        <button className="ab-btn blue" style={{ fontSize:10 }} onClick={() => navigate('ficha-activo', { ref:'ALC-OF-00231', tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose })}>📊 Abrir Stacking Plan →</button>
+                        <button className="ab-btn blue" style={{ fontSize:10 }} disabled={!activoSeleccionado}
+                          onClick={() => navigate('ficha-activo', { ref: activoSeleccionado?.ref, tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose })}>
+                          📊 Abrir Stacking Plan →
+                        </button>
                       </div>
 
                       {/* Derecha */}
@@ -556,7 +641,7 @@ export default function FichaOferta() {
                           </div>
                           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
                             <thead><tr>
-                              {['Nombre área','Cuenta','Sup. total','¿Divisible?','Cargas €/m²','Fecha disp.','Plantas asignadas',''].map(h =>
+                              {['Nombre área','Sup. asignada','¿Divisible?','Cargas €/m²','Fecha disp.','Plantas asignadas',''].map(h =>
                                 <th key={h} style={{ padding:'6px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap' }}>{h}</th>
                               )}
                             </tr></thead>
@@ -579,10 +664,7 @@ export default function FichaOferta() {
                                           </div>
                                       }
                                     </td>
-                                    <td style={{ padding:'7px 12px' }}>
-                                      <input className="of-inp" placeholder="Empresa / cuenta..." value={o.cuenta||''} onChange={e => setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,cuenta:e.target.value}:x))} style={{ minWidth:130, fontSize:10 }} />
-                                    </td>
-                                    <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600 }}>{assignedSup>0?assignedSup.toLocaleString():<span style={{ color:'var(--text4)' }}>—</span>}</td>
+                                    <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600 }}>{assignedSup>0?assignedSup.toLocaleString()+' m²':<span style={{ color:'var(--text4)' }}>—</span>}</td>
                                     <td style={{ padding:'7px 12px' }}><span style={{ fontSize:10, fontWeight:600, color:o.divisible?'var(--green)':'var(--red)' }}>{o.divisible?'Sí':'No'}</span></td>
                                     <td style={{ padding:'7px 12px', color:'var(--text3)' }}>{o.cargasM2} €</td>
                                     <td style={{ padding:'7px 12px', color:'var(--text3)', whiteSpace:'nowrap' }}>{fechaDispGlobal?new Date(fechaDispGlobal).toLocaleDateString('es-ES'):'—'}</td>
@@ -603,7 +685,7 @@ export default function FichaOferta() {
                                   </tr>
                                 )
                               })}
-                              {ofertasDesglose.length===0 && <tr><td colSpan={8} style={{ padding:18, textAlign:'center', color:'var(--text4)', fontSize:11, fontStyle:'italic' }}>Sin ofertas. Pulsa "+ Agregar".</td></tr>}
+                              {ofertasDesglose.length===0 && <tr><td colSpan={7} style={{ padding:18, textAlign:'center', color:'var(--text4)', fontSize:11, fontStyle:'italic' }}>Sin áreas. Pulsa "+ Agregar".</td></tr>}
                             </tbody>
                           </table>
                           <div style={{ padding:'7px 14px', background:'var(--accent-lt)', borderTop:'1px solid var(--accent-bd)', fontSize:10, color:'var(--accent)' }}>
@@ -614,36 +696,48 @@ export default function FichaOferta() {
                         {/* Espacios comercializables */}
                         <div className="info-block" style={{ padding:0, overflow:'hidden' }}>
                           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderBottom:'1px solid var(--border)', background:'var(--gray-lt)' }}>
-                            <div><span style={{ fontSize:11, fontWeight:700 }}>Espacios comercializables</span><span style={{ marginLeft:8, fontSize:9, color:'var(--text4)' }}>Proyección automática del Stacking Plan</span></div>
-                            <span className="tag tag-green" style={{ fontSize:9 }}>ↈ Auto-calculado</span>
+                            <div><span style={{ fontSize:11, fontWeight:700 }}>Espacios asignados</span><span style={{ marginLeft:8, fontSize:9, color:'var(--text4)' }}>Proyectados desde el Stacking Plan · solo lectura</span></div>
+                            <span className="tag tag-gray" style={{ fontSize:9 }}>{espaciosComercializables.length > 0 ? 'ↈ Auto-calculado' : 'Pendiente asignación'}</span>
                           </div>
-                          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
-                            <thead><tr>
-                              {['Edificio','Módulo','Planta','Uso','Superficie','Divisible','Renta €/m²/mes','Renta mensual'].map(h =>
-                                <th key={h} style={{ padding:'6px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap' }}>{h}</th>
+                          {espaciosComercializables.length === 0 ? (
+                            <div style={{ padding:'28px 16px', textAlign:'center', color:'var(--text4)', fontSize:12 }}>
+                              <div style={{ fontSize:20, marginBottom:8 }}>📊</div>
+                              <div style={{ fontWeight:600, marginBottom:4 }}>Sin espacios asignados</div>
+                              <div style={{ fontSize:11 }}>Abre el Stacking Plan y arrastra esta oferta sobre las plantas disponibles.</div>
+                              {activoSeleccionado && (
+                                <button className="ab-btn blue" style={{ marginTop:12, fontSize:11 }}
+                                  onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref, tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose })}>
+                                  📊 Abrir Stacking Plan →
+                                </button>
                               )}
-                            </tr></thead>
-                            <tbody>
-                              {espaciosComercializables.map((e,i) => (
-                                <tr key={i} style={{ borderBottom:'1px solid var(--border)' }}>
-                                  <td style={{ padding:'7px 12px', fontSize:10, color:'var(--text2)' }}>{e.edificio}</td>
-                                  <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontSize:10 }}>{e.modulo}</td>
-                                  <td style={{ padding:'7px 12px' }}><span className="tag tag-gray" style={{ fontSize:9 }}>{e.planta}</span></td>
-                                  <td style={{ padding:'7px 12px' }}><span className="tag tag-blue" style={{ fontSize:9 }}>{e.uso}</span></td>
-                                  <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600 }}>{e.sup.toLocaleString()}</td>
-                                  <td style={{ padding:'7px 12px' }}><span style={{ fontSize:10, fontWeight:600, color:divisibleGlobal?'var(--green)':'var(--red)' }}>{divisibleGlobal?'Sí':'No'}</span></td>
-                                  <td style={{ padding:'7px 12px', fontFamily:'var(--mono)' }}>{e.renta.toFixed(2)} €</td>
-                                  <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600, color:'var(--green)' }}>{(e.renta*e.sup).toLocaleString(undefined,{maximumFractionDigits:0})} €</td>
+                            </div>
+                          ) : (
+                            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                              <thead><tr>
+                                {['Edificio','Planta','Sup. (m²)','Renta €/m²/mes','Renta mensual','Área'].map(h =>
+                                  <th key={h} style={{ padding:'6px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap' }}>{h}</th>
+                                )}
+                              </tr></thead>
+                              <tbody>
+                                {espaciosComercializables.map((e,i) => (
+                                  <tr key={i} style={{ borderBottom:'1px solid var(--border)' }}>
+                                    <td style={{ padding:'7px 12px', fontSize:10 }}>{e.edificio}</td>
+                                    <td style={{ padding:'7px 12px' }}><span className="tag tag-gray" style={{ fontSize:9 }}>{e.planta}</span></td>
+                                    <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600 }}>{(e.sup||0).toLocaleString()}</td>
+                                    <td style={{ padding:'7px 12px', fontFamily:'var(--mono)' }}>{e.renta > 0 ? `${e.renta.toFixed(2)} €` : '—'}</td>
+                                    <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600, color:'var(--green)' }}>{e.renta > 0 ? `${(e.renta*e.sup).toLocaleString(undefined,{maximumFractionDigits:0})} €` : '—'}</td>
+                                    <td style={{ padding:'7px 12px', fontSize:10 }}>{e.ofertaNombre}</td>
+                                  </tr>
+                                ))}
+                                <tr style={{ background:'var(--gray-lt)', borderTop:'2px solid var(--border)' }}>
+                                  <td colSpan={2} style={{ padding:'7px 12px', fontSize:10, fontWeight:700, color:'var(--text3)' }}>TOTAL</td>
+                                  <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:800 }}>{supTotal.toLocaleString()}</td>
+                                  <td /><td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:800, color:'var(--green)' }}>{espaciosComercializables.reduce((s,e)=>s+(e.renta||0)*e.sup,0).toLocaleString(undefined,{maximumFractionDigits:0})} €</td>
+                                  <td />
                                 </tr>
-                              ))}
-                              <tr style={{ background:'var(--gray-lt)', borderTop:'2px solid var(--border)' }}>
-                                <td colSpan={4} style={{ padding:'7px 12px', fontSize:10, fontWeight:700, color:'var(--text3)' }}>TOTAL</td>
-                                <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:800 }}>{supTotal.toLocaleString()}</td>
-                                <td /><td />
-                                <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:800, color:'var(--green)' }}>{espaciosComercializables.reduce((s,e)=>s+e.renta*e.sup,0).toLocaleString(undefined,{maximumFractionDigits:0})} €</td>
-                              </tr>
-                            </tbody>
-                          </table>
+                              </tbody>
+                            </table>
+                          )}
                         </div>
                       </div>
                     </div>
