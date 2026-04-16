@@ -42,7 +42,7 @@ export default function OfertasList() {
   const [query, setQuery] = useState('')
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ tipo: '', estado: '', m2Min: '', m2Max: '' })
-  const [vis, setVis] = useVisibleCols('ofertas', COLS)
+  const [vis, setVis] = useVisibleCols('ofertas_v2', COLS)
   const [ofertas, setOfertas] = useState(mapMock(MOCK_OFERTAS))
   const [loading, setLoading] = useState(true)
 

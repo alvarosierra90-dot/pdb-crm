@@ -2,10 +2,15 @@ import { useState, useRef, useEffect } from 'react'
 
 // Hook: persists column visibility in localStorage
 export function useVisibleCols(key, cols) {
+  const validIds = new Set(cols.map(c => c.id))
   const [vis, setVis] = useState(() => {
     try {
       const s = localStorage.getItem('cols_' + key)
-      if (s) return new Set(JSON.parse(s))
+      if (s) {
+        const saved = JSON.parse(s).filter(id => validIds.has(id))
+        // Si quedan muy pocas columnas válidas, resetear a todas
+        if (saved.length >= 2) return new Set(saved)
+      }
     } catch {}
     return new Set(cols.map(c => c.id))
   })
