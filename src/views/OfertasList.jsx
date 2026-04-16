@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
+import { OFERTAS as MOCK_OFERTAS } from '../data/mockData'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 
@@ -40,7 +41,7 @@ export default function OfertasList() {
         if (!asigMap[a.oferta_id]) asigMap[a.oferta_id] = []
         asigMap[a.oferta_id].push(a)
       })
-      if (ofertasData) {
+      if (ofertasData && ofertasData.length > 0) {
         setOfertas(ofertasData.map(o => {
           const activoNombre = activosMap[o.activo_ref]?.nombre || o.activo_ref || '—'
           const asigs = asigMap[o.id] || []
@@ -64,6 +65,22 @@ export default function OfertasList() {
             estado:    o.estado         || '—',
           }
         }))
+      } else {
+        // Fallback a ofertas de ejemplo cuando la DB está vacía
+        setOfertas(MOCK_OFERTAS.map(o => ({
+          id:        o.ref,
+          ref:       o.ref,
+          activo:    o.activo,
+          activo_ref: o.activo_ref,
+          espacio:   o.espacio,
+          m2:        o.m2,
+          renta:     o.espacios?.length > 0
+            ? `${(o.espacios.reduce((s,e)=>s+e.renta,0)/o.espacios.length).toFixed(2)} €/m²/mes`
+            : '—',
+          tipo:      o.tipo_operacion || '—',
+          origen:    o.origen_oferta  || '—',
+          estado:    o.estado         || '—',
+        })))
       }
       setLoading(false)
     })

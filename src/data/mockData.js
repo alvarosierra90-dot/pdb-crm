@@ -33,10 +33,61 @@ export const ACTIVOS = [
   { ref: 'MAD-RES-001',   name: 'Residencial Valdebebas',     propietario: 'Neinor Homes',zona: 'Valdebebas',        subzona: 'Valdebebas',        ciudad: 'Madrid',    uso: 'Residencial',  sba: 2940,  occ: 71,   renta: 16.0, valor: '22 M€',  estado: 'En comercialización', dias: 89  },
 ]
 
+// OFERTAS mock — usadas como fallback cuando la DB está vacía
 export const OFERTAS = [
-  { ref: 'OFR-0018', activo: 'Torre Castellana 200', espacio: 'P16 · 440 m²', tipo: 'Arrendamiento', inquilino: 'Consulting Tech Partners', renta: '€22.0/m²', m2: 440, estado: 'En revisión', vence: '28/03/25' },
-  { ref: 'OFR-0017', activo: 'Edificio Diagonal 95', espacio: 'P3 · 820 m²', tipo: 'Arrendamiento', inquilino: 'Pharma Group Spain', renta: '€19.5/m²', m2: 820, estado: 'Negociando', vence: '15/04/25' },
-  { ref: 'OFR-0016', activo: 'Park Logístico Getafe', espacio: 'Nave B · 4.200 m²', tipo: 'Arrendamiento', inquilino: 'Amazon Logistics', renta: '€6.8/m²', m2: 4200, estado: 'Pre-acuerdo', vence: '30/03/25' },
+  {
+    ref: 'OFR-0018', activo_ref: 'ALC-OF-00231', activo: 'Albatros',
+    espacio: 'Edif. D · P1–P4', m2: 13484, tipo_operacion: 'Alquiler',
+    origen_oferta: 'Demanda directa', estado: 'Negociando',
+    tipo_comercializacion: 'Mandato Savills', tipologia: 'Oficina tradicional',
+    estado_espacio: 'Llave en mano', modalidad_visita: 'Libre acceso con agente',
+    equipo: [{ name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true }],
+    espacios: [
+      { edificio:'D', planta:'P4', uso:'Oficina', sup:3371, renta:14.5 },
+      { edificio:'D', planta:'P3', uso:'Oficina', sup:3371, renta:14.5 },
+      { edificio:'D', planta:'P2', uso:'Oficina', sup:3371, renta:14.5 },
+      { edificio:'D', planta:'P1', uso:'Oficina', sup:3371, renta:14.5 },
+    ],
+  },
+  {
+    ref: 'OFR-0017', activo_ref: 'MAD-OF-00189', activo: 'P.E Avalon',
+    espacio: 'Edif. A · P5 + PB', m2: 1198, tipo_operacion: 'Alquiler',
+    origen_oferta: 'Agencia externa', estado: 'En curso',
+    tipo_comercializacion: 'Co-exclusiva', tipologia: 'Oficina tradicional',
+    estado_espacio: 'Semi-acondicionado', modalidad_visita: 'Con cita previa',
+    equipo: [{ name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true }],
+    espacios: [
+      { edificio:'A', planta:'P5', uso:'Oficina', sup:298, renta:11.5 },
+      { edificio:'A', planta:'PB', uso:'Oficina', sup:900, renta:11.5 },
+    ],
+  },
+  {
+    ref: 'OFR-0016', activo_ref: 'MAD-OF-MRL002', activo: 'Torre Chamartín',
+    espacio: 'P5–P2 · 5.332 m²', m2: 5332, tipo_operacion: 'Alquiler',
+    origen_oferta: 'Demanda directa', estado: 'Finalista',
+    tipo_comercializacion: 'Exclusiva', tipologia: 'Oficina tradicional',
+    estado_espacio: 'Acondicionado', modalidad_visita: 'Libre acceso con agente',
+    equipo: [{ name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true }],
+    espacios: [
+      { edificio:'A', planta:'P5', uso:'Oficina', sup:1333, renta:26.0 },
+      { edificio:'A', planta:'P4', uso:'Oficina', sup:1333, renta:26.0 },
+      { edificio:'A', planta:'P3', uso:'Oficina', sup:1333, renta:26.0 },
+      { edificio:'A', planta:'P2', uso:'Oficina', sup:1333, renta:26.0 },
+    ],
+  },
+  {
+    ref: 'OFR-0015', activo_ref: 'MAD-OF-GMP001', activo: 'Castellana 77',
+    espacio: 'P3–P1 · 3.177 m²', m2: 3177, tipo_operacion: 'Alquiler',
+    origen_oferta: 'Propietario directo', estado: 'En curso',
+    tipo_comercializacion: 'Mandato Savills', tipologia: 'Sede única (HQ)',
+    estado_espacio: 'Acondicionado', modalidad_visita: 'Con cita previa',
+    equipo: [{ name:'GOMEZ Ignacio', team:'Leasing MAD', role:'Responsable', initials:'GI', bg:'#fdf4ff', color:'#7e22ce', owner:true }],
+    espacios: [
+      { edificio:'A', planta:'P3', uso:'Oficina', sup:1059, renta:33.0 },
+      { edificio:'A', planta:'P2', uso:'Oficina', sup:1059, renta:33.0 },
+      { edificio:'A', planta:'P1', uso:'Oficina', sup:1059, renta:33.0 },
+    ],
+  },
 ]
 
 export const NEGOCIACIONES = [

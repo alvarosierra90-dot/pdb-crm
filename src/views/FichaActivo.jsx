@@ -3830,7 +3830,7 @@ export default function FichaActivo() {
               </div>
               <StackingPlan
                 key={activo?.ref || params?.ref || 'stacking'}
-                initBuildings={isNew ? [] : loadingActivo ? undefined : (activo ? (activo.stacking_data?.length > 0 ? activo.stacking_data : []) : (BUILDINGS_BY_ACTIVO[params?.ref] || []))}
+                initBuildings={isNew ? [] : loadingActivo ? undefined : (activo?.stacking_data?.length > 0 ? activo.stacking_data : (BUILDINGS_BY_ACTIVO[params?.ref] || []))}
                 onCountChange={setLiveEdifCount}
                 onOwnersChange={setLiveOwnerCount}
                 onBuildingsChange={(blds) => { liveStackingRef.current = blds }}

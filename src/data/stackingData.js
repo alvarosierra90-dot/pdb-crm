@@ -75,6 +75,92 @@ export const BUILDINGS_BY_ACTIVO = {
     },
   ],
 
+  /* ── ALBATROS (Allianz RE) — Alcobendas ─────────────── */
+  'ALC-OF-00231': [
+    {
+      id:'A', label:'Albatros — Edif. A', supPlantaTipo:2500,
+      floors:[
+        {id:'P4',sup:2500,principal:[{uso:'oficinas',sup:2500}],adicional:[]},
+        {id:'P3',sup:2500,principal:[{uso:'oficinas',sup:2500}],adicional:[]},
+        {id:'P2',sup:2500,principal:[{uso:'oficinas',sup:2500}],adicional:[]},
+        {id:'P1',sup:2500,principal:[{uso:'oficinas',sup:2500}],adicional:[]},
+        {id:'PB',sup:2500,principal:[{uso:'comun',sup:600},{uso:'retail',sup:1900}],adicional:[]},
+        {id:'S1',sup:2500,principal:[{uso:'parking',sup:2500}],adicional:[]},
+      ],
+      prop: own([{id:'P4',sup:2500},{id:'P3',sup:2500},{id:'P2',sup:2500},{id:'P1',sup:2500},{id:'PB',sup:2500},{id:'S1',sup:2500}], 'Allianz Real Estate'),
+      arr:[
+        {p:'P4',sup:2500,units:[{type:'ten',n:'IBM España SL',sup:2500,brk:'Jun 2030',brkColor:'var(--green)'}]},
+        {p:'P3',sup:2500,units:[{type:'ten',n:'IBM España SL',sup:2500,brk:'Jun 2030',brkColor:'var(--green)'}]},
+        {p:'P2',sup:2500,units:[{type:'ten',n:'Telefónica España SA',sup:2500,brk:'Sep 2028',brkColor:'var(--green)'}]},
+        {p:'P1',sup:2500,units:[{type:'ten',n:'Telefónica España SA',sup:2500,brk:'Sep 2028',brkColor:'var(--green)'}]},
+        {p:'PB',sup:2500,units:[{type:'com',n:'Hall / Lobby',sup:600},{type:'rt',n:'Cafetería Albatros',sup:1900,brk:'Ene 2028',brkColor:'var(--green)'}]},
+        {p:'S1',sup:2500,units:[{type:'pk',n:'Parking · 80 plazas',sup:2500,nota:'Nivel -1'}]},
+      ],
+    },
+    {
+      id:'B', label:'Edif. B', supPlantaTipo:2500,
+      floors:[
+        {id:'P5',sup:2500,principal:[{uso:'oficinas',sup:2500}],adicional:[]},
+        {id:'P4',sup:2500,principal:[{uso:'oficinas',sup:2500}],adicional:[]},
+        {id:'P3',sup:2500,principal:[{uso:'oficinas',sup:2500}],adicional:[]},
+        {id:'P2',sup:2500,principal:[{uso:'oficinas',sup:2500}],adicional:[]},
+        {id:'P1',sup:2500,principal:[{uso:'oficinas',sup:2500}],adicional:[]},
+        {id:'PB',sup:2500,principal:[{uso:'comun',sup:400},{uso:'oficinas',sup:2100}],adicional:[]},
+        {id:'S1',sup:2500,principal:[{uso:'parking',sup:2500}],adicional:[]},
+      ],
+      prop: own([{id:'P5',sup:2500},{id:'P4',sup:2500},{id:'P3',sup:2500},{id:'P2',sup:2500},{id:'P1',sup:2500},{id:'PB',sup:2500},{id:'S1',sup:2500}], 'Allianz Real Estate'),
+      arr:[
+        {p:'P5',sup:2500,units:[{type:'ten',n:'IATA · Regional Office Spain',sup:2500,brk:'Dic 2029',brkColor:'var(--green)'}]},
+        {p:'P4',sup:2500,units:[{type:'ten',n:'IATA · Regional Office Spain',sup:2500,brk:'Dic 2029',brkColor:'var(--green)'}]},
+        {p:'P3',sup:2500,units:[{type:'ten',n:'Vodafone España SA',sup:2500,brk:'Mar 2027',brkColor:'var(--amber)'}]},
+        {p:'P2',sup:2500,units:[{type:'ten',n:'Vodafone España SA',sup:2500,brk:'Mar 2027',brkColor:'var(--amber)'}]},
+        {p:'P1',sup:2500,units:[{type:'ten',n:'Vodafone España SA',sup:2500,brk:'Mar 2027',brkColor:'var(--amber)'}]},
+        {p:'PB',sup:2500,units:[{type:'com',n:'Hall',sup:400},{type:'vac',oferta:null,sup:2100}]},
+        {p:'S1',sup:2500,units:[{type:'pk',n:'Parking · 100 plazas',sup:2500,nota:'Nivel -1'}]},
+      ],
+    },
+    {
+      id:'C', label:'Edif. C', supPlantaTipo:2500,
+      floors:[
+        {id:'P3',sup:2500,principal:[{uso:'oficinas',sup:2500}],adicional:[]},
+        {id:'P2',sup:2500,principal:[{uso:'oficinas',sup:2500}],adicional:[]},
+        {id:'P1',sup:2500,principal:[{uso:'oficinas',sup:2500}],adicional:[]},
+        {id:'PB',sup:2500,principal:[{uso:'comun',sup:500},{uso:'oficinas',sup:2000}],adicional:[]},
+        {id:'S1',sup:2500,principal:[{uso:'parking',sup:2500}],adicional:[]},
+      ],
+      prop: own([{id:'P3',sup:2500},{id:'P2',sup:2500},{id:'P1',sup:2500},{id:'PB',sup:2500},{id:'S1',sup:2500}], 'Allianz Real Estate'),
+      arr:[
+        {p:'P3',sup:2500,units:[{type:'ten',n:'Merck Sharp & Dohme SLU',sup:2500,brk:'Jun 2031',brkColor:'var(--green)'}]},
+        {p:'P2',sup:2500,units:[{type:'ten',n:'Merck Sharp & Dohme SLU',sup:2500,brk:'Jun 2031',brkColor:'var(--green)'}]},
+        {p:'P1',sup:2500,units:[{type:'ten',n:'Garrigues Abogados SLP',sup:2500,brk:'Sep 2029',brkColor:'var(--green)'}]},
+        {p:'PB',sup:2500,units:[{type:'com',n:'Lobby / Zonas comunes',sup:500},{type:'rt',n:'Gym · Bienestar',sup:2000,brk:null}]},
+        {p:'S1',sup:2500,units:[{type:'pk',n:'Parking · 60 plazas',sup:2500,nota:'Nivel -1'}]},
+      ],
+    },
+    {
+      id:'D', label:'Edif. D', supPlantaTipo:3371,
+      floors:[
+        {id:'P4',sup:3371,principal:[{uso:'oficinas',sup:3371}],adicional:[]},
+        {id:'P3',sup:3371,principal:[{uso:'oficinas',sup:3371}],adicional:[]},
+        {id:'P2',sup:3371,principal:[{uso:'oficinas',sup:3371}],adicional:[]},
+        {id:'P1',sup:3371,principal:[{uso:'oficinas',sup:3371}],adicional:[]},
+        {id:'PB',sup:3371,principal:[{uso:'comun',sup:700},{uso:'retail',sup:2671}],adicional:[]},
+        {id:'S1',sup:3371,principal:[{uso:'parking',sup:3371}],adicional:[]},
+        {id:'S2',sup:3371,principal:[{uso:'parking',sup:3371}],adicional:[]},
+      ],
+      prop: own([{id:'P4',sup:3371},{id:'P3',sup:3371},{id:'P2',sup:3371},{id:'P1',sup:3371},{id:'PB',sup:3371},{id:'S1',sup:3371},{id:'S2',sup:3371}], 'Allianz Real Estate'),
+      arr:[
+        {p:'P4',sup:3371,units:[{type:'vac',oferta:'OFR-0018',sup:3371}]},
+        {p:'P3',sup:3371,units:[{type:'vac',oferta:'OFR-0018',sup:3371}]},
+        {p:'P2',sup:3371,units:[{type:'vac',oferta:'OFR-0018',sup:3371}]},
+        {p:'P1',sup:3371,units:[{type:'vac',oferta:'OFR-0018',sup:3371}]},
+        {p:'PB',sup:3371,units:[{type:'com',n:'Hall / Recepción',sup:700},{type:'vac',oferta:null,sup:2671}]},
+        {p:'S1',sup:3371,units:[{type:'pk',n:'Parking · 110 plazas',sup:3371,nota:'Nivel -1'}]},
+        {p:'S2',sup:3371,units:[{type:'pk',n:'Parking · 82 plazas',sup:3371,nota:'Nivel -2'}]},
+      ],
+    },
+  ],
+
   /* ═══════════════════════════════════════════════════════
      COLONIAL SOCIMI
   ═══════════════════════════════════════════════════════ */

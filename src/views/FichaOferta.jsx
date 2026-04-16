@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { supabase } from '../lib/supabase'
+import { OFERTAS as MOCK_OFERTAS, ACTIVOS as MOCK_ACTIVOS } from '../data/mockData'
 
 const TABS = ['of-info','of-espacios','of-condiciones','of-caract','of-docs','of-web','of-desc','of-seg','of-ficha','of-conf']
 const TAB_LABELS = ['Información oferta','Espacios comerciales','Condiciones','Características','Documentos','Contenido web','Descriptivo','Seguimiento comercial','Crear ficha','🔒 Confidencialidad']
@@ -89,6 +90,7 @@ export default function FichaOferta() {
 
   // DB state
   const [oferta, setOferta]     = useState(null)   // loaded from Supabase
+  const [isMock, setIsMock]     = useState(false)  // true when showing example data
   const [saving, setSaving]     = useState(false)
   const [saveOk, setSaveOk]     = useState(false)
   const [saveErr, setSaveErr]   = useState('')
@@ -176,7 +178,46 @@ export default function FichaOferta() {
     if (!params?.ofertaRef) return
     supabase.from('ofertas').select('*').eq('ref', params.ofertaRef).single()
       .then(({ data }) => {
-        if (!data) return
+        if (!data) {
+          // Fallback: check mock OFERTAS
+          const mock = MOCK_OFERTAS.find(o => o.ref === params.ofertaRef)
+          if (mock) {
+            setIsMock(true)
+            setOferta({ ref: mock.ref, id: null })
+            if (mock.tipo_comercializacion) setTipoComercializacion(mock.tipo_comercializacion)
+            if (mock.tipologia)             setTipologia(mock.tipologia)
+            if (mock.estado_espacio)        setEstadoEspacio(mock.estado_espacio)
+            if (mock.tipo_operacion)        setTipoOperacion(mock.tipo_operacion)
+            if (mock.origen_oferta)         setOrigenOferta(mock.origen_oferta)
+            if (mock.modalidad_visita)      setModalidadVisita(mock.modalidad_visita)
+            if (mock.equipo?.length)        setEquipoMembers(mock.equipo)
+            if (mock.espacios?.length) {
+              setEspaciosComercializables(mock.espacios.map(e => ({
+                edificio: e.edificio,
+                modulo:   `${e.edificio}-${e.planta}`,
+                planta:   e.planta,
+                uso:      e.uso,
+                sup:      e.sup,
+                renta:    e.renta,
+                ofertaNombre: 'Oferta 1',
+              })))
+            }
+            // Load mock activo
+            const mockActivo = MOCK_ACTIVOS.find(a => a.ref === mock.activo_ref)
+            if (mockActivo) {
+              setActivoSeleccionado({
+                ref:       mockActivo.ref,
+                nombre:    mockActivo.name,
+                uso:       mockActivo.uso,
+                propietario: mockActivo.propietario,
+                direccion: mockActivo.direccion || '',
+                ciudad:    mockActivo.ciudad || '',
+                zona:      mockActivo.zona || '',
+              })
+            }
+          }
+          return
+        }
         setOferta(data)
         if (data.tipo_comercializacion) setTipoComercializacion(data.tipo_comercializacion)
         if (data.tipologia)             setTipologia(data.tipologia)
@@ -315,8 +356,9 @@ export default function FichaOferta() {
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
       {/* Action bar */}
       <div className="action-bar">
-        <button className="ab-btn save" onClick={handleSave} disabled={saving}>{saving ? 'Guardando...' : '💾 Guardar'}</button>
-        <button className="ab-btn" onClick={async () => { await handleSave(); navigate('ofertas') }}>Guardar y cerrar</button>
+        {isMock && <span style={{fontSize:11,color:'var(--amber)',background:'var(--amber-lt)',border:'1px solid var(--amber-bd)',borderRadius:'var(--r)',padding:'3px 8px',marginRight:6}}>Oferta de ejemplo · sólo lectura</span>}
+        <button className="ab-btn save" onClick={handleSave} disabled={saving || isMock}>{saving ? 'Guardando...' : '💾 Guardar'}</button>
+        <button className="ab-btn" onClick={async () => { if (!isMock) await handleSave(); navigate('ofertas') }}>Guardar y cerrar</button>
         {saveOk  && <span style={{fontSize:11,color:'var(--green)',marginLeft:8}}>✓ Guardado</span>}
         {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
         <button className="ab-btn">Nuevo</button>
