@@ -556,12 +556,6 @@ const INIT_BUILDINGS = [
   },
 ]
 
-// Ofertas activas vinculadas a este activo (en producción vendrían del estado global)
-const OFERTAS_ACTIVAS = [
-  { ref:'OLB001', contraparte:'Celonis',         sup:698,   estado:'En curso',  color:'#d97706', bg:'#fffbeb', border:'#fde68a' },
-  { ref:'OLB002', contraparte:'Repsol Exp.',     sup:1033,  estado:'En curso',  color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe' },
-  { ref:'OLB003', contraparte:'Oracle Spain SL', sup:13486, estado:'Finalista', color:'#7c3aed', bg:'#faf5ff', border:'#e9d5ff' },
-]
 
 function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal' }) {
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
@@ -1303,34 +1297,9 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwner
               </button>
               <div style={{borderTop:'1px solid var(--border)',marginTop:10,paddingTop:8}}>
                 <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Ofertas activas</div>
-                {OFERTAS_ACTIVAS.map(ofr=>{
-                  const dragKey = 'ofr:'+ofr.ref
-                  return (
-                    <div key={ofr.ref} draggable
-                      onDragStart={()=>setDragging(dragKey)}
-                      onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                      style={{
-                        display:'flex',flexDirection:'column',gap:2,padding:'6px 9px',marginBottom:4,
-                        borderRadius:5,cursor:'grab',userSelect:'none',
-                        border:`1px solid ${ofr.border}`,background:ofr.bg,
-                        opacity:dragging&&dragging!==dragKey?0.4:1,
-                        transition:'opacity .15s',
-                      }}
-                    >
-                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:4}}>
-                        <span style={{fontSize:11,fontWeight:700,color:ofr.color,fontFamily:'var(--mono)'}}>{ofr.ref}</span>
-                        <span style={{fontSize:9,fontWeight:600,color:ofr.color,background:'#fff',border:`1px solid ${ofr.border}`,borderRadius:3,padding:'0 4px'}}>{ofr.estado}</span>
-                      </div>
-                      <div style={{fontSize:10,color:'var(--text3)',lineHeight:1.2}}>{ofr.contraparte}</div>
-                      <div style={{fontSize:10,fontWeight:600,color:'var(--text2)'}}>{ofr.sup.toLocaleString('es-ES')} m²</div>
-                    </div>
-                  )
-                })}
-                {/* ── Ofertas venidas desde FichaOferta ── */}
-                {extraOfertas.length > 0 && (
-                  <>
-                    <div style={{fontSize:9,fontWeight:700,color:'var(--accent)',textTransform:'uppercase',letterSpacing:'.04em',marginTop:8,marginBottom:4}}>Desde esta oferta</div>
-                    {extraOfertas.map((ofr,idx)=>{
+                {extraOfertas.length === 0
+                  ? <div style={{fontSize:10,color:'var(--text4)',fontStyle:'italic',padding:'6px 0'}}>Sin ofertas. Créalas desde Desglose de ofertas.</div>
+                  : extraOfertas.map((ofr,idx)=>{
                       const COLS=['#16a34a','#2563eb','#d97706','#7c3aed']
                       const col=COLS[idx%COLS.length]
                       const dragKey='ofr:'+ofr.nombre
@@ -1348,17 +1317,12 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwner
                         >
                           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:4}}>
                             <span style={{fontSize:11,fontWeight:700,color:col}}>{ofr.nombre}</span>
-                            <span style={{fontSize:8,fontWeight:600,color:col,background:'#fff',border:`1px solid ${col}44`,borderRadius:3,padding:'0 4px'}}>Pendiente</span>
                           </div>
                           <div style={{fontSize:9,color:'var(--text4)'}}>Arrastra para asignar plantas</div>
                         </div>
                       )
-                    })}
-                  </>
-                )}
-                <button style={{marginTop:2,padding:'5px 8px',background:'none',border:'1px dashed var(--border)',borderRadius:5,fontSize:10,color:'var(--text4)',cursor:'pointer',fontFamily:'inherit',textAlign:'left',width:'100%'}}>
-                  + Nueva oferta
-                </button>
+                    })
+                }
               </div>
             </div>
 
@@ -1403,7 +1367,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwner
                         dropArr({type:'ten',n:dragging.slice(4)})
                       } else if(dragging.startsWith('ofr:')){
                         const ref=dragging.slice(4)
-                        const ofr=OFERTAS_ACTIVAS.find(o=>o.ref===ref) || extraOfertas.find(o=>o.nombre===ref)
+                        const ofr=extraOfertas.find(o=>o.nombre===ref)
                         dropArr({type:'vac',oferta:ref,sup:ofr?.sup??0})
                       }
                       setDragging(null)
