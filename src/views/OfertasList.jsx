@@ -49,9 +49,11 @@ export default function OfertasList() {
       supabase.from('ofertas').select('*').order('created_at', { ascending: false }),
       supabase.from('activos').select('ref, nombre'),
     ]).then(([{ data: ofertasData, error }, { data: activosData }]) => {
-      if (!error && ofertasData && ofertasData.length > 0) {
+      // Solo usar DB si hay ofertas reales (con activo vinculado)
+      const reales = (ofertasData || []).filter(o => o.activo_ref)
+      if (!error && reales.length > 0) {
         const activosMap = Object.fromEntries((activosData || []).map(a => [a.ref, a]))
-        setOfertas(ofertasData.map(o => ({
+        setOfertas(reales.map(o => ({
           id:        o.id,
           ref:       o.ref || o.id,
           activo:    activosMap[o.activo_ref]?.nombre || o.activo_ref || '—',
@@ -64,7 +66,7 @@ export default function OfertasList() {
           estado:    o.estado         || '—',
         })))
       }
-      // Si DB vacía o error → se mantiene el estado inicial con mock data
+      // Si no hay ofertas reales en DB → se mantienen los mocks
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [])
