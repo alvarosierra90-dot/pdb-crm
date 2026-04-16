@@ -33,41 +33,100 @@ export const ACTIVOS = [
   { ref: 'MAD-RES-001',   name: 'Residencial Valdebebas',     propietario: 'Neinor Homes',zona: 'Valdebebas',        subzona: 'Valdebebas',        ciudad: 'Madrid',    uso: 'Residencial',  sba: 2940,  occ: 71,   renta: 16.0, valor: '22 M€',  estado: 'En comercialización', dias: 89  },
 ]
 
-// OFERTAS mock — usadas como fallback cuando la DB está vacía
+// OFERTAS mock — usadas como fallback cuando la DB está vacía.
+// Cada oferta incluye campos completos para poder probar el flujo entero.
+// estado: 'Negociando' | 'En curso' | 'Finalista' | 'En revisión' | 'Cerrada'
 export const OFERTAS = [
+
+  /* ─── ALBATROS · Allianz RE ──────────────────────────── */
   {
     ref: 'OFR-0018', activo_ref: 'ALC-OF-00231', activo: 'Albatros',
-    espacio: 'Edif. D · P1–P4', m2: 13484, tipo_operacion: 'Alquiler',
-    origen_oferta: 'Demanda directa', estado: 'Negociando',
+    espacio: 'Edif. D · P3–P4 · 6.742 m²',
+    m2: 6742, tipo_operacion: 'Alquiler', estado: 'Negociando',
     tipo_comercializacion: 'Mandato Savills', tipologia: 'Oficina tradicional',
     estado_espacio: 'Llave en mano', modalidad_visita: 'Libre acceso con agente',
-    equipo: [{ name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true }],
+    origen_oferta: 'Demanda directa',
+    equipo: [
+      { name:'Sierra Álvaro',    team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true  },
+      { name:'GOMEZ Ignacio',    team:'Leasing MAD',       role:'Colaborador', initials:'GI', bg:'#fdf4ff', color:'#7e22ce', owner:false },
+    ],
     espacios: [
       { edificio:'D', planta:'P4', uso:'Oficina', sup:3371, renta:14.5 },
       { edificio:'D', planta:'P3', uso:'Oficina', sup:3371, renta:14.5 },
-      { edificio:'D', planta:'P2', uso:'Oficina', sup:3371, renta:14.5 },
-      { edificio:'D', planta:'P1', uso:'Oficina', sup:3371, renta:14.5 },
     ],
   },
+  {
+    ref: 'OFR-0019', activo_ref: 'ALC-OF-00231', activo: 'Albatros',
+    espacio: 'Edif. D · P2 parcial · 1.200 m²',
+    m2: 1200, tipo_operacion: 'Alquiler', estado: 'En curso',
+    tipo_comercializacion: 'Mandato Savills', tipologia: 'Coworking',
+    estado_espacio: 'Acondicionado', modalidad_visita: 'Con cita previa',
+    origen_oferta: 'Agencia externa',
+    equipo: [
+      { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
+    ],
+    espacios: [
+      { edificio:'D', planta:'P2', uso:'Oficina', sup:1200, renta:14.0 },
+    ],
+  },
+  {
+    // Borrador — no asignada en stacking plan (P1 queda libre / sin oferta)
+    ref: 'OFR-0020', activo_ref: 'ALC-OF-00231', activo: 'Albatros',
+    espacio: '—',
+    m2: 0, tipo_operacion: 'Alquiler', estado: 'En revisión',
+    tipo_comercializacion: 'Mandato Savills', tipologia: 'Oficina tradicional',
+    estado_espacio: '', modalidad_visita: '',
+    origen_oferta: 'Directo propiedad',
+    equipo: [
+      { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
+    ],
+    espacios: [], // pendiente de asignación en stacking plan
+  },
+
+  /* ─── P.E AVALON · Barings RE ───────────────────────── */
   {
     ref: 'OFR-0017', activo_ref: 'MAD-OF-00189', activo: 'P.E Avalon',
-    espacio: 'Edif. A · P5 + PB', m2: 1198, tipo_operacion: 'Alquiler',
-    origen_oferta: 'Agencia externa', estado: 'En curso',
+    espacio: 'Edif. A · P5 + PB · 1.198 m²',
+    m2: 1198, tipo_operacion: 'Alquiler', estado: 'En curso',
     tipo_comercializacion: 'Co-exclusiva', tipologia: 'Oficina tradicional',
     estado_espacio: 'Semi-acondicionado', modalidad_visita: 'Con cita previa',
-    equipo: [{ name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true }],
+    origen_oferta: 'Agencia externa',
+    equipo: [
+      { name:'Sierra Álvaro',    team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true  },
+      { name:'Alonso Abruña D.', team:'Leasing MAD',       role:'Colaborador', initials:'AD', bg:'#f3e8ff', color:'#6b21a8', owner:false },
+    ],
     espacios: [
-      { edificio:'A', planta:'P5', uso:'Oficina', sup:298, renta:11.5 },
-      { edificio:'A', planta:'PB', uso:'Oficina', sup:900, renta:11.5 },
+      { edificio:'A', planta:'P5', uso:'Oficina', sup:298,  renta:11.5 },
+      { edificio:'A', planta:'PB', uso:'Oficina', sup:900,  renta:11.5 },
     ],
   },
   {
+    ref: 'OFR-0023', activo_ref: 'MAD-OF-00189', activo: 'P.E Avalon',
+    espacio: 'Edif. A · P3 + P2 parcial · 1.033 m²',
+    m2: 1033, tipo_operacion: 'Alquiler', estado: 'Negociando',
+    tipo_comercializacion: 'Co-exclusiva', tipologia: 'Business park',
+    estado_espacio: 'Implantado (reforma 2022)', modalidad_visita: 'Con cita previa',
+    origen_oferta: 'ON profesional',
+    equipo: [
+      { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
+    ],
+    espacios: [
+      { edificio:'A', planta:'P3', uso:'Oficina', sup:733, renta:12.0 },
+      { edificio:'A', planta:'P2', uso:'Oficina', sup:300, renta:12.0 },
+    ],
+  },
+
+  /* ─── TORRE CHAMARTÍN · Merlin ──────────────────────── */
+  {
     ref: 'OFR-0016', activo_ref: 'MAD-OF-MRL002', activo: 'Torre Chamartín',
-    espacio: 'P5–P2 · 5.332 m²', m2: 5332, tipo_operacion: 'Alquiler',
-    origen_oferta: 'Demanda directa', estado: 'Finalista',
-    tipo_comercializacion: 'Exclusiva', tipologia: 'Oficina tradicional',
+    espacio: 'Edif. A · P5–P2 · 5.332 m²',
+    m2: 5332, tipo_operacion: 'Alquiler', estado: 'Finalista',
+    tipo_comercializacion: 'Exclusiva', tipologia: 'Sede única (HQ)',
     estado_espacio: 'Acondicionado', modalidad_visita: 'Libre acceso con agente',
-    equipo: [{ name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true }],
+    origen_oferta: 'Demanda directa',
+    equipo: [
+      { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
+    ],
     espacios: [
       { edificio:'A', planta:'P5', uso:'Oficina', sup:1333, renta:26.0 },
       { edificio:'A', planta:'P4', uso:'Oficina', sup:1333, renta:26.0 },
@@ -75,17 +134,51 @@ export const OFERTAS = [
       { edificio:'A', planta:'P2', uso:'Oficina', sup:1333, renta:26.0 },
     ],
   },
+
+  /* ─── CASTELLANA 77 · GMP ───────────────────────────── */
   {
     ref: 'OFR-0015', activo_ref: 'MAD-OF-GMP001', activo: 'Castellana 77',
-    espacio: 'P3–P1 · 3.177 m²', m2: 3177, tipo_operacion: 'Alquiler',
-    origen_oferta: 'Propietario directo', estado: 'En curso',
-    tipo_comercializacion: 'Mandato Savills', tipologia: 'Sede única (HQ)',
-    estado_espacio: 'Acondicionado', modalidad_visita: 'Con cita previa',
-    equipo: [{ name:'GOMEZ Ignacio', team:'Leasing MAD', role:'Responsable', initials:'GI', bg:'#fdf4ff', color:'#7e22ce', owner:true }],
+    espacio: 'Edif. A · P3–P2 · 2.118 m²',
+    m2: 2118, tipo_operacion: 'Alquiler', estado: 'Negociando',
+    tipo_comercializacion: 'Mandato Savills', tipologia: 'Oficina tradicional',
+    estado_espacio: 'Acondicionado', modalidad_visita: 'Libre acceso con agente',
+    origen_oferta: 'Mandato corporate',
+    equipo: [
+      { name:'GOMEZ Ignacio',    team:'Leasing MAD',       role:'Responsable', initials:'GI', bg:'#fdf4ff', color:'#7e22ce', owner:true  },
+      { name:'Alonso Abruña D.', team:'Leasing MAD',       role:'Colaborador', initials:'AD', bg:'#f3e8ff', color:'#6b21a8', owner:false },
+    ],
     espacios: [
       { edificio:'A', planta:'P3', uso:'Oficina', sup:1059, renta:33.0 },
       { edificio:'A', planta:'P2', uso:'Oficina', sup:1059, renta:33.0 },
-      { edificio:'A', planta:'P1', uso:'Oficina', sup:1059, renta:33.0 },
+    ],
+  },
+  {
+    // Borrador — P1 libre en stacking, oferta pendiente de asignación
+    ref: 'OFR-0014', activo_ref: 'MAD-OF-GMP001', activo: 'Castellana 77',
+    espacio: '—',
+    m2: 0, tipo_operacion: 'Alquiler', estado: 'En revisión',
+    tipo_comercializacion: 'Mandato Savills', tipologia: 'Oficina representativa',
+    estado_espacio: '', modalidad_visita: '',
+    origen_oferta: 'ON profesional',
+    equipo: [
+      { name:'GOMEZ Ignacio', team:'Leasing MAD', role:'Responsable', initials:'GI', bg:'#fdf4ff', color:'#7e22ce', owner:true },
+    ],
+    espacios: [],
+  },
+
+  /* ─── CASTELLANA 43 · Colonial ──────────────────────── */
+  {
+    ref: 'OFR-0013', activo_ref: 'MAD-OF-COL001', activo: 'Castellana 43',
+    espacio: 'Edif. A · P2 · 1.125 m²',
+    m2: 1125, tipo_operacion: 'Alquiler', estado: 'En curso',
+    tipo_comercializacion: 'Co-exclusiva', tipologia: 'Oficina representativa',
+    estado_espacio: 'Acondicionado', modalidad_visita: 'Con cita previa',
+    origen_oferta: 'Otras consultoras',
+    equipo: [
+      { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
+    ],
+    espacios: [
+      { edificio:'A', planta:'P2', uso:'Oficina', sup:1125, renta:38.0 },
     ],
   },
 ]
