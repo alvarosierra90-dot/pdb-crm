@@ -7,46 +7,66 @@ import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilte
 const estadoTag = { 'En revisión': 'tag-amber', 'Negociando': 'tag-purple', 'Pre-acuerdo': 'tag-green', 'En curso': 'tag-blue', 'Cerrada': 'tag-gray', 'Finalista': 'tag-green' }
 
 const COLS = [
-  { id: '_chk',      label: '',                sys: true },
-  { id: 'ref',       label: 'ID',              required: true, type:'text',   getValue: r => r.ref },
-  { id: 'activo',    label: 'Activo / Espacio',required: true, type:'text',   getValue: r => r.activo },
-  { id: 'tipo',      label: 'Tipo',                            type:'enum',   getValue: r => r.tipo },
-  { id: 'inquilino', label: 'Inquilino',                       type:'text',   getValue: r => r.inquilino },
-  { id: 'renta',     label: 'Renta ofertada',                  type:'text',   getValue: r => r.renta },
-  { id: 'm2',        label: 'M²',                              type:'number', getValue: r => r.m2 },
-  { id: 'estado',    label: 'Estado',                          type:'enum',   getValue: r => r.estado },
-  { id: 'vence',     label: 'Vence',                           type:'text',   getValue: r => r.vence },
-  { id: '_act',      label: '',                sys: true },
+  { id: '_chk',      label: '',               sys: true },
+  { id: 'ref',       label: 'ID',             required: true, type:'text',   getValue: r => r.ref },
+  { id: 'activo',    label: 'Activo',         required: true, type:'text',   getValue: r => r.activo },
+  { id: 'espacio',   label: 'Espacio',                        type:'text',   getValue: r => r.espacio },
+  { id: 'm2',        label: 'M²',                             type:'number', getValue: r => r.m2 },
+  { id: 'renta',     label: 'Renta ofertada',                 type:'text',   getValue: r => r.renta },
+  { id: 'tipo',      label: 'Tipo',                           type:'enum',   getValue: r => r.tipo },
+  { id: 'origen',    label: 'Origen',                         type:'enum',   getValue: r => r.origen },
+  { id: 'estado',    label: 'Estado',                         type:'enum',   getValue: r => r.estado },
+  { id: '_act',      label: '',               sys: true },
 ]
 
 export default function OfertasList() {
   const { navigate } = useNav()
   const [query, setQuery] = useState('')
   const [showAdv, setShowAdv] = useState(false)
-  const [af, setAf] = useState({ tipo: '', estado: '', inquilino: '', m2Min: '', m2Max: '' })
+  const [af, setAf] = useState({ tipo: '', estado: '', m2Min: '', m2Max: '' })
   const [vis, setVis] = useVisibleCols('ofertas', COLS)
   const [ofertas, setOfertas] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.from('ofertas').select('*').order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (!error && data) {
-          setOfertas(data.map(o => ({
-            id:        o.id,
-            ref:       o.ref      || o.id,
-            activo:    o.nombre   || o.activo_ref || '—',
-            tipo:      o.tipo_operacion || o.tipo || '—',
-            inquilino: o.inquilino || '—',
-            renta:     o.renta_zona ? `${o.renta_zona} €/m²` : '—',
-            m2:        o.sba || 0,
-            estado:    o.estado   || '—',
-            vence:     o.fecha_disponibilidad || '—',
-            activo_ref: o.activo_ref,
-          })))
-        }
-        setLoading(false)
+    Promise.all([
+      supabase.from('ofertas').select('*').order('created_at', { ascending: false }),
+      supabase.from('activos').select('ref, nombre'),
+      supabase.from('asignaciones_stacking').select('oferta_id, edificio_id, planta_id, sup, renta'),
+    ]).then(([{ data: ofertasData }, { data: activosData }, { data: asigData }]) => {
+      const activosMap = Object.fromEntries((activosData || []).map(a => [a.ref, a]))
+      const asigMap = {}
+      ;(asigData || []).forEach(a => {
+        if (!asigMap[a.oferta_id]) asigMap[a.oferta_id] = []
+        asigMap[a.oferta_id].push(a)
       })
+      if (ofertasData) {
+        setOfertas(ofertasData.map(o => {
+          const activoNombre = activosMap[o.activo_ref]?.nombre || o.activo_ref || '—'
+          const asigs = asigMap[o.id] || []
+          const totalM2 = asigs.reduce((s, a) => s + (a.sup || 0), 0)
+          const espacio = asigs.length > 0
+            ? asigs.map(a => `${a.edificio_id} ${a.planta_id}`).join(', ')
+            : '—'
+          const rentaMedia = asigs.length > 0 && asigs.some(a => a.renta > 0)
+            ? (asigs.filter(a=>a.renta>0).reduce((s,a) => s + a.renta, 0) / asigs.filter(a=>a.renta>0).length).toFixed(2)
+            : null
+          return {
+            id:        o.id,
+            ref:       o.ref || o.id,
+            activo:    activoNombre,
+            activo_ref: o.activo_ref,
+            espacio,
+            m2:        totalM2,
+            renta:     rentaMedia ? `${rentaMedia} €/m²/mes` : '—',
+            tipo:      o.tipo_operacion || '—',
+            origen:    o.origen_oferta  || '—',
+            estado:    o.estado         || '—',
+          }
+        }))
+      }
+      setLoading(false)
+    })
   }, [])
 
   const [creando, setCreando] = useState(false)
@@ -69,10 +89,9 @@ export default function OfertasList() {
   const advCount = Object.values(af).filter(Boolean).length
   const preFiltered = ofertas.filter(o => {
     const q = query.toLowerCase()
-    if (q && !(o.activo||'').toLowerCase().includes(q) && !(o.inquilino||'').toLowerCase().includes(q) && !(o.ref||'').toLowerCase().includes(q)) return false
+    if (q && !(o.activo||'').toLowerCase().includes(q) && !(o.ref||'').toLowerCase().includes(q) && !(o.espacio||'').toLowerCase().includes(q)) return false
     if (af.tipo      && o.tipo !== af.tipo) return false
     if (af.estado    && o.estado !== af.estado) return false
-    if (af.inquilino && !(o.inquilino||'').toLowerCase().includes(af.inquilino.toLowerCase())) return false
     if (af.m2Min     && o.m2 < parseInt(af.m2Min)) return false
     if (af.m2Max     && o.m2 > parseInt(af.m2Max)) return false
     return true
@@ -82,16 +101,16 @@ export default function OfertasList() {
   const visibleCols = COLS.filter(c => vis.has(c.id))
 
   const cell = (o) => ({
-    _chk:      <td key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} onClick={e => e.stopPropagation()} /></td>,
-    ref:       <td key="ref"><span className="asset-link" style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>{o.ref}</span></td>,
-    activo:    <td key="activo"><div className="asset-link">{o.activo}</div><div className="asset-sub">{o.activo_ref || ''}</div></td>,
-    tipo:      <td key="tipo"><span className="tag tag-blue">{o.tipo}</span></td>,
-    inquilino: <td key="inquilino" style={{ fontSize: 11 }}>{o.inquilino}</td>,
-    renta:     <td key="renta" className="mono">{o.renta}</td>,
-    m2:        <td key="m2">{(o.m2||0).toLocaleString()}</td>,
-    estado:    <td key="estado"><span className={`tag ${estadoTag[o.estado] || 'tag-gray'}`}>{o.estado}</span></td>,
-    vence:     <td key="vence" style={{ color: o.estado === 'En revisión' ? 'var(--red)' : 'var(--text2)', fontWeight: o.estado === 'En revisión' ? 700 : 400 }}>{o.vence}</td>,
-    _act:      <td key="_act"><div className="ra-cell"><button className="ra p" onClick={e => { e.stopPropagation(); navigate('ficha-oferta', { ofertaRef: o.ref }) }}>Ver</button></div></td>,
+    _chk:    <td key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} onClick={e => e.stopPropagation()} /></td>,
+    ref:     <td key="ref"><span className="asset-link" style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>{o.ref}</span></td>,
+    activo:  <td key="activo"><div className="asset-link">{o.activo}</div><div className="asset-sub">{o.activo_ref || ''}</div></td>,
+    espacio: <td key="espacio" style={{ fontSize: 11, color: o.espacio === '—' ? 'var(--text4)' : 'var(--text2)', fontStyle: o.espacio === '—' ? 'italic' : 'normal' }}>{o.espacio}</td>,
+    m2:      <td key="m2" className="mono">{o.m2 > 0 ? o.m2.toLocaleString('es-ES') + ' m²' : <span style={{ color:'var(--text4)' }}>—</span>}</td>,
+    renta:   <td key="renta" className="mono">{o.renta}</td>,
+    tipo:    <td key="tipo">{o.tipo !== '—' ? <span className="tag tag-blue">{o.tipo}</span> : <span style={{ color:'var(--text4)' }}>—</span>}</td>,
+    origen:  <td key="origen" style={{ fontSize: 11, color: 'var(--text3)' }}>{o.origen}</td>,
+    estado:  <td key="estado"><span className={`tag ${estadoTag[o.estado] || 'tag-gray'}`}>{o.estado}</span></td>,
+    _act:    <td key="_act"><div className="ra-cell"><button className="ra p" onClick={e => { e.stopPropagation(); navigate('ficha-oferta', { ofertaRef: o.ref }) }}>Ver</button></div></td>,
   })
 
   return (
@@ -120,12 +139,11 @@ export default function OfertasList() {
       </div>
       {showAdv && (
         <div style={{ padding: '10px 16px', background: 'var(--gray-lt)', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
-          <Field label="Tipo"><select className="fsel" value={af.tipo} onChange={e => setAf(p => ({ ...p, tipo: e.target.value }))}><option value="">Todos</option><option>Arrendamiento</option><option>Venta</option></select></Field>
-          <Field label="Estado"><select className="fsel" value={af.estado} onChange={e => setAf(p => ({ ...p, estado: e.target.value }))}><option value="">Todos</option><option>En revisión</option><option>Negociando</option><option>Pre-acuerdo</option></select></Field>
-          <Field label="Inquilino"><input className="fsel" placeholder="Nombre..." value={af.inquilino} onChange={e => setAf(p => ({ ...p, inquilino: e.target.value }))} /></Field>
+          <Field label="Tipo"><select className="fsel" value={af.tipo} onChange={e => setAf(p => ({ ...p, tipo: e.target.value }))}><option value="">Todos</option><option>Alquiler</option><option>Venta</option><option>Alquiler / Venta</option></select></Field>
+          <Field label="Estado"><select className="fsel" value={af.estado} onChange={e => setAf(p => ({ ...p, estado: e.target.value }))}><option value="">Todos</option><option>En curso</option><option>Finalista</option><option>Cerrada</option></select></Field>
           <Field label="M² mín."><input className="fsel" type="number" value={af.m2Min} onChange={e => setAf(p => ({ ...p, m2Min: e.target.value }))} /></Field>
           <Field label="M² máx."><input className="fsel" type="number" value={af.m2Max} onChange={e => setAf(p => ({ ...p, m2Max: e.target.value }))} /></Field>
-          {advCount > 0 && <button onClick={() => setAf({ tipo: '', estado: '', inquilino: '', m2Min: '', m2Max: '' })} style={{ fontSize: 10, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontFamily: 'inherit', alignSelf: 'flex-end', marginBottom: 2 }}>✕ Limpiar</button>}
+          {advCount > 0 && <button onClick={() => setAf({ tipo: '', estado: '', m2Min: '', m2Max: '' })} style={{ fontSize: 10, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontFamily: 'inherit', alignSelf: 'flex-end', marginBottom: 2 }}>✕ Limpiar</button>}
         </div>
       )}
       <div className="tbl-wrap">

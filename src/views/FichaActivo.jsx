@@ -1265,7 +1265,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
           pk:  {bg:'#f1f5f9',bd:'#94a3b8',col:'#475569'},
         }
         const typeLabel = (u) => {
-          if(u.type==='vac') return u.oferta ? u.oferta : 'Disponible'
+          if(u.type==='vac') return u.oferta ? u.oferta : ''
           return u.n
         }
         return (
@@ -1399,7 +1399,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                           <div style={{flex:1,background:isTgt?'var(--accent-lt)':'transparent',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,
                             display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,
                             color:isTgt?'var(--accent)':'var(--text4)',gap:5}}>
-                            {isTgt?'⬇ Soltar aquí':'Sin asignación — arrastra un arrendatario o disponible'}
+                            {isTgt?'⬇ Soltar aquí':'Sin asignación — arrastra desde el panel lateral'}
                           </div>
                         ) : (
                           <>
@@ -3638,7 +3638,32 @@ export default function FichaActivo() {
   const saveStackingData = async () => {
     const blds = liveStackingRef.current
     if (!blds || !activo?.ref) return
+
+    // 1. Save visual stacking to activo
     await supabase.from('activos').update({ stacking_data: blds }).eq('ref', activo.ref)
+
+    // 2. If we came from a specific offer, sync asignaciones_stacking
+    const ofertaId = params?.ofertaId
+    if (ofertaId && activo?.id) {
+      await supabase.from('asignaciones_stacking').delete().eq('oferta_id', ofertaId)
+      const assignments = blds.flatMap(b =>
+        (b.arr || []).flatMap(row =>
+          row.units
+            .filter(u => u.type === 'vac' && u.oferta)
+            .map(u => ({
+              activo_id:  activo.id,
+              oferta_id:  ofertaId,
+              edificio_id: b.id,
+              planta_id:  row.p,
+              sup:        u.sup,
+              renta:      u.renta || null,
+            }))
+        )
+      )
+      if (assignments.length > 0) {
+        await supabase.from('asignaciones_stacking').insert(assignments)
+      }
+    }
   }
 
   const addPlaza = () => {
@@ -3794,9 +3819,18 @@ export default function FichaActivo() {
                   <div style={{fontSize:14,fontWeight:600}}>Stacking Plan</div>
                   <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Distribución de usos, propietarios y arrendatarios por planta y edificio</div>
                 </div>
+                {params?.ofertaId && (
+                  <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                    <span style={{fontSize:10,color:'var(--accent)',fontWeight:600,background:'var(--accent-lt)',padding:'3px 8px',borderRadius:10,border:'1px solid var(--accent-bd)'}}>Asignando oferta</span>
+                    <button className="ab-btn save" style={{fontSize:11}} onClick={async () => { await saveStackingData(); navigate('ofertas') }}>
+                      💾 Guardar asignación y volver
+                    </button>
+                  </div>
+                )}
               </div>
               <StackingPlan
-                initBuildings={isNew ? [] : (activo?.stacking_data?.length > 0 ? activo.stacking_data : (BUILDINGS_BY_ACTIVO[params?.ref] || undefined))}
+                key={activo?.ref || params?.ref || 'stacking'}
+                initBuildings={isNew ? [] : loadingActivo ? undefined : (activo ? (activo.stacking_data?.length > 0 ? activo.stacking_data : []) : (BUILDINGS_BY_ACTIVO[params?.ref] || []))}
                 onCountChange={setLiveEdifCount}
                 onOwnersChange={setLiveOwnerCount}
                 onBuildingsChange={(blds) => { liveStackingRef.current = blds }}

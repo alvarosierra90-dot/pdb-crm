@@ -323,7 +323,7 @@ export default function FichaOferta() {
         <button className="ab-btn">Desactivar</button>
         <div className="ab-sep" />
         <button className="ab-btn blue" disabled={!activoSeleccionado}
-          onClick={() => navigate('ficha-activo', { ref: activoSeleccionado?.ref, tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose })}>
+          onClick={() => navigate('ficha-activo', { ref: activoSeleccionado?.ref, tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose, ofertaId: oferta?.id })}>
           📊 Stacking plan
         </button>
         <button className="ab-btn">📄 Crear ficha</button>
@@ -626,7 +626,7 @@ export default function FichaOferta() {
                           ))}
                         </div>
                         <button className="ab-btn blue" style={{ fontSize:10 }} disabled={!activoSeleccionado}
-                          onClick={() => navigate('ficha-activo', { ref: activoSeleccionado?.ref, tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose })}>
+                          onClick={() => navigate('ficha-activo', { ref: activoSeleccionado?.ref, tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose, ofertaId: oferta?.id })}>
                           📊 Abrir Stacking Plan →
                         </button>
                       </div>
@@ -706,7 +706,7 @@ export default function FichaOferta() {
                               <div style={{ fontSize:11 }}>Abre el Stacking Plan y arrastra esta oferta sobre las plantas disponibles.</div>
                               {activoSeleccionado && (
                                 <button className="ab-btn blue" style={{ marginTop:12, fontSize:11 }}
-                                  onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref, tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose })}>
+                                  onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref, tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose, ofertaId: oferta?.id })}>
                                   📊 Abrir Stacking Plan →
                                 </button>
                               )}
