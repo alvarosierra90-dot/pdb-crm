@@ -557,7 +557,7 @@ const INIT_BUILDINGS = [
 ]
 
 
-function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal' }) {
+function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal' }) {
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
   const [setupForm, setSetupForm]       = useState({ label:'', sobre:'5', bajo:'1', sup:'1500' })
@@ -586,6 +586,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwner
     const names = new Set(buildings.flatMap(b=>(b.prop||[]).flatMap(r=>r.units.map(u=>u.n))))
     onOwnersChange(names.size)
   }, [buildings])
+  useEffect(() => { if (onBuildingsChange) onBuildingsChange(buildings) }, [buildings])
 
   const edif = buildings.find(b=>b.id===edifId) || buildings[0] || { id:'', label:'', floors:[], prop:[], arr:[], supPlantaTipo:0 }
   const usoInfo  = (id) => USOS_PPAL.find(u=>u.id===id) || UA_ALL.find(u=>u.id===id) || {label:id,color:'#94a3b8',bg:'#f1f5f9',bd:'#cbd5e1'}
@@ -3561,6 +3562,7 @@ export default function FichaActivo() {
   const [liveOwnerCount,  setLiveOwnerCount]  = useState(null) // unique propietarios assigned in stacking plan
   const infoSaveRef = useRef(null) // ref to TabInfo's handleSave
   const infoSyncRef = useRef(null) // ref to TabInfo's syncCatastro (available for future use)
+  const liveStackingRef = useRef(null) // latest buildings state from StackingPlan
 
   useEffect(() => {
     if (!params?.ref) return
@@ -3634,6 +3636,12 @@ export default function FichaActivo() {
     navigate('ficha-activo', { ref })
   }
 
+  const saveStackingData = async () => {
+    const blds = liveStackingRef.current
+    if (!blds || !activo?.ref) return
+    await supabase.from('activos').update({ stacking_data: blds }).eq('ref', activo.ref)
+  }
+
   const addPlaza = () => {
     const c = parseInt(newPlaza.cantidad)||1
     if(c<=0) return
@@ -3657,8 +3665,8 @@ export default function FichaActivo() {
           </>
         ) : (
           <>
-            <button className="ab-btn save" onClick={() => infoSaveRef.current?.()}>💾 Guardar</button>
-            <button className="ab-btn" onClick={async () => { await infoSaveRef.current?.(); navigate('activos', { highlightRef: activo?.ref ?? params?.ref }) }}>Guardar y cerrar</button>
+            <button className="ab-btn save" onClick={async () => { await infoSaveRef.current?.(); await saveStackingData() }}>💾 Guardar</button>
+            <button className="ab-btn" onClick={async () => { await infoSaveRef.current?.(); await saveStackingData(); navigate('activos', { highlightRef: activo?.ref ?? params?.ref }) }}>Guardar y cerrar</button>
             <div className="ab-sep"/>
             <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
           </>
@@ -3789,9 +3797,10 @@ export default function FichaActivo() {
                 </div>
               </div>
               <StackingPlan
-                initBuildings={isNew ? [] : (BUILDINGS_BY_ACTIVO[params?.ref] || undefined)}
+                initBuildings={isNew ? [] : (activo?.stacking_data?.length > 0 ? activo.stacking_data : (BUILDINGS_BY_ACTIVO[params?.ref] || undefined))}
                 onCountChange={setLiveEdifCount}
                 onOwnersChange={setLiveOwnerCount}
+                onBuildingsChange={(blds) => { liveStackingRef.current = blds }}
                 extraOwners={propietariosReg.map(p=>p.propietario)}
                 extraTenants={arrendatariosReg.map(a=>a.tenant)}
                 onAddOwner={()=>setShowNuevoProp(true)}

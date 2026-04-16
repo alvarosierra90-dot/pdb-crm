@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
+import { supabase } from '../lib/supabase'
 
 const TABS = ['of-info','of-espacios','of-condiciones','of-caract','of-docs','of-web','of-desc','of-seg','of-ficha','of-conf']
 const TAB_LABELS = ['Información oferta','Espacios comerciales','Condiciones','Características','Documentos','Contenido web','Descriptivo','Seguimiento comercial','Crear ficha','🔒 Confidencialidad']
@@ -78,13 +79,19 @@ function ReadonlyPill({ value }) {
 }
 
 export default function FichaOferta() {
-  const { navigate } = useNav()
+  const { navigate, params } = useNav()
   const [activeTab, setActiveTab] = useState('of-info')
   const [confidential, setConfidential] = useState(false)
   const [authorizedUsers, setAuthorizedUsers] = useState(USERS_INIT)
   const [addingUser, setAddingUser] = useState(false)
   const [newUser, setNewUser] = useState('')
   const [showTarea, setShowTarea] = useState(false)
+
+  // DB state
+  const [oferta, setOferta]     = useState(null)   // loaded from Supabase
+  const [saving, setSaving]     = useState(false)
+  const [saveOk, setSaveOk]     = useState(false)
+  const [saveErr, setSaveErr]   = useState('')
 
   // Tab 1
   const [tipoComercializacion, setTipoComercializacion] = useState('Mandato Savills')
@@ -155,16 +162,128 @@ export default function FichaOferta() {
 
   const tipologiaOpciones = TIPOLOGIA_MAP[ASSET.usoPrincipal] || []
 
+  // ── Load oferta from Supabase ──────────────────────────────────
+  useEffect(() => {
+    if (!params?.ofertaRef) return
+    supabase.from('ofertas').select('*').eq('ref', params.ofertaRef).single()
+      .then(({ data }) => {
+        if (!data) return
+        setOferta(data)
+        if (data.tipo_comercializacion) setTipoComercializacion(data.tipo_comercializacion)
+        if (data.tipologia)             setTipologia(data.tipologia)
+        if (data.estado_espacio)        setEstadoEspacio(data.estado_espacio)
+        if (data.tipo_operacion)        setTipoOperacion(data.tipo_operacion)
+        if (data.origen_oferta)         setOrigenOferta(data.origen_oferta)
+        if (data.modalidad_visita)      setModalidadVisita(data.modalidad_visita)
+        if (data.confidencial != null)  setConfidential(data.confidencial)
+        if (data.equipo)                setEquipoMembers(data.equipo)
+        if (data.colaboradores)         setColaboradores(data.colaboradores)
+      })
+    // Load desglose
+    supabase.from('desglose_ofertas').select('*').eq('oferta_id', params.ofertaRef).order('orden')
+      .then(({ data }) => {
+        if (data?.length > 0) {
+          setOfertasDesglose(data.map(d => ({ id: d.id, nombre: d.nombre, cuenta: d.cuenta||'', divisible: d.divisible, cargasM2: d.cargas_m2||0 })))
+          setNextOfertaId(data.length + 1)
+        }
+      })
+    // Load plazas
+    supabase.from('plazas_oferta').select('*').eq('oferta_id', params.ofertaRef)
+      .then(({ data }) => {
+        if (data?.length > 0) {
+          setPlazas(data.map((p, i) => ({ id: i + 1, intExt: p.int_ext, tipo: p.tipo, formato: p.formato, cantidad: p.cantidad, renta: p.renta||'', precio: p.precio||'' })))
+          setNextPlazaId(data.length + 1)
+        }
+      })
+    // Load caracteristicas
+    supabase.from('caracteristicas_oferta').select('*').eq('oferta_id', params.ofertaRef)
+      .then(({ data }) => {
+        if (data?.length > 0) {
+          setCaracteristicas(data.map(c => ({ id: c.caracteristica_origen_id, tipo: c.tipo, detalle: c.detalle, año: c.anno, comentario: c.comentario, incluir: c.incluir })))
+        }
+      })
+  }, [params?.ofertaRef])
+
+  // ── Save oferta to Supabase ────────────────────────────────────
+  const handleSave = async () => {
+    if (!oferta?.id) return
+    setSaving(true); setSaveErr(''); setSaveOk(false)
+    const { error } = await supabase.from('ofertas').update({
+      tipo_comercializacion: tipoComercializacion || null,
+      tipologia:             tipologia            || null,
+      estado_espacio:        estadoEspacio        || null,
+      tipo_operacion:        tipoOperacion        || null,
+      origen_oferta:         origenOferta         || null,
+      modalidad_visita:      modalidadVisita      || null,
+      confidencial,
+      equipo:                equipoMembers,
+      colaboradores,
+    }).eq('id', oferta.id)
+    if (error) { setSaveErr(error.message); setSaving(false); return }
+
+    // Upsert desglose_ofertas
+    if (ofertasDesglose.length > 0) {
+      // Delete old + reinsert (simpler than diff)
+      await supabase.from('desglose_ofertas').delete().eq('oferta_id', oferta.id)
+      await supabase.from('desglose_ofertas').insert(
+        ofertasDesglose.map((d, i) => ({
+          oferta_id: oferta.id,
+          nombre:    d.nombre,
+          cuenta:    d.cuenta || null,
+          divisible: d.divisible,
+          cargas_m2: d.cargasM2 || 0,
+          orden:     i,
+        }))
+      )
+    }
+
+    // Upsert plazas_oferta
+    await supabase.from('plazas_oferta').delete().eq('oferta_id', oferta.id)
+    if (plazas.length > 0) {
+      await supabase.from('plazas_oferta').insert(
+        plazas.map(p => ({
+          oferta_id: oferta.id,
+          int_ext:   p.intExt,
+          tipo:      p.tipo,
+          formato:   p.formato,
+          cantidad:  p.cantidad,
+          renta:     p.renta ? parseFloat(p.renta) : null,
+          precio:    p.precio ? parseFloat(p.precio) : null,
+        }))
+      )
+    }
+
+    // Upsert caracteristicas_oferta
+    if (caracteristicas) {
+      await supabase.from('caracteristicas_oferta').delete().eq('oferta_id', oferta.id)
+      await supabase.from('caracteristicas_oferta').insert(
+        caracteristicas.map(c => ({
+          oferta_id:                oferta.id,
+          caracteristica_origen_id: c.id,
+          tipo:                     c.tipo,
+          detalle:                  c.detalle,
+          anno:                     c.año || null,
+          comentario:               c.comentario || null,
+          incluir:                  c.incluir,
+        }))
+      )
+    }
+
+    setSaving(false); setSaveOk(true); setTimeout(() => setSaveOk(false), 3000)
+  }
+
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
       {/* Action bar */}
       <div className="action-bar">
-        <button className="ab-btn save">💾 Guardar</button>
-        <button className="ab-btn">Guardar y cerrar</button>
+        <button className="ab-btn save" onClick={handleSave} disabled={saving}>{saving ? 'Guardando...' : '💾 Guardar'}</button>
+        <button className="ab-btn" onClick={async () => { await handleSave(); navigate('ofertas') }}>Guardar y cerrar</button>
+        {saveOk  && <span style={{fontSize:11,color:'var(--green)',marginLeft:8}}>✓ Guardado</span>}
+        {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
         <button className="ab-btn">Nuevo</button>
         <button className="ab-btn">Desactivar</button>
         <div className="ab-sep" />
-        <button className="ab-btn blue" onClick={() => navigate('ficha-activo', { ref:'ALC-OF-00231', tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose })}>
+        <button className="ab-btn blue" onClick={() => navigate('ficha-activo', { ref: oferta?.activo_ref || 'ALC-OF-00231', tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose })}>
           📊 Stacking plan
         </button>
         <button className="ab-btn">📄 Crear ficha</button>
