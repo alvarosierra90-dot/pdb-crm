@@ -496,12 +496,12 @@ const INIT_BUILDINGS = [
       {p:'S2',sup:1500,units:[{n:'Barings Core Spain SOCIMI',sup:1500}]},
     ],
     arr:[
-      {p:'P5',sup:1500,units:[{type:'ten',n:'Celonis',sup:1202,brk:'Oct 2025',brkColor:'var(--amber)'},{type:'vac',oferta:'OLB001',sup:298}]},
+      {p:'P5',sup:1500,units:[{type:'ten',n:'Celonis',sup:1202,brk:'Oct 2025',brkColor:'var(--amber)'},{type:'vac',oferta:null,sup:298}]},
       {p:'P4',sup:1500,units:[{type:'ten',n:'Celonis',sup:1500,brk:'Oct 2025',brkColor:'var(--amber)'}]},
-      {p:'P3',sup:1500,units:[{type:'ten',n:'Repsol',sup:767,brk:'Jun 2027',brkColor:'var(--green)'},{type:'vac',oferta:'OLB002',sup:733}]},
-      {p:'P2',sup:1500,units:[{type:'ten',n:'Repsol',sup:1200,brk:'Jun 2027',brkColor:'var(--green)'},{type:'vac',oferta:'OLB002',sup:300}]},
+      {p:'P3',sup:1500,units:[{type:'ten',n:'Repsol',sup:767,brk:'Jun 2027',brkColor:'var(--green)'},{type:'vac',oferta:null,sup:733}]},
+      {p:'P2',sup:1500,units:[{type:'ten',n:'Repsol',sup:1200,brk:'Jun 2027',brkColor:'var(--green)'},{type:'vac',oferta:null,sup:300}]},
       {p:'P1',sup:1500,units:[{type:'ten',n:'Desconocido',sup:1500,brk:'Ene 2026',brkColor:'var(--red)'}]},
-      {p:'PB',sup:1500,units:[{type:'rt',n:'Cafetería',sup:380,brk:'Ene 2029',brkColor:'var(--text4)'},{type:'com',n:'Hall / Común',sup:220},{type:'vac',oferta:'OLB001',sup:900}]},
+      {p:'PB',sup:1500,units:[{type:'rt',n:'Cafetería',sup:380,brk:'Ene 2029',brkColor:'var(--text4)'},{type:'com',n:'Hall / Común',sup:220},{type:'vac',oferta:null,sup:900}]},
       {p:'S1',sup:1500,units:[{type:'pk',n:'Parking · 778 plazas',sup:1500,nota:'Nivel -1'}]},
       {p:'S2',sup:1500,units:[{type:'pk',n:'Parking · 52 plazas',sup:1500,nota:'Nivel -2'}]},
     ],
@@ -575,6 +575,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwner
   const [uaOpen, setUaOpen]             = useState(true)
   const [editPA, setEditPA]             = useState(null)  // {layer:'prop'|'arr', rowP, idx}
   const [editPASup, setEditPASup]       = useState('')
+  const [editPARenta, setEditPARenta]   = useState('')
   const [editFloorSup, setEditFloorSup]       = useState(null) // floorId — editable only from principal view
   const [editFloorSupVal, setEditFloorSupVal] = useState('')
 
@@ -642,12 +643,16 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwner
     if(!editPA) return
     const val = parseFloat(editPASup)
     if(isNaN(val)||val<=0) return
+    const renta = parseFloat(editPARenta)
     updBuilding(b=>({...b, [editPA.layer]: b[editPA.layer].map(row=>{
       if(row.p!==editPA.rowP) return row
       const units=[...row.units]
-      units[editPA.idx]={...units[editPA.idx], sup:val}
+      const upd = {...units[editPA.idx], sup:val}
+      if(!isNaN(renta) && renta>=0) upd.renta = renta
+      units[editPA.idx] = upd
       return {...row, units}
     })}))
+    setEditPA(null)
     setEditPA(null); setEditPASup('')
   }
 
@@ -1367,8 +1372,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwner
                         dropArr({type:'ten',n:dragging.slice(4)})
                       } else if(dragging.startsWith('ofr:')){
                         const ref=dragging.slice(4)
-                        const ofr=extraOfertas.find(o=>o.nombre===ref)
-                        dropArr({type:'vac',oferta:ref,sup:ofr?.sup??0})
+                        dropArr({type:'vac',oferta:ref,sup:floor.sup,renta:0})
                       }
                       setDragging(null)
                     }}
@@ -1407,24 +1411,40 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwner
                               return (
                                 <div key={i}
                                   title={`${label} · ${u.sup.toLocaleString('es-ES')} m²${u.brk?` · break ${u.brk}`:''}`}
-                                  onClick={()=>{if(isEd)setEditPA(null);else{setEditPA({layer:'arr',rowP:floor.id,idx:i});setEditPASup(String(u.sup))}}}
+                                  onClick={()=>{if(isEd)setEditPA(null);else{setEditPA({layer:'arr',rowP:floor.id,idx:i});setEditPASup(String(u.sup));setEditPARenta(String(u.renta??''))}}}
                                   style={{position:'relative',width:wpct,background:bg,border:`1px solid ${bd}`,borderRadius:4,
                                     display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
                                     cursor:'pointer',flexShrink:0,overflow:'visible',padding:'4px 6px',gap:2,minHeight:42}}
                                 >
                                   {isEd ? (
-                                    <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
-                                      <input type="number" value={editPASup} onChange={e=>setEditPASup(e.target.value)} autoFocus
-                                        onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
-                                        style={{width:58,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
-                                      <button onClick={savePASup} style={{padding:'2px 4px',background:col,color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓</button>
+                                    <div style={{display:'flex',flexDirection:'column',gap:3,padding:'2px 4px'}} onClick={e=>e.stopPropagation()}>
+                                      <div style={{display:'flex',gap:2,alignItems:'center'}}>
+                                        <input type="number" value={editPASup} onChange={e=>setEditPASup(e.target.value)} autoFocus
+                                          onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
+                                          style={{width:56,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                        <span style={{fontSize:8,color:col}}>m²</span>
+                                      </div>
+                                      {u.type==='vac'&&u.oferta&&(
+                                        <div style={{display:'flex',gap:2,alignItems:'center'}}>
+                                          <input type="number" step="0.01" value={editPARenta} onChange={e=>setEditPARenta(e.target.value)}
+                                            onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
+                                            placeholder="€/m²"
+                                            style={{width:56,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                          <span style={{fontSize:8,color:col}}>€/m²</span>
+                                        </div>
+                                      )}
+                                      <button onClick={savePASup} style={{padding:'2px 4px',background:col,color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓ Guardar</button>
                                     </div>
                                   ) : (
                                     <>
                                       <button onClick={e=>{e.stopPropagation();removeArrUnit(floor.id,i)}}
                                         style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
                                       <span style={{fontSize:10,fontWeight:700,color:col,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>{label}</span>
-                                      <span style={{fontSize:9,color:col,opacity:.75,fontFamily:'var(--mono)',fontWeight:600}}>{u.sup.toLocaleString('es-ES')} m²</span>
+                                      {u.type==='vac'&&u.oferta&&(()=>{
+                                        const mo=extraOfertas.find(o=>o.nombre===u.oferta)
+                                        return mo?.cuenta ? <span style={{fontSize:9,color:col,opacity:.65,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>{mo.cuenta}</span> : null
+                                      })()}
+                                      <span style={{fontSize:9,color:col,opacity:.75,fontFamily:'var(--mono)',fontWeight:600}}>{u.sup.toLocaleString('es-ES')} m²{u.renta>0?` · ${u.renta}€/m²`:''}</span>
                                       {u.brk&&<span style={{fontSize:8,color:u.brkColor||col,fontWeight:600,whiteSpace:'nowrap'}}>⊙ {u.brk}</span>}
                                       {u.nota&&<span style={{fontSize:8,color:col,opacity:.6}}>{u.nota}</span>}
                                     </>
@@ -1449,6 +1469,48 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, extraOwner
                   </div>
                 )
               })}
+              {/* ── Resumen Espacios asignados (auto-sync) ── */}
+              {extraOfertas.length > 0 && (()=>{
+                const assigned = (edif.arr||[]).flatMap(r=>
+                  r.units.filter(u=>u.type==='vac'&&u.oferta).map(u=>({planta:r.p,oferta:u.oferta,sup:u.sup,renta:u.renta||0}))
+                )
+                if(!assigned.length) return null
+                const totalSup=assigned.reduce((s,a)=>s+a.sup,0)
+                const totalRenta=assigned.filter(a=>a.renta>0).reduce((s,a)=>s+a.renta*a.sup,0)
+                return (
+                  <div style={{margin:'12px 8px 8px',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',overflow:'hidden'}}>
+                    <div style={{padding:'7px 12px',background:'var(--accent-lt)',borderBottom:'1px solid var(--accent-bd)',display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{fontSize:10,fontWeight:700,color:'var(--accent)',textTransform:'uppercase',letterSpacing:'.04em'}}>Espacios asignados</span>
+                      <span style={{fontSize:9,background:'var(--green-lt)',color:'var(--green)',border:'1px solid var(--green-bd)',padding:'1px 6px',borderRadius:10,fontWeight:700}}>ↈ Sincronizado</span>
+                      <span style={{marginLeft:'auto',fontSize:10,fontWeight:700,fontFamily:'var(--mono)',color:'var(--text2)'}}>{totalSup.toLocaleString()} m²</span>
+                    </div>
+                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                      <thead><tr>
+                        {['Planta','Oferta','Superficie','Renta €/m²/mes','Renta mensual'].map(h=>
+                          <th key={h} style={{padding:'5px 10px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                        )}
+                      </tr></thead>
+                      <tbody>
+                        {assigned.map((a,i)=>(
+                          <tr key={i} style={{borderBottom:'1px solid var(--border)'}}>
+                            <td style={{padding:'5px 10px'}}><span className="tag tag-gray" style={{fontSize:9}}>{a.planta}</span></td>
+                            <td style={{padding:'5px 10px',color:'var(--accent)',fontSize:10,fontWeight:500}}>{a.oferta}</td>
+                            <td style={{padding:'5px 10px',fontFamily:'var(--mono)',fontWeight:600}}>{a.sup.toLocaleString()}</td>
+                            <td style={{padding:'5px 10px',fontFamily:'var(--mono)',color:a.renta?'var(--text2)':'var(--text4)',fontStyle:a.renta?'normal':'italic'}}>{a.renta?`${a.renta} €`:'— clic para editar'}</td>
+                            <td style={{padding:'5px 10px',fontFamily:'var(--mono)',fontWeight:600,color:'var(--green)'}}>{a.renta?`${(a.renta*a.sup).toLocaleString(undefined,{maximumFractionDigits:0})} €`:'—'}</td>
+                          </tr>
+                        ))}
+                        <tr style={{background:'var(--gray-lt)',borderTop:'2px solid var(--border)'}}>
+                          <td colSpan={2} style={{padding:'5px 10px',fontSize:10,fontWeight:700,color:'var(--text3)'}}>TOTAL</td>
+                          <td style={{padding:'5px 10px',fontFamily:'var(--mono)',fontWeight:800}}>{totalSup.toLocaleString()}</td>
+                          <td/>
+                          <td style={{padding:'5px 10px',fontFamily:'var(--mono)',fontWeight:800,color:'var(--green)'}}>{totalRenta?`${totalRenta.toLocaleString(undefined,{maximumFractionDigits:0})} €`:'—'}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         )

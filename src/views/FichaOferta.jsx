@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 
-const TABS = ['of-info','of-contacto','of-espacios','of-plazas','of-condiciones','of-caract','of-docs','of-web','of-desc','of-seg','of-ficha','of-conf']
-const TAB_LABELS = ['Información oferta','Datos de contacto','Espacios comerciales','Plazas de aparcamiento','Condiciones','Características','Documentos','Contenido web','Descriptivo','Seguimiento comercial','Crear ficha','🔒 Confidencialidad']
+const TABS = ['of-info','of-espacios','of-condiciones','of-caract','of-docs','of-web','of-desc','of-seg','of-ficha','of-conf']
+const TAB_LABELS = ['Información oferta','Espacios comerciales','Condiciones','Características','Documentos','Contenido web','Descriptivo','Seguimiento comercial','Crear ficha','🔒 Confidencialidad']
 
 const ASSET = {
   nombre: 'Albatros — C. Anabel Segura 9-11, Alcobendas',
@@ -91,11 +91,17 @@ export default function FichaOferta() {
   const [supAprox, setSupAprox] = useState(false)
   const [plantaTipo, setPlantaTipo] = useState(2790)
   const [ofertasDesglose, setOfertasDesglose] = useState([
-    { id:1, nombre:'Oferta 1', divisible:true, cargasM2:3.01 },
+    { id:1, nombre:'Oferta 1', cuenta:'', divisible:true, cargasM2:3.01 },
   ])
   const [nextOfertaId, setNextOfertaId] = useState(2)
   const [editNombreId, setEditNombreId] = useState(null)
   const [editNombreVal, setEditNombreVal] = useState('')
+
+  // Plazas de aparcamiento (dentro de Espacios comerciales)
+  const [plazas, setPlazas] = useState([])
+  const [nextPlazaId, setNextPlazaId] = useState(1)
+  const [addingPlaza, setAddingPlaza] = useState(false)
+  const [newPlaza, setNewPlaza] = useState({ intExt:'Interior', tipo:'Coches', formato:'Simple', cantidad:1, renta:'', precio:'' })
 
   // Espacios comercializables (mock — se actualizan desde el stacking plan del activo)
   const espaciosComercializables = [
@@ -107,7 +113,7 @@ export default function FichaOferta() {
 
   function addOferta() {
     const id = nextOfertaId
-    setOfertasDesglose(prev => [...prev, { id, nombre:`Oferta ${id}`, divisible:divisibleGlobal, cargasM2:3.01 }])
+    setOfertasDesglose(prev => [...prev, { id, nombre:`Oferta ${id}`, cuenta:'', divisible:divisibleGlobal, cargasM2:3.01 }])
     setNextOfertaId(id + 1)
   }
 
@@ -260,111 +266,102 @@ export default function FichaOferta() {
                         <div><FieldLbl>Imágenes · Vinculadas al activo</FieldLbl><div className="img-strip"><div className="img-thumb principal">🏢</div><div className="img-thumb">🏙</div><div className="img-thumb">🖼</div></div></div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ── TAB 2: Datos de contacto ── */}
-              {activeTab==='of-contacto' && (
-                <div className="tab-content active">
-                  <div className="info-pad">
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
-                      {/* Propietario */}
-                      <div className="info-block">
-                        <div className="ib-title">🏠 PROPIETARIO</div>
-                        <div style={{ fontSize:9, color:'var(--text4)', marginBottom:8, fontWeight:600, letterSpacing:'.04em' }}>Sincronizado desde el activo</div>
-                        <div style={{ fontSize:12, fontWeight:600, marginBottom:2 }}>{ASSET.propietario.sociedad}</div>
-                        <div style={{ fontSize:11, color:'var(--accent)', fontWeight:500, marginBottom:8 }}>{ASSET.propietario.contacto}</div>
-                        <div style={{ background:'var(--gray-lt)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:10, fontSize:11, display:'flex', flexDirection:'column', gap:4 }}>
-                          <div>📞 {ASSET.propietario.telFijo}</div>
-                          <div>📱 {ASSET.propietario.telMovil}</div>
-                          <div style={{ color:'var(--accent)' }}>✉ {ASSET.propietario.email}</div>
-                        </div>
-                        <div style={{ marginTop:8 }}><span style={{ fontSize:9, background:'var(--green-lt)', color:'var(--green)', border:'1px solid var(--green-bd)', padding:'2px 7px', borderRadius:10, fontWeight:700 }}>ↈ Sincronizado</span></div>
-                      </div>
-                      {/* Colaboradores */}
-                      <div className="info-block">
-                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-                          <div className="ib-title" style={{ marginBottom:0 }}>🤝 COLABORADORES</div>
-                          {tipoComercializacion==='Otras consultoras' && <button className="ab-btn blue" style={{ fontSize:10, padding:'2px 8px' }} onClick={() => setAddingColab(true)}>+ Añadir</button>}
-                        </div>
-                        {tipoComercializacion!=='Otras consultoras'
-                          ? <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Selecciona "Otras consultoras" en Información general para activar.</div>
-                          : colaboradores.length===0 && !addingColab
-                            ? <button className="ab-btn" style={{ fontSize:10 }} onClick={() => setAddingColab(true)}>+ Añadir consultora</button>
-                            : null
-                        }
-                        {colaboradores.map((c,i) => (
-                          <div key={i} style={{ border:'1px solid var(--border)', borderRadius:'var(--r)', padding:10, marginBottom:8, fontSize:11 }}>
-                            <div style={{ fontWeight:600 }}>{c.empresa}</div>
-                            {c.contacto && <div style={{ color:'var(--accent)' }}>{c.contacto}</div>}
-                            <button onClick={() => setColaboradores(prev => prev.filter((_,j)=>j!==i))} style={{ fontSize:10, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'4px 0', fontFamily:'inherit' }}>✕ Quitar</button>
+                    {/* ── Datos de contacto ── */}
+                    <div style={{ marginTop:18, borderTop:'1px solid var(--border)', paddingTop:14 }}>
+                      <div style={{ fontSize:11, fontWeight:700, marginBottom:10, color:'var(--text2)' }}>Datos de contacto</div>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
+                        <div className="info-block">
+                          <div className="ib-title">🏠 PROPIETARIO</div>
+                          <div style={{ fontSize:9, color:'var(--text4)', marginBottom:8, fontWeight:600, letterSpacing:'.04em' }}>Sincronizado desde el activo</div>
+                          <div style={{ fontSize:12, fontWeight:600, marginBottom:2 }}>{ASSET.propietario.sociedad}</div>
+                          <div style={{ fontSize:11, color:'var(--accent)', fontWeight:500, marginBottom:8 }}>{ASSET.propietario.contacto}</div>
+                          <div style={{ background:'var(--gray-lt)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:10, fontSize:11, display:'flex', flexDirection:'column', gap:4 }}>
+                            <div>📞 {ASSET.propietario.telFijo}</div>
+                            <div>📱 {ASSET.propietario.telMovil}</div>
+                            <div style={{ color:'var(--accent)' }}>✉ {ASSET.propietario.email}</div>
                           </div>
-                        ))}
-                        {addingColab && (
-                          <div style={{ border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', borderRadius:'var(--r)', padding:12 }}>
-                            <div style={{ fontSize:11, fontWeight:600, marginBottom:8 }}>Añadir consultora</div>
-                            <div style={{ marginBottom:7 }}>
-                              <FieldLbl>Empresa</FieldLbl>
-                              <select className="fsel" style={{ width:'100%' }} value={newColabEmpresa} onChange={e => setNewColabEmpresa(e.target.value)}>
-                                <option value="">Buscar...</option>
-                                {['CBRE','JLL','Cushman & Wakefield','Colliers','Knight Frank','BNP Paribas RE'].map(e => <option key={e}>{e}</option>)}
-                              </select>
-                            </div>
-                            <div style={{ marginBottom:10 }}><FieldLbl>Contacto</FieldLbl><input className="of-inp" placeholder="Buscar..." value={newColabContacto} onChange={e => setNewColabContacto(e.target.value)} /></div>
-                            <div style={{ display:'flex', gap:6 }}>
-                              <button className="ab-btn save" onClick={() => { if(!newColabEmpresa)return; setColaboradores(prev=>[...prev,{empresa:newColabEmpresa,contacto:newColabContacto}]); setAddingColab(false); setNewColabEmpresa(''); setNewColabContacto('') }}>Añadir</button>
-                              <button className="ab-btn" onClick={() => { setAddingColab(false); setNewColabEmpresa(''); setNewColabContacto('') }}>Cancelar</button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      {/* Equipo Savills */}
-                      <div className="info-block">
-                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-                          <div className="ib-title" style={{ marginBottom:0 }}>👥 EQUIPO SAVILLS</div>
-                          <div style={{ display:'flex', gap:5 }}>
-                            <button className="ab-btn" style={{ fontSize:9, padding:'2px 7px' }} onClick={() => setAddingMiembro(true)}>+ Miembro</button>
-                            <button className="ab-btn" style={{ fontSize:9, padding:'2px 7px' }}>+ Equipo</button>
-                          </div>
+                          <div style={{ marginTop:8 }}><span style={{ fontSize:9, background:'var(--green-lt)', color:'var(--green)', border:'1px solid var(--green-bd)', padding:'2px 7px', borderRadius:10, fontWeight:700 }}>ↈ Sincronizado</span></div>
                         </div>
-                        <div style={{ fontSize:9, color:'var(--amber)', background:'var(--amber-lt)', border:'1px solid var(--amber-bd)', borderRadius:4, padding:'4px 8px', marginBottom:10, fontWeight:600 }}>Solo editable por creador o manager</div>
-                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                          {equipoMembers.map((m,i) => (
-                            <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                              <div style={{ width:28, height:28, borderRadius:'50%', background:m.bg, color:m.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>{m.initials}</div>
-                              <div style={{ flex:1 }}><div style={{ fontSize:11, fontWeight:600 }}>{m.name}</div><div style={{ fontSize:10, color:'var(--text3)' }}>{m.team}</div></div>
-                              {m.owner ? <span className="tag tag-blue" style={{ fontSize:9 }}>Responsable</span>
-                                : <button onClick={() => setEquipoMembers(prev=>prev.filter((_,j)=>j!==i))} style={{ fontSize:10, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 4px', fontFamily:'inherit' }}>✕</button>}
+                        <div className="info-block">
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                            <div className="ib-title" style={{ marginBottom:0 }}>🤝 COLABORADORES</div>
+                            {tipoComercializacion==='Otras consultoras' && <button className="ab-btn blue" style={{ fontSize:10, padding:'2px 8px' }} onClick={() => setAddingColab(true)}>+ Añadir</button>}
+                          </div>
+                          {tipoComercializacion!=='Otras consultoras'
+                            ? <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Selecciona "Otras consultoras" para activar.</div>
+                            : colaboradores.length===0 && !addingColab
+                              ? <button className="ab-btn" style={{ fontSize:10 }} onClick={() => setAddingColab(true)}>+ Añadir consultora</button>
+                              : null
+                          }
+                          {colaboradores.map((c,i) => (
+                            <div key={i} style={{ border:'1px solid var(--border)', borderRadius:'var(--r)', padding:10, marginBottom:8, fontSize:11 }}>
+                              <div style={{ fontWeight:600 }}>{c.empresa}</div>
+                              {c.contacto && <div style={{ color:'var(--accent)' }}>{c.contacto}</div>}
+                              <button onClick={() => setColaboradores(prev => prev.filter((_,j)=>j!==i))} style={{ fontSize:10, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'4px 0', fontFamily:'inherit' }}>✕ Quitar</button>
                             </div>
                           ))}
+                          {addingColab && (
+                            <div style={{ border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', borderRadius:'var(--r)', padding:12 }}>
+                              <div style={{ marginBottom:7 }}><FieldLbl>Empresa</FieldLbl>
+                                <select className="fsel" style={{ width:'100%' }} value={newColabEmpresa} onChange={e => setNewColabEmpresa(e.target.value)}>
+                                  <option value="">Buscar...</option>
+                                  {['CBRE','JLL','Cushman & Wakefield','Colliers','Knight Frank','BNP Paribas RE'].map(e => <option key={e}>{e}</option>)}
+                                </select>
+                              </div>
+                              <div style={{ marginBottom:10 }}><FieldLbl>Contacto</FieldLbl><input className="of-inp" placeholder="Buscar..." value={newColabContacto} onChange={e => setNewColabContacto(e.target.value)} /></div>
+                              <div style={{ display:'flex', gap:6 }}>
+                                <button className="ab-btn save" onClick={() => { if(!newColabEmpresa)return; setColaboradores(prev=>[...prev,{empresa:newColabEmpresa,contacto:newColabContacto}]); setAddingColab(false); setNewColabEmpresa(''); setNewColabContacto('') }}>Añadir</button>
+                                <button className="ab-btn" onClick={() => { setAddingColab(false); setNewColabEmpresa(''); setNewColabContacto('') }}>Cancelar</button>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        {addingMiembro && (
-                          <div style={{ border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', borderRadius:'var(--r)', padding:10, marginTop:8 }}>
-                            <FieldLbl>Usuario</FieldLbl>
-                            <select className="fsel" style={{ width:'100%', marginBottom:8 }} value={newMiembro} onChange={e => setNewMiembro(e.target.value)}>
-                              <option value="">Seleccionar...</option>
-                              {['GOMEZ Ignacio · Leasing Oficinas MAD','García Marta · Capital Markets MAD','López Carmen · Valoraciones MAD','Martínez Rosa · Retail MAD'].map(u => <option key={u}>{u}</option>)}
-                            </select>
-                            <div style={{ display:'flex', gap:6 }}>
-                              <button className="ab-btn save" style={{ fontSize:10 }} onClick={() => {
-                                if(!newMiembro)return
-                                const [nameStr,teamStr]=[newMiembro.split('·')[0].trim(),newMiembro.split('·')[1]?.trim()||'']
-                                const ini=nameStr.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
-                                setEquipoMembers(prev=>[...prev,{name:nameStr,team:teamStr,role:'Colaborador',initials:ini,bg:'#f0fdf4',color:'#166534',owner:false}])
-                                setAddingMiembro(false); setNewMiembro('')
-                              }}>Añadir</button>
-                              <button className="ab-btn" style={{ fontSize:10 }} onClick={() => { setAddingMiembro(false); setNewMiembro('') }}>Cancelar</button>
+                        <div className="info-block">
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                            <div className="ib-title" style={{ marginBottom:0 }}>👥 EQUIPO SAVILLS</div>
+                            <div style={{ display:'flex', gap:5 }}>
+                              <button className="ab-btn" style={{ fontSize:9, padding:'2px 7px' }} onClick={() => setAddingMiembro(true)}>+ Miembro</button>
+                              <button className="ab-btn" style={{ fontSize:9, padding:'2px 7px' }}>+ Equipo</button>
                             </div>
                           </div>
-                        )}
+                          <div style={{ fontSize:9, color:'var(--amber)', background:'var(--amber-lt)', border:'1px solid var(--amber-bd)', borderRadius:4, padding:'4px 8px', marginBottom:10, fontWeight:600 }}>Solo editable por creador o manager</div>
+                          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                            {equipoMembers.map((m,i) => (
+                              <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                                <div style={{ width:28, height:28, borderRadius:'50%', background:m.bg, color:m.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>{m.initials}</div>
+                                <div style={{ flex:1 }}><div style={{ fontSize:11, fontWeight:600 }}>{m.name}</div><div style={{ fontSize:10, color:'var(--text3)' }}>{m.team}</div></div>
+                                {m.owner ? <span className="tag tag-blue" style={{ fontSize:9 }}>Responsable</span>
+                                  : <button onClick={() => setEquipoMembers(prev=>prev.filter((_,j)=>j!==i))} style={{ fontSize:10, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 4px', fontFamily:'inherit' }}>✕</button>}
+                              </div>
+                            ))}
+                          </div>
+                          {addingMiembro && (
+                            <div style={{ border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', borderRadius:'var(--r)', padding:10, marginTop:8 }}>
+                              <FieldLbl>Usuario</FieldLbl>
+                              <select className="fsel" style={{ width:'100%', marginBottom:8 }} value={newMiembro} onChange={e => setNewMiembro(e.target.value)}>
+                                <option value="">Seleccionar...</option>
+                                {['GOMEZ Ignacio · Leasing Oficinas MAD','García Marta · Capital Markets MAD','López Carmen · Valoraciones MAD','Martínez Rosa · Retail MAD'].map(u => <option key={u}>{u}</option>)}
+                              </select>
+                              <div style={{ display:'flex', gap:6 }}>
+                                <button className="ab-btn save" style={{ fontSize:10 }} onClick={() => {
+                                  if(!newMiembro)return
+                                  const [nameStr,teamStr]=[newMiembro.split('·')[0].trim(),newMiembro.split('·')[1]?.trim()||'']
+                                  const ini=nameStr.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+                                  setEquipoMembers(prev=>[...prev,{name:nameStr,team:teamStr,role:'Colaborador',initials:ini,bg:'#f0fdf4',color:'#166534',owner:false}])
+                                  setAddingMiembro(false); setNewMiembro('')
+                                }}>Añadir</button>
+                                <button className="ab-btn" style={{ fontSize:10 }} onClick={() => { setAddingMiembro(false); setNewMiembro('') }}>Cancelar</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* ── TAB 3: Espacios comerciales ── */}
+              {/* ── TAB 2: Espacios comerciales ── */}
               {activeTab==='of-espacios' && (
                 <div className="tab-content active">
                   <div className="info-pad">
@@ -411,7 +408,7 @@ export default function FichaOferta() {
                           </div>
                           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
                             <thead><tr>
-                              {['Nombre área','Sup. total','¿Divisible?','Cargas €/m²','Fecha disp.','Plantas asignadas',''].map(h =>
+                              {['Nombre área','Cuenta','Sup. total','¿Divisible?','Cargas €/m²','Fecha disp.','Plantas asignadas',''].map(h =>
                                 <th key={h} style={{ padding:'6px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap' }}>{h}</th>
                               )}
                             </tr></thead>
@@ -434,6 +431,9 @@ export default function FichaOferta() {
                                           </div>
                                       }
                                     </td>
+                                    <td style={{ padding:'7px 12px' }}>
+                                      <input className="of-inp" placeholder="Empresa / cuenta..." value={o.cuenta||''} onChange={e => setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,cuenta:e.target.value}:x))} style={{ minWidth:130, fontSize:10 }} />
+                                    </td>
                                     <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600 }}>{assignedSup>0?assignedSup.toLocaleString():<span style={{ color:'var(--text4)' }}>—</span>}</td>
                                     <td style={{ padding:'7px 12px' }}><span style={{ fontSize:10, fontWeight:600, color:o.divisible?'var(--green)':'var(--red)' }}>{o.divisible?'Sí':'No'}</span></td>
                                     <td style={{ padding:'7px 12px', color:'var(--text3)' }}>{o.cargasM2} €</td>
@@ -455,7 +455,7 @@ export default function FichaOferta() {
                                   </tr>
                                 )
                               })}
-                              {ofertasDesglose.length===0 && <tr><td colSpan={7} style={{ padding:18, textAlign:'center', color:'var(--text4)', fontSize:11, fontStyle:'italic' }}>Sin ofertas. Pulsa "+ Agregar".</td></tr>}
+                              {ofertasDesglose.length===0 && <tr><td colSpan={8} style={{ padding:18, textAlign:'center', color:'var(--text4)', fontSize:11, fontStyle:'italic' }}>Sin ofertas. Pulsa "+ Agregar".</td></tr>}
                             </tbody>
                           </table>
                           <div style={{ padding:'7px 14px', background:'var(--accent-lt)', borderTop:'1px solid var(--accent-bd)', fontSize:10, color:'var(--accent)' }}>
@@ -499,17 +499,94 @@ export default function FichaOferta() {
                         </div>
                       </div>
                     </div>
+                    {/* ── Plazas de aparcamiento ── */}
+                    <div style={{ marginTop:16 }}>
+                      <div className="info-block" style={{ padding:0, overflow:'hidden' }}>
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderBottom:'1px solid var(--border)', background:'var(--gray-lt)' }}>
+                          <div>
+                            <span style={{ fontSize:11, fontWeight:700 }}>Plazas de aparcamiento</span>
+                            <span style={{ marginLeft:8, fontSize:9, color:'var(--text4)' }}>Solo las plazas de esta operación</span>
+                          </div>
+                          <button className="ab-btn blue" style={{ fontSize:10, padding:'3px 10px' }} onClick={() => setAddingPlaza(true)}>+ Añadir</button>
+                        </div>
+                        {addingPlaza && (
+                          <div style={{ padding:'12px 14px', background:'var(--accent-lt)', borderBottom:'1px solid var(--accent-bd)', display:'flex', flexWrap:'wrap', gap:10, alignItems:'flex-end' }}>
+                            <div><FieldLbl>Int / Ext</FieldLbl>
+                              <select className="fsel" style={{ width:100 }} value={newPlaza.intExt} onChange={e=>setNewPlaza(p=>({...p,intExt:e.target.value}))}>
+                                <option>Interior</option><option>Exterior</option>
+                              </select>
+                            </div>
+                            <div><FieldLbl>Tipología</FieldLbl>
+                              <select className="fsel" style={{ width:110 }} value={newPlaza.tipo} onChange={e=>setNewPlaza(p=>({...p,tipo:e.target.value}))}>
+                                <option>Coches</option><option>Motos</option><option>Bicicletas</option><option>Mixto</option>
+                              </select>
+                            </div>
+                            <div><FieldLbl>Formato</FieldLbl>
+                              <select className="fsel" style={{ width:90 }} value={newPlaza.formato} onChange={e=>setNewPlaza(p=>({...p,formato:e.target.value}))}>
+                                <option>Simple</option><option>Doble</option>
+                              </select>
+                            </div>
+                            <div><FieldLbl>Cantidad</FieldLbl>
+                              <input type="number" className="of-inp" style={{ width:70 }} value={newPlaza.cantidad} onChange={e=>setNewPlaza(p=>({...p,cantidad:Number(e.target.value)}))} min={1} />
+                            </div>
+                            {tipoOperacion!=='Venta' && (
+                              <div><FieldLbl>Renta €/plaza/mes</FieldLbl>
+                                <input type="number" step="0.01" className="of-inp" style={{ width:100 }} value={newPlaza.renta} onChange={e=>setNewPlaza(p=>({...p,renta:e.target.value}))} placeholder="0,00" />
+                              </div>
+                            )}
+                            {tipoOperacion!=='Alquiler' && (
+                              <div><FieldLbl>Precio €/plaza</FieldLbl>
+                                <input type="number" step="0.01" className="of-inp" style={{ width:100 }} value={newPlaza.precio} onChange={e=>setNewPlaza(p=>({...p,precio:e.target.value}))} placeholder="0,00" />
+                              </div>
+                            )}
+                            <div style={{ display:'flex', gap:6 }}>
+                              <button className="ab-btn save" onClick={() => {
+                                const id=nextPlazaId
+                                setPlazas(prev=>[...prev,{...newPlaza,id,renta:newPlaza.renta?Number(newPlaza.renta):null,precio:newPlaza.precio?Number(newPlaza.precio):null}])
+                                setNextPlazaId(id+1)
+                                setAddingPlaza(false)
+                                setNewPlaza({intExt:'Interior',tipo:'Coches',formato:'Simple',cantidad:1,renta:'',precio:''})
+                              }}>Añadir</button>
+                              <button className="ab-btn" onClick={() => setAddingPlaza(false)}>Cancelar</button>
+                            </div>
+                          </div>
+                        )}
+                        {plazas.length===0 && !addingPlaza
+                          ? <div style={{ padding:'14px 16px', fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin plazas añadidas. Añade solo las plazas que forman parte de esta operación.</div>
+                          : (
+                            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                              <thead><tr>
+                                {['Int/Ext','Tipología','Formato','Cantidad',
+                                  ...(tipoOperacion!=='Venta'?['Renta €/plaza/mes','Total/mes']:[]),
+                                  ...(tipoOperacion!=='Alquiler'?['Precio €/plaza','Total']:[]),
+                                  ''].map(h=><th key={h} style={{ padding:'6px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap' }}>{h}</th>)}
+                              </tr></thead>
+                              <tbody>
+                                {plazas.map(p=>(
+                                  <tr key={p.id} style={{ borderBottom:'1px solid var(--border)' }}>
+                                    <td style={{ padding:'7px 12px' }}><span className="tag tag-gray" style={{ fontSize:9 }}>{p.intExt}</span></td>
+                                    <td style={{ padding:'7px 12px' }}>{p.tipo}</td>
+                                    <td style={{ padding:'7px 12px' }}>{p.formato}</td>
+                                    <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600 }}>{p.cantidad}</td>
+                                    {tipoOperacion!=='Venta' && <>
+                                      <td style={{ padding:'7px 12px', fontFamily:'var(--mono)' }}>{p.renta!=null?`${p.renta.toFixed(2)} €`:'—'}</td>
+                                      <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600, color:'var(--green)' }}>{p.renta!=null?`${(p.renta*p.cantidad).toLocaleString(undefined,{maximumFractionDigits:0})} €`:'—'}</td>
+                                    </>}
+                                    {tipoOperacion!=='Alquiler' && <>
+                                      <td style={{ padding:'7px 12px', fontFamily:'var(--mono)' }}>{p.precio!=null?`${p.precio.toFixed(2)} €`:'—'}</td>
+                                      <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600, color:'var(--accent)' }}>{p.precio!=null?`${(p.precio*p.cantidad).toLocaleString(undefined,{maximumFractionDigits:0})} €`:'—'}</td>
+                                    </>}
+                                    <td style={{ padding:'7px 12px' }}><button className="ra" onClick={()=>setPlazas(prev=>prev.filter(x=>x.id!==p.id))} style={{ color:'var(--red)' }}>✕</button></td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )
+                        }
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
-
-              {/* Plazas */}
-              {activeTab==='of-plazas' && (
-                <div className="tab-content active"><div className="info-pad">
-                  <div style={{ fontSize:14, fontWeight:600, marginBottom:14 }}>Plazas de aparcamiento</div>
-                  <table className="pat-table"><thead><tr><th>Tipo</th><th>Int/Ext</th><th>Vehículo</th><th>Número</th><th>Renta plaza</th><th>Total/mes</th></tr></thead>
-                  <tbody><tr><td>Simple</td><td>Interior</td><td>Coches</td><td>322</td><td>€110,00</td><td style={{ fontWeight:600 }}>€35.420,00</td></tr></tbody></table>
-                </div></div>
               )}
 
               {/* Condiciones */}
