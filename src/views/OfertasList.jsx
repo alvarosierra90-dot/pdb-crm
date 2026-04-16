@@ -7,6 +7,23 @@ import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilte
 
 const estadoTag = { 'En revisión': 'tag-amber', 'Negociando': 'tag-purple', 'Pre-acuerdo': 'tag-green', 'En curso': 'tag-blue', 'Cerrada': 'tag-gray', 'Finalista': 'tag-green' }
 
+function mapMock(list) {
+  return list.map(o => ({
+    id:        o.ref,
+    ref:       o.ref,
+    activo:    o.activo,
+    activo_ref: o.activo_ref,
+    espacio:   o.espacio || '—',
+    m2:        o.m2 || 0,
+    renta:     o.espacios?.length > 0
+      ? `${(o.espacios.reduce((s,e)=>s+e.renta,0)/o.espacios.length).toFixed(2)} €/m²/mes`
+      : '—',
+    tipo:      o.tipo_operacion || '—',
+    origen:    o.origen_oferta  || '—',
+    estado:    o.estado         || '—',
+  }))
+}
+
 const COLS = [
   { id: '_chk',      label: '',               sys: true },
   { id: 'ref',       label: 'ID',             required: true, type:'text',   getValue: r => r.ref },
@@ -26,64 +43,32 @@ export default function OfertasList() {
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ tipo: '', estado: '', m2Min: '', m2Max: '' })
   const [vis, setVis] = useVisibleCols('ofertas', COLS)
-  const [ofertas, setOfertas] = useState([])
+  const [ofertas, setOfertas] = useState(mapMock(MOCK_OFERTAS))
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       supabase.from('ofertas').select('*').order('created_at', { ascending: false }),
       supabase.from('activos').select('ref, nombre'),
-      supabase.from('asignaciones_stacking').select('oferta_id, edificio_id, planta_id, sup, renta'),
-    ]).then(([{ data: ofertasData }, { data: activosData }, { data: asigData }]) => {
-      const activosMap = Object.fromEntries((activosData || []).map(a => [a.ref, a]))
-      const asigMap = {}
-      ;(asigData || []).forEach(a => {
-        if (!asigMap[a.oferta_id]) asigMap[a.oferta_id] = []
-        asigMap[a.oferta_id].push(a)
-      })
-      if (ofertasData && ofertasData.length > 0) {
-        setOfertas(ofertasData.map(o => {
-          const activoNombre = activosMap[o.activo_ref]?.nombre || o.activo_ref || '—'
-          const asigs = asigMap[o.id] || []
-          const totalM2 = asigs.reduce((s, a) => s + (a.sup || 0), 0)
-          const espacio = asigs.length > 0
-            ? asigs.map(a => `${a.edificio_id} ${a.planta_id}`).join(', ')
-            : '—'
-          const rentaMedia = asigs.length > 0 && asigs.some(a => a.renta > 0)
-            ? (asigs.filter(a=>a.renta>0).reduce((s,a) => s + a.renta, 0) / asigs.filter(a=>a.renta>0).length).toFixed(2)
-            : null
-          return {
-            id:        o.id,
-            ref:       o.ref || o.id,
-            activo:    activoNombre,
-            activo_ref: o.activo_ref,
-            espacio,
-            m2:        totalM2,
-            renta:     rentaMedia ? `${rentaMedia} €/m²/mes` : '—',
-            tipo:      o.tipo_operacion || '—',
-            origen:    o.origen_oferta  || '—',
-            estado:    o.estado         || '—',
-          }
-        }))
-      } else {
-        // Fallback a ofertas de ejemplo cuando la DB está vacía
-        setOfertas(MOCK_OFERTAS.map(o => ({
-          id:        o.ref,
-          ref:       o.ref,
-          activo:    o.activo,
+    ]).then(([{ data: ofertasData, error }, { data: activosData }]) => {
+      if (!error && ofertasData && ofertasData.length > 0) {
+        const activosMap = Object.fromEntries((activosData || []).map(a => [a.ref, a]))
+        setOfertas(ofertasData.map(o => ({
+          id:        o.id,
+          ref:       o.ref || o.id,
+          activo:    activosMap[o.activo_ref]?.nombre || o.activo_ref || '—',
           activo_ref: o.activo_ref,
-          espacio:   o.espacio,
-          m2:        o.m2,
-          renta:     o.espacios?.length > 0
-            ? `${(o.espacios.reduce((s,e)=>s+e.renta,0)/o.espacios.length).toFixed(2)} €/m²/mes`
-            : '—',
+          espacio:   o.espacio || '—',
+          m2:        0,
+          renta:     '—',
           tipo:      o.tipo_operacion || '—',
           origen:    o.origen_oferta  || '—',
           estado:    o.estado         || '—',
         })))
       }
+      // Si DB vacía o error → se mantiene el estado inicial con mock data
       setLoading(false)
-    })
+    }).catch(() => setLoading(false))
   }, [])
 
   const [creando, setCreando] = useState(false)
