@@ -27,17 +27,6 @@ const TIPOLOGIA_MAP = {
   'Data Center':['Hyperscale','Colocation','Edge computing'],
 }
 
-// ── Edificio Albatros D ────────────────────────────────────────────────────
-const BUILDING_FLOORS = [
-  { id:'P4', sup:2577, status:'vac' },
-  { id:'P3', sup:2790, status:'vac' },
-  { id:'P2', sup:2790, status:'ten', tenant:'Oracle Spain SL', brk:'Mar 2028' },
-  { id:'P1', sup:2793, status:'vac' },
-  { id:'PB', sup:550,  status:'com', name:'Hall / Lobby' },
-  { id:'S1', sup:800,  status:'pk',  name:'Parking · 322 plazas' },
-]
-const MAX_SUP = 2793
-
 const OFERTA_COLORS = [
   { bg:'#dcfce7', border:'#86efac', text:'#166534', dot:'#16a34a' },
   { bg:'#dbeafe', border:'#93c5fd', text:'#1e40af', dot:'#3b82f6' },
@@ -108,24 +97,12 @@ export default function FichaOferta() {
   const [editNombreId, setEditNombreId] = useState(null)
   const [editNombreVal, setEditNombreVal] = useState('')
 
-  // Stacking plan
-  const [showStacking, setShowStacking] = useState(false)
-  const [selectedOfertaId, setSelectedOfertaId] = useState(null)
-  const [floorAssignments, setFloorAssignments] = useState({
-    P4: { ofertaId:1, sup:2577, renta:12.50 },
-    P3: { ofertaId:1, sup:2790, renta:12.50 },
-    P1: { ofertaId:1, sup:2793, renta:12.50 },
-  })
-
-  // Derived: espacios comercializables from floor assignments
-  const espaciosComercializables = BUILDING_FLOORS
-    .filter(f => floorAssignments[f.id])
-    .map(f => {
-      const a = floorAssignments[f.id]
-      const oferta = ofertasDesglose.find(o => o.id === a.ofertaId)
-      return { edificio:'Edificio Albatros D', modulo:`D-${f.id}`, planta:f.id, uso:'Oficina', sup:a.sup, renta:a.renta, ofertaNombre:oferta?.nombre || '—', ofertaId:a.ofertaId }
-    })
-
+  // Espacios comercializables (mock — se actualizan desde el stacking plan del activo)
+  const espaciosComercializables = [
+    { edificio:'Edificio Albatros D', modulo:'D-P4', planta:'P4', uso:'Oficina', sup:2577, renta:12.50, ofertaNombre:'Oferta 1' },
+    { edificio:'Edificio Albatros D', modulo:'D-P3', planta:'P3', uso:'Oficina', sup:2790, renta:12.50, ofertaNombre:'Oferta 1' },
+    { edificio:'Edificio Albatros D', modulo:'D-P1', planta:'P1', uso:'Oficina', sup:2793, renta:12.50, ofertaNombre:'Oferta 1' },
+  ]
   const supTotal = espaciosComercializables.reduce((s, e) => s + e.sup, 0)
 
   function addOferta() {
@@ -143,191 +120,6 @@ export default function FichaOferta() {
 
   const tipologiaOpciones = TIPOLOGIA_MAP[ASSET.usoPrincipal] || []
 
-  // ── STACKING PLAN VIEW ───────────────────────────────────────────────────
-  function StackingView() {
-    return (
-      <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
-        {/* Header */}
-        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'8px 16px', borderBottom:'1px solid var(--border)', background:'var(--gray-lt)', flexShrink:0 }}>
-          <button className="ab-btn" onClick={() => { setShowStacking(false); setSelectedOfertaId(null) }}>← Volver</button>
-          <div style={{ fontSize:13, fontWeight:700 }}>Stacking Plan · Albatros — Edificio D</div>
-          <div style={{ fontSize:10, color:'var(--text4)', marginLeft:4 }}>Asigna las ofertas a las plantas disponibles</div>
-          {selectedOfertaId && (
-            <div style={{ marginLeft:'auto', fontSize:10, background:'#dcfce7', color:'#166534', border:'1px solid #86efac', padding:'3px 10px', borderRadius:10, fontWeight:700 }}>
-              Modo asignación activo — clic en planta disponible
-            </div>
-          )}
-        </div>
-
-        <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
-          {/* Left panel: offers */}
-          <div style={{ width:220, borderRight:'1px solid var(--border)', overflowY:'auto', padding:12, flexShrink:0 }}>
-            <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:10 }}>Ofertas disponibles</div>
-
-            {ofertasDesglose.length === 0
-              ? <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin ofertas creadas. Ve a Espacios comerciales → Desglose de ofertas.</div>
-              : ofertasDesglose.map((o, idx) => {
-                  const col = OFERTA_COLORS[idx % OFERTA_COLORS.length]
-                  const assignedFloors = BUILDING_FLOORS.filter(f => floorAssignments[f.id]?.ofertaId === o.id)
-                  const assignedSup = assignedFloors.reduce((s, f) => s + (floorAssignments[f.id]?.sup || 0), 0)
-                  const isSelected = selectedOfertaId === o.id
-                  return (
-                    <div key={o.id}
-                      onClick={() => setSelectedOfertaId(isSelected ? null : o.id)}
-                      style={{ padding:'9px 10px', border:`2px solid ${isSelected ? col.border : 'var(--border)'}`, borderRadius:'var(--r)', background:isSelected ? col.bg : 'var(--surface)', marginBottom:6, cursor:'pointer', transition:'all .15s' }}>
-                      <div style={{ fontWeight:600, fontSize:12, color:col.text }}>{o.nombre}</div>
-                      <div style={{ fontSize:10, color:'var(--text3)', marginTop:2 }}>
-                        {assignedFloors.length} plantas · {assignedSup.toLocaleString()} m²
-                      </div>
-                      {isSelected && <div style={{ fontSize:9, color:col.text, fontWeight:700, marginTop:4 }}>Seleccionada · clic en planta disponible</div>}
-                    </div>
-                  )
-                })
-            }
-
-            {/* Legend */}
-            <div style={{ marginTop:16, borderTop:'1px solid var(--border)', paddingTop:10 }}>
-              <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:6 }}>Leyenda</div>
-              {[
-                { color:'#f1f5f9', border:'#cbd5e1', label:'Disponible sin asignar' },
-                { color:'#dcfce7', border:'#86efac', label:'Asignada a oferta' },
-                { color:'#dbeafe', border:'#93c5fd', label:'Ocupada (arrendatario)' },
-                { color:'#f8fafc', border:'#e2e8f0', label:'Zonas comunes' },
-                { color:'#1e293b', border:'#334155', label:'Parking' },
-              ].map((l, i) => (
-                <div key={i} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:3 }}>
-                  <div style={{ width:12, height:12, borderRadius:2, background:l.color, border:`1px solid ${l.border}`, flexShrink:0 }} />
-                  <span style={{ fontSize:10, color:'var(--text3)' }}>{l.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Building */}
-          <div style={{ flex:1, overflowY:'auto', padding:'16px 20px' }}>
-            <div style={{ marginBottom:12 }}>
-              <div style={{ fontSize:12, fontWeight:700 }}>Albatros — Edificio D</div>
-              <div style={{ fontSize:10, color:'var(--text4)' }}>Calle de Anabel Segura 9-11 · Alcobendas · 6 niveles</div>
-            </div>
-
-            <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-              {BUILDING_FLOORS.map(floor => {
-                const assignment = floorAssignments[floor.id]
-                const isAssigned = !!assignment
-                const ofertaIdx = isAssigned ? ofertasDesglose.findIndex(o => o.id === assignment.ofertaId) : -1
-                const col = ofertaIdx >= 0 ? OFERTA_COLORS[ofertaIdx % OFERTA_COLORS.length] : null
-                const oferta = isAssigned ? ofertasDesglose.find(o => o.id === assignment.ofertaId) : null
-                const isVacant = floor.status === 'vac'
-                const canAssign = isVacant && selectedOfertaId !== null
-                const barPct = Math.max(15, Math.round((floor.sup / MAX_SUP) * 100))
-
-                let bg, bd, tx
-                if (isAssigned && col) { bg=col.bg; bd=col.border; tx=col.text }
-                else if (floor.status==='ten') { bg='#dbeafe'; bd='#93c5fd'; tx='#1e40af' }
-                else if (floor.status==='com') { bg='#f8fafc'; bd='#e2e8f0'; tx='#64748b' }
-                else if (floor.status==='pk')  { bg='#1e293b'; bd='#334155'; tx='#94a3b8' }
-                else { bg='#f1f5f9'; bd='#cbd5e1'; tx='#94a3b8' }
-
-                return (
-                  <div key={floor.id} style={{ display:'flex', alignItems:'center', gap:10 }}>
-                    <div style={{ width:28, fontSize:10, fontWeight:700, color:'var(--text3)', textAlign:'right', flexShrink:0 }}>{floor.id}</div>
-
-                    <div
-                      style={{ position:'relative', height:46, flex:1, background:'var(--gray-lt)', borderRadius:'var(--r)', overflow:'hidden', border:`1px solid ${canAssign ? '#86efac' : 'var(--border)'}`, cursor:canAssign ? 'pointer' : 'default', transition:'border .15s', boxShadow: canAssign ? '0 0 0 2px #dcfce7' : 'none' }}
-                      onClick={() => {
-                        if (!isVacant || !selectedOfertaId) return
-                        setFloorAssignments(prev => ({ ...prev, [floor.id]:{ ofertaId:selectedOfertaId, sup:floor.sup, renta:12.50 } }))
-                      }}
-                    >
-                      <div style={{ position:'absolute', top:0, left:0, width:`${barPct}%`, height:'100%', background:bg, borderRight:`2px solid ${bd}`, display:'flex', alignItems:'center', paddingLeft:10, gap:8, minWidth:0, overflow:'hidden' }}>
-
-                        {floor.status==='ten' && !isAssigned && (
-                          <>
-                            <div style={{ width:6, height:6, borderRadius:'50%', background:'#3b82f6', flexShrink:0 }} />
-                            <span style={{ fontSize:11, fontWeight:600, color:tx, whiteSpace:'nowrap' }}>{floor.tenant}</span>
-                            <span style={{ fontSize:10, color:'#64748b', whiteSpace:'nowrap' }}>· vcto. {floor.brk}</span>
-                          </>
-                        )}
-                        {(floor.status==='com'||floor.status==='pk') && (
-                          <span style={{ fontSize:11, color:tx, whiteSpace:'nowrap' }}>{floor.name}</span>
-                        )}
-                        {isVacant && !isAssigned && (
-                          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                            <span style={{ fontSize:10, color:tx }}>Disponible</span>
-                            {canAssign && <span style={{ fontSize:9, background:'#dcfce7', color:'#166534', border:'1px solid #86efac', borderRadius:10, padding:'1px 7px', fontWeight:700 }}>+ Asignar</span>}
-                          </div>
-                        )}
-                        {isAssigned && oferta && col && (
-                          <div style={{ display:'flex', alignItems:'center', gap:8, width:'100%' }}>
-                            <div style={{ width:7, height:7, borderRadius:'50%', background:col.dot, flexShrink:0 }} />
-                            <span style={{ fontSize:11, fontWeight:600, color:tx, whiteSpace:'nowrap' }}>{oferta.nombre}</span>
-                            <div style={{ display:'flex', alignItems:'center', gap:3 }} onClick={e => e.stopPropagation()}>
-                              <input type="number" value={assignment.sup}
-                                onChange={e => setFloorAssignments(prev => ({ ...prev, [floor.id]:{ ...prev[floor.id], sup:Number(e.target.value) } }))}
-                                style={{ width:68, fontSize:10, border:'1px solid var(--border)', borderRadius:3, padding:'2px 5px', fontFamily:'var(--mono)', background:'white' }} />
-                              <span style={{ fontSize:10, color:tx }}>m²</span>
-                            </div>
-                            <div style={{ display:'flex', alignItems:'center', gap:3 }} onClick={e => e.stopPropagation()}>
-                              <input type="number" step="0.01" value={assignment.renta}
-                                onChange={e => setFloorAssignments(prev => ({ ...prev, [floor.id]:{ ...prev[floor.id], renta:Number(e.target.value) } }))}
-                                style={{ width:52, fontSize:10, border:'1px solid var(--border)', borderRadius:3, padding:'2px 5px', fontFamily:'var(--mono)', background:'white' }} />
-                              <span style={{ fontSize:10, color:tx }}>€/m²</span>
-                            </div>
-                            <button onClick={e => { e.stopPropagation(); setFloorAssignments(prev => { const n={...prev}; delete n[floor.id]; return n }) }}
-                              style={{ marginLeft:'auto', marginRight:6, fontSize:11, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }}>✕</button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div style={{ width:66, fontSize:10, color:'var(--text4)', fontFamily:'var(--mono)', textAlign:'right', flexShrink:0 }}>{floor.sup.toLocaleString()} m²</div>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Summary table */}
-            <div style={{ marginTop:20, borderTop:'1px solid var(--border)', paddingTop:14 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:8, display:'flex', alignItems:'center', gap:8 }}>
-                Espacios comercializables
-                <span style={{ fontSize:9, color:'var(--green)', background:'var(--green-lt)', border:'1px solid var(--green-bd)', padding:'1px 7px', borderRadius:10, fontWeight:700 }}>ↈ Auto-actualizado</span>
-              </div>
-              {espaciosComercializables.length === 0
-                ? <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin plantas asignadas todavía.</div>
-                : (
-                  <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11, border:'1px solid var(--border)', borderRadius:'var(--r)', overflow:'hidden' }}>
-                    <thead><tr>
-                      {['Planta','Oferta','Superficie','Renta €/m²','Renta mensual'].map(h =>
-                        <th key={h} style={{ padding:'6px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', background:'var(--gray-lt)', borderBottom:'1px solid var(--border)', textTransform:'uppercase' }}>{h}</th>
-                      )}
-                    </tr></thead>
-                    <tbody>
-                      {espaciosComercializables.map((e,i) => (
-                        <tr key={i} style={{ borderBottom:'1px solid var(--border)' }}>
-                          <td style={{ padding:'6px 12px' }}><span className="tag tag-gray" style={{ fontSize:9 }}>{e.planta}</span></td>
-                          <td style={{ padding:'6px 12px', fontSize:10, color:'var(--accent)' }}>{e.ofertaNombre}</td>
-                          <td style={{ padding:'6px 12px', fontFamily:'var(--mono)', fontWeight:600 }}>{e.sup.toLocaleString()}</td>
-                          <td style={{ padding:'6px 12px', fontFamily:'var(--mono)' }}>{e.renta.toFixed(2)} €</td>
-                          <td style={{ padding:'6px 12px', fontFamily:'var(--mono)', fontWeight:600, color:'var(--green)' }}>{(e.renta*e.sup).toLocaleString(undefined,{maximumFractionDigits:0})} €</td>
-                        </tr>
-                      ))}
-                      <tr style={{ background:'var(--gray-lt)', borderTop:'2px solid var(--border)' }}>
-                        <td colSpan={2} style={{ padding:'6px 12px', fontSize:10, fontWeight:700, color:'var(--text3)' }}>TOTAL</td>
-                        <td style={{ padding:'6px 12px', fontFamily:'var(--mono)', fontWeight:800 }}>{supTotal.toLocaleString()}</td>
-                        <td />
-                        <td style={{ padding:'6px 12px', fontFamily:'var(--mono)', fontWeight:800, color:'var(--green)' }}>{espaciosComercializables.reduce((s,e)=>s+e.renta*e.sup,0).toLocaleString(undefined,{maximumFractionDigits:0})} €</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                )
-              }
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
       {/* Action bar */}
@@ -337,8 +129,8 @@ export default function FichaOferta() {
         <button className="ab-btn">Nuevo</button>
         <button className="ab-btn">Desactivar</button>
         <div className="ab-sep" />
-        <button className={`ab-btn ${showStacking ? 'save' : 'blue'}`} onClick={() => { setShowStacking(v => !v); setSelectedOfertaId(null) }}>
-          📊 Stacking plan{showStacking ? ' ✓' : ''}
+        <button className="ab-btn blue" onClick={() => navigate('ficha-activo', { ref:'ALC-OF-00231', tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose })}>
+          📊 Stacking plan
         </button>
         <button className="ab-btn">📄 Crear ficha</button>
         <button className="ab-btn">🔄 Recalcular</button>
@@ -382,9 +174,7 @@ export default function FichaOferta() {
             </div>
           </div>
 
-          {/* Stacking plan view — replaces tabs when active */}
-          {showStacking ? <StackingView /> : (
-            <>
+          <>
               <div className="tabs">
                 {TABS.map((t,i) => <div key={t} className={`tab ${activeTab===t?'active':''}`} onClick={() => setActiveTab(t)}>{TAB_LABELS[i]}</div>)}
               </div>
@@ -608,7 +398,7 @@ export default function FichaOferta() {
                             </div>
                           ))}
                         </div>
-                        <button className="ab-btn blue" style={{ fontSize:10 }} onClick={() => setShowStacking(true)}>📊 Abrir Stacking Plan →</button>
+                        <button className="ab-btn blue" style={{ fontSize:10 }} onClick={() => navigate('ficha-activo', { ref:'ALC-OF-00231', tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose })}>📊 Abrir Stacking Plan →</button>
                       </div>
 
                       {/* Derecha */}
@@ -628,8 +418,8 @@ export default function FichaOferta() {
                             <tbody>
                               {ofertasDesglose.map((o,idx) => {
                                 const col = OFERTA_COLORS[idx % OFERTA_COLORS.length]
-                                const assignedFloors = BUILDING_FLOORS.filter(f => floorAssignments[f.id]?.ofertaId === o.id)
-                                const assignedSup = assignedFloors.reduce((s,f) => s+(floorAssignments[f.id]?.sup||0), 0)
+                                const assignedSpaces = espaciosComercializables.filter(e => e.ofertaNombre === o.nombre)
+                                const assignedSup = assignedSpaces.reduce((s,e) => s + e.sup, 0)
                                 return (
                                   <tr key={o.id} style={{ borderBottom:'1px solid var(--border)' }}>
                                     <td style={{ padding:'7px 12px' }}>
@@ -649,9 +439,9 @@ export default function FichaOferta() {
                                     <td style={{ padding:'7px 12px', color:'var(--text3)' }}>{o.cargasM2} €</td>
                                     <td style={{ padding:'7px 12px', color:'var(--text3)', whiteSpace:'nowrap' }}>{fechaDispGlobal?new Date(fechaDispGlobal).toLocaleDateString('es-ES'):'—'}</td>
                                     <td style={{ padding:'7px 12px' }}>
-                                      {assignedFloors.length>0
+                                      {assignedSpaces.length>0
                                         ? <div style={{ display:'flex', gap:3, flexWrap:'wrap' }}>
-                                            {assignedFloors.map(f=><span key={f.id} style={{ fontSize:9, background:col.bg, color:col.text, border:`1px solid ${col.border}`, borderRadius:8, padding:'1px 6px', fontWeight:600 }}>{f.id}</span>)}
+                                            {assignedSpaces.map(e=><span key={e.modulo} style={{ fontSize:9, background:col.bg, color:col.text, border:`1px solid ${col.border}`, borderRadius:8, padding:'1px 6px', fontWeight:600 }}>{e.planta}</span>)}
                                           </div>
                                         : <span style={{ fontSize:10, color:'var(--text4)', fontStyle:'italic' }}>Sin asignar</span>
                                       }
@@ -968,12 +758,10 @@ export default function FichaOferta() {
                 </div></div>
               )}
             </>
-          )}
         </div>
 
         {/* Right panel */}
-        {!showStacking && (
-          <div className="ficha-right">
+        <div className="ficha-right">
             <div className="rp-sec">
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
                 <div><div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>Ocupación activo</div><div style={{ fontSize:20, fontWeight:700 }}>75%</div></div>
@@ -1017,7 +805,6 @@ export default function FichaOferta() {
               ))}
             </div>
           </div>
-        )}
       </div>
       {showTarea && <AsignarTareaModal refTipo="Oferta" refNombre="OLBUR2315645" onClose={() => setShowTarea(false)} />}
     </div>
