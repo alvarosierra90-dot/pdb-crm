@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { OFERTAS as MOCK_OFERTAS } from '../data/mockData'
-import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 
 const estadoTag = { 'En revisión': 'tag-amber', 'Negociando': 'tag-purple', 'Pre-acuerdo': 'tag-green', 'En curso': 'tag-blue', 'Cerrada': 'tag-gray', 'Finalista': 'tag-green' }
@@ -42,9 +41,8 @@ export default function OfertasList() {
   const [query, setQuery] = useState('')
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ tipo: '', estado: '', m2Min: '', m2Max: '' })
-  const [vis, setVis] = useVisibleCols('ofertas_v2', COLS)
   const [ofertas, setOfertas] = useState(mapMock(MOCK_OFERTAS))
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -100,7 +98,7 @@ export default function OfertasList() {
   })
 
   const { result, sorts, filters, setSort, setFilter, clearFilter, clearAll, activeCount } = useTableFilter(preFiltered, COLS)
-  const visibleCols = COLS.filter(c => vis.has(c.id))
+  const visibleCols = COLS
 
   const cell = (o) => ({
     _chk:    <td key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} onClick={e => e.stopPropagation()} /></td>,
@@ -134,7 +132,6 @@ export default function OfertasList() {
         </button>
         <FilterBadge count={activeCount} onClear={clearAll} />
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-          <ColumnEditor cols={COLS} vis={vis} setVis={setVis} />
           <button className="tbtn">⬇ Exportar</button>
           <button className="tbtn prim" onClick={handleNuevaOferta} disabled={creando}>{creando ? 'Creando...' : '+ Nueva Oferta'}</button>
         </div>
