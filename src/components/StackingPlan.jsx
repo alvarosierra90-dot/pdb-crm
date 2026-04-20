@@ -567,7 +567,8 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
             {(()=>{
               const maxFloorSup = Math.max(...edif.floors.map(f=>f.sup), 1)
               return edif.floors.map((floor, floorIdx) => {
-              const barH = Math.max(28, Math.round((floor.sup / maxFloorSup) * 64))
+              const barH = 44
+              const barW = `${Math.round((floor.sup / maxFloorSup) * 100)}%`
               const used  = (floor.principal||[]).reduce((s,u)=>s+u.sup,0)
               const avail = floor.sup-used
               const isTgt = dragTarget===floor.id
@@ -616,7 +617,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                   </div>
                   <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:isSel?'var(--accent)':'var(--text3)',display:'flex',alignItems:'flex-start',paddingTop:10}}>{floor.id}</div>
                   <div style={{padding:'4px 4px 4px 0',display:'flex',flexDirection:'column',gap:4}}>
-                    <div style={{display:'flex',alignItems:'stretch',gap:2,height:barH}}>
+                    <div style={{display:'flex',alignItems:'stretch',gap:2,height:barH,width:barW,overflow:'hidden'}}>
                       {floor.principal.length===0 ? (
                         <div style={{flex:1,background:isSel?'#dbeafe':isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isSel?'var(--accent)':isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isSel?'var(--accent)':isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt||isSel?600:400}}>
                           {isTgt?'⬇ Soltar uso aquí':isSel?'✓ Seleccionada — arrastra un uso':'Clic para seleccionar · arrastra un uso'}
@@ -775,7 +776,8 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
-                const barH = Math.max(28, Math.round((floor.sup/maxFloorSup)*64))
+                const barH = 44
+                const barW = `${Math.round((floor.sup/maxFloorSup)*100)}%`
                 const propRow = (edif.prop||[]).find(r=>r.p===floor.id)
                 const units    = propRow?.units || []
                 const rowSup   = propRow?.sup ?? floor.sup
@@ -815,11 +817,11 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                     <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:isSel?'var(--accent)':isEmpty?'var(--text4)':'var(--text3)',display:'flex',alignItems:'center'}}>{floor.id}</div>
                     <div style={{display:'flex',flexDirection:'column',gap:3,padding:'5px 4px 5px 0'}}>
                       {floor.principal.length>0 && (
-                        <div style={{display:'flex',gap:1,height:6,borderRadius:2,overflow:'hidden',opacity:.35}}>
+                        <div style={{display:'flex',gap:1,height:6,borderRadius:2,overflow:'hidden',opacity:.35,width:barW}}>
                           {floor.principal.map((u,i)=>{const info=usoInfo(u.uso);return <div key={i} style={{width:`${(u.sup/floor.sup)*100}%`,background:info.color,flexShrink:0}}/>})}
                         </div>
                       )}
-                      <div style={{display:'flex',alignItems:'stretch',gap:2,minHeight:barH}}>
+                      <div style={{display:'flex',alignItems:'stretch',gap:2,height:barH,width:barW,overflow:'hidden'}}>
                         {isEmpty ? (
                           <div style={{flex:1,background:isTgt?'var(--accent-lt)':'transparent',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',gap:5}}>
                             {isTgt?'⬇ Soltar propietario':'Sin propietario asignado — arrastra aquí'}
@@ -937,7 +939,8 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
-                const barH = Math.max(28, Math.round((floor.sup/maxFloorSup)*64))
+                const barH = 48
+                const barW = `${Math.round((floor.sup/maxFloorSup)*100)}%`
                 const arrRow  = (edif.arr||[]).find(r=>r.p===floor.id)
                 const units   = arrRow?.units || []
                 const rowSup  = arrRow?.sup ?? floor.sup
@@ -992,11 +995,11 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                         </div>
                       )}
                       {floor.principal.length>0 && (
-                        <div style={{display:'flex',gap:1,height:6,borderRadius:2,overflow:'hidden',opacity:.35}}>
+                        <div style={{display:'flex',gap:1,height:6,borderRadius:2,overflow:'hidden',opacity:.35,width:barW}}>
                           {floor.principal.map((u,i)=>{const info=usoInfo(u.uso);return <div key={i} style={{width:`${(u.sup/floor.sup)*100}%`,background:info.color,flexShrink:0}}/>})}
                         </div>
                       )}
-                      <div style={{display:'flex',alignItems:'stretch',gap:2,minHeight:barH}}>
+                      <div style={{display:'flex',alignItems:'stretch',gap:2,height:barH,width:barW,overflow:'hidden'}}>
                         {isEmpty ? (
                           <div style={{flex:1,background:isTgt?'var(--accent-lt)':'transparent',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',gap:5}}>
                             {isTgt?'⬇ Soltar aquí':'Sin asignación — arrastra desde el panel lateral'}
