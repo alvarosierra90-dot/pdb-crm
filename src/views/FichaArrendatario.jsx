@@ -76,8 +76,9 @@ export default function FichaArrendatario() {
 
   // Detect launch context
   const fromOferta = !!params?.fromOfertaRef
-  const fromTenantClick = !!params?.tenantName && !fromOferta
-  const isNew = fromOferta
+  const fromActivo = !!params?.fromActivoRef && !fromOferta
+  const fromTenantClick = !!params?.tenantName && !fromOferta && !fromActivo
+  const isNew = fromOferta || fromActivo
 
   const EMPTY_FORM = {
     activo: '',
@@ -118,7 +119,7 @@ export default function FichaArrendatario() {
     subzona: '',
   }
 
-  // Datos del arrendatario — inicializa desde params si viene de oferta, sino mock
+  // Datos del arrendatario — inicializa desde params si viene de oferta/activo, sino mock
   const [form, setForm] = useState(() => {
     if (params?.fromOfertaRef) {
       return {
@@ -128,6 +129,15 @@ export default function FichaArrendatario() {
         tenant_mayoritario: params.prefilledTenant || '',
         superficie:      params.prefilledSup     || '',
         closing_rent:    params.prefilledRenta   || '',
+      }
+    }
+    if (params?.fromActivoRef && !params?.fromOfertaRef) {
+      return {
+        ...EMPTY_FORM,
+        activo:    params.fromActivoNombre || '',
+        propietario: params.fromActivoPropietario || '',
+        zona:      params.fromActivoZona   || '',
+        superficie: params.fromActivoSba ? String(params.fromActivoSba) : '',
       }
     }
     // Mock data for existing tenant view
@@ -371,6 +381,24 @@ export default function FichaArrendatario() {
             newTenantFloor: params?.fromFloorId || null,
             newActivoRef: params?.fromActivoRef || null,
           })
+        } else if (fromActivo) {
+          navigate('ficha-activo', {
+            ref: params.fromActivoRef,
+            tab: 'at-stacking',
+            newTenantData: {
+              id: `ARR-${Date.now()}`,
+              tenant: tenantName,
+              activo: form.activo,
+              activo_ref: params.fromActivoRef,
+              uso: form.sector || '',
+              sup: parseFloat(form.superficie) || 0,
+              closing_rent: form.closing_rent,
+              break_option: form.break_option,
+              fecha_fin: form.fecha_fin,
+              anyo_firma: form.anyo_firma,
+              trimestre: form.trimestre,
+            },
+          })
         } else {
           navigate('arrendatarios')
         }
@@ -403,8 +431,12 @@ export default function FichaArrendatario() {
         <div className="ab-sep"/>
         {!isNew && <button className="ab-btn blue" onClick={()=>navigate('ficha-activo')}>🏢 Ver activo</button>}
         {!isNew && <button className="ab-btn blue" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>}
-        <button className="ab-btn" onClick={()=> fromOferta ? navigate('ficha-oferta',{ofertaRef:params.fromOfertaRef}) : fromTenantClick ? navigate(-1) : navigate('arrendatarios')}>
-          ← {fromOferta ? 'Volver a la oferta' : 'Volver'}
+        <button className="ab-btn" onClick={()=>
+          fromOferta  ? navigate('ficha-oferta',{ofertaRef:params.fromOfertaRef})
+          : fromActivo ? navigate('ficha-activo',{ref:params.fromActivoRef,tab:'at-stacking'})
+          : fromTenantClick ? navigate(-1)
+          : navigate('arrendatarios')}>
+          ← {fromOferta ? 'Volver a la oferta' : fromActivo ? 'Volver al activo' : 'Volver'}
         </button>
         <div className="ab-sep"/>
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
@@ -424,12 +456,21 @@ export default function FichaArrendatario() {
           )}
 
           {/* Banner "creación desde oferta" */}
-          {isNew && (
+          {fromOferta && (
             <div style={{padding:'8px 16px',background:'#eff6ff',borderBottom:'1px solid #bfdbfe',fontSize:11,color:'#1e40af',display:'flex',alignItems:'center',gap:8}}>
               <span style={{fontWeight:700}}>📋 Creación desde oferta</span>
               <span>·</span>
               <span>Vinculado a <strong>{params?.fromOfertaRef}</strong>{params?.fromActivoNombre ? ` · Activo: ${params.fromActivoNombre}` : ''}</span>
               <span style={{marginLeft:'auto',color:'#60a5fa',fontSize:10}}>Los campos marcados con * son obligatorios para guardar</span>
+            </div>
+          )}
+          {/* Banner "creación desde activo" */}
+          {fromActivo && (
+            <div style={{padding:'8px 14px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'var(--r)',margin:'0 0 12px',fontSize:11,color:'#1e40af',display:'flex',alignItems:'center',gap:8}}>
+              <span style={{fontWeight:700}}>Nuevo arrendatario</span>
+              <span style={{color:'#3b82f6'}}>·</span>
+              Activo: <strong>{params?.fromActivoNombre || params?.fromActivoRef}</strong>
+              <span style={{marginLeft:'auto',color:'#60a5fa',fontSize:10}}>Los campos marcados con * son obligatorios</span>
             </div>
           )}
 
