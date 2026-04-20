@@ -995,11 +995,29 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                     e.preventDefault(); setDragTarget(null)
                     if(!dragging) return
                     const isUA = !!UA_ALL.find(u=>u.id===dragging)
-                    const used2=floor.principal.reduce((s,u)=>s+u.sup,0)
-                    const avail2=floor.sup-used2
-                    if(isUA && avail2<=0){ assignAdicional(floor.id,dragging); setDragging(null); return }
-                    if(avail2<=0){ setSplitModal({floorId:floor.id,usoId:dragging}); setSplitSup('') }
-                    else{ assignPrincipal(floor.id,dragging,avail2) }
+                    const targets = selectedFloors.length > 1 ? selectedFloors : [floor.id]
+                    if(isUA) {
+                      targets.forEach(fId=>assignAdicional(fId,dragging))
+                      if(targets.length>1) setSelectedFloors([])
+                      setDragging(null); return
+                    }
+                    if(targets.length > 1) {
+                      setBuildings(prev=>prev.map(b=>{
+                        if(b.id!==edifId) return b
+                        return {...b, floors:b.floors.map(f=>{
+                          if(!targets.includes(f.id)) return f
+                          const av=f.sup-f.principal.reduce((s,u)=>s+u.sup,0)
+                          if(av<=0) return f
+                          return {...f, principal:[...f.principal,{uso:dragging,sup:av}]}
+                        })}
+                      }))
+                      setSelectedFloors([])
+                    } else {
+                      const used2=floor.principal.reduce((s,u)=>s+u.sup,0)
+                      const avail2=floor.sup-used2
+                      if(avail2<=0){ setSplitModal({floorId:floor.id,usoId:dragging}); setSplitSup('') }
+                      else{ assignPrincipal(floor.id,dragging,avail2) }
+                    }
                     setDragging(null)
                   }}
                   style={{
@@ -1026,8 +1044,9 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                     {/* Fila 1: barras de uso principal */}
                     <div style={{display:'flex',alignItems:'stretch',gap:2,height:32}}>
                       {floor.principal.length===0 ? (
-                        <div style={{flex:1,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt?600:400}}>
-                          {isTgt?'⬇ Soltar uso aquí':'Sin uso asignado — arrastra un uso'}
+                        <div onClick={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
+                          style={{flex:1,background:isSel?'#dbeafe':isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isSel?'var(--accent)':isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isSel?'var(--accent)':isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt||isSel?600:400,cursor:'pointer'}}>
+                          {isTgt?'⬇ Soltar uso aquí':isSel?'✓ Seleccionada':'Sin uso — clic para seleccionar · arrastra un uso'}
                         </div>
                       ) : (
                         <>

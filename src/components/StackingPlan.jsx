@@ -603,8 +603,9 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                   <div style={{padding:'4px 4px 4px 0',display:'flex',flexDirection:'column',gap:4}}>
                     <div style={{display:'flex',alignItems:'stretch',gap:2,height:32}}>
                       {floor.principal.length===0 ? (
-                        <div style={{flex:1,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt?600:400}}>
-                          {isTgt?'⬇ Soltar uso aquí':'Sin uso asignado — arrastra un uso'}
+                        <div onClick={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
+                          style={{flex:1,background:isSel?'#dbeafe':isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isSel?'var(--accent)':isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isSel?'var(--accent)':isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt||isSel?600:400,cursor:'pointer'}}>
+                          {isTgt?'⬇ Soltar uso aquí':isSel?'✓ Seleccionada':'Sin uso — clic para seleccionar · arrastra un uso'}
                         </div>
                       ) : (
                         <>
