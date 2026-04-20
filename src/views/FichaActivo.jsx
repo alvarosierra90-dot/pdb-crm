@@ -3637,8 +3637,6 @@ export default function FichaActivo() {
   const [caracTab, setCaracTab]         = useState('ct-transporte')
   const [docCat,   setDocCat]           = useState('todos')
   const [showTarea, setShowTarea]       = useState(false)
-  const [showNuevoProp, setShowNuevoProp] = useState(false)
-  const [showNuevoArr,  setShowNuevoArr]  = useState(false)
   const [showSubstConfirm, setShowSubstConfirm] = useState(false)
   const [propietariosReg, setPropietariosReg] = useState(
     params?.newOwnerData ? [params.newOwnerData] : []
@@ -4822,17 +4820,6 @@ export default function FichaActivo() {
             </div>
           </div>
         </div>
-      )}
-      {showNuevoArr && (
-        <NuevoArrendatarioModal
-          activo={activo}
-          propietarioActivo={propietariosReg[0]?.propietario || activo?.propietario || ''}
-          onClose={()=>setShowNuevoArr(false)}
-          onSave={data=>{
-            setArrendatariosReg(p=>[...p, data])
-            setShowNuevoArr(false)
-          }}
-        />
       )}
     </div>
   )
