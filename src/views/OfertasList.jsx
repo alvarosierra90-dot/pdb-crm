@@ -27,6 +27,9 @@ const COLS = [
   { id: '_chk',      label: '',                             sys: true },
   { id: 'ref',       label: 'ID',             required: true, type:'text',   getValue: r => r.ref },
   { id: 'activo',    label: 'Activo',         required: true, type:'text',   getValue: r => r.activo },
+  { id: 'area',      label: 'Área',                          type:'enum',   getValue: r => r.area },
+  { id: 'zona',      label: 'Zona',                          type:'enum',   getValue: r => r.zona },
+  { id: 'subzona',   label: 'Subzona',                       type:'enum',   getValue: r => r.subzona },
   { id: 'm2',        label: 'Sup. disponible (m²)',          type:'number', getValue: r => r.m2 },
   { id: 'renta',     label: 'Renta ofertada',                type:'text',   getValue: r => r.renta },
   { id: 'gastos',    label: 'Gastos (€/m²/mes)',             type:'number', getValue: r => r.gastos },
@@ -48,24 +51,30 @@ export default function OfertasList() {
   useEffect(() => {
     Promise.all([
       supabase.from('ofertas').select('*').order('created_at', { ascending: false }),
-      supabase.from('activos').select('ref, nombre, direccion'),
+      supabase.from('activos').select('ref, nombre, direccion, zona, subzona, ciudad'),
     ]).then(([{ data: ofertasData, error }, { data: activosData }]) => {
       if (!error && ofertasData) {
         const activosMap = Object.fromEntries((activosData || []).map(a => [a.ref, a]))
-        setOfertas(ofertasData.map(o => ({
-          id:         o.id,
-          ref:        o.ref || o.id,
-          activo:     activosMap[o.activo_ref]?.nombre || o.activo_ref || '—',
-          activo_dir: activosMap[o.activo_ref]?.direccion || '',
-          activo_ref: o.activo_ref || '',
-          m2:         o.superficie_disponible || 0,
-          renta:      o.renta_m2 ? `${o.renta_m2} €/m²/mes` : '—',
-          gastos:     o.gastos_medios ?? null,
-          ibi:        o.ibi_medio ?? null,
-          tipo:       o.tipo_operacion || '—',
-          origen:     o.origen_oferta  || '—',
-          estado:     o.estado         || '—',
-        })))
+        setOfertas(ofertasData.map(o => {
+          const act = activosMap[o.activo_ref]
+          return {
+            id:         o.id,
+            ref:        o.ref || o.id,
+            activo:     act?.nombre || o.activo_ref || '—',
+            activo_dir: act?.direccion || '',
+            activo_ref: o.activo_ref || '',
+            area:       act?.ciudad   || '—',
+            zona:       act?.zona     || '—',
+            subzona:    act?.subzona  || '—',
+            m2:         o.superficie_disponible || 0,
+            renta:      o.renta_m2 ? `${o.renta_m2} €/m²/mes` : '—',
+            gastos:     o.gastos_medios ?? null,
+            ibi:        o.ibi_medio ?? null,
+            tipo:       o.tipo_operacion || '—',
+            origen:     o.origen_oferta  || '—',
+            estado:     o.estado         || '—',
+          }
+        }))
       }
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -105,7 +114,10 @@ export default function OfertasList() {
   const cell = (o) => ({
     _chk:    <td key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} onClick={e => e.stopPropagation()} /></td>,
     ref:     <td key="ref"><span className="asset-link" style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>{o.ref}</span></td>,
-    activo:  <td key="activo"><div className="asset-link">{o.activo}</div>{o.activo_dir && <div className="asset-sub" style={{ fontSize:10 }}>{o.activo_dir}</div>}</td>,
+    activo:  <td key="activo"><div className="asset-link">{o.activo}</div>{o.activo_dir && <div style={{ fontSize:11, color:'var(--text3)', marginTop:2, lineHeight:1.3 }}>{o.activo_dir}</div>}</td>,
+    area:    <td key="area" style={{ fontSize:11, color:'var(--text2)' }}>{o.area !== '—' ? o.area : <span style={{ color:'var(--text4)' }}>—</span>}</td>,
+    zona:    <td key="zona" style={{ fontSize:11, color:'var(--text2)' }}>{o.zona !== '—' ? o.zona : <span style={{ color:'var(--text4)' }}>—</span>}</td>,
+    subzona: <td key="subzona" style={{ fontSize:11, color:'var(--text3)' }}>{o.subzona !== '—' ? o.subzona : <span style={{ color:'var(--text4)' }}>—</span>}</td>,
     m2:      <td key="m2" className="mono">{o.m2 > 0 ? o.m2.toLocaleString('es-ES') + ' m²' : <span style={{ color:'var(--text4)' }}>—</span>}</td>,
     renta:   <td key="renta" className="mono">{o.renta}</td>,
     gastos:  <td key="gastos" className="mono">{o.gastos != null ? `${Number(o.gastos).toFixed(2)} €` : <span style={{ color:'var(--text4)' }}>—</span>}</td>,
