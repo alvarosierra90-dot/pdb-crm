@@ -179,6 +179,9 @@ export default function FichaOferta() {
   const [espaciosComercializables, setEspaciosComercializables] = useState([])
   const supTotal = espaciosComercializables.reduce((s, e) => s + e.sup, 0)
 
+  // Arrendatarios añadidos vía conversión de oferta (aparecen en panel lateral del stacking)
+  const [stackingExtraTenants, setStackingExtraTenants] = useState([])
+
   // Multimedia de la oferta (subconjunto del activo — borrar aquí no afecta al activo)
   const [imagenesOferta, setImagenesOferta] = useState([])  // { id, src, desc, subtipo, tipo }
   const [planosOferta, setPlanosOferta] = useState([])
@@ -204,6 +207,13 @@ export default function FichaOferta() {
     supabase.from('activos').select('ref,nombre,uso,estado_construccion,direccion,zona,subzona,ciudad,propietario').order('nombre')
       .then(({ data }) => { if (data) setActivosDB(data) })
   }, [])
+
+  // ── When returning from FichaArrendatario, add the new tenant to the stacking panel ──
+  useEffect(() => {
+    if (params?.newTenantName) {
+      setStackingExtraTenants(prev => prev.includes(params.newTenantName) ? prev : [...prev, params.newTenantName])
+    }
+  }, [params?.newTenantName])
 
   // ── Load oferta from Supabase (chained: oferta → sub-tables) ──
   useEffect(() => {
@@ -740,8 +750,27 @@ export default function FichaOferta() {
                       allowCreate={false}
                       extraOfertas={ofertasDesglose}
                       activoPropietario={activoSeleccionado.propietario || ''}
+                      extraTenants={stackingExtraTenants}
                       onAddOwner={() => {}}
                       onAddTenant={() => {}}
+                      onConvertToTenant={(unit, floorId, idx) => {
+                        // Remove the unit from the live buildings
+                        liveBuildings.current = liveBuildings.current.map(b => ({
+                          ...b,
+                          arr: (b.arr||[]).map(r => r.p !== floorId ? r : { ...r, units: r.units.filter((_,i) => i !== idx) })
+                        }))
+                        setEspaciosComercializables(prev => prev.filter(e => !(e.planta === floorId && e.ofertaNombre === unit.oferta)))
+                        // Navigate to full tenant creation form
+                        navigate('ficha-arrendatario', {
+                          fromOfertaRef:  oferta?.ref,
+                          fromActivoRef:  activoSeleccionado?.ref,
+                          fromActivoNombre: activoSeleccionado?.nombre || '',
+                          prefilledTenant: unit.oferta || '',
+                          prefilledSup:    String(unit.sup || ''),
+                          prefilledRenta:  String(unit.renta || ''),
+                          fromFloorId:     floorId,
+                        })
+                      }}
                       onBuildingsChange={(blds) => {
                         liveBuildings.current = blds
                         const newEspacios = blds.flatMap(b =>

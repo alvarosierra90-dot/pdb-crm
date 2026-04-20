@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
+import { supabase } from '../lib/supabase'
 
 const MESES_ANTES_BREAK = 3
 
@@ -36,50 +37,188 @@ const HIST_ACTS = [
 ]
 
 export default function FichaArrendatario() {
-  const { navigate } = useNav()
+  const { navigate, params } = useNav()
   const [tab, setTab] = useState('datos')
   const [showTarea, setShowTarea] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveErr, setSaveErr] = useState('')
+  const [saveOk, setSaveOk] = useState(false)
+  const [validationErrors, setValidationErrors] = useState([])
 
-  // Datos del arrendatario (mock — Oracle Spain SL)
-  const [form, setForm] = useState({
-    activo: 'Albatros Edif. D',
+  // Detect if launched from offer flow
+  const fromOferta = !!params?.fromOfertaRef
+  const isNew = fromOferta  // true when creating new from offer conversion
+
+  const EMPTY_FORM = {
+    activo: '',
     persona_fisica: false,
     tenant_desconocido: false,
-    tenant: 'Oracle Spain SL',
-    tenant_mayoritario: 'Oracle Spain SL',
-    propietario: 'Merlín Properties SOCIMI',
-    anyo_firma: '2021',
-    trimestre: 'Q2',
-    superficie: '13486',
-    asking_rent: '13.00',
-    closing_rent: '12.50',
+    tenant: '',
+    tenant_mayoritario: '',
+    propietario: '',
+    anyo_firma: String(new Date().getFullYear()),
+    trimestre: 'Q1',
+    superficie: '',
+    asking_rent: '',
+    closing_rent: '',
     renta_mensual: '',
-    meses_carencia: '2',
-    plazas_int: '40',
+    meses_carencia: '',
+    plazas_int: '0',
     plazas_ext: '0',
-    precio_int: '110',
+    precio_int: '0',
     precio_ext: '0',
     agente_activo: 'Sierra Alvaro',
-    agente_pasivo: 'CBRE',
-    aportacion_obras_m2: '15',
+    agente_pasivo: '',
+    aportacion_obras_m2: '',
     aportacion_total: '',
     tipo_contrato: 'Alquiler comercial',
-    anios_obligado: '5',
-    fecha_inicio: '01/07/2021',
-    break_option: '01/07/2024',
-    fecha_fin: '30/06/2026',
+    anios_obligado: '',
+    fecha_inicio: '',
+    break_option: '',
+    fecha_fin: '',
     fecha_salida: '',
     meses_recordatorio: '3',
     color: '#3b82f6',
-    estado: 'Próximo a vencimiento',
+    estado: 'Activo',
     responsable: 'Sierra Alvaro',
     sector: 'Tecnología',
     area: 'Periferia',
-    zona: 'A-1',
-    subzona: 'Alcobendas',
+    zona: '',
+    subzona: '',
+  }
+
+  // Datos del arrendatario — inicializa desde params si viene de oferta, sino mock
+  const [form, setForm] = useState(() => {
+    if (params?.fromOfertaRef) {
+      return {
+        ...EMPTY_FORM,
+        activo:          params.fromActivoNombre || '',
+        tenant:          params.prefilledTenant  || '',
+        tenant_mayoritario: params.prefilledTenant || '',
+        superficie:      params.prefilledSup     || '',
+        closing_rent:    params.prefilledRenta   || '',
+      }
+    }
+    // Mock data for existing tenant view
+    return {
+      activo: 'Albatros Edif. D',
+      persona_fisica: false,
+      tenant_desconocido: false,
+      tenant: 'Oracle Spain SL',
+      tenant_mayoritario: 'Oracle Spain SL',
+      propietario: 'Merlín Properties SOCIMI',
+      anyo_firma: '2021',
+      trimestre: 'Q2',
+      superficie: '13486',
+      asking_rent: '13.00',
+      closing_rent: '12.50',
+      renta_mensual: '',
+      meses_carencia: '2',
+      plazas_int: '40',
+      plazas_ext: '0',
+      precio_int: '110',
+      precio_ext: '0',
+      agente_activo: 'Sierra Alvaro',
+      agente_pasivo: 'CBRE',
+      aportacion_obras_m2: '15',
+      aportacion_total: '',
+      tipo_contrato: 'Alquiler comercial',
+      anios_obligado: '5',
+      fecha_inicio: '01/07/2021',
+      break_option: '01/07/2024',
+      fecha_fin: '30/06/2026',
+      fecha_salida: '',
+      meses_recordatorio: '3',
+      color: '#3b82f6',
+      estado: 'Próximo a vencimiento',
+      responsable: 'Sierra Alvaro',
+      sector: 'Tecnología',
+      area: 'Periferia',
+      zona: 'A-1',
+      subzona: 'Alcobendas',
+    }
   })
 
   const set = (k,v) => setForm(p=>({...p,[k]:v}))
+
+  // ── Validation ────────────────────────────────────────────────
+  function validate() {
+    const errs = []
+    if (!form.tenant_desconocido && !form.tenant.trim())
+      errs.push('Nombre del tenant (o marca "Tenant desconocido")')
+    if (!form.anyo_firma || !/^\d{4}$/.test(form.anyo_firma.trim()))
+      errs.push('Año de firma (4 dígitos)')
+    if (!form.trimestre)
+      errs.push('Trimestre')
+    if (!form.closing_rent || isNaN(parseFloat(form.closing_rent)))
+      errs.push('Closing rent (valor numérico)')
+    if (!form.fecha_inicio || form.fecha_inicio.trim().length < 6)
+      errs.push('Fecha de inicio contractual')
+    if (!form.anios_obligado || isNaN(parseFloat(form.anios_obligado)))
+      errs.push('Número de años de obligado cumplimiento')
+    if (!form.meses_recordatorio || isNaN(parseInt(form.meses_recordatorio)))
+      errs.push('Recordatorio (meses)')
+    return errs
+  }
+
+  // ── Save ──────────────────────────────────────────────────────
+  const handleSave = async () => {
+    const errs = validate()
+    if (errs.length > 0) { setValidationErrors(errs); return }
+    setValidationErrors([])
+    setSaving(true); setSaveErr('')
+    try {
+      const ref = 'ARR-' + Date.now()
+      const row = {
+        ref,
+        activo_ref:       params?.fromActivoRef || null,
+        tenant:           form.tenant_desconocido ? 'Desconocido' : form.tenant.trim(),
+        tenant_desconocido: form.tenant_desconocido,
+        persona_fisica:   form.persona_fisica,
+        anyo_firma:       parseInt(form.anyo_firma) || null,
+        trimestre:        form.trimestre,
+        superficie:       parseFloat(form.superficie) || null,
+        asking_rent:      parseFloat(form.asking_rent) || null,
+        closing_rent:     parseFloat(form.closing_rent) || null,
+        meses_carencia:   parseInt(form.meses_carencia) || null,
+        plazas_int:       parseInt(form.plazas_int) || 0,
+        precio_int:       parseFloat(form.precio_int) || 0,
+        plazas_ext:       parseInt(form.plazas_ext) || 0,
+        precio_ext:       parseFloat(form.precio_ext) || 0,
+        agente_activo:    form.agente_activo || null,
+        agente_pasivo:    form.agente_pasivo || null,
+        aportacion_obras_m2: parseFloat(form.aportacion_obras_m2) || null,
+        tipo_contrato:    form.tipo_contrato,
+        anios_obligado:   parseFloat(form.anios_obligado) || null,
+        fecha_inicio:     form.fecha_inicio || null,
+        break_option:     form.break_option || null,
+        fecha_fin:        form.fecha_fin || null,
+        meses_recordatorio: parseInt(form.meses_recordatorio) || 3,
+        color:            form.color,
+        estado:           form.estado,
+        sector:           form.sector,
+        oferta_origen:    params?.fromOfertaRef || null,
+      }
+      const { error } = await supabase.from('arrendatarios').insert(row)
+      if (error) { setSaveErr(error.message); return }
+      setSaveOk(true)
+      setTimeout(() => {
+        // Return to offer with the tenant name so it appears in the stacking panel
+        if (params?.fromOfertaRef) {
+          navigate('ficha-oferta', {
+            ofertaRef: params.fromOfertaRef,
+            newTenantName: form.tenant_desconocido ? 'Desconocido' : form.tenant.trim(),
+          })
+        } else {
+          navigate('arrendatarios')
+        }
+      }, 1200)
+    } catch(e) {
+      setSaveErr(e.message || 'Error inesperado')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const rentaMensual = form.superficie && form.closing_rent
     ? (parseFloat(form.superficie)*parseFloat(form.closing_rent)).toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0})
@@ -96,19 +235,42 @@ export default function FichaArrendatario() {
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
       <div className="action-bar">
-        <button className="ab-btn save">💾 Guardar</button>
-        <button className="ab-btn">Nuevo</button>
-        <button className="ab-btn">Desactivar</button>
+        <button className="ab-btn save" onClick={handleSave} disabled={saving}>{saving ? 'Guardando...' : '💾 Guardar'}</button>
+        {!isNew && <button className="ab-btn">Nuevo</button>}
+        {!isNew && <button className="ab-btn">Desactivar</button>}
         <div className="ab-sep"/>
-        <button className="ab-btn blue" onClick={()=>navigate('ficha-activo')}>🏢 Ver activo</button>
-        <button className="ab-btn blue" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>
-        <button className="ab-btn" onClick={()=>navigate('arrendatarios')}>← Volver</button>
+        {!isNew && <button className="ab-btn blue" onClick={()=>navigate('ficha-activo')}>🏢 Ver activo</button>}
+        {!isNew && <button className="ab-btn blue" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>}
+        <button className="ab-btn" onClick={()=> fromOferta ? navigate('ficha-oferta',{ofertaRef:params.fromOfertaRef}) : navigate('arrendatarios')}>
+          ← {fromOferta ? 'Volver a la oferta' : 'Volver'}
+        </button>
         <div className="ab-sep"/>
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
+        {saveOk  && <span style={{fontSize:11,color:'var(--green)',marginLeft:8}}>✓ Arrendatario guardado</span>}
+        {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
       </div>
 
       <div className="ficha-wrap">
         <div className="ficha-main">
+          {/* Validation banner */}
+          {validationErrors.length > 0 && (
+            <div style={{margin:'0 0 0 0',padding:'10px 16px',background:'var(--red-lt)',borderBottom:'1px solid var(--red-bd)',display:'flex',gap:12,alignItems:'flex-start'}}>
+              <span style={{color:'var(--red)',fontWeight:700,fontSize:12,flexShrink:0}}>⚠ Campos obligatorios incompletos:</span>
+              <span style={{fontSize:11,color:'var(--red)',lineHeight:1.5}}>{validationErrors.join(' · ')}</span>
+              <button onClick={()=>setValidationErrors([])} style={{marginLeft:'auto',background:'none',border:'none',color:'var(--red)',cursor:'pointer',fontSize:14,lineHeight:1,flexShrink:0}}>✕</button>
+            </div>
+          )}
+
+          {/* Banner "creación desde oferta" */}
+          {isNew && (
+            <div style={{padding:'8px 16px',background:'#eff6ff',borderBottom:'1px solid #bfdbfe',fontSize:11,color:'#1e40af',display:'flex',alignItems:'center',gap:8}}>
+              <span style={{fontWeight:700}}>📋 Creación desde oferta</span>
+              <span>·</span>
+              <span>Vinculado a <strong>{params?.fromOfertaRef}</strong>{params?.fromActivoNombre ? ` · Activo: ${params.fromActivoNombre}` : ''}</span>
+              <span style={{marginLeft:'auto',color:'#60a5fa',fontSize:10}}>Los campos marcados con * son obligatorios para guardar</span>
+            </div>
+          )}
+
           {/* Header */}
           <div className="ah">
             <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
@@ -116,10 +278,11 @@ export default function FichaArrendatario() {
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'var(--teal-lt)',color:'var(--teal)',border:'1px solid var(--teal-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>ARRENDATARIO</span>
-                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>ARR-2501</span>
+                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{isNew ? 'NUEVO' : 'ARR-2501'}</span>
                   <span className={`tag ${form.estado==='Activo'?'tag-green':form.estado==='Próximo a vencimiento'?'tag-red':form.estado==='En negociación'?'tag-purple':'tag-gray'}`}>{form.estado}</span>
+                  {isNew && <span style={{background:'#dbeafe',color:'#1e40af',border:'1px solid #bfdbfe',padding:'0 6px',borderRadius:3,fontSize:9,fontWeight:700}}>DESDE OFERTA</span>}
                 </div>
-                <div className="ah-name">{form.tenant} — {form.activo}</div>
+                <div className="ah-name">{form.tenant_desconocido ? 'Tenant desconocido' : (form.tenant || <span style={{color:'var(--text4)',fontStyle:'italic'}}>Sin nombre</span>)} {form.activo ? `— ${form.activo}` : ''}</div>
                 <div className="ah-addr">📍 {form.zona} · {form.subzona} · Inicio: {form.fecha_inicio} · Break: {form.break_option} · Fin: {form.fecha_fin}</div>
                 <div className="ah-tags">
                   <span className="tag tag-teal">{form.sector}</span>
