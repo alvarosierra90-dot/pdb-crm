@@ -566,8 +566,10 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
 
             {(()=>{
               const maxFloorSup = Math.max(...edif.floors.map(f=>f.sup), 1)
+              // maxBarH shrinks as there are more floors so the total height stays on-screen
+              const maxBarH = Math.max(20, Math.min(64, Math.round(440 / edif.floors.length)))
               return edif.floors.map((floor, floorIdx) => {
-              const barH = Math.max(12, Math.round((floor.sup / maxFloorSup) * 56))
+              const barH = Math.max(10, Math.round((floor.sup / maxFloorSup) * maxBarH))
               const used  = (floor.principal||[]).reduce((s,u)=>s+u.sup,0)
               const avail = floor.sup-used
               const isTgt = dragTarget===floor.id
@@ -774,8 +776,8 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Propietario — arrastra desde el panel izquierdo · clic en bloque para editar</div>
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
               </div>
-              {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
-                const barH = Math.max(12, Math.round((floor.sup / maxFloorSup) * 60))
+              {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);const maxBarH=Math.max(20,Math.min(64,Math.round(440/edif.floors.length)));return edif.floors.map(floor=>{
+                const barH = Math.max(10, Math.round((floor.sup / maxFloorSup) * maxBarH))
                 const propRow = (edif.prop||[]).find(r=>r.p===floor.id)
                 const units    = propRow?.units || []
                 const rowSup   = propRow?.sup ?? floor.sup
@@ -936,8 +938,8 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Arrendatario / Oferta — arrastra desde el panel izquierdo · clic en bloque para editar</div>
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
               </div>
-              {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
-                const barH = Math.max(14, Math.round((floor.sup / maxFloorSup) * 70))
+              {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);const maxBarH=Math.max(22,Math.min(72,Math.round(500/edif.floors.length)));return edif.floors.map(floor=>{
+                const barH = Math.max(10, Math.round((floor.sup / maxFloorSup) * maxBarH))
                 const arrRow  = (edif.arr||[]).find(r=>r.p===floor.id)
                 const units   = arrRow?.units || []
                 const rowSup  = arrRow?.sup ?? floor.sup
