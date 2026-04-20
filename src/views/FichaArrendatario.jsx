@@ -3,7 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { supabase } from '../lib/supabase'
 
-// DD/MM/YYYY → YYYY-MM-DD (for DB date columns)
+// DD/MM/YYYY → YYYY-MM-DD (for DB date columns and <input type="date">)
 function parseDate(ddmmyyyy) {
   if (!ddmmyyyy || ddmmyyyy.length < 8) return null
   const parts = ddmmyyyy.trim().split('/')
@@ -12,13 +12,17 @@ function parseDate(ddmmyyyy) {
   if (!d || !m || !y || y < 1900) return null
   return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`
 }
-// YYYY-MM-DD → DD/MM/YYYY (from DB back to form)
+// YYYY-MM-DD → DD/MM/YYYY (from DB / <input type="date"> back to form state)
 function formatDate(iso) {
   if (!iso || iso.length < 8) return ''
   const [y, m, d] = iso.split('-')
   if (!y || !m || !d) return ''
   return `${d}/${m}/${y}`
 }
+// form state (DD/MM/YYYY) → <input type="date"> value (YYYY-MM-DD)
+function toInputDate(ddmmyyyy) { return parseDate(ddmmyyyy) || '' }
+// <input type="date"> onChange → form state (DD/MM/YYYY)
+function fromInputDate(yyyymmdd) { return yyyymmdd ? formatDate(yyyymmdd) : '' }
 
 function addYearsToDate(ddmmyyyy, years) {
   if (!ddmmyyyy || !years || isNaN(parseFloat(years))) return ''
@@ -320,9 +324,22 @@ export default function FichaArrendatario() {
 
       let { error } = await supabase.from('arrendatarios').insert(extRow)
       if (error && (error.message?.includes('column') || error.code === '42703')) {
-        // Migration 007 not yet applied — fall back to base columns
-        const res = await supabase.from('arrendatarios').insert(baseRow)
-        error = res.error
+        // Migration 007 not yet applied — fall back to base+006 columns
+        const res2 = await supabase.from('arrendatarios').insert(baseRow)
+        error = res2.error
+      }
+      if (error && (error.message?.includes('column') || error.code === '42703')) {
+        // Migration 006 not yet applied either — absolute minimum (001 schema only)
+        const minRow = {
+          nombre:      tenantName,
+          uso:         form.sector || null,
+          superficie:  parseFloat(form.superficie) || null,
+          renta:       parseFloat(form.closing_rent) || null,
+          break_option: parseDate(form.break_option),
+          vencimiento:  parseDate(form.fecha_fin),
+        }
+        const res3 = await supabase.from('arrendatarios').insert(minRow)
+        error = res3.error
       }
       if (error) { setSaveErr(error.message); return }
 
@@ -550,21 +567,25 @@ export default function FichaArrendatario() {
                       </select>
                     </FField>
                     <FField label="Obligado cumplimiento del primer periodo (años)" req invalid={invalidFields.has('anios_obligado')}><input className="of-inp" value={form.anios_obligado} onChange={e=>set('anios_obligado',e.target.value)} placeholder="ej. 3"/></FField>
-                    <FField label="Fecha inicio" req invalid={invalidFields.has('fecha_inicio')}><input className="of-inp" value={form.fecha_inicio} onChange={e=>set('fecha_inicio',e.target.value)} placeholder="DD/MM/AAAA"/></FField>
-                    <FField label="Break option (fecha — automática)">
-                      <div style={{position:'relative'}}>
-                        <input className="of-inp" value={form.break_option} onChange={e=>set('break_option',e.target.value)} placeholder="DD/MM/AAAA" style={{paddingRight:52}}/>
-                        {form.break_option && <span style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',fontSize:8,color:'var(--accent)',fontWeight:700,pointerEvents:'none'}}>AUTO</span>}
+                    <FField label="Fecha inicio" req invalid={invalidFields.has('fecha_inicio')}>
+                      <input type="date" className="of-inp" value={toInputDate(form.fecha_inicio)} onChange={e=>set('fecha_inicio',fromInputDate(e.target.value))}/>
+                    </FField>
+                    <FField label="Break option (automática — calculada)">
+                      <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                        <input type="date" className="of-inp" value={toInputDate(form.break_option)} onChange={e=>set('break_option',fromInputDate(e.target.value))} style={{flex:1}}/>
+                        {form.break_option && <span style={{fontSize:9,color:'var(--accent)',fontWeight:700,flexShrink:0,padding:'2px 6px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:3}}>AUTO</span>}
                       </div>
                     </FField>
                     <FField label="Años obligado cumplimiento del segundo periodo"><input className="of-inp" value={form.anios_obligado_2} onChange={e=>set('anios_obligado_2',e.target.value)} placeholder="ej. 2"/></FField>
-                    <FField label="Fecha fin contrato (automática)">
-                      <div style={{position:'relative'}}>
-                        <input className="of-inp" value={form.fecha_fin} onChange={e=>set('fecha_fin',e.target.value)} placeholder="DD/MM/AAAA" style={{paddingRight:52}}/>
-                        {form.fecha_fin && <span style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',fontSize:8,color:'var(--accent)',fontWeight:700,pointerEvents:'none'}}>AUTO</span>}
+                    <FField label="Fecha fin contrato (automática — calculada)">
+                      <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                        <input type="date" className="of-inp" value={toInputDate(form.fecha_fin)} onChange={e=>set('fecha_fin',fromInputDate(e.target.value))} style={{flex:1}}/>
+                        {form.fecha_fin && <span style={{fontSize:9,color:'var(--accent)',fontWeight:700,flexShrink:0,padding:'2px 6px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:3}}>AUTO</span>}
                       </div>
                     </FField>
-                    <FField label="Fecha salida efectiva"><input className="of-inp" value={form.fecha_salida} onChange={e=>set('fecha_salida',e.target.value)} placeholder="DD/MM/AAAA"/></FField>
+                    <FField label="Fecha salida efectiva">
+                      <input type="date" className="of-inp" value={toInputDate(form.fecha_salida)} onChange={e=>set('fecha_salida',fromInputDate(e.target.value))}/>
+                    </FField>
                     <div style={{height:1,background:'var(--border)',margin:'10px 0'}}/>
                     <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>🔔 ACCIÓN COMERCIAL</div>
                     <FField label="Recordatorio (meses antes de break option)" req invalid={invalidFields.has('meses_recordatorio')}>
