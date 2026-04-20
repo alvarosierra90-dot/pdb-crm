@@ -456,7 +456,12 @@ export default function FichaOferta() {
                               {showActivoDropdown && (
                                 <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 4px 12px rgba(0,0,0,.12)', zIndex:200, maxHeight:200, overflowY:'auto' }}>
                                   {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).slice(0,8).map(a => (
-                                    <div key={a.ref} onMouseDown={() => { setActivoSeleccionado(a); setActivoBuscador(''); setShowActivoDropdown(false) }}
+                                    <div key={a.ref} onMouseDown={() => {
+                                      setActivoBuscador(''); setShowActivoDropdown(false)
+                                      // Fetch full activo data including stacking_data
+                                      supabase.from('activos').select('*').eq('ref', a.ref).single()
+                                        .then(({ data: full }) => setActivoSeleccionado(full || a))
+                                    }}
                                       style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
                                       <div style={{ fontWeight:600 }}>{a.nombre}</div>
                                       <div style={{ color:'var(--text4)', fontSize:10 }}>{a.ref} · {a.uso}</div>
