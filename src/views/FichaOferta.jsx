@@ -807,8 +807,14 @@ export default function FichaOferta() {
                                         : <span style={{ color:'var(--text4)', fontSize:10 }}>Total</span>
                                       }
                                     </td>
-                                    <td style={{ padding:'7px 12px', color:'var(--text3)' }}>{o.cargasM2} €</td>
-                                    <td style={{ padding:'7px 12px', color:'var(--text3)' }}>{o.ibiM2>0?`${o.ibiM2} €`:<span style={{ color:'var(--text4)' }}>—</span>}</td>
+                                    <td style={{ padding:'5px 8px' }}>
+                                      <input type="number" step="0.01" value={o.cargasM2||''} onChange={e => setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,cargasM2:parseFloat(e.target.value)||0}:x))}
+                                        placeholder="0,00" style={{ width:68, padding:'3px 6px', fontSize:10, border:'1px solid var(--border)', borderRadius:4, fontFamily:'var(--mono)', background:'var(--surface)' }} />
+                                    </td>
+                                    <td style={{ padding:'5px 8px' }}>
+                                      <input type="number" step="0.01" value={o.ibiM2||''} onChange={e => setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,ibiM2:parseFloat(e.target.value)||0}:x))}
+                                        placeholder="0,00" style={{ width:68, padding:'3px 6px', fontSize:10, border:'1px solid var(--border)', borderRadius:4, fontFamily:'var(--mono)', background:'var(--surface)' }} />
+                                    </td>
                                     <td style={{ padding:'7px 12px', color:'var(--text3)', whiteSpace:'nowrap' }}>{fechaDispGlobal?new Date(fechaDispGlobal).toLocaleDateString('es-ES'):'—'}</td>
                                     <td style={{ padding:'7px 12px' }}>
                                       {assignedSpaces.length>0
@@ -980,25 +986,45 @@ export default function FichaOferta() {
                       <div className="cond-row"><span className="cond-key">Pago honorarios</span><span className="cond-val">A la firma</span></div>
                     </div>
                     <div className="cond-block"><div className="cond-block-title">CONDICIONES ECONÓMICAS</div>
-                      <div className="cond-row"><span className="cond-key">Renta (€/m²/mes)</span><span className="cond-val" style={{ fontSize:15, color:'var(--green)' }}>12,50 €</span></div>
-                      <div className="cond-row"><span className="cond-key">Renta mensual</span><span className="cond-val" style={{ color:'var(--green)' }}>168.575 €</span></div>
-                      <div style={{ display:'flex', flexDirection:'column', gap:10, marginTop:12 }}>
-                        <div>
-                          <FieldLbl>Gastos comunes (€/m²/mes)</FieldLbl>
-                          <input type="number" step="0.01" className="of-inp" value={gastosComunes} onChange={e => { const v = e.target.value; setGastosComunes(v); setOfertasDesglose(prev => prev.map(o => ({ ...o, cargasM2: parseFloat(v) || 0 }))) }} placeholder="0,00" />
-                        </div>
-                        <div>
-                          <FieldLbl>IBI (€/m²/mes)</FieldLbl>
-                          <input type="number" step="0.01" className="of-inp" value={ibi} onChange={e => { const v = e.target.value; setIbi(v); setOfertasDesglose(prev => prev.map(o => ({ ...o, ibiM2: parseFloat(v) || 0 }))) }} placeholder="0,00" />
-                        </div>
-                        <label style={{ display:'flex', alignItems:'flex-start', gap:8, padding:'9px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', cursor:'pointer' }}>
-                          <input type="checkbox" checked={gastosIncluidos} onChange={e => setGastosIncluidos(e.target.checked)} style={{ accentColor:'var(--accent)', marginTop:1 }} />
-                          <div>
-                            <div style={{ fontSize:11, fontWeight:600 }}>Gastos incluidos en renta</div>
-                            <div style={{ fontSize:9, color:'var(--text4)', marginTop:1 }}>{gastosIncluidos ? 'Los importes son informativos (ya incluidos en la renta)' : 'Los importes son adicionales a la renta'}</div>
-                          </div>
-                        </label>
-                      </div>
+                      {(()=>{
+                        const rentaSpaces = espaciosComercializables.filter(e=>e.renta>0)
+                        const rentaMax = rentaSpaces.length>0 ? Math.max(...rentaSpaces.map(e=>e.renta)) : null
+                        const rentaMin = rentaSpaces.length>0 ? Math.min(...rentaSpaces.map(e=>e.renta)) : null
+                        const supConRenta = rentaSpaces.reduce((s,e)=>s+e.sup,0)
+                        const rentaMedia = supConRenta>0 ? rentaSpaces.reduce((s,e)=>s+e.renta*e.sup,0)/supConRenta : null
+                        const rentaMensual = espaciosComercializables.reduce((s,e)=>s+(e.renta||0)*e.sup,0)
+                        const withGastos = ofertasDesglose.filter(o=>o.cargasM2>0)
+                        const gastosMax = withGastos.length>0 ? Math.max(...withGastos.map(o=>o.cargasM2)) : null
+                        const gastosMin = withGastos.length>0 ? Math.min(...withGastos.map(o=>o.cargasM2)) : null
+                        let gNum=0, gDen=0
+                        ofertasDesglose.forEach(o=>{
+                          if(o.cargasM2>0){
+                            const asSup=espaciosComercializables.filter(e=>e.ofertaNombre===o.nombre).reduce((s,e)=>s+e.sup,0)
+                            if(asSup>0){gNum+=o.cargasM2*asSup;gDen+=asSup}else{gNum+=o.cargasM2;gDen+=1}
+                          }
+                        })
+                        const gastosMedia = gDen>0 ? gNum/gDen : null
+                        const withIbi = ofertasDesglose.filter(o=>o.ibiM2>0)
+                        const ibiMax = withIbi.length>0?Math.max(...withIbi.map(o=>o.ibiM2)):null
+                        const ibiMin = withIbi.length>0?Math.min(...withIbi.map(o=>o.ibiM2)):null
+                        return (<>
+                          <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginTop:4, marginBottom:6 }}>Renta · desde Stacking Plan</div>
+                          <div className="cond-row"><span className="cond-key">Renta media (€/m²/mes)</span><span className="cond-val" style={{ fontSize:14, color:'var(--green)' }}>{rentaMedia!=null?`${rentaMedia.toFixed(2)} €`:'—'}</span></div>
+                          <div className="cond-row"><span className="cond-key">Renta mínima / máxima</span><span className="cond-val">{rentaMin!=null?`${rentaMin.toFixed(2)} — ${rentaMax.toFixed(2)} €/m²`:'—'}</span></div>
+                          <div className="cond-row"><span className="cond-key">Renta mensual total</span><span className="cond-val" style={{ color:'var(--green)', fontWeight:700 }}>{rentaMensual>0?`${rentaMensual.toLocaleString(undefined,{maximumFractionDigits:0})} €`:'—'}</span></div>
+                          <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginTop:12, marginBottom:6 }}>Gastos · desde desglose de ofertas</div>
+                          <div className="cond-row"><span className="cond-key">Gastos medios (€/m²/mes)</span><span className="cond-val">{gastosMedia!=null?`${gastosMedia.toFixed(2)} €`:'—'}</span></div>
+                          <div className="cond-row"><span className="cond-key">Gastos mínimos / máximos</span><span className="cond-val">{gastosMin!=null?`${gastosMin.toFixed(2)} — ${gastosMax.toFixed(2)} €/m²`:'—'}</span></div>
+                          <div className="cond-row"><span className="cond-key">IBI mínimo / máximo</span><span className="cond-val">{ibiMin!=null?`${ibiMin.toFixed(2)} — ${ibiMax.toFixed(2)} €/m²`:'—'}</span></div>
+                          <label style={{ display:'flex', alignItems:'flex-start', gap:8, padding:'9px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', cursor:'pointer', marginTop:10 }}>
+                            <input type="checkbox" checked={gastosIncluidos} onChange={e => setGastosIncluidos(e.target.checked)} style={{ accentColor:'var(--accent)', marginTop:1 }} />
+                            <div>
+                              <div style={{ fontSize:11, fontWeight:600 }}>Gastos incluidos en renta</div>
+                              <div style={{ fontSize:9, color:'var(--text4)', marginTop:1 }}>{gastosIncluidos ? 'Los importes son informativos (ya incluidos en la renta)' : 'Los importes son adicionales a la renta'}</div>
+                            </div>
+                          </label>
+                        </>)
+                      })()}
                     </div>
                     <div className="cond-block"><div className="cond-block-title">INCENTIVOS Y CAPEX</div>
                       <div className="cond-row"><span className="cond-key">Meses de carencia</span><span className="cond-val">—</span></div>
