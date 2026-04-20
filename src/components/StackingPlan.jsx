@@ -195,7 +195,7 @@ const NewBldgForm = memo(function NewBldgForm({ form, onChange, onCreate, onCanc
   )
 })
 
-export default function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, extraOfertas=[], initView='principal', defaultSupPlantaTipo, defaultLabel='', allowCreate=true, noDataMessage=null }) {
+export default function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, onTenantClick, extraOfertas=[], initView='principal', defaultSupPlantaTipo, defaultLabel='', allowCreate=true, noDataMessage=null }) {
   const [buildings, setBuildings]       = useState(initBuildings ?? [])
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
   const [setupForm, setSetupForm]       = useState({ label: defaultLabel, sobre:'5', bajo:'1', sup: defaultSupPlantaTipo ? String(defaultSupPlantaTipo) : '1500', uso:'' })
@@ -888,6 +888,11 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                       style={{display:'flex',alignItems:'center',gap:7,padding:'6px 9px',marginBottom:4,borderRadius:6,cursor:'grab',userSelect:'none',border:`1px solid ${col}88`,background:col+'18',opacity:dragging&&dragging!=='ten:'+n?.4:1,boxShadow:dragging==='ten:'+n?`0 2px 8px ${col}44`:'none',transition:'opacity .15s,box-shadow .1s'}}>
                       <div style={{width:9,height:9,borderRadius:2,background:col,flexShrink:0}}/>
                       <span style={{fontSize:11,fontWeight:600,color:col,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{n}</span>
+                      {onTenantClick && (
+                        <button onClick={e=>{e.stopPropagation();onTenantClick(n)}}
+                          title="Ver ficha arrendatario"
+                          style={{flexShrink:0,background:'none',border:`1px solid ${col}55`,borderRadius:3,padding:'1px 5px',fontSize:9,color:col,cursor:'pointer',fontFamily:'inherit',fontWeight:700,lineHeight:1.4}}>↗</button>
+                      )}
                     </div>
                   )
                 })}
@@ -1025,7 +1030,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                                     </div>
                                   ) : (
                                     <>
-                                      <button onClick={e=>{e.stopPropagation(); if(u.type==='vac'&&u.oferta){setConvertConfirm({floorId:floor.id,idx:i,unit:u});setConvertForm(false);setConvertData({n:u.oferta||'',brk:'',brkColor:'var(--green)'})}else{removeArrUnit(floor.id,i)}}} style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
+                                      <button onClick={e=>{e.stopPropagation(); if(u.type==='vac'&&u.oferta){setConvertConfirm({floorId:floor.id,idx:i,unit:u})}else{removeArrUnit(floor.id,i)}}} style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
                                       <span style={{fontSize:10,fontWeight:700,color:col,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>{label}</span>
                                       {u.type==='vac'&&u.oferta&&activoPropietario&&(
                                         <span style={{fontSize:8,color:col,opacity:.6,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>🏠 {activoPropietario}</span>

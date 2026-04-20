@@ -3,7 +3,15 @@ import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { supabase } from '../lib/supabase'
 
-const MESES_ANTES_BREAK = 3
+function addYearsToDate(ddmmyyyy, years) {
+  if (!ddmmyyyy || !years || isNaN(parseFloat(years))) return ''
+  const parts = ddmmyyyy.trim().split('/')
+  if (parts.length !== 3) return ''
+  const [d, m, y] = parts.map(Number)
+  if (!d || !m || !y || y < 1900) return ''
+  const dt = new Date(y + Math.floor(parseFloat(years)), m - 1, d)
+  return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`
+}
 
 function calcRecordatorio(breakOption, meses) {
   if (!breakOption) return '—'
@@ -45,9 +53,10 @@ export default function FichaArrendatario() {
   const [saveOk, setSaveOk] = useState(false)
   const [validationErrors, setValidationErrors] = useState([])
 
-  // Detect if launched from offer flow
+  // Detect launch context
   const fromOferta = !!params?.fromOfertaRef
-  const isNew = fromOferta  // true when creating new from offer conversion
+  const fromTenantClick = !!params?.tenantName && !fromOferta
+  const isNew = fromOferta
 
   const EMPTY_FORM = {
     activo: '',
@@ -73,6 +82,7 @@ export default function FichaArrendatario() {
     aportacion_total: '',
     tipo_contrato: 'Alquiler comercial',
     anios_obligado: '',
+    anios_obligado_2: '',
     fecha_inicio: '',
     break_option: '',
     fecha_fin: '',
@@ -123,10 +133,11 @@ export default function FichaArrendatario() {
       aportacion_obras_m2: '15',
       aportacion_total: '',
       tipo_contrato: 'Alquiler comercial',
-      anios_obligado: '5',
+      anios_obligado: '3',
+      anios_obligado_2: '2',
       fecha_inicio: '01/07/2021',
       break_option: '01/07/2024',
-      fecha_fin: '30/06/2026',
+      fecha_fin: '01/07/2026',
       fecha_salida: '',
       meses_recordatorio: '3',
       color: '#3b82f6',
@@ -139,7 +150,44 @@ export default function FichaArrendatario() {
     }
   })
 
-  const set = (k,v) => setForm(p=>({...p,[k]:v}))
+  const set = (k, v) => setForm(p => {
+    const next = { ...p, [k]: v }
+    // Auto-compute break_option from fecha_inicio + anios_obligado (primer periodo)
+    if (k === 'fecha_inicio' || k === 'anios_obligado') {
+      if (next.fecha_inicio && next.anios_obligado) {
+        const bo = addYearsToDate(next.fecha_inicio, next.anios_obligado)
+        if (bo) {
+          next.break_option = bo
+          // Also recompute fecha_fin if segundo periodo is set
+          if (next.anios_obligado_2) {
+            const ff = addYearsToDate(bo, next.anios_obligado_2)
+            if (ff) next.fecha_fin = ff
+          }
+        }
+      }
+    }
+    // Auto-compute fecha_fin from break_option + anios_obligado_2 (segundo periodo)
+    if (k === 'break_option' || k === 'anios_obligado_2') {
+      if (next.break_option && next.anios_obligado_2) {
+        const ff = addYearsToDate(next.break_option, next.anios_obligado_2)
+        if (ff) next.fecha_fin = ff
+      }
+    }
+    return next
+  })
+
+  const [showErrors, setShowErrors] = useState(false)
+  const invalidFields = showErrors ? (() => {
+    const s = new Set()
+    if (!form.tenant_desconocido && !form.tenant.trim()) s.add('tenant')
+    if (!form.anyo_firma || !/^\d{4}$/.test(form.anyo_firma.trim())) s.add('anyo_firma')
+    if (!form.trimestre) s.add('trimestre')
+    if (!form.closing_rent || isNaN(parseFloat(form.closing_rent))) s.add('closing_rent')
+    if (!form.fecha_inicio || form.fecha_inicio.trim().length < 6) s.add('fecha_inicio')
+    if (!form.anios_obligado || isNaN(parseFloat(form.anios_obligado))) s.add('anios_obligado')
+    if (!form.meses_recordatorio || isNaN(parseInt(form.meses_recordatorio))) s.add('meses_recordatorio')
+    return s
+  })() : new Set()
 
   // ── Validation ────────────────────────────────────────────────
   function validate() {
@@ -161,10 +209,49 @@ export default function FichaArrendatario() {
     return errs
   }
 
+  // ── Load from DB when opened by tenant name click ─────────────
+  useEffect(() => {
+    if (!params?.tenantName || params?.fromOfertaRef) return
+    supabase.from('arrendatarios').select('*').eq('tenant', params.tenantName).limit(1).then(({ data }) => {
+      if (!data?.[0]) return
+      const r = data[0]
+      setForm(prev => ({
+        ...prev,
+        activo:          r.activo_ref        || prev.activo,
+        tenant:          r.tenant            || prev.tenant,
+        persona_fisica:  r.persona_fisica    ?? prev.persona_fisica,
+        tenant_desconocido: r.tenant_desconocido ?? prev.tenant_desconocido,
+        anyo_firma:      r.anyo_firma != null ? String(r.anyo_firma) : prev.anyo_firma,
+        trimestre:       r.trimestre         || prev.trimestre,
+        superficie:      r.superficie != null ? String(r.superficie) : prev.superficie,
+        asking_rent:     r.asking_rent != null ? String(r.asking_rent) : prev.asking_rent,
+        closing_rent:    r.closing_rent != null ? String(r.closing_rent) : prev.closing_rent,
+        meses_carencia:  r.meses_carencia != null ? String(r.meses_carencia) : prev.meses_carencia,
+        plazas_int:      r.plazas_int != null ? String(r.plazas_int) : prev.plazas_int,
+        precio_int:      r.precio_int != null ? String(r.precio_int) : prev.precio_int,
+        plazas_ext:      r.plazas_ext != null ? String(r.plazas_ext) : prev.plazas_ext,
+        precio_ext:      r.precio_ext != null ? String(r.precio_ext) : prev.precio_ext,
+        agente_activo:   r.agente_activo     || prev.agente_activo,
+        agente_pasivo:   r.agente_pasivo     || prev.agente_pasivo,
+        aportacion_obras_m2: r.aportacion_obras_m2 != null ? String(r.aportacion_obras_m2) : prev.aportacion_obras_m2,
+        tipo_contrato:   r.tipo_contrato     || prev.tipo_contrato,
+        anios_obligado:  r.anios_obligado != null ? String(r.anios_obligado) : prev.anios_obligado,
+        fecha_inicio:    r.fecha_inicio      || prev.fecha_inicio,
+        break_option:    r.break_option      || prev.break_option,
+        fecha_fin:       r.fecha_fin         || prev.fecha_fin,
+        meses_recordatorio: r.meses_recordatorio != null ? String(r.meses_recordatorio) : prev.meses_recordatorio,
+        color:           r.color             || prev.color,
+        estado:          r.estado            || prev.estado,
+        sector:          r.sector            || prev.sector,
+      }))
+    })
+  }, [])
+
   // ── Save ──────────────────────────────────────────────────────
   const handleSave = async () => {
     const errs = validate()
-    if (errs.length > 0) { setValidationErrors(errs); return }
+    if (errs.length > 0) { setValidationErrors(errs); setShowErrors(true); return }
+    setShowErrors(false)
     setValidationErrors([])
     setSaving(true); setSaveErr('')
     try {
@@ -241,7 +328,7 @@ export default function FichaArrendatario() {
         <div className="ab-sep"/>
         {!isNew && <button className="ab-btn blue" onClick={()=>navigate('ficha-activo')}>🏢 Ver activo</button>}
         {!isNew && <button className="ab-btn blue" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>}
-        <button className="ab-btn" onClick={()=> fromOferta ? navigate('ficha-oferta',{ofertaRef:params.fromOfertaRef}) : navigate('arrendatarios')}>
+        <button className="ab-btn" onClick={()=> fromOferta ? navigate('ficha-oferta',{ofertaRef:params.fromOfertaRef}) : fromTenantClick ? navigate(-1) : navigate('arrendatarios')}>
           ← {fromOferta ? 'Volver a la oferta' : 'Volver'}
         </button>
         <div className="ab-sep"/>
@@ -278,7 +365,7 @@ export default function FichaArrendatario() {
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'var(--teal-lt)',color:'var(--teal)',border:'1px solid var(--teal-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>ARRENDATARIO</span>
-                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{isNew ? 'NUEVO' : 'ARR-2501'}</span>
+                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{isNew ? 'NUEVO' : fromTenantClick ? params.tenantName : 'ARR-2501'}</span>
                   <span className={`tag ${form.estado==='Activo'?'tag-green':form.estado==='Próximo a vencimiento'?'tag-red':form.estado==='En negociación'?'tag-purple':'tag-gray'}`}>{form.estado}</span>
                   {isNew && <span style={{background:'#dbeafe',color:'#1e40af',border:'1px solid #bfdbfe',padding:'0 6px',borderRadius:3,fontSize:9,fontWeight:700}}>DESDE OFERTA</span>}
                 </div>
@@ -330,12 +417,12 @@ export default function FichaArrendatario() {
                         Tenant desconocido
                       </label>
                     </div>
-                    <FField label="Tenant (Cuenta)"><input className="of-inp" value={form.tenant} onChange={e=>set('tenant',e.target.value)}/></FField>
+                    <FField label="Tenant (Cuenta)" invalid={invalidFields.has('tenant')}><input className="of-inp" value={form.tenant} onChange={e=>set('tenant',e.target.value)}/></FField>
                     <FField label="Tenant mayoritario"><input className="of-inp" value={form.tenant_mayoritario} onChange={e=>set('tenant_mayoritario',e.target.value)}/></FField>
                     <FField label="Propiedad (Cuenta)"><input className="of-inp" value={form.propietario} onChange={e=>set('propietario',e.target.value)}/></FField>
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                      <FField label="Año firma"><input className="of-inp" value={form.anyo_firma} onChange={e=>set('anyo_firma',e.target.value)}/></FField>
-                      <FField label="Trimestre">
+                      <FField label="Año firma" invalid={invalidFields.has('anyo_firma')}><input className="of-inp" value={form.anyo_firma} onChange={e=>set('anyo_firma',e.target.value)}/></FField>
+                      <FField label="Trimestre" invalid={invalidFields.has('trimestre')}>
                         <select className="of-sel" value={form.trimestre} onChange={e=>set('trimestre',e.target.value)}>
                           <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
                         </select>
@@ -369,7 +456,7 @@ export default function FichaArrendatario() {
                     <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:10}}>💰 CONDICIONES</div>
                     <FField label="Superficie total ocupada (m²)" req><input className="of-inp" value={form.superficie} onChange={e=>set('superficie',e.target.value)}/></FField>
                     <FField label="Asking rent (€/m²/mes)"><input className="of-inp" value={form.asking_rent} onChange={e=>set('asking_rent',e.target.value)}/></FField>
-                    <FField label="Closing rent (€/m²/mes)" req><input className="of-inp" value={form.closing_rent} onChange={e=>set('closing_rent',e.target.value)}/></FField>
+                    <FField label="Closing rent (€/m²/mes)" req invalid={invalidFields.has('closing_rent')}><input className="of-inp" value={form.closing_rent} onChange={e=>set('closing_rent',e.target.value)}/></FField>
                     <FField label="Renta mensual (€)">
                       <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontWeight:700,color:'var(--accent)',background:'var(--gray-lt)'}}>{rentaMensual} €</div>
                     </FField>
@@ -408,14 +495,25 @@ export default function FichaArrendatario() {
                         <option>Alquiler comercial</option><option>Alquiler industrial</option><option>Arrendamiento mixto</option>
                       </select>
                     </FField>
-                    <FField label="Años obligado cumplimiento"><input className="of-inp" value={form.anios_obligado} onChange={e=>set('anios_obligado',e.target.value)}/></FField>
-                    <FField label="Fecha inicio" req><input className="of-inp" value={form.fecha_inicio} onChange={e=>set('fecha_inicio',e.target.value)} placeholder="DD/MM/AAAA"/></FField>
-                    <FField label="Break option (fecha)"><input className="of-inp" value={form.break_option} onChange={e=>set('break_option',e.target.value)} placeholder="DD/MM/AAAA"/></FField>
-                    <FField label="Fecha fin contrato" req><input className="of-inp" value={form.fecha_fin} onChange={e=>set('fecha_fin',e.target.value)} placeholder="DD/MM/AAAA"/></FField>
+                    <FField label="Obligado cumplimiento del primer periodo (años)" req invalid={invalidFields.has('anios_obligado')}><input className="of-inp" value={form.anios_obligado} onChange={e=>set('anios_obligado',e.target.value)} placeholder="ej. 3"/></FField>
+                    <FField label="Fecha inicio" req invalid={invalidFields.has('fecha_inicio')}><input className="of-inp" value={form.fecha_inicio} onChange={e=>set('fecha_inicio',e.target.value)} placeholder="DD/MM/AAAA"/></FField>
+                    <FField label="Break option (fecha — automática)">
+                      <div style={{position:'relative'}}>
+                        <input className="of-inp" value={form.break_option} onChange={e=>set('break_option',e.target.value)} placeholder="DD/MM/AAAA" style={{paddingRight:52}}/>
+                        {form.break_option && <span style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',fontSize:8,color:'var(--accent)',fontWeight:700,pointerEvents:'none'}}>AUTO</span>}
+                      </div>
+                    </FField>
+                    <FField label="Años obligado cumplimiento del segundo periodo"><input className="of-inp" value={form.anios_obligado_2} onChange={e=>set('anios_obligado_2',e.target.value)} placeholder="ej. 2"/></FField>
+                    <FField label="Fecha fin contrato (automática)">
+                      <div style={{position:'relative'}}>
+                        <input className="of-inp" value={form.fecha_fin} onChange={e=>set('fecha_fin',e.target.value)} placeholder="DD/MM/AAAA" style={{paddingRight:52}}/>
+                        {form.fecha_fin && <span style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',fontSize:8,color:'var(--accent)',fontWeight:700,pointerEvents:'none'}}>AUTO</span>}
+                      </div>
+                    </FField>
                     <FField label="Fecha salida efectiva"><input className="of-inp" value={form.fecha_salida} onChange={e=>set('fecha_salida',e.target.value)} placeholder="DD/MM/AAAA"/></FField>
                     <div style={{height:1,background:'var(--border)',margin:'10px 0'}}/>
                     <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>🔔 ACCIÓN COMERCIAL</div>
-                    <FField label="Recordatorio (meses antes de break option)">
+                    <FField label="Recordatorio (meses antes de break option)" req invalid={invalidFields.has('meses_recordatorio')}>
                       <input className="of-inp" type="number" value={form.meses_recordatorio} onChange={e=>set('meses_recordatorio',e.target.value)} min="1" max="24"/>
                     </FField>
                     <FField label="Fecha recordatorio (automática)">
@@ -646,11 +744,11 @@ export default function FichaArrendatario() {
   )
 }
 
-function FField({label,req,children}){
+function FField({label,req,invalid,children}){
   return (
     <div className="of-field" style={{marginBottom:8}}>
-      <div className="of-lbl" style={req?{color:'var(--text)'}:{}}>{req&&<span style={{color:'var(--red)',marginRight:2}}>*</span>}{label}</div>
-      {children}
+      <div className="of-lbl" style={invalid?{color:'var(--red)',fontWeight:600}:req?{color:'var(--text)'}:{}}>{(req||invalid)&&<span style={{color:'var(--red)',marginRight:2}}>*</span>}{label}</div>
+      <div style={invalid?{borderRadius:'var(--r)',boxShadow:'0 0 0 2px var(--red)',overflow:'hidden'}:{}}>{children}</div>
     </div>
   )
 }

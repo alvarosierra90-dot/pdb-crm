@@ -753,6 +753,11 @@ export default function FichaOferta() {
                       extraTenants={stackingExtraTenants}
                       onAddOwner={() => {}}
                       onAddTenant={() => {}}
+                      onTenantClick={(name) => navigate('ficha-arrendatario', {
+                        tenantName: name,
+                        fromActivoRef: activoSeleccionado?.ref,
+                        fromActivoNombre: activoSeleccionado?.nombre || '',
+                      })}
                       onConvertToTenant={(unit, floorId, idx) => {
                         // Remove the unit from the live buildings
                         liveBuildings.current = liveBuildings.current.map(b => ({
