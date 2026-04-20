@@ -222,6 +222,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
   const [editFloorSup, setEditFloorSup]       = useState(null)
   const [editFloorSupVal, setEditFloorSupVal] = useState('')
   const [hoveredIns, setHoveredIns]           = useState(null)
+  const [dropWarning, setDropWarning]         = useState(null) // floorId con aviso activo
 
   useEffect(() => { if (onCountChange) onCountChange(buildings.length) }, [buildings.length])
   useEffect(() => {
@@ -919,18 +920,31 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                 }
                 return (
                   <div key={floor.id}
-                    onDragOver={e=>{e.preventDefault();setDragTarget(floor.id)}}
+                    onDragOver={e=>{
+                      if(dragging?.startsWith('ofr:') && floor.principal.length===0){e.dataTransfer.dropEffect='none';return}
+                      e.preventDefault();setDragTarget(floor.id)
+                    }}
                     onDragLeave={()=>setDragTarget(null)}
                     onDrop={e=>{
                       e.preventDefault();setDragTarget(null)
                       if(!dragging) return
+                      if(dragging.startsWith('ofr:') && floor.principal.length===0) {
+                        setDropWarning(floor.id)
+                        setTimeout(()=>setDropWarning(null), 3000)
+                        setDragging(null); return
+                      }
                       if(dragging.startsWith('ten:')){dropArr({type:'ten',n:dragging.slice(4)})}
                       else if(dragging.startsWith('ofr:')){const ref=dragging.slice(4);dropArr({type:'vac',oferta:ref,sup:floor.sup,renta:0})}
                       setDragging(null)
                     }}
-                    style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',borderBottom:floor.id==='PB'?'3px solid var(--text3)':'1px solid var(--border)',minHeight:52,background:isTgt?'#eff6ff':isEmpty?'var(--gray-lt)':'var(--surface)',outline:isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s'}}>
+                    style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',borderBottom:floor.id==='PB'?'3px solid var(--text3)':'1px solid var(--border)',minHeight:52,background:dropWarning===floor.id?'#fff1f2':isTgt?'#eff6ff':isEmpty?'var(--gray-lt)':'var(--surface)',outline:dropWarning===floor.id?'1.5px solid #fca5a5':isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s'}}>
                     <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:isEmpty?'var(--text4)':'var(--text3)',display:'flex',alignItems:'center'}}>{floor.id}</div>
                     <div style={{display:'flex',flexDirection:'column',gap:3,padding:'5px 4px 5px 0'}}>
+                      {dropWarning===floor.id && (
+                        <div style={{display:'flex',alignItems:'center',gap:5,padding:'4px 8px',background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:4,fontSize:10,color:'#dc2626',fontWeight:600}}>
+                          ⚠ Asigna primero un uso principal en esta planta
+                        </div>
+                      )}
                       {floor.principal.length>0 && (
                         <div style={{display:'flex',gap:1,height:6,borderRadius:2,overflow:'hidden',opacity:.35}}>
                           {floor.principal.map((u,i)=>{const info=usoInfo(u.uso);return <div key={i} style={{width:`${(u.sup/floor.sup)*100}%`,background:info.color,flexShrink:0}}/>})}
