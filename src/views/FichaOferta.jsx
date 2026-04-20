@@ -145,7 +145,7 @@ export default function FichaOferta() {
   const [supAprox, setSupAprox] = useState(false)
   const [plantaTipo, setPlantaTipo] = useState(2790)
   const [ofertasDesglose, setOfertasDesglose] = useState([
-    { id:1, nombre:'Oferta 1', divisible:true, supMin:null, cargasM2:3.01, ibiM2:0 },
+    { id:1, nombre:'Oferta 1', divisible:true, supMin:null, cargasM2:3.01, ibiM2:0, fechaDisp:'' },
   ])
   const [nextOfertaId, setNextOfertaId] = useState(2)
   const [editNombreId, setEditNombreId] = useState(null)
@@ -171,7 +171,7 @@ export default function FichaOferta() {
 
   function addOferta() {
     const id = nextOfertaId
-    setOfertasDesglose(prev => [...prev, { id, nombre:`Oferta ${id}`, divisible:divisibleGlobal, supMin:null, cargasM2:parseFloat(gastosComunes)||0, ibiM2:parseFloat(ibi)||0 }])
+    setOfertasDesglose(prev => [...prev, { id, nombre:`Oferta ${id}`, divisible:divisibleGlobal, supMin:null, cargasM2:parseFloat(gastosComunes)||0, ibiM2:parseFloat(ibi)||0, fechaDisp:fechaDispGlobal||'' }])
     setNextOfertaId(id + 1)
   }
 
@@ -252,14 +252,38 @@ export default function FichaOferta() {
         if (data.activo_ref) {
           setLoadingActivo(true)
           supabase.from('activos').select('*').eq('ref', data.activo_ref).single()
-            .then(({ data: a }) => { if (a) setActivoSeleccionado(a); setLoadingActivo(false) })
+            .then(({ data: a }) => {
+              if (a) {
+                setActivoSeleccionado(a)
+                // Derive espaciosComercializables directly from stacking_data — no need for asignaciones_stacking table
+                if (a.stacking_data?.length > 0) {
+                  const spaces = a.stacking_data.flatMap(b =>
+                    (b.arr || []).flatMap(row =>
+                      row.units
+                        .filter(u => u.type === 'vac' && u.oferta)
+                        .map(u => ({
+                          edificio: b.label || b.id,
+                          modulo: `${b.id}-${row.p}`,
+                          planta: row.p,
+                          uso: 'Oficina',
+                          sup: u.sup || 0,
+                          renta: u.renta || 0,
+                          ofertaNombre: u.oferta,
+                        }))
+                    )
+                  )
+                  if (spaces.length > 0) setEspaciosComercializables(spaces)
+                }
+              }
+              setLoadingActivo(false)
+            })
         }
 
         // Load desglose_ofertas
         supabase.from('desglose_ofertas').select('*').eq('oferta_id', ofertaId).order('orden')
           .then(({ data: d }) => {
             if (d?.length > 0) {
-              setOfertasDesglose(d.map(x => ({ id: x.id, nombre: x.nombre, divisible: x.divisible, supMin: x.sup_min||null, cargasM2: x.cargas_m2||0, ibiM2: x.ibi_m2||0 })))
+              setOfertasDesglose(d.map(x => ({ id: x.id, nombre: x.nombre, divisible: x.divisible, supMin: x.sup_min||null, cargasM2: x.cargas_m2||0, ibiM2: x.ibi_m2||0, fechaDisp: x.fecha_disp||'' })))
               setNextOfertaId(d.length + 1)
             }
           })
@@ -278,22 +302,6 @@ export default function FichaOferta() {
           .then(({ data: d }) => {
             if (d?.length > 0) {
               setCaracteristicas(d.map(c => ({ id: c.caracteristica_origen_id, tipo: c.tipo, detalle: c.detalle, año: c.anno, comentario: c.comentario, incluir: c.incluir })))
-            }
-          })
-
-        // Load asignaciones_stacking → espacios comercializables
-        supabase.from('asignaciones_stacking').select('*, desglose_ofertas(nombre)').eq('oferta_id', ofertaId)
-          .then(({ data: d }) => {
-            if (d?.length > 0) {
-              setEspaciosComercializables(d.map(a => ({
-                edificio: a.edificio_id,
-                modulo:   `${a.edificio_id}-${a.planta_id}`,
-                planta:   a.planta_id,
-                uso:      'Oficina',
-                sup:      a.sup || 0,
-                renta:    a.renta || 0,
-                ofertaNombre: a.desglose_ofertas?.nombre || '—',
-              })))
             }
           })
       })
@@ -352,7 +360,7 @@ export default function FichaOferta() {
       await dbCall(supabase.from('desglose_ofertas').delete().eq('oferta_id', ofertaId)).catch(() => {})
       if (ofertasDesglose.length > 0) {
         await dbCall(supabase.from('desglose_ofertas').insert(
-          ofertasDesglose.map((d, i) => ({ oferta_id: ofertaId, nombre: d.nombre, divisible: d.divisible, sup_min: d.supMin || null, cargas_m2: d.cargasM2 || 0, ibi_m2: d.ibiM2 || 0, orden: i }))
+          ofertasDesglose.map((d, i) => ({ oferta_id: ofertaId, nombre: d.nombre, divisible: d.divisible, sup_min: d.supMin || null, cargas_m2: d.cargasM2 || 0, ibi_m2: d.ibiM2 || 0, fecha_disp: d.fechaDisp || null, orden: i }))
         )).catch(() => {})
       }
 
@@ -384,15 +392,19 @@ export default function FichaOferta() {
                 planta_id:  row.p,
                 sup:        u.sup || 0,
                 renta:      u.renta || null,
+                oferta_nombre: u.oferta || null,
               }))
           )
         )
         if (assignments.length > 0) {
           await dbCall(supabase.from('asignaciones_stacking').insert(assignments)).catch(() => {})
         }
-        // Also persist updated stacking_data back to activo
+        // Persist stacking_data to activo — this is the source of truth for visual reload
         if (activoSeleccionado?.ref) {
-          await dbCall(supabase.from('activos').update({ stacking_data: liveBuildings.current }).eq('ref', activoSeleccionado.ref)).catch(() => {})
+          const { error: sdErr } = await dbCall(supabase.from('activos').update({ stacking_data: liveBuildings.current }).eq('ref', activoSeleccionado.ref))
+          if (sdErr) { setSaveErr('Error guardando stacking: ' + sdErr.message); return }
+          // Update local state so returning to the stacking tab shows the saved state
+          setActivoSeleccionado(prev => ({ ...prev, stacking_data: liveBuildings.current }))
         }
       }
 
@@ -815,7 +827,10 @@ export default function FichaOferta() {
                                       <input type="number" step="0.01" value={o.ibiM2||''} onChange={e => setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,ibiM2:parseFloat(e.target.value)||0}:x))}
                                         placeholder="0,00" style={{ width:68, padding:'3px 6px', fontSize:10, border:'1px solid var(--border)', borderRadius:4, fontFamily:'var(--mono)', background:'var(--surface)' }} />
                                     </td>
-                                    <td style={{ padding:'7px 12px', color:'var(--text3)', whiteSpace:'nowrap' }}>{fechaDispGlobal?new Date(fechaDispGlobal).toLocaleDateString('es-ES'):'—'}</td>
+                                    <td style={{ padding:'5px 8px' }}>
+                                      <input type="date" value={o.fechaDisp||''} onChange={e => setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,fechaDisp:e.target.value}:x))}
+                                        style={{ fontSize:10, padding:'3px 6px', border:'1px solid var(--border)', borderRadius:4, fontFamily:'inherit', background:'var(--surface)', color: o.fechaDisp?'var(--text2)':'var(--text4)' }} />
+                                    </td>
                                     <td style={{ padding:'7px 12px' }}>
                                       {assignedSpaces.length>0
                                         ? <div style={{ display:'flex', gap:3, flexWrap:'wrap' }}>
