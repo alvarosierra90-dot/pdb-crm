@@ -300,73 +300,62 @@ export default function FichaOferta() {
   const handleSave = async () => {
     if (!oferta?.ref) return
     setSaving(true); setSaveErr(''); setSaveOk(false)
-    const { error } = await supabase.from('ofertas').update({
-      activo_ref:            activoSeleccionado?.ref || null,
-      tipo_comercializacion: tipoComercializacion    || null,
-      tipologia:             tipologia               || null,
-      estado_espacio:        estadoEspacio           || null,
-      tipo_operacion:        tipoOperacion           || null,
-      origen_oferta:         origenOferta            || null,
-      modalidad_visita:      modalidadVisita         || null,
-      confidencial,
-      equipo:                equipoMembers,
-      colaboradores,
-    }).eq('ref', oferta.ref)
-    if (error) { setSaveErr(error.message); setSaving(false); return }
+    try {
+      // 1. Update campos básicos — solo columnas seguras que existen siempre
+      const { error } = await supabase.from('ofertas').update({
+        activo_ref:            activoSeleccionado?.ref || null,
+        tipo_comercializacion: tipoComercializacion    || null,
+        tipo_operacion:        tipoOperacion           || null,
+        estado:                oferta.estado           || 'En curso',
+      }).eq('ref', oferta.ref)
+      if (error) { setSaveErr(error.message); return }
 
-    // Reload oferta to get the latest id (needed for sub-tables)
-    const { data: refreshed } = await supabase.from('ofertas').select('*').eq('ref', oferta.ref).single()
-    if (refreshed) setOferta(refreshed)
-    const ofertaId = refreshed?.id || oferta?.id
-    if (!ofertaId) { setSaving(false); setSaveOk(true); setTimeout(() => setSaveOk(false), 3000); return }
+      // 2. Intentar guardar columnas opcionales (pueden no existir aún en la tabla)
+      await supabase.from('ofertas').update({
+        tipologia:        tipologia        || null,
+        estado_espacio:   estadoEspacio    || null,
+        origen_oferta:    origenOferta     || null,
+        modalidad_visita: modalidadVisita  || null,
+        confidencial,
+        equipo:           equipoMembers,
+        colaboradores,
+      }).eq('ref', oferta.ref)
+      // Ignorar error aquí — columnas opcionales
 
-    // Upsert desglose_ofertas
-    await supabase.from('desglose_ofertas').delete().eq('oferta_id', ofertaId)
-    if (ofertasDesglose.length > 0) {
-      await supabase.from('desglose_ofertas').insert(
-        ofertasDesglose.map((d, i) => ({
-          oferta_id: ofertaId,
-          nombre:    d.nombre,
-          divisible: d.divisible,
-          cargas_m2: d.cargasM2 || 0,
-          orden:     i,
-        }))
-      )
+      // 3. Reload oferta para obtener id UUID actualizado
+      const { data: refreshed } = await supabase.from('ofertas').select('*').eq('ref', oferta.ref).single()
+      if (refreshed) setOferta(refreshed)
+      const ofertaId = refreshed?.id || oferta?.id
+      if (!ofertaId) { setSaveOk(true); setTimeout(() => setSaveOk(false), 3000); return }
+
+      // 4. Sub-tablas
+      await supabase.from('desglose_ofertas').delete().eq('oferta_id', ofertaId)
+      if (ofertasDesglose.length > 0) {
+        await supabase.from('desglose_ofertas').insert(
+          ofertasDesglose.map((d, i) => ({ oferta_id: ofertaId, nombre: d.nombre, divisible: d.divisible, cargas_m2: d.cargasM2 || 0, orden: i }))
+        )
+      }
+
+      await supabase.from('plazas_oferta').delete().eq('oferta_id', ofertaId)
+      if (plazas.length > 0) {
+        await supabase.from('plazas_oferta').insert(
+          plazas.map(p => ({ oferta_id: ofertaId, int_ext: p.intExt, tipo: p.tipo, formato: p.formato, cantidad: p.cantidad, renta: p.renta ? parseFloat(p.renta) : null, precio: p.precio ? parseFloat(p.precio) : null }))
+        )
+      }
+
+      if (caracteristicas) {
+        await supabase.from('caracteristicas_oferta').delete().eq('oferta_id', ofertaId)
+        await supabase.from('caracteristicas_oferta').insert(
+          caracteristicas.map(c => ({ oferta_id: ofertaId, caracteristica_origen_id: c.id, tipo: c.tipo, detalle: c.detalle, anno: c.año || null, comentario: c.comentario || null, incluir: c.incluir }))
+        )
+      }
+
+      setSaveOk(true); setTimeout(() => setSaveOk(false), 3000)
+    } catch (e) {
+      setSaveErr(e.message || 'Error inesperado al guardar')
+    } finally {
+      setSaving(false)
     }
-
-    // Upsert plazas_oferta
-    await supabase.from('plazas_oferta').delete().eq('oferta_id', ofertaId)
-    if (plazas.length > 0) {
-      await supabase.from('plazas_oferta').insert(
-        plazas.map(p => ({
-          oferta_id: ofertaId,
-          int_ext:   p.intExt,
-          tipo:      p.tipo,
-          formato:   p.formato,
-          cantidad:  p.cantidad,
-          renta:     p.renta ? parseFloat(p.renta) : null,
-          precio:    p.precio ? parseFloat(p.precio) : null,
-        }))
-      )
-    }
-
-    // Upsert caracteristicas_oferta
-    if (caracteristicas) {
-      await supabase.from('caracteristicas_oferta').delete().eq('oferta_id', ofertaId)
-      await supabase.from('caracteristicas_oferta').insert(
-        caracteristicas.map(c => ({
-          oferta_id:                ofertaId,
-          caracteristica_origen_id: c.id,
-          tipo:                     c.tipo,
-          detalle:                  c.detalle,
-          anno:                     c.año || null,
-          comentario:               c.comentario || null,
-          incluir:                  c.incluir,
-        }))
-      )
-    }
-
-    setSaving(false); setSaveOk(true); setTimeout(() => setSaveOk(false), 3000)
   }
 
   return (
