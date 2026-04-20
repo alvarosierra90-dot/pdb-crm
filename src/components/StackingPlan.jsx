@@ -883,7 +883,12 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                               const wpct = `${(u.sup/rowSup)*100}%`
                               const isEd = editPA?.layer==='arr' && editPA?.rowP===floor.id && editPA?.idx===i
                               const tc = TYPE_COLORS[u.type]||TYPE_COLORS.ten
-                              const {bg,bd,col} = tc
+                              let {bg,bd,col} = tc
+                              if (u.type==='vac' && u.oferta) {
+                                const OFR_COLS=['#16a34a','#2563eb','#d97706','#7c3aed']
+                                const oIdx = extraOfertas.findIndex(o=>o.nombre===u.oferta)
+                                if (oIdx>=0) { col=OFR_COLS[oIdx%OFR_COLS.length]; bg=col+'18'; bd=col+'55' }
+                              }
                               const label = typeLabel(u)
                               return (
                                 <div key={i}

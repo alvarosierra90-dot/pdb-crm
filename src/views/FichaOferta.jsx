@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { supabase } from '../lib/supabase'
@@ -135,6 +135,9 @@ export default function FichaOferta() {
   const [loadingActivo, setLoadingActivo] = useState(false)
   const [activoBuscador, setActivoBuscador] = useState('')
   const [showActivoDropdown, setShowActivoDropdown] = useState(false)
+
+  // Live stacking buildings (updated by StackingPlan callback)
+  const liveBuildings = useRef([])
 
   // Tab 3 + Stacking
   const [fechaDispGlobal, setFechaDispGlobal] = useState('2026-06-01')
@@ -296,6 +299,11 @@ export default function FichaOferta() {
       })
   }, [params?.ofertaRef])
 
+  // ── Sync planta tipo from activo ──────────────────────────────
+  useEffect(() => {
+    if (activoSeleccionado?.sup_planta_tipo) setPlantaTipo(activoSeleccionado.sup_planta_tipo)
+  }, [activoSeleccionado?.ref])
+
   // ── Save oferta to Supabase ────────────────────────────────────
   const dbCall = (promise, ms = 8000) => Promise.race([
     promise,
@@ -353,6 +361,32 @@ export default function FichaOferta() {
         await dbCall(supabase.from('caracteristicas_oferta').insert(
           caracteristicas.map(c => ({ oferta_id: ofertaId, caracteristica_origen_id: c.id, tipo: c.tipo, detalle: c.detalle, anno: c.año || null, comentario: c.comentario || null, incluir: c.incluir }))
         )).catch(() => {})
+      }
+
+      // 5. Save stacking assignments
+      if (liveBuildings.current.length > 0) {
+        await dbCall(supabase.from('asignaciones_stacking').delete().eq('oferta_id', ofertaId)).catch(() => {})
+        const assignments = liveBuildings.current.flatMap(b =>
+          (b.arr || []).flatMap(row =>
+            row.units
+              .filter(u => u.type === 'vac' && u.oferta)
+              .map(u => ({
+                activo_id:  activoSeleccionado?.id || null,
+                oferta_id:  ofertaId,
+                edificio_id: b.id,
+                planta_id:  row.p,
+                sup:        u.sup || 0,
+                renta:      u.renta || null,
+              }))
+          )
+        )
+        if (assignments.length > 0) {
+          await dbCall(supabase.from('asignaciones_stacking').insert(assignments)).catch(() => {})
+        }
+        // Also persist updated stacking_data back to activo
+        if (activoSeleccionado?.ref) {
+          await dbCall(supabase.from('activos').update({ stacking_data: liveBuildings.current }).eq('ref', activoSeleccionado.ref)).catch(() => {})
+        }
       }
 
       setSaveOk(true); setTimeout(() => setSaveOk(false), 3000)
@@ -659,6 +693,25 @@ export default function FichaOferta() {
                       activoPropietario={activoSeleccionado.propietario || ''}
                       onAddOwner={() => {}}
                       onAddTenant={() => {}}
+                      onBuildingsChange={(blds) => {
+                        liveBuildings.current = blds
+                        const newEspacios = blds.flatMap(b =>
+                          (b.arr || []).flatMap(row =>
+                            row.units
+                              .filter(u => u.type === 'vac' && u.oferta)
+                              .map(u => ({
+                                edificio: b.label || b.id,
+                                modulo: `${b.id}-${row.p}`,
+                                planta: row.p,
+                                uso: 'Oficina',
+                                sup: u.sup || 0,
+                                renta: u.renta || 0,
+                                ofertaNombre: u.oferta,
+                              }))
+                          )
+                        )
+                        setEspaciosComercializables(newEspacios)
+                      }}
                     />
                   )}
                 </div>
@@ -698,10 +751,6 @@ export default function FichaOferta() {
                             </div>
                           ))}
                         </div>
-                        <button className="ab-btn blue" style={{ fontSize:10 }} disabled={!activoSeleccionado}
-                          onClick={() => navigate('ficha-activo', { ref: activoSeleccionado?.ref, tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose, ofertaId: oferta?.id })}>
-                          📊 Abrir Stacking Plan →
-                        </button>
                       </div>
 
                       {/* Derecha */}
@@ -776,13 +825,7 @@ export default function FichaOferta() {
                             <div style={{ padding:'28px 16px', textAlign:'center', color:'var(--text4)', fontSize:12 }}>
                               <div style={{ fontSize:20, marginBottom:8 }}>📊</div>
                               <div style={{ fontWeight:600, marginBottom:4 }}>Sin espacios asignados</div>
-                              <div style={{ fontSize:11 }}>Abre el Stacking Plan y arrastra esta oferta sobre las plantas disponibles.</div>
-                              {activoSeleccionado && (
-                                <button className="ab-btn blue" style={{ marginTop:12, fontSize:11 }}
-                                  onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref, tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose, ofertaId: oferta?.id })}>
-                                  📊 Abrir Stacking Plan →
-                                </button>
-                              )}
+                              <div style={{ fontSize:11 }}>Ve a la pestaña <strong>Stacking plan</strong> y arrastra la oferta sobre las plantas disponibles.</div>
                             </div>
                           ) : (
                             <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
@@ -922,7 +965,7 @@ export default function FichaOferta() {
                       <div style={{ display:'flex', flexDirection:'column', gap:10, marginTop:12 }}>
                         <div>
                           <FieldLbl>Gastos comunes (€/m²/mes)</FieldLbl>
-                          <input type="number" step="0.01" className="of-inp" value={gastosComunes} onChange={e => setGastosComunes(e.target.value)} placeholder="0,00" />
+                          <input type="number" step="0.01" className="of-inp" value={gastosComunes} onChange={e => { const v = e.target.value; setGastosComunes(v); setOfertasDesglose(prev => prev.map(o => ({ ...o, cargasM2: parseFloat(v) || 0 }))) }} placeholder="0,00" />
                         </div>
                         <div>
                           <FieldLbl>IBI (€/m²/mes)</FieldLbl>
