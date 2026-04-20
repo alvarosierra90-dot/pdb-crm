@@ -195,7 +195,7 @@ const NewBldgForm = memo(function NewBldgForm({ form, onChange, onCreate, onCanc
   )
 })
 
-export default function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal', defaultSupPlantaTipo, defaultLabel='' }) {
+export default function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal', defaultSupPlantaTipo, defaultLabel='', allowCreate=true, noDataMessage=null }) {
   const [buildings, setBuildings]       = useState(initBuildings ?? [])
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
   const [setupForm, setSetupForm]       = useState({ label: defaultLabel, sobre:'5', bajo:'1', sup: defaultSupPlantaTipo ? String(defaultSupPlantaTipo) : '1500', uso:'' })
@@ -394,9 +394,16 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
     setEdifId(id)
   }, [])
 
-  if (buildings.length === 0) return (
-    <SetupForm form={setupForm} onChange={handleSetupChange} onCreate={createFirstBuilding} />
-  )
+  if (buildings.length === 0) {
+    if (!allowCreate) return (
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'48px 24px',gap:12}}>
+        <div style={{fontSize:32}}>🏗</div>
+        <div style={{fontSize:14,fontWeight:600,color:'var(--text1)'}}>Sin stacking plan</div>
+        <div style={{fontSize:12,color:'var(--text3)',textAlign:'center',maxWidth:340}}>{noDataMessage || 'El activo no tiene stacking plan configurado. Entra en la ficha del activo y crea el stacking primero.'}</div>
+      </div>
+    )
+    return <SetupForm form={setupForm} onChange={handleSetupChange} onCreate={createFirstBuilding} />
+  }
 
   return (
     <div>

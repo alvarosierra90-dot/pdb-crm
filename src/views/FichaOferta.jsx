@@ -132,6 +132,7 @@ export default function FichaOferta() {
   // Activo selector
   const [activosDB, setActivosDB] = useState([])
   const [activoSeleccionado, setActivoSeleccionado] = useState(null)
+  const [loadingActivo, setLoadingActivo] = useState(false)
   const [activoBuscador, setActivoBuscador] = useState('')
   const [showActivoDropdown, setShowActivoDropdown] = useState(false)
 
@@ -246,8 +247,9 @@ export default function FichaOferta() {
 
         // Load activo vinculado
         if (data.activo_ref) {
+          setLoadingActivo(true)
           supabase.from('activos').select('*').eq('ref', data.activo_ref).single()
-            .then(({ data: a }) => { if (a) setActivoSeleccionado(a) })
+            .then(({ data: a }) => { if (a) setActivoSeleccionado(a); setLoadingActivo(false) })
         }
 
         // Load desglose_ofertas
@@ -296,7 +298,7 @@ export default function FichaOferta() {
 
   // ── Save oferta to Supabase ────────────────────────────────────
   const handleSave = async () => {
-    if (!oferta?.id) return
+    if (!oferta?.ref) return
     setSaving(true); setSaveErr(''); setSaveOk(false)
     const { error } = await supabase.from('ofertas').update({
       activo_ref:            activoSeleccionado?.ref || null,
@@ -309,15 +311,21 @@ export default function FichaOferta() {
       confidencial,
       equipo:                equipoMembers,
       colaboradores,
-    }).eq('id', oferta.id)
+    }).eq('ref', oferta.ref)
     if (error) { setSaveErr(error.message); setSaving(false); return }
 
+    // Reload oferta to get the latest id (needed for sub-tables)
+    const { data: refreshed } = await supabase.from('ofertas').select('*').eq('ref', oferta.ref).single()
+    if (refreshed) setOferta(refreshed)
+    const ofertaId = refreshed?.id || oferta?.id
+    if (!ofertaId) { setSaving(false); setSaveOk(true); setTimeout(() => setSaveOk(false), 3000); return }
+
     // Upsert desglose_ofertas
-    await supabase.from('desglose_ofertas').delete().eq('oferta_id', oferta.id)
+    await supabase.from('desglose_ofertas').delete().eq('oferta_id', ofertaId)
     if (ofertasDesglose.length > 0) {
       await supabase.from('desglose_ofertas').insert(
         ofertasDesglose.map((d, i) => ({
-          oferta_id: oferta.id,
+          oferta_id: ofertaId,
           nombre:    d.nombre,
           divisible: d.divisible,
           cargas_m2: d.cargasM2 || 0,
@@ -327,11 +335,11 @@ export default function FichaOferta() {
     }
 
     // Upsert plazas_oferta
-    await supabase.from('plazas_oferta').delete().eq('oferta_id', oferta.id)
+    await supabase.from('plazas_oferta').delete().eq('oferta_id', ofertaId)
     if (plazas.length > 0) {
       await supabase.from('plazas_oferta').insert(
         plazas.map(p => ({
-          oferta_id: oferta.id,
+          oferta_id: ofertaId,
           int_ext:   p.intExt,
           tipo:      p.tipo,
           formato:   p.formato,
@@ -344,10 +352,10 @@ export default function FichaOferta() {
 
     // Upsert caracteristicas_oferta
     if (caracteristicas) {
-      await supabase.from('caracteristicas_oferta').delete().eq('oferta_id', oferta.id)
+      await supabase.from('caracteristicas_oferta').delete().eq('oferta_id', ofertaId)
       await supabase.from('caracteristicas_oferta').insert(
         caracteristicas.map(c => ({
-          oferta_id:                oferta.id,
+          oferta_id:                ofertaId,
           caracteristica_origen_id: c.id,
           tipo:                     c.tipo,
           detalle:                  c.detalle,
@@ -357,10 +365,6 @@ export default function FichaOferta() {
         }))
       )
     }
-
-    // Reload oferta after save so activo_ref is reflected
-    const { data: refreshed } = await supabase.from('ofertas').select('*').eq('id', oferta.id).single()
-    if (refreshed) setOferta(refreshed)
 
     setSaving(false); setSaveOk(true); setTimeout(() => setSaveOk(false), 3000)
   }
@@ -458,9 +462,9 @@ export default function FichaOferta() {
                                   {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).slice(0,8).map(a => (
                                     <div key={a.ref} onMouseDown={() => {
                                       setActivoBuscador(''); setShowActivoDropdown(false)
-                                      // Fetch full activo data including stacking_data
+                                      setLoadingActivo(true)
                                       supabase.from('activos').select('*').eq('ref', a.ref).single()
-                                        .then(({ data: full }) => setActivoSeleccionado(full || a))
+                                        .then(({ data: full }) => { setActivoSeleccionado(full || a); setLoadingActivo(false) })
                                     }}
                                       style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
                                       <div style={{ fontWeight:600 }}>{a.nombre}</div>
@@ -643,15 +647,26 @@ export default function FichaOferta() {
               {/* ── TAB: Stacking plan ── */}
               {activeTab==='of-stacking' && (
                 <div className="tab-content active" style={{ padding:0 }}>
-                  <StackingPlan
-                    key={activoSeleccionado?.ref || 'stacking-oferta'}
-                    initBuildings={activoSeleccionado?.stacking_data?.length > 0 ? activoSeleccionado.stacking_data : []}
-                    initView='arr'
-                    extraOfertas={ofertasDesglose}
-                    activoPropietario={activoSeleccionado?.propietario || ''}
-                    onAddOwner={() => {}}
-                    onAddTenant={() => {}}
-                  />
+                  {!activoSeleccionado && !loadingActivo ? (
+                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'48px 24px',gap:12}}>
+                      <div style={{fontSize:32}}>🔗</div>
+                      <div style={{fontSize:14,fontWeight:600}}>Sin activo vinculado</div>
+                      <div style={{fontSize:12,color:'var(--text3)',textAlign:'center'}}>Vincula un activo en la pestaña Información para ver su stacking plan.</div>
+                    </div>
+                  ) : loadingActivo ? (
+                    <div style={{padding:'48px 24px',textAlign:'center',color:'var(--text4)',fontSize:13}}>Cargando stacking...</div>
+                  ) : (
+                    <StackingPlan
+                      key={activoSeleccionado.ref}
+                      initBuildings={activoSeleccionado.stacking_data?.length > 0 ? activoSeleccionado.stacking_data : []}
+                      initView='arr'
+                      allowCreate={false}
+                      extraOfertas={ofertasDesglose}
+                      activoPropietario={activoSeleccionado.propietario || ''}
+                      onAddOwner={() => {}}
+                      onAddTenant={() => {}}
+                    />
+                  )}
                 </div>
               )}
 
