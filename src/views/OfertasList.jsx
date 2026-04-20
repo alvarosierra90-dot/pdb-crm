@@ -41,32 +41,29 @@ export default function OfertasList() {
   const [query, setQuery] = useState('')
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ tipo: '', estado: '', m2Min: '', m2Max: '' })
-  const [ofertas, setOfertas] = useState(mapMock(MOCK_OFERTAS))
-  const [loading, setLoading] = useState(false)
+  const [ofertas, setOfertas] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       supabase.from('ofertas').select('*').order('created_at', { ascending: false }),
       supabase.from('activos').select('ref, nombre'),
     ]).then(([{ data: ofertasData, error }, { data: activosData }]) => {
-      // Solo usar DB si hay ofertas reales (con activo vinculado)
-      const reales = (ofertasData || []).filter(o => o.activo_ref)
-      if (!error && reales.length > 0) {
+      if (!error && ofertasData) {
         const activosMap = Object.fromEntries((activosData || []).map(a => [a.ref, a]))
-        setOfertas(reales.map(o => ({
-          id:        o.id,
-          ref:       o.ref || o.id,
-          activo:    activosMap[o.activo_ref]?.nombre || o.activo_ref || '—',
-          activo_ref: o.activo_ref,
-          espacio:   o.espacio || '—',
-          m2:        0,
-          renta:     '—',
-          tipo:      o.tipo_operacion || '—',
-          origen:    o.origen_oferta  || '—',
-          estado:    o.estado         || '—',
+        setOfertas(ofertasData.map(o => ({
+          id:         o.id,
+          ref:        o.ref || o.id,
+          activo:     activosMap[o.activo_ref]?.nombre || o.activo_ref || '—',
+          activo_ref: o.activo_ref || '',
+          espacio:    o.espacio || '—',
+          m2:         o.superficie_disponible || 0,
+          renta:      o.renta_m2 ? `${o.renta_m2} €/m²/mes` : '—',
+          tipo:       o.tipo_operacion || '—',
+          origen:     o.origen_oferta  || '—',
+          estado:     o.estado         || '—',
         })))
       }
-      // Si no hay ofertas reales en DB → se mantienen los mocks
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [])
