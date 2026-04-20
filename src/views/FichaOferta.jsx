@@ -4,6 +4,7 @@ import AsignarTareaModal from '../components/AsignarTareaModal'
 import { supabase } from '../lib/supabase'
 import { OFERTAS as MOCK_OFERTAS, ACTIVOS as MOCK_ACTIVOS } from '../data/mockData'
 import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
+import StackingPlan from '../components/StackingPlan'
 
 const TABS = ['of-info','of-stacking','of-espacios','of-condiciones','of-caract','of-docs','of-web','of-seg','of-ficha','of-conf']
 const TAB_LABELS = ['Información oferta','Stacking plan','Espacios comerciales','Condiciones','Características','Documentos','Contenido web','Seguimiento comercial','Crear ficha','🔒 Confidencialidad']
@@ -80,98 +81,6 @@ function ReadonlyPill({ value }) {
   return <div style={{ padding:'6px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', fontSize:12, background:'var(--gray-lt)', color:'var(--text3)', display:'flex', alignItems:'center', gap:6 }}>{value}<span style={{ marginLeft:'auto', fontSize:9, color:'var(--text4)', fontWeight:600 }}>AUTO</span></div>
 }
 
-function OfertaStackingTab({ activoRef, ofertasDesglose }) {
-  const [view, setView] = useState('arr')
-  const buildings = BUILDINGS_BY_ACTIVO[activoRef] || []
-  const UNIT_COLORS = {
-    ten: { bg:'#dbeafe', border:'#93c5fd', color:'#1e40af' },
-    vac: { bg:'var(--accent-lt)', border:'var(--accent-bd)', color:'var(--accent)' },
-    com: { bg:'#f1f5f9', border:'#cbd5e1', color:'#475569' },
-    pk:  { bg:'#f8fafc', border:'#e2e8f0', color:'#64748b' },
-    rt:  { bg:'#fdf4ff', border:'#e9d5ff', color:'#7e22ce' },
-  }
-  if (!activoRef) return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'60px 20px', gap:12 }}>
-      <div style={{ fontSize:32 }}>📊</div>
-      <div style={{ fontSize:13, fontWeight:600, color:'var(--text2)' }}>Sin activo vinculado</div>
-      <div style={{ fontSize:11, color:'var(--text3)' }}>Asigna un activo en "Información oferta" para ver el stacking plan.</div>
-    </div>
-  )
-  return (
-    <div>
-      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-        <span style={{ fontSize:11, fontWeight:600, color:'var(--text3)' }}>Vista:</span>
-        {[['uso','Uso principal'],['arr','Arrendatarios + Oferta'],['prop','Propietarios']].map(([v,lbl]) => (
-          <button key={v} className={view===v?'ab-btn save':'ab-btn'} style={{ fontSize:10, padding:'3px 10px' }} onClick={() => setView(v)}>{lbl}</button>
-        ))}
-        <span style={{ marginLeft:'auto', fontSize:10, color:'var(--text4)', fontStyle:'italic' }}>Stacking del activo vinculado · solo lectura estructural</span>
-      </div>
-      {buildings.length === 0 ? (
-        <div style={{ padding:'32px 0', textAlign:'center', color:'var(--text4)', fontSize:12 }}>Sin datos de stacking para este activo.</div>
-      ) : (
-        <div style={{ display:'flex', gap:16, overflowX:'auto' }}>
-          {buildings.map(bld => {
-            const floors = view==='arr' ? bld.arr : view==='prop' ? bld.prop : bld.floors
-            return (
-              <div key={bld.id} style={{ minWidth:220, flex:1 }}>
-                <div style={{ fontSize:10, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:8, padding:'6px 10px', background:'var(--gray-lt)', borderRadius:'var(--r)', border:'1px solid var(--border)' }}>{bld.label}</div>
-                <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                  {(floors||[]).map(floor => {
-                    const fId = floor.id||floor.p
-                    const fSup = floor.sup
-                    if (view==='uso') {
-                      const usoBg = { oficinas:'#dbeafe', retail:'#fdf4ff', comun:'#f1f5f9', parking:'#f8fafc', logistico:'#f0fdfa' }
-                      return (
-                        <div key={fId} style={{ display:'flex', gap:3, height:30 }}>
-                          <div style={{ width:32, flexShrink:0, fontSize:9, fontWeight:700, color:'var(--text4)', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>{fId}</div>
-                          <div style={{ flex:1, display:'flex', overflow:'hidden', borderRadius:'var(--r)', border:'1px solid var(--border)' }}>
-                            {floor.principal.map((u,i) => (
-                              <div key={i} style={{ flex:u.sup, background:usoBg[u.uso]||'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, fontWeight:600, color:'var(--text2)', textTransform:'capitalize' }}>{u.uso}</div>
-                            ))}
-                          </div>
-                          <div style={{ width:56, flexShrink:0, fontSize:9, color:'var(--text4)', display:'flex', alignItems:'center', justifyContent:'flex-end' }}>{(fSup||0).toLocaleString()} m²</div>
-                        </div>
-                      )
-                    }
-                    return (
-                      <div key={fId} style={{ display:'flex', gap:3, height:30 }}>
-                        <div style={{ width:32, flexShrink:0, fontSize:9, fontWeight:700, color:'var(--text4)', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>{fId}</div>
-                        <div style={{ flex:1, display:'flex', overflow:'hidden', borderRadius:'var(--r)', border:'1px solid var(--border)' }}>
-                          {(floor.units||[]).map((u,i) => {
-                            const col = UNIT_COLORS[u.type]||UNIT_COLORS.com
-                            const isOffer = ofertasDesglose?.some(od => od.nombre===u.oferta)
-                            const bg = isOffer ? '#dcfce7' : col.bg
-                            const clr = isOffer ? '#166534' : col.color
-                            const label = u.type==='vac' ? (u.oferta ? `▸ ${u.oferta}` : 'Vacante') : (u.n||'').split(' ')[0]
-                            return (
-                              <div key={i} style={{ flex:u.sup, background:bg, borderLeft:`2px solid ${col.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:7, fontWeight:600, color:clr, overflow:'hidden', padding:'0 2px', textAlign:'center' }}
-                                title={u.n||(u.oferta?`Oferta: ${u.oferta}`:'')}>
-                                {label}
-                              </div>
-                            )
-                          })}
-                        </div>
-                        <div style={{ width:56, flexShrink:0, fontSize:9, color:'var(--text4)', display:'flex', alignItems:'center', justifyContent:'flex-end' }}>{(fSup||0).toLocaleString()} m²</div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-      <div style={{ display:'flex', gap:10, marginTop:14, flexWrap:'wrap', paddingTop:12, borderTop:'1px solid var(--border)' }}>
-        {[['ten','Arrendatario'],['vac','Vacante / Oferta'],['com','Zona común'],['pk','Parking'],['rt','Retail']].map(([t,lbl]) => (
-          <div key={t} style={{ display:'flex', alignItems:'center', gap:5 }}>
-            <div style={{ width:12, height:12, background:UNIT_COLORS[t].bg, border:`1px solid ${UNIT_COLORS[t].border}`, borderRadius:2 }} />
-            <span style={{ fontSize:9, color:'var(--text3)' }}>{lbl}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 export default function FichaOferta() {
   const { navigate, params } = useNav()
@@ -729,10 +638,16 @@ export default function FichaOferta() {
 
               {/* ── TAB: Stacking plan ── */}
               {activeTab==='of-stacking' && (
-                <div className="tab-content active">
-                  <div className="info-pad">
-                    <OfertaStackingTab activoRef={activoSeleccionado?.ref} ofertasDesglose={ofertasDesglose} />
-                  </div>
+                <div className="tab-content active" style={{ padding:0 }}>
+                  <StackingPlan
+                    key={activoSeleccionado?.ref || 'stacking-oferta'}
+                    initBuildings={BUILDINGS_BY_ACTIVO[activoSeleccionado?.ref] || []}
+                    initView='arr'
+                    extraOfertas={ofertasDesglose}
+                    activoPropietario={activoSeleccionado?.propietario || ''}
+                    onAddOwner={() => {}}
+                    onAddTenant={() => {}}
+                  />
                 </div>
               )}
 
