@@ -3,7 +3,6 @@ import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { supabase } from '../lib/supabase'
 import { OFERTAS as MOCK_OFERTAS, ACTIVOS as MOCK_ACTIVOS } from '../data/mockData'
-import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
 import StackingPlan from '../components/StackingPlan'
 
 const TABS = ['of-info','of-stacking','of-espacios','of-condiciones','of-caract','of-docs','of-web','of-seg','of-ficha','of-conf']
@@ -641,7 +640,7 @@ export default function FichaOferta() {
                 <div className="tab-content active" style={{ padding:0 }}>
                   <StackingPlan
                     key={activoSeleccionado?.ref || 'stacking-oferta'}
-                    initBuildings={BUILDINGS_BY_ACTIVO[activoSeleccionado?.ref] || []}
+                    initBuildings={activoSeleccionado?.stacking_data?.length > 0 ? activoSeleccionado.stacking_data : []}
                     initView='arr'
                     extraOfertas={ofertasDesglose}
                     activoPropietario={activoSeleccionado?.propietario || ''}
