@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { exportPDF, exportPPT } from '../utils/exportReport'
+import { supabase } from '../lib/supabase'
 
 function ExportMenu({ getConfig }) {
   const [open, setOpen] = useState(false)
@@ -141,34 +142,62 @@ export default function FichaPropietario() {
       })()
     : '—'
 
-  const handleSaveFromActivo = () => {
+  const [saving, setSaving] = useState(false)
+
+  const handleSaveFromActivo = async () => {
     setSaveErr('')
     if (!form.propietario.trim()) { setSaveErr('El nombre del propietario es obligatorio'); return }
     if (!form.anyo_compra) { setSaveErr('El año de compra es obligatorio'); return }
     if (!form.trimestre)   { setSaveErr('El trimestre es obligatorio'); return }
-    const ownerData = {
-      id: form.id,
-      propietario: form.propietario,
-      activo: form.activo,
-      activo_ref: params?.fromActivoRef || '',
-      zona: form.zona,
-      uso: form.uso,
-      sba: form.superficie ? parseFloat(form.superficie) : 0,
-      tipologia: form.tipologia,
-      anyo_compra: form.anyo_compra,
-      trimestre: form.trimestre,
-      precio_compra: form.precio_compra,
-      regimen: form.regimen,
-      perfil: form.perfil,
-      cap_rate: form.cap_rate,
-      yield_pct: form.yield,
-      estrategia: form.estrategia,
-      estado: form.estado,
+    setSaving(true)
+    const row = {
+      id:                form.id,
+      propietario:       form.propietario,
+      activo:            form.activo,
+      activo_ref:        params?.fromActivoRef || null,
+      zona:              form.zona || null,
+      subzona:           form.subzona || null,
+      superficie:        form.superficie ? parseFloat(form.superficie) : null,
+      uso:               form.uso || null,
+      area:              form.area || null,
+      tipologia:         form.tipologia || null,
+      anyo_compra:       form.anyo_compra ? parseInt(form.anyo_compra) : null,
+      trimestre:         form.trimestre || null,
+      precio_compra:     form.precio_compra || null,
+      estado_activo:     form.estado_activo || null,
+      regimen:           form.regimen || null,
+      valoracion_actual: form.valoracion_actual || null,
+      perfil:            form.perfil || null,
+      estrategia:        form.estrategia || null,
+      cap_rate:          form.cap_rate ? parseFloat(form.cap_rate) : null,
+      yield_pct:         form.yield ? parseFloat(form.yield) : null,
+      tir_objetivo:      form.tir_objetivo ? parseFloat(form.tir_objetivo) : null,
+      horizonte_inv:     form.horizonte_inv ? parseInt(form.horizonte_inv) : null,
+      ltv:               form.ltv ? parseFloat(form.ltv) : null,
+      financiacion:      form.financiacion ? parseFloat(form.financiacion) : null,
+      banco:             form.banco || null,
+      tipo_deuda:        form.tipo_deuda || null,
+      vencimiento_deuda: form.vencimiento_deuda || null,
+      estado:            form.estado || 'Activo',
+      responsable:       form.responsable || null,
+      asset_manager:     form.asset_manager || null,
+      cif:               form.cif || null,
+      tipo_entidad:      form.tipo_entidad || null,
+      pais:              form.pais || null,
+      ciudad_sede:       form.ciudad_sede || null,
+      email:             form.email || null,
+      telefono:          form.telefono || null,
+      contacto_principal: form.contacto_principal || null,
+      observaciones:     form.observaciones || null,
     }
+    const { error } = await supabase.from('propietarios').upsert(row)
+    setSaving(false)
+    if (error) { setSaveErr(error.message); return }
+
     navigate('ficha-activo', {
       ref: params?.fromActivoRef,
       tab: 'at-stacking',
-      newOwnerData: ownerData,
+      newOwnerData: { ...row, sba: row.superficie },
       substituteOwner: params?.substituteOwner || false,
       previousOwner: params?.previousOwner || null,
     })
@@ -179,7 +208,7 @@ export default function FichaPropietario() {
       <div className="action-bar">
         {fromActivo ? (
           <>
-            <button className="ab-btn save" onClick={handleSaveFromActivo}>💾 Guardar propietario</button>
+            <button className="ab-btn save" onClick={handleSaveFromActivo} disabled={saving}>{saving ? 'Guardando...' : '💾 Guardar propietario'}</button>
             <button className="ab-btn" onClick={()=>navigate('ficha-activo',{ref:params?.fromActivoRef,tab:'at-stacking'})}>← Volver al activo</button>
             {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
           </>

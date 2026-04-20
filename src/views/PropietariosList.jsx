@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import { exportPDF, exportPPT } from '../utils/exportReport'
+import { supabase } from '../lib/supabase'
 
 function ExportMenu({ getConfig }) {
   const [open, setOpen] = useState(false)
@@ -85,10 +86,45 @@ export default function PropietariosList() {
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ propietario:'', perfil:'', tipologia:'', estado_activo:'', area:'', responsable:'' })
   const [vis, setVis] = useVisibleCols('propietarios', COLS, DEFAULT_VIS)
+  const [dbRows, setDbRows] = useState([])
+
+  useEffect(() => {
+    supabase.from('propietarios').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data?.length) {
+          setDbRows(data.map(p => ({
+            id:            p.id,
+            propietario:   p.propietario,
+            activo:        p.activo || '—',
+            zona:          p.zona || '—',
+            subzona:       p.subzona || '—',
+            superficie:    p.superficie || 0,
+            precio_compra: p.precio_compra || '—',
+            cap_rate:      p.cap_rate || 0,
+            yield:         p.yield_pct || 0,
+            estado_activo: p.estado_activo || 'Ocupado',
+            tipologia:     p.tipologia || '—',
+            area:          p.area || '—',
+            anyo_compra:   p.anyo_compra || '—',
+            trimestre:     p.trimestre || '—',
+            ltv:           p.ltv || 0,
+            financiacion:  p.financiacion || 0,
+            perfil:        p.perfil || 'Core',
+            responsable:   p.responsable || '—',
+            ultima_act:    p.created_at ? new Date(p.created_at).toLocaleDateString('es-ES') : '—',
+            regimen:       p.regimen || '—',
+            asset_manager: p.asset_manager || '—',
+            _real:         true,
+          })))
+        }
+      })
+  }, [])
+
+  const allRows = [...dbRows, ...PROPIETARIOS.filter(m => !dbRows.some(d => d.id === m.id))]
 
   const advCount = Object.values(af).filter(Boolean).length
 
-  const preFiltered = PROPIETARIOS.filter(p => {
+  const preFiltered = allRows.filter(p => {
     const q = query.toLowerCase()
     if (q && !p.propietario.toLowerCase().includes(q) && !p.activo.toLowerCase().includes(q) && !p.id.toLowerCase().includes(q)) return false
     if (af.propietario  && p.propietario !== af.propietario) return false
@@ -103,10 +139,10 @@ export default function PropietariosList() {
   const { result, sorts, filters, setSort, setFilter, clearFilter, clearAll, activeCount } = useTableFilter(preFiltered, COLS)
   const visibleCols = COLS.filter(c => vis.has(c.id))
 
-  const totalSup   = PROPIETARIOS.reduce((s,p)=>s+p.superficie,0)
-  const avgCapRate = (PROPIETARIOS.reduce((s,p)=>s+p.cap_rate,0)/PROPIETARIOS.length).toFixed(1)
-  const avgYield   = (PROPIETARIOS.reduce((s,p)=>s+p.yield,0)/PROPIETARIOS.length).toFixed(1)
-  const nPropietarios = new Set(PROPIETARIOS.map(p=>p.propietario)).size
+  const totalSup   = allRows.reduce((s,p)=>s+(p.superficie||0),0)
+  const avgCapRate = allRows.length ? (allRows.reduce((s,p)=>s+(p.cap_rate||0),0)/allRows.length).toFixed(1) : '—'
+  const avgYield   = allRows.length ? (allRows.reduce((s,p)=>s+(p.yield||0),0)/allRows.length).toFixed(1) : '—'
+  const nPropietarios = new Set(allRows.map(p=>p.propietario)).size
 
   const cell = (p) => ({
     _chk:          <td key="_chk"><input type="checkbox" onClick={e=>e.stopPropagation()} style={{accentColor:'var(--accent)'}}/></td>,
@@ -135,7 +171,7 @@ export default function PropietariosList() {
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
       <div className="kpi-strip" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
-        <div className="ks"><div className="ks-lbl">Total activos</div><div className="ks-val">{PROPIETARIOS.length}</div></div>
+        <div className="ks"><div className="ks-lbl">Total activos</div><div className="ks-val">{allRows.length}</div></div>
         <div className="ks"><div className="ks-lbl">Propietarios únicos</div><div className="ks-val" style={{color:'var(--accent)'}}>{nPropietarios}</div></div>
         <div className="ks"><div className="ks-lbl">Sup. total gestionada</div><div className="ks-val">{(totalSup/1000).toFixed(0)}k m²</div></div>
         <div className="ks"><div className="ks-lbl">Cap rate medio</div><div className="ks-val green">{avgCapRate}%</div></div>
@@ -214,7 +250,7 @@ export default function PropietariosList() {
             <tr>{visibleCols.map(c=>
               c.id==='_chk'?<th key="_chk"><input type="checkbox" style={{accentColor:'var(--accent)'}}/></th>:
               c.sys?<th key={c.id}>{c.label}</th>:
-              <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={PROPIETARIOS}/>
+              <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={allRows}/>
             )}</tr>
           </thead>
           <tbody>

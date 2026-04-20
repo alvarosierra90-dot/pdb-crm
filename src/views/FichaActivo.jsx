@@ -3732,6 +3732,54 @@ export default function FichaActivo() {
       })
   }, [params?.ref])
 
+  // Load propietariosReg and arrendatariosReg from Supabase for existing activos
+  useEffect(() => {
+    const ref = params?.ref
+    if (!ref || params?.new) return
+    supabase.from('propietarios').select('*').eq('activo_ref', ref).order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data?.length) {
+          const mapped = data.map(p => ({
+            id: p.id, propietario: p.propietario, activo: p.activo,
+            activo_ref: p.activo_ref, zona: p.zona, uso: p.uso,
+            sba: p.superficie, tipologia: p.tipologia,
+            anyo_compra: p.anyo_compra, trimestre: p.trimestre,
+            precio_compra: p.precio_compra, regimen: p.regimen,
+            perfil: p.perfil, cap_rate: p.cap_rate, yield_pct: p.yield_pct,
+            estrategia: p.estrategia, estado: p.estado,
+          }))
+          // Merge: DB rows take precedence; preserve any in-memory rows not yet in DB
+          setPropietariosReg(prev => {
+            const dbIds = new Set(mapped.map(p => p.id))
+            const extras = prev.filter(p => !dbIds.has(p.id))
+            return [...mapped, ...extras]
+          })
+        }
+      })
+    supabase.from('arrendatarios').select('*').eq('activo_ref', ref).order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data?.length) {
+          const mapped = data.map(a => ({
+            id: a.id || a.ref, tenant: a.tenant || a.nombre,
+            activo: a.edificio || a.activo_ref,
+            activo_ref: a.activo_ref,
+            uso: a.uso || a.sector,
+            sup: a.superficie,
+            closing_rent: a.closing_rent,
+            break_option: a.break_option,
+            fecha_fin: a.vencimiento,
+            anyo_firma: a.anyo_firma,
+            trimestre: a.trimestre,
+          }))
+          setArrendatariosReg(prev => {
+            const dbIds = new Set(mapped.map(a => a.id).filter(Boolean))
+            const extras = prev.filter(a => !dbIds.has(a.id))
+            return [...mapped, ...extras]
+          })
+        }
+      })
+  }, [params?.ref])
+
   const handleCreateActivo = async () => {
     setSubmitted(true)
     const missing = []
