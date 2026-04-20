@@ -763,7 +763,7 @@ export default function FichaOferta() {
                           </div>
                           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
                             <thead><tr>
-                              {['Nombre área','Sup. asignada','¿Divisible?','Cargas €/m²','Fecha disp.','Plantas asignadas',''].map(h =>
+                              {['Nombre área','Sup. asignada','¿Divisible?','Gastos €/m²','Fecha disp.','Plantas asignadas',''].map(h =>
                                 <th key={h} style={{ padding:'6px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap' }}>{h}</th>
                               )}
                             </tr></thead>
