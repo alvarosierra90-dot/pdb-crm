@@ -384,7 +384,7 @@ export default function FichaArrendatario() {
         } else if (fromActivo) {
           navigate('ficha-activo', {
             ref: params.fromActivoRef,
-            tab: 'at-stacking',
+            tab: 'at-prop',
             newTenantData: {
               id: `ARR-${Date.now()}`,
               tenant: tenantName,

@@ -196,7 +196,7 @@ export default function FichaPropietario() {
 
     navigate('ficha-activo', {
       ref: params?.fromActivoRef,
-      tab: 'at-stacking',
+      tab: 'at-prop',
       newOwnerData: { ...row, sba: row.superficie },
       substituteOwner: params?.substituteOwner || false,
       previousOwner: params?.previousOwner || null,
