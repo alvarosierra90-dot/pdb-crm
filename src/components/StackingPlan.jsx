@@ -223,6 +223,10 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
   const [editFloorSupVal, setEditFloorSupVal] = useState('')
   const [hoveredIns, setHoveredIns]           = useState(null)
   const [dropWarning, setDropWarning]         = useState(null) // floorId con aviso activo
+  const [convertConfirm, setConvertConfirm]   = useState(null) // {floorId, idx, unit} — pendiente confirmación
+  const [convertForm, setConvertForm]         = useState(false) // true = mostrar form de arrendatario
+  const [convertData, setConvertData]         = useState({ n:'', brk:'', brkColor:'var(--green)' })
+  const [localTenants, setLocalTenants]       = useState([]) // arrendatarios creados vía conversión
 
   useEffect(() => { if (onCountChange) onCountChange(buildings.length) }, [buildings.length])
   useEffect(() => {
@@ -861,7 +865,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
 
       {/* ══ ARRENDATARIOS ══ */}
       {view==='arr' && (()=>{
-        const tenantSet = [...new Set([...extraTenants, ...(edif.arr||[]).flatMap(r=>r.units.filter(u=>u.type==='ten'||u.type==='rt'||u.type==='pk').map(u=>u.n))])]
+        const tenantSet = [...new Set([...extraTenants, ...localTenants.map(t=>t.n), ...(edif.arr||[]).flatMap(r=>r.units.filter(u=>u.type==='ten'||u.type==='rt'||u.type==='pk').map(u=>u.n))])]
         const ARR_COLORS = ['#1e40af','#0f766e','#7c3aed','#b45309','#be185d','#065f46']
         const tenantColor = (n) => ARR_COLORS[tenantSet.indexOf(n)%ARR_COLORS.length]
         const TYPE_COLORS = {
@@ -1023,7 +1027,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                                     </div>
                                   ) : (
                                     <>
-                                      <button onClick={e=>{e.stopPropagation();removeArrUnit(floor.id,i)}} style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
+                                      <button onClick={e=>{e.stopPropagation(); if(u.type==='vac'&&u.oferta){setConvertConfirm({floorId:floor.id,idx:i,unit:u});setConvertForm(false);setConvertData({n:u.oferta||'',brk:'',brkColor:'var(--green)'})}else{removeArrUnit(floor.id,i)}}} style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
                                       <span style={{fontSize:10,fontWeight:700,color:col,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>{label}</span>
                                       {u.type==='vac'&&u.oferta&&activoPropietario&&(
                                         <span style={{fontSize:8,color:col,opacity:.6,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>🏠 {activoPropietario}</span>
@@ -1090,6 +1094,73 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
           </div>
         )
       })()}
+
+      {/* Modal — convertir oferta en arrendatario */}
+      {convertConfirm&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>{setConvertConfirm(null);setConvertForm(false)}}>
+          <div style={{background:'var(--surface)',borderRadius:'var(--r2)',padding:22,width:360,boxShadow:'0 8px 32px rgba(0,0,0,.22)',display:'flex',flexDirection:'column',gap:14}} onClick={e=>e.stopPropagation()}>
+            {!convertForm ? (<>
+              <div style={{fontWeight:700,fontSize:13,color:'var(--text1)'}}>Quitar oferta de la planta</div>
+              <div style={{fontSize:12,color:'var(--text2)',lineHeight:1.6}}>
+                Estás eliminando <strong style={{color:'var(--accent)'}}>{convertConfirm.unit.oferta}</strong> de la planta <strong>{convertConfirm.floorId}</strong>.<br/>
+                ¿Quieres convertirla en un arrendatario?
+              </div>
+              <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+                <button onClick={()=>{removeArrUnit(convertConfirm.floorId,convertConfirm.idx);setConvertConfirm(null)}}
+                  style={{padding:'7px 16px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>No, solo quitar</button>
+                <button onClick={()=>setConvertForm(true)}
+                  style={{padding:'7px 16px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Sí, convertir</button>
+              </div>
+            </>) : (<>
+              <div style={{fontWeight:700,fontSize:13,color:'var(--text1)'}}>Nuevo arrendatario</div>
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                <div>
+                  <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Nombre / Empresa *</div>
+                  <input autoFocus value={convertData.n} onChange={e=>setConvertData(p=>({...p,n:e.target.value}))}
+                    placeholder="Nombre del arrendatario"
+                    style={{width:'100%',padding:'7px 10px',border:'1px solid var(--border)',borderRadius:5,fontSize:12,fontFamily:'inherit',boxSizing:'border-box'}}/>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr auto',gap:8,alignItems:'flex-end'}}>
+                  <div>
+                    <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Break option</div>
+                    <input value={convertData.brk} onChange={e=>setConvertData(p=>({...p,brk:e.target.value}))}
+                      placeholder="Ej: Jun 2027"
+                      style={{width:'100%',padding:'7px 10px',border:'1px solid var(--border)',borderRadius:5,fontSize:12,fontFamily:'inherit',boxSizing:'border-box'}}/>
+                  </div>
+                  <div>
+                    <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Color</div>
+                    <select value={convertData.brkColor} onChange={e=>setConvertData(p=>({...p,brkColor:e.target.value}))}
+                      style={{padding:'7px 8px',border:'1px solid var(--border)',borderRadius:5,fontSize:11,fontFamily:'inherit',background:'var(--surface)'}}>
+                      <option value="var(--green)">Verde</option>
+                      <option value="var(--amber)">Ámbar</option>
+                      <option value="var(--red)">Rojo</option>
+                      <option value="var(--text4)">Gris</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div style={{fontSize:10,color:'var(--text3)',background:'var(--gray-lt)',padding:'8px 10px',borderRadius:'var(--r)',lineHeight:1.5}}>
+                El arrendatario aparecerá en el panel lateral izquierdo para que lo asignes de nuevo en el stacking.
+              </div>
+              <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+                <button onClick={()=>setConvertForm(false)}
+                  style={{padding:'7px 14px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>Atrás</button>
+                <button disabled={!convertData.n.trim()}
+                  onClick={()=>{
+                    const newTenant={n:convertData.n.trim(),brk:convertData.brk||null,brkColor:convertData.brkColor}
+                    setLocalTenants(prev=>[...prev,newTenant])
+                    removeArrUnit(convertConfirm.floorId,convertConfirm.idx)
+                    setConvertConfirm(null); setConvertForm(false)
+                    setConvertData({n:'',brk:'',brkColor:'var(--green)'})
+                  }}
+                  style={{padding:'7px 14px',background:convertData.n.trim()?'var(--accent)':'var(--border)',color:convertData.n.trim()?'#fff':'var(--text4)',border:'none',borderRadius:5,fontSize:11,cursor:convertData.n.trim()?'pointer':'default',fontFamily:'inherit',fontWeight:600}}>
+                  Crear arrendatario
+                </button>
+              </div>
+            </>)}
+          </div>
+        </div>
+      )}
 
       {/* Modal split */}
       {splitModal&&(()=>{

@@ -38,6 +38,16 @@ const ASSET_CARACT = [
   { id:18, tipo:'Eficiencia energética',     detalle:'Paneles solares fotovoltaicos',         año:2023, comentario:'180 kWp instalados' },
 ]
 
+// Placeholder media — in production this comes from activoSeleccionado.media or a media Supabase table
+const MOCK_MEDIA_ACTIVO = [
+  { id:1, tipo:'Fotografía', subtipo:'Exterior',        desc:'Fachada principal',          src:'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=80' },
+  { id:2, tipo:'Fotografía', subtipo:'Interior',        desc:'Planta tipo — open space',   src:'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80' },
+  { id:3, tipo:'Fotografía', subtipo:'Interior',        desc:'Sala de reuniones',          src:'https://images.unsplash.com/photo-1497366754035-f200968a7db3?w=800&q=80' },
+  { id:4, tipo:'Fotografía', subtipo:'Zonas comunes',   desc:'Lobby recepción',            src:'https://images.unsplash.com/photo-1568992687947-868a62a9f521?w=800&q=80' },
+  { id:5, tipo:'Fotografía', subtipo:'Fotos aéreas',    desc:'Vista aérea conjunto',       src:'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&q=80' },
+  { id:6, tipo:'Plano',      subtipo:'Plano de planta', desc:'Planta tipo — distribución', src:'https://images.unsplash.com/photo-1541888846341-b14b40e47e34?w=800&q=80' },
+]
+
 const TIPOLOGIA_MAP = {
   'Oficinas':['Oficina tradicional','Coworking','Subarriendo','Business park','Sede única (HQ)'],
   'Logístico':['Nave logística','Nave industrial','Última milla','Plataforma logística','Cross-docking'],
@@ -168,6 +178,11 @@ export default function FichaOferta() {
   // Espacios comercializables — poblados desde asignaciones_stacking, vacíos por defecto
   const [espaciosComercializables, setEspaciosComercializables] = useState([])
   const supTotal = espaciosComercializables.reduce((s, e) => s + e.sup, 0)
+
+  // Multimedia de la oferta (subconjunto del activo — borrar aquí no afecta al activo)
+  const [imagenesOferta, setImagenesOferta] = useState([])  // { id, src, desc, subtipo, tipo }
+  const [planosOferta, setPlanosOferta] = useState([])
+  const [showImportMedia, setShowImportMedia] = useState(false)
 
   function addOferta() {
     const id = nextOfertaId
@@ -339,6 +354,19 @@ export default function FichaOferta() {
       if (error) { setSaveErr(error.message); return }
 
       // 2. Intentar guardar columnas opcionales (pueden no existir aún en la tabla)
+      // Compute gastos_medios / ibi_medio for the list view
+      let gNum=0, gDen=0
+      ofertasDesglose.forEach(o => {
+        if (o.cargasM2 > 0) {
+          const asSup = espaciosComercializables.filter(e => e.ofertaNombre===o.nombre).reduce((s,e)=>s+e.sup,0)
+          if (asSup > 0) { gNum += o.cargasM2*asSup; gDen += asSup } else { gNum += o.cargasM2; gDen += 1 }
+        }
+      })
+      const gastosMedios = gDen > 0 ? Math.round(gNum/gDen*100)/100 : null
+      let iNum=0, iDen=0
+      ofertasDesglose.forEach(o => { if (o.ibiM2 > 0) { iNum += o.ibiM2; iDen += 1 } })
+      const ibiMedio = iDen > 0 ? Math.round(iNum/iDen*100)/100 : null
+
       await dbCall(supabase.from('ofertas').update({
         tipologia:        tipologia        || null,
         estado_espacio:   estadoEspacio    || null,
@@ -347,6 +375,8 @@ export default function FichaOferta() {
         confidencial:     confidential,
         equipo:           equipoMembers,
         colaboradores,
+        gastos_medios:    gastosMedios,
+        ibi_medio:        ibiMedio,
       }).eq('ref', oferta.ref)).catch(() => {})
       // Ignorar error aquí — columnas opcionales
 
@@ -1085,8 +1115,15 @@ export default function FichaOferta() {
                       <div className="info-block" style={{ padding:0, overflow:'hidden' }}>
                         <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
                           <thead><tr>
-                            {['Incluir','Tipo','Detalle','Año','Comentario'].map(h =>
-                              <th key={h} style={{ padding:'7px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:h==='Incluir'?'center':'left', background:'var(--gray-lt)', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap' }}>{h}</th>
+                            <th style={{ padding:'7px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'center', background:'var(--gray-lt)', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap', width:60 }}>
+                              {(()=>{
+                                const all = caracteristicas.every(c=>c.incluir)
+                                const none = caracteristicas.every(c=>!c.incluir)
+                                return <input type="checkbox" checked={all} ref={el => { if(el) el.indeterminate = !all && !none }} onChange={() => setCaracteristicas(prev=>prev.map(c=>({...c,incluir:!all})))} style={{ accentColor:'var(--accent)', width:15, height:15, cursor:'pointer' }} title={all?'Deseleccionar todas':'Seleccionar todas'} />
+                              })()}
+                            </th>
+                            {['Tipo','Detalle','Año','Comentario'].map(h =>
+                              <th key={h} style={{ padding:'7px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', background:'var(--gray-lt)', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap' }}>{h}</th>
                             )}
                           </tr></thead>
                           <tbody>
@@ -1119,15 +1156,118 @@ export default function FichaOferta() {
 
               {/* Documentos */}
               {activeTab==='of-docs' && (
-                <div className="tab-content active"><div className="info-pad">
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
-                    <div style={{ fontSize:14, fontWeight:600 }}>Documentos</div><button className="ab-btn blue">↑ Cargar</button>
+                <div className="tab-content active"><div className="info-pad" style={{ display:'flex', flexDirection:'column', gap:24 }}>
+                  {/* Documentos */}
+                  <div>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+                      <div style={{ fontSize:14, fontWeight:600 }}>Documentos</div><button className="ab-btn blue">↑ Cargar</button>
+                    </div>
+                    <table className="doc-table"><thead><tr><th>Documento</th><th>Tipo</th><th>Fecha</th></tr></thead>
+                    <tbody>
+                      <tr><td><span className="doc-link">📊 Dossier Albatros</span></td><td><span className="tag tag-blue">Comercial</span></td><td>05/11/2024</td></tr>
+                      <tr><td><span className="doc-link">📋 Ficha técnica Edif. D</span></td><td><span className="tag tag-teal">Técnica</span></td><td>05/11/2024</td></tr>
+                    </tbody></table>
                   </div>
-                  <table className="doc-table"><thead><tr><th>Documento</th><th>Tipo</th><th>Fecha</th></tr></thead>
-                  <tbody>
-                    <tr><td><span className="doc-link">📊 Dossier Albatros</span></td><td><span className="tag tag-blue">Comercial</span></td><td>05/11/2024</td></tr>
-                    <tr><td><span className="doc-link">📋 Ficha técnica Edif. D</span></td><td><span className="tag tag-teal">Técnica</span></td><td>05/11/2024</td></tr>
-                  </tbody></table>
+
+                  {/* Fotografías */}
+                  <div>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                      <div>
+                        <div style={{ fontSize:14, fontWeight:600 }}>Fotografías</div>
+                        <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>Imágenes vinculadas a esta oferta · eliminar aquí no afecta al activo</div>
+                      </div>
+                      <button className="ab-btn blue" style={{ fontSize:10 }} onClick={() => setShowImportMedia(v => v==='fotos'?false:'fotos')}>↩ Importar del activo</button>
+                    </div>
+                    {showImportMedia==='fotos' && (
+                      <div style={{ border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)', padding:12, marginBottom:12 }}>
+                        <div style={{ fontSize:10, fontWeight:700, color:'var(--accent)', marginBottom:8 }}>Selecciona las imágenes del activo a incluir en esta oferta:</div>
+                        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))', gap:8 }}>
+                          {(activoSeleccionado?.media?.filter(m=>m.tipo==='Fotografía') || MOCK_MEDIA_ACTIVO.filter(m=>m.tipo==='Fotografía')).map(m => {
+                            const already = imagenesOferta.some(i=>i.id===m.id)
+                            return (
+                              <div key={m.id} style={{ position:'relative', borderRadius:'var(--r)', overflow:'hidden', border:`2px solid ${already?'var(--accent)':'var(--border)'}`, cursor:'pointer' }}
+                                onClick={() => {
+                                  if (already) setImagenesOferta(prev=>prev.filter(i=>i.id!==m.id))
+                                  else setImagenesOferta(prev=>[...prev,m])
+                                }}>
+                                <img src={m.src} alt={m.desc} style={{ width:'100%', height:90, objectFit:'cover', display:'block' }} />
+                                <div style={{ padding:'3px 6px', fontSize:9, color:'var(--text3)', background:'var(--surface)' }}>{m.desc}</div>
+                                {already && <div style={{ position:'absolute', top:4, right:4, background:'var(--accent)', color:'#fff', borderRadius:10, fontSize:9, fontWeight:700, padding:'1px 6px' }}>✓</div>}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <button className="ab-btn save" style={{ marginTop:10, fontSize:10 }} onClick={() => setShowImportMedia(false)}>Confirmar selección</button>
+                      </div>
+                    )}
+                    {imagenesOferta.length === 0 ? (
+                      <div style={{ padding:'24px 16px', textAlign:'center', border:'2px dashed var(--border)', borderRadius:'var(--r2)', color:'var(--text4)', fontSize:12 }}>
+                        Sin fotografías. Importa desde el activo para añadir imágenes a esta oferta.
+                      </div>
+                    ) : (
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap:10 }}>
+                        {imagenesOferta.map(m => (
+                          <div key={m.id} style={{ position:'relative', borderRadius:'var(--r)', overflow:'hidden', border:'1px solid var(--border)' }}>
+                            <img src={m.src} alt={m.desc} style={{ width:'100%', height:110, objectFit:'cover', display:'block' }} />
+                            <div style={{ padding:'4px 8px', fontSize:10, color:'var(--text2)', background:'var(--surface)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                              <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.desc}</span>
+                              <button onClick={() => setImagenesOferta(prev=>prev.filter(i=>i.id!==m.id))} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:12, lineHeight:1, padding:'0 0 0 4px', flexShrink:0 }}>✕</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Planos */}
+                  <div>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                      <div>
+                        <div style={{ fontSize:14, fontWeight:600 }}>Planos</div>
+                        <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>Planos vinculados a esta oferta · eliminar aquí no afecta al activo</div>
+                      </div>
+                      <button className="ab-btn blue" style={{ fontSize:10 }} onClick={() => setShowImportMedia(v => v==='planos'?false:'planos')}>↩ Importar del activo</button>
+                    </div>
+                    {showImportMedia==='planos' && (
+                      <div style={{ border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)', padding:12, marginBottom:12 }}>
+                        <div style={{ fontSize:10, fontWeight:700, color:'var(--accent)', marginBottom:8 }}>Selecciona los planos del activo a incluir en esta oferta:</div>
+                        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))', gap:8 }}>
+                          {(activoSeleccionado?.media?.filter(m=>m.tipo==='Plano') || MOCK_MEDIA_ACTIVO.filter(m=>m.tipo==='Plano')).map(m => {
+                            const already = planosOferta.some(i=>i.id===m.id)
+                            return (
+                              <div key={m.id} style={{ position:'relative', borderRadius:'var(--r)', overflow:'hidden', border:`2px solid ${already?'var(--accent)':'var(--border)'}`, cursor:'pointer' }}
+                                onClick={() => {
+                                  if (already) setPlanosOferta(prev=>prev.filter(i=>i.id!==m.id))
+                                  else setPlanosOferta(prev=>[...prev,m])
+                                }}>
+                                <img src={m.src} alt={m.desc} style={{ width:'100%', height:90, objectFit:'cover', display:'block' }} />
+                                <div style={{ padding:'3px 6px', fontSize:9, color:'var(--text3)', background:'var(--surface)' }}>{m.desc}</div>
+                                {already && <div style={{ position:'absolute', top:4, right:4, background:'var(--accent)', color:'#fff', borderRadius:10, fontSize:9, fontWeight:700, padding:'1px 6px' }}>✓</div>}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <button className="ab-btn save" style={{ marginTop:10, fontSize:10 }} onClick={() => setShowImportMedia(false)}>Confirmar selección</button>
+                      </div>
+                    )}
+                    {planosOferta.length === 0 ? (
+                      <div style={{ padding:'24px 16px', textAlign:'center', border:'2px dashed var(--border)', borderRadius:'var(--r2)', color:'var(--text4)', fontSize:12 }}>
+                        Sin planos. Importa desde el activo para añadir planos a esta oferta.
+                      </div>
+                    ) : (
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap:10 }}>
+                        {planosOferta.map(m => (
+                          <div key={m.id} style={{ position:'relative', borderRadius:'var(--r)', overflow:'hidden', border:'1px solid var(--border)' }}>
+                            <img src={m.src} alt={m.desc} style={{ width:'100%', height:110, objectFit:'cover', display:'block' }} />
+                            <div style={{ padding:'4px 8px', fontSize:10, color:'var(--text2)', background:'var(--surface)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                              <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.desc}</span>
+                              <button onClick={() => setPlanosOferta(prev=>prev.filter(i=>i.id!==m.id))} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:12, lineHeight:1, padding:'0 0 0 4px', flexShrink:0 }}>✕</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div></div>
               )}
 

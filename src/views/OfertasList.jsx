@@ -24,16 +24,17 @@ function mapMock(list) {
 }
 
 const COLS = [
-  { id: '_chk',      label: '',               sys: true },
+  { id: '_chk',      label: '',                             sys: true },
   { id: 'ref',       label: 'ID',             required: true, type:'text',   getValue: r => r.ref },
   { id: 'activo',    label: 'Activo',         required: true, type:'text',   getValue: r => r.activo },
-  { id: 'espacio',   label: 'Espacio',                        type:'text',   getValue: r => r.espacio },
-  { id: 'm2',        label: 'M²',                             type:'number', getValue: r => r.m2 },
-  { id: 'renta',     label: 'Renta ofertada',                 type:'text',   getValue: r => r.renta },
-  { id: 'tipo',      label: 'Tipo',                           type:'enum',   getValue: r => r.tipo },
-  { id: 'origen',    label: 'Origen',                         type:'enum',   getValue: r => r.origen },
-  { id: 'estado',    label: 'Estado',                         type:'enum',   getValue: r => r.estado },
-  { id: '_act',      label: '',               sys: true },
+  { id: 'm2',        label: 'Sup. disponible (m²)',          type:'number', getValue: r => r.m2 },
+  { id: 'renta',     label: 'Renta ofertada',                type:'text',   getValue: r => r.renta },
+  { id: 'gastos',    label: 'Gastos (€/m²/mes)',             type:'number', getValue: r => r.gastos },
+  { id: 'ibi',       label: 'IBI (€/m²/mes)',                type:'number', getValue: r => r.ibi },
+  { id: 'tipo',      label: 'Tipo',                          type:'enum',   getValue: r => r.tipo },
+  { id: 'origen',    label: 'Origen',                        type:'enum',   getValue: r => r.origen },
+  { id: 'estado',    label: 'Estado',                        type:'enum',   getValue: r => r.estado },
+  { id: '_act',      label: '',                             sys: true },
 ]
 
 export default function OfertasList() {
@@ -47,7 +48,7 @@ export default function OfertasList() {
   useEffect(() => {
     Promise.all([
       supabase.from('ofertas').select('*').order('created_at', { ascending: false }),
-      supabase.from('activos').select('ref, nombre'),
+      supabase.from('activos').select('ref, nombre, direccion'),
     ]).then(([{ data: ofertasData, error }, { data: activosData }]) => {
       if (!error && ofertasData) {
         const activosMap = Object.fromEntries((activosData || []).map(a => [a.ref, a]))
@@ -55,10 +56,12 @@ export default function OfertasList() {
           id:         o.id,
           ref:        o.ref || o.id,
           activo:     activosMap[o.activo_ref]?.nombre || o.activo_ref || '—',
+          activo_dir: activosMap[o.activo_ref]?.direccion || '',
           activo_ref: o.activo_ref || '',
-          espacio:    o.espacio || '—',
           m2:         o.superficie_disponible || 0,
           renta:      o.renta_m2 ? `${o.renta_m2} €/m²/mes` : '—',
+          gastos:     o.gastos_medios ?? null,
+          ibi:        o.ibi_medio ?? null,
           tipo:       o.tipo_operacion || '—',
           origen:     o.origen_oferta  || '—',
           estado:     o.estado         || '—',
@@ -88,7 +91,7 @@ export default function OfertasList() {
   const advCount = Object.values(af).filter(Boolean).length
   const preFiltered = ofertas.filter(o => {
     const q = query.toLowerCase()
-    if (q && !(o.activo||'').toLowerCase().includes(q) && !(o.ref||'').toLowerCase().includes(q) && !(o.espacio||'').toLowerCase().includes(q)) return false
+    if (q && !(o.activo||'').toLowerCase().includes(q) && !(o.ref||'').toLowerCase().includes(q) && !(o.activo_dir||'').toLowerCase().includes(q)) return false
     if (af.tipo      && o.tipo !== af.tipo) return false
     if (af.estado    && o.estado !== af.estado) return false
     if (af.m2Min     && o.m2 < parseInt(af.m2Min)) return false
@@ -102,10 +105,11 @@ export default function OfertasList() {
   const cell = (o) => ({
     _chk:    <td key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} onClick={e => e.stopPropagation()} /></td>,
     ref:     <td key="ref"><span className="asset-link" style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>{o.ref}</span></td>,
-    activo:  <td key="activo"><div className="asset-link">{o.activo}</div><div className="asset-sub">{o.activo_ref || ''}</div></td>,
-    espacio: <td key="espacio" style={{ fontSize: 11, color: o.espacio === '—' ? 'var(--text4)' : 'var(--text2)', fontStyle: o.espacio === '—' ? 'italic' : 'normal' }}>{o.espacio}</td>,
+    activo:  <td key="activo"><div className="asset-link">{o.activo}</div>{o.activo_dir && <div className="asset-sub" style={{ fontSize:10 }}>{o.activo_dir}</div>}</td>,
     m2:      <td key="m2" className="mono">{o.m2 > 0 ? o.m2.toLocaleString('es-ES') + ' m²' : <span style={{ color:'var(--text4)' }}>—</span>}</td>,
     renta:   <td key="renta" className="mono">{o.renta}</td>,
+    gastos:  <td key="gastos" className="mono">{o.gastos != null ? `${Number(o.gastos).toFixed(2)} €` : <span style={{ color:'var(--text4)' }}>—</span>}</td>,
+    ibi:     <td key="ibi" className="mono">{o.ibi != null ? `${Number(o.ibi).toFixed(2)} €` : <span style={{ color:'var(--text4)' }}>—</span>}</td>,
     tipo:    <td key="tipo">{o.tipo !== '—' ? <span className="tag tag-blue">{o.tipo}</span> : <span style={{ color:'var(--text4)' }}>—</span>}</td>,
     origen:  <td key="origen" style={{ fontSize: 11, color: 'var(--text3)' }}>{o.origen}</td>,
     estado:  <td key="estado"><span className={`tag ${estadoTag[o.estado] || 'tag-gray'}`}>{o.estado}</span></td>,
