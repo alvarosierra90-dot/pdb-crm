@@ -208,27 +208,15 @@ export default function FichaOferta() {
       .then(({ data }) => { if (data) setActivosDB(data) })
   }, [])
 
-  // ── When returning from FichaArrendatario, sync tenant into stacking ──
+  // ── When returning from FichaArrendatario, add tenant to left panel ──
   useEffect(() => {
     if (!params?.newTenantName) return
     const name = params.newTenantName
     setStackingExtraTenants(prev => prev.includes(name) ? prev : [...prev, name])
-    // Update local activoSeleccionado so StackingPlan remounts with the tenant already on the floor
-    if (params?.newTenantFloor && activoSeleccionado?.stacking_data?.length > 0) {
-      setActivoSeleccionado(prev => {
-        if (!prev) return prev
-        const updated = prev.stacking_data.map(b => ({
-          ...b,
-          arr: (b.arr||[]).map(r => {
-            if (r.p !== params.newTenantFloor) return r
-            // Avoid duplicate
-            if (r.units.some(u => u.n === name)) return r
-            const sup = r.units.find(u => u.type === 'vac')?.sup || r.sup
-            return { ...r, units: [...r.units.filter(u => !(u.type==='vac' && u.oferta==null)), { type:'ten', n:name, sup }] }
-          })
-        }))
-        return { ...prev, stacking_data: updated }
-      })
+    // Stacking DB is already updated by FichaArrendatario — reload activo so StackingPlan remounts correctly
+    if (params?.newActivoRef) {
+      supabase.from('activos').select('*').eq('ref', params.newActivoRef).single()
+        .then(({ data }) => { if (data) setActivoSeleccionado(data) })
     }
   }, [params?.newTenantName])
 
@@ -775,17 +763,17 @@ export default function FichaOferta() {
                         fromActivoRef: activoSeleccionado?.ref,
                         fromActivoNombre: activoSeleccionado?.nombre || '',
                       })}
-                      onConvertToTenant={(unit, floorId, idx) => {
-                        // Remove the offer unit from live buildings
+                      onConvertToTenant={async (unit, floorId, idx) => {
+                        // Remove the offer unit — guaranteed save before navigating
                         const updatedBlds = liveBuildings.current.map(b => ({
                           ...b,
                           arr: (b.arr||[]).map(r => r.p !== floorId ? r : { ...r, units: r.units.filter((_,i) => i !== idx) })
                         }))
                         liveBuildings.current = updatedBlds
                         setEspaciosComercializables(prev => prev.filter(e => !(e.planta === floorId && e.ofertaNombre === unit.oferta)))
-                        // Persist the stacking without the offer unit — so FichaArrendatario can append the tenant
                         if (activoSeleccionado?.ref) {
-                          supabase.from('activos').update({ stacking_data: updatedBlds }).eq('ref', activoSeleccionado.ref)
+                          // AWAIT — ensures FichaArrendatario reads stacking without the offer unit
+                          await supabase.from('activos').update({ stacking_data: updatedBlds }).eq('ref', activoSeleccionado.ref)
                           setActivoSeleccionado(prev => prev ? { ...prev, stacking_data: updatedBlds } : prev)
                         }
                         navigate('ficha-arrendatario', {

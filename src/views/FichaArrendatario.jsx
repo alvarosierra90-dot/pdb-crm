@@ -344,6 +344,7 @@ export default function FichaArrendatario() {
       if (error) { setSaveErr(error.message); return }
 
       // Auto-assign tenant to the floor in the activo's stacking_data
+      // (read fresh from DB — FichaOferta already removed the offer unit before navigating here)
       if (params?.fromActivoRef && params?.fromFloorId) {
         const sup = parseFloat(params?.prefilledSup) || 0
         const { data: acData } = await supabase.from('activos').select('stacking_data').eq('ref', params.fromActivoRef).single()
@@ -352,7 +353,9 @@ export default function FichaArrendatario() {
             ...b,
             arr: (b.arr||[]).map(r => {
               if (r.p !== params.fromFloorId) return r
-              return { ...r, units: [...r.units, { type:'ten', n:tenantName, sup, brk:null, brkColor: form.color || '#3b82f6' }] }
+              // Remove any remaining offer units on this floor, then add the tenant
+              const withoutOffers = r.units.filter(u => !(u.type === 'vac' && u.oferta))
+              return { ...r, units: [...withoutOffers, { type:'ten', n:tenantName, sup, brk:null, brkColor: form.color || '#3b82f6' }] }
             })
           }))
           await supabase.from('activos').update({ stacking_data: updatedStacking }).eq('ref', params.fromActivoRef)
@@ -366,6 +369,7 @@ export default function FichaArrendatario() {
             ofertaRef: params.fromOfertaRef,
             newTenantName: tenantName,
             newTenantFloor: params?.fromFloorId || null,
+            newActivoRef: params?.fromActivoRef || null,
           })
         } else {
           navigate('arrendatarios')
