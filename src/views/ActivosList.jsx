@@ -43,7 +43,7 @@ export default function ActivosList() {
   const { navigate, params } = useNav()
   const highlightRef = params?.highlightRef || null
   const [query,   setQuery]   = useState('')
-  const [activos, setActivos] = useState(ACTIVOS)
+  const [activos, setActivos] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ uso: '', estado: '', ciudad: '', zona: '', sbaMin: '', sbaMax: '', occMin: '', occMax: '' })
@@ -51,7 +51,7 @@ export default function ActivosList() {
 
   useEffect(() => {
     supabase.from('activos').select('*').order('nombre').then(({ data, error }) => {
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         const mapped = data.map(a => ({
           ref:    a.ref,
           name:   a.nombre,
@@ -165,7 +165,10 @@ export default function ActivosList() {
               </tr>
             </thead>
             <tbody>
-              {result.map(a => <tr key={a.ref} onClick={() => navigate('ficha-activo', { ref: a.ref })} style={a.ref === highlightRef ? {background:'var(--accent-lt)',outline:'1px solid var(--accent-bd)'} : undefined}>{visibleCols.map(c => cell(a)[c.id])}</tr>)}
+              {result.length === 0
+                ? <tr><td colSpan={visibleCols.length} style={{ textAlign:'center', padding:'40px 0', color:'var(--text4)', fontSize:13 }}>Sin activos. Crea el primero con "+ Nuevo".</td></tr>
+                : result.map(a => <tr key={a.ref} onClick={() => navigate('ficha-activo', { ref: a.ref })} style={a.ref === highlightRef ? {background:'var(--accent-lt)',outline:'1px solid var(--accent-bd)'} : undefined}>{visibleCols.map(c => cell(a)[c.id])}</tr>)
+              }
             </tbody>
           </table>
         )}
