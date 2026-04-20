@@ -208,10 +208,27 @@ export default function FichaOferta() {
       .then(({ data }) => { if (data) setActivosDB(data) })
   }, [])
 
-  // ── When returning from FichaArrendatario, add the new tenant to the stacking panel ──
+  // ── When returning from FichaArrendatario, sync tenant into stacking ──
   useEffect(() => {
-    if (params?.newTenantName) {
-      setStackingExtraTenants(prev => prev.includes(params.newTenantName) ? prev : [...prev, params.newTenantName])
+    if (!params?.newTenantName) return
+    const name = params.newTenantName
+    setStackingExtraTenants(prev => prev.includes(name) ? prev : [...prev, name])
+    // Update local activoSeleccionado so StackingPlan remounts with the tenant already on the floor
+    if (params?.newTenantFloor && activoSeleccionado?.stacking_data?.length > 0) {
+      setActivoSeleccionado(prev => {
+        if (!prev) return prev
+        const updated = prev.stacking_data.map(b => ({
+          ...b,
+          arr: (b.arr||[]).map(r => {
+            if (r.p !== params.newTenantFloor) return r
+            // Avoid duplicate
+            if (r.units.some(u => u.n === name)) return r
+            const sup = r.units.find(u => u.type === 'vac')?.sup || r.sup
+            return { ...r, units: [...r.units.filter(u => !(u.type==='vac' && u.oferta==null)), { type:'ten', n:name, sup }] }
+          })
+        }))
+        return { ...prev, stacking_data: updated }
+      })
     }
   }, [params?.newTenantName])
 
@@ -759,21 +776,26 @@ export default function FichaOferta() {
                         fromActivoNombre: activoSeleccionado?.nombre || '',
                       })}
                       onConvertToTenant={(unit, floorId, idx) => {
-                        // Remove the unit from the live buildings
-                        liveBuildings.current = liveBuildings.current.map(b => ({
+                        // Remove the offer unit from live buildings
+                        const updatedBlds = liveBuildings.current.map(b => ({
                           ...b,
                           arr: (b.arr||[]).map(r => r.p !== floorId ? r : { ...r, units: r.units.filter((_,i) => i !== idx) })
                         }))
+                        liveBuildings.current = updatedBlds
                         setEspaciosComercializables(prev => prev.filter(e => !(e.planta === floorId && e.ofertaNombre === unit.oferta)))
-                        // Navigate to full tenant creation form
+                        // Persist the stacking without the offer unit — so FichaArrendatario can append the tenant
+                        if (activoSeleccionado?.ref) {
+                          supabase.from('activos').update({ stacking_data: updatedBlds }).eq('ref', activoSeleccionado.ref)
+                          setActivoSeleccionado(prev => prev ? { ...prev, stacking_data: updatedBlds } : prev)
+                        }
                         navigate('ficha-arrendatario', {
-                          fromOfertaRef:  oferta?.ref,
-                          fromActivoRef:  activoSeleccionado?.ref,
+                          fromOfertaRef:    oferta?.ref,
+                          fromActivoRef:    activoSeleccionado?.ref,
                           fromActivoNombre: activoSeleccionado?.nombre || '',
-                          prefilledTenant: unit.oferta || '',
-                          prefilledSup:    String(unit.sup || ''),
-                          prefilledRenta:  String(unit.renta || ''),
-                          fromFloorId:     floorId,
+                          prefilledTenant:  unit.oferta || '',
+                          prefilledSup:     String(unit.sup || ''),
+                          prefilledRenta:   String(unit.renta || ''),
+                          fromFloorId:      floorId,
                         })
                       }}
                       onBuildingsChange={(blds) => {

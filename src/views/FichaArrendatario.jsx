@@ -3,6 +3,23 @@ import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { supabase } from '../lib/supabase'
 
+// DD/MM/YYYY → YYYY-MM-DD (for DB date columns)
+function parseDate(ddmmyyyy) {
+  if (!ddmmyyyy || ddmmyyyy.length < 8) return null
+  const parts = ddmmyyyy.trim().split('/')
+  if (parts.length !== 3) return null
+  const [d, m, y] = parts.map(Number)
+  if (!d || !m || !y || y < 1900) return null
+  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+}
+// YYYY-MM-DD → DD/MM/YYYY (from DB back to form)
+function formatDate(iso) {
+  if (!iso || iso.length < 8) return ''
+  const [y, m, d] = iso.split('-')
+  if (!y || !m || !d) return ''
+  return `${d}/${m}/${y}`
+}
+
 function addYearsToDate(ddmmyyyy, years) {
   if (!ddmmyyyy || !years || isNaN(parseFloat(years))) return ''
   const parts = ddmmyyyy.trim().split('/')
@@ -212,20 +229,20 @@ export default function FichaArrendatario() {
   // ── Load from DB when opened by tenant name click ─────────────
   useEffect(() => {
     if (!params?.tenantName || params?.fromOfertaRef) return
-    supabase.from('arrendatarios').select('*').eq('tenant', params.tenantName).limit(1).then(({ data }) => {
+    supabase.from('arrendatarios').select('*').eq('nombre', params.tenantName).limit(1).then(({ data }) => {
       if (!data?.[0]) return
       const r = data[0]
       setForm(prev => ({
         ...prev,
-        activo:          r.activo_ref        || prev.activo,
-        tenant:          r.tenant            || prev.tenant,
+        activo:          r.edificio || r.activo_ref || prev.activo,
+        tenant:          r.tenant || r.nombre || prev.tenant,
         persona_fisica:  r.persona_fisica    ?? prev.persona_fisica,
         tenant_desconocido: r.tenant_desconocido ?? prev.tenant_desconocido,
         anyo_firma:      r.anyo_firma != null ? String(r.anyo_firma) : prev.anyo_firma,
         trimestre:       r.trimestre         || prev.trimestre,
         superficie:      r.superficie != null ? String(r.superficie) : prev.superficie,
         asking_rent:     r.asking_rent != null ? String(r.asking_rent) : prev.asking_rent,
-        closing_rent:    r.closing_rent != null ? String(r.closing_rent) : prev.closing_rent,
+        closing_rent:    r.closing_rent != null ? String(r.closing_rent) : (r.renta != null ? String(r.renta) : prev.closing_rent),
         meses_carencia:  r.meses_carencia != null ? String(r.meses_carencia) : prev.meses_carencia,
         plazas_int:      r.plazas_int != null ? String(r.plazas_int) : prev.plazas_int,
         precio_int:      r.precio_int != null ? String(r.precio_int) : prev.precio_int,
@@ -236,12 +253,13 @@ export default function FichaArrendatario() {
         aportacion_obras_m2: r.aportacion_obras_m2 != null ? String(r.aportacion_obras_m2) : prev.aportacion_obras_m2,
         tipo_contrato:   r.tipo_contrato     || prev.tipo_contrato,
         anios_obligado:  r.anios_obligado != null ? String(r.anios_obligado) : prev.anios_obligado,
-        fecha_inicio:    r.fecha_inicio      || prev.fecha_inicio,
-        break_option:    r.break_option      || prev.break_option,
-        fecha_fin:       r.fecha_fin         || prev.fecha_fin,
+        anios_obligado_2: r.anios_obligado_2 != null ? String(r.anios_obligado_2) : prev.anios_obligado_2,
+        fecha_inicio:    r.inicio ? formatDate(r.inicio) : prev.fecha_inicio,
+        break_option:    r.break_option ? formatDate(r.break_option) : prev.break_option,
+        fecha_fin:       r.vencimiento ? formatDate(r.vencimiento) : prev.fecha_fin,
         meses_recordatorio: r.meses_recordatorio != null ? String(r.meses_recordatorio) : prev.meses_recordatorio,
         color:           r.color             || prev.color,
-        estado:          r.estado            || prev.estado,
+        estado:          r.estado_arr || r.estado || prev.estado,
         sector:          r.sector            || prev.sector,
       }))
     })
@@ -255,51 +273,87 @@ export default function FichaArrendatario() {
     setValidationErrors([])
     setSaving(true); setSaveErr('')
     try {
-      const ref = 'ARR-' + Date.now()
-      const row = {
-        ref,
-        activo_ref:       params?.fromActivoRef || null,
-        tenant:           form.tenant_desconocido ? 'Desconocido' : form.tenant.trim(),
-        tenant_desconocido: form.tenant_desconocido,
-        persona_fisica:   form.persona_fisica,
-        anyo_firma:       parseInt(form.anyo_firma) || null,
-        trimestre:        form.trimestre,
-        superficie:       parseFloat(form.superficie) || null,
-        asking_rent:      parseFloat(form.asking_rent) || null,
-        closing_rent:     parseFloat(form.closing_rent) || null,
-        meses_carencia:   parseInt(form.meses_carencia) || null,
-        plazas_int:       parseInt(form.plazas_int) || 0,
-        precio_int:       parseFloat(form.precio_int) || 0,
-        plazas_ext:       parseInt(form.plazas_ext) || 0,
-        precio_ext:       parseFloat(form.precio_ext) || 0,
-        agente_activo:    form.agente_activo || null,
-        agente_pasivo:    form.agente_pasivo || null,
-        aportacion_obras_m2: parseFloat(form.aportacion_obras_m2) || null,
-        tipo_contrato:    form.tipo_contrato,
-        anios_obligado:   parseFloat(form.anios_obligado) || null,
-        fecha_inicio:     form.fecha_inicio || null,
-        break_option:     form.break_option || null,
-        fecha_fin:        form.fecha_fin || null,
-        meses_recordatorio: parseInt(form.meses_recordatorio) || 3,
-        color:            form.color,
-        estado:           form.estado,
-        sector:           form.sector,
-        oferta_origen:    params?.fromOfertaRef || null,
+      const tenantName = form.tenant_desconocido ? 'Desconocido' : form.tenant.trim()
+
+      // Base row — columns guaranteed to exist (001 + 006)
+      const baseRow = {
+        nombre:      tenantName,
+        uso:         form.sector || null,
+        superficie:  parseFloat(form.superficie) || null,
+        renta:       parseFloat(form.closing_rent) || null,
+        break_option: parseDate(form.break_option),
+        vencimiento:  parseDate(form.fecha_fin),
+        inicio:       parseDate(form.fecha_inicio),
+        planta:       params?.fromFloorId || null,
+        edificio:     params?.fromActivoNombre || null,
+        estado_arr:   form.estado || 'Vigente',
       }
-      const { error } = await supabase.from('arrendatarios').insert(row)
+
+      // Extended row — needs migration 007
+      const extRow = {
+        ...baseRow,
+        ref:                  'ARR-' + Date.now(),
+        activo_ref:           params?.fromActivoRef || null,
+        tenant:               tenantName,
+        tenant_desconocido:   form.tenant_desconocido,
+        persona_fisica:       form.persona_fisica,
+        anyo_firma:           parseInt(form.anyo_firma) || null,
+        trimestre:            form.trimestre,
+        asking_rent:          parseFloat(form.asking_rent) || null,
+        closing_rent:         parseFloat(form.closing_rent) || null,
+        meses_carencia:       parseInt(form.meses_carencia) || null,
+        plazas_int:           parseInt(form.plazas_int) || 0,
+        precio_int:           parseFloat(form.precio_int) || 0,
+        plazas_ext:           parseInt(form.plazas_ext) || 0,
+        precio_ext:           parseFloat(form.precio_ext) || 0,
+        agente_activo:        form.agente_activo || null,
+        agente_pasivo:        form.agente_pasivo || null,
+        aportacion_obras_m2:  parseFloat(form.aportacion_obras_m2) || null,
+        tipo_contrato:        form.tipo_contrato,
+        anios_obligado:       parseFloat(form.anios_obligado) || null,
+        anios_obligado_2:     parseFloat(form.anios_obligado_2) || null,
+        meses_recordatorio:   parseInt(form.meses_recordatorio) || 3,
+        color:                form.color,
+        sector:               form.sector,
+        oferta_origen:        params?.fromOfertaRef || null,
+      }
+
+      let { error } = await supabase.from('arrendatarios').insert(extRow)
+      if (error && (error.message?.includes('column') || error.code === '42703')) {
+        // Migration 007 not yet applied — fall back to base columns
+        const res = await supabase.from('arrendatarios').insert(baseRow)
+        error = res.error
+      }
       if (error) { setSaveErr(error.message); return }
+
+      // Auto-assign tenant to the floor in the activo's stacking_data
+      if (params?.fromActivoRef && params?.fromFloorId) {
+        const sup = parseFloat(params?.prefilledSup) || 0
+        const { data: acData } = await supabase.from('activos').select('stacking_data').eq('ref', params.fromActivoRef).single()
+        if (acData?.stacking_data) {
+          const updatedStacking = acData.stacking_data.map(b => ({
+            ...b,
+            arr: (b.arr||[]).map(r => {
+              if (r.p !== params.fromFloorId) return r
+              return { ...r, units: [...r.units, { type:'ten', n:tenantName, sup, brk:null, brkColor: form.color || '#3b82f6' }] }
+            })
+          }))
+          await supabase.from('activos').update({ stacking_data: updatedStacking }).eq('ref', params.fromActivoRef)
+        }
+      }
+
       setSaveOk(true)
       setTimeout(() => {
-        // Return to offer with the tenant name so it appears in the stacking panel
         if (params?.fromOfertaRef) {
           navigate('ficha-oferta', {
             ofertaRef: params.fromOfertaRef,
-            newTenantName: form.tenant_desconocido ? 'Desconocido' : form.tenant.trim(),
+            newTenantName: tenantName,
+            newTenantFloor: params?.fromFloorId || null,
           })
         } else {
           navigate('arrendatarios')
         }
-      }, 1200)
+      }, 1000)
     } catch(e) {
       setSaveErr(e.message || 'Error inesperado')
     } finally {
