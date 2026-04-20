@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo, useCallback } from 'react'
 
 export const USOS_PPAL = [
   {id:'oficinas',    label:'Oficinas',    cls:'u-of',  color:'#3b82f6', bg:'#dbeafe', bd:'#93c5fd'},
@@ -133,10 +133,72 @@ export const INIT_BUILDINGS = [
   },
 ]
 
+// ── Formulario inicial (buildings vacío) ── memo para evitar pérdida de foco
+const SetupForm = memo(function SetupForm({ form, onChange, onCreate }) {
+  return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'48px 24px',gap:20}}>
+      <div style={{fontSize:32}}>🏗</div>
+      <div style={{fontSize:14,fontWeight:600,color:'var(--text1)'}}>Configura el stacking plan</div>
+      <div style={{fontSize:12,color:'var(--text3)',marginTop:-10,textAlign:'center'}}>Define la estructura del edificio para empezar a asignar plantas y usos</div>
+      <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10,padding:24,width:'100%',maxWidth:440,display:'flex',flexDirection:'column',gap:14}}>
+        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+          <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Nombre del edificio</span>
+          <input style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}} placeholder="Edificio A" value={form.label} onChange={e=>onChange('label',e.target.value)}/>
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+          <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Uso principal (predeterminado en todas las plantas)</span>
+          <select value={form.uso} onChange={e=>onChange('uso',e.target.value)} style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}}>
+            <option value="">Sin asignar (arrastra después)</option>
+            {USOS_PPAL.map(u=><option key={u.id} value={u.id}>{u.label}</option>)}
+          </select>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+            <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Plantas SR</span>
+            <input type="number" min="1" max="100" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}} value={form.sobre} onChange={e=>onChange('sobre',e.target.value)}/>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+            <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Sótanos BR</span>
+            <input type="number" min="0" max="20" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}} value={form.bajo} onChange={e=>onChange('bajo',e.target.value)}/>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+            <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Sup. tipo (m²)</span>
+            <input type="number" min="100" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}} value={form.sup} onChange={e=>onChange('sup',e.target.value)}/>
+          </div>
+        </div>
+        <button onClick={onCreate} style={{marginTop:4,padding:'9px 0',background:'var(--accent)',color:'#fff',border:'none',borderRadius:7,fontSize:12,fontWeight:600,fontFamily:'inherit',cursor:'pointer'}}>Crear estructura</button>
+      </div>
+    </div>
+  )
+})
+
+// ── Formulario añadir edificio (en tabs) ── memo para evitar pérdida de foco
+const NewBldgForm = memo(function NewBldgForm({ form, onChange, onCreate, onCancel }) {
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'6px 6px 0 0',flexWrap:'wrap'}}>
+      <input placeholder="Nombre edificio" value={form.label} onChange={e=>onChange('label',e.target.value)}
+        style={{width:120,padding:'3px 6px',fontSize:11,border:'1px solid var(--accent-bd)',borderRadius:4,fontFamily:'inherit'}}/>
+      <select value={form.uso} onChange={e=>onChange('uso',e.target.value)}
+        style={{width:110,padding:'3px 6px',fontSize:11,border:'1px solid var(--accent-bd)',borderRadius:4,fontFamily:'inherit',background:'#fff'}}>
+        <option value="">Sin uso</option>
+        {USOS_PPAL.map(u=><option key={u.id} value={u.id}>{u.label}</option>)}
+      </select>
+      <input placeholder="m² planta tipo" type="number" value={form.sup} onChange={e=>onChange('sup',e.target.value)}
+        style={{width:90,padding:'3px 6px',fontSize:11,border:'1px solid var(--accent-bd)',borderRadius:4,fontFamily:'inherit'}}/>
+      <input placeholder="Plantas SR" type="number" value={form.sobre} onChange={e=>onChange('sobre',e.target.value)}
+        style={{width:76,padding:'3px 6px',fontSize:11,border:'1px solid var(--accent-bd)',borderRadius:4,fontFamily:'inherit'}}/>
+      <input placeholder="Sótanos BR" type="number" value={form.bajo} onChange={e=>onChange('bajo',e.target.value)}
+        style={{width:76,padding:'3px 6px',fontSize:11,border:'1px solid var(--accent-bd)',borderRadius:4,fontFamily:'inherit'}}/>
+      <button onClick={onCreate} style={{padding:'4px 10px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:4,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Crear</button>
+      <button onClick={onCancel} style={{padding:'4px 8px',background:'none',border:'none',cursor:'pointer',fontSize:12,color:'var(--text3)',fontFamily:'inherit'}}>✕</button>
+    </div>
+  )
+})
+
 export default function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal' }) {
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
-  const [setupForm, setSetupForm]       = useState({ label:'', sobre:'5', bajo:'1', sup:'1500' })
+  const [setupForm, setSetupForm]       = useState({ label:'', sobre:'5', bajo:'1', sup:'1500', uso:'' })
   const [view, setView]                 = useState(initView)
   const [dragging, setDragging]         = useState(null)
   const [dragTarget, setDragTarget]     = useState(null)
@@ -144,7 +206,10 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
   const [editSup, setEditSup]           = useState('')
   const [selectedFloors, setSelectedFloors] = useState([])
   const [showCreate, setShowCreate]     = useState(false)
-  const [newBldg, setNewBldg]           = useState({label:'',sup:'',sobre:'',bajo:''})
+  const [newBldg, setNewBldg]           = useState({label:'',sup:'',sobre:'',bajo:'',uso:''})
+
+  const handleSetupChange   = useCallback((k,v) => setSetupForm(p=>({...p,[k]:v})), [])
+  const handleNewBldgChange = useCallback((k,v) => setNewBldg(p=>({...p,[k]:v})), [])
   const [splitModal, setSplitModal]     = useState(null)
   const [splitSup, setSplitSup]         = useState('')
   const [ppOpen, setPpOpen]             = useState(true)
@@ -254,21 +319,33 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
   }
 
   const bulkAssign = (usoId) => {
-    selectedFloors.forEach(fId=>assignPrincipal(fId,usoId))
+    // Aplicar a todas las plantas seleccionadas en una sola actualización
+    setBuildings(prev => prev.map(b => {
+      if(b.id !== edifId) return b
+      const newFloors = b.floors.map(f => {
+        if(!selectedFloors.includes(f.id)) return f
+        const avail = f.sup - f.principal.reduce((s,u)=>s+u.sup,0)
+        if(avail <= 0) return f
+        return {...f, principal:[...f.principal,{uso:usoId,sup:avail}]}
+      })
+      return {...b, floors:newFloors}
+    }))
     setSelectedFloors([])
   }
 
   const createBuilding = () => {
     const sobre=parseInt(newBldg.sobre)||0, bajo=parseInt(newBldg.bajo)||0
     const sup=parseFloat(newBldg.sup)||1500
+    const uso=newBldg.uso
+    const mkFloor = (id) => ({id,sup,principal:uso?[{uso,sup}]:[],adicional:[]})
     const floors=[]
-    for(let i=sobre;i>=1;i--) floors.push({id:`P${i}`,sup,principal:[],adicional:[]})
-    floors.push({id:'PB',sup,principal:[],adicional:[]})
-    for(let i=1;i<=bajo;i++) floors.push({id:`S${i}`,sup,principal:[],adicional:[]})
+    for(let i=sobre;i>=1;i--) floors.push(mkFloor(`P${i}`))
+    floors.push(mkFloor('PB'))
+    for(let i=1;i<=bajo;i++) floors.push(mkFloor(`S${i}`))
     const newId=String.fromCharCode(65+buildings.length)
     setBuildings(prev=>[...prev,{id:newId,label:newBldg.label||`Edif. ${newId}`,supPlantaTipo:sup,floors,prop:[],arr:[]}])
     setEdifId(newId); setShowCreate(false); setView('principal')
-    setNewBldg({label:'',sup:'',sobre:'',bajo:''})
+    setNewBldg({label:'',sup:'',sobre:'',bajo:'',uso:''})
   }
 
   const onDragOver  = (e,fId)=>{e.preventDefault();setDragTarget(fId)}
@@ -298,47 +375,27 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
     background:'var(--surface)',color:view===k?'var(--accent)':'var(--text3)',fontFamily:'inherit',
   })
 
-  const createFirstBuilding = () => {
-    const label = setupForm.label.trim() || 'Edificio A'
-    const sobre = Math.max(1, parseInt(setupForm.sobre) || 1)
-    const bajo  = Math.max(0, parseInt(setupForm.bajo)  || 0)
-    const sup   = Math.max(100, parseFloat(setupForm.sup) || 1000)
-    const floors = []
-    for (let i = sobre; i >= 1; i--) floors.push({ id: `P${i}`, sup, principal: [], adicional: [] })
-    floors.push({ id: 'PB', sup, principal: [], adicional: [] })
-    for (let i = 1; i <= bajo; i++) floors.push({ id: `S${i}`, sup, principal: [], adicional: [] })
-    const id = 'A'
-    setBuildings([{ id, label, supPlantaTipo: sup, floors, prop: floors.map(f=>({p:f.id,sup,units:[]})), arr: floors.map(f=>({p:f.id,sup,units:[]})) }])
-    setEdifId(id)
-  }
+  const createFirstBuilding = useCallback(() => {
+    setSetupForm(form => {
+      const label = form.label.trim() || 'Edificio A'
+      const sobre = Math.max(1, parseInt(form.sobre) || 1)
+      const bajo  = Math.max(0, parseInt(form.bajo)  || 0)
+      const sup   = Math.max(100, parseFloat(form.sup) || 1000)
+      const uso   = form.uso
+      const mkFloor = (id) => ({id, sup, principal: uso ? [{uso, sup}] : [], adicional: []})
+      const floors = []
+      for (let i = sobre; i >= 1; i--) floors.push(mkFloor(`P${i}`))
+      floors.push(mkFloor('PB'))
+      for (let i = 1; i <= bajo; i++) floors.push(mkFloor(`S${i}`))
+      const id = 'A'
+      setBuildings([{ id, label, supPlantaTipo: sup, floors, prop: floors.map(f=>({p:f.id,sup,units:[]})), arr: floors.map(f=>({p:f.id,sup,units:[]})) }])
+      setEdifId(id)
+      return form
+    })
+  }, [])
 
   if (buildings.length === 0) return (
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'48px 24px',gap:20}}>
-      <div style={{fontSize:32}}>🏗</div>
-      <div style={{fontSize:14,fontWeight:600,color:'var(--text1)'}}>Configura el stacking plan</div>
-      <div style={{fontSize:12,color:'var(--text3)',marginTop:-10,textAlign:'center'}}>Define la estructura del edificio para empezar a asignar plantas y usos</div>
-      <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10,padding:24,width:'100%',maxWidth:420,display:'flex',flexDirection:'column',gap:14}}>
-        <div style={{display:'flex',flexDirection:'column',gap:4}}>
-          <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Nombre del edificio</span>
-          <input style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}} placeholder="Edificio A" value={setupForm.label} onChange={e=>setSetupForm(p=>({...p,label:e.target.value}))}/>
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
-          <div style={{display:'flex',flexDirection:'column',gap:4}}>
-            <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Plantas SR</span>
-            <input type="number" min="1" max="100" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}} value={setupForm.sobre} onChange={e=>setSetupForm(p=>({...p,sobre:e.target.value}))}/>
-          </div>
-          <div style={{display:'flex',flexDirection:'column',gap:4}}>
-            <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Sótanos BR</span>
-            <input type="number" min="0" max="20" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}} value={setupForm.bajo} onChange={e=>setSetupForm(p=>({...p,bajo:e.target.value}))}/>
-          </div>
-          <div style={{display:'flex',flexDirection:'column',gap:4}}>
-            <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Sup. tipo (m²)</span>
-            <input type="number" min="100" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}} value={setupForm.sup} onChange={e=>setSetupForm(p=>({...p,sup:e.target.value}))}/>
-          </div>
-        </div>
-        <button onClick={createFirstBuilding} style={{marginTop:4,padding:'9px 0',background:'var(--accent)',color:'#fff',border:'none',borderRadius:7,fontSize:12,fontWeight:600,fontFamily:'inherit',cursor:'pointer'}}>Crear estructura</button>
-      </div>
-    </div>
+    <SetupForm form={setupForm} onChange={handleSetupChange} onCreate={createFirstBuilding} />
   )
 
   return (
@@ -349,18 +406,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
           <button key={b.id} onClick={()=>{setEdifId(b.id);setSelectedFloors([])}} style={fTab(b.id)}>{b.label}</button>
         ))}
         {showCreate ? (
-          <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'6px 6px 0 0',flexWrap:'wrap'}}>
-            <input placeholder="Nombre" value={newBldg.label} onChange={e=>setNewBldg(p=>({...p,label:e.target.value}))}
-              style={{width:110,padding:'3px 6px',fontSize:11,border:'1px solid var(--accent-bd)',borderRadius:4,fontFamily:'inherit'}}/>
-            <input placeholder="m² planta tipo" type="number" value={newBldg.sup} onChange={e=>setNewBldg(p=>({...p,sup:e.target.value}))}
-              style={{width:90,padding:'3px 6px',fontSize:11,border:'1px solid var(--accent-bd)',borderRadius:4,fontFamily:'inherit'}}/>
-            <input placeholder="P. sobre rasante" type="number" value={newBldg.sobre} onChange={e=>setNewBldg(p=>({...p,sobre:e.target.value}))}
-              style={{width:80,padding:'3px 6px',fontSize:11,border:'1px solid var(--accent-bd)',borderRadius:4,fontFamily:'inherit'}}/>
-            <input placeholder="P. bajo rasante" type="number" value={newBldg.bajo} onChange={e=>setNewBldg(p=>({...p,bajo:e.target.value}))}
-              style={{width:78,padding:'3px 6px',fontSize:11,border:'1px solid var(--accent-bd)',borderRadius:4,fontFamily:'inherit'}}/>
-            <button onClick={createBuilding} style={{padding:'4px 10px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:4,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Crear</button>
-            <button onClick={()=>setShowCreate(false)} style={{padding:'4px 8px',background:'none',border:'none',cursor:'pointer',fontSize:12,color:'var(--text3)',fontFamily:'inherit'}}>✕</button>
-          </div>
+          <NewBldgForm form={newBldg} onChange={handleNewBldgChange} onCreate={createBuilding} onCancel={()=>setShowCreate(false)} />
         ) : (
           <button onClick={()=>setShowCreate(true)} style={{padding:'5px 14px',borderRadius:'6px 6px 0 0',fontSize:11,cursor:'pointer',border:'1px dashed var(--accent-bd)',borderBottom:'1px solid transparent',background:'var(--accent-lt)',color:'var(--accent)',fontFamily:'inherit'}}>+ Añadir edificio</button>
         )}
@@ -470,11 +516,30 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                     e.preventDefault(); setDragTarget(null)
                     if(!dragging) return
                     const isUA = !!UA_ALL.find(u=>u.id===dragging)
-                    const used2=floor.principal.reduce((s,u)=>s+u.sup,0)
-                    const avail2=floor.sup-used2
-                    if(isUA && avail2<=0){ assignAdicional(floor.id,dragging); setDragging(null); return }
-                    if(avail2<=0){ setSplitModal({floorId:floor.id,usoId:dragging}); setSplitSup('') }
-                    else{ assignPrincipal(floor.id,dragging,avail2) }
+                    // Multi-planta: si la planta está seleccionada, aplica a todas las seleccionadas
+                    const targets = (isSel && selectedFloors.length > 1) ? selectedFloors : [floor.id]
+                    if(isUA) {
+                      targets.forEach(fId=>assignAdicional(fId,dragging))
+                      if(targets.length>1) setSelectedFloors([])
+                      setDragging(null); return
+                    }
+                    if(targets.length > 1) {
+                      setBuildings(prev=>prev.map(b=>{
+                        if(b.id!==edifId) return b
+                        return {...b, floors:b.floors.map(f=>{
+                          if(!targets.includes(f.id)) return f
+                          const av=f.sup-f.principal.reduce((s,u)=>s+u.sup,0)
+                          if(av<=0) return f
+                          return {...f, principal:[...f.principal,{uso:dragging,sup:av}]}
+                        })}
+                      }))
+                      setSelectedFloors([])
+                    } else {
+                      const used2=floor.principal.reduce((s,u)=>s+u.sup,0)
+                      const avail2=floor.sup-used2
+                      if(avail2<=0){ setSplitModal({floorId:floor.id,usoId:dragging}); setSplitSup('') }
+                      else{ assignPrincipal(floor.id,dragging,avail2) }
+                    }
                     setDragging(null)
                   }}
                   style={{display:'grid',gridTemplateColumns:'22px 52px 1fr 90px',borderBottom:isPB?'3px solid var(--text3)':'1px solid var(--border)',background:isTgt?'#eff6ff':isSel?'#f0f9ff':'var(--surface)',outline:isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s'}}
