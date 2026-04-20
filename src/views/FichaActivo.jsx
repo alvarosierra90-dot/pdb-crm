@@ -696,13 +696,30 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
 
   const insertFloorAt = (idx) => {
     const sup = edif.supPlantaTipo || 1500
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-    const newId = 'N' + Array.from({length:3},()=>chars[Math.floor(Math.random()*chars.length)]).join('')
+    const floors = edif.floors
+    const above = floors[idx - 1]
+    const below = floors[idx]
+    const parseNum = (id) => { const m = id?.match(/^([A-Z]+)(-?\d+)$/); return m ? parseInt(m[2]) : null }
+    const parsePrefix = (id) => { const m = id?.match(/^([A-Z]+)(-?\d+)$/); return m ? m[1] : null }
+    let newId
+    const aboveNum = above ? parseNum(above.id) : null
+    const belowNum = below ? parseNum(below.id) : null
+    const prefix = (above ? parsePrefix(above.id) : null) || (below ? parsePrefix(below.id) : null) || 'P'
+    if (aboveNum !== null && belowNum !== null && aboveNum - belowNum > 1) {
+      newId = prefix + (aboveNum - 1)
+    } else if (aboveNum !== null) {
+      newId = prefix + (aboveNum + 1)
+    } else if (belowNum !== null) {
+      newId = prefix + (belowNum + 1)
+    } else {
+      newId = 'P' + (floors.length + 1)
+    }
+    if (floors.some(f => f.id === newId)) newId = newId + 'b'
     const newFloor = { id: newId, sup, principal: [], adicional: [] }
     updBuilding(b => {
-      const floors = [...b.floors]
-      floors.splice(idx, 0, newFloor)
-      return { ...b, floors, prop:[...(b.prop||[]),{p:newId,sup,units:[]}], arr:[...(b.arr||[]),{p:newId,sup,units:[]}] }
+      const fs = [...b.floors]
+      fs.splice(idx, 0, newFloor)
+      return { ...b, floors: fs, prop:[...(b.prop||[]),{p:newId,sup,units:[]}], arr:[...(b.arr||[]),{p:newId,sup,units:[]}] }
     })
   }
 
@@ -955,25 +972,12 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
           {/* ── GRID PLANTAS ── */}
           <div style={{flex:1,minWidth:0}}>
             {/* Cabecera */}
-            <div style={{display:'grid',gridTemplateColumns:'22px 52px 1fr 90px 26px',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
+            <div style={{display:'grid',gridTemplateColumns:'22px 52px 1fr 90px 48px',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
               <div style={{padding:'5px 4px'}}/>
               <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Planta</div>
               <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Uso principal + Usos adicionales</div>
               <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
               <div/>
-            </div>
-
-            {/* Separador insertar encima del todo */}
-            <div onMouseEnter={()=>setHoveredIns('top')} onMouseLeave={()=>setHoveredIns(null)}
-              onClick={()=>insertFloorAt(0)}
-              style={{height:hoveredIns==='top'?18:6,display:'flex',alignItems:'center',cursor:'pointer',transition:'height .12s',overflow:'hidden',paddingLeft:74}}>
-              {hoveredIns==='top' && (
-                <div style={{display:'flex',alignItems:'center',gap:4,flex:1}}>
-                  <div style={{flex:1,height:1,background:'var(--accent-bd)'}}/>
-                  <span style={{fontSize:9,color:'var(--accent)',fontWeight:700,background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:6,padding:'0 7px',lineHeight:'16px',whiteSpace:'nowrap',flexShrink:0}}>+ insertar planta encima</span>
-                  <div style={{flex:1,height:1,background:'var(--accent-bd)'}}/>
-                </div>
-              )}
             </div>
 
             {edif.floors.map((floor, floorIdx)=>{
@@ -985,10 +989,8 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
               // Línea gruesa debajo de PB para separar SR de BR
               const isPB = floor.id === 'PB'
 
-              const insKey = `ins-${floorIdx+1}`
               return (
-                <Fragment key={floor.id}>
-                <div
+                <div key={floor.id}
                   onDragOver={e=>onDragOver(e,floor.id)}
                   onDragLeave={()=>setDragTarget(null)}
                   onDrop={e=>{
@@ -1021,7 +1023,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                     setDragging(null)
                   }}
                   style={{
-                    display:'grid',gridTemplateColumns:'22px 52px 1fr 90px 26px',
+                    display:'grid',gridTemplateColumns:'22px 52px 1fr 90px 48px',
                     borderBottom: isPB ? '3px solid var(--text3)' : '1px solid var(--border)',
                     background:isTgt?'#eff6ff':isSel?'#f0f9ff':'var(--surface)',
                     outline:isTgt?'1.5px solid var(--accent)':'none',
@@ -1143,27 +1145,20 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                       </span>
                     )}
                   </div>
-                  {/* Botón eliminar planta */}
-                  <div style={{display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:8}}>
-                    <button onClick={e=>{e.stopPropagation();deleteFloor(floor.id)}} title="Eliminar planta"
-                      style={{width:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',background:'none',border:'1px solid var(--border)',borderRadius:3,fontSize:12,lineHeight:1,cursor:'pointer',color:'var(--text4)',fontFamily:'inherit',padding:0,transition:'all .12s'}}
-                      onMouseEnter={e=>{e.currentTarget.style.background='#fee2e2';e.currentTarget.style.color='#dc2626';e.currentTarget.style.borderColor='#fca5a5'}}
-                      onMouseLeave={e=>{e.currentTarget.style.background='none';e.currentTarget.style.color='var(--text4)';e.currentTarget.style.borderColor='var(--border)'}}>−</button>
+                  {/* Acciones: ✎ editar sup · + insertar encima · − eliminar */}
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,padding:'6px 4px'}}>
+                    {[
+                      {icon:'✎', title:'Editar superficie', onClick:()=>{setEditFloorSup(floor.id);setEditFloorSupVal(String(floor.sup))}, hoverBg:'#eff6ff', hoverCol:'var(--accent)', hoverBd:'var(--accent-bd)'},
+                      {icon:'+', title:'Insertar planta encima', onClick:()=>insertFloorAt(floorIdx), hoverBg:'#f0fdf4', hoverCol:'#16a34a', hoverBd:'#86efac'},
+                      {icon:'−', title:'Eliminar planta', onClick:()=>deleteFloor(floor.id), hoverBg:'#fee2e2', hoverCol:'#dc2626', hoverBd:'#fca5a5'},
+                    ].map(({icon,title,onClick,hoverBg,hoverCol,hoverBd})=>(
+                      <button key={icon} onClick={e=>{e.stopPropagation();onClick()}} title={title}
+                        style={{width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center',background:'none',border:'1px solid var(--border)',borderRadius:3,fontSize:10,lineHeight:1,cursor:'pointer',color:'var(--text4)',fontFamily:'inherit',padding:0,flexShrink:0}}
+                        onMouseEnter={e=>{e.currentTarget.style.background=hoverBg;e.currentTarget.style.color=hoverCol;e.currentTarget.style.borderColor=hoverBd}}
+                        onMouseLeave={e=>{e.currentTarget.style.background='none';e.currentTarget.style.color='var(--text4)';e.currentTarget.style.borderColor='var(--border)'}}>{icon}</button>
+                    ))}
                   </div>
                 </div>
-                {/* Separador insertar entre plantas */}
-                <div onMouseEnter={()=>setHoveredIns(insKey)} onMouseLeave={()=>setHoveredIns(null)}
-                  onClick={()=>insertFloorAt(floorIdx+1)}
-                  style={{height:hoveredIns===insKey?18:4,display:'flex',alignItems:'center',cursor:'pointer',transition:'height .12s',overflow:'hidden',paddingLeft:74}}>
-                  {hoveredIns===insKey && (
-                    <div style={{display:'flex',alignItems:'center',gap:4,flex:1}}>
-                      <div style={{flex:1,height:1,background:'var(--accent-bd)'}}/>
-                      <span style={{fontSize:9,color:'var(--accent)',fontWeight:700,background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:6,padding:'0 7px',lineHeight:'16px',whiteSpace:'nowrap',flexShrink:0}}>+ insertar planta debajo</span>
-                      <div style={{flex:1,height:1,background:'var(--accent-bd)'}}/>
-                    </div>
-                  )}
-                </div>
-                </Fragment>
               )
             })}
 
