@@ -297,21 +297,26 @@ export default function FichaOferta() {
   }, [params?.ofertaRef])
 
   // ── Save oferta to Supabase ────────────────────────────────────
+  const dbCall = (promise, ms = 8000) => Promise.race([
+    promise,
+    new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout — sin respuesta del servidor (8s)')), ms)),
+  ])
+
   const handleSave = async () => {
     if (!oferta?.ref) return
     setSaving(true); setSaveErr(''); setSaveOk(false)
     try {
       // 1. Update campos básicos — solo columnas seguras que existen siempre
-      const { error } = await supabase.from('ofertas').update({
+      const { error } = await dbCall(supabase.from('ofertas').update({
         activo_ref:            activoSeleccionado?.ref || null,
         tipo_comercializacion: tipoComercializacion    || null,
         tipo_operacion:        tipoOperacion           || null,
         estado:                oferta.estado           || 'En curso',
-      }).eq('ref', oferta.ref)
+      }).eq('ref', oferta.ref))
       if (error) { setSaveErr(error.message); return }
 
       // 2. Intentar guardar columnas opcionales (pueden no existir aún en la tabla)
-      await supabase.from('ofertas').update({
+      await dbCall(supabase.from('ofertas').update({
         tipologia:        tipologia        || null,
         estado_espacio:   estadoEspacio    || null,
         origen_oferta:    origenOferta     || null,
@@ -319,35 +324,35 @@ export default function FichaOferta() {
         confidencial,
         equipo:           equipoMembers,
         colaboradores,
-      }).eq('ref', oferta.ref)
+      }).eq('ref', oferta.ref)).catch(() => {})
       // Ignorar error aquí — columnas opcionales
 
       // 3. Reload oferta para obtener id UUID actualizado
-      const { data: refreshed } = await supabase.from('ofertas').select('*').eq('ref', oferta.ref).single()
+      const { data: refreshed } = await dbCall(supabase.from('ofertas').select('*').eq('ref', oferta.ref).single())
       if (refreshed) setOferta(refreshed)
       const ofertaId = refreshed?.id || oferta?.id
       if (!ofertaId) { setSaveOk(true); setTimeout(() => setSaveOk(false), 3000); return }
 
       // 4. Sub-tablas
-      await supabase.from('desglose_ofertas').delete().eq('oferta_id', ofertaId)
+      await dbCall(supabase.from('desglose_ofertas').delete().eq('oferta_id', ofertaId)).catch(() => {})
       if (ofertasDesglose.length > 0) {
-        await supabase.from('desglose_ofertas').insert(
+        await dbCall(supabase.from('desglose_ofertas').insert(
           ofertasDesglose.map((d, i) => ({ oferta_id: ofertaId, nombre: d.nombre, divisible: d.divisible, cargas_m2: d.cargasM2 || 0, orden: i }))
-        )
+        )).catch(() => {})
       }
 
-      await supabase.from('plazas_oferta').delete().eq('oferta_id', ofertaId)
+      await dbCall(supabase.from('plazas_oferta').delete().eq('oferta_id', ofertaId)).catch(() => {})
       if (plazas.length > 0) {
-        await supabase.from('plazas_oferta').insert(
+        await dbCall(supabase.from('plazas_oferta').insert(
           plazas.map(p => ({ oferta_id: ofertaId, int_ext: p.intExt, tipo: p.tipo, formato: p.formato, cantidad: p.cantidad, renta: p.renta ? parseFloat(p.renta) : null, precio: p.precio ? parseFloat(p.precio) : null }))
-        )
+        )).catch(() => {})
       }
 
       if (caracteristicas) {
-        await supabase.from('caracteristicas_oferta').delete().eq('oferta_id', ofertaId)
-        await supabase.from('caracteristicas_oferta').insert(
+        await dbCall(supabase.from('caracteristicas_oferta').delete().eq('oferta_id', ofertaId)).catch(() => {})
+        await dbCall(supabase.from('caracteristicas_oferta').insert(
           caracteristicas.map(c => ({ oferta_id: ofertaId, caracteristica_origen_id: c.id, tipo: c.tipo, detalle: c.detalle, anno: c.año || null, comentario: c.comentario || null, incluir: c.incluir }))
-        )
+        )).catch(() => {})
       }
 
       setSaveOk(true); setTimeout(() => setSaveOk(false), 3000)
@@ -366,7 +371,7 @@ export default function FichaOferta() {
         <div className="ab-sep" />
         {isMock && <span style={{fontSize:11,color:'var(--amber)',background:'var(--amber-lt)',border:'1px solid var(--amber-bd)',borderRadius:'var(--r)',padding:'3px 8px',marginRight:6}}>Oferta de ejemplo · sólo lectura</span>}
         <button className="ab-btn save" onClick={handleSave} disabled={saving || isMock}>{saving ? 'Guardando...' : '💾 Guardar'}</button>
-        <button className="ab-btn" onClick={async () => { if (!isMock) await handleSave(); navigate('ofertas') }}>Guardar y cerrar</button>
+        <button className="ab-btn" onClick={async () => { try { if (!isMock) await handleSave() } catch(e) {} navigate('ofertas') }}>Guardar y cerrar</button>
         {saveOk  && <span style={{fontSize:11,color:'var(--green)',marginLeft:8}}>✓ Guardado</span>}
         {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
         <button className="ab-btn">Nuevo</button>
