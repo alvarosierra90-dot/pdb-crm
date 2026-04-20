@@ -234,6 +234,8 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
   const [dropWarning, setDropWarning]         = useState(null) // floorId con aviso activo
   const [convertConfirm, setConvertConfirm]   = useState(null) // {floorId, idx, unit} — pendiente confirmación
   const [localTenants, setLocalTenants]       = useState([]) // arrendatarios añadidos vía conversión
+  const [editFloorLabel, setEditFloorLabel]   = useState(null) // floorId siendo renombrado
+  const [editFloorLabelVal, setEditFloorLabelVal] = useState('')
 
   useEffect(() => { if (onCountChange) onCountChange(buildings.length) }, [buildings.length])
   useEffect(() => {
@@ -284,6 +286,12 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
       const arr=[...(f[layer]||[])]; arr.splice(idx,1)
       return {...f,[layer]:arr}
     })}))
+  }
+
+  const saveFloorLabel = () => {
+    const v = editFloorLabelVal.trim()
+    if (v) updBuilding(b=>({...b, floors:b.floors.map(f=>f.id===editFloorLabel?{...f,label:v}:f)}))
+    setEditFloorLabel(null)
   }
 
   const removePropUnit = (floorId, idx) => {
@@ -567,8 +575,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
             {(()=>{
               const maxFloorSup = Math.max(...edif.floors.map(f=>f.sup), 1)
               return edif.floors.map((floor, floorIdx) => {
-              const barH = 44
-              const barW = `${Math.round((floor.sup / maxFloorSup) * 100)}%`
+              const barH = Math.max(32, Math.round((floor.sup / maxFloorSup) * 80))
               const used  = (floor.principal||[]).reduce((s,u)=>s+u.sup,0)
               const avail = floor.sup-used
               const isTgt = dragTarget===floor.id
@@ -615,9 +622,17 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                   <div style={{display:'flex',alignItems:'center',justifyContent:'center',paddingTop:4}} onClick={e=>e.stopPropagation()}>
                     <input type="checkbox" checked={isSel} onChange={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])} style={{width:11,height:11,cursor:'pointer'}}/>
                   </div>
-                  <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:isSel?'var(--accent)':'var(--text3)',display:'flex',alignItems:'flex-start',paddingTop:10}}>{floor.id}</div>
+                  <div style={{padding:'6px 8px',display:'flex',alignItems:'flex-start',paddingTop:10}} onClick={e=>e.stopPropagation()}>
+                    {editFloorLabel===floor.id
+                      ? <input autoFocus value={editFloorLabelVal} onChange={e=>setEditFloorLabelVal(e.target.value)}
+                          onBlur={saveFloorLabel} onKeyDown={e=>{if(e.key==='Enter')saveFloorLabel();if(e.key==='Escape')setEditFloorLabel(null)}}
+                          style={{width:44,padding:'1px 3px',fontSize:11,fontWeight:700,border:'1px solid var(--accent)',borderRadius:3,fontFamily:'inherit',color:'var(--accent)',background:'#eff6ff'}}/>
+                      : <span title="Doble clic para renombrar" onDoubleClick={()=>{setEditFloorLabel(floor.id);setEditFloorLabelVal(floor.label||floor.id)}}
+                          style={{fontSize:12,fontWeight:700,color:isSel?'var(--accent)':'var(--text3)',cursor:'text'}}>{floor.label||floor.id}</span>
+                    }
+                  </div>
                   <div style={{padding:'4px 4px 4px 0',display:'flex',flexDirection:'column',gap:4}}>
-                    <div style={{display:'flex',alignItems:'stretch',gap:2,height:barH,width:barW,overflow:'hidden'}}>
+                    <div style={{display:'flex',alignItems:'stretch',gap:2,height:barH}}>
                       {floor.principal.length===0 ? (
                         <div style={{flex:1,background:isSel?'#dbeafe':isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isSel?'var(--accent)':isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isSel?'var(--accent)':isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt||isSel?600:400}}>
                           {isTgt?'⬇ Soltar uso aquí':isSel?'✓ Seleccionada — arrastra un uso':'Clic para seleccionar · arrastra un uso'}
@@ -776,8 +791,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
-                const barH = 44
-                const barW = `${Math.round((floor.sup/maxFloorSup)*100)}%`
+                const barH = Math.max(32, Math.round((floor.sup/maxFloorSup)*80))
                 const propRow = (edif.prop||[]).find(r=>r.p===floor.id)
                 const units    = propRow?.units || []
                 const rowSup   = propRow?.sup ?? floor.sup
@@ -814,14 +828,22 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                       setDragging(null)
                     }}
                     style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',borderBottom:floor.id==='PB'?'3px solid var(--text3)':'1px solid var(--border)',minHeight:barH+14,background:isTgt?'#eff6ff':isSel?'#f0f9ff':isEmpty?'var(--gray-lt)':'var(--surface)',outline:isSel||isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s',cursor:'pointer'}}>
-                    <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:isSel?'var(--accent)':isEmpty?'var(--text4)':'var(--text3)',display:'flex',alignItems:'center'}}>{floor.id}</div>
+                    <div style={{padding:'6px 8px',display:'flex',alignItems:'center'}} onClick={e=>e.stopPropagation()}>
+                      {editFloorLabel===floor.id
+                        ? <input autoFocus value={editFloorLabelVal} onChange={e=>setEditFloorLabelVal(e.target.value)}
+                            onBlur={saveFloorLabel} onKeyDown={e=>{if(e.key==='Enter')saveFloorLabel();if(e.key==='Escape')setEditFloorLabel(null)}}
+                            style={{width:44,padding:'1px 3px',fontSize:11,fontWeight:700,border:'1px solid var(--accent)',borderRadius:3,fontFamily:'inherit',color:'var(--accent)',background:'#eff6ff'}}/>
+                        : <span title="Doble clic para renombrar" onDoubleClick={()=>{setEditFloorLabel(floor.id);setEditFloorLabelVal(floor.label||floor.id)}}
+                            style={{fontSize:12,fontWeight:700,color:isSel?'var(--accent)':isEmpty?'var(--text4)':'var(--text3)',cursor:'text'}}>{floor.label||floor.id}</span>
+                      }
+                    </div>
                     <div style={{display:'flex',flexDirection:'column',gap:3,padding:'5px 4px 5px 0'}}>
                       {floor.principal.length>0 && (
-                        <div style={{display:'flex',gap:1,height:6,borderRadius:2,overflow:'hidden',opacity:.35,width:barW}}>
+                        <div style={{display:'flex',gap:1,height:6,borderRadius:2,overflow:'hidden',opacity:.35}}>
                           {floor.principal.map((u,i)=>{const info=usoInfo(u.uso);return <div key={i} style={{width:`${(u.sup/floor.sup)*100}%`,background:info.color,flexShrink:0}}/>})}
                         </div>
                       )}
-                      <div style={{display:'flex',alignItems:'stretch',gap:2,height:barH,width:barW,overflow:'hidden'}}>
+                      <div style={{display:'flex',alignItems:'stretch',gap:2,height:barH}}>
                         {isEmpty ? (
                           <div style={{flex:1,background:isTgt?'var(--accent-lt)':'transparent',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',gap:5}}>
                             {isTgt?'⬇ Soltar propietario':'Sin propietario asignado — arrastra aquí'}
@@ -939,8 +961,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
-                const barH = 48
-                const barW = `${Math.round((floor.sup/maxFloorSup)*100)}%`
+                const barH = Math.max(32, Math.round((floor.sup/maxFloorSup)*80))
                 const arrRow  = (edif.arr||[]).find(r=>r.p===floor.id)
                 const units   = arrRow?.units || []
                 const rowSup  = arrRow?.sup ?? floor.sup
@@ -987,7 +1008,15 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                       setDragging(null)
                     }}
                     style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',borderBottom:floor.id==='PB'?'3px solid var(--text3)':'1px solid var(--border)',minHeight:barH+14,background:dropWarning===floor.id?'#fff1f2':isTgt?'#eff6ff':isSel?'#f0f9ff':isEmpty?'var(--gray-lt)':'var(--surface)',outline:dropWarning===floor.id?'1.5px solid #fca5a5':isSel||isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s',cursor:'pointer'}}>
-                    <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:isSel?'var(--accent)':isEmpty?'var(--text4)':'var(--text3)',display:'flex',alignItems:'center'}}>{floor.id}</div>
+                    <div style={{padding:'6px 8px',display:'flex',alignItems:'center'}} onClick={e=>e.stopPropagation()}>
+                      {editFloorLabel===floor.id
+                        ? <input autoFocus value={editFloorLabelVal} onChange={e=>setEditFloorLabelVal(e.target.value)}
+                            onBlur={saveFloorLabel} onKeyDown={e=>{if(e.key==='Enter')saveFloorLabel();if(e.key==='Escape')setEditFloorLabel(null)}}
+                            style={{width:44,padding:'1px 3px',fontSize:11,fontWeight:700,border:'1px solid var(--accent)',borderRadius:3,fontFamily:'inherit',color:'var(--accent)',background:'#eff6ff'}}/>
+                        : <span title="Doble clic para renombrar" onDoubleClick={()=>{setEditFloorLabel(floor.id);setEditFloorLabelVal(floor.label||floor.id)}}
+                            style={{fontSize:12,fontWeight:700,color:isSel?'var(--accent)':isEmpty?'var(--text4)':'var(--text3)',cursor:'text'}}>{floor.label||floor.id}</span>
+                      }
+                    </div>
                     <div style={{display:'flex',flexDirection:'column',gap:3,padding:'5px 4px 5px 0'}}>
                       {dropWarning===floor.id && (
                         <div style={{display:'flex',alignItems:'center',gap:5,padding:'4px 8px',background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:4,fontSize:10,color:'#dc2626',fontWeight:600}}>
@@ -995,11 +1024,11 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                         </div>
                       )}
                       {floor.principal.length>0 && (
-                        <div style={{display:'flex',gap:1,height:6,borderRadius:2,overflow:'hidden',opacity:.35,width:barW}}>
+                        <div style={{display:'flex',gap:1,height:6,borderRadius:2,overflow:'hidden',opacity:.35}}>
                           {floor.principal.map((u,i)=>{const info=usoInfo(u.uso);return <div key={i} style={{width:`${(u.sup/floor.sup)*100}%`,background:info.color,flexShrink:0}}/>})}
                         </div>
                       )}
-                      <div style={{display:'flex',alignItems:'stretch',gap:2,height:barH,width:barW,overflow:'hidden'}}>
+                      <div style={{display:'flex',alignItems:'stretch',gap:2,height:barH}}>
                         {isEmpty ? (
                           <div style={{flex:1,background:isTgt?'var(--accent-lt)':'transparent',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',gap:5}}>
                             {isTgt?'⬇ Soltar aquí':'Sin asignación — arrastra desde el panel lateral'}
