@@ -3,9 +3,10 @@ import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { supabase } from '../lib/supabase'
 import { OFERTAS as MOCK_OFERTAS, ACTIVOS as MOCK_ACTIVOS } from '../data/mockData'
+import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
 
-const TABS = ['of-info','of-espacios','of-condiciones','of-caract','of-docs','of-web','of-desc','of-seg','of-ficha','of-conf']
-const TAB_LABELS = ['Información oferta','Espacios comerciales','Condiciones','Características','Documentos','Contenido web','Descriptivo','Seguimiento comercial','Crear ficha','🔒 Confidencialidad']
+const TABS = ['of-info','of-stacking','of-espacios','of-condiciones','of-caract','of-docs','of-web','of-seg','of-ficha','of-conf']
+const TAB_LABELS = ['Información oferta','Stacking plan','Espacios comerciales','Condiciones','Características','Documentos','Contenido web','Seguimiento comercial','Crear ficha','🔒 Confidencialidad']
 
 const ASSET = {
   nombre: 'Albatros — C. Anabel Segura 9-11, Alcobendas',
@@ -79,6 +80,99 @@ function ReadonlyPill({ value }) {
   return <div style={{ padding:'6px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', fontSize:12, background:'var(--gray-lt)', color:'var(--text3)', display:'flex', alignItems:'center', gap:6 }}>{value}<span style={{ marginLeft:'auto', fontSize:9, color:'var(--text4)', fontWeight:600 }}>AUTO</span></div>
 }
 
+function OfertaStackingTab({ activoRef, ofertasDesglose }) {
+  const [view, setView] = useState('arr')
+  const buildings = BUILDINGS_BY_ACTIVO[activoRef] || []
+  const UNIT_COLORS = {
+    ten: { bg:'#dbeafe', border:'#93c5fd', color:'#1e40af' },
+    vac: { bg:'var(--accent-lt)', border:'var(--accent-bd)', color:'var(--accent)' },
+    com: { bg:'#f1f5f9', border:'#cbd5e1', color:'#475569' },
+    pk:  { bg:'#f8fafc', border:'#e2e8f0', color:'#64748b' },
+    rt:  { bg:'#fdf4ff', border:'#e9d5ff', color:'#7e22ce' },
+  }
+  if (!activoRef) return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'60px 20px', gap:12 }}>
+      <div style={{ fontSize:32 }}>📊</div>
+      <div style={{ fontSize:13, fontWeight:600, color:'var(--text2)' }}>Sin activo vinculado</div>
+      <div style={{ fontSize:11, color:'var(--text3)' }}>Asigna un activo en "Información oferta" para ver el stacking plan.</div>
+    </div>
+  )
+  return (
+    <div>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
+        <span style={{ fontSize:11, fontWeight:600, color:'var(--text3)' }}>Vista:</span>
+        {[['uso','Uso principal'],['arr','Arrendatarios + Oferta'],['prop','Propietarios']].map(([v,lbl]) => (
+          <button key={v} className={view===v?'ab-btn save':'ab-btn'} style={{ fontSize:10, padding:'3px 10px' }} onClick={() => setView(v)}>{lbl}</button>
+        ))}
+        <span style={{ marginLeft:'auto', fontSize:10, color:'var(--text4)', fontStyle:'italic' }}>Stacking del activo vinculado · solo lectura estructural</span>
+      </div>
+      {buildings.length === 0 ? (
+        <div style={{ padding:'32px 0', textAlign:'center', color:'var(--text4)', fontSize:12 }}>Sin datos de stacking para este activo.</div>
+      ) : (
+        <div style={{ display:'flex', gap:16, overflowX:'auto' }}>
+          {buildings.map(bld => {
+            const floors = view==='arr' ? bld.arr : view==='prop' ? bld.prop : bld.floors
+            return (
+              <div key={bld.id} style={{ minWidth:220, flex:1 }}>
+                <div style={{ fontSize:10, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:8, padding:'6px 10px', background:'var(--gray-lt)', borderRadius:'var(--r)', border:'1px solid var(--border)' }}>{bld.label}</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                  {(floors||[]).map(floor => {
+                    const fId = floor.id||floor.p
+                    const fSup = floor.sup
+                    if (view==='uso') {
+                      const usoBg = { oficinas:'#dbeafe', retail:'#fdf4ff', comun:'#f1f5f9', parking:'#f8fafc', logistico:'#f0fdfa' }
+                      return (
+                        <div key={fId} style={{ display:'flex', gap:3, height:30 }}>
+                          <div style={{ width:32, flexShrink:0, fontSize:9, fontWeight:700, color:'var(--text4)', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>{fId}</div>
+                          <div style={{ flex:1, display:'flex', overflow:'hidden', borderRadius:'var(--r)', border:'1px solid var(--border)' }}>
+                            {floor.principal.map((u,i) => (
+                              <div key={i} style={{ flex:u.sup, background:usoBg[u.uso]||'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, fontWeight:600, color:'var(--text2)', textTransform:'capitalize' }}>{u.uso}</div>
+                            ))}
+                          </div>
+                          <div style={{ width:56, flexShrink:0, fontSize:9, color:'var(--text4)', display:'flex', alignItems:'center', justifyContent:'flex-end' }}>{(fSup||0).toLocaleString()} m²</div>
+                        </div>
+                      )
+                    }
+                    return (
+                      <div key={fId} style={{ display:'flex', gap:3, height:30 }}>
+                        <div style={{ width:32, flexShrink:0, fontSize:9, fontWeight:700, color:'var(--text4)', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>{fId}</div>
+                        <div style={{ flex:1, display:'flex', overflow:'hidden', borderRadius:'var(--r)', border:'1px solid var(--border)' }}>
+                          {(floor.units||[]).map((u,i) => {
+                            const col = UNIT_COLORS[u.type]||UNIT_COLORS.com
+                            const isOffer = ofertasDesglose?.some(od => od.nombre===u.oferta)
+                            const bg = isOffer ? '#dcfce7' : col.bg
+                            const clr = isOffer ? '#166534' : col.color
+                            const label = u.type==='vac' ? (u.oferta ? `▸ ${u.oferta}` : 'Vacante') : (u.n||'').split(' ')[0]
+                            return (
+                              <div key={i} style={{ flex:u.sup, background:bg, borderLeft:`2px solid ${col.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:7, fontWeight:600, color:clr, overflow:'hidden', padding:'0 2px', textAlign:'center' }}
+                                title={u.n||(u.oferta?`Oferta: ${u.oferta}`:'')}>
+                                {label}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <div style={{ width:56, flexShrink:0, fontSize:9, color:'var(--text4)', display:'flex', alignItems:'center', justifyContent:'flex-end' }}>{(fSup||0).toLocaleString()} m²</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      <div style={{ display:'flex', gap:10, marginTop:14, flexWrap:'wrap', paddingTop:12, borderTop:'1px solid var(--border)' }}>
+        {[['ten','Arrendatario'],['vac','Vacante / Oferta'],['com','Zona común'],['pk','Parking'],['rt','Retail']].map(([t,lbl]) => (
+          <div key={t} style={{ display:'flex', alignItems:'center', gap:5 }}>
+            <div style={{ width:12, height:12, background:UNIT_COLORS[t].bg, border:`1px solid ${UNIT_COLORS[t].border}`, borderRadius:2 }} />
+            <span style={{ fontSize:9, color:'var(--text3)' }}>{lbl}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function FichaOferta() {
   const { navigate, params } = useNav()
   const [activeTab, setActiveTab] = useState('of-info')
@@ -103,6 +197,17 @@ export default function FichaOferta() {
   const [origenOferta, setOrigenOferta] = useState('')
   const [modalidadVisita, setModalidadVisita] = useState('')
   const [comentarios, setComentarios] = useState('')
+  const [gastosComunes, setGastosComunes] = useState(3.01)
+  const [ibi, setIbi] = useState('')
+  const [gastosIncluidos, setGastosIncluidos] = useState(false)
+  const [tituloWeb, setTituloWeb] = useState('Complejo de edificios exclusivos en Arroyo de la Vega')
+  const [textoWeb, setTextoWeb] = useState('Situados en un entorno profesional de alto nivel, en Arroyo de la Vega, los edificios C y D Albatros ofrecen unas instalaciones únicas reformadas de forma integral.')
+  const [keywordsWeb, setKeywordsWeb] = useState(['','','','',''])
+  const [publicarCondiciones, setPublicarCondiciones] = useState(false)
+  const [publicar, setPublicar] = useState(true)
+  const [geolocalizacion, setGeolocalizacion] = useState(true)
+  const [opcionPublicacion, setOpcionPublicacion] = useState('Publicar dirección')
+  const [enlacesPortales, setEnlacesPortales] = useState([])
 
   // Tab 2
   const [colaboradores, setColaboradores] = useState([])
@@ -356,6 +461,8 @@ export default function FichaOferta() {
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
       {/* Action bar */}
       <div className="action-bar">
+        <button className="ab-btn" onClick={() => navigate('ofertas')} style={{ color:'var(--text3)' }}>← Volver</button>
+        <div className="ab-sep" />
         {isMock && <span style={{fontSize:11,color:'var(--amber)',background:'var(--amber-lt)',border:'1px solid var(--amber-bd)',borderRadius:'var(--r)',padding:'3px 8px',marginRight:6}}>Oferta de ejemplo · sólo lectura</span>}
         <button className="ab-btn save" onClick={handleSave} disabled={saving || isMock}>{saving ? 'Guardando...' : '💾 Guardar'}</button>
         <button className="ab-btn" onClick={async () => { if (!isMock) await handleSave(); navigate('ofertas') }}>Guardar y cerrar</button>
@@ -364,13 +471,8 @@ export default function FichaOferta() {
         <button className="ab-btn">Nuevo</button>
         <button className="ab-btn">Desactivar</button>
         <div className="ab-sep" />
-        <button className="ab-btn blue" disabled={!activoSeleccionado}
-          onClick={() => navigate('ficha-activo', { ref: activoSeleccionado?.ref, tab:'at-stacking', stackingView:'arr', ofertasFromOferta: ofertasDesglose, ofertaId: oferta?.id })}>
-          📊 Stacking plan
-        </button>
         <button className="ab-btn">📄 Crear ficha</button>
         <button className="ab-btn">🔄 Recalcular</button>
-        <button className="ab-btn">🌐 Descripción web</button>
         <div className="ab-sep" />
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
       </div>
@@ -426,6 +528,7 @@ export default function FichaOferta() {
                 <div className="tab-content active">
                   <div className="info-pad">
                     <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
+                      {/* LEFT: form fields */}
                       <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                         <div>
                           <FieldLbl req>Activo / Asset</FieldLbl>
@@ -497,18 +600,13 @@ export default function FichaOferta() {
                         </div>
                         <div><FieldLbl>Mandato asociado</FieldLbl><input className="of-inp" placeholder="🔍  Buscar mandato..." /></div>
                         <div><FieldLbl>KYC</FieldLbl><input className="of-inp" placeholder="🔍  Buscar registro KYC..." /></div>
-                        <div>
-                          <FieldLbl>Modalidad de visita</FieldLbl>
-                          <select className="of-sel" value={modalidadVisita} onChange={e => setModalidadVisita(e.target.value)}>
-                            <option value="">— Seleccionar —</option><option>Presencial</option><option>Virtual</option><option>Presencial + Virtual</option>
-                          </select>
-                        </div>
                         <div><FieldLbl>Comentarios</FieldLbl><textarea className="of-textarea" placeholder="Observaciones internas..." value={comentarios} onChange={e => setComentarios(e.target.value)} style={{ minHeight:72 }} /></div>
                       </div>
+                      {/* RIGHT: map + images + contacts */}
                       <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
                         <div>
                           <FieldLbl>Ubicación · Georreferenciado desde activo</FieldLbl>
-                          <div style={{ borderRadius:'var(--r2)', overflow:'hidden', border:'1px solid var(--border)', height:280 }}>
+                          <div style={{ borderRadius:'var(--r2)', overflow:'hidden', border:'1px solid var(--border)', height:220 }}>
                             {activoSeleccionado?.direccion ? (
                               <iframe title="Mapa oferta" width="100%" height="100%" style={{ border:0 }} loading="lazy"
                                 src={`https://maps.google.com/maps?q=${encodeURIComponent(activoSeleccionado.direccion)}&z=15&output=embed`} />
@@ -533,12 +631,8 @@ export default function FichaOferta() {
                           </div>
                         </div>
                         <div><FieldLbl>Imágenes · Vinculadas al activo</FieldLbl><div className="img-strip"><div className="img-thumb principal">🏢</div><div className="img-thumb">🏙</div><div className="img-thumb">🖼</div></div></div>
-                      </div>
-                    </div>
-                    {/* ── Datos de contacto ── */}
-                    <div style={{ marginTop:18, borderTop:'1px solid var(--border)', paddingTop:14 }}>
-                      <div style={{ fontSize:11, fontWeight:700, marginBottom:10, color:'var(--text2)' }}>Datos de contacto</div>
-                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
+                        {/* Contacts in right column */}
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text2)', paddingTop:4 }}>Datos de contacto</div>
                         <div className="info-block">
                           <div className="ib-title">🏠 PROPIETARIO</div>
                           <div style={{ fontSize:9, color:'var(--text4)', marginBottom:8, fontWeight:600, letterSpacing:'.04em' }}>Heredado del activo · Solo lectura</div>
@@ -629,6 +723,15 @@ export default function FichaOferta() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── TAB: Stacking plan ── */}
+              {activeTab==='of-stacking' && (
+                <div className="tab-content active">
+                  <div className="info-pad">
+                    <OfertaStackingTab activoRef={activoSeleccionado?.ref} ofertasDesglose={ofertasDesglose} />
                   </div>
                 </div>
               )}
@@ -888,7 +991,23 @@ export default function FichaOferta() {
                     <div className="cond-block"><div className="cond-block-title">CONDICIONES ECONÓMICAS</div>
                       <div className="cond-row"><span className="cond-key">Renta (€/m²/mes)</span><span className="cond-val" style={{ fontSize:15, color:'var(--green)' }}>12,50 €</span></div>
                       <div className="cond-row"><span className="cond-key">Renta mensual</span><span className="cond-val" style={{ color:'var(--green)' }}>168.575 €</span></div>
-                      <div className="cond-row"><span className="cond-key">Gastos comunes</span><span className="cond-val">3,01 €/m²/mes</span></div>
+                      <div style={{ display:'flex', flexDirection:'column', gap:10, marginTop:12 }}>
+                        <div>
+                          <FieldLbl>Gastos comunes (€/m²/mes)</FieldLbl>
+                          <input type="number" step="0.01" className="of-inp" value={gastosComunes} onChange={e => setGastosComunes(e.target.value)} placeholder="0,00" />
+                        </div>
+                        <div>
+                          <FieldLbl>IBI (€/m²/mes)</FieldLbl>
+                          <input type="number" step="0.01" className="of-inp" value={ibi} onChange={e => setIbi(e.target.value)} placeholder="0,00" />
+                        </div>
+                        <label style={{ display:'flex', alignItems:'flex-start', gap:8, padding:'9px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', cursor:'pointer' }}>
+                          <input type="checkbox" checked={gastosIncluidos} onChange={e => setGastosIncluidos(e.target.checked)} style={{ accentColor:'var(--accent)', marginTop:1 }} />
+                          <div>
+                            <div style={{ fontSize:11, fontWeight:600 }}>Gastos incluidos en renta</div>
+                            <div style={{ fontSize:9, color:'var(--text4)', marginTop:1 }}>{gastosIncluidos ? 'Los importes son informativos (ya incluidos en la renta)' : 'Los importes son adicionales a la renta'}</div>
+                          </div>
+                        </label>
+                      </div>
                     </div>
                     <div className="cond-block"><div className="cond-block-title">INCENTIVOS Y CAPEX</div>
                       <div className="cond-row"><span className="cond-key">Meses de carencia</span><span className="cond-val">—</span></div>
@@ -983,49 +1102,108 @@ export default function FichaOferta() {
               {/* Contenido web */}
               {activeTab==='of-web' && (
                 <div className="tab-content active"><div className="info-pad">
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-                    <div>
-                      <div className="of-field" style={{ marginBottom:10 }}><div className="of-lbl">Título (Web/Flyer)</div><input className="of-inp" defaultValue="Complejo de edificios exclusivos en Arroyo de la Vega" /></div>
-                      <div className="of-field"><div className="of-lbl">Texto descriptivo</div><textarea className="of-textarea" defaultValue="Situados en un entorno profesional de alto nivel, en Arroyo de la Vega, los edificios C y D Albatros ofrecen unas instalaciones únicas reformadas de forma integral." /></div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize:10, fontWeight:600, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:10 }}>PORTALES WEB</div>
-                      <div style={{ border:'1px solid var(--border)', borderRadius:'var(--r)', overflow:'hidden' }}>
-                        {[['🌐 Web Savills',true],['🏠 Idealista',false],['🏢 Mis Oficinas',false]].map(([lbl,checked],i) => (
-                          <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', borderBottom:i<2?'1px solid var(--border)':'none' }}>
-                            <span style={{ fontSize:12 }}>{lbl}</span><input type="checkbox" defaultChecked={checked} style={{ accentColor:'var(--accent)' }} />
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
+                    {/* LEFT */}
+                    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                      <div>
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                          <FieldLbl>Título web / ficha</FieldLbl>
+                          <button className="ab-btn blue" style={{ fontSize:9, padding:'2px 8px' }}>✦ IA</button>
+                        </div>
+                        <input className="of-inp" value={tituloWeb} onChange={e => setTituloWeb(e.target.value)} placeholder="Título comercial de la oferta..." />
+                      </div>
+                      <div>
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                          <FieldLbl>Texto descriptivo web / ficha</FieldLbl>
+                          <button className="ab-btn blue" style={{ fontSize:9, padding:'2px 8px' }}>✦ IA</button>
+                        </div>
+                        <textarea className="of-textarea" value={textoWeb} onChange={e => setTextoWeb(e.target.value)} style={{ minHeight:120 }} placeholder="Descripción comercial del espacio..." />
+                      </div>
+                      <div>
+                        <FieldLbl>Keywords comerciales</FieldLbl>
+                        <div style={{ fontSize:10, color:'var(--text3)', marginBottom:8 }}>Aparecen como etiquetas en la ficha comercial · incluidas en PDF/PPT</div>
+                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                          {keywordsWeb.map((kw,i) => (
+                            <input key={i} className="of-inp" value={kw} onChange={e => setKeywordsWeb(prev => prev.map((k,j) => j===i ? e.target.value : k))}
+                              placeholder={`Keyword ${i+1}...`} style={{ fontSize:11 }} />
+                          ))}
+                        </div>
+                        {keywordsWeb.some(k=>k) && (
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginTop:10 }}>
+                            <div style={{ fontSize:9, color:'var(--text4)', width:'100%', marginBottom:3 }}>Vista previa:</div>
+                            {keywordsWeb.filter(k=>k).map((k,i) => (
+                              <span key={i} style={{ padding:'3px 10px', background:'#dbeafe', color:'#1e40af', border:'1px solid #93c5fd', borderRadius:12, fontSize:10, fontWeight:600 }}>{k}</span>
+                            ))}
                           </div>
-                        ))}
+                        )}
+                      </div>
+                    </div>
+                    {/* RIGHT */}
+                    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                      <div className="info-block">
+                        <div className="ib-title">OPCIONES DE PUBLICACIÓN</div>
+                        <div style={{ marginBottom:10 }}>
+                          <FieldLbl>Dirección vinculada</FieldLbl>
+                          <ReadonlyPill value={activoSeleccionado?.direccion || '—'} />
+                        </div>
+                        <div>
+                          <FieldLbl>Opción de publicación</FieldLbl>
+                          <select className="of-sel" value={opcionPublicacion} onChange={e => setOpcionPublicacion(e.target.value)}>
+                            <option>Publicar dirección</option>
+                            <option>Sin publicar dirección</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="info-block">
+                        <div className="ib-title">OPCIONES DE PUBLICACIÓN WEB</div>
+                        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                          {[
+                            [publicarCondiciones, setPublicarCondiciones, 'Publicar condiciones económicas'],
+                            [publicar, setPublicar, 'Publicar'],
+                            [geolocalizacion, setGeolocalizacion, 'Geolocalización dirección'],
+                          ].map(([val, setter, lbl], i) => (
+                            <label key={i} style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:11 }}>
+                              <input type="checkbox" checked={val} onChange={e => setter(e.target.checked)} style={{ accentColor:'var(--accent)' }} />
+                              {lbl}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="info-block">
+                        <div className="ib-title">PORTALES WEB</div>
+                        <div style={{ border:'1px solid var(--border)', borderRadius:'var(--r)', overflow:'hidden' }}>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px' }}>
+                            <span style={{ fontSize:12 }}>🏠 Idealista</span>
+                            <input type="checkbox" defaultChecked style={{ accentColor:'var(--accent)' }} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="info-block">
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                          <div className="ib-title" style={{ marginBottom:0 }}>ENLACES PORTALES WEB</div>
+                          <button className="ab-btn blue" style={{ fontSize:10, padding:'2px 8px' }} onClick={() => setEnlacesPortales(prev => [...prev, { portal:'Idealista', url:'' }])}>+ Añadir</button>
+                        </div>
+                        {enlacesPortales.length === 0 ? (
+                          <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin enlaces añadidos</div>
+                        ) : (
+                          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                            {enlacesPortales.map((e,i) => (
+                              <div key={i} style={{ display:'flex', gap:6, alignItems:'center' }}>
+                                <select className="fsel" style={{ width:100 }} value={e.portal} onChange={ev => setEnlacesPortales(prev => prev.map((x,j) => j===i ? {...x, portal:ev.target.value} : x))}>
+                                  <option>Idealista</option>
+                                </select>
+                                <input className="of-inp" style={{ flex:1 }} placeholder="https://..." value={e.url} onChange={ev => setEnlacesPortales(prev => prev.map((x,j) => j===i ? {...x, url:ev.target.value} : x))} />
+                                <button onClick={() => setEnlacesPortales(prev => prev.filter((_,j) => j!==i))} style={{ color:'var(--red)', background:'none', border:'none', cursor:'pointer', fontSize:14, fontFamily:'inherit' }}>✕</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div></div>
               )}
 
-              {/* Descriptivo */}
-              {activeTab==='of-desc' && (
-                <div className="tab-content active"><div className="info-pad">
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-                    <div className="info-block"><div className="ib-title">OPCIONES DE VISUALIZACIÓN</div>
-                      <div className="of-field" style={{ marginBottom:10 }}><div className="of-lbl">Geolocalizar dirección</div><select className="of-sel"><option>Sí</option><option>No</option></select></div>
-                      <div className="of-field"><div className="of-lbl">Mostrar datos consultor</div><select className="of-sel"><option>No</option><option>Sí</option></select></div>
-                    </div>
-                    <div className="info-block"><div className="ib-title">CARACTERÍSTICAS A RESALTAR</div>
-                      <div style={{ background:'var(--gray-lt)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:10, fontSize:11, lineHeight:1.8 }}>
-                        <div>• Gimnasio equipado</div><div>• Parking interior</div><div>• Zonas ajardinadas</div><div>• Terraza privativa en 4ª planta</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ marginTop:16 }}>
-                    <div style={{ fontSize:10, fontWeight:600, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:8 }}>HISTÓRICO DE DESCRIPTIVOS</div>
-                    <table className="pat-table"><thead><tr><th>Enlace</th><th>Fecha</th><th>Autor</th></tr></thead>
-                    <tbody>
-                      <tr><td><span className="pat-link">https://savills.com/flyer/#/descrip...</span></td><td>13/10/2025 · 9:58</td><td>Sierra Álvaro</td></tr>
-                      <tr><td><span className="pat-link">https://savills.com/flyer/#/descrip...</span></td><td>27/11/2024 · 18:09</td><td>Sierra Álvaro</td></tr>
-                    </tbody></table>
-                  </div>
-                </div></div>
-              )}
 
               {/* Seguimiento */}
               {activeTab==='of-seg' && (
@@ -1072,10 +1250,11 @@ export default function FichaOferta() {
               {activeTab==='of-ficha' && (
                 <div className="tab-content active"><div className="info-pad">
                   <div className="info-block"><div className="ib-title">CREAR FICHA COMERCIAL</div>
+                    <div style={{ fontSize:11, color:'var(--text3)', marginBottom:12 }}>Genera la ficha comercial de esta oferta en diferentes formatos.</div>
                     <div style={{ display:'flex', gap:8, marginTop:8 }}>
                       <button className="ab-btn blue">📄 Generar PDF</button>
-                      <button className="ab-btn">📝 Generar Word</button>
-                      <button className="ab-btn">🌐 Ver ficha web</button>
+                      <button className="ab-btn">📊 Generar PPT</button>
+                      <button className="ab-btn">🔗 Generar link</button>
                     </div>
                   </div>
                 </div></div>
