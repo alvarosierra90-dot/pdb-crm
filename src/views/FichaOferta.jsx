@@ -321,7 +321,7 @@ export default function FichaOferta() {
         estado_espacio:   estadoEspacio    || null,
         origen_oferta:    origenOferta     || null,
         modalidad_visita: modalidadVisita  || null,
-        confidencial,
+        confidencial:     confidential,
         equipo:           equipoMembers,
         colaboradores,
       }).eq('ref', oferta.ref)).catch(() => {})

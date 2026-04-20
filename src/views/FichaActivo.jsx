@@ -558,10 +558,15 @@ const INIT_BUILDINGS = [
 ]
 
 
-function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal' }) {
+function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal', defaultLabel='', defaultSupPlantaTipo }) {
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
-  const [setupForm, setSetupForm]       = useState({ label:'', sobre:'5', bajo:'1', sup:'1500' })
+  const [setupForm, setSetupForm]       = useState({ label: defaultLabel || '', sobre:'5', bajo:'1', sup: defaultSupPlantaTipo ? String(defaultSupPlantaTipo) : '1500' })
+  const defaultLabelRef = useRef(defaultLabel)
+  defaultLabelRef.current = defaultLabel
+  useEffect(() => {
+    if (defaultLabel && !setupForm.label) setSetupForm(p => ({ ...p, label: defaultLabel }))
+  }, [defaultLabel])
   const [view, setView]                 = useState(initView)
   const [dragging, setDragging]         = useState(null)
   const [dragTarget, setDragTarget]     = useState(null)
@@ -732,7 +737,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
 
   /* ── Setup vacío ── */
   const createFirstBuilding = () => {
-    const label = setupForm.label.trim() || 'Edificio A'
+    const label = setupForm.label.trim() || defaultLabelRef.current || 'Edificio A'
     const sobre = Math.max(1, parseInt(setupForm.sobre) || 1)
     const bajo  = Math.max(0, parseInt(setupForm.bajo)  || 0)
     const sup   = Math.max(100, parseFloat(setupForm.sup) || 1000)
