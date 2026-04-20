@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo, useCallback } from 'react'
+import { useState, useEffect, useRef, memo, useCallback, Fragment } from 'react'
 
 export const USOS_PPAL = [
   {id:'oficinas',    label:'Oficinas',    cls:'u-of',  color:'#3b82f6', bg:'#dbeafe', bd:'#93c5fd'},
@@ -221,6 +221,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
   const [editPARenta, setEditPARenta]   = useState('')
   const [editFloorSup, setEditFloorSup]       = useState(null)
   const [editFloorSupVal, setEditFloorSupVal] = useState('')
+  const [hoveredIns, setHoveredIns]           = useState(null)
 
   useEffect(() => { if (onCountChange) onCountChange(buildings.length) }, [buildings.length])
   useEffect(() => {
@@ -318,6 +319,28 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
       return {...f,[editFloor.layer]:arr}
     })}))
     setEditFloor(null); setEditSup('')
+  }
+
+  const insertFloorAt = (idx) => {
+    const sup = edif.supPlantaTipo || 1500
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    const newId = 'N' + Array.from({length:3},()=>chars[Math.floor(Math.random()*chars.length)]).join('')
+    const newFloor = { id: newId, sup, principal: [], adicional: [] }
+    updBuilding(b => {
+      const floors = [...b.floors]
+      floors.splice(idx, 0, newFloor)
+      return { ...b, floors, prop:[...(b.prop||[]),{p:newId,sup,units:[]}], arr:[...(b.arr||[]),{p:newId,sup,units:[]}] }
+    })
+  }
+
+  const deleteFloor = (floorId) => {
+    updBuilding(b => ({
+      ...b,
+      floors: b.floors.filter(f => f.id !== floorId),
+      prop:   (b.prop||[]).filter(r => r.p !== floorId),
+      arr:    (b.arr||[]).filter(r => r.p !== floorId),
+    }))
+    setSelectedFloors(p => p.filter(id => id !== floorId))
   }
 
   const bulkAssign = (usoId) => {
@@ -501,22 +524,43 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
           </div>
 
           <div style={{flex:1,minWidth:0}}>
-            <div style={{display:'grid',gridTemplateColumns:'22px 52px 1fr 90px',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
+            <div style={{display:'grid',gridTemplateColumns:'22px 52px 1fr 90px 26px',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
               <div style={{padding:'5px 4px'}}/>
               <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Planta</div>
               <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Uso principal + Usos adicionales</div>
               <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
+              <div/>
             </div>
 
-            {edif.floors.map(floor=>{
+            {/* Separador insertar encima del todo */}
+            {(() => {
+              const insIdx = 0
+              return (
+                <div onMouseEnter={()=>setHoveredIns('top')} onMouseLeave={()=>setHoveredIns(null)}
+                  onClick={()=>insertFloorAt(0)}
+                  style={{height:hoveredIns==='top'?18:6,display:'flex',alignItems:'center',cursor:'pointer',transition:'height .12s',overflow:'hidden',paddingLeft:74}}>
+                  {hoveredIns==='top' && (
+                    <div style={{display:'flex',alignItems:'center',gap:4,flex:1}}>
+                      <div style={{flex:1,height:1,background:'var(--accent-bd)'}}/>
+                      <span style={{fontSize:9,color:'var(--accent)',fontWeight:700,background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:6,padding:'0 7px',lineHeight:'16px',whiteSpace:'nowrap',flexShrink:0}}>+ insertar planta encima</span>
+                      <div style={{flex:1,height:1,background:'var(--accent-bd)'}}/>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
+            {edif.floors.map((floor, floorIdx)=>{
               const used  = floor.principal.reduce((s,u)=>s+u.sup,0)
               const avail = floor.sup-used
               const isTgt = dragTarget===floor.id
               const isSel = selectedFloors.includes(floor.id)
               const hasAdic = floor.adicional.length>0
               const isPB = floor.id === 'PB'
+              const insKey = `ins-${floorIdx+1}`
               return (
-                <div key={floor.id}
+                <Fragment key={floor.id}>
+                <div
                   onDragOver={e=>onDragOver(e,floor.id)}
                   onDragLeave={()=>setDragTarget(null)}
                   onDrop={e=>{
@@ -549,7 +593,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                     }
                     setDragging(null)
                   }}
-                  style={{display:'grid',gridTemplateColumns:'22px 52px 1fr 90px',borderBottom:isPB?'3px solid var(--text3)':'1px solid var(--border)',background:isTgt?'#eff6ff':isSel?'#f0f9ff':'var(--surface)',outline:isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s'}}
+                  style={{display:'grid',gridTemplateColumns:'22px 52px 1fr 90px 26px',borderBottom:isPB?'3px solid var(--text3)':'1px solid var(--border)',background:isTgt?'#eff6ff':isSel?'#f0f9ff':'var(--surface)',outline:isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s'}}
                 >
                   <div style={{display:'flex',alignItems:'center',justifyContent:'center',paddingTop:4}}>
                     <input type="checkbox" checked={isSel} onChange={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])} style={{width:11,height:11,cursor:'pointer'}}/>
@@ -588,7 +632,8 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                             )
                           })}
                           {avail>0 && (
-                            <div style={{flex:1,minWidth:14,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:isTgt?'var(--accent)':'var(--text4)'}}>
+                            <div onClick={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
+                              style={{flex:1,minWidth:14,background:isSel?'#dbeafe':isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isSel?'var(--accent)':isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:isSel?'var(--accent)':isTgt?'var(--accent)':'var(--text4)',cursor:'pointer'}}>
                               {avail.toLocaleString('es-ES')} m²
                             </div>
                           )}
@@ -641,7 +686,26 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                       </span>
                     )}
                   </div>
+                  <div style={{display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:8}}>
+                    <button onClick={e=>{e.stopPropagation();deleteFloor(floor.id)}} title="Eliminar planta"
+                      style={{width:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',background:'none',border:'1px solid var(--border)',borderRadius:3,fontSize:12,lineHeight:1,cursor:'pointer',color:'var(--text4)',fontFamily:'inherit',padding:0,transition:'all .12s'}}
+                      onMouseEnter={e=>{e.currentTarget.style.background='#fee2e2';e.currentTarget.style.color='#dc2626';e.currentTarget.style.borderColor='#fca5a5'}}
+                      onMouseLeave={e=>{e.currentTarget.style.background='none';e.currentTarget.style.color='var(--text4)';e.currentTarget.style.borderColor='var(--border)'}}>−</button>
+                  </div>
                 </div>
+                {/* Separador insertar entre plantas */}
+                <div onMouseEnter={()=>setHoveredIns(insKey)} onMouseLeave={()=>setHoveredIns(null)}
+                  onClick={()=>insertFloorAt(floorIdx+1)}
+                  style={{height:hoveredIns===insKey?18:4,display:'flex',alignItems:'center',cursor:'pointer',transition:'height .12s',overflow:'hidden',paddingLeft:74}}>
+                  {hoveredIns===insKey && (
+                    <div style={{display:'flex',alignItems:'center',gap:4,flex:1}}>
+                      <div style={{flex:1,height:1,background:'var(--accent-bd)'}}/>
+                      <span style={{fontSize:9,color:'var(--accent)',fontWeight:700,background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:6,padding:'0 7px',lineHeight:'16px',whiteSpace:'nowrap',flexShrink:0}}>+ insertar planta debajo</span>
+                      <div style={{flex:1,height:1,background:'var(--accent-bd)'}}/>
+                    </div>
+                  )}
+                </div>
+                </Fragment>
               )
             })}
 

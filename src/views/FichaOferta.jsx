@@ -145,7 +145,7 @@ export default function FichaOferta() {
   const [supAprox, setSupAprox] = useState(false)
   const [plantaTipo, setPlantaTipo] = useState(2790)
   const [ofertasDesglose, setOfertasDesglose] = useState([
-    { id:1, nombre:'Oferta 1', divisible:true, cargasM2:3.01 },
+    { id:1, nombre:'Oferta 1', divisible:true, supMin:null, cargasM2:3.01, ibiM2:0 },
   ])
   const [nextOfertaId, setNextOfertaId] = useState(2)
   const [editNombreId, setEditNombreId] = useState(null)
@@ -171,7 +171,7 @@ export default function FichaOferta() {
 
   function addOferta() {
     const id = nextOfertaId
-    setOfertasDesglose(prev => [...prev, { id, nombre:`Oferta ${id}`, divisible:divisibleGlobal, cargasM2:3.01 }])
+    setOfertasDesglose(prev => [...prev, { id, nombre:`Oferta ${id}`, divisible:divisibleGlobal, supMin:null, cargasM2:parseFloat(gastosComunes)||0, ibiM2:parseFloat(ibi)||0 }])
     setNextOfertaId(id + 1)
   }
 
@@ -259,7 +259,7 @@ export default function FichaOferta() {
         supabase.from('desglose_ofertas').select('*').eq('oferta_id', ofertaId).order('orden')
           .then(({ data: d }) => {
             if (d?.length > 0) {
-              setOfertasDesglose(d.map(x => ({ id: x.id, nombre: x.nombre, divisible: x.divisible, cargasM2: x.cargas_m2||0 })))
+              setOfertasDesglose(d.map(x => ({ id: x.id, nombre: x.nombre, divisible: x.divisible, supMin: x.sup_min||null, cargasM2: x.cargas_m2||0, ibiM2: x.ibi_m2||0 })))
               setNextOfertaId(d.length + 1)
             }
           })
@@ -352,7 +352,7 @@ export default function FichaOferta() {
       await dbCall(supabase.from('desglose_ofertas').delete().eq('oferta_id', ofertaId)).catch(() => {})
       if (ofertasDesglose.length > 0) {
         await dbCall(supabase.from('desglose_ofertas').insert(
-          ofertasDesglose.map((d, i) => ({ oferta_id: ofertaId, nombre: d.nombre, divisible: d.divisible, cargas_m2: d.cargasM2 || 0, orden: i }))
+          ofertasDesglose.map((d, i) => ({ oferta_id: ofertaId, nombre: d.nombre, divisible: d.divisible, sup_min: d.supMin || null, cargas_m2: d.cargasM2 || 0, ibi_m2: d.ibiM2 || 0, orden: i }))
         )).catch(() => {})
       }
 
@@ -770,7 +770,7 @@ export default function FichaOferta() {
                           </div>
                           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
                             <thead><tr>
-                              {['Nombre área','Sup. asignada','¿Divisible?','Gastos €/m²','Fecha disp.','Plantas asignadas',''].map(h =>
+                              {['Nombre área','Sup. asignada','Divisible','Sup. mín.','Gastos €/m²','IBI €/m²','Fecha disp.','Plantas asignadas',''].map(h =>
                                 <th key={h} style={{ padding:'6px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap' }}>{h}</th>
                               )}
                             </tr></thead>
@@ -794,8 +794,21 @@ export default function FichaOferta() {
                                       }
                                     </td>
                                     <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600 }}>{assignedSup>0?assignedSup.toLocaleString()+' m²':<span style={{ color:'var(--text4)' }}>—</span>}</td>
-                                    <td style={{ padding:'7px 12px' }}><span style={{ fontSize:10, fontWeight:600, color:o.divisible?'var(--green)':'var(--red)' }}>{o.divisible?'Sí':'No'}</span></td>
+                                    <td style={{ padding:'7px 12px' }}>
+                                      <label style={{ display:'flex', alignItems:'center', gap:5, cursor:'pointer' }}>
+                                        <input type="checkbox" checked={!!o.divisible} onChange={() => setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,divisible:!x.divisible,supMin:!x.divisible?x.supMin:null}:x))} style={{ accentColor:'var(--accent)', cursor:'pointer' }} />
+                                        <span style={{ fontSize:10, fontWeight:600, color:o.divisible?'var(--green)':'var(--text4)' }}>{o.divisible?'Sí':'No'}</span>
+                                      </label>
+                                    </td>
+                                    <td style={{ padding:'6px 12px' }}>
+                                      {o.divisible
+                                        ? <input type="number" value={o.supMin||''} onChange={e => setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,supMin:parseFloat(e.target.value)||null}:x))}
+                                            placeholder="m² mín." style={{ width:72, padding:'3px 6px', fontSize:10, border:'1px solid var(--border)', borderRadius:4, fontFamily:'var(--mono)', background:'var(--surface)' }} />
+                                        : <span style={{ color:'var(--text4)', fontSize:10 }}>Total</span>
+                                      }
+                                    </td>
                                     <td style={{ padding:'7px 12px', color:'var(--text3)' }}>{o.cargasM2} €</td>
+                                    <td style={{ padding:'7px 12px', color:'var(--text3)' }}>{o.ibiM2>0?`${o.ibiM2} €`:<span style={{ color:'var(--text4)' }}>—</span>}</td>
                                     <td style={{ padding:'7px 12px', color:'var(--text3)', whiteSpace:'nowrap' }}>{fechaDispGlobal?new Date(fechaDispGlobal).toLocaleDateString('es-ES'):'—'}</td>
                                     <td style={{ padding:'7px 12px' }}>
                                       {assignedSpaces.length>0
@@ -814,7 +827,7 @@ export default function FichaOferta() {
                                   </tr>
                                 )
                               })}
-                              {ofertasDesglose.length===0 && <tr><td colSpan={7} style={{ padding:18, textAlign:'center', color:'var(--text4)', fontSize:11, fontStyle:'italic' }}>Sin áreas. Pulsa "+ Agregar".</td></tr>}
+                              {ofertasDesglose.length===0 && <tr><td colSpan={9} style={{ padding:18, textAlign:'center', color:'var(--text4)', fontSize:11, fontStyle:'italic' }}>Sin áreas. Pulsa "+ Agregar".</td></tr>}
                             </tbody>
                           </table>
                           <div style={{ padding:'7px 14px', background:'var(--accent-lt)', borderTop:'1px solid var(--accent-bd)', fontSize:10, color:'var(--accent)' }}>
@@ -976,7 +989,7 @@ export default function FichaOferta() {
                         </div>
                         <div>
                           <FieldLbl>IBI (€/m²/mes)</FieldLbl>
-                          <input type="number" step="0.01" className="of-inp" value={ibi} onChange={e => setIbi(e.target.value)} placeholder="0,00" />
+                          <input type="number" step="0.01" className="of-inp" value={ibi} onChange={e => { const v = e.target.value; setIbi(v); setOfertasDesglose(prev => prev.map(o => ({ ...o, ibiM2: parseFloat(v) || 0 }))) }} placeholder="0,00" />
                         </div>
                         <label style={{ display:'flex', alignItems:'flex-start', gap:8, padding:'9px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', cursor:'pointer' }}>
                           <input type="checkbox" checked={gastosIncluidos} onChange={e => setGastosIncluidos(e.target.checked)} style={{ accentColor:'var(--accent)', marginTop:1 }} />
