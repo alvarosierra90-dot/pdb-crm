@@ -195,10 +195,10 @@ const NewBldgForm = memo(function NewBldgForm({ form, onChange, onCreate, onCanc
   )
 })
 
-export default function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal', defaultSupPlantaTipo }) {
+export default function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal', defaultSupPlantaTipo, defaultLabel='' }) {
   const [buildings, setBuildings]       = useState(initBuildings ?? [])
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
-  const [setupForm, setSetupForm]       = useState({ label:'', sobre:'5', bajo:'1', sup: defaultSupPlantaTipo ? String(defaultSupPlantaTipo) : '1500', uso:'' })
+  const [setupForm, setSetupForm]       = useState({ label: defaultLabel, sobre:'5', bajo:'1', sup: defaultSupPlantaTipo ? String(defaultSupPlantaTipo) : '1500', uso:'' })
   const setupFormRef = useRef(setupForm)
   setupFormRef.current = setupForm
   const [view, setView]                 = useState(initView)

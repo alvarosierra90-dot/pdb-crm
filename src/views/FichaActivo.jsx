@@ -3842,6 +3842,7 @@ export default function FichaActivo() {
                 key={isNew ? 'new-activo' : loadingActivo ? '__loading__' : (activo?.ref || params?.ref || 'stacking')}
                 initBuildings={isNew ? [] : (activo?.stacking_data?.length > 0 ? activo.stacking_data : [])}
                 defaultSupPlantaTipo={isNew ? (newForm.sup_planta_tipo ? parseFloat(newForm.sup_planta_tipo) : undefined) : (activo?.sup_planta_tipo || undefined)}
+                defaultLabel={isNew ? (newForm.nombre || newForm.direccion || '') : (activo?.nombre || activo?.direccion || '')}
                 onCountChange={setLiveEdifCount}
                 onOwnersChange={setLiveOwnerCount}
                 onBuildingsChange={(blds) => {
