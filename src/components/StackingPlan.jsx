@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useCallback } from 'react'
+import { useState, useEffect, useRef, memo, useCallback } from 'react'
 
 export const USOS_PPAL = [
   {id:'oficinas',    label:'Oficinas',    cls:'u-of',  color:'#3b82f6', bg:'#dbeafe', bd:'#93c5fd'},
@@ -199,6 +199,8 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
   const [setupForm, setSetupForm]       = useState({ label:'', sobre:'5', bajo:'1', sup:'1500', uso:'' })
+  const setupFormRef = useRef(setupForm)
+  setupFormRef.current = setupForm
   const [view, setView]                 = useState(initView)
   const [dragging, setDragging]         = useState(null)
   const [dragTarget, setDragTarget]     = useState(null)
@@ -376,22 +378,20 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
   })
 
   const createFirstBuilding = useCallback(() => {
-    setSetupForm(form => {
-      const label = form.label.trim() || 'Edificio A'
-      const sobre = Math.max(1, parseInt(form.sobre) || 1)
-      const bajo  = Math.max(0, parseInt(form.bajo)  || 0)
-      const sup   = Math.max(100, parseFloat(form.sup) || 1000)
-      const uso   = form.uso
-      const mkFloor = (id) => ({id, sup, principal: uso ? [{uso, sup}] : [], adicional: []})
-      const floors = []
-      for (let i = sobre; i >= 1; i--) floors.push(mkFloor(`P${i}`))
-      floors.push(mkFloor('PB'))
-      for (let i = 1; i <= bajo; i++) floors.push(mkFloor(`S${i}`))
-      const id = 'A'
-      setBuildings([{ id, label, supPlantaTipo: sup, floors, prop: floors.map(f=>({p:f.id,sup,units:[]})), arr: floors.map(f=>({p:f.id,sup,units:[]})) }])
-      setEdifId(id)
-      return form
-    })
+    const form  = setupFormRef.current
+    const label = form.label.trim() || 'Edificio A'
+    const sobre = Math.max(1, parseInt(form.sobre) || 1)
+    const bajo  = Math.max(0, parseInt(form.bajo)  || 0)
+    const sup   = Math.max(100, parseFloat(form.sup) || 1000)
+    const uso   = form.uso
+    const mkFloor = (id) => ({id, sup, principal: uso ? [{uso, sup}] : [], adicional: []})
+    const floors = []
+    for (let i = sobre; i >= 1; i--) floors.push(mkFloor(`P${i}`))
+    floors.push(mkFloor('PB'))
+    for (let i = 1; i <= bajo; i++) floors.push(mkFloor(`S${i}`))
+    const id = 'A'
+    setBuildings([{ id, label, supPlantaTipo: sup, floors, prop: floors.map(f=>({p:f.id,sup,units:[]})), arr: floors.map(f=>({p:f.id,sup,units:[]})) }])
+    setEdifId(id)
   }, [])
 
   if (buildings.length === 0) return (

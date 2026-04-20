@@ -1629,7 +1629,7 @@ const MOCK_MEDIA = [
 ]
 
 function TabMultimedia() {
-  const [media, setMedia]       = useState(MOCK_MEDIA)
+  const [media, setMedia]       = useState([])
   const [filter, setFilter]     = useState('todos')
   const [dragging, setDragging] = useState(false)
   const [uploadMode, setUpload] = useState(false)
@@ -3515,14 +3515,9 @@ export default function FichaActivo() {
   const [showTarea, setShowTarea]       = useState(false)
   const [showNuevoProp, setShowNuevoProp] = useState(false)
   const [showNuevoArr,  setShowNuevoArr]  = useState(false)
-  const [propietariosReg, setPropietariosReg] = useState([
-    { id:'PRO-001', propietario:'Barings Core Spain SOCIMI', perfil:'Fondo inversión', sba:'46.956', yield_pct:'5.2', precio_compra:'130 M€', anyo_compra:'2018', trimestre:'Q2' },
-  ])
-  const [arrendatariosReg, setArrendatariosReg] = useState([
-    { id:'ARR-001', tenant:'Celonis',  uso:'Oficinas', sup:2702,  closing_rent:'14,50', break_option:'Oct 2025', fecha_fin:'Oct 2026', anyo_firma:'2021', trimestre:'Q3' },
-    { id:'ARR-002', tenant:'Repsol',   uso:'Oficinas', sup:1967,  closing_rent:'13,80', break_option:'Jun 2027', fecha_fin:'Jun 2029', anyo_firma:'2022', trimestre:'Q1' },
-  ])
-  const [plazas, setPlazas]             = useState(INIT_PLAZAS)
+  const [propietariosReg, setPropietariosReg] = useState([])
+  const [arrendatariosReg, setArrendatariosReg] = useState([])
+  const [plazas, setPlazas]             = useState([])
   const [showAddPlaza, setShowAddPlaza] = useState(false)
   const [newPlaza, setNewPlaza]         = useState({ubicacion:'Interior',tipo:'Simple',vehiculo:'Coches',cantidad:1})
   // ESG / Normativa
@@ -3531,11 +3526,7 @@ export default function FichaActivo() {
   const [catSyncAd, setCatSyncAd]     = useState(false)
   const [catSyncMsgAd, setCatSyncMsgAd] = useState('')
   // Transporte
-  const [transportes, setTransportes] = useState([
-    {id:1, medio:'Metro', linea:'L7', descripcion:'Estadio Olímpico', tiempo:'5 min'},
-    {id:2, medio:'Autobús', linea:'23, 37, 140', descripcion:'', tiempo:''},
-    {id:3, medio:'Coche', linea:'', descripcion:'M-30 · A-2', tiempo:''},
-  ])
+  const [transportes, setTransportes] = useState([])
   const [showAddTransp, setShowAddTransp] = useState(false)
   const [newTransp, setNewTransp] = useState({medio:'Metro', linea:'', descripcion:'', tiempo:''})
   // Características generales { fieldId: { opcion:'', texto:'' } }
@@ -3637,10 +3628,12 @@ export default function FichaActivo() {
 
   const saveStackingData = async () => {
     const blds = liveStackingRef.current
-    if (!blds || !activo?.ref) return
+    if (!blds) { console.warn('saveStackingData: no buildings data'); return }
+    if (!activo?.ref) { console.warn('saveStackingData: no activo ref'); return }
 
     // 1. Save visual stacking to activo
-    await supabase.from('activos').update({ stacking_data: blds }).eq('ref', activo.ref)
+    const { error: stackErr } = await supabase.from('activos').update({ stacking_data: blds }).eq('ref', activo.ref)
+    if (stackErr) { alert('Error guardando stacking: ' + stackErr.message); return }
 
     // 2. If we came from a specific offer, sync asignaciones_stacking
     const ofertaId = params?.ofertaId
