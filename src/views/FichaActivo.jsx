@@ -3639,8 +3639,39 @@ export default function FichaActivo() {
   const [showTarea, setShowTarea]       = useState(false)
   const [showNuevoProp, setShowNuevoProp] = useState(false)
   const [showNuevoArr,  setShowNuevoArr]  = useState(false)
-  const [propietariosReg, setPropietariosReg] = useState([])
+  const [showSubstConfirm, setShowSubstConfirm] = useState(false)
+  const [propietariosReg, setPropietariosReg] = useState(
+    params?.newOwnerData ? [params.newOwnerData] : []
+  )
+  const [propietariosHist, setPropietariosHist] = useState(
+    params?.substituteOwner && params?.previousOwner
+      ? [{ propietario: params.previousOwner, fecha_salida: new Date().toLocaleDateString('es-ES'), id: `HIST-${Date.now()}` }]
+      : []
+  )
   const [arrendatariosReg, setArrendatariosReg] = useState([])
+
+  const navigateToFichaProp = (substituteOwner = false) => {
+    const previousOwner = propietariosReg[0]?.propietario || activo?.propietario || null
+    navigate('ficha-propietario', {
+      fromActivoRef: activo?.ref || params?.ref,
+      fromActivoNombre: activo?.nombre || '',
+      fromActivoZona: activo?.zona || '',
+      fromActivoUso: activo?.uso || '',
+      fromActivoSba: activo?.sba || 0,
+      substituteOwner,
+      previousOwner: substituteOwner ? previousOwner : null,
+    })
+  }
+
+  const handleAddOwner = () => {
+    const hasOwner = propietariosReg.length > 0 || activo?.propietario
+    if (hasOwner) {
+      setShowSubstConfirm(true)
+    } else {
+      navigateToFichaProp(false)
+    }
+  }
+
   const [plazas, setPlazas]             = useState([])
   const [showAddPlaza, setShowAddPlaza] = useState(false)
   const [newPlaza, setNewPlaza]         = useState({ubicacion:'Interior',tipo:'Simple',vehiculo:'Coches',cantidad:1})
@@ -3975,10 +4006,10 @@ export default function FichaActivo() {
                 activoPropietario={activo?.propietario || ''}
                 extraOwners={propietariosReg.map(p=>p.propietario)}
                 extraTenants={arrendatariosReg.map(a=>a.tenant)}
-                onAddOwner={()=>setShowNuevoProp(true)}
+                onAddOwner={handleAddOwner}
                 onAddTenant={()=>setShowNuevoArr(true)}
                 extraOfertas={params?.ofertasFromOferta || []}
-                initView={params?.stackingView || 'principal'}
+                initView={params?.newOwnerData ? 'prop' : (params?.stackingView || 'principal')}
               />
             </div>
           </div>
@@ -4369,13 +4400,13 @@ export default function FichaActivo() {
                 {/* PROPIETARIOS */}
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                   <div style={{fontSize:13,fontWeight:700,letterSpacing:'.01em',color:'var(--text1)'}}>PROPIETARIOS</div>
-                  <button className="ab-btn blue" onClick={()=>setShowNuevoProp(true)}>+ Nuevo propietario</button>
+                  <button className="ab-btn blue" onClick={handleAddOwner}>+ Nuevo propietario</button>
                 </div>
-                <table className="pat-table" style={{marginBottom:20}}>
+                <table className="pat-table" style={{marginBottom:8}}>
                   <thead><tr><th>Perfil</th><th>Propietario</th><th>SBA</th><th>Yield</th><th>Precio compra</th><th>Año compra</th><th>Trim.</th><th></th></tr></thead>
                   <tbody>
                     {propietariosReg.map(p=>(
-                      <tr key={p.id}>
+                      <tr key={p.id} style={{cursor:'pointer'}} onClick={()=>navigate('ficha-propietario',{ownerData:p})}>
                         <td>{p.perfil||'—'}</td>
                         <td><span className="pat-link">{p.propietario}</span></td>
                         <td>{p.sba ? Number(p.sba).toLocaleString('es-ES') : (activo?.sba?.toLocaleString('es-ES')||'—')}</td>
@@ -4383,12 +4414,32 @@ export default function FichaActivo() {
                         <td>{p.precio_compra||'—'}</td>
                         <td>{p.anyo_compra||'—'}</td>
                         <td>{p.trimestre && <span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>{p.trimestre}</span>}</td>
-                        <td><button className="ra" onClick={()=>navigate('ficha-propietario')}>Ver</button></td>
+                        <td><button className="ra" onClick={e=>{e.stopPropagation();navigate('ficha-propietario',{ownerData:p})}}>↗ Ver</button></td>
                       </tr>
                     ))}
                     {propietariosReg.length===0 && <tr><td colSpan={8} style={{textAlign:'center',color:'var(--text4)',fontSize:12,padding:16}}>Sin propietarios — añade uno con el botón</td></tr>}
                   </tbody>
                 </table>
+
+                {/* HISTÓRICO PROPIETARIOS */}
+                {propietariosHist.length > 0 && (
+                  <div style={{marginBottom:20}}>
+                    <div style={{fontSize:11,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Histórico</div>
+                    <table className="pat-table">
+                      <thead><tr><th>Propietario</th><th>Fecha salida</th><th>Estado</th></tr></thead>
+                      <tbody>
+                        {propietariosHist.map(h=>(
+                          <tr key={h.id} style={{opacity:.7}}>
+                            <td>{h.propietario}</td>
+                            <td style={{fontFamily:'var(--mono)',fontSize:11}}>{h.fecha_salida||'—'}</td>
+                            <td><span style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#fee2e2',color:'#dc2626',border:'1px solid #fca5a5',fontWeight:600}}>Anterior</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {propietariosHist.length === 0 && <div style={{marginBottom:20}}/>}
 
                 {/* ARRENDATARIOS */}
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
@@ -4736,15 +4787,29 @@ export default function FichaActivo() {
 
       </div>{/* /ficha-wrap */}
       {showTarea && <AsignarTareaModal refTipo="Activo" refNombre="P.E Avalon" onClose={() => setShowTarea(false)} />}
-      {showNuevoProp && (
-        <NuevoPropietarioModal
-          activo={activo}
-          onClose={()=>setShowNuevoProp(false)}
-          onSave={data=>{
-            setPropietariosReg(p=>[...p, data])
-            setShowNuevoProp(false)
-          }}
-        />
+      {showSubstConfirm && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div style={{background:'var(--surface)',borderRadius:'var(--r2)',width:'100%',maxWidth:440,boxShadow:'0 20px 60px rgba(0,0,0,.3)',overflow:'hidden'}}>
+            <div style={{padding:'16px 20px',borderBottom:'1px solid var(--border)'}}>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>Cambio de propietario</div>
+              <div style={{fontSize:12,color:'var(--text3)',lineHeight:1.6}}>
+                ¿Deseas sustituir el propietario actual?
+                {(propietariosReg[0]?.propietario || activo?.propietario) && (
+                  <span style={{display:'block',marginTop:6,padding:'6px 10px',background:'var(--gray-lt)',borderRadius:5,fontWeight:600,color:'var(--text2)'}}>
+                    Propietario actual: {propietariosReg[0]?.propietario || activo?.propietario}
+                  </span>
+                )}
+                <span style={{display:'block',marginTop:8,color:'var(--text4)',fontSize:11}}>
+                  El propietario anterior pasará al historial con fecha de salida de hoy.
+                </span>
+              </div>
+            </div>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end',padding:'12px 20px'}}>
+              <button onClick={()=>setShowSubstConfirm(false)} style={{padding:'7px 16px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>Cancelar</button>
+              <button onClick={()=>{setShowSubstConfirm(false);navigateToFichaProp(true)}} style={{padding:'7px 20px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Continuar →</button>
+            </div>
+          </div>
+        </div>
       )}
       {showNuevoArr && (
         <NuevoArrendatarioModal

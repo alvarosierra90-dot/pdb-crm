@@ -60,46 +60,48 @@ const LOG_INIT = [
 ]
 
 export default function FichaPropietario() {
-  const { navigate } = useNav()
+  const { navigate, params } = useNav()
+  const fromActivo = !!(params?.fromActivoRef)
   const [tab, setTab] = useState('datos')
   const [hist] = useState(HIST_INIT)
   const [log]  = useState(LOG_INIT)
   const [showTarea, setShowTarea] = useState(false)
+  const [saveErr, setSaveErr] = useState('')
   const [usos, setUsos] = useState(['Oficinas','Logístico / Industrial'])
   const toggleUso = (u) => setUsos(prev => prev.includes(u) ? prev.filter(x=>x!==u) : [...prev,u])
 
   const [form, setForm] = useState({
     // Identificación
-    id: 'PRO-2501',
-    propietario: 'Merlín Properties SOCIMI',
+    id: fromActivo ? `PRO-${Date.now()}` : 'PRO-2501',
+    propietario: fromActivo ? '' : 'Merlín Properties SOCIMI',
     cif: 'A-86305997',
     tipo_entidad: 'SOCIMI',
     pais: 'España',
-    ciudad_sede: 'Madrid',
+    ciudad_sede: fromActivo ? '' : 'Madrid',
     estado: 'Activo',
     perfil: 'Core',
-    asset_manager: 'Merlín Properties SOCIMI',
-    responsable: 'Sierra Alvaro',
-    email: 'ir@merlin-properties.com',
-    telefono: '+34 91 769 99 00',
-    contacto_principal: 'Ismael Clemente (CEO)',
-    observaciones: 'SOCIMI cotizada en BME. Foco en oficinas, logística y centros comerciales en España y Portugal.',
+    asset_manager: fromActivo ? '' : 'Merlín Properties SOCIMI',
+    responsable: '',
+    email: fromActivo ? '' : 'ir@merlin-properties.com',
+    telefono: fromActivo ? '' : '+34 91 769 99 00',
+    contacto_principal: fromActivo ? '' : 'Ismael Clemente (CEO)',
+    observaciones: '',
 
     // Activo vinculado
-    activo: 'P.E Avalon',
-    zona: 'M-30',
-    subzona: 'Julián Camarillo',
-    superficie: '46956',
-    uso: 'Oficinas',
-    area: 'Descentralizado',
+    activo: fromActivo ? (params?.fromActivoNombre || '') : 'P.E Avalon',
+    zona: fromActivo ? (params?.fromActivoZona || '') : 'M-30',
+    subzona: '',
+    superficie: fromActivo ? String(params?.fromActivoSba || '') : '46956',
+    uso: fromActivo ? (params?.fromActivoUso || '') : 'Oficinas',
+    area: '',
     tipologia: 'Asset deal',
-    anyo_compra: '2018',
-    trimestre: 'Q3',
-    precio_compra: '130 M€',
+    anyo_compra: fromActivo ? '' : '2018',
+    trimestre: fromActivo ? 'Q1' : 'Q3',
+    precio_compra: '',
     estado_activo: 'Ocupado',
     regimen: 'Propiedad 100%',
-    valoracion_actual: '145 M€',
-    plusvalia_latente: '+15 M€',
+    valoracion_actual: '',
+    plusvalia_latente: '',
 
     // Condiciones inversión
     cap_rate: '5.1',
@@ -139,17 +141,60 @@ export default function FichaPropietario() {
       })()
     : '—'
 
+  const handleSaveFromActivo = () => {
+    setSaveErr('')
+    if (!form.propietario.trim()) { setSaveErr('El nombre del propietario es obligatorio'); return }
+    if (!form.anyo_compra) { setSaveErr('El año de compra es obligatorio'); return }
+    if (!form.trimestre)   { setSaveErr('El trimestre es obligatorio'); return }
+    const ownerData = {
+      id: form.id,
+      propietario: form.propietario,
+      activo: form.activo,
+      activo_ref: params?.fromActivoRef || '',
+      zona: form.zona,
+      uso: form.uso,
+      sba: form.superficie ? parseFloat(form.superficie) : 0,
+      tipologia: form.tipologia,
+      anyo_compra: form.anyo_compra,
+      trimestre: form.trimestre,
+      precio_compra: form.precio_compra,
+      regimen: form.regimen,
+      perfil: form.perfil,
+      cap_rate: form.cap_rate,
+      yield_pct: form.yield,
+      estrategia: form.estrategia,
+      estado: form.estado,
+    }
+    navigate('ficha-activo', {
+      ref: params?.fromActivoRef,
+      tab: 'at-stacking',
+      newOwnerData: ownerData,
+      substituteOwner: params?.substituteOwner || false,
+      previousOwner: params?.previousOwner || null,
+    })
+  }
+
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
       <div className="action-bar">
-        <button className="ab-btn save">💾 Guardar</button>
-        <button className="ab-btn">Nuevo</button>
-        <button className="ab-btn" style={{color:'var(--amber)'}}>Desactivar</button>
-        <div className="ab-sep"/>
-        <button className="ab-btn blue" onClick={()=>navigate('ficha-activo')}>🏢 Ver activo</button>
-        <button className="ab-btn blue" onClick={()=>navigate('ficha-arrendatario')}>🔑 Ver arrendatarios</button>
-        <button className="ab-btn blue" onClick={()=>navigate('mandatos')}>📄 Mandatos</button>
-        <button className="ab-btn" onClick={()=>navigate('propietarios')}>← Volver</button>
+        {fromActivo ? (
+          <>
+            <button className="ab-btn save" onClick={handleSaveFromActivo}>💾 Guardar propietario</button>
+            <button className="ab-btn" onClick={()=>navigate('ficha-activo',{ref:params?.fromActivoRef,tab:'at-stacking'})}>← Volver al activo</button>
+            {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
+          </>
+        ) : (
+          <>
+            <button className="ab-btn save">💾 Guardar</button>
+            <button className="ab-btn">Nuevo</button>
+            <button className="ab-btn" style={{color:'var(--amber)'}}>Desactivar</button>
+            <div className="ab-sep"/>
+            <button className="ab-btn blue" onClick={()=>navigate('ficha-activo')}>🏢 Ver activo</button>
+            <button className="ab-btn blue" onClick={()=>navigate('ficha-arrendatario')}>🔑 Ver arrendatarios</button>
+            <button className="ab-btn blue" onClick={()=>navigate('mandatos')}>📄 Mandatos</button>
+            <button className="ab-btn" onClick={()=>navigate('propietarios')}>← Volver</button>
+          </>
+        )}
         <div className="ab-sep"/>
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
         {(()=>{
@@ -234,6 +279,19 @@ export default function FichaPropietario() {
       {/* Header */}
       <div className="ficha-wrap" style={{overflow:'auto'}}>
         <div className="ficha-main" style={{minWidth:0}}>
+
+          {fromActivo && (
+            <div style={{padding:'8px 14px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'var(--r)',marginBottom:12,display:'flex',alignItems:'center',gap:8,fontSize:11,color:'#1e40af'}}>
+              <span style={{fontWeight:700}}>Nuevo propietario</span>
+              <span style={{color:'#3b82f6'}}>·</span>
+              Activo: <strong>{params?.fromActivoNombre || params?.fromActivoRef}</strong>
+              {params?.substituteOwner && params?.previousOwner && (
+                <span style={{marginLeft:8,padding:'2px 8px',background:'#fef9c3',border:'1px solid #fde047',borderRadius:8,color:'#92400e',fontWeight:600,fontSize:10}}>
+                  Sustitución de: {params.previousOwner}
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="ah">
             <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
