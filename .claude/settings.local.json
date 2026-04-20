@@ -20,7 +20,8 @@
       "Bash(pip install:*)",
       "Bash(ls /c/Users/alvar/pdb-crm/*.docx)",
       "Bash(ls /c/Users/alvar/pdb-crm/*.html)",
-      "Bash(npx --no-install vite build --mode development)"
+      "Bash(npx --no-install vite build --mode development)",
+      "Bash(gh run:*)"
     ]
   }
 }
