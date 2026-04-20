@@ -196,7 +196,16 @@ const NewBldgForm = memo(function NewBldgForm({ form, onChange, onCreate, onCanc
 })
 
 export default function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, onTenantClick, extraOfertas=[], initView='principal', defaultSupPlantaTipo, defaultLabel='', allowCreate=true, noDataMessage=null }) {
-  const [buildings, setBuildings]       = useState(initBuildings ?? [])
+  const [buildings, setBuildings]       = useState(() =>
+    (initBuildings ?? []).map(b => ({
+      ...b,
+      floors: (b.floors||[]).map(f => ({
+        ...f,
+        principal: f.principal || [],
+        adicional: f.adicional || [],
+      }))
+    }))
+  )
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
   const [setupForm, setSetupForm]       = useState({ label: defaultLabel, sobre:'5', bajo:'1', sup: defaultSupPlantaTipo ? String(defaultSupPlantaTipo) : '1500', uso:'' })
   const setupFormRef = useRef(setupForm)
@@ -263,15 +272,16 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
     if(!ua) return
     updBuilding(b=>({...b, floors:b.floors.map(f=>{
       if(f.id!==floorId) return f
-      if(f.adicional.find(a=>a.uso===usoId)) return f
-      return {...f, adicional:[...f.adicional,{uso:usoId,label:ua.label,sup:ua.sup?100:0,attr:ua.attr||false}]}
+      const prevAdic = f.adicional || []
+      if(prevAdic.find(a=>a.uso===usoId)) return f
+      return {...f, adicional:[...prevAdic,{uso:usoId,label:ua.label,sup:ua.sup?100:0,attr:ua.attr||false}]}
     })}))
   }
 
   const removeItem = (floorId, idx, layer) => {
     updBuilding(b=>({...b, floors:b.floors.map(f=>{
       if(f.id!==floorId) return f
-      const arr=[...f[layer]]; arr.splice(idx,1)
+      const arr=[...(f[layer]||[])]; arr.splice(idx,1)
       return {...f,[layer]:arr}
     })}))
   }
@@ -317,7 +327,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
     if(isNaN(val)||val<=0) return
     updBuilding(b=>({...b, floors:b.floors.map(f=>{
       if(f.id!==editFloor.floorId) return f
-      const arr=[...f[editFloor.layer]]
+      const arr=[...(f[editFloor.layer]||[])]
       arr[editFloor.idx]={...arr[editFloor.idx],sup:val}
       return {...f,[editFloor.layer]:arr}
     })}))
@@ -557,12 +567,12 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
             {(()=>{
               const maxFloorSup = Math.max(...edif.floors.map(f=>f.sup), 1)
               return edif.floors.map((floor, floorIdx) => {
-              const barH = Math.max(28, Math.round((floor.sup / maxFloorSup) * 56))
-              const used  = floor.principal.reduce((s,u)=>s+u.sup,0)
+              const barH = Math.max(12, Math.round((floor.sup / maxFloorSup) * 56))
+              const used  = (floor.principal||[]).reduce((s,u)=>s+u.sup,0)
               const avail = floor.sup-used
               const isTgt = dragTarget===floor.id
               const isSel = selectedFloors.includes(floor.id)
-              const hasAdic = floor.adicional.length>0
+              const hasAdic = (floor.adicional||[]).length>0
               const isPB = floor.id === 'PB'
               return (
                 <div key={floor.id}
@@ -647,7 +657,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                     </div>
                     {hasAdic && (
                       <div style={{display:'flex',flexWrap:'wrap',gap:3,paddingBottom:4}}>
-                        {floor.adicional.map((ua,i)=>{
+                        {(floor.adicional||[]).map((ua,i)=>{
                           const info = uaInfo(ua.uso)
                           const isEd = editFloor?.floorId===floor.id&&editFloor?.idx===i&&editFloor?.layer==='adicional'
                           return (
@@ -765,7 +775,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
-                const barH = Math.max(30, Math.round((floor.sup / maxFloorSup) * 60))
+                const barH = Math.max(12, Math.round((floor.sup / maxFloorSup) * 60))
                 const propRow = (edif.prop||[]).find(r=>r.p===floor.id)
                 const units    = propRow?.units || []
                 const rowSup   = propRow?.sup ?? floor.sup
@@ -927,7 +937,7 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                 <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
-                const barH = Math.max(38, Math.round((floor.sup / maxFloorSup) * 70))
+                const barH = Math.max(14, Math.round((floor.sup / maxFloorSup) * 70))
                 const arrRow  = (edif.arr||[]).find(r=>r.p===floor.id)
                 const units   = arrRow?.units || []
                 const rowSup  = arrRow?.sup ?? floor.sup
