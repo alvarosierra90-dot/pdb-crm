@@ -633,15 +633,14 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                     }
                   </div>
                   <div style={{padding:'4px 4px 4px 0',display:'flex',flexDirection:'column',gap:4}}>
-                    {/* Track: ancho fijo, relleno proporcional a superficie */}
-                    <div style={{height:barH,borderRadius:4,overflow:'hidden',background:isTgt?'var(--accent-lt)':isSel?'#dbeafe':'var(--gray-lt)',border:`1px solid ${isSel||isTgt?'var(--accent)':'var(--border)'}`,position:'relative'}}>
+                    {/* Track: mismo ancho siempre. Fill coloreado proporcional al largo (superficie) */}
+                    <div style={{height:barH,borderRadius:4,overflow:'hidden',background:isTgt?'var(--accent-lt)':isSel?'#dbeafe':'#e5e7eb',border:`1px solid ${isSel||isTgt?'var(--accent)':'var(--border)'}`,display:'flex',alignItems:'stretch'}}>
                       {floor.principal.length===0 ? (
-                        <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isSel?'var(--accent)':isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt||isSel?600:400}}>
+                        <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isSel?'var(--accent)':isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt||isSel?600:400}}>
                           {isTgt?'⬇ Soltar uso aquí':isSel?'✓ Seleccionada — arrastra un uso':'Clic para seleccionar · arrastra un uso'}
                         </div>
                       ) : (
-                        /* Fill: proporcional a floor.sup / maxFloorSup */
-                        <div style={{position:'absolute',left:0,top:0,bottom:0,width:barW,display:'flex',alignItems:'stretch',gap:2,overflow:'hidden'}}>
+                        <div style={{width:barW,flexShrink:0,display:'flex',alignItems:'stretch',gap:2,overflow:'hidden'}}>
                           {floor.principal.map((u,i)=>{
                             const info = usoInfo(u.uso)
                             const wpct = `${(u.sup/floor.sup)*100}%`
@@ -667,8 +666,8 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                             )
                           })}
                           {avail>0 && (
-                            <div style={{flex:1,minWidth:14,background:isSel?'#dbeafe':'#f1f5f9',border:`1px dashed ${isSel?'var(--accent)':'var(--border)'}`,borderRadius:2,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:isSel?'var(--accent)':'var(--text4)'}}>
-                              {isSel?'✓':''} {avail.toLocaleString('es-ES')} m²
+                            <div style={{flex:1,minWidth:14,background:'#f1f5f9',border:`1px dashed var(--border)`,borderRadius:2,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:'var(--text4)'}}>
+                              {avail.toLocaleString('es-ES')} m²
                             </div>
                           )}
                         </div>
@@ -847,13 +846,13 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                           {floor.principal.map((u,i)=>{const info=usoInfo(u.uso);return <div key={i} style={{width:`${(u.sup/floor.sup)*100}%`,background:info.color,flexShrink:0}}/>})}
                         </div>
                       )}
-                      <div style={{height:barH,borderRadius:4,overflow:'hidden',background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px solid ${isTgt?'var(--accent)':'var(--border)'}`,position:'relative'}}>
+                      <div style={{height:barH,borderRadius:4,overflow:'hidden',background:isTgt?'var(--accent-lt)':'#e5e7eb',border:`1px solid ${isTgt?'var(--accent)':'var(--border)'}`,display:'flex',alignItems:'stretch'}}>
                         {isEmpty ? (
-                          <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',gap:5}}>
+                          <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',gap:5}}>
                             {isTgt?'⬇ Soltar propietario':'Sin propietario asignado — arrastra aquí'}
                           </div>
                         ) : (
-                          <div style={{position:'absolute',left:0,top:0,bottom:0,width:barW,display:'flex',alignItems:'stretch',gap:2,overflow:'hidden'}}>
+                          <div style={{width:barW,flexShrink:0,display:'flex',alignItems:'stretch',gap:2,overflow:'hidden'}}>
                             {units.map((u,i)=>{
                               const col = ownerColor(u.n)
                               const wpct = `${(u.sup/rowSup)*100}%`
@@ -1033,13 +1032,13 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                           {floor.principal.map((u,i)=>{const info=usoInfo(u.uso);return <div key={i} style={{width:`${(u.sup/floor.sup)*100}%`,background:info.color,flexShrink:0}}/>})}
                         </div>
                       )}
-                      <div style={{height:barH,borderRadius:4,overflow:'hidden',background:dropWarning===floor.id?'#fff1f2':isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px solid ${dropWarning===floor.id?'#fca5a5':isTgt?'var(--accent)':'var(--border)'}`,position:'relative'}}>
+                      <div style={{height:barH,borderRadius:4,overflow:'hidden',background:dropWarning===floor.id?'#fff1f2':isTgt?'var(--accent-lt)':'#e5e7eb',border:`1px solid ${dropWarning===floor.id?'#fca5a5':isTgt?'var(--accent)':'var(--border)'}`,display:'flex',alignItems:'stretch'}}>
                         {isEmpty ? (
-                          <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',gap:5}}>
+                          <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isTgt?'var(--accent)':'var(--text4)',gap:5}}>
                             {isTgt?'⬇ Soltar aquí':'Sin asignación — arrastra desde el panel lateral'}
                           </div>
                         ) : (
-                          <div style={{position:'absolute',left:0,top:0,bottom:0,width:barW,display:'flex',alignItems:'stretch',gap:2,overflow:'hidden'}}>
+                          <div style={{width:barW,flexShrink:0,display:'flex',alignItems:'stretch',gap:2,overflow:'hidden'}}>
                             {units.map((u,i)=>{
                               const wpct = `${(u.sup/rowSup)*100}%`
                               const isEd = editPA?.layer==='arr' && editPA?.rowP===floor.id && editPA?.idx===i
