@@ -3560,6 +3560,9 @@ export default function FichaActivo() {
   const infoSaveRef = useRef(null) // ref to TabInfo's handleSave
   const infoSyncRef = useRef(null) // ref to TabInfo's syncCatastro (available for future use)
   const liveStackingRef = useRef(null) // latest buildings state from StackingPlan
+  const activoRef = useRef(null) // always has latest activo (for auto-save closure)
+  const autoSaveTimer = useRef(null) // debounce timer for stacking auto-save
+  activoRef.current = activo // keep ref in sync on every render
 
   useEffect(() => {
     if (!params?.ref) return
@@ -3696,8 +3699,8 @@ export default function FichaActivo() {
           </>
         ) : (
           <>
-            <button className="ab-btn save" onClick={async () => { await infoSaveRef.current?.(); await saveStackingData() }}>💾 Guardar</button>
-            <button className="ab-btn" onClick={async () => { await infoSaveRef.current?.(); await saveStackingData(); navigate('activos', { highlightRef: activo?.ref ?? params?.ref }) }}>Guardar y cerrar</button>
+            <button className="ab-btn save" onClick={async () => { try { await infoSaveRef.current?.() } catch(e) {} await saveStackingData() }}>💾 Guardar</button>
+            <button className="ab-btn" onClick={async () => { try { await infoSaveRef.current?.() } catch(e) {} await saveStackingData(); navigate('activos', { highlightRef: activo?.ref ?? params?.ref }) }}>Guardar y cerrar</button>
             <div className="ab-sep"/>
             <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
           </>
@@ -3837,11 +3840,20 @@ export default function FichaActivo() {
               </div>
               <StackingPlan
                 key={isNew ? 'new-activo' : loadingActivo ? '__loading__' : (activo?.ref || params?.ref || 'stacking')}
-                initBuildings={isNew ? [] : (activo?.stacking_data?.length > 0 ? activo.stacking_data : (BUILDINGS_BY_ACTIVO[params?.ref] || []))}
+                initBuildings={isNew ? [] : (activo?.stacking_data?.length > 0 ? activo.stacking_data : [])}
                 defaultSupPlantaTipo={isNew ? (newForm.sup_planta_tipo ? parseFloat(newForm.sup_planta_tipo) : undefined) : (activo?.sup_planta_tipo || undefined)}
                 onCountChange={setLiveEdifCount}
                 onOwnersChange={setLiveOwnerCount}
-                onBuildingsChange={(blds) => { liveStackingRef.current = blds }}
+                onBuildingsChange={(blds) => {
+                  liveStackingRef.current = blds
+                  // Auto-save stacking to Supabase (debounced 1.5 s)
+                  const ref = activoRef.current?.ref
+                  if (!ref) return
+                  clearTimeout(autoSaveTimer.current)
+                  autoSaveTimer.current = setTimeout(() => {
+                    supabase.from('activos').update({ stacking_data: blds }).eq('ref', ref)
+                  }, 1500)
+                }}
                 activoPropietario={activo?.propietario || ''}
                 extraOwners={propietariosReg.map(p=>p.propietario)}
                 extraTenants={arrendatariosReg.map(a=>a.tenant)}
