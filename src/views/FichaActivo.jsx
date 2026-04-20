@@ -402,7 +402,8 @@ const NEW_FORM_INIT = {
   tipo_activo:'Edificio', estado_construccion:'Construcción existente',
   uso:'Oficinas', uso_secundario:'', calidad:'A',
   propietario:'', asset_manager:'',
-  sba:'', anno_construccion:'', anno_rehabilitacion:'',
+  sba:'', sup_planta_tipo:'', ratio_perdida:'',
+  anno_construccion:'', anno_rehabilitacion:'',
   ref_catastral:'', clasificacion:'', uso_pgou:'', calificacion_urb:'', edificabilidad:'', sup_parcela:'',
 }
 
@@ -1999,6 +2000,12 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
             </Row>
             <Row label="SBA (m²)">
               <input type="number" value={newForm.sba} onChange={e=>setNF('sba',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="0"/>
+            </Row>
+            <Row label="Sup. planta tipo (m²)">
+              <input type="number" value={newForm.sup_planta_tipo} onChange={e=>setNF('sup_planta_tipo',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="0"/>
+            </Row>
+            <Row label="Ratio de pérdida (%)">
+              <input type="number" min="0" max="100" value={newForm.ratio_perdida} onChange={e=>setNF('ratio_perdida',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="0"/>
             </Row>
             <Row label="Año construcción">
               <input type="number" value={newForm.anno_construccion} onChange={e=>setNF('anno_construccion',e.target.value)} style={inpBase} placeholder="—"/>
@@ -3606,6 +3613,8 @@ export default function FichaActivo() {
         calificacion_urb:    newForm.calificacion_urb  || null,
         edificabilidad:      newForm.edificabilidad    || null,
         sup_parcela:         newForm.sup_parcela ? parseFloat(newForm.sup_parcela) : null,
+        sup_planta_tipo:     newForm.sup_planta_tipo ? parseFloat(newForm.sup_planta_tipo) : null,
+        ratio_perdida:       newForm.ratio_perdida ? parseFloat(newForm.ratio_perdida) : null,
         cp:                  newForm.cp                || null,
       })
       setSaving(false)
@@ -3623,6 +3632,11 @@ export default function FichaActivo() {
       setSaveErr(String(e)); return
     }
     setSaving(false)
+    // Save stacking plan if the user created buildings while on the new activo form
+    const stackBlds = liveStackingRef.current
+    if (stackBlds && stackBlds.length > 0) {
+      await supabase.from('activos').update({ stacking_data: stackBlds }).eq('ref', ref)
+    }
     navigate('ficha-activo', { ref })
   }
 
@@ -3822,8 +3836,9 @@ export default function FichaActivo() {
                 )}
               </div>
               <StackingPlan
-                key={activo?.ref || params?.ref || 'stacking'}
-                initBuildings={isNew ? [] : loadingActivo ? undefined : (activo?.stacking_data?.length > 0 ? activo.stacking_data : (BUILDINGS_BY_ACTIVO[params?.ref] || []))}
+                key={isNew ? 'new-activo' : loadingActivo ? '__loading__' : (activo?.ref || params?.ref || 'stacking')}
+                initBuildings={isNew ? [] : (activo?.stacking_data?.length > 0 ? activo.stacking_data : (BUILDINGS_BY_ACTIVO[params?.ref] || []))}
+                defaultSupPlantaTipo={isNew ? (newForm.sup_planta_tipo ? parseFloat(newForm.sup_planta_tipo) : undefined) : (activo?.sup_planta_tipo || undefined)}
                 onCountChange={setLiveEdifCount}
                 onOwnersChange={setLiveOwnerCount}
                 onBuildingsChange={(blds) => { liveStackingRef.current = blds }}

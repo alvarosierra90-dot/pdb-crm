@@ -195,10 +195,10 @@ const NewBldgForm = memo(function NewBldgForm({ form, onChange, onCreate, onCanc
   )
 })
 
-export default function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal' }) {
-  const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
+export default function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal', defaultSupPlantaTipo }) {
+  const [buildings, setBuildings]       = useState(initBuildings ?? [])
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
-  const [setupForm, setSetupForm]       = useState({ label:'', sobre:'5', bajo:'1', sup:'1500', uso:'' })
+  const [setupForm, setSetupForm]       = useState({ label:'', sobre:'5', bajo:'1', sup: defaultSupPlantaTipo ? String(defaultSupPlantaTipo) : '1500', uso:'' })
   const setupFormRef = useRef(setupForm)
   setupFormRef.current = setupForm
   const [view, setView]                 = useState(initView)
@@ -516,8 +516,8 @@ export default function StackingPlan({ initBuildings, onCountChange, onOwnersCha
                     e.preventDefault(); setDragTarget(null)
                     if(!dragging) return
                     const isUA = !!UA_ALL.find(u=>u.id===dragging)
-                    // Multi-planta: si la planta está seleccionada, aplica a todas las seleccionadas
-                    const targets = (isSel && selectedFloors.length > 1) ? selectedFloors : [floor.id]
+                    // Multi-planta: si hay varias seleccionadas, aplica a todas independientemente de dónde se suelte
+                    const targets = selectedFloors.length > 1 ? selectedFloors : [floor.id]
                     if(isUA) {
                       targets.forEach(fId=>assignAdicional(fId,dragging))
                       if(targets.length>1) setSelectedFloors([])
