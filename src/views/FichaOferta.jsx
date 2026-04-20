@@ -314,12 +314,19 @@ export default function FichaOferta() {
     if (!oferta?.ref) return
     setSaving(true); setSaveErr(''); setSaveOk(false)
     try {
+      // Derivar superficie y renta desde espacios asignados
+      const supDisp = espaciosComercializables.reduce((s, e) => s + (e.sup || 0), 0)
+      const rentaTotal = espaciosComercializables.reduce((s, e) => s + (e.renta || 0) * (e.sup || 0), 0)
+      const rentaM2 = supDisp > 0 ? Math.round((rentaTotal / supDisp) * 100) / 100 : null
+
       // 1. Update campos básicos — solo columnas seguras que existen siempre
       const { error } = await dbCall(supabase.from('ofertas').update({
-        activo_ref:            activoSeleccionado?.ref || null,
-        tipo_comercializacion: tipoComercializacion    || null,
-        tipo_operacion:        tipoOperacion           || null,
-        estado:                oferta.estado           || 'En curso',
+        activo_ref:             activoSeleccionado?.ref || null,
+        tipo_comercializacion:  tipoComercializacion    || null,
+        tipo_operacion:         tipoOperacion           || null,
+        estado:                 oferta.estado           || 'En curso',
+        superficie_disponible:  supDisp || null,
+        renta_m2:               rentaM2,
       }).eq('ref', oferta.ref))
       if (error) { setSaveErr(error.message); return }
 
