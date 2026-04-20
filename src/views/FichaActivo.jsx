@@ -1026,19 +1026,21 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                     display:'grid',gridTemplateColumns:'22px 52px 1fr 90px 48px',
                     borderBottom: isPB ? '3px solid var(--text3)' : '1px solid var(--border)',
                     background:isTgt?'#eff6ff':isSel?'#f0f9ff':'var(--surface)',
-                    outline:isTgt?'1.5px solid var(--accent)':'none',
+                    outline:isSel||isTgt?'1.5px solid var(--accent)':'none',
                     transition:'background .1s',
+                    cursor:'pointer',
                   }}
+                  onClick={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
                 >
                   {/* Checkbox */}
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'center',paddingTop:4}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'center',paddingTop:4}} onClick={e=>e.stopPropagation()}>
                     <input type="checkbox" checked={isSel}
                       onChange={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
                       style={{width:11,height:11,cursor:'pointer'}}/>
                   </div>
 
                   {/* Label planta */}
-                  <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:'var(--text3)',display:'flex',alignItems:'flex-start',paddingTop:10}}>{floor.id}</div>
+                  <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:isSel?'var(--accent)':'var(--text3)',display:'flex',alignItems:'flex-start',paddingTop:10}}>{floor.id}</div>
 
                   {/* Columna central: uso principal + adicionales */}
                   <div style={{padding:'4px 4px 4px 0',display:'flex',flexDirection:'column',gap:4}}>
@@ -1046,9 +1048,8 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                     {/* Fila 1: barras de uso principal */}
                     <div style={{display:'flex',alignItems:'stretch',gap:2,height:32}}>
                       {floor.principal.length===0 ? (
-                        <div onClick={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
-                          style={{flex:1,background:isSel?'#dbeafe':isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isSel?'var(--accent)':isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isSel?'var(--accent)':isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt||isSel?600:400,cursor:'pointer'}}>
-                          {isTgt?'⬇ Soltar uso aquí':isSel?'✓ Seleccionada':'Sin uso — clic para seleccionar · arrastra un uso'}
+                        <div style={{flex:1,background:isSel?'#dbeafe':isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isSel?'var(--accent)':isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isSel?'var(--accent)':isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt||isSel?600:400}}>
+                          {isTgt?'⬇ Soltar uso aquí':isSel?'✓ Seleccionada — arrastra un uso':'Clic para seleccionar · arrastra un uso'}
                         </div>
                       ) : (
                         <>
@@ -1059,7 +1060,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                             return (
                               <div key={i}
                                 title={`${info.label} · ${u.sup.toLocaleString('es-ES')} m²`}
-                                onClick={()=>{if(isEd)setEditFloor(null);else{setEditFloor({floorId:floor.id,idx:i,layer:'principal'});setEditSup(String(u.sup))}}}
+                                onClick={e=>{e.stopPropagation();if(isEd)setEditFloor(null);else{setEditFloor({floorId:floor.id,idx:i,layer:'principal'});setEditSup(String(u.sup))}}}
                                 style={{width:wpct,background:info.bg,border:`1px solid ${info.bd}`,borderRadius:4,
                                   display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',
                                   flexShrink:0,overflow:'hidden',transition:'filter .1s'}}
@@ -1081,9 +1082,8 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                             )
                           })}
                           {avail>0 && (
-                            <div onClick={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
-                              style={{flex:1,minWidth:14,background:isSel?'#dbeafe':isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isSel?'var(--accent)':isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:isSel?'var(--accent)':isTgt?'var(--accent)':'var(--text4)',cursor:'pointer'}}>
-                              {avail.toLocaleString('es-ES')} m²
+                            <div style={{flex:1,minWidth:14,background:isSel?'#dbeafe':isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isSel?'var(--accent)':isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:isSel?'var(--accent)':isTgt?'var(--accent)':'var(--text4)'}}>
+                              {isSel?'✓':''} {avail.toLocaleString('es-ES')} m²
                             </div>
                           )}
                         </>
@@ -1125,7 +1125,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                   </div>
 
                   {/* Sup total — editable sólo desde Uso principal */}
-                  <div style={{padding:'8px 8px',fontSize:11,fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'flex-start',justifyContent:'flex-end',fontFamily:'var(--mono)',paddingTop:8}}>
+                  <div style={{padding:'8px 8px',fontSize:11,fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'flex-start',justifyContent:'flex-end',fontFamily:'var(--mono)',paddingTop:8}} onClick={e=>e.stopPropagation()}>
                     {editFloorSup===floor.id ? (
                       <div style={{display:'flex',flexDirection:'column',gap:2,alignItems:'flex-end'}} onClick={e=>e.stopPropagation()}>
                         <input type="number" value={editFloorSupVal} onChange={e=>setEditFloorSupVal(e.target.value)} autoFocus
@@ -1146,7 +1146,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                     )}
                   </div>
                   {/* Acciones: ✎ editar sup · + insertar encima · − eliminar */}
-                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,padding:'6px 4px'}}>
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,padding:'6px 4px'}} onClick={e=>e.stopPropagation()}>
                     {[
                       {icon:'✎', title:'Editar superficie', onClick:()=>{setEditFloorSup(floor.id);setEditFloorSupVal(String(floor.sup))}, hoverBg:'#eff6ff', hoverCol:'var(--accent)', hoverBd:'var(--accent-bd)'},
                       {icon:'+', title:'Insertar planta encima', onClick:()=>insertFloorAt(floorIdx), hoverBg:'#f0fdf4', hoverCol:'#16a34a', hoverBd:'#86efac'},
