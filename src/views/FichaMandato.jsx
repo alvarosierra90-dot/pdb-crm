@@ -7,7 +7,15 @@ const OFERTAS_DISPONIBLES = [
   { ref:'OLB002', activo:'P.E Avalon',              cuenta:'Merlín Properties SOCIMI',    espacio:'P3 · 2.550 m²',     sba:2550, renta:11.0 },
   { ref:'OLB003', activo:'Albatros Edif. D',        cuenta:'Merlín Properties SOCIMI',    espacio:'P2 · 3.200 m²',     sba:3200, renta:13.5 },
   { ref:'OLB004', activo:'Torre Glòries',           cuenta:'Merlín Properties SOCIMI',    espacio:'P10-P12 · 5.400 m²',sba:5400, renta:18.0 },
-  { ref:'OLB005', activo:'Parque Empresarial Norte',cuenta:'FREO Investments Spain SL',   espacio:'Módulo A · 2.800 m²',sba:2800, renta:9.5  },
+  { ref:'OLB005', activo:'Parque Empresarial Norte','cuenta':'FREO Investments Spain SL', espacio:'Módulo A · 2.800 m²',sba:2800, renta:9.5  },
+]
+
+const ACTIVOS_DISPONIBLES = [
+  { ref:'MAD-OF-00189', nombre:'P.E Avalon',              zona:'M-30 · Madrid',       uso:'Oficinas',  sba:4050, renta:10.5, cuenta:'Merlín Properties SOCIMI' },
+  { ref:'MAD-OF-00190', nombre:'Albatros Edif. D',        zona:'A-1 · Alcobendas',    uso:'Oficinas',  sba:13486,renta:13.5, cuenta:'Merlín Properties SOCIMI' },
+  { ref:'BCN-OF-00041', nombre:'Torre Glòries',           zona:'22@ · Barcelona',     uso:'Oficinas',  sba:18500,renta:18.0, cuenta:'Merlín Properties SOCIMI' },
+  { ref:'MAD-OF-00201', nombre:'Parque Empresarial Norte',zona:'M-30 · Madrid',       uso:'Oficinas',  sba:11200,renta:9.5,  cuenta:'FREO Investments Spain SL' },
+  { ref:'MAD-OF-00214', nombre:'Torre Europa Valencia',   zona:'Mestalla · Valencia', uso:'Oficinas',  sba:7600, renta:11.0, cuenta:'FREO Investments Spain SL' },
 ]
 
 const toISO  = s => { if(!s) return ''; const [d,m,y]=s.split('/'); return `${y}-${m}-${d}` }
@@ -148,6 +156,7 @@ export default function FichaMandato() {
 
   // ── Estado editable (nuevo modo + edición) ──
   const [ofertasV,       setOfertasV]       = useState([])
+  const [activosV,       setActivosV]       = useState([])
   const [tipoV,          setTipoV]          = useState('Leasing')
   const [exclV,          setExclV]          = useState('Exclusiva')
   const [lineaV,         setLineaV]         = useState('Leasing')
@@ -167,6 +176,9 @@ export default function FichaMandato() {
   const [condProrroga,   setCondProrroga]   = useState(M.condiciones_prorroga)
   const [obsInternas,    setObsInternas]    = useState(M.observaciones)
   const [ofertaSelInput, setOfertaSelInput] = useState('')
+  const [activoSelInput, setActivoSelInput] = useState('')
+
+  const canGuardar = ofertasV.length > 0 || activosV.length > 0
 
   const honorariosEst = Math.round(honorariosPct / 100 * sbaMandato * rentaEuros * 12)
 
@@ -182,6 +194,20 @@ export default function FichaMandato() {
     const o = ofertasV.find(x => x.ref === ref)
     if (o) setSbaMandato(s => Math.max(0, s - o.sba))
     setOfertasV(v => v.filter(x => x.ref !== ref))
+  }
+
+  const addActivo = (ref) => {
+    const a = ACTIVOS_DISPONIBLES.find(x => x.ref === ref)
+    if (!a || activosV.find(x => x.ref === ref)) return
+    setActivosV(v => [...v, a])
+    setSbaMandato(s => s + a.sba)
+    setRentaEuros(a.renta)
+    setActivoSelInput('')
+  }
+  const removeActivo = (ref) => {
+    const a = activosV.find(x => x.ref === ref)
+    if (a) setSbaMandato(s => Math.max(0, s - a.sba))
+    setActivosV(v => v.filter(x => x.ref !== ref))
   }
 
   const diasColor = M.dias_restantes <= 0 ? 'var(--red)'
@@ -283,12 +309,13 @@ export default function FichaMandato() {
       <div className="action-bar">
         {nuevoModo ? (
           <>
-            <button className="ab-btn save" style={{background:'var(--green)',color:'#fff',border:'none',fontWeight:700}}
-              onClick={()=>{ if(ofertasV.length===0){alert('Debes vincular al menos una oferta antes de guardar el mandato.');return;} navigate('mandatos') }}>
+            <button className="ab-btn save"
+              style={{background:canGuardar?'var(--green)':'var(--border2)',color:canGuardar?'#fff':'var(--text4)',border:'none',fontWeight:700,cursor:canGuardar?'pointer':'not-allowed'}}
+              onClick={()=>{ if(!canGuardar) return; navigate('mandatos') }}>
               💾 Guardar mandato
             </button>
             <button className="ab-btn" onClick={()=>navigate('mandatos')}>✕ Cancelar</button>
-            {ofertasV.length===0 && <span style={{fontSize:10,color:'var(--red)',marginLeft:4,fontWeight:600}}>★ Vincula al menos una oferta</span>}
+            {!canGuardar && <span style={{fontSize:10,color:'var(--red)',marginLeft:4,fontWeight:600}}>★ Vincula al menos una oferta o un activo</span>}
           </>
         ) : (
           <>
@@ -398,58 +425,139 @@ export default function FichaMandato() {
                 {/* Vinculaciones */}
                 <div className="info-block" style={{marginBottom:12,borderLeft: nuevoModo ? '3px solid var(--accent)' : undefined}}>
                   <div className="ib-title" style={{color: nuevoModo ? 'var(--accent)' : undefined}}>
-                    {nuevoModo ? '★ VINCULACIÓN DE OFERTAS (OBLIGATORIO)' : 'OFERTAS VINCULADAS'}
+                    {nuevoModo ? '★ VINCULACIONES (al menos una oferta o un activo)' : 'VINCULACIONES'}
                   </div>
                   {nuevoModo && (
                     <div style={{marginBottom:10,padding:'8px 10px',background:'var(--accent-lt)',borderRadius:6,fontSize:10,color:'var(--accent)'}}>
-                      El mandato debe estar vinculado a al menos una oferta. La cuenta del propietario se asignará automáticamente.
+                      Vincula al menos una <strong>oferta</strong> o un <strong>activo</strong> para poder guardar el mandato. Puedes añadir varios de cada tipo.
                     </div>
                   )}
-                  <div style={{display:'flex',gap:8,marginBottom:8,alignItems:'center'}}>
+
+                  {/* ── Ofertas ── */}
+                  <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>
+                    Ofertas vinculadas {nuevoModo && <span style={{color:'var(--text4)',fontWeight:400}}>(opcional si hay activo)</span>}
+                  </div>
+                  <div style={{display:'flex',gap:8,marginBottom:6,alignItems:'center'}}>
                     <select className="fsel" value={ofertaSelInput} onChange={e=>setOfertaSelInput(e.target.value)} style={{flex:1,fontSize:11}}>
-                      <option value="">Seleccionar oferta para vincular...</option>
+                      <option value="">Seleccionar oferta...</option>
                       {OFERTAS_DISPONIBLES.filter(o=>!ofertasV.find(x=>x.ref===o.ref)).map(o=>(
                         <option key={o.ref} value={o.ref}>{o.ref} · {o.activo} · {o.espacio}</option>
                       ))}
                     </select>
                     <button className="ab-btn blue" disabled={!ofertaSelInput} onClick={()=>addOferta(ofertaSelInput)}>+ Añadir oferta</button>
                   </div>
-                  {(nuevoModo ? ofertasV : M.activos.map(a=>({ref:'OLB001',activo:a.nombre,cuenta:M.cuenta,espacio:`${a.sba.toLocaleString()} m²`,sba:a.sba,renta:a.renta}))).length === 0 && nuevoModo ? (
-                    <div style={{textAlign:'center',padding:'14px 0',color:'var(--text4)',fontSize:11}}>Sin ofertas vinculadas · Añade al menos una oferta</div>
-                  ) : (
+                  {(nuevoModo ? ofertasV : M.activos.map(a=>({ref:'OLB001',activo:a.nombre,cuenta:M.cuenta,espacio:`${a.sba.toLocaleString()} m²`,sba:a.sba,renta:a.renta}))).length === 0
+                    ? <div style={{padding:'6px 0 10px',color:'var(--text4)',fontSize:10}}>Sin ofertas vinculadas</div>
+                    : (
+                      <table style={{width:'100%',borderCollapse:'collapse',fontSize:11,marginBottom:12}}>
+                        <thead><tr>{['Ref. Oferta','Activo','Espacio','SBA','Renta €/m²','Cuenta',''].map(h=>(
+                          <th key={h} style={{padding:'5px 10px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                        ))}</tr></thead>
+                        <tbody>
+                          {(nuevoModo ? ofertasV : M.activos.map(a=>({ref:'OLB001',activo:a.nombre,cuenta:M.cuenta,espacio:`${a.sba.toLocaleString()} m²`,sba:a.sba,renta:a.renta}))).map(o=>(
+                            <tr key={o.ref} style={{borderBottom:'1px solid var(--border)'}}>
+                              <td style={{padding:'6px 10px'}}><span className="asset-link mono" style={{fontSize:10}}>{o.ref}</span></td>
+                              <td style={{padding:'6px 10px',fontWeight:500,color:'var(--teal)'}}>{o.activo}</td>
+                              <td style={{padding:'6px 10px',color:'var(--text3)'}}>{o.espacio}</td>
+                              <td style={{padding:'6px 10px',fontWeight:600}}>{o.sba?.toLocaleString()} m²</td>
+                              <td style={{padding:'6px 10px'}}>{o.renta} €</td>
+                              <td style={{padding:'6px 10px',color:'var(--accent)'}}>{o.cuenta}</td>
+                              <td style={{padding:'6px 10px'}}>
+                                {nuevoModo
+                                  ? <button className="ra" style={{color:'var(--red)'}} onClick={()=>removeOferta(o.ref)}>✕</button>
+                                  : <button className="ra p" onClick={()=>navigate('ficha-oferta')}>Ver</button>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )
+                  }
+
+                  {/* ── Activos ── */}
+                  <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6,borderTop:'1px solid var(--border)',paddingTop:10}}>
+                    Activos vinculados {nuevoModo && <span style={{color:'var(--text4)',fontWeight:400}}>(opcional si hay oferta)</span>}
+                  </div>
+                  <div style={{display:'flex',gap:8,marginBottom:6,alignItems:'center'}}>
+                    <select className="fsel" value={activoSelInput} onChange={e=>setActivoSelInput(e.target.value)} style={{flex:1,fontSize:11}}>
+                      <option value="">Seleccionar activo...</option>
+                      {ACTIVOS_DISPONIBLES.filter(a=>!activosV.find(x=>x.ref===a.ref)).map(a=>(
+                        <option key={a.ref} value={a.ref}>{a.ref} · {a.nombre} · {a.zona}</option>
+                      ))}
+                    </select>
+                    <button className="ab-btn blue" disabled={!activoSelInput} onClick={()=>addActivo(activoSelInput)}>+ Añadir activo</button>
+                  </div>
+                  {(nuevoModo ? activosV : M.activos).length === 0
+                    ? <div style={{padding:'6px 0',color:'var(--text4)',fontSize:10}}>Sin activos vinculados</div>
+                    : (
+                      <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                        <thead><tr>{['Referencia','Nombre','Zona','Uso','SBA','Renta €/m²','Cuenta',''].map(h=>(
+                          <th key={h} style={{padding:'5px 10px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                        ))}</tr></thead>
+                        <tbody>
+                          {(nuevoModo ? activosV : M.activos.map(a=>({ref:a.ref,nombre:a.nombre,zona:a.zona,uso:a.uso,sba:a.sba,renta:a.renta,cuenta:M.cuenta}))).map(a=>(
+                            <tr key={a.ref} style={{borderBottom:'1px solid var(--border)'}}>
+                              <td style={{padding:'6px 10px'}}><span className="asset-link mono" style={{fontSize:10}}>{a.ref}</span></td>
+                              <td style={{padding:'6px 10px',fontWeight:500,color:'var(--teal)'}}>{a.nombre}</td>
+                              <td style={{padding:'6px 10px',color:'var(--text3)'}}>{a.zona}</td>
+                              <td style={{padding:'6px 10px'}}><span className="tag tag-blue" style={{fontSize:9}}>{a.uso}</span></td>
+                              <td style={{padding:'6px 10px',fontWeight:600}}>{a.sba?.toLocaleString()} m²</td>
+                              <td style={{padding:'6px 10px'}}>{a.renta} €</td>
+                              <td style={{padding:'6px 10px',color:'var(--accent)'}}>{a.cuenta}</td>
+                              <td style={{padding:'6px 10px'}}>
+                                {nuevoModo
+                                  ? <button className="ra" style={{color:'var(--red)'}} onClick={()=>removeActivo(a.ref)}>✕</button>
+                                  : <button className="ra p" onClick={()=>navigate('ficha-activo')}>Ver</button>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )
+                  }
+
+                  {/* Cuenta derivada */}
+                  {nuevoModo && (ofertasV.length > 0 || activosV.length > 0) && (
+                    <div style={{marginTop:8,padding:'6px 10px',background:'var(--gray-lt)',borderRadius:6,display:'flex',alignItems:'center',gap:8,fontSize:11}}>
+                      <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Propietario asignado:</span>
+                      <span style={{fontWeight:600,color:'var(--accent)'}}>{(ofertasV[0]||activosV[0])?.cuenta}</span>
+                      <span style={{fontSize:9,color:'var(--text4)'}}>· Derivado de la vinculación</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Activos del mandato — solo en vista (resumen rápido debajo del cronograma) */}
+                {!nuevoModo && (
+                  <div className="info-block" style={{marginBottom:12}}>
+                    <div className="ib-title">ACTIVOS BAJO MANDATO · {M.activos.length} activo{M.activos.length>1?'s':''} · {M.sba_mandato.toLocaleString()} m² SBA</div>
                     <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                      <thead><tr>{['Ref. Oferta','Activo','Espacio / Descripción','SBA','Renta €/m²','Cuenta',''].map(h=>(
+                      <thead><tr>{['Referencia','Nombre','Zona','Uso','SBA','Ocupación','Renta €/m²',''].map(h=>(
                         <th key={h} style={{padding:'5px 10px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
                       ))}</tr></thead>
                       <tbody>
-                        {(nuevoModo ? ofertasV : M.activos.map(a=>({ref:'OLB001',activo:a.nombre,cuenta:M.cuenta,espacio:`${a.sba.toLocaleString()} m²`,sba:a.sba,renta:a.renta}))).map(o=>(
-                          <tr key={o.ref} style={{borderBottom:'1px solid var(--border)'}}>
-                            <td style={{padding:'6px 10px'}}><span className="asset-link mono" style={{fontSize:10}}>{o.ref}</span></td>
-                            <td style={{padding:'6px 10px',fontWeight:500,color:'var(--teal)'}}>{o.activo}</td>
-                            <td style={{padding:'6px 10px',color:'var(--text3)'}}>{o.espacio}</td>
-                            <td style={{padding:'6px 10px',fontWeight:600}}>{o.sba?.toLocaleString()} m²</td>
-                            <td style={{padding:'6px 10px'}}>{o.renta} €</td>
-                            <td style={{padding:'6px 10px',color:'var(--accent)'}}>{o.cuenta}</td>
-                            <td style={{padding:'6px 10px'}}>
-                              {nuevoModo
-                                ? <button className="ra" style={{color:'var(--red)'}} onClick={()=>removeOferta(o.ref)}>✕</button>
-                                : <button className="ra p" onClick={()=>navigate('ficha-oferta')}>Ver</button>
-                              }
+                        {M.activos.map(a=>(
+                          <tr key={a.ref} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-activo')}>
+                            <td style={{padding:'7px 10px'}}><span className="asset-link mono" style={{fontSize:10}}>{a.ref}</span></td>
+                            <td style={{padding:'7px 10px',fontWeight:600,color:'var(--teal)'}}>{a.nombre}</td>
+                            <td style={{padding:'7px 10px',color:'var(--text3)'}}>{a.zona}</td>
+                            <td style={{padding:'7px 10px'}}><span className="tag tag-blue" style={{fontSize:9}}>{a.uso}</span></td>
+                            <td style={{padding:'7px 10px',fontWeight:600}}>{a.sba.toLocaleString()} m²</td>
+                            <td style={{padding:'7px 10px'}}>
+                              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                                <div style={{width:44,height:5,borderRadius:3,background:'var(--border2)',overflow:'hidden'}}>
+                                  <div style={{width:`${a.occ}%`,height:'100%',background:a.occ>=90?'var(--green)':a.occ>=75?'var(--amber)':'var(--red)',borderRadius:3}}/>
+                                </div>
+                                <span style={{fontSize:10,fontWeight:600,color:a.occ>=90?'var(--green)':a.occ>=75?'var(--amber)':'var(--red)'}}>{a.occ}%</span>
+                              </div>
                             </td>
+                            <td style={{padding:'7px 10px'}}>{a.renta} €</td>
+                            <td style={{padding:'7px 10px'}}><button className="ra p" onClick={e=>{e.stopPropagation();navigate('ficha-activo')}}>Ver</button></td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                  )}
-                  {/* Cuenta del propietario derivada */}
-                  {nuevoModo && ofertasV.length > 0 && (
-                    <div style={{marginTop:8,padding:'6px 10px',background:'var(--gray-lt)',borderRadius:6,display:'flex',alignItems:'center',gap:8,fontSize:11}}>
-                      <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Propietario asignado:</span>
-                      <span style={{fontWeight:600,color:'var(--accent)'}}>{ofertasV[0].cuenta}</span>
-                      <span style={{fontSize:9,color:'var(--text4)'}}>· Derivado de la oferta vinculada</span>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Tres columnas: Identificación · Fechas · Prórroga */}
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:12}}>
