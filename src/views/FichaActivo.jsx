@@ -1001,8 +1001,24 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                     const isUA = !!UA_ALL.find(u=>u.id===dragging)
                     const targets = selectedFloors.length > 1 ? selectedFloors : [floor.id]
                     if(isUA) {
-                      targets.forEach(fId=>assignAdicional(fId,dragging))
-                      if(targets.length>1) setSelectedFloors([])
+                      if(targets.length > 1) {
+                        setBuildings(prev=>prev.map(b=>{
+                          if(b.id!==edifId) return b
+                          return {...b, floors:b.floors.map(f=>{
+                            if(!targets.includes(f.id)) return f
+                            const av=f.sup-f.principal.reduce((s,u)=>s+u.sup,0)
+                            if(av>0) return {...f,principal:[...f.principal,{uso:dragging,sup:av}]}
+                            if(f.adicional.find(a=>a.uso===dragging)) return f
+                            const ua=UA_ALL.find(u=>u.id===dragging)
+                            if(!ua) return f
+                            return {...f,adicional:[...f.adicional,{uso:dragging,label:ua.label,sup:ua.sup?100:0,attr:ua.attr||false}]}
+                          })}
+                        }))
+                        setSelectedFloors([])
+                      } else {
+                        if(avail>0) assignPrincipal(floor.id,dragging,avail)
+                        else assignAdicional(floor.id,dragging)
+                      }
                       setDragging(null); return
                     }
                     if(targets.length > 1) {
