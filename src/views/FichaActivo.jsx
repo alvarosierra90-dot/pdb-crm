@@ -595,6 +595,12 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
     onOwnersChange(names.size)
   }, [buildings])
   useEffect(() => { if (onBuildingsChange) onBuildingsChange(buildings) }, [buildings])
+  useEffect(() => {
+    if (initBuildings?.length > 0 && buildings.length === 0) {
+      setBuildings(initBuildings)
+      setEdifId(initBuildings[0].id)
+    }
+  }, [initBuildings])
 
   const edif = buildings.find(b=>b.id===edifId) || buildings[0] || { id:'', label:'', floors:[], prop:[], arr:[], supPlantaTipo:0 }
   const usoInfo  = (id) => USOS_PPAL.find(u=>u.id===id) || UA_ALL.find(u=>u.id===id) || {label:id,color:'#94a3b8',bg:'#f1f5f9',bd:'#cbd5e1'}
@@ -1539,8 +1545,16 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                             {units.map((u,i)=>{
                               const wpct = `${(u.sup/rowSup)*100}%`
                               const isEd = editPA?.layer==='arr' && editPA?.rowP===floor.id && editPA?.idx===i
-                              const tc = TYPE_COLORS[u.type]||TYPE_COLORS.ten
-                              const {bg,bd,col} = tc
+                              let bg, bd, col
+                              if (u.type==='ten') {
+                                col = tenantColor(u.n); bg = col+'18'; bd = col+'88'
+                              } else if (u.type==='vac') {
+                                const OCOLS=['#16a34a','#2563eb','#d97706','#7c3aed']
+                                const oIdx = extraOfertas.findIndex(o=>o.nombre===u.oferta)
+                                col = oIdx>=0 ? OCOLS[oIdx%OCOLS.length] : OCOLS[0]; bg=col+'12'; bd=col+'55'
+                              } else {
+                                const tc=TYPE_COLORS[u.type]||TYPE_COLORS.ten; bg=tc.bg; bd=tc.bd; col=tc.col
+                              }
                               const label = typeLabel(u)
                               return (
                                 <div key={i}
@@ -4061,7 +4075,7 @@ export default function FichaActivo() {
                 )}
               </div>
               <StackingPlan
-                key={isNew ? 'new-activo' : loadingActivo ? '__loading__' : (activo?.ref || params?.ref || 'stacking')}
+                key={isNew ? 'new-activo' : (activo?.ref || params?.ref || 'stacking')}
                 initBuildings={isNew ? [] : (activo?.stacking_data?.length > 0 ? activo.stacking_data : [])}
                 defaultSupPlantaTipo={isNew ? (newForm.sup_planta_tipo ? parseFloat(newForm.sup_planta_tipo) : undefined) : (activo?.sup_planta_tipo || undefined)}
                 defaultLabel={isNew ? (newForm.nombre || newForm.direccion || '') : (activo?.nombre || activo?.direccion || '')}
