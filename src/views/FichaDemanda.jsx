@@ -189,7 +189,8 @@ function Etapa360({ icon, color, estado, titulo, ref_id, badge, fecha, detalle, 
 }
 
 /* ── Right Panel ── */
-function RightPanel({ navigate }) {
+function RightPanel({ navigate, naturaleza, cmFields }) {
+  const esInversion = naturaleza === 'Inversión'
   return (
     <div className="ficha-right">
       <div className="rp-sec">
@@ -201,28 +202,61 @@ function RightPanel({ navigate }) {
         <button className="acc-btn">📋 Ver oferta vinculada</button>
         <button className="acc-btn" style={{background:'var(--accent)',color:'#fff',border:'none',fontWeight:600}} onClick={()=>navigate('mapas',{from:'demanda',id:'D251035690',nombre:'Corporacion Financiera Azuaga SL',uso:'Oficinas',sbaMin:2200,sbaMax:3000,rentaMax:18,zona:'A-1 · Alcobendas',provincia:'Madrid'})}>🗺 Exportar a mapa</button>
       </div>
-      <div className="rp-sec">
-        <div className="rp-lbl">Superficie buscada</div>
-        <div className="kf-grid">
-          <div className="kf"><div className="kf-lbl">Mínimo</div><div className="kf-val">2.200 m²</div></div>
-          <div className="kf"><div className="kf-lbl">Máximo</div><div className="kf-val">3.000 m²</div></div>
+
+      {esInversion ? (
+        <div className="rp-sec">
+          <div className="rp-lbl">Ticket objetivo</div>
+          <div className="kf-grid">
+            <div className="kf"><div className="kf-lbl">Desde</div><div className="kf-val">{cmFields.ticket_min ? `${cmFields.ticket_min} M€` : '—'}</div></div>
+            <div className="kf"><div className="kf-lbl">Hasta</div><div className="kf-val">{cmFields.ticket_max ? `${cmFields.ticket_max} M€` : '—'}</div></div>
+          </div>
+          {(cmFields.yield_min || cmFields.yield_max) && (
+            <div style={{marginTop:8,display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
+              <div className="kf"><div className="kf-lbl">Yield desde</div><div className="kf-val">{cmFields.yield_min}%</div></div>
+              <div className="kf"><div className="kf-lbl">Yield hasta</div><div className="kf-val">{cmFields.yield_max}%</div></div>
+            </div>
+          )}
+          {cmFields.tipo_op && (
+            <div style={{marginTop:8}}>
+              <div style={{fontSize:9,color:'var(--text4)',marginBottom:3}}>Tipo operación</div>
+              <span className="tag tag-amber">{cmFields.tipo_op}</span>
+            </div>
+          )}
+          {cmFields.calidad && (
+            <div style={{marginTop:6}}>
+              <div style={{fontSize:9,color:'var(--text4)',marginBottom:3}}>Calidad</div>
+              <span className="tag tag-gray">{cmFields.calidad}</span>
+            </div>
+          )}
         </div>
-        <div style={{marginTop:8}}>
-          <div style={{fontSize:9,color:'var(--text4)',marginBottom:3}}>Tipo búsqueda</div>
-          <span className="tag tag-gray">Estándar</span>
+      ) : (
+        <div className="rp-sec">
+          <div className="rp-lbl">Superficie buscada</div>
+          <div className="kf-grid">
+            <div className="kf"><div className="kf-lbl">Mínimo</div><div className="kf-val">2.200 m²</div></div>
+            <div className="kf"><div className="kf-lbl">Máximo</div><div className="kf-val">3.000 m²</div></div>
+          </div>
+          <div style={{marginTop:8}}>
+            <div style={{fontSize:9,color:'var(--text4)',marginBottom:3}}>Tipo búsqueda</div>
+            <span className="tag tag-gray">Estándar</span>
+          </div>
         </div>
-      </div>
-      <div className="rp-sec">
-        <div className="rp-lbl">Activos presentados</div>
-        <div style={{background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',padding:'7px 9px',marginBottom:5,cursor:'pointer'}}>
-          <div style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>Albatros — Edif. D</div>
-          <div style={{fontSize:10,color:'var(--text3)'}}>13/11/2025 · Presentación · OLBUR2315645</div>
+      )}
+
+      {!esInversion && (
+        <div className="rp-sec">
+          <div className="rp-lbl">Activos presentados</div>
+          <div style={{background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',padding:'7px 9px',marginBottom:5,cursor:'pointer'}}>
+            <div style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>Albatros — Edif. D</div>
+            <div style={{fontSize:10,color:'var(--text3)'}}>13/11/2025 · Presentación · OLBUR2315645</div>
+          </div>
+          <div style={{background:'var(--green-lt)',border:'1px solid var(--green-bd)',borderRadius:'var(--r)',padding:'7px 9px',cursor:'pointer'}}>
+            <div style={{fontSize:11,fontWeight:600,color:'var(--green)'}}>Albatros — Visita</div>
+            <div style={{fontSize:10,color:'var(--text3)'}}>Calle de Anabel Segura 9-11</div>
+          </div>
         </div>
-        <div style={{background:'var(--green-lt)',border:'1px solid var(--green-bd)',borderRadius:'var(--r)',padding:'7px 9px',cursor:'pointer'}}>
-          <div style={{fontSize:11,fontWeight:600,color:'var(--green)'}}>Albatros — Visita</div>
-          <div style={{fontSize:10,color:'var(--text3)'}}>Calle de Anabel Segura 9-11</div>
-        </div>
-      </div>
+      )}
+
       <div className="rp-sec">
         <div className="rp-lbl">Zona de búsqueda</div>
         <span className="tag tag-blue">Madrid</span>
@@ -232,15 +266,21 @@ function RightPanel({ navigate }) {
         <div className="rp-lbl">Equipo asignado</div>
         <div className="cont-row">
           <div className="c-av" style={{background:'#dbeafe',color:'#1e40af'}}>AS</div>
-          <div><div className="c-name">Sierra Alvaro</div><div className="c-role">Leasing Oficinas · MAD</div></div>
+          <div>
+            <div className="c-name">Sierra Alvaro</div>
+            <div className="c-role">{esInversion ? 'Capital Markets · MAD' : 'Leasing Oficinas · MAD'}</div>
+          </div>
         </div>
       </div>
       <div className="rp-sec">
         <div className="rp-lbl">Asistente IA</div>
         <div className="ai-box">
           <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Matching automático</span><span className="ai-badge">Beta</span></div>
-          <div className="ai-text">2.200–3.000 m² en A-1. <strong>3 activos compatibles</strong>. Albatros P4 (última planta con terraza) es el más ajustado.</div>
-          <div className="ai-cta">✎ Ver activos compatibles</div>
+          {esInversion
+            ? <div className="ai-text">Demanda de inversión · {cmFields.calidad||'—'} · Ticket {cmFields.ticket_min||'—'}–{cmFields.ticket_max||'—'} M€. <strong>Buscando ofertas de venta compatibles.</strong></div>
+            : <div className="ai-text">2.200–3.000 m² en A-1. <strong>3 activos compatibles</strong>. Albatros P4 (última planta con terraza) es el más ajustado.</div>
+          }
+          <div className="ai-cta">✎ {esInversion ? 'Ver ofertas de venta compatibles' : 'Ver activos compatibles'}</div>
         </div>
       </div>
     </div>
@@ -256,12 +296,19 @@ export default function FichaDemanda() {
   const [addingUser,      setAddingUser]      = useState(false)
   const [newUser,         setNewUser]         = useState('')
 
+  // Naturaleza
+  const [naturaleza, setNaturaleza] = useState('Leasing')
+
   // Demanda condicional
   const [demUsoPpal,   setDemUsoPpal]   = useState('Oficinas')
   const [demTipologia, setDemTipologia] = useState('Oficina tradicional')
   const [demCampos,    setDemCampos]    = useState({})
   const [demTipoPres,  setDemTipoPres]  = useState('Alquiler')
   const [demPres,      setDemPres]      = useState({})
+
+  // Capital Markets (Inversión)
+  const [cmFields, setCmFields] = useState({})
+  const setCmField = (k, v) => setCmFields(p => ({...p, [k]: v}))
 
   const tipologiasDisp = USOS_TIPOLOGIAS[demUsoPpal] || []
   const camposActivos  = CAMPOS_TIPOLOGIA[demTipologia] || []
@@ -310,10 +357,14 @@ export default function FichaDemanda() {
                 <div className="ah-addr">📍 Avda. Diego Martínez Barrios, 41013 Sevilla · Origen: Otras Consultoras · Creada: 17/10/2025 · Sierra Alvaro</div>
                 <div className="ah-tags">
                   <span className="tag tag-green">● En Curso</span>
+                  {naturaleza === 'Inversión'
+                    ? <span className="tag" style={{background:'#fffbeb',color:'var(--amber)',border:'1px solid var(--amber-bd)',fontWeight:700}}>🏦 Capital Markets</span>
+                    : <span className="tag tag-blue">Leasing</span>
+                  }
                   <span className="tag tag-blue">Oficinas</span>
-                  <span className="tag tag-gray">2.200–3.000 m²</span>
-                  <span className="tag tag-gray">Estándar</span>
-                  <span className="tag tag-purple">Expansión / Crecimiento</span>
+                  {naturaleza === 'Leasing' && <><span className="tag tag-gray">2.200–3.000 m²</span><span className="tag tag-gray">Estándar</span><span className="tag tag-purple">Expansión / Crecimiento</span></>}
+                  {naturaleza === 'Inversión' && cmFields.tipo_op && <span className="tag tag-amber">{cmFields.tipo_op}</span>}
+                  {naturaleza === 'Inversión' && cmFields.calidad && <span className="tag tag-gray">{cmFields.calidad}</span>}
                 </div>
               </div>
               <div style={{flexShrink:0,display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:1,background:'var(--border)',border:'1px solid var(--border)',borderRadius:'var(--r)',overflow:'hidden',fontSize:10,alignSelf:'flex-start'}}>
@@ -391,6 +442,20 @@ export default function FichaDemanda() {
                 <div>
                   <div className="of-section">📋 REQUISITOS GENERALES</div>
                   <div className="info-block" style={{marginBottom:10}}>
+                    {/* Naturaleza */}
+                    <div className="ir">
+                      <span className="ir-k" style={{fontWeight:700,color:'#0f172a'}}>Naturaleza</span>
+                      <span className="ir-v">
+                        <div style={{display:'flex',gap:4}}>
+                          {['Leasing','Inversión'].map(n => (
+                            <button key={n} onClick={()=>setNaturaleza(n)} style={{padding:'2px 10px',borderRadius:12,border:`1px solid ${naturaleza===n?(n==='Inversión'?'var(--amber)':'var(--accent)'):'var(--border)'}`,background:naturaleza===n?(n==='Inversión'?'var(--amber-lt)':'var(--accent-lt)'):'transparent',color:naturaleza===n?(n==='Inversión'?'var(--amber)':'var(--accent)'):'var(--text3)',fontWeight:naturaleza===n?700:400,fontSize:11,cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
+                              {n==='Inversión'?'🏦':''}{n}
+                            </button>
+                          ))}
+                        </div>
+                      </span>
+                    </div>
+
                     {/* Tipo activo */}
                     <div className="ir">
                       <span className="ir-k">Tipo activo</span>
@@ -421,7 +486,8 @@ export default function FichaDemanda() {
                       </span>
                     </div>
 
-                    {/* Razón búsqueda */}
+                    {/* Razón búsqueda — solo Leasing */}
+                    {naturaleza === 'Leasing' && (
                     <div className="ir">
                       <span className="ir-k">Razón búsqueda</span>
                       <span className="ir-v">
@@ -430,6 +496,60 @@ export default function FichaDemanda() {
                         </select>
                       </span>
                     </div>
+                    )}
+
+                    {/* Campos Capital Markets — solo Inversión */}
+                    {naturaleza === 'Inversión' && (<>
+                      <div className="ir">
+                        <span className="ir-k" style={{fontWeight:700,color:'var(--amber)'}}>Tipo de operación</span>
+                        <span className="ir-v">
+                          <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={cmFields.tipo_op||''} onChange={e=>setCmField('tipo_op',e.target.value)}>
+                            <option value="">—</option>
+                            <option>Venta</option>
+                            <option>Sale &amp; Leaseback</option>
+                            <option>Forward Purchase</option>
+                            <option>Forward Funding</option>
+                            <option>Oportunidad de inversión</option>
+                          </select>
+                        </span>
+                      </div>
+                      <div className="ir">
+                        <span className="ir-k">Calidad</span>
+                        <span className="ir-v">
+                          <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={cmFields.calidad||''} onChange={e=>setCmField('calidad',e.target.value)}>
+                            <option value="">—</option>
+                            <option>Core</option><option>Core+</option><option>Value-Add</option><option>Opportunistic</option><option>Distressed</option>
+                          </select>
+                        </span>
+                      </div>
+                      <div className="ir">
+                        <span className="ir-k">Estado del activo</span>
+                        <span className="ir-v">
+                          <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={cmFields.estado_activo||''} onChange={e=>setCmField('estado_activo',e.target.value)}>
+                            <option value="">—</option>
+                            <option>Estabilizado</option><option>En desarrollo</option><option>Vacío</option><option>Parcialmente ocupado</option><option>Obra nueva</option>
+                          </select>
+                        </span>
+                      </div>
+                      <div className="ir">
+                        <span className="ir-k">Tipo de explotación</span>
+                        <span className="ir-v">
+                          <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={cmFields.tipo_explot||''} onChange={e=>setCmField('tipo_explot',e.target.value)}>
+                            <option value="">—</option>
+                            <option>Propio</option><option>Arrendado</option><option>Mixto</option><option>SIGI/SOCIMI</option><option>Fondo</option>
+                          </select>
+                        </span>
+                      </div>
+                      <div className="ir">
+                        <span className="ir-k">Razón inversión</span>
+                        <span className="ir-v">
+                          <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={cmFields.razon||''} onChange={e=>setCmField('razon',e.target.value)}>
+                            <option value="">—</option>
+                            <option>Inversión patrimonial</option><option>Diversificación</option><option>Reposicionamiento</option><option>Desarrollo</option><option>Sale &amp; Leaseback</option>
+                          </select>
+                        </span>
+                      </div>
+                    </>)}
 
                     <div className="ir"><span className="ir-k">Timing proyecto</span><span className="ir-v"><input type="date" className="of-inp" style={{padding:'2px 6px',fontSize:11,width:120}}/></span></div>
                     <div className="ir"><span className="ir-k">Origen demanda</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>Otras consultoras</option><option>Idealista</option><option>Web Savills</option><option>LinkedIn</option><option>ON personal</option><option>ON profesional</option></select></span></div>
@@ -441,65 +561,97 @@ export default function FichaDemanda() {
                   <textarea className="of-textarea" style={{fontSize:11}}>Savills (Estefanía): Buscan unos 2.500 m2 en la zona de Alcobendas. Preguntan específicamente por Albatros. Quieren solo la última planta con terraza.</textarea>
                 </div>
 
-                {/* ── Col 2: Campos físicos + Presupuesto ── */}
+                {/* ── Col 2: Campos físicos + Presupuesto (Leasing) / Criterios CM (Inversión) ── */}
                 <div>
-                  {/* Nivel 3: Campos físicos condicionales */}
-                  <div className="of-section">
-                    📐 CAMPOS FÍSICOS
-                    <span style={{marginLeft:6,fontSize:9,background:'var(--purple)22',color:'var(--purple)',border:'1px solid var(--purple)44',borderRadius:8,padding:'1px 6px',fontWeight:700}}>{demTipologia}</span>
-                  </div>
-                  <div className="info-block" style={{marginBottom:10}}>
-                    {camposActivos.length > 0
-                      ? camposActivos.map(c=>(
-                          <CampoFisico key={c.key} campo={c} value={demCampos[c.key]} onChange={v=>setCampo(c.key,v)}/>
-                        ))
-                      : <div style={{fontSize:11,color:'var(--text4)',padding:'8px 0'}}>Selecciona una tipología para ver los campos correspondientes.</div>
-                    }
-                  </div>
-
-                  {/* Nivel 4: Presupuesto condicional */}
-                  <div className="of-section">💰 PRESUPUESTO</div>
-                  <div className="info-block">
-                    {/* Selector Tipo */}
-                    <div className="ir">
-                      <span className="ir-k" style={{fontWeight:700}}>Tipo</span>
-                      <span className="ir-v">
-                        <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={demTipoPres} onChange={e=>setDemTipoPres(e.target.value)}>
-                          <option>Alquiler</option>
-                          <option>Venta</option>
-                          <option>Alquiler / Venta</option>
-                        </select>
-                      </span>
+                  {naturaleza === 'Leasing' ? (<>
+                    {/* Nivel 3: Campos físicos condicionales */}
+                    <div className="of-section">
+                      📐 CAMPOS FÍSICOS
+                      <span style={{marginLeft:6,fontSize:9,background:'var(--purple)22',color:'var(--purple)',border:'1px solid var(--purple)44',borderRadius:8,padding:'1px 6px',fontWeight:700}}>{demTipologia}</span>
+                    </div>
+                    <div className="info-block" style={{marginBottom:10}}>
+                      {camposActivos.length > 0
+                        ? camposActivos.map(c=>(
+                            <CampoFisico key={c.key} campo={c} value={demCampos[c.key]} onChange={v=>setCampo(c.key,v)}/>
+                          ))
+                        : <div style={{fontSize:11,color:'var(--text4)',padding:'8px 0'}}>Selecciona una tipología para ver los campos correspondientes.</div>
+                      }
                     </div>
 
-                    {/* Campos Alquiler */}
-                    {(demTipoPres==='Alquiler'||demTipoPres==='Alquiler / Venta') && (
-                      <div style={{marginTop:8,paddingTop:8,borderTop:'1px dashed var(--border)'}}>
-                        <div style={{fontSize:10,fontWeight:700,color:'var(--teal)',marginBottom:4,textTransform:'uppercase',letterSpacing:'.04em'}}>Alquiler</div>
-                        <div className="ir">
-                          <span className="ir-k">Unidad renta</span>
-                          <span className="ir-v">
-                            <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={demPres.unidad_alq||'€/m²/mes'} onChange={e=>setPres('unidad_alq',e.target.value)}>
-                              <option>€/m²/mes</option><option>€/mes</option>
-                            </select>
-                          </span>
+                    {/* Nivel 4: Presupuesto condicional */}
+                    <div className="of-section">💰 PRESUPUESTO</div>
+                    <div className="info-block">
+                      <div className="ir">
+                        <span className="ir-k" style={{fontWeight:700}}>Tipo</span>
+                        <span className="ir-v">
+                          <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={demTipoPres} onChange={e=>setDemTipoPres(e.target.value)}>
+                            <option>Alquiler</option>
+                            <option>Venta</option>
+                            <option>Alquiler / Venta</option>
+                          </select>
+                        </span>
+                      </div>
+                      {(demTipoPres==='Alquiler'||demTipoPres==='Alquiler / Venta') && (
+                        <div style={{marginTop:8,paddingTop:8,borderTop:'1px dashed var(--border)'}}>
+                          <div style={{fontSize:10,fontWeight:700,color:'var(--teal)',marginBottom:4,textTransform:'uppercase',letterSpacing:'.04em'}}>Alquiler</div>
+                          <div className="ir">
+                            <span className="ir-k">Unidad renta</span>
+                            <span className="ir-v">
+                              <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={demPres.unidad_alq||'€/m²/mes'} onChange={e=>setPres('unidad_alq',e.target.value)}>
+                                <option>€/m²/mes</option><option>€/mes</option>
+                              </select>
+                            </span>
+                          </div>
+                          <div className="ir"><span className="ir-k">Alquiler desde</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.alq_min||''} onChange={e=>setPres('alq_min',e.target.value)} placeholder="—"/></span></div>
+                          <div className="ir"><span className="ir-k">Alquiler hasta</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.alq_max||''} onChange={e=>setPres('alq_max',e.target.value)} placeholder="—"/></span></div>
                         </div>
-                        <div className="ir"><span className="ir-k">Alquiler desde</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.alq_min||''} onChange={e=>setPres('alq_min',e.target.value)} placeholder="—"/></span></div>
-                        <div className="ir"><span className="ir-k">Alquiler hasta</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.alq_max||''} onChange={e=>setPres('alq_max',e.target.value)} placeholder="—"/></span></div>
+                      )}
+                      {(demTipoPres==='Venta'||demTipoPres==='Alquiler / Venta') && (
+                        <div style={{marginTop:8,paddingTop:8,borderTop:'1px dashed var(--border)'}}>
+                          <div style={{fontSize:10,fontWeight:700,color:'var(--amber)',marginBottom:4,textTransform:'uppercase',letterSpacing:'.04em'}}>Venta</div>
+                          <div className="ir"><span className="ir-k">€/m² desde</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.venta_m2_min||''} onChange={e=>setPres('venta_m2_min',e.target.value)} placeholder="—"/></span></div>
+                          <div className="ir"><span className="ir-k">€/m² hasta</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.venta_m2_max||''} onChange={e=>setPres('venta_m2_max',e.target.value)} placeholder="—"/></span></div>
+                          <div className="ir"><span className="ir-k">Precio total desde</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.venta_tot_min||''} onChange={e=>setPres('venta_tot_min',e.target.value)} placeholder="—"/></span></div>
+                          <div className="ir"><span className="ir-k">Precio total hasta</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.venta_tot_max||''} onChange={e=>setPres('venta_tot_max',e.target.value)} placeholder="—"/></span></div>
+                        </div>
+                      )}
+                    </div>
+                  </>) : (<>
+                    {/* Capital Markets — Criterios financieros */}
+                    <div className="of-section">
+                      💰 CRITERIOS FINANCIEROS
+                      <span style={{marginLeft:6,fontSize:9,background:'var(--amber)22',color:'var(--amber)',border:'1px solid var(--amber)44',borderRadius:8,padding:'1px 6px',fontWeight:700}}>Capital Markets</span>
+                    </div>
+                    <div className="info-block" style={{marginBottom:10}}>
+                      <div className="ir">
+                        <span className="ir-k" style={{fontWeight:700}}>Tipo de rendimiento</span>
+                        <span className="ir-v">
+                          <select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}} value={cmFields.tipo_rend||''} onChange={e=>setCmField('tipo_rend',e.target.value)}>
+                            <option value="">—</option>
+                            <option>Distribución de rentas</option>
+                            <option>Plusvalía</option>
+                            <option>Mixto</option>
+                          </select>
+                        </span>
                       </div>
-                    )}
-
-                    {/* Campos Venta */}
-                    {(demTipoPres==='Venta'||demTipoPres==='Alquiler / Venta') && (
                       <div style={{marginTop:8,paddingTop:8,borderTop:'1px dashed var(--border)'}}>
-                        <div style={{fontSize:10,fontWeight:700,color:'var(--amber)',marginBottom:4,textTransform:'uppercase',letterSpacing:'.04em'}}>Venta</div>
-                        <div className="ir"><span className="ir-k">€/m² desde</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.venta_m2_min||''} onChange={e=>setPres('venta_m2_min',e.target.value)} placeholder="—"/></span></div>
-                        <div className="ir"><span className="ir-k">€/m² hasta</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.venta_m2_max||''} onChange={e=>setPres('venta_m2_max',e.target.value)} placeholder="—"/></span></div>
-                        <div className="ir"><span className="ir-k">Precio total desde</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.venta_tot_min||''} onChange={e=>setPres('venta_tot_min',e.target.value)} placeholder="—"/></span></div>
-                        <div className="ir"><span className="ir-k">Precio total hasta</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={demPres.venta_tot_max||''} onChange={e=>setPres('venta_tot_max',e.target.value)} placeholder="—"/></span></div>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--amber)',marginBottom:4,textTransform:'uppercase',letterSpacing:'.04em'}}>Ticket objetivo</div>
+                        <div className="ir"><span className="ir-k">Desde (M€)</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={cmFields.ticket_min||''} onChange={e=>setCmField('ticket_min',e.target.value)} placeholder="—"/></span></div>
+                        <div className="ir"><span className="ir-k">Hasta (M€)</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={cmFields.ticket_max||''} onChange={e=>setCmField('ticket_max',e.target.value)} placeholder="—"/></span></div>
                       </div>
-                    )}
-                  </div>
+                      <div style={{marginTop:8,paddingTop:8,borderTop:'1px dashed var(--border)'}}>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--green)',marginBottom:4,textTransform:'uppercase',letterSpacing:'.04em'}}>Yield objetivo</div>
+                        <div className="ir"><span className="ir-k">Desde (%)</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={cmFields.yield_min||''} onChange={e=>setCmField('yield_min',e.target.value)} placeholder="—"/></span></div>
+                        <div className="ir"><span className="ir-k">Hasta (%)</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={cmFields.yield_max||''} onChange={e=>setCmField('yield_max',e.target.value)} placeholder="—"/></span></div>
+                      </div>
+                      <div style={{marginTop:8,paddingTop:8,borderTop:'1px dashed var(--border)'}}>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--purple)',marginBottom:4,textTransform:'uppercase',letterSpacing:'.04em'}}>Otros parámetros</div>
+                        <div className="ir"><span className="ir-k">Capex estimado (€/m²)</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={cmFields.capex||''} onChange={e=>setCmField('capex',e.target.value)} placeholder="—"/></span></div>
+                        <div className="ir"><span className="ir-k">Ocupación mínima (%)</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={cmFields.ocup_min||''} onChange={e=>setCmField('ocup_min',e.target.value)} placeholder="—"/></span></div>
+                        <div className="ir"><span className="ir-k">WAULT mínimo (años)</span><span className="ir-v"><input className="of-inp" style={{width:80,padding:'2px 6px',fontSize:11}} value={cmFields.wault_min||''} onChange={e=>setCmField('wault_min',e.target.value)} placeholder="—"/></span></div>
+                      </div>
+                    </div>
+                  </>)}
                 </div>
 
                 {/* ── Col 3: Parámetros ── */}
@@ -512,18 +664,35 @@ export default function FichaDemanda() {
                     <input className="of-inp" style={{fontSize:11}} defaultValue="—"/>
                   </div>
 
-                  {/* Resumen visual del estado de la demanda */}
-                  <div style={{background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',padding:10,marginTop:8}}>
-                    <div style={{fontSize:10,fontWeight:700,color:'var(--accent)',marginBottom:8,textTransform:'uppercase',letterSpacing:'.04em'}}>✦ Resumen demanda</div>
-                    <div style={{fontSize:11,color:'var(--text2)',lineHeight:1.7}}>
-                      <div><strong>Uso:</strong> {demUsoPpal}</div>
-                      <div><strong>Tipología:</strong> {demTipologia}</div>
-                      <div><strong>Presupuesto:</strong> {demTipoPres}</div>
-                      {camposActivos.filter(c=>demCampos[c.key]).map(c=>(
-                        <div key={c.key}><strong>{c.label}:</strong> {demCampos[c.key]}{c.unit?` ${c.unit}`:''}</div>
-                      ))}
+                  {/* Resumen visual */}
+                  {naturaleza === 'Leasing' ? (
+                    <div style={{background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',padding:10,marginTop:8}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--accent)',marginBottom:8,textTransform:'uppercase',letterSpacing:'.04em'}}>✦ Resumen demanda</div>
+                      <div style={{fontSize:11,color:'var(--text2)',lineHeight:1.7}}>
+                        <div><strong>Uso:</strong> {demUsoPpal}</div>
+                        <div><strong>Tipología:</strong> {demTipologia}</div>
+                        <div><strong>Presupuesto:</strong> {demTipoPres}</div>
+                        {camposActivos.filter(c=>demCampos[c.key]).map(c=>(
+                          <div key={c.key}><strong>{c.label}:</strong> {demCampos[c.key]}{c.unit?` ${c.unit}`:''}</div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div style={{background:'#fffbeb',border:'1px solid var(--amber-bd)',borderRadius:'var(--r)',padding:10,marginTop:8}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--amber)',marginBottom:8,textTransform:'uppercase',letterSpacing:'.04em'}}>🏦 Resumen inversión</div>
+                      <div style={{fontSize:11,color:'var(--text2)',lineHeight:1.7}}>
+                        <div><strong>Uso:</strong> {demUsoPpal}</div>
+                        <div><strong>Tipología:</strong> {demTipologia}</div>
+                        {cmFields.tipo_op && <div><strong>Operación:</strong> {cmFields.tipo_op}</div>}
+                        {cmFields.calidad && <div><strong>Calidad:</strong> {cmFields.calidad}</div>}
+                        {cmFields.estado_activo && <div><strong>Estado:</strong> {cmFields.estado_activo}</div>}
+                        {(cmFields.ticket_min||cmFields.ticket_max) && <div><strong>Ticket:</strong> {cmFields.ticket_min||'—'} – {cmFields.ticket_max||'—'} M€</div>}
+                        {(cmFields.yield_min||cmFields.yield_max) && <div><strong>Yield:</strong> {cmFields.yield_min||'—'} – {cmFields.yield_max||'—'} %</div>}
+                        {cmFields.ocup_min && <div><strong>Ocup. mín.:</strong> {cmFields.ocup_min}%</div>}
+                        {cmFields.capex && <div><strong>Capex:</strong> {cmFields.capex} €/m²</div>}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
               </div>
@@ -1023,7 +1192,7 @@ export default function FichaDemanda() {
           )}
         </div>
 
-        <RightPanel navigate={navigate}/>
+        <RightPanel navigate={navigate} naturaleza={naturaleza} cmFields={cmFields}/>
       </div>
       {showTarea && <AsignarTareaModal refTipo="Demanda" refNombre="D251035690 · Corp. Financiera Azuaga" onClose={() => setShowTarea(false)} />}
     </div>
