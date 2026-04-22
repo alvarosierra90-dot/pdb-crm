@@ -38,8 +38,13 @@ import PresentacionesList from './views/PresentacionesList'
 import VencimientosView from './views/VencimientosView'
 import MarketingView from './views/MarketingView'
 import InformesMercado from './views/InformesMercado'
+import CuentasList from './views/CuentasList'
+import ContactosList from './views/ContactosList'
+import OportunidadesList from './views/OportunidadesList'
+import InstruccionesList from './views/InstruccionesList'
+import EntidadesLegalesList from './views/EntidadesLegalesList'
 
-const BUILT = ['activos','ficha-activo','ofertas','ficha-oferta','negociaciones','ficha-negociacion','portfolios','portfolio','demandas','ficha-demanda','actividades','ficha-actividad','visitas','ficha-visita','tareas','ficha-tarea','zonas','ficha-zona','usuarios','ficha-usuario','mandatos','ficha-mandato','mapas','mis-clientes','inteligencia-comercial','vencimientos','marketing','informes-mercado','noticias','arrendatarios','ficha-arrendatario','propietarios','ficha-propietario','propuestas','ficha-propuesta','presentaciones','ficha-presentacion']
+const BUILT = ['activos','ficha-activo','ofertas','ficha-oferta','negociaciones','ficha-negociacion','portfolios','portfolio','demandas','ficha-demanda','actividades','ficha-actividad','visitas','ficha-visita','tareas','ficha-tarea','zonas','ficha-zona','usuarios','ficha-usuario','mandatos','ficha-mandato','mapas','mis-clientes','inteligencia-comercial','vencimientos','marketing','informes-mercado','noticias','arrendatarios','ficha-arrendatario','propietarios','ficha-propietario','propuestas','ficha-propuesta','presentaciones','ficha-presentacion','cuentas','contactos','oportunidades','instruccion','entidades-legales']
 
 function Router() {
   const { view } = useNav()
@@ -82,6 +87,11 @@ function Router() {
       {view === 'ficha-zona' && <FichaZona />}
       {view === 'usuarios' && <UsuariosList />}
       {view === 'ficha-usuario' && <FichaUsuario />}
+      {view === 'cuentas' && <CuentasList />}
+      {view === 'contactos' && <ContactosList />}
+      {view === 'oportunidades' && <OportunidadesList />}
+      {view === 'instruccion' && <InstruccionesList />}
+      {view === 'entidades-legales' && <EntidadesLegalesList />}
       {!BUILT.includes(view) && (
         <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: 'var(--text4)' }}>
           <div style={{ fontSize: 32 }}>🚧</div>

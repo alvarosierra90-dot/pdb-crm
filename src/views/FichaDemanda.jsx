@@ -291,6 +291,7 @@ export default function FichaDemanda() {
   const { navigate } = useNav()
   const [activeTab, setActiveTab] = useState('dem-info')
   const [showTarea, setShowTarea] = useState(false)
+  const [showTransformar, setShowTransformar] = useState(false)
   const [confidential,    setConfidential]    = useState(false)
   const [authorizedUsers, setAuthorizedUsers] = useState(DEM_USERS_INIT)
   const [addingUser,      setAddingUser]      = useState(false)
@@ -338,6 +339,8 @@ export default function FichaDemanda() {
         <button className="ab-btn">Asignar</button>
         <div className="ab-sep"/>
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
+        <div className="ab-sep"/>
+        <button className="ab-btn" style={{background:'#0078d4',color:'#fff',border:'none',fontWeight:700}} onClick={()=>setShowTransformar(true)}>⚡ Transformar en oportunidad</button>
       </div>
 
       <div className="ficha-wrap">
@@ -1195,6 +1198,53 @@ export default function FichaDemanda() {
         <RightPanel navigate={navigate} naturaleza={naturaleza} cmFields={cmFields}/>
       </div>
       {showTarea && <AsignarTareaModal refTipo="Demanda" refNombre="D251035690 · Corp. Financiera Azuaga" onClose={() => setShowTarea(false)} />}
+
+      {/* Modal Transformar en Oportunidad */}
+      {showTransformar && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setShowTransformar(false)}>
+          <div style={{background:'#fff',borderRadius:10,padding:24,maxWidth:480,width:'90%',boxShadow:'0 8px 32px rgba(0,0,0,.18)'}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
+              <div style={{width:32,height:32,borderRadius:6,background:'#0078d4',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                <span style={{color:'#fff',fontWeight:800,fontSize:14}}>D</span>
+              </div>
+              <div>
+                <div style={{fontSize:14,fontWeight:700}}>Transformar en Oportunidad</div>
+                <div style={{fontSize:11,color:'var(--text3)'}}>La oportunidad oficial se creará en Microsoft Dynamics 365</div>
+              </div>
+            </div>
+
+            <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:7,padding:12,marginBottom:14}}>
+              <div style={{fontSize:10,fontWeight:700,color:'#1e40af',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:8}}>Información que viajará a Dynamics</div>
+              {[
+                ['Cuenta','Corporacion Financiera Azuaga SL'],
+                ['Contacto','—'],
+                ['Uso / Naturaleza', naturaleza === 'Inversión' ? `Inversión · ${cmFields.tipo_op||'—'}` : `Leasing · ${demUsoPpal}`],
+                ['Superficie',naturaleza === 'Leasing' ? `${demCampos.sup_min||'—'} – ${demCampos.sup_max||'—'} m²` : `Ticket ${cmFields.ticket_min||'—'}–${cmFields.ticket_max||'—'} M€`],
+                ['País','España'],
+                ['Origen del negocio','Otras Consultoras'],
+                ['Responsable','Sierra Álvaro'],
+                ['Notas','Buscan unos 2.500 m² en la zona de Alcobendas'],
+              ].map(([k,v])=>(
+                <div key={k} style={{display:'flex',gap:8,fontSize:11,marginBottom:3}}>
+                  <span style={{color:'var(--text4)',minWidth:120}}>{k}</span>
+                  <span style={{fontWeight:500,color:'var(--text)'}}>{v}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{fontSize:11,color:'var(--text3)',marginBottom:16,lineHeight:1.6}}>
+              Al continuar, se abrirá Dynamics 365 para crear la oportunidad oficial. La demanda quedará vinculada y el PDB mantendrá la trazabilidad completa del proceso.
+            </div>
+
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button className="ab-btn" onClick={()=>setShowTransformar(false)}>Cancelar</button>
+              <button style={{padding:'7px 16px',borderRadius:6,background:'#0078d4',color:'#fff',border:'none',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'inherit'}} onClick={()=>{setShowTransformar(false);alert('En producción, se abrirá Microsoft Dynamics 365 con los datos preasignados.\n\nFlujo: Demanda (PDB) → Oportunidad (Dynamics) → Negociación (PDB) → Instrucción (Dynamics)')}}>
+                Abrir Dynamics 365 →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

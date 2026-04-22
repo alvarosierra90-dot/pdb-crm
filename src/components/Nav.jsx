@@ -76,6 +76,10 @@ export default function Nav() {
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5"/></svg>
           Contactos <span className="nav-dyn">Dynamics</span>
         </div>
+        <div className={`nav-item ${isActive('entidades-legales') ? 'active' : ''}`} onClick={() => navigate('entidades-legales')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h6M5 12h4"/></svg>
+          Entidades Legales <span className="nav-dyn">Dynamics</span>
+        </div>
       </>}
 
       <div className="nav-section" onClick={() => toggle('act2')}>
