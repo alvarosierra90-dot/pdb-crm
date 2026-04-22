@@ -54,7 +54,8 @@ export default function ActivosList() {
       if (!error && data) {
         const mapped = data.map(a => ({
           ref:    a.ref,
-          name:   a.nombre,
+          name:      a.nombre,
+          direccion: a.direccion || '',
           propietario: a.propietario || '—',
           zona:   a.zona   || '',
           subzona:a.subzona|| '',
@@ -102,7 +103,7 @@ export default function ActivosList() {
 
   const cell = (a) => ({
     _chk:    <td key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} onClick={e => e.stopPropagation()} /></td>,
-    nombre:  <td key="nombre"><div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><div style={{ width: 28, height: 28, borderRadius: 5, background: usoColor(a.uso).bg, color: usoColor(a.uso).color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{a.uso[0]}</div><div><div className="asset-link">{a.name}</div><div className="asset-sub">{a.ref}</div></div></div></td>,
+    nombre:  <td key="nombre"><div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><div style={{ width: 28, height: 28, borderRadius: 5, background: usoColor(a.uso).bg, color: usoColor(a.uso).color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{a.uso[0]}</div><div><div className="asset-link">{a.direccion || a.name}</div><div className="asset-sub">{a.name} · {a.ref}</div></div></div></td>,
     area:    <td key="area" className="mono">{a.sba.toLocaleString()} m²</td>,
     zona:    <td key="zona" style={{ fontSize: 11, fontWeight: 500 }}>{a.zona}</td>,
     subzona: <td key="subzona" style={{ fontSize: 11, color: 'var(--text3)' }}>{a.subzona || '—'}</td>,
