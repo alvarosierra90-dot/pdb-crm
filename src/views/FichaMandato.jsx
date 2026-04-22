@@ -2,6 +2,17 @@ import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 
+const OFERTAS_DISPONIBLES = [
+  { ref:'OLB001', activo:'P.E Avalon',              cuenta:'Merlín Properties SOCIMI',    espacio:'P5 · 1.500 m²',     sba:1500, renta:10.5 },
+  { ref:'OLB002', activo:'P.E Avalon',              cuenta:'Merlín Properties SOCIMI',    espacio:'P3 · 2.550 m²',     sba:2550, renta:11.0 },
+  { ref:'OLB003', activo:'Albatros Edif. D',        cuenta:'Merlín Properties SOCIMI',    espacio:'P2 · 3.200 m²',     sba:3200, renta:13.5 },
+  { ref:'OLB004', activo:'Torre Glòries',           cuenta:'Merlín Properties SOCIMI',    espacio:'P10-P12 · 5.400 m²',sba:5400, renta:18.0 },
+  { ref:'OLB005', activo:'Parque Empresarial Norte',cuenta:'FREO Investments Spain SL',   espacio:'Módulo A · 2.800 m²',sba:2800, renta:9.5  },
+]
+
+const toISO  = s => { if(!s) return ''; const [d,m,y]=s.split('/'); return `${y}-${m}-${d}` }
+const fromISO = s => { if(!s) return ''; const [y,m,d]=s.split('-'); return `${d}/${m}/${y}` }
+
 // ── Datos del mandato MAN-2501 ──
 const M = {
   id:'MAN-2501', titulo:'Exclusiva Leasing — P.E Avalon · P4 y P5',
@@ -130,9 +141,48 @@ function RpBtn({ children, onClick }) {
 }
 
 export default function FichaMandato() {
-  const { navigate } = useNav()
+  const { navigate, params } = useNav()
+  const nuevoModo = params?.nuevo === true
   const [tab, setTab] = useState('info')
   const [showTarea, setShowTarea] = useState(false)
+
+  // ── Estado editable (nuevo modo + edición) ──
+  const [ofertasV,       setOfertasV]       = useState([])
+  const [tipoV,          setTipoV]          = useState('Leasing')
+  const [exclV,          setExclV]          = useState('Exclusiva')
+  const [lineaV,         setLineaV]         = useState('Leasing')
+  const [equipoV,        setEquipoV]        = useState('Leasing Oficinas MAD')
+  const [fConcesion,     setFConcesion]     = useState(toISO(M.fecha_concesion))
+  const [fInicio,        setFInicio]        = useState(toISO(M.fecha_inicio))
+  const [fFin,           setFFin]           = useState(toISO(M.fecha_fin))
+  const [preavisoDias,   setPreavisoDias]   = useState(M.preaviso_dias)
+  const [alertaDias,     setAlertaDias]     = useState(M.alerta_dias)
+  const [prorrogaTacita, setProrrogaTacita] = useState(M.prorroga_tacita)
+  const [prorrogaMeses,  setProrrogaMeses]  = useState(M.prorroga_meses)
+  const [honorariosPct,  setHonorariosPct]  = useState(M.honorarios_pct)
+  const [sbaMandato,     setSbaMandato]     = useState(M.sba_mandato)
+  const [rentaEuros,     setRentaEuros]     = useState(M.activos[0]?.renta ?? 0)
+  const [plazoAnios,     setPlazoAnios]     = useState(5)
+  const [condiciones,    setCondiciones]    = useState(M.condiciones)
+  const [condProrroga,   setCondProrroga]   = useState(M.condiciones_prorroga)
+  const [obsInternas,    setObsInternas]    = useState(M.observaciones)
+  const [ofertaSelInput, setOfertaSelInput] = useState('')
+
+  const honorariosEst = Math.round(honorariosPct / 100 * sbaMandato * rentaEuros * 12)
+
+  const addOferta = (ref) => {
+    const o = OFERTAS_DISPONIBLES.find(x => x.ref === ref)
+    if (!o || ofertasV.find(x => x.ref === ref)) return
+    setOfertasV(v => [...v, o])
+    setSbaMandato(s => s + o.sba)
+    setRentaEuros(o.renta)
+    setOfertaSelInput('')
+  }
+  const removeOferta = (ref) => {
+    const o = ofertasV.find(x => x.ref === ref)
+    if (o) setSbaMandato(s => Math.max(0, s - o.sba))
+    setOfertasV(v => v.filter(x => x.ref !== ref))
+  }
 
   const diasColor = M.dias_restantes <= 0 ? 'var(--red)'
     : M.dias_restantes <= 30 ? 'var(--red)'
@@ -231,16 +281,28 @@ export default function FichaMandato() {
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
       <div className="action-bar">
-        <button className="ab-btn save">💾 Guardar</button>
-        <button className="ab-btn">Guardar y cerrar</button>
-        <button className="ab-btn">Renovar mandato</button>
-        <button className="ab-btn">Rescindir</button>
-        <div className="ab-sep"/>
-        <button className="ab-btn blue">📎 Vincular activo</button>
-        <button className="ab-btn blue">📋 Nueva actividad</button>
-        <button className="ab-btn" onClick={()=>navigate('mandatos')}>← Volver</button>
-        <div className="ab-sep"/>
-        <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
+        {nuevoModo ? (
+          <>
+            <button className="ab-btn save" style={{background:'var(--green)',color:'#fff',border:'none',fontWeight:700}}
+              onClick={()=>{ if(ofertasV.length===0){alert('Debes vincular al menos una oferta antes de guardar el mandato.');return;} navigate('mandatos') }}>
+              💾 Guardar mandato
+            </button>
+            <button className="ab-btn" onClick={()=>navigate('mandatos')}>✕ Cancelar</button>
+            {ofertasV.length===0 && <span style={{fontSize:10,color:'var(--red)',marginLeft:4,fontWeight:600}}>★ Vincula al menos una oferta</span>}
+          </>
+        ) : (
+          <>
+            <button className="ab-btn save">💾 Guardar</button>
+            <button className="ab-btn">Guardar y cerrar</button>
+            <button className="ab-btn">Renovar mandato</button>
+            <button className="ab-btn">Rescindir</button>
+            <div className="ab-sep"/>
+            <button className="ab-btn blue">📋 Nueva actividad</button>
+            <button className="ab-btn" onClick={()=>navigate('mandatos')}>← Volver</button>
+            <div className="ab-sep"/>
+            <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
+          </>
+        )}
       </div>
 
       <div className="ficha-wrap">
@@ -282,7 +344,7 @@ export default function FichaMandato() {
 
           {/* Tabs */}
           <div className="tabs">
-            {[['info','Información'],['cronograma','Cronograma'],['alertas',`Alertas (${ALERTAS.filter(a=>a.activa).length})`],['activos','Activos vinculados'],['actividades',`Actividades (${ACTS.length})`],['transacciones',`Transacciones (${TRANS.length})`],['visitas',`Visitas (${VISS.length})`],['docs',`Documentación (${DOCS.length})`],['equipo','Equipo'],['informe','📊 Informe de gestión']].map(([k,l])=>(
+            {[['info','Información'],['alertas',`Alertas (${ALERTAS.filter(a=>a.activa).length})`],['actividades',`Actividades (${ACTS.length})`],['transacciones',`Transacciones (${TRANS.length})`],['visitas',`Visitas (${VISS.length})`],['docs',`Documentación (${DOCS.length})`],['equipo','Equipo'],['informe','📊 Informe de gestión']].map(([k,l])=>(
               <div key={k} className={`tab ${tab===k?'active':''}`} onClick={()=>setTab(k)}>{l}</div>
             ))}
           </div>
@@ -291,171 +353,263 @@ export default function FichaMandato() {
           {tab==='info' && (
             <div className="tab-content active">
               <div className="info-pad">
+
+                {/* Cronograma visual — solo en modo vista */}
+                {!nuevoModo && (
+                  <div className="info-block" style={{marginBottom:12}}>
+                    <div className="ib-title">CRONOGRAMA CONTRACTUAL</div>
+                    <div style={{position:'relative',margin:'24px 8px 40px',userSelect:'none'}}>
+                      {[
+                        {label:'Concesión',fecha:M.fecha_concesion,p:pct(M.fecha_concesion),color:'var(--text3)'},
+                        {label:'Inicio',fecha:M.fecha_inicio,p:0,color:'var(--green)'},
+                        {label:'Preaviso',fecha:M.fecha_preaviso,p:pct(M.fecha_preaviso),color:'var(--amber)'},
+                        {label:'Vencimiento',fecha:M.fecha_fin,p:pct(M.fecha_fin),color:'var(--red)'},
+                        {label:'Fin prórroga',fecha:M.prorroga_fin,p:100,color:'var(--purple)'},
+                      ].map(item=>(
+                        <div key={item.label} style={{position:'absolute',left:`${item.p}%`,top:-22,transform:'translateX(-50%)',textAlign:'center',minWidth:60}}>
+                          <div style={{fontSize:9,fontWeight:600,color:item.color,whiteSpace:'nowrap'}}>{item.label}</div>
+                        </div>
+                      ))}
+                      <div style={{position:'relative',height:28,borderRadius:6,overflow:'visible'}}>
+                        <div style={{position:'absolute',left:'0%',width:`${pct(M.fecha_fin)}%`,height:'100%',background:'linear-gradient(90deg,#dcfce7,#bbf7d0)',borderRadius:'6px 0 0 6px'}}/>
+                        <div style={{position:'absolute',left:`${pct(M.fecha_fin)}%`,width:`${100-pct(M.fecha_fin)}%`,height:'100%',background:'linear-gradient(90deg,#ede9fe,#ddd6fe)',borderRadius:'0 6px 6px 0',borderLeft:'2px dashed var(--purple)'}}/>
+                        <div style={{position:'absolute',left:`${pct(M.fecha_preaviso)-5}%`,width:`${pct(M.fecha_fin)-pct(M.fecha_preaviso)+5}%`,height:'100%',background:'rgba(251,191,36,.25)',borderLeft:'2px solid var(--amber)'}}/>
+                        <div style={{position:'absolute',left:`${TODAY_PCT}%`,top:-4,bottom:-4,width:2,background:'var(--accent)',zIndex:2}}>
+                          <div style={{position:'absolute',top:-14,left:'50%',transform:'translateX(-50%)',background:'var(--accent)',color:'#fff',fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:3,whiteSpace:'nowrap'}}>HOY</div>
+                        </div>
+                        <div style={{position:'absolute',left:'2%',top:'50%',transform:'translateY(-50%)',fontSize:9,fontWeight:700,color:'var(--green)'}}>ACTIVO</div>
+                        <div style={{position:'absolute',left:`${pct(M.fecha_fin)+1}%`,top:'50%',transform:'translateY(-50%)',fontSize:9,fontWeight:700,color:'var(--purple)'}}>PRÓRROGA {M.prorroga_meses}m</div>
+                      </div>
+                      {[
+                        {fecha:M.fecha_inicio,p:0,color:'var(--green)'},
+                        {fecha:M.fecha_preaviso,p:pct(M.fecha_preaviso),color:'var(--amber)'},
+                        {fecha:M.fecha_fin,p:pct(M.fecha_fin),color:'var(--red)'},
+                        {fecha:M.prorroga_fin,p:100,color:'var(--purple)'},
+                      ].map(m=>(
+                        <div key={m.fecha} style={{position:'absolute',left:`${m.p}%`,top:30,transform:'translateX(-50%)',textAlign:'center'}}>
+                          <div style={{width:1,height:8,background:m.color,margin:'0 auto 2px'}}/>
+                          <div style={{fontSize:8,fontWeight:600,color:m.color,whiteSpace:'nowrap'}}>{m.fecha}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Vinculaciones */}
+                <div className="info-block" style={{marginBottom:12,borderLeft: nuevoModo ? '3px solid var(--accent)' : undefined}}>
+                  <div className="ib-title" style={{color: nuevoModo ? 'var(--accent)' : undefined}}>
+                    {nuevoModo ? '★ VINCULACIÓN DE OFERTAS (OBLIGATORIO)' : 'OFERTAS VINCULADAS'}
+                  </div>
+                  {nuevoModo && (
+                    <div style={{marginBottom:10,padding:'8px 10px',background:'var(--accent-lt)',borderRadius:6,fontSize:10,color:'var(--accent)'}}>
+                      El mandato debe estar vinculado a al menos una oferta. La cuenta del propietario se asignará automáticamente.
+                    </div>
+                  )}
+                  <div style={{display:'flex',gap:8,marginBottom:8,alignItems:'center'}}>
+                    <select className="fsel" value={ofertaSelInput} onChange={e=>setOfertaSelInput(e.target.value)} style={{flex:1,fontSize:11}}>
+                      <option value="">Seleccionar oferta para vincular...</option>
+                      {OFERTAS_DISPONIBLES.filter(o=>!ofertasV.find(x=>x.ref===o.ref)).map(o=>(
+                        <option key={o.ref} value={o.ref}>{o.ref} · {o.activo} · {o.espacio}</option>
+                      ))}
+                    </select>
+                    <button className="ab-btn blue" disabled={!ofertaSelInput} onClick={()=>addOferta(ofertaSelInput)}>+ Añadir oferta</button>
+                  </div>
+                  {(nuevoModo ? ofertasV : M.activos.map(a=>({ref:'OLB001',activo:a.nombre,cuenta:M.cuenta,espacio:`${a.sba.toLocaleString()} m²`,sba:a.sba,renta:a.renta}))).length === 0 && nuevoModo ? (
+                    <div style={{textAlign:'center',padding:'14px 0',color:'var(--text4)',fontSize:11}}>Sin ofertas vinculadas · Añade al menos una oferta</div>
+                  ) : (
+                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                      <thead><tr>{['Ref. Oferta','Activo','Espacio / Descripción','SBA','Renta €/m²','Cuenta',''].map(h=>(
+                        <th key={h} style={{padding:'5px 10px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                      ))}</tr></thead>
+                      <tbody>
+                        {(nuevoModo ? ofertasV : M.activos.map(a=>({ref:'OLB001',activo:a.nombre,cuenta:M.cuenta,espacio:`${a.sba.toLocaleString()} m²`,sba:a.sba,renta:a.renta}))).map(o=>(
+                          <tr key={o.ref} style={{borderBottom:'1px solid var(--border)'}}>
+                            <td style={{padding:'6px 10px'}}><span className="asset-link mono" style={{fontSize:10}}>{o.ref}</span></td>
+                            <td style={{padding:'6px 10px',fontWeight:500,color:'var(--teal)'}}>{o.activo}</td>
+                            <td style={{padding:'6px 10px',color:'var(--text3)'}}>{o.espacio}</td>
+                            <td style={{padding:'6px 10px',fontWeight:600}}>{o.sba?.toLocaleString()} m²</td>
+                            <td style={{padding:'6px 10px'}}>{o.renta} €</td>
+                            <td style={{padding:'6px 10px',color:'var(--accent)'}}>{o.cuenta}</td>
+                            <td style={{padding:'6px 10px'}}>
+                              {nuevoModo
+                                ? <button className="ra" style={{color:'var(--red)'}} onClick={()=>removeOferta(o.ref)}>✕</button>
+                                : <button className="ra p" onClick={()=>navigate('ficha-oferta')}>Ver</button>
+                              }
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                  {/* Cuenta del propietario derivada */}
+                  {nuevoModo && ofertasV.length > 0 && (
+                    <div style={{marginTop:8,padding:'6px 10px',background:'var(--gray-lt)',borderRadius:6,display:'flex',alignItems:'center',gap:8,fontSize:11}}>
+                      <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Propietario asignado:</span>
+                      <span style={{fontWeight:600,color:'var(--accent)'}}>{ofertasV[0].cuenta}</span>
+                      <span style={{fontSize:9,color:'var(--text4)'}}>· Derivado de la oferta vinculada</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tres columnas: Identificación · Fechas · Prórroga */}
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:12}}>
                   <div className="info-block">
                     <div className="ib-title">IDENTIFICACIÓN</div>
-                    <div className="ir"><span className="ir-k">ID mandato</span><span className="ir-v mono">{M.id}</span></div>
-                    <div className="ir"><span className="ir-k">Tipo</span><span className="ir-v"><span className="tag tag-blue">{M.tipo}</span></span></div>
-                    <div className="ir"><span className="ir-k">Exclusividad</span><span className="ir-v"><span className={`tag ${M.excl==='Coexclusiva'?'tag-teal':'tag-purple'}`}>{M.excl}</span></span></div>
-                    <div className="ir"><span className="ir-k">Estado</span><span className="ir-v"><span className="tag tag-green">{M.estado}</span></span></div>
-                    <div className="ir"><span className="ir-k">Línea de negocio</span><span className="ir-v">{M.linea}</span></div>
-                    <div className="ir"><span className="ir-k">Equipo</span><span className="ir-v">{M.equipo}</span></div>
+                    {!nuevoModo && <div className="ir"><span className="ir-k">ID mandato</span><span className="ir-v mono">{M.id}</span></div>}
+                    <div className="ir"><span className="ir-k">Tipo</span>
+                      <select className="fsel" value={tipoV} onChange={e=>setTipoV(e.target.value)} style={{fontSize:11,padding:'2px 6px'}}>
+                        {['Leasing','Capital Markets','Valoraciones','Property Management'].map(t=><option key={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div className="ir"><span className="ir-k">Exclusividad</span>
+                      <select className="fsel" value={exclV} onChange={e=>setExclV(e.target.value)} style={{fontSize:11,padding:'2px 6px'}}>
+                        {['Exclusiva','Coexclusiva'].map(t=><option key={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    {!nuevoModo && <div className="ir"><span className="ir-k">Estado</span><span className="ir-v"><span className="tag tag-green">{M.estado}</span></span></div>}
+                    <div className="ir"><span className="ir-k">Línea de negocio</span>
+                      <select className="fsel" value={lineaV} onChange={e=>setLineaV(e.target.value)} style={{fontSize:11,padding:'2px 6px'}}>
+                        {['Leasing','Capital Markets','Valoraciones'].map(t=><option key={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div className="ir"><span className="ir-k">Equipo</span>
+                      <select className="fsel" value={equipoV} onChange={e=>setEquipoV(e.target.value)} style={{fontSize:11,padding:'2px 6px'}}>
+                        {['Leasing Oficinas MAD','Leasing Oficinas BCN','Capital Markets MAD','Valoraciones MAD'].map(t=><option key={t}>{t}</option>)}
+                      </select>
+                    </div>
                   </div>
+
                   <div className="info-block">
                     <div className="ib-title">FECHAS CONTRACTUALES</div>
-                    <div className="ir"><span className="ir-k">Concesión</span><span className="ir-v">{M.fecha_concesion}</span></div>
-                    <div className="ir"><span className="ir-k">Inicio</span><span className="ir-v">{M.fecha_inicio}</span></div>
-                    <div className="ir"><span className="ir-k">Finalización</span><span className="ir-v" style={{color:diasColor,fontWeight:600}}>{M.fecha_fin}</span></div>
-                    <div className="ir"><span className="ir-k">Límite preaviso</span><span className="ir-v" style={{color:'var(--amber)',fontWeight:600}}>{M.fecha_preaviso}</span></div>
-                    <div className="ir"><span className="ir-k">Preaviso (días)</span><span className="ir-v">{M.preaviso_dias} días</span></div>
-                    <div className="ir"><span className="ir-k">Alerta PDB</span><span className="ir-v">{M.alerta_dias} días antes</span></div>
+                    <div className="ir"><span className="ir-k">Concesión</span>
+                      <input type="date" className="fsel" value={fConcesion} onChange={e=>setFConcesion(e.target.value)} style={{fontSize:11,padding:'2px 6px',fontFamily:'var(--mono)'}}/>
+                    </div>
+                    <div className="ir"><span className="ir-k">Inicio</span>
+                      <input type="date" className="fsel" value={fInicio} onChange={e=>setFInicio(e.target.value)} style={{fontSize:11,padding:'2px 6px',fontFamily:'var(--mono)'}}/>
+                    </div>
+                    <div className="ir"><span className="ir-k">Finalización</span>
+                      <input type="date" className="fsel" value={fFin} onChange={e=>setFFin(e.target.value)} style={{fontSize:11,padding:'2px 6px',fontFamily:'var(--mono)',color:'var(--red)',fontWeight:600}}/>
+                    </div>
+                    {!nuevoModo && <div className="ir"><span className="ir-k">Límite preaviso</span><span className="ir-v" style={{color:'var(--amber)',fontWeight:600}}>{M.fecha_preaviso}</span></div>}
+                    <div className="ir"><span className="ir-k">Preaviso (días)</span>
+                      <input type="number" className="fsel" value={preavisoDias} onChange={e=>setPreavisoDias(+e.target.value)} min={0} style={{fontSize:11,padding:'2px 6px',width:70}}/>
+                    </div>
+                    <div className="ir"><span className="ir-k">Alerta PDB (días)</span>
+                      <input type="number" className="fsel" value={alertaDias} onChange={e=>setAlertaDias(+e.target.value)} min={0} style={{fontSize:11,padding:'2px 6px',width:70}}/>
+                    </div>
                   </div>
+
                   <div className="info-block">
-                    <div className="ib-title">PRÓRROGA</div>
-                    <div className="ir"><span className="ir-k">Prórroga tácita</span><span className="ir-v" style={{color:M.prorroga_tacita?'var(--teal)':'var(--text3)',fontWeight:600}}>{M.prorroga_tacita?'Sí':'No'}</span></div>
-                    {M.prorroga_tacita && <>
-                      <div className="ir"><span className="ir-k">Duración prórroga</span><span className="ir-v">{M.prorroga_meses} meses</span></div>
-                      <div className="ir"><span className="ir-k">Inicio prórroga</span><span className="ir-v">{M.prorroga_inicio}</span></div>
-                      <div className="ir"><span className="ir-k">Fin prórroga</span><span className="ir-v">{M.prorroga_fin}</span></div>
+                    <div className="ib-title">PRÓRROGA Y HONORARIOS</div>
+                    <div className="ir"><span className="ir-k">Prórroga tácita</span>
+                      <select className="fsel" value={prorrogaTacita?'Sí':'No'} onChange={e=>setProrrogaTacita(e.target.value==='Sí')} style={{fontSize:11,padding:'2px 6px',color:prorrogaTacita?'var(--teal)':'var(--text3)',fontWeight:600}}>
+                        <option>Sí</option><option>No</option>
+                      </select>
+                    </div>
+                    {prorrogaTacita && <>
+                      <div className="ir"><span className="ir-k">Duración prórroga</span>
+                        <input type="number" className="fsel" value={prorrogaMeses} onChange={e=>setProrrogaMeses(+e.target.value)} min={1} style={{fontSize:11,padding:'2px 6px',width:70}}/>
+                        <span style={{fontSize:10,color:'var(--text4)',marginLeft:4}}>meses</span>
+                      </div>
+                      {!nuevoModo && <>
+                        <div className="ir"><span className="ir-k">Inicio prórroga</span><span className="ir-v">{M.prorroga_inicio}</span></div>
+                        <div className="ir"><span className="ir-k">Fin prórroga</span><span className="ir-v">{M.prorroga_fin}</span></div>
+                      </>}
                     </>}
-                    <div className="ir"><span className="ir-k">Honorarios</span><span className="ir-v">{M.honorarios_pct}% {M.honorarios_base}</span></div>
-                    <div className="ir"><span className="ir-k">SBA bajo mandato</span><span className="ir-v">{M.sba_mandato.toLocaleString()} m²</span></div>
+                    <div className="ir"><span className="ir-k">Honorarios (%)</span>
+                      <div style={{display:'flex',alignItems:'center',gap:6}}>
+                        <input type="number" className="fsel" value={honorariosPct} onChange={e=>setHonorariosPct(+e.target.value)} min={0} max={100} step={0.5} style={{fontSize:11,padding:'2px 6px',width:65}}/>
+                        <span style={{fontSize:10,color:'var(--text4)'}}>% renta anual</span>
+                      </div>
+                    </div>
+                    {!nuevoModo && <div className="ir"><span className="ir-k">SBA bajo mandato</span><span className="ir-v">{M.sba_mandato.toLocaleString()} m²</span></div>}
                   </div>
                 </div>
 
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                {/* Condiciones + Datos económicos */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
                   <div className="info-block">
                     <div className="ib-title">CONDICIONES DEL MANDATO</div>
-                    <p style={{fontSize:11,color:'var(--text2)',lineHeight:1.6,marginBottom:10}}>{M.condiciones}</p>
+                    <textarea value={condiciones} onChange={e=>setCondiciones(e.target.value)} rows={4}
+                      style={{width:'100%',fontSize:11,fontFamily:'inherit',border:'1px solid var(--border)',borderRadius:4,padding:'6px 8px',resize:'vertical',color:'var(--text2)',lineHeight:1.6,marginBottom:8}}/>
                     <div style={{fontSize:10,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:4}}>Condiciones de prórroga</div>
-                    <p style={{fontSize:11,color:'var(--text3)',lineHeight:1.6}}>{M.condiciones_prorroga}</p>
+                    <textarea value={condProrroga} onChange={e=>setCondProrroga(e.target.value)} rows={3}
+                      style={{width:'100%',fontSize:11,fontFamily:'inherit',border:'1px solid var(--border)',borderRadius:4,padding:'6px 8px',resize:'vertical',color:'var(--text3)',lineHeight:1.6,marginBottom:8}}/>
+                    <div style={{fontSize:10,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:4}}>Observaciones internas</div>
+                    <textarea value={obsInternas} onChange={e=>setObsInternas(e.target.value)} rows={3}
+                      style={{width:'100%',fontSize:11,fontFamily:'inherit',border:'1px solid var(--border)',borderRadius:4,padding:'6px 8px',resize:'vertical',color:'var(--text3)',lineHeight:1.6}}/>
                   </div>
+
                   <div className="info-block">
-                    <div className="ib-title">CUENTA VINCULADA</div>
-                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
-                      <div style={{width:32,height:32,borderRadius:6,background:'var(--gray-lt)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color:'var(--text)'}}>{M.cuenta_id}</div>
-                      <div>
-                        <div style={{fontSize:12,fontWeight:600,color:'var(--accent)',cursor:'pointer'}}>{M.cuenta}</div>
-                        <div className="asset-sub">SOCIMI · Madrid</div>
+                    <div className="ib-title">DATOS ECONÓMICOS</div>
+                    <div className="ir"><span className="ir-k">SBA bajo mandato (m²)</span>
+                      <input type="number" className="fsel" value={sbaMandato} onChange={e=>setSbaMandato(+e.target.value)} min={0} style={{fontSize:12,padding:'2px 6px',width:90,fontFamily:'var(--mono)',fontWeight:600}}/>
+                    </div>
+                    <div className="ir"><span className="ir-k">Renta de referencia (€/m²)</span>
+                      <input type="number" className="fsel" value={rentaEuros} onChange={e=>setRentaEuros(+e.target.value)} min={0} step={0.5} style={{fontSize:12,padding:'2px 6px',width:80,fontFamily:'var(--mono)'}}/>
+                    </div>
+                    <div className="ir"><span className="ir-k">Plazo estimado (años)</span>
+                      <input type="number" className="fsel" value={plazoAnios} onChange={e=>setPlazoAnios(+e.target.value)} min={1} style={{fontSize:12,padding:'2px 6px',width:65}}/>
+                    </div>
+                    <div style={{marginTop:12,padding:'12px 14px',background:'var(--green-lt)',border:'1px solid var(--green-bd)',borderRadius:6}}>
+                      <div style={{fontSize:9,fontWeight:700,color:'var(--green)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:4}}>Honorarios estimados</div>
+                      <div style={{fontSize:24,fontWeight:700,color:'var(--green)',fontFamily:'var(--mono)',lineHeight:1}}>
+                        {honorariosEst > 0 ? honorariosEst.toLocaleString('es-ES') + ' €' : '—'}
+                      </div>
+                      <div style={{fontSize:10,color:'var(--green)',opacity:.75,marginTop:3}}>
+                        {honorariosPct}% × {sbaMandato.toLocaleString()} m² × {rentaEuros} €/m² × 12 meses
                       </div>
                     </div>
-                    <div className="ib-title" style={{marginTop:10}}>OBSERVACIONES INTERNAS</div>
-                    <p style={{fontSize:11,color:'var(--text2)',lineHeight:1.6}}>{M.observaciones}</p>
+                    {!nuevoModo && (
+                      <div style={{marginTop:10}}>
+                        <div className="ib-title" style={{marginTop:8}}>CUENTA VINCULADA</div>
+                        <div style={{display:'flex',alignItems:'center',gap:8,marginTop:6,cursor:'pointer'}} onClick={()=>navigate('portfolios')}>
+                          <div style={{width:32,height:32,borderRadius:6,background:'var(--gray-lt)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color:'var(--text)'}}>{M.cuenta_id}</div>
+                          <div>
+                            <div style={{fontSize:12,fontWeight:600,color:'var(--accent)'}}>{M.cuenta}</div>
+                            <div className="asset-sub">Ver portfolio ↗</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Hitos contractuales — solo en vista */}
+                {!nuevoModo && (
+                  <div className="info-block" style={{padding:0,overflow:'hidden'}}>
+                    <div className="ib-title" style={{padding:'8px 14px'}}>HITOS CONTRACTUALES</div>
+                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                      <thead>
+                        <tr>{['Hito','Fecha','Estado','Descripción'].map(h=>(
+                          <th key={h} style={{padding:'6px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                        ))}</tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          {hito:'Concesión del mandato',fecha:M.fecha_concesion,est:'Completado',color:'var(--green)'},
+                          {hito:'Inicio del mandato',fecha:M.fecha_inicio,est:'Completado',color:'var(--green)'},
+                          {hito:'Alerta PDB (60 días)',fecha:'30/12/2025',est:'Completado',color:'var(--teal)'},
+                          {hito:'Límite preaviso',fecha:M.fecha_preaviso,est:'Próximo',color:'var(--amber)'},
+                          {hito:'Vencimiento mandato',fecha:M.fecha_fin,est:'Próximo',color:'var(--red)'},
+                          {hito:'Inicio prórroga tácita',fecha:M.prorroga_inicio,est:'Pendiente',color:'var(--purple)'},
+                          {hito:'Fin prórroga',fecha:M.prorroga_fin,est:'Pendiente',color:'var(--purple)'},
+                        ].map((h,i)=>(
+                          <tr key={i} style={{borderBottom:'1px solid var(--border)'}}>
+                            <td style={{padding:'7px 12px',fontWeight:500}}>{h.hito}</td>
+                            <td style={{padding:'7px 12px',fontWeight:600,color:h.color,fontFamily:'monospace'}}>{h.fecha}</td>
+                            <td style={{padding:'7px 12px'}}><span className={`tag ${h.est==='Completado'?'tag-green':h.est==='Próximo'?'tag-amber':'tag-gray'}`}>{h.est}</span></td>
+                            <td style={{padding:'7px 12px',fontSize:10,color:'var(--text4)'}}>{h.hito}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* ── TAB: CRONOGRAMA ── */}
-          {tab==='cronograma' && (
-            <div className="tab-content active">
-              <div className="info-pad">
-                <div className="info-block" style={{marginBottom:12}}>
-                  <div className="ib-title">VIDA CONTRACTUAL DEL MANDATO · CRONOGRAMA VISUAL</div>
-
-                  {/* Timeline principal */}
-                  <div style={{position:'relative',margin:'24px 8px 40px',userSelect:'none'}}>
-
-                    {/* Etiquetas de fechas — top */}
-                    {[
-                      {label:'Concesión',fecha:M.fecha_concesion,p:pct(M.fecha_concesion),color:'var(--text3)'},
-                      {label:'Inicio',fecha:M.fecha_inicio,p:0,color:'var(--green)'},
-                      {label:'Preaviso',fecha:M.fecha_preaviso,p:pct(M.fecha_preaviso),color:'var(--amber)'},
-                      {label:'Vencimiento',fecha:M.fecha_fin,p:pct(M.fecha_fin),color:'var(--red)'},
-                      {label:'Fin prórroga',fecha:M.prorroga_fin,p:100,color:'var(--purple)'},
-                    ].map(item=>(
-                      <div key={item.label} style={{position:'absolute',left:`${item.p}%`,top:-22,transform:'translateX(-50%)',textAlign:'center',minWidth:60}}>
-                        <div style={{fontSize:9,fontWeight:600,color:item.color,whiteSpace:'nowrap'}}>{item.label}</div>
-                      </div>
-                    ))}
-
-                    {/* Barra de fondo */}
-                    <div style={{position:'relative',height:28,borderRadius:6,overflow:'visible'}}>
-
-                      {/* Segmento: periodo activo */}
-                      <div style={{position:'absolute',left:'0%',width:`${pct(M.fecha_fin)}%`,height:'100%',background:'linear-gradient(90deg,#dcfce7,#bbf7d0)',borderRadius:'6px 0 0 6px'}}/>
-
-                      {/* Segmento: prórroga */}
-                      <div style={{position:'absolute',left:`${pct(M.fecha_fin)}%`,width:`${100-pct(M.fecha_fin)}%`,height:'100%',background:'linear-gradient(90deg,#ede9fe,#ddd6fe)',borderRadius:'0 6px 6px 0',borderLeft:'2px dashed var(--purple)'}}/>
-
-                      {/* Zona de alerta (últimos 60 días antes del fin) */}
-                      <div style={{position:'absolute',left:`${pct(M.fecha_preaviso)-5}%`,width:`${pct(M.fecha_fin)-pct(M.fecha_preaviso)+5}%`,height:'100%',background:'rgba(251,191,36,.25)',borderLeft:'2px solid var(--amber)'}}/>
-
-                      {/* Marcador Hoy */}
-                      <div style={{position:'absolute',left:`${TODAY_PCT}%`,top:-4,bottom:-4,width:2,background:'var(--accent)',zIndex:2}}>
-                        <div style={{position:'absolute',top:-14,left:'50%',transform:'translateX(-50%)',background:'var(--accent)',color:'#fff',fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:3,whiteSpace:'nowrap'}}>HOY</div>
-                      </div>
-
-                      {/* Etiquetas en la barra */}
-                      <div style={{position:'absolute',left:'2%',top:'50%',transform:'translateY(-50%)',fontSize:9,fontWeight:700,color:'var(--green)'}}>ACTIVO</div>
-                      <div style={{position:'absolute',left:`${pct(M.fecha_fin)+1}%`,top:'50%',transform:'translateY(-50%)',fontSize:9,fontWeight:700,color:'var(--purple)'}}>PRÓRROGA {M.prorroga_meses}m</div>
-                    </div>
-
-                    {/* Marcadores de fecha — bottom */}
-                    {[
-                      {fecha:M.fecha_inicio,p:0,color:'var(--green)'},
-                      {fecha:M.fecha_preaviso,p:pct(M.fecha_preaviso),color:'var(--amber)'},
-                      {fecha:M.fecha_fin,p:pct(M.fecha_fin),color:'var(--red)'},
-                      {fecha:M.prorroga_fin,p:100,color:'var(--purple)'},
-                    ].map(m=>(
-                      <div key={m.fecha} style={{position:'absolute',left:`${m.p}%`,top:30,transform:'translateX(-50%)',textAlign:'center'}}>
-                        <div style={{width:1,height:8,background:m.color,margin:'0 auto 2px'}}/>
-                        <div style={{fontSize:8,fontWeight:600,color:m.color,whiteSpace:'nowrap'}}>{m.fecha}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Leyenda */}
-                  <div style={{display:'flex',gap:16,flexWrap:'wrap',marginTop:8}}>
-                    {[
-                      {color:'var(--green)',bg:'#dcfce7',label:'Periodo activo'},
-                      {color:'var(--amber)',bg:'rgba(251,191,36,.25)',label:'Zona de preaviso / alerta'},
-                      {color:'var(--purple)',bg:'#ede9fe',label:'Prórroga tácita'},
-                      {color:'var(--accent)',bg:'var(--accent)',label:'Hoy'},
-                    ].map(l=>(
-                      <div key={l.label} style={{display:'flex',alignItems:'center',gap:5}}>
-                        <div style={{width:12,height:8,borderRadius:2,background:l.bg,border:`1px solid ${l.color}`}}/>
-                        <span style={{fontSize:10,color:'var(--text3)'}}>{l.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Hitos en tabla */}
-                <div className="info-block" style={{padding:0,overflow:'hidden'}}>
-                  <div className="ib-title" style={{padding:'8px 14px'}}>HITOS CONTRACTUALES</div>
-                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                    <thead>
-                      <tr>{['Hito','Fecha','Estado','Descripción'].map(h=>(
-                        <th key={h} style={{padding:'6px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
-                      ))}</tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        {hito:'Concesión del mandato',fecha:M.fecha_concesion,est:'Completado',desc:'Mandato firmado y concedido por el propietario',color:'var(--green)'},
-                        {hito:'Inicio del mandato',fecha:M.fecha_inicio,est:'Completado',desc:'Inicio del periodo de comercialización exclusiva',color:'var(--green)'},
-                        {hito:'Alerta PDB (60 días)',fecha:'30/12/2025',est:'Completado',desc:'Notificación automática enviada al responsable',color:'var(--teal)'},
-                        {hito:'Límite preaviso',fecha:M.fecha_preaviso,est:'Próximo',desc:`Último día para notificar rescisión sin activar prórroga`,color:'var(--amber)'},
-                        {hito:'Vencimiento mandato',fecha:M.fecha_fin,est:'Próximo',desc:'Fin del periodo contractual principal',color:'var(--red)'},
-                        {hito:'Inicio prórroga tácita',fecha:M.prorroga_inicio,est:'Pendiente',desc:`Si no hay rescisión: prórroga automática de ${M.prorroga_meses} meses`,color:'var(--purple)'},
-                        {hito:'Fin prórroga',fecha:M.prorroga_fin,est:'Pendiente',desc:'Vencimiento final incluyendo prórroga',color:'var(--purple)'},
-                      ].map((h,i)=>(
-                        <tr key={i} style={{borderBottom:'1px solid var(--border)'}}>
-                          <td style={{padding:'7px 12px',fontWeight:500}}>{h.hito}</td>
-                          <td style={{padding:'7px 12px',fontWeight:600,color:h.color,fontFamily:'monospace'}}>{h.fecha}</td>
-                          <td style={{padding:'7px 12px'}}>
-                            <span className={`tag ${h.est==='Completado'?'tag-green':h.est==='Próximo'?'tag-amber':'tag-gray'}`}>{h.est}</span>
-                          </td>
-                          <td style={{padding:'7px 12px',fontSize:10,color:'var(--text3)'}}>{h.desc}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* ── TAB: ALERTAS ── */}
           {tab==='alertas' && (
@@ -507,84 +661,6 @@ export default function FichaMandato() {
             </div>
           )}
 
-          {/* ── TAB: ACTIVOS VINCULADOS ── */}
-          {tab==='activos' && (
-            <div className="tab-content active">
-              <div className="info-pad">
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-                  <div style={{fontSize:11,fontWeight:600}}>Activos bajo mandato · {M.activos.length} activo{M.activos.length>1?'s':''} · {M.sba_mandato.toLocaleString()} m² SBA total</div>
-                  <button className="ab-btn blue">+ Añadir activo</button>
-                </div>
-                <div className="info-block" style={{padding:0,overflow:'hidden'}}>
-                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                    <thead>
-                      <tr>{['Activo','Zona / Ciudad','Uso','SBA mandato','Ocupación','Renta €/m²','Ofertas activas',''].map(h=>(
-                        <th key={h} style={{padding:'6px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
-                      ))}</tr>
-                    </thead>
-                    <tbody>
-                      {M.activos.map(a=>(
-                        <tr key={a.ref} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-activo')}>
-                          <td style={{padding:'8px 12px'}}>
-                            <div className="dtbl-link">{a.nombre}</div>
-                            <div className="asset-sub mono">{a.ref}</div>
-                          </td>
-                          <td style={{padding:'8px 12px',fontSize:11,color:'var(--text3)'}}>{a.zona}</td>
-                          <td style={{padding:'8px 12px'}}><span className="tag tag-blue">{a.uso}</span></td>
-                          <td style={{padding:'8px 12px',fontWeight:600}}>{a.sba.toLocaleString()} m²</td>
-                          <td style={{padding:'8px 12px'}}>
-                            <div className="occ-cell">
-                              <div className="occ-bar"><div className="occ-bar-fill" style={{width:`${a.occ}%`,background:a.occ>=90?'var(--green)':a.occ>=75?'var(--amber)':'var(--red)'}}/></div>
-                              <span style={{fontSize:11,color:a.occ>=90?'var(--green)':a.occ>=75?'var(--amber)':'var(--red)'}}>{a.occ}%</span>
-                            </div>
-                          </td>
-                          <td style={{padding:'8px 12px'}}>{a.renta} €</td>
-                          <td style={{padding:'8px 12px',fontWeight:600,color:'var(--accent)'}}>{M.ofertas_activas}</td>
-                          <td style={{padding:'8px 12px'}}><button className="ra p" onClick={e=>{e.stopPropagation();navigate('ficha-activo')}}>Ver activo</button></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr style={{background:'var(--gray-lt)',borderTop:'2px solid var(--border)'}}>
-                        <td colSpan={3} style={{padding:'7px 12px',fontWeight:700,fontSize:11}}>TOTAL MANDATO</td>
-                        <td style={{padding:'7px 12px',fontWeight:700}}>{M.sba_mandato.toLocaleString()} m²</td>
-                        <td colSpan={4}/>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-                {/* Ofertas vinculadas */}
-                <div style={{marginTop:14,fontSize:11,fontWeight:600,marginBottom:8}}>Ofertas vinculadas a este mandato</div>
-                <div className="info-block" style={{padding:0,overflow:'hidden'}}>
-                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                    <thead>
-                      <tr>{['Ref. Oferta','Activo','Espacio','Renta','Estado',''].map(h=>(
-                        <th key={h} style={{padding:'6px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
-                      ))}</tr>
-                    </thead>
-                    <tbody>
-                      <tr style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-oferta')}>
-                        <td style={{padding:'7px 12px'}}><span className="dtbl-link mono">OLB001</span></td>
-                        <td style={{padding:'7px 12px',fontWeight:500}}>P.E Avalon</td>
-                        <td style={{padding:'7px 12px',color:'var(--text3)'}}>P5 · 1.500 m²</td>
-                        <td style={{padding:'7px 12px'}}>10,5–14,5 €/m²</td>
-                        <td style={{padding:'7px 12px'}}><span className="tag tag-amber">En negociación</span></td>
-                        <td style={{padding:'7px 12px'}}><button className="ra p" onClick={e=>{e.stopPropagation();navigate('ficha-oferta')}}>Ver</button></td>
-                      </tr>
-                      <tr style={{cursor:'pointer'}} onClick={()=>navigate('ficha-oferta')}>
-                        <td style={{padding:'7px 12px'}}><span className="dtbl-link mono">OLB002</span></td>
-                        <td style={{padding:'7px 12px',fontWeight:500}}>P.E Avalon</td>
-                        <td style={{padding:'7px 12px',color:'var(--text3)'}}>P3 · 2.550 m²</td>
-                        <td style={{padding:'7px 12px'}}>11,0–13,0 €/m²</td>
-                        <td style={{padding:'7px 12px'}}><span className="tag tag-blue">En curso</span></td>
-                        <td style={{padding:'7px 12px'}}><button className="ra p" onClick={e=>{e.stopPropagation();navigate('ficha-oferta')}}>Ver</button></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* ── TAB: ACTIVIDADES ── */}
           {tab==='actividades' && (
@@ -1065,6 +1141,30 @@ export default function FichaMandato() {
 
         {/* ── Panel derecho ── */}
         <div className="ficha-right">
+
+          {/* KPIs del mandato */}
+          <div className="rp-sec">
+            <div className="rp-lbl">Métricas del mandato</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:4}}>
+              {[
+                {lbl:'Activos',val: nuevoModo ? ofertasV.length : M.activos.length, color:'var(--teal)'},
+                {lbl:'Tipo',val: nuevoModo ? tipoV : M.tipo, color:'var(--accent)', small:true},
+              ].map(k=>(
+                <div key={k.lbl} style={{background:'var(--gray-lt)',borderRadius:'var(--r)',padding:'7px 10px',border:'1px solid var(--border)'}}>
+                  <div style={{fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:2}}>{k.lbl}</div>
+                  <div style={{fontSize:k.small?11:18,fontWeight:700,color:k.color,lineHeight:1}}>{k.val||'—'}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{background:'var(--green-lt)',border:'1px solid var(--green-bd)',borderRadius:'var(--r)',padding:'9px 12px'}}>
+              <div style={{fontSize:9,fontWeight:600,color:'var(--green)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:2}}>Honorarios estimados</div>
+              <div style={{fontSize:20,fontWeight:700,color:'var(--green)',fontFamily:'var(--mono)',lineHeight:1}}>
+                {honorariosEst > 0 ? honorariosEst.toLocaleString('es-ES') + ' €' : '—'}
+              </div>
+              <div style={{fontSize:9,color:'var(--green)',opacity:.75,marginTop:2}}>{honorariosPct}% · {sbaMandato.toLocaleString()} m² · {rentaEuros} €/m²</div>
+            </div>
+          </div>
+
           {/* Vencimiento destacado */}
           <div className="rp-sec">
             <div className="rp-lbl">Estado del mandato</div>
@@ -1129,7 +1229,7 @@ export default function FichaMandato() {
           {/* Acciones */}
           <div className="rp-sec">
             <div className="rp-lbl">Acciones rápidas</div>
-            <RpBtn onClick={()=>setTab('cronograma')}>📅 Ver cronograma</RpBtn>
+            <RpBtn onClick={()=>setTab('info')}>📅 Ver cronograma</RpBtn>
             <RpBtn onClick={()=>setTab('alertas')}>⚠ Gestionar alertas</RpBtn>
             <RpBtn onClick={()=>navigate('ficha-actividad')}>📋 Nueva actividad</RpBtn>
             <RpBtn onClick={()=>setTab('docs')}>📎 Ver documentación</RpBtn>

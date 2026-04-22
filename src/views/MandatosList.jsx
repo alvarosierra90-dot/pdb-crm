@@ -128,7 +128,7 @@ export default function MandatosList() {
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
           <ColumnEditor cols={COLS} vis={vis} setVis={setVis}/>
           <button className="tbtn">⬇ Exportar</button>
-          <button className="tbtn prim" onClick={()=>navigate('ficha-mandato')}>+ Nuevo Mandato</button>
+          <button className="tbtn prim" onClick={()=>navigate('ficha-mandato',{nuevo:true})}>+ Nuevo Mandato</button>
         </div>
       </div>
 

@@ -64,9 +64,7 @@ export default function FichaPropuesta() {
     linea: 'Capital Markets',
     estado: 'Activo',
     empresa: 'BBVA SA',
-    activo: 'Torre Norte Castellana',
     demanda: '',
-    oferta: '',
     creado_por: 'Sierra Alvaro',
     fecha_creacion: '20/03/2026',
     fecha_mod: '07/04/2026',
@@ -78,6 +76,11 @@ export default function FichaPropuesta() {
     convertido_mandato: false,
     mandato_ref: '',
   })
+
+  const [activos, setActivos] = useState(['Torre Norte Castellana'])
+  const [ofertas, setOfertas] = useState([])
+  const [newActivo, setNewActivo] = useState('')
+  const [newOferta, setNewOferta] = useState('')
 
   const [equipos, setEquipos]             = useState(EQUIPOS_INIT)
   const [trazabilidad, setTrazabilidad]   = useState(TRAZABILIDAD_INIT)
@@ -148,7 +151,10 @@ export default function FichaPropuesta() {
         <div className="ab-sep"/>
         {form.convertido_mandato
           ? <button className="ab-btn blue" onClick={()=>navigate('ficha-mandato')}>📄 Ver mandato {form.mandato_ref}</button>
-          : <button className="ab-btn" style={{background:'var(--accent)',color:'#fff',border:'none'}} onClick={()=>{set('estado','Adjudicado');setShowConvert(true)}}>🏆 Marcar adjudicado</button>
+          : <>
+              <button className="ab-btn" style={{background:'var(--accent)',color:'#fff',border:'none'}} onClick={()=>{set('estado','Adjudicado');setShowConvert(true)}}>🏆 Marcar adjudicado</button>
+              <button className="ab-btn" style={{background:'var(--purple)',color:'#fff',border:'none'}} onClick={()=>navigate('ficha-mandato',{nuevo:true})}>📋 Transformar en mandato</button>
+            </>
         }
         <button className="ab-btn" onClick={()=>navigate('propuestas')}>← Volver</button>
         <div className="ab-sep"/>
@@ -267,25 +273,44 @@ export default function FichaPropuesta() {
                     </div>
 
                     <div style={{marginBottom:4,fontSize:10,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginTop:12}}>Opcional</div>
-                    <div className="kf-grid">
-                      <KF label="Activo (si aplica)">
-                        <div style={{display:'flex',gap:4,alignItems:'center'}}>
-                          <input className="kf-inp" value={form.activo} onChange={e=>set('activo',e.target.value)} style={{flex:1}} placeholder="Buscar activo..."/>
-                          {form.activo && <button className="ra p" style={{fontSize:9,padding:'2px 6px'}} onClick={()=>navigate('ficha-activo')}>Ver</button>}
+                    <KF label="Demanda (si aplica)">
+                      <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                        <input className="kf-inp" value={form.demanda} onChange={e=>set('demanda',e.target.value)} style={{flex:1}} placeholder="Ej: DEM-0078"/>
+                        {form.demanda && <button className="ra p" style={{fontSize:9,padding:'2px 6px'}} onClick={()=>navigate('ficha-demanda')}>Ver</button>}
+                      </div>
+                    </KF>
+
+                    {/* Activos múltiples */}
+                    <div style={{marginTop:8}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Activos vinculados</div>
+                      {activos.map((a,i)=>(
+                        <div key={i} style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
+                          <span style={{fontSize:10,color:'var(--teal)',fontWeight:600,flex:1,padding:'3px 8px',background:'var(--teal-lt)',border:'1px solid var(--teal-bd)',borderRadius:4}}>🏛 {a}</span>
+                          <button className="ra p" style={{fontSize:9,padding:'2px 5px'}} onClick={()=>navigate('ficha-activo')}>Ver</button>
+                          <button className="ra" style={{color:'var(--red)',fontSize:10}} onClick={()=>setActivos(v=>v.filter((_,idx)=>idx!==i))}>✕</button>
                         </div>
-                      </KF>
-                      <KF label="Demanda (si aplica)">
-                        <div style={{display:'flex',gap:4,alignItems:'center'}}>
-                          <input className="kf-inp" value={form.demanda} onChange={e=>set('demanda',e.target.value)} style={{flex:1}} placeholder="Ej: DEM-0078"/>
-                          {form.demanda && <button className="ra p" style={{fontSize:9,padding:'2px 6px'}} onClick={()=>navigate('ficha-demanda')}>Ver</button>}
+                      ))}
+                      <div style={{display:'flex',gap:4,marginTop:4}}>
+                        <input className="kf-inp" value={newActivo} onChange={e=>setNewActivo(e.target.value)} placeholder="Ref. o nombre del activo..." style={{flex:1,fontSize:11}}/>
+                        <button className="ra p" style={{fontSize:10,padding:'3px 8px'}} onClick={()=>{if(newActivo.trim()){setActivos(v=>[...v,newActivo.trim()]);setNewActivo('')}}}>+ Añadir</button>
+                      </div>
+                    </div>
+
+                    {/* Ofertas múltiples */}
+                    <div style={{marginTop:12}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Ofertas vinculadas</div>
+                      {ofertas.length===0 && <div style={{fontSize:10,color:'var(--text4)',padding:'4px 0'}}>Sin ofertas — opcional</div>}
+                      {ofertas.map((o,i)=>(
+                        <div key={i} style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
+                          <span style={{fontSize:10,color:'var(--amber)',fontWeight:600,flex:1,padding:'3px 8px',background:'var(--amber-lt)',border:'1px solid var(--amber-bd)',borderRadius:4,fontFamily:'var(--mono)'}}>📧 {o}</span>
+                          <button className="ra p" style={{fontSize:9,padding:'2px 5px'}} onClick={()=>navigate('ficha-oferta')}>Ver</button>
+                          <button className="ra" style={{color:'var(--red)',fontSize:10}} onClick={()=>setOfertas(v=>v.filter((_,idx)=>idx!==i))}>✕</button>
                         </div>
-                      </KF>
-                      <KF label="Oferta (si aplica)">
-                        <div style={{display:'flex',gap:4,alignItems:'center'}}>
-                          <input className="kf-inp" value={form.oferta} onChange={e=>set('oferta',e.target.value)} style={{flex:1}} placeholder="Ej: OF-0041"/>
-                          {form.oferta && <button className="ra p" style={{fontSize:9,padding:'2px 6px'}} onClick={()=>navigate('ficha-oferta')}>Ver</button>}
-                        </div>
-                      </KF>
+                      ))}
+                      <div style={{display:'flex',gap:4,marginTop:4}}>
+                        <input className="kf-inp" value={newOferta} onChange={e=>setNewOferta(e.target.value)} placeholder="Ej: OLB001" style={{flex:1,fontSize:11,fontFamily:'var(--mono)'}}/>
+                        <button className="ra p" style={{fontSize:10,padding:'3px 8px'}} onClick={()=>{if(newOferta.trim()){setOfertas(v=>[...v,newOferta.trim()]);setNewOferta('')}}}>+ Añadir</button>
+                      </div>
                     </div>
 
                     {/* Mapa de vinculaciones */}
@@ -294,15 +319,15 @@ export default function FichaPropuesta() {
                       <div style={{display:'flex',flexDirection:'column',gap:6}}>
                         {[
                           {icon:'🏢',label:'Empresa',value:form.empresa,color:'var(--accent)',req:true},
-                          {icon:'🏛',label:'Activo',value:form.activo||'—',color:'var(--teal)',req:false},
+                          {icon:'🏛',label:`Activos (${activos.length})`,value:activos.length>0?activos.join(', '):'—',color:'var(--teal)',req:false},
                           {icon:'🔍',label:'Demanda',value:form.demanda||'—',color:'var(--purple)',req:false},
-                          {icon:'📧',label:'Oferta',value:form.oferta||'—',color:'var(--amber)',req:false},
+                          {icon:'📧',label:`Ofertas (${ofertas.length})`,value:ofertas.length>0?ofertas.join(', '):'—',color:'var(--amber)',req:false},
                         ].map(v=>(
                           <div key={v.label} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 8px',borderRadius:5,border:`1px solid ${v.value&&v.value!=='—'?v.color+'44':'var(--border)'}`,background:v.value&&v.value!=='—'?v.color+'11':'transparent'}}>
                             <span style={{fontSize:13}}>{v.icon}</span>
-                            <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',width:50,flexShrink:0}}>{v.label}{v.req&&<span style={{color:'var(--red)'}}>*</span>}</span>
-                            <span style={{fontSize:11,fontWeight:600,color:v.value&&v.value!=='—'?v.color:'var(--text4)',flex:1}}>{v.value||'—'}</span>
-                            {v.value&&v.value!=='—'&&<span style={{width:6,height:6,borderRadius:'50%',background:v.color,display:'inline-block'}}/>}
+                            <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',width:70,flexShrink:0}}>{v.label}{v.req&&<span style={{color:'var(--red)'}}>*</span>}</span>
+                            <span style={{fontSize:11,fontWeight:600,color:v.value&&v.value!=='—'?v.color:'var(--text4)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{v.value||'—'}</span>
+                            {v.value&&v.value!=='—'&&<span style={{width:6,height:6,borderRadius:'50%',background:v.color,flexShrink:0,display:'inline-block'}}/>}
                           </div>
                         ))}
                       </div>
@@ -564,9 +589,9 @@ export default function FichaPropuesta() {
                       {label:'Línea de negocio', val:form.linea},
                       {label:'Estado', val:form.estado, color:ESTADO_COLOR[form.estado]},
                       {label:'Empresa', val:form.empresa},
-                      {label:'Activo', val:form.activo||'—'},
+                      {label:'Activos', val:activos.length>0?activos.join(', '):'—'},
                       {label:'Demanda', val:form.demanda||'—', mono:true},
-                      {label:'Oferta', val:form.oferta||'—', mono:true},
+                      {label:'Ofertas', val:ofertas.length>0?ofertas.join(', '):'—', mono:true},
                       {label:'Creado por', val:form.creado_por},
                       {label:'Fecha creación', val:form.fecha_creacion, mono:true},
                       {label:'Última modificación', val:form.fecha_mod, mono:true},
