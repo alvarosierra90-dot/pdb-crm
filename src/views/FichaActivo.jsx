@@ -2768,11 +2768,12 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
         )}
 
         {/* ── UBICACIÓN + TIPOLOGÍA ── */}
-        <div className="info-2col" style={{marginBottom:12}}>
+        <div className="va-two-col">
 
           {/* UBICACIÓN */}
-          <div className="info-block">
-            <div className="ib-title">📍 UBICACIÓN</div>
+          <div className="va-meta-card">
+            <div className="va-meta-head"><span className="dot blue"/><span>Ubicación</span></div>
+            <div className="va-meta-body">
             <InlineField label="Nombre del activo" value={info.nombre}
               onSave={()=>{ setDirty(true); if(onInfoSaved) onInfoSaved({nombre: info.nombre}) }}>
               <input value={info.nombre} onChange={e=>setI('nombre',e.target.value)} style={inp} placeholder="Nombre comercial del activo..."/>
@@ -2792,11 +2793,13 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
               <input value={info.coordenadas} onChange={e=>setI('coordenadas',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="40.416775, -3.703790"/>
             </InlineField>
             <ZonaBox info={info} setI={setI}/>
+            </div>
           </div>
 
           {/* TIPOLOGÍA */}
-          <div className="info-block">
-            <div className="ib-title">🏢 TIPOLOGÍA</div>
+          <div className="va-meta-card">
+            <div className="va-meta-head"><span className="dot purple"/><span>Tipología</span></div>
+            <div className="va-meta-body">
             <InlineField label="Tipo de activo" value={info.tipo_activo} onSave={()=>setDirty(true)}>
               <select value={info.tipo_activo} onChange={e=>setI('tipo_activo',e.target.value)} style={sel}>
                 {['Edificio','Nave','Local','Parcela','Complejo','Torre','Centro comercial','Parque empresarial','Parque logístico','Residencia'].map(t=><option key={t}>{t}</option>)}
@@ -2873,22 +2876,23 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
                 </span>
               </div>
             )}
+            </div>
           </div>
         </div>
 
         {/* ── DATOS URBANÍSTICOS ── */}
-        <div className="info-block" style={{marginBottom:12}}>
-          <div className="ib-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-            <span>🏛 DATOS URBANÍSTICOS</span>
+        <div className="va-meta-card" style={{marginBottom:20}}>
+          <div className="va-meta-head" style={{justifyContent:'space-between'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}><span className="dot red"/><span>Datos Urbanísticos</span></div>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--green)',fontWeight:600}}>✓ Sincronizado</span>}
-              {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--red)',maxWidth:260,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
+              {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--pdb-green)',fontWeight:600}}>✓ Sincronizado</span>}
+              {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--pdb-red)',maxWidth:260,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
               <button className="ab-btn blue" onClick={syncCatastro} disabled={syncingCat}>
                 {syncingCat ? '⟳ Consultando...' : '⟳ Sincronizar'}
               </button>
             </div>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 24px'}}>
+          <div className="va-meta-body" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 24px'}}>
             <div>
               <InlineField label="Ref. catastral" value={info.ref_catastral||'—'} onSave={()=>setDirty(true)}>
                 <input value={info.ref_catastral} onChange={e=>setI('ref_catastral',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/>
@@ -2948,24 +2952,25 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
 
         {/* ── OFERTAS ACTIVAS ── */}
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
-          <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)'}}>
-            <div style={{fontSize:11,fontWeight:600}}>📄 Ofertas activas <span style={{fontSize:9,color:'var(--text4)',fontWeight:400}}>· Gestionadas desde el módulo Ofertas</span></div>
+          <div style={{padding:'12px 20px',borderBottom:'1px solid var(--va-line)',display:'flex',alignItems:'center',gap:8}}>
+            <span style={{fontSize:12,fontWeight:600,color:'var(--ink)'}}>📄 Ofertas activas</span>
+            <span style={{fontSize:11,color:'var(--va-muted)'}}>· Gestionadas desde el módulo Ofertas</span>
           </div>
-          <table className="dtbl">
+          <table className="va-table">
             <thead><tr><th>Nº Oferta</th><th>Módulo</th><th>Sup. (m²)</th><th>Renta asking</th><th>Días comerc.</th><th>Estado</th><th></th></tr></thead>
             <tbody>
               <tr>
-                <td className="mono dtbl-link" onClick={()=>navigate('ficha-oferta')}>OLB001</td>
-                <td>P5 + PB — Edif. A</td><td>698</td><td className="mono">10,5–14,5 €/m²</td>
-                <td><span className="dias-pill">📅 127d</span></td>
-                <td><span className="tag tag-blue">En curso</span></td>
+                <td className="ref" onClick={()=>navigate('ficha-oferta')}>OLB001</td>
+                <td>P5 + PB — Edif. A</td><td>698</td><td style={{fontFamily:'var(--mono)'}}>10,5–14,5 €/m²</td>
+                <td className="days">127d</td>
+                <td><span className="va-status-pill curso">En curso</span></td>
                 <td><button className="ra p" onClick={()=>navigate('ficha-oferta')}>Ver</button></td>
               </tr>
               <tr>
-                <td className="mono dtbl-link">OLB002</td>
-                <td>P2 — Edif. A</td><td>400</td><td className="mono">13,0 €/m²</td>
-                <td><span className="dias-pill">📅 45d</span></td>
-                <td><span className="tag tag-amber">En revisión</span></td>
+                <td className="ref">OLB002</td>
+                <td>P2 — Edif. A</td><td>400</td><td style={{fontFamily:'var(--mono)'}}>13,0 €/m²</td>
+                <td className="days">45d</td>
+                <td><span className="va-status-pill revision">En revisión</span></td>
                 <td><button className="ra">Ver</button></td>
               </tr>
             </tbody>
