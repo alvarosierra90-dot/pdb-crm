@@ -29,15 +29,15 @@ function sectorToLinea(sector) {
 
 function mapDbToVencimientos(r) {
   const entries = []
-  const activo = r.edificio || r.activo_ref || '—'
-  const arrendatario = r.tenant || r.nombre || '—'
-  const sup = r.superficie || 0
-  const linea = sectorToLinea(r.sector || r.uso)
-  const mesesRecordatorio = r.meses_recordatorio || 3
+  const activo = r.activo_ref || '—'
+  const arrendatario = r.nombre || '—'
+  const sup = Number(r.m2) || 0
+  const linea = sectorToLinea(null) // default Oficinas; sector not stored in arrendatarios
+  const mesesRecordatorio = 3
 
   if (r.break_option) {
     entries.push({
-      id: `DB-${r.id}-BRK`,
+      id: `DB-${r.ref}-BRK`,
       activo,
       arrendatario,
       sup,
@@ -53,14 +53,14 @@ function mapDbToVencimientos(r) {
       _recordatorioFecha: calcRecordatorioISO(r.break_option, mesesRecordatorio),
     })
   }
-  if (r.vencimiento) {
+  if (r.fecha_fin) {
     entries.push({
-      id: `DB-${r.id}-FIN`,
+      id: `DB-${r.ref}-FIN`,
       activo,
       arrendatario,
       sup,
       linea,
-      fecha: r.vencimiento,
+      fecha: r.fecha_fin,
       tipo: 'Fin contrato',
       origen: 'interna',
       oportunidad: null,
@@ -109,11 +109,13 @@ export default function VencimientosView() {
 
   useEffect(() => {
     supabase.from('arrendatarios')
-      .select('id,nombre,tenant,edificio,activo_ref,sector,uso,superficie,break_option,vencimiento,meses_recordatorio')
+      .select('ref,nombre,activo_ref,break_option,fecha_fin,m2')
+      .not('fecha_fin', 'is', null)
+      .order('fecha_fin')
       .then(({ data }) => {
         if (data?.length > 0) {
           const dbEntries = data.flatMap(mapDbToVencimientos)
-          setAllVencimientos([...dbEntries, ...MOCK_VENCIMIENTOS])
+          setAllVencimientos(dbEntries)
         }
         setLoadingDB(false)
       })

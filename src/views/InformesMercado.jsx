@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
+import { supabase } from '../lib/supabase'
 
 const LINEAS_NEGOCIO = [
   { id:'oficinas',     label:'Oficinas',              paths:<><path d="M4 22V5a1 1 0 011-1h14a1 1 0 011 1v17"/><path d="M2 22h20"/><path d="M8 22V15h4v7"/><path d="M8 8h2M8 11h2M14 8h2M14 11h2"/></> },
@@ -521,11 +522,59 @@ async function exportPPT(linea, fYear, d) {
   await prs.writeFile({ fileName:`Informe_${linea.id}_${fYear}.pptx` })
 }
 
+function arrendatariosToInforme(rows) {
+  // Map real arrendatarios rows to the shapes used by InformeLinea sections
+  const transacciones = rows
+    .filter(r => r.inicio && r.m2 > 0)
+    .map(r => ({
+      area: 'Real',
+      zona: r.activo_ref || '—',
+      subzona: r.activo_ref || '—',
+      arrendatario: r.nombre || '—',
+      activo: r.activo_ref || '—',
+      direccion: '',
+      m2: Number(r.m2) || 0,
+      renta: Number(r.closing_rent) || 0,
+      fecha: r.trimestre && r.anio_firma ? `${r.trimestre} ${r.anio_firma}` : (r.inicio ? r.inicio.slice(0,7) : '—'),
+    }))
+
+  if (transacciones.length === 0) return null
+
+  const sorted_m2    = [...transacciones].sort((a,b) => b.m2 - a.m2)
+  const sorted_renta = [...transacciones].sort((a,b) => b.renta - a.renta)
+
+  return {
+    transacciones: transacciones.slice(0,5),
+    ops_anio: transacciones,
+    top10_m2:    sorted_m2.slice(0,5).map(t=>({ arrendatario:t.arrendatario, activo:t.activo, m2:t.m2, renta:t.renta })),
+    top10_renta: sorted_renta.slice(0,5).map(t=>({ arrendatario:t.arrendatario, activo:t.activo, m2:t.m2, renta:t.renta })),
+  }
+}
+
 function InformeLinea({ linea, navigate }) {
   const [fYear,     setFYear]     = useState('2026')
   const [fQuarter,  setFQuarter]  = useState([])
   const [fProvincia,setFProvincia]= useState([])
-  const d = DATA_LINEA[linea.id] || DATA_LINEA.oficinas
+  const [dbOverride, setDbOverride] = useState(null)
+  const [loadingDb,  setLoadingDb]  = useState(true)
+
+  useEffect(() => {
+    supabase.from('arrendatarios')
+      .select('ref,nombre,activo_ref,inicio,fecha_fin,m2,closing_rent,anio_firma,trimestre')
+      .then(({ data }) => {
+        if (data?.length > 0) {
+          const mapped = arrendatariosToInforme(data)
+          if (mapped) setDbOverride(mapped)
+        }
+        setLoadingDb(false)
+      })
+  }, [])
+
+  const base = DATA_LINEA[linea.id] || DATA_LINEA.oficinas
+  // For non-investment lines, overlay real arrendatarios data onto transacciones/ops/top sections
+  const d = (dbOverride && linea.id !== 'inversion')
+    ? { ...base, ...dbOverride }
+    : base
 
   const totalTakeup = d.takeup.reduce((s,r)=>s+r.m2, 0)
   const maxSector = Math.max(...d.sectores.map(s=>s.m2), 1)
@@ -539,7 +588,11 @@ function InformeLinea({ linea, navigate }) {
       <div style={{padding:'10px 16px',background:'var(--surface)',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
         <div style={{flex:1}}>
           <div style={{fontSize:13,fontWeight:700}}>{linea.label} — Informe de Mercado</div>
-          <div style={{fontSize:10,color:'var(--text3)'}}>Datos relacionales · Activos, Arrendatarios, Propietarios</div>
+          <div style={{fontSize:10,color:'var(--text3)'}}>
+            Datos relacionales · Activos, Arrendatarios, Propietarios
+            {loadingDb && <span style={{marginLeft:8,color:'var(--text4)'}}>· Cargando datos reales...</span>}
+            {!loadingDb && dbOverride && linea.id !== 'inversion' && <span style={{marginLeft:8,color:'var(--green)',fontWeight:600}}>· Contratos reales cargados</span>}
+          </div>
         </div>
 
         {/* Filtros globales */}
