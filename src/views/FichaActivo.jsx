@@ -2877,45 +2877,32 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
               </div>
             )}
             </div>
-          </div>
-        </div>
-
-        {/* ── SUPERFICIES Y DETALLES ── */}
-        <div className="va-meta-card" style={{marginBottom:20}}>
-          <div className="va-meta-head"><span className="dot green"/><span>Superficies y detalles</span></div>
-          <div className="va-chip-row" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
-            <div className="va-chip-cell">
-              <div className="chip-lbl">SBA total</div>
-              <div className="chip-val">{info.sba ? Number(info.sba).toLocaleString('es-ES') : '—'}<span className="chip-unit">m²</span></div>
-            </div>
-            <div className="va-chip-cell">
-              <div className="chip-lbl">Sup. neta</div>
-              <div className="chip-val">
-                {(info.sba && info.ratio_perdida)
-                  ? Math.round(Number(info.sba)*(1-Number(info.ratio_perdida)/100)).toLocaleString('es-ES')
-                  : '—'}
-                <span className="chip-unit">m²</span>
+            {/* ── Chip row — Superficies (inside Tipología) ── */}
+            <div className="va-chip-row">
+              <div className="va-chip-cell">
+                <div className="label">SBA total</div>
+                <div className="val">{info.sba ? Number(info.sba).toLocaleString('es-ES')+' m²' : '—'}</div>
               </div>
-            </div>
-            <div className="va-chip-cell">
-              <div className="chip-lbl">Ratio pérdida</div>
-              <div className="chip-val">{info.ratio_perdida ? `${info.ratio_perdida}%` : '—'}</div>
-            </div>
-            <div className="va-chip-cell">
-              <div className="chip-lbl">Planta tipo</div>
-              <div className="chip-val">{info.sup_planta_tipo ? Number(info.sup_planta_tipo).toLocaleString('es-ES') : '—'}<span className="chip-unit">m²</span></div>
-            </div>
-            <div className="va-chip-cell">
-              <div className="chip-lbl">Sup. parcela</div>
-              <div className="chip-val">{info.sup_parcela ? Number(info.sup_parcela).toLocaleString('es-ES') : '—'}<span className="chip-unit">m²</span></div>
+              <div className="va-chip-cell">
+                <div className="label">Sup. neta</div>
+                <div className="val">
+                  {(info.sba && info.ratio_perdida)
+                    ? Math.round(Number(info.sba)*(1-Number(info.ratio_perdida)/100)).toLocaleString('es-ES')+' m²'
+                    : '—'}
+                </div>
+              </div>
+              <div className="va-chip-cell">
+                <div className="label">Ratio pérdida</div>
+                <div className="val">{info.ratio_perdida ? `${info.ratio_perdida}%` : '—'}</div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* ── DATOS URBANÍSTICOS ── */}
-        <div className="va-meta-card" style={{marginBottom:20}}>
-          <div className="va-meta-head" style={{justifyContent:'space-between'}}>
-            <div style={{display:'flex',alignItems:'center',gap:8}}><span className="dot red"/><span>Datos Urbanísticos</span></div>
+        <div className="va-card">
+          <div className="va-card-header">
+            <h3><span className="dot red" style={{width:6,height:6,borderRadius:'50%',display:'inline-block',marginRight:4}}/> Datos Urbanísticos</h3>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--pdb-green)',fontWeight:600}}>✓ Sincronizado</span>}
               {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--pdb-red)',maxWidth:260,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
@@ -2924,7 +2911,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
               </button>
             </div>
           </div>
-          <div className="va-meta-body" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 24px'}}>
+          <div className="va-card-body" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 24px',paddingTop:4,paddingBottom:12}}>
             <div>
               <InlineField label="Ref. catastral" value={info.ref_catastral||'—'} onSave={()=>setDirty(true)}>
                 <input value={info.ref_catastral} onChange={e=>setI('ref_catastral',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/>
@@ -2953,11 +2940,11 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
         </div>
 
         {/* ── SEGUIMIENTO COMERCIAL ── */}
-        <div style={{background:'var(--surface)',border:'1px solid var(--va-line)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
-          <div style={{padding:'12px 20px',borderBottom:'1px solid var(--va-line)'}}>
-            <div style={{fontSize:12,fontWeight:600,color:'var(--ink)'}}>📋 Seguimiento comercial <span style={{fontSize:11,color:'var(--va-muted)',fontWeight:400}}>· Sincronizado desde Ofertas y Demandas</span></div>
+        <div className="va-card">
+          <div className="va-card-header">
+            <h3><span className="ico">📋</span> Seguimiento comercial <span className="hint">· Sincronizado desde Ofertas y Demandas</span></h3>
           </div>
-          <div style={{padding:'0 20px'}}>
+          <div className="va-card-body">
             <div className="va-timeline">
               {[
                 {day:'15 Mar',date:'15/03/2026',type:'visit', typeLabel:'Visita',       title:'Oracle Spain', meta:'13.486 m²  ·  Álvaro S.',  status:'finalista', statusLabel:'Finalista'},
@@ -2969,9 +2956,9 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
                 <div key={i} className="va-tl-item">
                   <div className="va-tl-date"><span className="day">{item.day}</span>{item.date}</div>
                   <div className="va-tl-body">
-                    <span className={`va-tl-type ${item.type}`}>{item.typeLabel}</span>
-                    <div className="va-tl-title">{item.title}</div>
-                    <div className="va-tl-meta">{item.meta}</div>
+                    <span className={`type ${item.type}`}>{item.typeLabel}</span>
+                    <div className="title">{item.title}</div>
+                    <div className="meta">{item.meta}</div>
                   </div>
                   <div className="va-tl-status">
                     <span className={`va-status-pill ${item.status}`}>{item.statusLabel}</span>
@@ -2983,10 +2970,9 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
         </div>
 
         {/* ── OFERTAS ACTIVAS ── */}
-        <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
-          <div style={{padding:'12px 20px',borderBottom:'1px solid var(--va-line)',display:'flex',alignItems:'center',gap:8}}>
-            <span style={{fontSize:12,fontWeight:600,color:'var(--ink)'}}>📄 Ofertas activas</span>
-            <span style={{fontSize:11,color:'var(--va-muted)'}}>· Gestionadas desde el módulo Ofertas</span>
+        <div className="va-card">
+          <div className="va-card-header">
+            <h3><span className="ico">📄</span> Ofertas activas <span className="hint">· Gestionadas desde el módulo Ofertas</span></h3>
           </div>
           <table className="va-table">
             <thead><tr><th>Nº Oferta</th><th>Módulo</th><th>Sup. (m²)</th><th>Renta asking</th><th>Días comerc.</th><th>Estado</th><th></th></tr></thead>
