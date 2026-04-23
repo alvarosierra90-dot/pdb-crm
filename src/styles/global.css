@@ -1034,6 +1034,7 @@ tr:hover .ra-cell { opacity: 1; }
 .va-status-pill.finalista { background: var(--pdb-green-50); color: #065F46; }
 .va-status-pill.curso     { background: var(--pdb-blue-50);  color: var(--pdb-blue-dark); }
 .va-status-pill.firmado   { background: #D1FAE5; color: #065F46; font-weight: 600; }
+.va-status-pill.revision  { background: #FEF3C7; color: #92400E; }
 
 /* — Proyectos — */
 .va-proj-item {
