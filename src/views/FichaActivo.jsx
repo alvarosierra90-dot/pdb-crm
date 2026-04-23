@@ -2439,7 +2439,7 @@ function InlineField({ label, value, display, onSave, children, wide }) {
   )
 }
 
-function ZonaBox({ info, setI }) {
+function ZonaBox({ info, setI, asChipRow }) {
   const [editing, setEditing] = useState(false)
   const [hover,   setHover]   = useState(false)
   const [draft, setDraft] = useState({ area: info.area, zona: info.zona, subzona: info.subzona })
@@ -2488,6 +2488,19 @@ function ZonaBox({ info, setI }) {
           <XIco/> Cancelar
         </button>
       </div>
+    </div>
+  )
+
+  if (asChipRow) return (
+    <div style={{position:'relative'}} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}>
+      <div className="va-chip-row">
+        <div className="va-chip-cell"><div className="label">Área</div><div className="val">{info.area||'—'}</div></div>
+        <div className="va-chip-cell"><div className="label">Zona</div><div className="val">{info.zona||'—'}</div></div>
+        <div className="va-chip-cell"><div className="label">Subzona</div><div className="val">{info.subzona||'—'}</div></div>
+      </div>
+      <button onClick={()=>{ setDraft({area:info.area,zona:info.zona,subzona:info.subzona}); setEditing(true) }}
+        style={{position:'absolute',top:8,right:12,opacity:hover?1:0,transition:'opacity .15s',background:'none',border:'none',cursor:'pointer',padding:'2px 4px',color:'var(--va-muted)',display:'flex',alignItems:'center'}}
+        title="Editar zona"><PencilIco/></button>
     </div>
   )
 
@@ -2767,13 +2780,22 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
           </div>
         )}
 
+        {/* ── LOCALIZACIÓN ── */}
+        <div className="va-card">
+          <div className="va-card-header">
+            <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Localización</h3>
+            {info.coordenadas && <span className="hint">Coordenadas · {info.coordenadas}</span>}
+          </div>
+          <ZonaBox info={info} setI={setI} asChipRow/>
+        </div>
+
         {/* ── UBICACIÓN + TIPOLOGÍA ── */}
         <div className="va-two-col">
 
           {/* UBICACIÓN */}
           <div className="va-meta-card">
-            <div className="va-meta-head"><span className="dot blue"/><span>Ubicación</span></div>
-            <div className="va-meta-body">
+            <div className="va-meta-head accent-red"><span className="dot"/>Ubicación</div>
+            <div className="va-kv-list">
             <InlineField label="Nombre del activo" value={info.nombre}
               onSave={()=>{ setDirty(true); if(onInfoSaved) onInfoSaved({nombre: info.nombre}) }}>
               <input value={info.nombre} onChange={e=>setI('nombre',e.target.value)} style={inp} placeholder="Nombre comercial del activo..."/>
@@ -2789,17 +2811,13 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
             <InlineField label="Código postal" value={info.cp||'—'} onSave={()=>setDirty(true)}>
               <input value={info.cp} onChange={e=>setI('cp',e.target.value)} style={inp} placeholder="—"/>
             </InlineField>
-            <InlineField label="Coordenadas" value={info.coordenadas||'—'} onSave={()=>setDirty(true)}>
-              <input value={info.coordenadas} onChange={e=>setI('coordenadas',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="40.416775, -3.703790"/>
-            </InlineField>
-            <ZonaBox info={info} setI={setI}/>
             </div>
           </div>
 
           {/* TIPOLOGÍA */}
           <div className="va-meta-card">
-            <div className="va-meta-head"><span className="dot purple"/><span>Tipología</span></div>
-            <div className="va-meta-body">
+            <div className="va-meta-head accent-purple"><span className="dot"/>Tipología</div>
+            <div className="va-kv-list">
             <InlineField label="Tipo de activo" value={info.tipo_activo} onSave={()=>setDirty(true)}>
               <select value={info.tipo_activo} onChange={e=>setI('tipo_activo',e.target.value)} style={sel}>
                 {['Edificio','Nave','Local','Parcela','Complejo','Torre','Centro comercial','Parque empresarial','Parque logístico','Residencia'].map(t=><option key={t}>{t}</option>)}
@@ -2825,28 +2843,33 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
                 <option value="">—</option>{CALIDADES.map(c=><option key={c}>{c}</option>)}
               </select>
             </InlineField>
+            </div>
+          </div>
+        </div>
+
+        {/* ── SUPERFICIES Y DETALLES ── */}
+        <div className="va-card">
+          <div className="va-card-header">
+            <h3><span className="ico">▭</span> Superficies y detalles</h3>
+          </div>
+          <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:16}}>
             <InlineField label="SBA (m²)" value={info.sba ? Number(info.sba).toLocaleString('es-ES')+' m²' : '—'}
-              display={<span style={{fontWeight:700,fontFamily:'var(--mono)',fontSize:14}}>{info.sba ? Number(info.sba).toLocaleString('es-ES') : '—'}</span>}
+              display={<span style={{fontWeight:600,fontFamily:'var(--mono)',color:'var(--pdb-blue)'}}>{info.sba ? Number(info.sba).toLocaleString('es-ES') : '—'}</span>}
               onSave={()=>setDirty(true)}>
               <input type="number" value={info.sba} onChange={e=>setI('sba',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0"/>
             </InlineField>
             <InlineField label="Sup. planta tipo (m²)" value={info.sup_planta_tipo ? Number(info.sup_planta_tipo).toLocaleString('es-ES')+' m²' : '—'} onSave={()=>setDirty(true)}>
               <input type="number" value={info.sup_planta_tipo} onChange={e=>setI('sup_planta_tipo',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0"/>
             </InlineField>
-            <InlineField label="Ratio de pérdida (%)"
-              value={info.ratio_perdida ? `${info.ratio_perdida}%` : '—'}
-              display={<span style={{fontFamily:'var(--mono)'}}>{info.ratio_perdida ? `${info.ratio_perdida}%` : '—'}</span>}
-              onSave={()=>setDirty(true)}>
+            <InlineField label="Ratio de pérdida (%)" value={info.ratio_perdida ? `${info.ratio_perdida}%` : '—'} onSave={()=>setDirty(true)}>
               <input type="number" min="0" max="100" value={info.ratio_perdida} onChange={e=>setI('ratio_perdida',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0"/>
             </InlineField>
-            {(info.sba && info.ratio_perdida) && (
-              <div className="ir">
-                <span className="ir-k">Superficie neta (m²)</span>
-                <span className="ir-v" style={{fontWeight:700,fontFamily:'var(--mono)',fontSize:14,color:'var(--accent)'}}>
-                  {Math.round(Number(info.sba) * (1 - Number(info.ratio_perdida)/100)).toLocaleString('es-ES')} m²
-                </span>
-              </div>
-            )}
+            <div className="ir">
+              <span className="ir-k">Superficie neta (m²)</span>
+              <span className="ir-v" style={{color:'var(--pdb-blue)',fontWeight:600}}>
+                {(info.sba && info.ratio_perdida) ? Math.round(Number(info.sba)*(1-Number(info.ratio_perdida)/100)).toLocaleString('es-ES') : '—'}
+              </span>
+            </div>
             <InlineField label="Año construcción" value={info.anno_construccion||'—'} onSave={()=>setDirty(true)}>
               <input type="number" value={info.anno_construccion} onChange={e=>setI('anno_construccion',e.target.value)} style={inp} placeholder="—"/>
             </InlineField>
@@ -2859,42 +2882,9 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
             <div className="ir">
               <span className="ir-k">Nº edificios</span>
               <span className="ir-v" style={{display:'flex',alignItems:'center',gap:6}}>
-                <span style={{fontWeight:700,fontFamily:'var(--mono)',fontSize:14}}>{nEdificios ?? 1}</span>
-                <span style={{fontSize:9,color:'var(--text4)'}}>· desde Stacking Plan</span>
+                <span>{nEdificios ?? 1}</span>
+                <span style={{fontSize:11,color:'var(--pdb-blue)',cursor:'pointer'}}>ver stacking plan</span>
               </span>
-            </div>
-            {totalPlazas>0 && (
-              <div className="ir" style={{alignItems:'flex-start',paddingTop:6,borderTop:'1px solid var(--border)',marginTop:4}}>
-                <span className="ir-k">🅿 Plazas apar.</span>
-                <span className="ir-v" style={{display:'flex',flexDirection:'column',gap:3}}>
-                  <span style={{fontSize:15,fontWeight:700,color:'var(--text1)',fontFamily:'var(--mono)',lineHeight:1}}>{totalPlazas.toLocaleString('es-ES')}</span>
-                  <span style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:2}}>
-                    {byUbic.map(x=><span key={x.u} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#f1f5f9',border:'1px solid #cbd5e1',color:'#475569',fontWeight:600}}>{x.u} {x.n}</span>)}
-                    {byTipo.map(x=><span key={x.t} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#ede9fe',border:'1px solid #c4b5fd',color:'#7c3aed',fontWeight:600}}>{x.t} {x.n}</span>)}
-                    {byVeh.map(x=><span key={x.v} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#f0fdf4',border:'1px solid #86efac',color:'#15803d',fontWeight:600}}>{x.v} {x.n}</span>)}
-                  </span>
-                </span>
-              </div>
-            )}
-            </div>
-            {/* ── Chip row — Superficies (inside Tipología) ── */}
-            <div className="va-chip-row">
-              <div className="va-chip-cell">
-                <div className="label">SBA total</div>
-                <div className="val">{info.sba ? Number(info.sba).toLocaleString('es-ES')+' m²' : '—'}</div>
-              </div>
-              <div className="va-chip-cell">
-                <div className="label">Sup. neta</div>
-                <div className="val">
-                  {(info.sba && info.ratio_perdida)
-                    ? Math.round(Number(info.sba)*(1-Number(info.ratio_perdida)/100)).toLocaleString('es-ES')+' m²'
-                    : '—'}
-                </div>
-              </div>
-              <div className="va-chip-cell">
-                <div className="label">Ratio pérdida</div>
-                <div className="val">{info.ratio_perdida ? `${info.ratio_perdida}%` : '—'}</div>
-              </div>
             </div>
           </div>
         </div>
@@ -2902,7 +2892,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
         {/* ── DATOS URBANÍSTICOS ── */}
         <div className="va-card">
           <div className="va-card-header">
-            <h3><span className="dot red" style={{width:6,height:6,borderRadius:'50%',display:'inline-block',marginRight:4}}/> Datos Urbanísticos</h3>
+            <h3><span className="ico">⚑</span> Datos urbanísticos</h3>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--pdb-green)',fontWeight:600}}>✓ Sincronizado</span>}
               {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--pdb-red)',maxWidth:260,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
@@ -2911,85 +2901,84 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
               </button>
             </div>
           </div>
-          <div className="va-card-body" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 24px',paddingTop:4,paddingBottom:12}}>
-            <div>
-              <InlineField label="Ref. catastral" value={info.ref_catastral||'—'} onSave={()=>setDirty(true)}>
-                <input value={info.ref_catastral} onChange={e=>setI('ref_catastral',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/>
-              </InlineField>
-              <InlineField label="Uso PGOU" value={info.uso_pgou||'—'} onSave={()=>setDirty(true)}>
-                <input value={info.uso_pgou} onChange={e=>setI('uso_pgou',e.target.value)} style={inp} placeholder="—"/>
-              </InlineField>
-            </div>
-            <div>
-              <InlineField label="Clasificación" value={info.clasificacion_urb||'—'} onSave={()=>setDirty(true)}>
-                <input value={info.clasificacion_urb} onChange={e=>setI('clasificacion_urb',e.target.value)} style={inp} placeholder="—"/>
-              </InlineField>
-              <InlineField label="Calificación" value={info.calificacion_urb||'—'} onSave={()=>setDirty(true)}>
-                <input value={info.calificacion_urb} onChange={e=>setI('calificacion_urb',e.target.value)} style={inp} placeholder="—"/>
-              </InlineField>
-            </div>
-            <div>
-              <InlineField label="Edificabilidad" value={info.edificabilidad||'—'} onSave={()=>setDirty(true)}>
-                <input value={info.edificabilidad} onChange={e=>setI('edificabilidad',e.target.value)} style={inp} placeholder="—"/>
-              </InlineField>
-              <InlineField label="Sup. parcela (m²)" value={info.sup_parcela ? Number(info.sup_parcela).toLocaleString('es-ES')+' m²' : '—'} onSave={()=>setDirty(true)}>
-                <input type="number" value={info.sup_parcela} onChange={e=>setI('sup_parcela',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="—"/>
-              </InlineField>
-            </div>
+          <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:16}}>
+            <InlineField label="Ref. catastral" value={info.ref_catastral||'—'} onSave={()=>setDirty(true)}>
+              <input value={info.ref_catastral} onChange={e=>setI('ref_catastral',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/>
+            </InlineField>
+            <InlineField label="Clasificación" value={info.clasificacion_urb||'—'} onSave={()=>setDirty(true)}>
+              <input value={info.clasificacion_urb} onChange={e=>setI('clasificacion_urb',e.target.value)} style={inp} placeholder="—"/>
+            </InlineField>
+            <InlineField label="Edificabilidad" value={info.edificabilidad||'—'} onSave={()=>setDirty(true)}>
+              <input value={info.edificabilidad} onChange={e=>setI('edificabilidad',e.target.value)} style={inp} placeholder="—"/>
+            </InlineField>
+            <InlineField label="Uso PGOU" value={info.uso_pgou||'—'} onSave={()=>setDirty(true)}>
+              <input value={info.uso_pgou} onChange={e=>setI('uso_pgou',e.target.value)} style={inp} placeholder="—"/>
+            </InlineField>
+            <InlineField label="Calificación" value={info.calificacion_urb||'—'} onSave={()=>setDirty(true)}>
+              <input value={info.calificacion_urb} onChange={e=>setI('calificacion_urb',e.target.value)} style={inp} placeholder="—"/>
+            </InlineField>
+            <InlineField label="Sup. parcela (m²)" value={info.sup_parcela ? Number(info.sup_parcela).toLocaleString('es-ES')+' m²' : '—'} onSave={()=>setDirty(true)}>
+              <input type="number" value={info.sup_parcela} onChange={e=>setI('sup_parcela',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="—"/>
+            </InlineField>
           </div>
         </div>
 
         {/* ── SEGUIMIENTO COMERCIAL ── */}
         <div className="va-card">
           <div className="va-card-header">
-            <h3><span className="ico">📋</span> Seguimiento comercial <span className="hint">· Sincronizado desde Ofertas y Demandas</span></h3>
+            <h3><span className="ico">◉</span> Seguimiento comercial</h3>
+            <span className="hint">10 eventos · últimos 90 días</span>
           </div>
-          <div className="va-card-body">
-            <div className="va-timeline">
-              {[
-                {day:'15 Mar',date:'15/03/2026',type:'visit', typeLabel:'Visita',       title:'Oracle Spain', meta:'13.486 m²  ·  Álvaro S.',  status:'finalista', statusLabel:'Finalista'},
-                {day:'01 Mar',date:'01/03/2026',type:'pres',  typeLabel:'Presentación', title:'Oracle Spain', meta:'Consultor: Álvaro S.',       status:'finalista', statusLabel:'Finalista'},
-                {day:'28 Feb',date:'28/02/2026',type:'visit', typeLabel:'Visita',       title:'Empresa XYZ',  meta:'1.000 m²  ·  Álvaro S.',     status:'curso',     statusLabel:'En curso'},
-                {day:'12 Feb',date:'12/02/2026',type:'pres',  typeLabel:'Presentación', title:'Empresa XYZ',  meta:'Consultor: Álvaro S.',        status:'curso',     statusLabel:'En curso'},
-                {day:'20 Ene',date:'20/01/2026',type:'pres',  typeLabel:'Presentación', title:'Generali RE',  meta:'Consultor: María R.',          status:'firmado',   statusLabel:'Firmado'},
-              ].map((item,i)=>(
-                <div key={i} className="va-tl-item">
-                  <div className="va-tl-date"><span className="day">{item.day}</span>{item.date}</div>
-                  <div className="va-tl-body">
-                    <span className={`type ${item.type}`}>{item.typeLabel}</span>
-                    <div className="title">{item.title}</div>
-                    <div className="meta">{item.meta}</div>
-                  </div>
-                  <div className="va-tl-status">
-                    <span className={`va-status-pill ${item.status}`}>{item.statusLabel}</span>
-                  </div>
+          <div className="va-timeline-toolbar">
+            {['Todos','Presentaciones · 3','Visitas · 2','Ofertas · 2'].map((f,i)=>(
+              <div key={f} className={`va-filter-chip${i===0?' on':''}`}>{f}</div>
+            ))}
+          </div>
+          <div className="va-timeline" style={{padding:'0 20px 16px'}}>
+            {[
+              {day:'20 ene 2026',date:'20/01/2026',type:'pres', typeLabel:'● Presentación', title:'Generali RE',  meta:<>Consultor: <b>María R.</b></>,  status:'firmado',   statusLabel:'✓ Firmado'},
+              {day:'12 feb 2026',date:'12/02/2026',type:'pres', typeLabel:'● Presentación', title:'Empresa XYZ', meta:<>Consultor: <b>Álvaro S.</b></>, status:'curso',     statusLabel:'En curso'},
+              {day:'15 feb 2026',date:'15/02/2026',type:'visit',typeLabel:'● Visita',       title:'Oracle Spain',meta:<>Nº asist.: <b>13/16</b></>,       status:'finalista', statusLabel:'Finalista'},
+              {day:'28 feb 2026',date:'28/02/2026',type:'visit',typeLabel:'● Visita',       title:'Empresa XYZ', meta:<>Nº asist.: <b>1/6</b></>,          status:'curso',     statusLabel:'En curso'},
+              {day:'01 mar 2026',date:'01/03/2026',type:'pres', typeLabel:'● Presentación', title:'Oracle Spain',meta:<>Consultor: <b>Álvaro S.</b></>,   status:'finalista', statusLabel:'Finalista'},
+            ].map((item,i)=>(
+              <div key={i} className="va-tl-item">
+                <div className="va-tl-date"><span className="day">{item.day}</span>{item.date}</div>
+                <div className="va-tl-body">
+                  <span className={`type ${item.type}`}>{item.typeLabel}</span>
+                  <span className="title">{item.title}</span>
+                  <span className="meta">{item.meta}</span>
                 </div>
-              ))}
-            </div>
+                <div className="va-tl-status">
+                  <span className={`status-pill ${item.status}`}>{item.statusLabel}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* ── OFERTAS ACTIVAS ── */}
         <div className="va-card">
           <div className="va-card-header">
-            <h3><span className="ico">📄</span> Ofertas activas <span className="hint">· Gestionadas desde el módulo Ofertas</span></h3>
+            <h3><span className="ico">◇</span> Ofertas activas</h3>
+            <span className="hint">2 ofertas vinculadas</span>
           </div>
           <table className="va-table">
             <thead><tr><th>Nº Oferta</th><th>Módulo</th><th>Sup. (m²)</th><th>Renta asking</th><th>Días comerc.</th><th>Estado</th><th></th></tr></thead>
             <tbody>
               <tr>
                 <td className="ref" onClick={()=>navigate('ficha-oferta')}>OLB001</td>
-                <td>P5 + PB — Edif. A</td><td>698</td><td style={{fontFamily:'var(--mono)'}}>10,5–14,5 €/m²</td>
-                <td className="days">127d</td>
-                <td><span className="va-status-pill curso">En curso</span></td>
-                <td><button className="ra p" onClick={()=>navigate('ficha-oferta')}>Ver</button></td>
+                <td>P1 – P6 · Edif. A</td><td>638</td><td>10,5 – 14,5 €/m²</td>
+                <td className="days">⏱ 127d</td>
+                <td><span className="status-pill curso">En curso</span></td>
+                <td><button className="btn primary sm" onClick={()=>navigate('ficha-oferta')}>Ver</button></td>
               </tr>
               <tr>
                 <td className="ref">OLB002</td>
-                <td>P2 — Edif. A</td><td>400</td><td style={{fontFamily:'var(--mono)'}}>13,0 €/m²</td>
-                <td className="days">45d</td>
-                <td><span className="va-status-pill revision">En revisión</span></td>
-                <td><button className="ra">Ver</button></td>
+                <td>P2 · Edif. A</td><td>400</td><td>13,0 €/m²</td>
+                <td className="days">⏱ 85d</td>
+                <td><span className="status-pill revision">En revisión</span></td>
+                <td><button className="btn sm">Ver</button></td>
               </tr>
             </tbody>
           </table>

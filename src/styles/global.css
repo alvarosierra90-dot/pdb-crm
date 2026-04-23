@@ -1129,7 +1129,7 @@ tr:hover .ra-cell { opacity: 1; }
 }
 .va-hero > * { border-radius: var(--r); overflow: hidden; border: 1px solid var(--va-line); box-shadow: 0 1px 4px rgba(11,18,32,.08); position: relative; }
 
-/* — Generic card (Seguimiento, Ofertas, Datos Urb.) — */
+/* — Generic card (Localización, Superficies, Datos Urb., Seguimiento, Ofertas) — */
 .va-card {
   background: #fff; border-radius: var(--r); border: 1px solid var(--va-line);
   box-shadow: 0 1px 3px rgba(11,18,32,.06); overflow: hidden;
@@ -1144,15 +1144,57 @@ tr:hover .ra-cell { opacity: 1; }
   display: flex; align-items: center; gap: 8px;
 }
 .va-card-header h3 .ico { color: var(--pdb-blue); }
-.va-card-header .hint { font-size: 12px; color: var(--va-muted); font-weight: 400; text-transform: none; }
-.va-card-body { padding: 0 20px 4px; }
-.va-card .ir {
+.va-card-header .hint { font-size: 12px; color: var(--va-muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+/* va-kv-list / va-kv — display rows inside cards */
+.va-kv-list { padding: 8px 20px; display: flex; flex-direction: column; }
+.va-kv {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 9px 0; border-bottom: 1px dashed var(--va-line2); gap: 12px;
+  padding: 10px 0; border-bottom: 1px dashed var(--va-line2); font-size: 13px; gap: 16px;
 }
-.va-card .ir:last-child { border-bottom: none; }
-.va-card .ir-k { font-size: 13px; color: var(--va-muted); flex-shrink: 0; }
-.va-card .ir-v { font-size: 13px; color: var(--ink); font-weight: 500; text-align: right; }
+.va-kv:last-child { border-bottom: none; }
+.va-kv .k { color: var(--va-muted); flex-shrink: 0; }
+.va-kv .v { color: var(--ink); font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; }
+.va-kv .v.highlight { color: var(--pdb-blue); font-weight: 600; }
+.va-kv .v.muted { color: var(--va-muted); }
+
+/* ir rows inside va-card and va-meta-card match va-kv style */
+.va-card .ir, .va-meta-card .ir {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px dashed var(--va-line2); gap: 16px; font-size: 13px;
+}
+.va-card .ir:last-child, .va-meta-card .ir:last-child { border-bottom: none; }
+.va-card .ir-k, .va-meta-card .ir-k { font-size: 13px; color: var(--va-muted); flex-shrink: 0; }
+.va-card .ir-v, .va-meta-card .ir-v { font-size: 13px; color: var(--ink); font-weight: 500; text-align: right; }
+
+/* btn (design system) */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  padding: 7px 14px; border-radius: var(--r); border: 1px solid var(--va-line);
+  background: #fff; color: var(--ink-2); cursor: pointer;
+}
+.btn:hover { border-color: var(--va-muted); }
+.btn.primary { background: var(--pdb-blue); border-color: var(--pdb-blue); color: #fff; }
+.btn.primary:hover { background: var(--pdb-blue-dark); }
+.btn.sm { padding: 5px 10px; font-size: 12px; }
+.btn.ghost { border-color: transparent; }
+
+/* Filter chips (Seguimiento toolbar) */
+.va-timeline-toolbar { display: flex; gap: 6px; padding: 12px 20px 4px; }
+.va-filter-chip {
+  font-size: 12px; padding: 5px 12px; border-radius: 999px;
+  background: var(--va-bg2); border: 1px solid var(--va-line); color: var(--va-muted);
+  cursor: pointer; font-weight: 500;
+}
+.va-filter-chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* status-pill (design uses this without va- prefix) */
+.status-pill { font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 500; white-space: nowrap; }
+.status-pill.finalista { background: var(--pdb-green-50); color: #065F46; }
+.status-pill.curso     { background: var(--pdb-blue-50);  color: var(--pdb-blue-dark); }
+.status-pill.firmado   { background: #D1FAE5; color: #065F46; font-weight: 600; }
+.status-pill.revision  { background: #FEF3C7; color: #92400E; }
 
 /* — Chip row (inside Tipología card) — */
 .va-chip-row {
@@ -1179,7 +1221,11 @@ tr:hover .ra-cell { opacity: 1; }
   font-size: 11px; font-weight: 700; text-transform: uppercase;
   letter-spacing: .1em; color: var(--va-muted);
 }
-.va-meta-head .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.va-meta-head .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: var(--pdb-blue); }
+.va-meta-head.accent-red    .dot { background: var(--pdb-red); }
+.va-meta-head.accent-purple .dot { background: var(--pdb-purple); }
+.va-meta-head.accent-green  .dot { background: var(--pdb-green); }
+/* legacy dot.color support */
 .va-meta-head .dot.blue   { background: var(--pdb-blue); }
 .va-meta-head .dot.red    { background: var(--pdb-red); }
 .va-meta-head .dot.purple { background: var(--pdb-purple); }
