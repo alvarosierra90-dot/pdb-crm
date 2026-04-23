@@ -852,62 +852,78 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
       </div>
 
       {/* Vista sub-tabs */}
-      <div style={{display:'flex',borderBottom:'1px solid var(--border)',marginLeft:-24,marginRight:-24,paddingLeft:24}}>
+      <div className="sp-tabs" style={{marginLeft:-24,marginRight:-24,paddingLeft:24}}>
         {[['principal','Uso principal'],['prop','Propietarios'],['arr','Arrendatarios y oferta']].map(([k,l])=>(
-          <button key={k} onClick={()=>setView(k)} style={vTab(k)}>{l}</button>
+          <div key={k} onClick={()=>setView(k)} className={`sp-tab${view===k?' active':''}`}>{l}</div>
         ))}
       </div>
 
-      {/* Stats strip */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:1,background:'var(--border)',marginLeft:-24,marginRight:-24,marginBottom:12}}>
-        {[
-          {lbl:'SBA TOTAL',   val:`${totalSup.toLocaleString('es-ES')} m²`,    sub:'Superficie bruta alquilable', col:'var(--text1)'},
-          {lbl:'ASIGNADO',    val:`${assignedSup.toLocaleString('es-ES')} m²`, sub:'Uso principal definido',       col:occPct===100?'var(--green)':'var(--accent)'},
-          {lbl:'SIN ASIGNAR', val:`${(totalSup-assignedSup).toLocaleString('es-ES')} m²`, sub:'Pendiente de definir', col:(totalSup-assignedSup)===0?'var(--green)':'var(--amber)'},
-          {lbl:'COBERTURA',   val:`${occPct}%`,                                sub:'Usos definidos sobre total',   col:occPct===100?'var(--green)':occPct>50?'var(--amber)':'var(--red)'},
-        ].map(s=>(
-          <div key={s.lbl} style={{background:'var(--surface)',padding:'9px 14px'}}>
-            <div style={{fontSize:9,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:2}}>{s.lbl}</div>
-            <div style={{fontSize:16,fontWeight:700,color:s.col,fontFamily:'var(--mono)'}}>{s.val}</div>
-            <div style={{fontSize:10,color:'var(--text3)'}}>{s.sub}</div>
+      {/* Header KPIs */}
+      <div className="sp-header">
+        <div className="sp-kpi-hero">
+          <div className="sp-kpi-label">SBA total</div>
+          <div className="sp-kpi-value">
+            <span className="sp-kpi-number">{totalSup.toLocaleString('es-ES')}</span>
+            <span className="sp-kpi-unit">m²</span>
           </div>
-        ))}
+          <div className="sp-kpi-caption">Superficie bruta alquilable</div>
+        </div>
+        <div className="sp-kpi-group">
+          <div className="sp-kpi-small sp-kpi-asignado">
+            <div className="sp-kpi-label">Asignado</div>
+            <div className="sp-kpi-value">
+              <span className="sp-kpi-number">{assignedSup.toLocaleString('es-ES')}</span>
+              <span className="sp-kpi-unit">m²</span>
+            </div>
+          </div>
+          <div className="sp-kpi-small sp-kpi-sin-asignar">
+            <div className="sp-kpi-label">Sin asignar</div>
+            <div className="sp-kpi-value">
+              <span className="sp-kpi-number">{(totalSup-assignedSup).toLocaleString('es-ES')}</span>
+              <span className="sp-kpi-unit">m²</span>
+            </div>
+          </div>
+          <div className="sp-kpi-small sp-kpi-cobertura">
+            <div className="sp-kpi-label">Cobertura</div>
+            <div className="sp-kpi-value">
+              <span className="sp-kpi-number">{occPct}</span>
+              <span className="sp-kpi-unit">%</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ══ USO PRINCIPAL ══ */}
       {view==='principal' && (
-        <div style={{display:'flex',gap:16}}>
+        <div className="sp-body">
 
           {/* ── SIDEBAR ── */}
-          <div style={{width:160,flexShrink:0,display:'flex',flexDirection:'column',gap:0}}>
+          <div className="sp-sidebar">
 
             {/* SECCIÓN: Usos principales */}
             <div style={{marginBottom:4}}>
-              <div
-                onClick={()=>setPpOpen(v=>!v)}
-                style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',padding:'5px 2px',userSelect:'none'}}
+              <div onClick={()=>setPpOpen(v=>!v)}
+                style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',userSelect:'none'}}
               >
-                <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Usos principales</span>
-                <span style={{fontSize:11,color:'var(--text4)',transition:'transform .2s',display:'inline-block',transform:ppOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
+                <div className="sp-section-label" style={{marginBottom:0}}>Usos principales</div>
+                <span style={{fontSize:11,color:'var(--muted)',transition:'transform .2s',display:'inline-block',transform:ppOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
               </div>
               {ppOpen && (
-                <div style={{maxHeight:210,overflowY:'auto',paddingRight:2}}>
+                <div style={{maxHeight:240,overflowY:'auto',paddingRight:2,marginTop:8}}>
                   {USOS_PPAL.map(u=>(
-                    <div key={u.id} draggable
+                    <div key={u.id} draggable className="sp-chip"
                       onDragStart={()=>setDragging(u.id)}
                       onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
                       style={{
-                        display:'flex',alignItems:'center',gap:7,padding:'6px 9px',marginBottom:4,
-                        borderRadius:6,cursor:'grab',userSelect:'none',
                         border:`1px solid ${dragging===u.id?u.color:u.bd}`,background:u.bg,
                         opacity:dragging&&dragging!==u.id?.4:1,
                         boxShadow:dragging===u.id?`0 2px 8px ${u.color}55`:'none',
                         transform:dragging===u.id?'scale(1.02)':'scale(1)',
-                        transition:'opacity .15s,transform .1s,box-shadow .1s',
                       }}
                     >
-                      <div style={{width:9,height:9,borderRadius:2,background:u.color,flexShrink:0}}/>
-                      <span style={{fontSize:11,fontWeight:600,color:u.color}}>{u.label}</span>
+                      <span className="sp-chip-handle">⋮⋮</span>
+                      <span className="sp-chip-dot" style={{background:u.color}}/>
+                      <span className="sp-chip-label" style={{color:u.color,fontWeight:600}}>{u.label}</span>
                     </div>
                   ))}
                 </div>
@@ -915,35 +931,31 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
             </div>
 
             {/* SECCIÓN: Usos adicionales */}
-            <div>
-              <div
-                onClick={()=>setUaOpen(v=>!v)}
-                style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',padding:'5px 2px',userSelect:'none',borderTop:'1px solid var(--border)',marginTop:4,paddingTop:8}}
+            <div style={{borderTop:'1px solid var(--line-2)',marginTop:4,paddingTop:4}}>
+              <div onClick={()=>setUaOpen(v=>!v)}
+                style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',userSelect:'none'}}
               >
-                <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Usos adicionales</span>
-                <span style={{fontSize:11,color:'var(--text4)',transition:'transform .2s',display:'inline-block',transform:uaOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
+                <div className="sp-section-label" style={{marginBottom:0}}>Usos adicionales</div>
+                <span style={{fontSize:11,color:'var(--muted)',transition:'transform .2s',display:'inline-block',transform:uaOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
               </div>
               {uaOpen && (
-                <div style={{maxHeight:260,overflowY:'auto',paddingRight:2}}>
+                <div style={{maxHeight:260,overflowY:'auto',paddingRight:2,marginTop:8}}>
                   {availableUA.length===0 ? (
-                    <div style={{fontSize:10,color:'var(--text4)',padding:'6px 0',lineHeight:1.4}}>Asigna primero usos principales</div>
+                    <div style={{fontSize:10,color:'var(--muted)',padding:'6px 0',lineHeight:1.4}}>Asigna primero usos principales</div>
                   ) : availableUA.map(ua=>(
-                    <div key={ua.id} draggable
+                    <div key={ua.id} draggable className="sp-chip"
                       onDragStart={()=>setDragging(ua.id)}
                       onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
                       style={{
-                        display:'flex',alignItems:'center',gap:6,padding:'5px 9px',marginBottom:3,
-                        borderRadius:5,cursor:'grab',userSelect:'none',
                         border:`1px solid ${dragging===ua.id?ua.color:ua.bd}`,background:ua.bg,
                         opacity:dragging&&dragging!==ua.id?.4:1,
                         boxShadow:dragging===ua.id?`0 2px 8px ${ua.color}44`:'none',
-                        transition:'opacity .15s,box-shadow .1s',
                       }}
                     >
-                      <div style={{width:8,height:8,borderRadius:2,background:ua.color,flexShrink:0}}/>
-                      <span style={{fontSize:10,fontWeight:600,color:ua.color,flex:1}}>{ua.label}</span>
-                      <span style={{fontSize:8,padding:'1px 3px',borderRadius:2,fontWeight:700,flexShrink:0,
-                        background:ua.attr?'#ede9fe':'#f0fdf4',color:ua.attr?'#7c3aed':'#16a34a'}}>{ua.attr?'A':'S'}</span>
+                      <span className="sp-chip-handle">⋮⋮</span>
+                      <span className="sp-chip-dot" style={{background:ua.color}}/>
+                      <span className="sp-chip-label" style={{color:ua.color,fontWeight:600,flex:1}}>{ua.label}</span>
+                      <span className={`sp-chip-tag ${ua.attr?'tag-a':'tag-s'}`}>{ua.attr?'A':'S'}</span>
                     </div>
                   ))}
                 </div>
@@ -979,11 +991,11 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
           {/* ── GRID PLANTAS ── */}
           <div style={{flex:1,minWidth:0}}>
             {/* Cabecera */}
-            <div style={{display:'grid',gridTemplateColumns:'22px 52px 1fr 90px 48px',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
-              <div style={{padding:'5px 4px'}}/>
-              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Planta</div>
-              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Uso principal + Usos adicionales</div>
-              <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
+            <div className="sp-table-head" style={{gridTemplateColumns:'20px 40px 1fr 80px 44px'}}>
+              <div/>
+              <div>Planta</div>
+              <div>Uso principal + usos adicionales</div>
+              <div style={{textAlign:'right'}}>Sup.</div>
               <div/>
             </div>
 
@@ -1046,12 +1058,12 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                     }
                     setDragging(null)
                   }}
+                  className="sp-row"
                   style={{
-                    display:'grid',gridTemplateColumns:'22px 52px 1fr 90px 48px',
-                    borderBottom: isPB ? '3px solid var(--text3)' : '1px solid var(--border)',
-                    background:isTgt?'#eff6ff':isSel?'#f0f9ff':'var(--surface)',
-                    outline:isSel||isTgt?'1.5px solid var(--accent)':'none',
-                    transition:'background .1s',
+                    gridTemplateColumns:'20px 40px 1fr 80px 44px',
+                    borderBottom: isPB ? '3px solid var(--ink-2)' : undefined,
+                    background:isTgt?'var(--pdb-blue-50)':isSel?'#f0f9ff':'var(--surface)',
+                    outline:isSel||isTgt?'1.5px solid var(--pdb-blue)':'none',
                     cursor:'pointer',
                   }}
                   onClick={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
@@ -1064,15 +1076,15 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                   </div>
 
                   {/* Label planta */}
-                  <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:isSel?'var(--accent)':'var(--text3)',display:'flex',alignItems:'flex-start',paddingTop:10}}>{floor.id}</div>
+                  <div className={`sp-row-floor${floor.principal.length===0?' empty':''}`} style={{color:isSel?'var(--pdb-blue)':undefined}}>{floor.id}</div>
 
                   {/* Columna central: uso principal + adicionales */}
-                  <div style={{padding:'4px 4px 4px 0',display:'flex',flexDirection:'column',gap:4}}>
+                  <div className="sp-row-blocks" style={{flexDirection:'column',gap:4,padding:'6px 0',alignItems:'stretch'}}>
 
                     {/* Fila 1: barras de uso principal */}
-                    <div style={{display:'flex',alignItems:'stretch',gap:2,height:barH}}>
+                    <div style={{display:'flex',gap:2,minHeight:barH}}>
                       {floor.principal.length===0 ? (
-                        <div style={{flex:1,background:isSel?'#dbeafe':isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isSel?'var(--accent)':isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:isSel?'var(--accent)':isTgt?'var(--accent)':'var(--text4)',fontWeight:isTgt||isSel?600:400}}>
+                        <div className="sp-block-empty" style={{background:isSel?'var(--pdb-blue-50)':isTgt?'var(--pdb-blue-50)':undefined,borderColor:isSel||isTgt?'var(--pdb-blue)':undefined,color:isSel||isTgt?'var(--pdb-blue)':undefined,fontWeight:isTgt||isSel?600:undefined}}>
                           {isTgt?'⬇ Soltar uso aquí':isSel?'✓ Seleccionada — arrastra un uso':'Clic para seleccionar · arrastra un uso'}
                         </div>
                       ) : (
@@ -1085,9 +1097,8 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                               <div key={i}
                                 title={`${info.label} · ${u.sup.toLocaleString('es-ES')} m²`}
                                 onClick={e=>{e.stopPropagation();if(isEd)setEditFloor(null);else{setEditFloor({floorId:floor.id,idx:i,layer:'principal'});setEditSup(String(u.sup))}}}
-                                style={{width:wpct,background:info.bg,border:`1px solid ${info.bd}`,borderRadius:4,
-                                  display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',
-                                  flexShrink:0,overflow:'hidden',transition:'filter .1s'}}
+                                className="sp-block"
+                                style={{width:wpct,background:info.bg,border:`1px solid ${info.bd}`,flex:'unset',flexShrink:0}}
                               >
                                 {isEd ? (
                                   <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
@@ -1098,16 +1109,17 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                                     <button onClick={()=>removeItem(floor.id,i,'principal')} style={{padding:'2px 4px',background:'#fee2e2',color:'#dc2626',border:'1px solid #fca5a5',borderRadius:3,fontSize:8,cursor:'pointer'}}>✕</button>
                                   </div>
                                 ) : (
-                                  <span style={{fontSize:9,fontWeight:700,color:info.color,padding:'0 5px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>
-                                    {info.label}{u.sup>=200?` · ${u.sup.toLocaleString('es-ES')} m²`:''}
-                                  </span>
+                                  <div className="sp-block-content">
+                                    <span className="sp-block-name" style={{color:info.color}}>{info.label}</span>
+                                    {u.sup>=200 && <span className="sp-block-meta" style={{color:info.color}}>{u.sup.toLocaleString('es-ES')} m²</span>}
+                                  </div>
                                 )}
                               </div>
                             )
                           })}
                           {avail>0 && (
-                            <div style={{flex:1,minWidth:14,background:isSel?'#dbeafe':isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isSel?'var(--accent)':isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:isSel?'var(--accent)':isTgt?'var(--accent)':'var(--text4)'}}>
-                              {isSel?'✓':''} {avail.toLocaleString('es-ES')} m²
+                            <div className="sp-block-empty" style={{flex:1,minWidth:14,background:isSel?'var(--pdb-blue-50)':isTgt?'var(--pdb-blue-50)':undefined,borderColor:isSel||isTgt?'var(--pdb-blue)':undefined,color:isSel||isTgt?'var(--pdb-blue)':undefined,fontSize:9}}>
+                              {isSel?'✓ ':''}{avail.toLocaleString('es-ES')} m²
                             </div>
                           )}
                         </>
@@ -1149,7 +1161,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                   </div>
 
                   {/* Sup total — editable sólo desde Uso principal */}
-                  <div style={{padding:'8px 8px',fontSize:11,fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'flex-start',justifyContent:'flex-end',fontFamily:'var(--mono)',paddingTop:8}} onClick={e=>e.stopPropagation()}>
+                  <div className="sp-row-total" onClick={e=>e.stopPropagation()} style={{display:'flex',justifyContent:'flex-end',alignItems:'flex-start',paddingTop:6}}>
                     {editFloorSup===floor.id ? (
                       <div style={{display:'flex',flexDirection:'column',gap:2,alignItems:'flex-end'}} onClick={e=>e.stopPropagation()}>
                         <input type="number" value={editFloorSupVal} onChange={e=>setEditFloorSupVal(e.target.value)} autoFocus
@@ -1188,12 +1200,12 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
             })()}
 
             {/* Barra de asignación */}
-            <div style={{display:'flex',alignItems:'center',gap:10,marginTop:10,padding:'8px 0'}}>
-              <span style={{fontSize:10,color:'var(--text4)',fontWeight:600,minWidth:70}}>Asignación</span>
-              <div style={{flex:1,height:6,background:'var(--border)',borderRadius:3,overflow:'hidden'}}>
-                <div style={{width:`${occPct}%`,height:'100%',background:occPct===100?'var(--green)':'var(--accent)',borderRadius:3,transition:'width .4s'}}/>
+            <div className="sp-progress">
+              <span className="sp-progress-label">Asignación</span>
+              <div className="sp-progress-track">
+                <div className="sp-progress-fill" style={{width:`${occPct}%`,background:occPct===100?'var(--pdb-green)':'var(--pdb-blue)'}}/>
               </div>
-              <span style={{fontSize:11,fontWeight:700,color:occPct===100?'var(--green)':'var(--accent)',minWidth:32,textAlign:'right'}}>{occPct}%</span>
+              <span className="sp-progress-value">{occPct}%</span>
             </div>
           </div>
         </div>
@@ -1218,46 +1230,45 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
           })
         }
         return (
-          <div style={{display:'flex',gap:16}}>
+          <div className="sp-body">
 
             {/* ── SIDEBAR PROPIETARIOS ── */}
-            <div style={{width:160,flexShrink:0,display:'flex',flexDirection:'column',gap:0}}>
-              <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',padding:'5px 2px',marginBottom:6}}>Propietarios</div>
+            <div className="sp-sidebar">
+              <div className="sp-section-label">Propietarios</div>
               <div style={{maxHeight:320,overflowY:'auto',paddingRight:2}}>
                 {ownerSet.length===0 ? (
-                  <div style={{fontSize:10,color:'var(--text4)',lineHeight:1.5,padding:'4px 0'}}>Aún no hay propietarios</div>
+                  <div style={{fontSize:10,color:'var(--muted)',lineHeight:1.5,padding:'4px 0'}}>Aún no hay propietarios</div>
                 ) : ownerSet.map((n,i)=>{
                   const col = PROP_COLORS[i%PROP_COLORS.length]
                   return (
-                    <div key={n} draggable
+                    <div key={n} draggable className="sp-chip"
                       onDragStart={()=>setDragging(n)}
                       onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
                       style={{
-                        display:'flex',alignItems:'center',gap:7,padding:'6px 9px',marginBottom:4,
-                        borderRadius:6,cursor:'grab',userSelect:'none',
                         border:`1px solid ${dragging===n?col:col+'88'}`,background:col+'18',
                         opacity:dragging&&dragging!==n?.4:1,
                         boxShadow:dragging===n?`0 2px 8px ${col}44`:'none',
-                        transition:'opacity .15s,box-shadow .1s',
                       }}
                     >
-                      <div style={{width:9,height:9,borderRadius:2,background:col,flexShrink:0}}/>
-                      <span style={{fontSize:11,fontWeight:600,color:col,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{n}</span>
+                      <span className="sp-chip-handle">⋮⋮</span>
+                      <span className="sp-chip-dot" style={{background:col}}/>
+                      <div className="sp-chip-detail">
+                        <span className="sp-chip-label" style={{color:col}}>{n}</span>
+                        <div className="sp-chip-meta">{(edif.prop||[]).find(r=>r.units.some(u=>u.n===n))?.units.filter(u=>u.n===n).reduce((s,u)=>s+u.sup,0)?.toLocaleString('es-ES')} m²</div>
+                      </div>
                     </div>
                   )
                 })}
               </div>
-              <button onClick={onAddOwner} style={{marginTop:8,padding:'5px 8px',background:'none',border:'1px dashed var(--accent-bd)',borderRadius:5,fontSize:10,color:'var(--accent)',cursor:'pointer',fontFamily:'inherit',textAlign:'left',width:'100%'}}>
-                + Añadir propietario
-              </button>
+              <button onClick={onAddOwner} className="sp-add-btn">+ Añadir propietario</button>
             </div>
 
             {/* ── GRID PLANTAS (driven by edif.floors) ── */}
             <div style={{flex:1,minWidth:0}}>
-              <div style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
-                <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Planta</div>
-                <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Propietario — arrastra desde el panel izquierdo · clic en bloque para editar</div>
-                <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
+              <div className="sp-table-head">
+                <div>Planta</div>
+                <div>Propietario · arrastra desde el panel</div>
+                <div style={{textAlign:'right'}}>Sup.</div>
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
                 const barH = Math.max(30, Math.round((floor.sup / maxFloorSup) * 60))
@@ -1296,16 +1307,19 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                       if(targets.length>1) setSelectedFloors([])
                       setDragging(null)
                     }}
-                    style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',borderBottom:floor.id==='PB'?'3px solid var(--text3)':'1px solid var(--border)',minHeight:barH+14,
-                      background:isTgt?'#eff6ff':isSel?'#f0f9ff':isEmpty?'var(--gray-lt)':'var(--surface)',
-                      outline:isSel||isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s',cursor:'pointer'}}>
+                    className="sp-row"
+                    style={{
+                      borderBottom: floor.id==='PB' ? '3px solid var(--ink-2)' : undefined,
+                      background:isTgt?'var(--pdb-blue-50)':isSel?'#f0f9ff':isEmpty?'var(--bg)':'var(--surface)',
+                      outline:isSel||isTgt?'1.5px solid var(--pdb-blue)':'none', cursor:'pointer',
+                    }}>
 
-                    <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:isSel?'var(--accent)':isEmpty?'var(--text4)':'var(--text3)',display:'flex',alignItems:'center'}}>{floor.id}</div>
+                    <div className={`sp-row-floor${isEmpty?' empty':''}`} style={{color:isSel?'var(--pdb-blue)':undefined}}>{floor.id}</div>
 
-                    <div style={{display:'flex',flexDirection:'column',gap:3,padding:'5px 4px 5px 0'}}>
+                    <div className="sp-row-blocks" style={{flexDirection:'column',gap:3,padding:'6px 0',alignItems:'stretch'}}>
                       {/* Referencia uso principal (gris tenue) */}
                       {floor.principal.length>0 && (
-                        <div style={{display:'flex',gap:1,height:6,borderRadius:2,overflow:'hidden',opacity:.35}}>
+                        <div style={{display:'flex',gap:1,height:4,borderRadius:2,overflow:'hidden',opacity:.3}}>
                           {floor.principal.map((u,i)=>{
                             const info=usoInfo(u.uso)
                             return <div key={i} style={{width:`${(u.sup/floor.sup)*100}%`,background:info.color,flexShrink:0}}/>
@@ -1313,11 +1327,9 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                         </div>
                       )}
                       {/* Bloques de propietario */}
-                      <div style={{display:'flex',alignItems:'stretch',gap:2,minHeight:barH}}>
+                      <div style={{display:'flex',gap:2,minHeight:barH}}>
                         {isEmpty ? (
-                          <div style={{flex:1,background:isTgt?'var(--accent-lt)':'transparent',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,
-                            display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,
-                            color:isTgt?'var(--accent)':'var(--text4)',gap:5}}>
+                          <div className="sp-block-empty" style={{borderColor:isTgt?'var(--pdb-blue)':undefined,color:isTgt?'var(--pdb-blue)':undefined}}>
                             {isTgt?'⬇ Soltar propietario':'Sin propietario asignado — arrastra aquí'}
                           </div>
                         ) : (
@@ -1326,13 +1338,13 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                               const col = ownerColor(u.n)
                               const wpct = `${(u.sup/rowSup)*100}%`
                               const isEd = editPA?.layer==='prop' && editPA?.rowP===floor.id && editPA?.idx===i
+                              const initials = u.n.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()
                               return (
                                 <div key={i}
                                   title={`${u.n} · ${u.sup.toLocaleString('es-ES')} m²`}
                                   onClick={e=>{e.stopPropagation();if(isEd)setEditPA(null);else{setEditPA({layer:'prop',rowP:floor.id,idx:i});setEditPASup(String(u.sup))}}}
-                                  style={{position:'relative',width:wpct,background:col+'18',border:`1px solid ${col}88`,borderRadius:4,
-                                    display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-                                    cursor:'pointer',flexShrink:0,overflow:'visible',padding:'3px 4px',gap:1}}
+                                  className="sp-block"
+                                  style={{width:wpct,background:col+'18',border:`1px solid ${col}88`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible'}}
                                 >
                                   {isEd ? (
                                     <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
@@ -1345,19 +1357,19 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                                     <>
                                       <button onClick={e=>{e.stopPropagation();removePropUnit(floor.id,i)}}
                                         style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
-                                      <span style={{fontSize:10,fontWeight:700,color:col,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center',padding:'0 3px'}}>{u.n}</span>
-                                      <span style={{fontSize:9,color:col,opacity:.7,fontFamily:'var(--mono)'}}>{u.sup.toLocaleString('es-ES')} m²</span>
+                                      <div className="sp-block-content">
+                                        <div className="sp-block-avatar" style={{background:col}}>{initials}</div>
+                                        <span className="sp-block-name" style={{color:col}}>{u.n}</span>
+                                        <span className="sp-block-meta" style={{color:col,marginLeft:'auto'}}>{u.sup.toLocaleString('es-ES')} m²</span>
+                                      </div>
                                     </>
                                   )}
                                 </div>
                               )
                             })}
                             {unassigned>0 && (
-                              <div style={{flex:1,minWidth:20,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,
-                                display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-                                fontSize:9,color:isTgt?'var(--accent)':'var(--text4)',gap:1,padding:'2px 4px'}}>
-                                <span>{unassigned.toLocaleString('es-ES')} m²</span>
-                                <span style={{fontSize:8}}>sin asignar</span>
+                              <div className="sp-block-empty" style={{flex:1,minWidth:20,flexDirection:'column',gap:1,fontSize:9,borderColor:isTgt?'var(--pdb-blue)':undefined,color:isTgt?'var(--pdb-blue)':undefined}}>
+                                <span>{unassigned.toLocaleString('es-ES')} m² sin asignar</span>
                               </div>
                             )}
                           </>
@@ -1365,9 +1377,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                       </div>
                     </div>
 
-                    <div style={{padding:'6px 8px',fontSize:11,fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',justifyContent:'flex-end',fontFamily:'var(--mono)'}}>
-                      {rowSup.toLocaleString('es-ES')} m²
-                    </div>
+                    <div className="sp-row-total">{rowSup.toLocaleString('es-ES')} m²</div>
                   </div>
                 )
               })
@@ -1394,62 +1404,51 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
           return u.n
         }
         return (
-          <div style={{display:'flex',gap:16}}>
+          <div className="sp-body">
 
             {/* ── SIDEBAR ARRENDATARIOS ── */}
-            <div style={{width:160,flexShrink:0,display:'flex',flexDirection:'column',gap:0}}>
-              <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',padding:'5px 2px',marginBottom:6}}>Arrendatarios</div>
+            <div className="sp-sidebar">
+              <div className="sp-section-label">Arrendatarios</div>
               <div style={{maxHeight:200,overflowY:'auto',paddingRight:2}}>
                 {tenantSet.length===0 ? (
-                  <div style={{fontSize:10,color:'var(--text4)',lineHeight:1.5,padding:'4px 0'}}>Aún no hay arrendatarios</div>
+                  <div style={{fontSize:10,color:'var(--muted)',lineHeight:1.5,padding:'4px 0'}}>Aún no hay arrendatarios</div>
                 ) : tenantSet.map((n,i)=>{
                   const col = ARR_COLORS[i%ARR_COLORS.length]
                   return (
-                    <div key={n} draggable
+                    <div key={n} draggable className="sp-chip"
                       onDragStart={()=>setDragging('ten:'+n)}
                       onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
                       style={{
-                        display:'flex',alignItems:'center',gap:7,padding:'6px 9px',marginBottom:4,
-                        borderRadius:6,cursor:'grab',userSelect:'none',
                         border:`1px solid ${col}88`,background:col+'18',
                         opacity:dragging&&dragging!=='ten:'+n?.4:1,
                         boxShadow:dragging==='ten:'+n?`0 2px 8px ${col}44`:'none',
-                        transition:'opacity .15s,box-shadow .1s',
                       }}
                     >
-                      <div style={{width:9,height:9,borderRadius:2,background:col,flexShrink:0}}/>
-                      <span style={{fontSize:11,fontWeight:600,color:col,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{n}</span>
+                      <span className="sp-chip-handle">⋮⋮</span>
+                      <span className="sp-chip-dot" style={{background:col}}/>
+                      <span className="sp-chip-label" style={{color:col,fontWeight:600}}>{n}</span>
                     </div>
                   )
                 })}
               </div>
-              <button onClick={onAddTenant} style={{marginTop:4,padding:'5px 8px',background:'none',border:'1px dashed var(--accent-bd)',borderRadius:5,fontSize:10,color:'var(--accent)',cursor:'pointer',fontFamily:'inherit',textAlign:'left',width:'100%'}}>
-                + Añadir arrendatario
-              </button>
-              <div style={{borderTop:'1px solid var(--border)',marginTop:10,paddingTop:8}}>
-                <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Ofertas activas</div>
+              <button onClick={onAddTenant} className="sp-add-btn">+ Añadir arrendatario</button>
+              <div style={{borderTop:'1px solid var(--line-2)',marginTop:10,paddingTop:4}}>
+                <div className="sp-section-label">Ofertas activas</div>
                 {extraOfertas.length === 0
-                  ? <div style={{fontSize:10,color:'var(--text4)',fontStyle:'italic',padding:'6px 0'}}>Sin ofertas. Créalas desde Desglose de ofertas.</div>
+                  ? <div style={{fontSize:10,color:'var(--muted)',fontStyle:'italic',padding:'4px 0'}}>Sin ofertas. Créalas desde Desglose de ofertas.</div>
                   : extraOfertas.map((ofr,idx)=>{
                       const COLS=['#16a34a','#2563eb','#d97706','#7c3aed']
                       const col=COLS[idx%COLS.length]
                       const dragKey='ofr:'+ofr.nombre
                       return (
                         <div key={ofr.id} draggable
+                          className="sp-offer-card"
+                          style={{borderLeftColor:col,opacity:dragging&&dragging!==dragKey?0.4:1}}
                           onDragStart={()=>setDragging(dragKey)}
                           onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                          style={{
-                            display:'flex',flexDirection:'column',gap:2,padding:'6px 9px',marginBottom:4,
-                            borderRadius:5,cursor:'grab',userSelect:'none',
-                            border:`1px solid ${col}55`,background:col+'12',
-                            opacity:dragging&&dragging!==dragKey?0.4:1,
-                            transition:'opacity .15s',
-                          }}
                         >
-                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:4}}>
-                            <span style={{fontSize:11,fontWeight:700,color:col}}>{ofr.nombre}</span>
-                          </div>
-                          <div style={{fontSize:9,color:'var(--text4)'}}>Arrastra para asignar plantas</div>
+                          <div className="sp-offer-name" style={{color:col}}>{ofr.nombre}</div>
+                          <div className="sp-offer-meta">Arrastra para asignar plantas</div>
                         </div>
                       )
                     })
@@ -1459,10 +1458,10 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
 
             {/* ── GRID PLANTAS (driven by edif.floors) ── */}
             <div style={{flex:1,minWidth:0}}>
-              <div style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',background:'var(--gray-lt)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
-                <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Planta</div>
-                <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase'}}>Arrendatario / Oferta — arrastra desde el panel izquierdo · clic en bloque para editar</div>
-                <div style={{padding:'5px 8px',fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',textAlign:'right'}}>Sup. total</div>
+              <div className="sp-table-head">
+                <div>Planta</div>
+                <div>Arrendatario · oferta</div>
+                <div style={{textAlign:'right'}}>Sup.</div>
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
                 const barH = Math.max(38, Math.round((floor.sup / maxFloorSup) * 70))
@@ -1511,13 +1510,17 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                       if(targets.length>1) setSelectedFloors([])
                       setDragging(null)
                     }}
-                    style={{display:'grid',gridTemplateColumns:'52px 1fr 90px',borderBottom:floor.id==='PB'?'3px solid var(--text3)':'1px solid var(--border)',minHeight:barH+14,
-                      background:dropWarning===floor.id?'#fff1f2':isTgt?'#eff6ff':isSel?'#f0f9ff':isEmpty?'var(--gray-lt)':'var(--surface)',
-                      outline:dropWarning===floor.id?'1.5px solid #fca5a5':isSel||isTgt?'1.5px solid var(--accent)':'none',transition:'background .1s',cursor:'pointer'}}>
+                    className="sp-row"
+                    style={{
+                      borderBottom: floor.id==='PB' ? '3px solid var(--ink-2)' : undefined,
+                      background:dropWarning===floor.id?'#fff1f2':isTgt?'var(--pdb-blue-50)':isSel?'#f0f9ff':isEmpty?'var(--bg)':'var(--surface)',
+                      outline:dropWarning===floor.id?'1.5px solid #fca5a5':isSel||isTgt?'1.5px solid var(--pdb-blue)':'none',
+                      cursor:'pointer',
+                    }}>
 
-                    <div style={{padding:'6px 8px',fontSize:12,fontWeight:700,color:isSel?'var(--accent)':isEmpty?'var(--text4)':'var(--text3)',display:'flex',alignItems:'center'}}>{floor.id}</div>
+                    <div className={`sp-row-floor${isEmpty?' empty':''}`} style={{color:isSel?'var(--pdb-blue)':undefined}}>{floor.id}</div>
 
-                    <div style={{display:'flex',flexDirection:'column',gap:3,padding:'5px 4px 5px 0'}}>
+                    <div className="sp-row-blocks" style={{flexDirection:'column',gap:3,padding:'6px 0',alignItems:'stretch'}}>
                       {dropWarning===floor.id && (
                         <div style={{display:'flex',alignItems:'center',gap:5,padding:'4px 8px',background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:4,fontSize:10,color:'#dc2626',fontWeight:600}}>
                           ⚠ Asigna primero un uso principal en esta planta
@@ -1525,7 +1528,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                       )}
                       {/* Referencia uso principal (gris tenue) */}
                       {floor.principal.length>0 && (
-                        <div style={{display:'flex',gap:1,height:6,borderRadius:2,overflow:'hidden',opacity:.35}}>
+                        <div style={{display:'flex',gap:1,height:4,borderRadius:2,overflow:'hidden',opacity:.3}}>
                           {floor.principal.map((u,i)=>{
                             const info=usoInfo(u.uso)
                             return <div key={i} style={{width:`${(u.sup/floor.sup)*100}%`,background:info.color,flexShrink:0}}/>
@@ -1533,11 +1536,9 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                         </div>
                       )}
                       {/* Bloques de arrendatario */}
-                      <div style={{display:'flex',alignItems:'stretch',gap:2,minHeight:barH}}>
+                      <div style={{display:'flex',gap:2,minHeight:barH}}>
                         {isEmpty ? (
-                          <div style={{flex:1,background:isTgt?'var(--accent-lt)':'transparent',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,
-                            display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,
-                            color:isTgt?'var(--accent)':'var(--text4)',gap:5}}>
+                          <div className="sp-block-empty" style={{borderColor:isTgt?'var(--pdb-blue)':undefined,color:isTgt?'var(--pdb-blue)':undefined}}>
                             {isTgt?'⬇ Soltar aquí':'Sin asignación — arrastra desde el panel lateral'}
                           </div>
                         ) : (
@@ -1560,9 +1561,8 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                                 <div key={i}
                                   title={`${label} · ${u.sup.toLocaleString('es-ES')} m²${u.brk?` · break ${u.brk}`:''}`}
                                   onClick={e=>{e.stopPropagation();if(isEd)setEditPA(null);else{setEditPA({layer:'arr',rowP:floor.id,idx:i});setEditPASup(String(u.sup));setEditPARenta(String(u.renta??''))}}}
-                                  style={{position:'relative',width:wpct,background:bg,border:`1px solid ${bd}`,borderRadius:4,
-                                    display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-                                    cursor:'pointer',flexShrink:0,overflow:'visible',padding:'4px 6px',gap:2,minHeight:barH}}
+                                  className="sp-block"
+                                  style={{width:wpct,background:bg,border:`1px solid ${bd}`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible',flexDirection:'column',minHeight:barH,justifyContent:'center'}}
                                 >
                                   {isEd ? (
                                     <div style={{display:'flex',flexDirection:'column',gap:3,padding:'2px 4px'}} onClick={e=>e.stopPropagation()}>
@@ -1587,22 +1587,21 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                                     <>
                                       <button onClick={e=>{e.stopPropagation();removeArrUnit(floor.id,i)}}
                                         style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
-                                      <span style={{fontSize:10,fontWeight:700,color:col,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>{label}</span>
-                                      {u.type==='vac'&&u.oferta&&activoPropietario&&(
-                                        <span style={{fontSize:8,color:col,opacity:.6,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',textAlign:'center'}}>🏠 {activoPropietario}</span>
-                                      )}
-                                      <span style={{fontSize:9,color:col,opacity:.75,fontFamily:'var(--mono)',fontWeight:600}}>{u.sup.toLocaleString('es-ES')} m²{u.renta>0?` · ${u.renta}€/m²`:''}</span>
-                                      {u.brk&&<span style={{fontSize:8,color:u.brkColor||col,fontWeight:600,whiteSpace:'nowrap'}}>⊙ {u.brk}</span>}
-                                      {u.nota&&<span style={{fontSize:8,color:col,opacity:.6}}>{u.nota}</span>}
+                                      <div className="sp-block-content">
+                                        <span className="sp-block-name" style={{color:col}}>{label}</span>
+                                        <span className="sp-block-meta" style={{color:col}}>{u.sup.toLocaleString('es-ES')} m²{u.renta>0?` · ${u.renta}€/m²`:''}</span>
+                                      </div>
+                                      {u.type==='vac' && <span className="sp-block-badge" style={{color:col}}>OFERTA</span>}
+                                      {u.type==='ten' && <span className="sp-block-badge" style={{color:col}}>ARREND.</span>}
+                                      {u.brk&&<span style={{fontSize:8,color:u.brkColor||col,fontWeight:600}}>⊙ {u.brk}</span>}
                                     </>
                                   )}
                                 </div>
                               )
                             })}
                             {assigned<rowSup && (
-                              <div style={{flex:1,minWidth:20,background:isTgt?'var(--accent-lt)':'var(--gray-lt)',border:`1px dashed ${isTgt?'var(--accent)':'var(--border)'}`,borderRadius:4,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',fontSize:9,color:isTgt?'var(--accent)':'var(--text4)',gap:1,padding:'2px 4px',minHeight:barH}}>
-                                <span>{(rowSup-assigned).toLocaleString('es-ES')} m²</span>
-                                <span style={{fontSize:8}}>sin asignar</span>
+                              <div className="sp-block-empty" style={{flex:1,minWidth:20,flexDirection:'column',gap:1,fontSize:9,borderColor:isTgt?'var(--pdb-blue)':undefined,color:isTgt?'var(--pdb-blue)':undefined}}>
+                                <span>{(rowSup-assigned).toLocaleString('es-ES')} m² sin asignar</span>
                               </div>
                             )}
                           </>
@@ -1610,9 +1609,7 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
                       </div>
                     </div>
 
-                    <div style={{padding:'6px 8px',fontSize:11,fontWeight:600,color:'var(--text3)',display:'flex',alignItems:'center',justifyContent:'flex-end',fontFamily:'var(--mono)'}}>
-                      {rowSup.toLocaleString('es-ES')} m²
-                    </div>
+                    <div className="sp-row-total">{rowSup.toLocaleString('es-ES')} m²</div>
                   </div>
                 )
               })
@@ -2067,85 +2064,103 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
             if(cp) setNF('cp',cp); if(coordenadas) setNF('coordenadas',coordenadas)
           }}/>
 
+        {/* LOCALIZACIÓN (Área / Zona / Subzona) */}
+        <div className="va-card" style={{marginBottom:20}}>
+          <div className="va-card-header">
+            <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Localización</h3>
+            {newForm.coordenadas && <span className="hint">Coordenadas · {newForm.coordenadas}</span>}
+          </div>
+          <div className="va-chip-row">
+            <div className="va-chip-cell">
+              <div className="label">Área</div>
+              {nfAreas.length > 0
+                ? <select value={newForm.area} onChange={e=>{setNF('area',e.target.value);setNF('zona','');setNF('subzona','')}} style={selSt}><option value="">—</option>{nfAreas.map(a=><option key={a}>{a}</option>)}</select>
+                : <input value={newForm.area} onChange={e=>setNF('area',e.target.value)} style={selSt} placeholder="—"/>}
+            </div>
+            <div className="va-chip-cell">
+              <div className="label">Zona</div>
+              {zonas.length > 0
+                ? <select value={newForm.zona} onChange={e=>{setNF('zona',e.target.value);setNF('subzona','')}} style={selSt}><option value="">—</option>{zonas.map(z=><option key={z}>{z}</option>)}</select>
+                : <input value={newForm.zona} onChange={e=>setNF('zona',e.target.value)} style={selSt} placeholder="—"/>}
+            </div>
+            <div className="va-chip-cell">
+              <div className="label">Subzona</div>
+              {subzonas.length > 0
+                ? <select value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} style={selSt}><option value="">—</option>{subzonas.map(s=><option key={s}>{s}</option>)}</select>
+                : <input value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} style={selSt} placeholder="—"/>}
+            </div>
+          </div>
+        </div>
+
         {/* UBICACIÓN + TIPOLOGÍA */}
-        <div className="info-2col" style={{marginBottom:12}}>
-          <div className="info-block">
-            <div className="ib-title">📍 UBICACIÓN</div>
-            <Row label="Nombre del activo">
-              <input value={newForm.nombre} onChange={e=>setNF('nombre',e.target.value)} style={inpBase} placeholder="P.E Avalon, Torre Sevilla..."/>
-            </Row>
-            <Row label="Propietario">
-              <input list="fa-cuentas-new" value={newForm.propietario} onChange={e=>setNF('propietario',e.target.value)} style={inpBase} placeholder="Buscar cuenta..."/>
-              <datalist id="fa-cuentas-new">{CUENTAS_FA.map(c=><option key={c} value={c}/>)}</datalist>
-            </Row>
-            <Row label="Dirección" required>
-              <input value={newForm.direccion} onChange={e=>setNF('direccion',e.target.value)} style={inp('direccion')} placeholder="Calle Serrano 41, Madrid..."/>
-              {err('direccion') && <span style={{fontSize:10,color:'var(--red)'}}>Campo obligatorio</span>}
-            </Row>
-            <Row label="Ciudad">
-              <input value={newForm.ciudad} onChange={e=>{setNF('ciudad',e.target.value);setNF('area','');setNF('zona','');setNF('subzona','')}} style={inpBase} placeholder="Madrid"/>
-            </Row>
-            <Row label="País">
-              <input value={newForm.pais} onChange={e=>setNF('pais',e.target.value)} style={inpBase} placeholder="España"/>
-            </Row>
-            <Row label="Código postal">
-              <input value={newForm.cp} onChange={e=>setNF('cp',e.target.value)} style={inpBase} placeholder="28037"/>
-            </Row>
-            <Row label="Coordenadas">
-              <input value={newForm.coordenadas||''} onChange={e=>setNF('coordenadas',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="40.416775, -3.703790"/>
-            </Row>
-            {/* Área / Zona / Subzona */}
-            <div style={{marginTop:8,padding:'10px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:7}}>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:0}}>
-                <div>
-                  <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Área</div>
-                  {nfAreas.length > 0
-                    ? <select value={newForm.area} onChange={e=>{setNF('area',e.target.value);setNF('zona','');setNF('subzona','')}} style={selSt}><option value="">—</option>{nfAreas.map(a=><option key={a}>{a}</option>)}</select>
-                    : <input value={newForm.area} onChange={e=>setNF('area',e.target.value)} style={selSt} placeholder="—"/>}
-                </div>
-                <div>
-                  <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Zona</div>
-                  {zonas.length > 0
-                    ? <select value={newForm.zona} onChange={e=>{setNF('zona',e.target.value);setNF('subzona','')}} style={selSt}><option value="">—</option>{zonas.map(z=><option key={z}>{z}</option>)}</select>
-                    : <input value={newForm.zona} onChange={e=>setNF('zona',e.target.value)} style={selSt} placeholder="—"/>}
-                </div>
-                <div>
-                  <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Subzona</div>
-                  {subzonas.length > 0
-                    ? <select value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} style={selSt}><option value="">—</option>{subzonas.map(s=><option key={s}>{s}</option>)}</select>
-                    : <input value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} style={selSt} placeholder="—"/>}
-                </div>
-              </div>
+        <div className="va-two-col" style={{marginBottom:20}}>
+          <div className="va-meta-card">
+            <div className="va-meta-head accent-red"><span className="dot"/>Ubicación</div>
+            <div className="va-meta-body">
+              <Row label="Nombre del activo">
+                <input value={newForm.nombre} onChange={e=>setNF('nombre',e.target.value)} style={inpBase} placeholder="P.E Avalon, Torre Sevilla..."/>
+              </Row>
+              <Row label="Propietario">
+                <input list="fa-cuentas-new" value={newForm.propietario} onChange={e=>setNF('propietario',e.target.value)} style={inpBase} placeholder="Buscar cuenta..."/>
+                <datalist id="fa-cuentas-new">{CUENTAS_FA.map(c=><option key={c} value={c}/>)}</datalist>
+              </Row>
+              <Row label="Dirección" required>
+                <input value={newForm.direccion} onChange={e=>setNF('direccion',e.target.value)} style={inp('direccion')} placeholder="Calle Serrano 41, Madrid..."/>
+                {err('direccion') && <span style={{fontSize:10,color:'var(--pdb-red)'}}>Campo obligatorio</span>}
+              </Row>
+              <Row label="Ciudad">
+                <input value={newForm.ciudad} onChange={e=>{setNF('ciudad',e.target.value);setNF('area','');setNF('zona','');setNF('subzona','')}} style={inpBase} placeholder="Madrid"/>
+              </Row>
+              <Row label="País">
+                <input value={newForm.pais} onChange={e=>setNF('pais',e.target.value)} style={inpBase} placeholder="España"/>
+              </Row>
+              <Row label="Código postal">
+                <input value={newForm.cp} onChange={e=>setNF('cp',e.target.value)} style={inpBase} placeholder="28037"/>
+              </Row>
+              <Row label="Coordenadas">
+                <input value={newForm.coordenadas||''} onChange={e=>setNF('coordenadas',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)',fontSize:11}} placeholder="40.416775, -3.703790"/>
+              </Row>
             </div>
           </div>
 
-          <div className="info-block">
-            <div className="ib-title">🏢 TIPOLOGÍA</div>
-            <Row label="Tipo de activo" required>
-              <select value={newForm.tipo_activo} onChange={e=>setNF('tipo_activo',e.target.value)} style={sel('tipo_activo')}>
-                {['Edificio','Nave','Local','Parcela','Complejo','Torre','Centro comercial','Parque empresarial','Parque logístico','Residencia'].map(t=><option key={t}>{t}</option>)}
-              </select>
-            </Row>
-            <Row label="Estado construcción">
-              <select value={newForm.estado_construccion} onChange={e=>setNF('estado_construccion',e.target.value)} style={{...inpBase,cursor:'pointer'}}>
-                <option value="">—</option>{ESTADOS_CONSTRUCCION.map(e=><option key={e}>{e}</option>)}
-              </select>
-            </Row>
-            <Row label="Uso principal" required>
-              <select value={newForm.uso} onChange={e=>setNF('uso',e.target.value)} style={sel('uso')}>
-                <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
-              </select>
-            </Row>
-            <Row label="Uso secundario">
-              <select value={newForm.uso_secundario} onChange={e=>setNF('uso_secundario',e.target.value)} style={{...inpBase,cursor:'pointer'}}>
-                <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
-              </select>
-            </Row>
-            <Row label="Calidad">
-              <select value={newForm.calidad} onChange={e=>setNF('calidad',e.target.value)} style={{...inpBase,cursor:'pointer'}}>
-                <option value="">—</option>{CALIDADES.map(c=><option key={c}>{c}</option>)}
-              </select>
-            </Row>
+          <div className="va-meta-card">
+            <div className="va-meta-head accent-purple"><span className="dot"/>Tipología</div>
+            <div className="va-meta-body">
+              <Row label="Tipo de activo" required>
+                <select value={newForm.tipo_activo} onChange={e=>setNF('tipo_activo',e.target.value)} style={sel('tipo_activo')}>
+                  {['Edificio','Nave','Local','Parcela','Complejo','Torre','Centro comercial','Parque empresarial','Parque logístico','Residencia'].map(t=><option key={t}>{t}</option>)}
+                </select>
+              </Row>
+              <Row label="Estado construcción">
+                <select value={newForm.estado_construccion} onChange={e=>setNF('estado_construccion',e.target.value)} style={{...inpBase,cursor:'pointer'}}>
+                  <option value="">—</option>{ESTADOS_CONSTRUCCION.map(e=><option key={e}>{e}</option>)}
+                </select>
+              </Row>
+              <Row label="Uso principal" required>
+                <select value={newForm.uso} onChange={e=>setNF('uso',e.target.value)} style={sel('uso')}>
+                  <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
+                </select>
+              </Row>
+              <Row label="Uso secundario">
+                <select value={newForm.uso_secundario} onChange={e=>setNF('uso_secundario',e.target.value)} style={{...inpBase,cursor:'pointer'}}>
+                  <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
+                </select>
+              </Row>
+              <Row label="Calidad">
+                <select value={newForm.calidad} onChange={e=>setNF('calidad',e.target.value)} style={{...inpBase,cursor:'pointer'}}>
+                  <option value="">—</option>{CALIDADES.map(c=><option key={c}>{c}</option>)}
+                </select>
+              </Row>
+            </div>
+          </div>
+        </div>
+
+        {/* SUPERFICIES Y DETALLES */}
+        <div className="va-card" style={{marginBottom:20}}>
+          <div className="va-card-header">
+            <h3><span className="ico">▭</span> Superficies y detalles</h3>
+          </div>
+          <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:16}}>
             <Row label="SBA (m²)">
               <input type="number" value={newForm.sba} onChange={e=>setNF('sba',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="0"/>
             </Row>
@@ -2166,36 +2181,30 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
             </Row>
             <div className="ir">
               <span className="ir-k">Nº edificios</span>
-              <span className="ir-v" style={{fontSize:10,color:'var(--text4)',fontStyle:'italic'}}>Desde Stacking Plan</span>
+              <span className="ir-v" style={{fontSize:10,color:'var(--muted)',fontStyle:'italic'}}>Desde Stacking Plan</span>
             </div>
           </div>
         </div>
 
         {/* DATOS URBANÍSTICOS */}
-        <div className="info-block" style={{marginBottom:12}}>
-          <div className="ib-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-            <span>🏛 DATOS URBANÍSTICOS</span>
+        <div className="va-card" style={{marginBottom:20}}>
+          <div className="va-card-header">
+            <h3><span className="ico">⚑</span> Datos urbanísticos</h3>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--green)',fontWeight:600}}>✓ Sincronizado</span>}
-              {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--red)',maxWidth:200,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
+              {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--pdb-green)',fontWeight:600}}>✓ Sincronizado</span>}
+              {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--pdb-red)',maxWidth:200,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
               <button className="ab-btn blue" onClick={syncCatastro} disabled={syncingCat}>
                 {syncingCat ? '⟳ Consultando...' : '⟳ Sincronizar'}
               </button>
             </div>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 24px'}}>
-            <div>
-              <Row label="Ref. catastral"><input value={newForm.ref_catastral} onChange={e=>setNF('ref_catastral',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/></Row>
-              <Row label="Uso PGOU"><input value={newForm.uso_pgou} onChange={e=>setNF('uso_pgou',e.target.value)} style={inpBase} placeholder="—"/></Row>
-            </div>
-            <div>
-              <Row label="Clasificación"><input value={newForm.clasificacion_urb||''} onChange={e=>setNF('clasificacion_urb',e.target.value)} style={inpBase} placeholder="—"/></Row>
-              <Row label="Calificación"><input value={newForm.calificacion_urb} onChange={e=>setNF('calificacion_urb',e.target.value)} style={inpBase} placeholder="—"/></Row>
-            </div>
-            <div>
-              <Row label="Edificabilidad"><input value={newForm.edificabilidad} onChange={e=>setNF('edificabilidad',e.target.value)} style={inpBase} placeholder="—"/></Row>
-              <Row label="Sup. parcela (m²)"><input type="number" value={newForm.sup_parcela} onChange={e=>setNF('sup_parcela',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="—"/></Row>
-            </div>
+          <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:16}}>
+            <Row label="Ref. catastral"><input value={newForm.ref_catastral} onChange={e=>setNF('ref_catastral',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/></Row>
+            <Row label="Clasificación"><input value={newForm.clasificacion_urb||''} onChange={e=>setNF('clasificacion_urb',e.target.value)} style={inpBase} placeholder="—"/></Row>
+            <Row label="Edificabilidad"><input value={newForm.edificabilidad} onChange={e=>setNF('edificabilidad',e.target.value)} style={inpBase} placeholder="—"/></Row>
+            <Row label="Uso PGOU"><input value={newForm.uso_pgou} onChange={e=>setNF('uso_pgou',e.target.value)} style={inpBase} placeholder="—"/></Row>
+            <Row label="Calificación"><input value={newForm.calificacion_urb} onChange={e=>setNF('calificacion_urb',e.target.value)} style={inpBase} placeholder="—"/></Row>
+            <Row label="Sup. parcela (m²)"><input type="number" value={newForm.sup_parcela} onChange={e=>setNF('sup_parcela',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="—"/></Row>
           </div>
         </div>
 
