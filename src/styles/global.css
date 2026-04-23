@@ -55,35 +55,6 @@
   --shadow-md: 0 8px 24px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.05);
 
   --mono: 'JetBrains Mono', monospace;
-
-  /* ── Semantic design tokens ── */
-  --surface-dark:       #1c1c1e;
-  --surface-dark-2:     #2c2c2e;
-  --surface-dark-fg:    #f5f5f7;
-  --surface-dark-muted: rgba(255,255,255,.45);
-
-  --status-ok:     #16a34a;
-  --status-ok-lt:  #f0fdf4;
-  --status-ok-bd:  #86efac;
-  --status-warn:   #b45309;
-  --status-warn-lt:#fffbeb;
-  --status-warn-bd:#fcd34d;
-  --status-crit:   #dc2626;
-  --status-crit-lt:#fff1f1;
-  --status-crit-bd:#fca5a5;
-
-  --module-presentacion: #0071e3;
-  --module-visita:       #7c3aed;
-  --module-oferta:       #d97706;
-  --module-transaccion:  #16a34a;
-
-  --ai-surface: #1c1c1e;
-  --ai-accent:  #bf5af2;
-  --ai-text:    #f5f5f7;
-  --ai-muted:   rgba(255,255,255,.55);
-
-  --weight-kpi:    800;
-  --weight-kpi-xl: 900;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -435,7 +406,7 @@ nav {
 }
 .ks-val {
   font-size: 26px;
-  font-weight: var(--weight-kpi);
+  font-weight: 700;
   color: #1d1d1f;
   letter-spacing: -.04em;
   line-height: 1;
@@ -703,36 +674,13 @@ nav {
 /* ─────────────────────────────────────────
    AI BOX
 ───────────────────────────────────────── */
-.ai-box   { background: var(--ai-surface); border: 1px solid var(--ai-accent); border-radius: var(--r); padding: 12px 14px; }
+.ai-box   { background: linear-gradient(135deg, var(--purple-lt), #ede9fe); border: 1px solid #c4b5fd; border-radius: var(--r); padding: 12px 14px; }
 .ai-head  { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-.ai-ico   { width: 20px; height: 20px; background: var(--ai-accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; }
-.ai-lbl   { font-size: 12px; font-weight: 700; color: var(--ai-text); }
-.ai-badge { font-size: 9px; font-weight: 700; color: var(--ai-accent); background: rgba(191,90,242,.15); border: 1px solid rgba(191,90,242,.35); padding: 2px 6px; border-radius: 10px; }
-.ai-text  { font-size: 12px; color: var(--ai-muted); line-height: 1.6; }
-.ai-cta   { margin-top: 6px; font-size: 12px; color: var(--ai-accent); font-weight: 600; cursor: pointer; }
-
-/* ─────────────────────────────────────────
-   KF DARK (dark card variant — Precio Adquisición etc.)
-───────────────────────────────────────── */
-.kf-dark { background: var(--surface-dark); border-color: #3a3a3c; }
-.kf-dark .kf-lbl { color: var(--surface-dark-muted); }
-.kf-dark .kf-val { color: var(--surface-dark-fg); font-weight: var(--weight-kpi); }
-
-/* ─────────────────────────────────────────
-   SEG HEAD MODULE VARIANTS
-───────────────────────────────────────── */
-.seg-head--pres { border-left: 3px solid var(--module-presentacion); }
-.seg-head--vis  { border-left: 3px solid var(--module-visita); }
-.seg-head--ofe  { border-left: 3px solid var(--module-oferta); }
-
-/* ─────────────────────────────────────────
-   STACKING PLAN — DARK STATS STRIP
-───────────────────────────────────────── */
-.sp-dark-strip { display: grid; gap: 1px; background: var(--surface-dark-2); flex-shrink: 0; }
-.sp-stat     { background: var(--surface-dark); padding: 9px 14px; }
-.sp-stat-lbl { font-size: 9px; font-weight: 700; color: var(--surface-dark-muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 3px; }
-.sp-stat-val { font-size: 16px; font-weight: var(--weight-kpi); font-family: var(--mono); line-height: 1; }
-.sp-stat-sub { font-size: 10px; color: var(--surface-dark-muted); margin-top: 2px; }
+.ai-ico   { width: 20px; height: 20px; background: var(--purple); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; }
+.ai-lbl   { font-size: 12px; font-weight: 700; color: #4c1d95; }
+.ai-badge { font-size: 9px; font-weight: 700; color: var(--purple); background: var(--purple-lt); border: 1px solid var(--purple-bd); padding: 2px 6px; border-radius: 10px; }
+.ai-text  { font-size: 12px; color: #5b21b6; line-height: 1.6; }
+.ai-cta   { margin-top: 6px; font-size: 12px; color: var(--purple); font-weight: 600; cursor: pointer; }
 
 /* ─────────────────────────────────────────
    OFERTA FORM
