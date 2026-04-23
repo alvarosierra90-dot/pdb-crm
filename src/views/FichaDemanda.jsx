@@ -200,7 +200,7 @@ function RightPanel({ navigate, naturaleza, cmFields }) {
         </select>
         <button className="acc-btn">↔ Ver negociación vinculada</button>
         <button className="acc-btn">📋 Ver oferta vinculada</button>
-        <button className="acc-btn" style={{background:'var(--accent)',color:'#fff',border:'none',fontWeight:600}} onClick={()=>navigate('mapas',{from:'demanda',id:'D251035690',nombre:'Corporacion Financiera Azuaga SL',uso:'Oficinas',sbaMin:2200,sbaMax:3000,rentaMax:18,zona:'A-1 · Alcobendas',provincia:'Madrid'})}>🗺 Exportar a mapa</button>
+        <button className="acc-btn" style={{background:'var(--accent)',color:'#fff',border:'none',fontWeight:600}} onClick={()=>navigate('mapas',{from:'demanda',id:'D251035690',nombre:'Corporacion Financiera Azuaga SL',uso:demUsoPpal,sbaMin:Number(demCampos.sup_min||demCampos.sba_min)||undefined,sbaMax:Number(demCampos.sup_max||demCampos.sba_max)||undefined,rentaMax:Number(demPres.alq_max)||undefined,zona:'A-1 · Alcobendas',provincia:'Madrid'})}>🗺 Exportar a mapa</button>
       </div>
 
       {esInversion ? (
@@ -334,7 +334,7 @@ export default function FichaDemanda() {
         <button className="ab-btn">Transformar</button>
         <button className="ab-btn">Desactivar</button>
         <div className="ab-sep"/>
-        <button className="ab-btn blue" onClick={()=>navigate('mapas',{from:'demanda',id:'D251035690',nombre:'Corporacion Financiera Azuaga SL',uso:'Oficinas',sbaMin:2200,sbaMax:3000,rentaMax:18,zona:'A-1 · Alcobendas',provincia:'Madrid'})}>🗺 Exportar a mapa</button>
+        <button className="ab-btn blue" onClick={()=>navigate('mapas',{from:'demanda',id:'D251035690',nombre:'Corporacion Financiera Azuaga SL',uso:demUsoPpal,sbaMin:Number(demCampos.sup_min||demCampos.sba_min)||undefined,sbaMax:Number(demCampos.sup_max||demCampos.sba_max)||undefined,rentaMax:Number(demPres.alq_max)||undefined,zona:'A-1 · Alcobendas',provincia:'Madrid'})}>🗺 Exportar a mapa</button>
         <button className="ab-btn">Actualizar</button>
         <button className="ab-btn">Asignar</button>
         <div className="ab-sep"/>

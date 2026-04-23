@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { useNav } from '../context/NavigationContext'
+import { supabase } from '../lib/supabase'
 
 function loadGoogleMaps(apiKey) {
   return new Promise((resolve, reject) => {
@@ -91,6 +92,15 @@ const DATA = {
 }
 
 // ── Utils ──────────────────────────────────────────────────────────────────
+function getMarkerColor(layerId, item, defaultColor) {
+  if (layerId === 'ofertas') {
+    if (item.estado === 'Disponible' || item.estado === 'En curso') return '#4CAF50'
+    if (item.estado === 'En negociación' || item.estado === 'Potencial') return '#FF9800'
+    return '#9E9E9E'
+  }
+  return defaultColor
+}
+
 function debounce(fn, ms) {
   let t
   return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms) }
@@ -126,7 +136,7 @@ function MapCard({ item, layerId, cfg, isActive, isSelected, onToggle }) {
       {layerId === 'ofertas' && <>
         <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:6,marginBottom:3}}>
           <div style={{fontSize:11,fontWeight:700,color:'var(--text)',lineHeight:1.3}}>{item.nombre}</div>
-          <span className={`tag ${item.estado==='En curso'?'tag-green':item.estado==='Potencial'?'tag-amber':'tag-gray'}`} style={{fontSize:9,flexShrink:0}}>{item.estado}</span>
+          <span className={`tag ${item.estado==='Disponible'||item.estado==='En curso'?'tag-green':item.estado==='En negociación'||item.estado==='Potencial'?'tag-amber':'tag-gray'}`} style={{fontSize:9,flexShrink:0}}>{item.estado}</span>
         </div>
         <div style={{fontSize:9,color:'var(--text3)',marginBottom:6}}>📍 {item.dir}</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:3,marginBottom:5}}>
@@ -208,7 +218,7 @@ function MapCard({ item, layerId, cfg, isActive, isSelected, onToggle }) {
 }
 
 // ── Proposal modal ─────────────────────────────────────────────────────────
-function ProposalModal({ items, onClose, navigate }) {
+function ProposalModal({ items, onClose, navigate, data = DATA }) {
   const [copied, setCopied] = useState(false)
   const url = 'https://pdb.savills.es/propuesta/PRO-2026-0047'
   return (
@@ -235,7 +245,7 @@ function ProposalModal({ items, onClose, navigate }) {
 
           <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>Alternativas</div>
           {items.map((item,i)=>{
-            const layer = LAYERS.find(l => DATA[l.id]?.some(d=>d.id===item.id))
+            const layer = LAYERS.find(l => data[l.id]?.some(d=>d.id===item.id))
             const name = item.nombre||item.arrendatario||item.activo||item.id
             return (
               <div key={item.id} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 10px',marginBottom:4,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)'}}>
@@ -264,13 +274,14 @@ export default function MapasView() {
   const { params, navigate } = useNav()
   const fromDemanda = params?.from === 'demanda'
 
-  const mapRef    = useRef(null)
-  const mapObj    = useRef(null)
-  const markerMap = useRef({})     // id → google.maps.Marker
-  const dmgr      = useRef(null)   // DrawingManager
-  const shapesRef = useRef([])     // [{type, shape}]
+  const mapRef     = useRef(null)
+  const mapObj     = useRef(null)
+  const markerMap  = useRef({})
+  const dmgr       = useRef(null)
+  const shapesRef  = useRef([])
   const transitRef = useRef(null)
-  const cardEls   = useRef({})
+  const cardEls    = useRef({})
+  const liveDataRef = useRef(DATA)
 
   const [loaded,       setLoaded]       = useState(false)
   const [mapError,     setMapError]     = useState(false)
@@ -280,17 +291,75 @@ export default function MapasView() {
   const [inShape,      setInShape]      = useState(null)
   const [shapeCount,   setShapeCount]   = useState(0)
   const [drawMode,     setDrawMode]     = useState(null)
-  const [filters,      setFilters]      = useState({ q:'', uso:'', estado:'' })
+  const [filters,      setFilters]      = useState({ q:'', uso:'', estado:'', sbaMin:'', sbaMax:'', rentaMax:'' })
   const [showFilters,  setShowFilters]  = useState(false)
   const [showProposal, setShowProposal] = useState(false)
   const [showCtx,      setShowCtx]      = useState(false)
   const [transitOn,    setTransitOn]    = useState(false)
+  const [dbOfertas,    setDbOfertas]    = useState([])
+  const [dbActivos,    setDbActivos]    = useState([])
+
+  // Load real data from Supabase
+  useEffect(() => {
+    supabase.from('ofertas')
+      .select('ref, estado, renta_m2, superficie_disponible, activos(nombre, zona, lat, lng, uso, propietario, sba)')
+      .eq('activa', true)
+      .then(({ data }) => {
+        if (!data?.length) return
+        const mapped = data
+          .filter(o => o.activos?.lat && o.activos?.lng)
+          .map(o => ({
+            id: o.ref,
+            nombre: `${o.activos?.nombre || '—'} — ${o.ref}`,
+            dir: o.activos?.zona || '—',
+            lat: Number(o.activos.lat),
+            lng: Number(o.activos.lng),
+            uso: o.activos?.uso || '—',
+            sba: o.superficie_disponible || 0,
+            renta: o.renta_m2 || 0,
+            disp: 'Inmediata',
+            prop: o.activos?.propietario || '—',
+            mandato: '—',
+            estado: o.estado || 'Disponible',
+          }))
+        if (mapped.length) setDbOfertas(mapped)
+      })
+
+    supabase.from('activos')
+      .select('ref, nombre, zona, lat, lng, uso, sba, n_plantas_sobre, anno_construccion, propietario, occupancy_rate')
+      .not('lat', 'is', null)
+      .not('lng', 'is', null)
+      .then(({ data }) => {
+        if (!data?.length) return
+        const mapped = data.map(a => ({
+          id: a.ref,
+          nombre: a.nombre || '—',
+          dir: a.zona || '—',
+          lat: Number(a.lat),
+          lng: Number(a.lng),
+          uso: a.uso || '—',
+          sba: a.sba || 0,
+          plantas: a.n_plantas_sobre || 0,
+          ano: a.anno_construccion || '—',
+          prop: a.propietario || '—',
+          occ: a.occupancy_rate || 0,
+          disp: 0,
+        }))
+        if (mapped.length) setDbActivos(mapped)
+      })
+  }, [])
 
   // Pre-apply demanda filters
   useEffect(() => {
     if (fromDemanda) {
       setLayer('ofertas')
-      setFilters(f => ({ ...f, uso: params.uso || '' }))
+      setFilters(f => ({
+        ...f,
+        uso: params.uso || '',
+        sbaMin: params.sbaMin ? String(params.sbaMin) : '',
+        sbaMax: params.sbaMax ? String(params.sbaMax) : '',
+        rentaMax: params.rentaMax ? String(params.rentaMax) : '',
+      }))
     }
   }, [])
 
@@ -320,7 +389,7 @@ export default function MapasView() {
       const recalcShapeFilter = () => {
         if (!shapesRef.current.length) { setInShape(null); return }
         const result = new Set()
-        Object.values(DATA).flat().forEach(item => {
+        Object.values(liveDataRef.current).flat().forEach(item => {
           const pt = new window.google.maps.LatLng(item.lat, item.lng)
           const inside = shapesRef.current.some(({ type, shape }) => {
             if (type === 'circle') {
@@ -360,18 +429,30 @@ export default function MapasView() {
     }).catch(() => setMapError(true))
   }, [])
 
+  // Keep liveDataRef in sync so shape filter closure can access current data
+  const liveData = useMemo(() => ({
+    ...DATA,
+    ofertas: dbOfertas.length ? dbOfertas : DATA.ofertas,
+    activos: dbActivos.length ? dbActivos : DATA.activos,
+  }), [dbOfertas, dbActivos])
+
+  useEffect(() => { liveDataRef.current = liveData }, [liveData])
+
   // ── Update markers on state change ──────────────────────────────────────
   useEffect(() => {
     if (!loaded || !mapObj.current) return
     const cfg = LAYERS.find(l => l.id === layer)
     if (!cfg) return
 
-    const items = DATA[layer] || []
+    const items = liveData[layer] || []
     const filtered = items.filter(item => {
       const n = (item.nombre||item.arrendatario||item.activo||'').toLowerCase()
       if (filters.q && !n.includes(filters.q.toLowerCase()) && !(item.dir||'').toLowerCase().includes(filters.q.toLowerCase())) return false
-      if (filters.uso   && item.uso   && item.uso   !== filters.uso)   return false
+      if (filters.uso    && item.uso    && item.uso    !== filters.uso)    return false
       if (filters.estado && item.estado && item.estado !== filters.estado) return false
+      if (filters.sbaMin && item.sba != null && Number(item.sba) < Number(filters.sbaMin)) return false
+      if (filters.sbaMax && item.sba != null && Number(item.sba) > Number(filters.sbaMax)) return false
+      if (filters.rentaMax && item.renta != null && Number(item.renta) > Number(filters.rentaMax)) return false
       return true
     })
     const filteredIds = new Set(filtered.map(i => i.id))
@@ -386,8 +467,9 @@ export default function MapasView() {
       const isActive = item.id === activeId
       const isSel    = selected.has(item.id)
       const hl       = isActive || isSel
+      const color    = getMarkerColor(layer, item, cfg.color)
       const icon = {
-        url: pinURL(cfg.color, cfg.letter, hl),
+        url: pinURL(color, cfg.letter, hl),
         scaledSize: new window.google.maps.Size(hl?36:28, hl?46:38),
         anchor:     new window.google.maps.Point(hl?18:14, hl?44:36),
       }
@@ -409,7 +491,7 @@ export default function MapasView() {
         markerMap.current[item.id] = m
       }
     })
-  }, [loaded, layer, filters.q, filters.uso, filters.estado, selected, activeId])
+  }, [loaded, layer, filters, selected, activeId, liveData])
 
   // ── Helpers ────────────────────────────────────────────────────────────
   const toggleDraw = mode => {
@@ -446,7 +528,7 @@ export default function MapasView() {
     clearShapes()
     setLayer(newLayer)
     setActiveId(null)
-    setFilters({ q:'', uso:'', estado:'' })
+    setFilters({ q:'', uso:'', estado:'', sbaMin:'', sbaMax:'', rentaMax:'' })
   }
 
   const toggleSelect = id => setSelected(prev => {
@@ -459,14 +541,17 @@ export default function MapasView() {
   const layerCfg = LAYERS.find(l => l.id === layer)
 
   const filteredItems = useMemo(() => {
-    return (DATA[layer] || []).filter(item => {
+    return (liveData[layer] || []).filter(item => {
       const n = (item.nombre||item.arrendatario||item.activo||'').toLowerCase()
       if (filters.q && !n.includes(filters.q.toLowerCase()) && !(item.dir||'').toLowerCase().includes(filters.q.toLowerCase())) return false
       if (filters.uso    && item.uso    && item.uso    !== filters.uso)    return false
       if (filters.estado && item.estado && item.estado !== filters.estado) return false
+      if (filters.sbaMin && item.sba != null && Number(item.sba) < Number(filters.sbaMin)) return false
+      if (filters.sbaMax && item.sba != null && Number(item.sba) > Number(filters.sbaMax)) return false
+      if (filters.rentaMax && item.renta != null && Number(item.renta) > Number(filters.rentaMax)) return false
       return true
     })
-  }, [layer, filters])
+  }, [layer, filters, liveData])
 
   const displayItems = useMemo(() => {
     if (inShape) return filteredItems.filter(i => inShape.has(i.id))
@@ -474,8 +559,8 @@ export default function MapasView() {
   }, [filteredItems, inShape])
 
   const selectedItems = useMemo(() =>
-    Object.values(DATA).flat().filter(i => selected.has(i.id))
-  , [selected])
+    Object.values(liveData).flat().filter(i => selected.has(i.id))
+  , [selected, liveData])
 
   // ── No API key ─────────────────────────────────────────────────────────
   if (mapError) {
@@ -511,7 +596,7 @@ export default function MapasView() {
         {LAYERS.map(l => (
           <button key={l.id} onClick={()=>switchLayer(l.id)}
             style={{padding:'0 16px',background:layer===l.id?l.color+'14':'none',border:'none',borderRight:'1px solid var(--border)',borderBottom:layer===l.id?`2px solid ${l.color}`:'2px solid transparent',cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:layer===l.id?700:400,color:layer===l.id?l.color:'var(--text2)',flexShrink:0,whiteSpace:'nowrap',transition:'all .15s'}}>
-            {l.icon} {l.label} <span style={{marginLeft:4,fontSize:10,opacity:.6,fontWeight:400}}>({DATA[l.id]?.length||0})</span>
+            {l.icon} {l.label} <span style={{marginLeft:4,fontSize:10,opacity:.6,fontWeight:400}}>({liveData[l.id]?.length||0})</span>
           </button>
         ))}
 
@@ -624,11 +709,30 @@ export default function MapasView() {
                   <div style={{fontSize:9,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Estado</div>
                   <select value={filters.estado} onChange={e=>setFilters(f=>({...f,estado:e.target.value}))} className="fsel" style={{width:'100%',fontSize:10}}>
                     <option value="">Todos</option>
-                    {['En curso','Potencial','Vencido','Cliente activo'].map(s=><option key={s}>{s}</option>)}
+                    {layer==='ofertas'
+                      ? ['Disponible','En negociación'].map(s=><option key={s}>{s}</option>)
+                      : ['En curso','Potencial','Vencido','Cliente activo'].map(s=><option key={s}>{s}</option>)
+                    }
                   </select>
                 </div>
               </div>
-              <button onClick={()=>{setFilters({q:'',uso:'',estado:''});setShowFilters(false)}} style={{fontSize:10,color:'var(--accent)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',padding:0}}>Limpiar filtros</button>
+              {(layer==='ofertas'||fromDemanda) && (
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginBottom:6}}>
+                  <div>
+                    <div style={{fontSize:9,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>SBA mín. m²</div>
+                    <input value={filters.sbaMin} onChange={e=>setFilters(f=>({...f,sbaMin:e.target.value}))} className="fsel" style={{width:'100%',fontSize:10}} placeholder="—" type="number"/>
+                  </div>
+                  <div>
+                    <div style={{fontSize:9,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>SBA máx. m²</div>
+                    <input value={filters.sbaMax} onChange={e=>setFilters(f=>({...f,sbaMax:e.target.value}))} className="fsel" style={{width:'100%',fontSize:10}} placeholder="—" type="number"/>
+                  </div>
+                  <div>
+                    <div style={{fontSize:9,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>Renta máx. €/m²</div>
+                    <input value={filters.rentaMax} onChange={e=>setFilters(f=>({...f,rentaMax:e.target.value}))} className="fsel" style={{width:'100%',fontSize:10}} placeholder="—" type="number"/>
+                  </div>
+                </div>
+              )}
+              <button onClick={()=>{setFilters({q:'',uso:'',estado:'',sbaMin:'',sbaMax:'',rentaMax:''});setShowFilters(false)}} style={{fontSize:10,color:'var(--accent)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',padding:0}}>Limpiar filtros</button>
             </div>
           )}
 
@@ -675,7 +779,7 @@ export default function MapasView() {
         </div>
       </div>
 
-      {showProposal && <ProposalModal items={selectedItems} onClose={()=>setShowProposal(false)} navigate={navigate}/>}
+      {showProposal && <ProposalModal items={selectedItems} onClose={()=>setShowProposal(false)} navigate={navigate} data={liveData}/>}
     </div>
   )
 }
