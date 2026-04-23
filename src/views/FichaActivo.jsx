@@ -859,17 +859,17 @@ function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuilding
       </div>
 
       {/* Stats strip */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:1,background:'var(--border)',marginLeft:-24,marginRight:-24,marginBottom:12}}>
+      <div className="sp-dark-strip" style={{gridTemplateColumns:'1fr 1fr 1fr 1fr',marginLeft:-24,marginRight:-24,marginBottom:12}}>
         {[
-          {lbl:'SBA TOTAL',   val:`${totalSup.toLocaleString('es-ES')} m²`,    sub:'Superficie bruta alquilable', col:'var(--text1)'},
-          {lbl:'ASIGNADO',    val:`${assignedSup.toLocaleString('es-ES')} m²`, sub:'Uso principal definido',       col:occPct===100?'var(--green)':'var(--accent)'},
-          {lbl:'SIN ASIGNAR', val:`${(totalSup-assignedSup).toLocaleString('es-ES')} m²`, sub:'Pendiente de definir', col:(totalSup-assignedSup)===0?'var(--green)':'var(--amber)'},
-          {lbl:'COBERTURA',   val:`${occPct}%`,                                sub:'Usos definidos sobre total',   col:occPct===100?'var(--green)':occPct>50?'var(--amber)':'var(--red)'},
+          {lbl:'SBA TOTAL',   val:`${totalSup.toLocaleString('es-ES')} m²`,    sub:'Superficie bruta alquilable', col:'var(--surface-dark-fg)'},
+          {lbl:'ASIGNADO',    val:`${assignedSup.toLocaleString('es-ES')} m²`, sub:'Uso principal definido',       col:occPct===100?'var(--status-ok)':'var(--accent)'},
+          {lbl:'SIN ASIGNAR', val:`${(totalSup-assignedSup).toLocaleString('es-ES')} m²`, sub:'Pendiente de definir', col:(totalSup-assignedSup)===0?'var(--status-ok)':'var(--status-warn)'},
+          {lbl:'COBERTURA',   val:`${occPct}%`,                                sub:'Usos definidos sobre total',   col:occPct===100?'var(--status-ok)':occPct>50?'var(--status-warn)':'var(--status-crit)'},
         ].map(s=>(
-          <div key={s.lbl} style={{background:'var(--surface)',padding:'9px 14px'}}>
-            <div style={{fontSize:9,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:2}}>{s.lbl}</div>
-            <div style={{fontSize:16,fontWeight:700,color:s.col,fontFamily:'var(--mono)'}}>{s.val}</div>
-            <div style={{fontSize:10,color:'var(--text3)'}}>{s.sub}</div>
+          <div key={s.lbl} className="sp-stat">
+            <div className="sp-stat-lbl">{s.lbl}</div>
+            <div className="sp-stat-val" style={{color:s.col}}>{s.val}</div>
+            <div className="sp-stat-sub">{s.sub}</div>
           </div>
         ))}
       </div>
@@ -2923,7 +2923,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
           </div>
           <div className="seg-2col">
             <div className="seg-block">
-              <div className="seg-head">Presentaciones</div>
+              <div className="seg-head seg-head--pres">Presentaciones</div>
               <table className="seg-table">
                 <thead><tr><th>Fecha</th><th>Demanda</th><th>Consultor</th><th>Feedback</th></tr></thead>
                 <tbody>
@@ -2934,7 +2934,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
               </table>
             </div>
             <div className="seg-block">
-              <div className="seg-head">Visitas</div>
+              <div className="seg-head seg-head--vis">Visitas</div>
               <table className="seg-table">
                 <thead><tr><th>Fecha</th><th>Demanda</th><th>M²</th><th>Feedback</th></tr></thead>
                 <tbody>
@@ -3107,7 +3107,7 @@ function RightPanel({ navigate, nEdificios, nPropietarios, plazas, esg, activo }
           <div className="kf"><div className="kf-lbl">Ingresos brutos</div><div className="kf-val">3,2 M€/año</div></div>
           <div className="kf"><div className="kf-lbl">WAULT</div><div className="kf-val">2,8 años</div></div>
           <div className="kf"><div className="kf-lbl">Yield</div><div className="kf-val">5,2%</div></div>
-          <div className="kf"><div className="kf-lbl">Precio Adquisición</div><div className="kf-val">130 M€</div></div>
+          <div className="kf kf-dark"><div className="kf-lbl">Precio Adquisición</div><div className="kf-val">130 M€</div></div>
         </div>
       </div>
 
