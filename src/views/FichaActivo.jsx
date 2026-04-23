@@ -2917,31 +2917,31 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
         </div>
 
         {/* ── SEGUIMIENTO COMERCIAL ── */}
-        <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
-          <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)'}}>
-            <div style={{fontSize:11,fontWeight:600}}>📋 Seguimiento comercial <span style={{fontSize:9,color:'var(--text4)',fontWeight:400}}>· Sincronizado desde Ofertas y Demandas</span></div>
+        <div style={{background:'var(--surface)',border:'1px solid var(--va-line)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
+          <div style={{padding:'12px 20px',borderBottom:'1px solid var(--va-line)'}}>
+            <div style={{fontSize:12,fontWeight:600,color:'var(--ink)'}}>📋 Seguimiento comercial <span style={{fontSize:11,color:'var(--va-muted)',fontWeight:400}}>· Sincronizado desde Ofertas y Demandas</span></div>
           </div>
-          <div className="seg-2col">
-            <div className="seg-block">
-              <div className="seg-head">Presentaciones</div>
-              <table className="seg-table">
-                <thead><tr><th>Fecha</th><th>Demanda</th><th>Consultor</th><th>Feedback</th></tr></thead>
-                <tbody>
-                  <tr><td>01/03/2026</td><td>Oracle Spain</td><td>Álvaro S.</td><td className="fb-fin">Finalista</td></tr>
-                  <tr><td>12/02/2026</td><td>Empresa XYZ</td><td>Álvaro S.</td><td className="fb-cur">En curso</td></tr>
-                  <tr><td>20/01/2026</td><td>Generali RE</td><td>María R.</td><td style={{color:'var(--green)',fontWeight:600}}>Firmado</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <div className="seg-block">
-              <div className="seg-head">Visitas</div>
-              <table className="seg-table">
-                <thead><tr><th>Fecha</th><th>Demanda</th><th>M²</th><th>Feedback</th></tr></thead>
-                <tbody>
-                  <tr><td>15/03/2026</td><td>Oracle Spain</td><td>13.486</td><td className="fb-fin">Finalista</td></tr>
-                  <tr><td>28/02/2026</td><td>Empresa XYZ</td><td>1.000</td><td className="fb-cur">En curso</td></tr>
-                </tbody>
-              </table>
+          <div style={{padding:'0 20px'}}>
+            <div className="va-timeline">
+              {[
+                {day:'15 Mar',date:'15/03/2026',type:'visit', typeLabel:'Visita',       title:'Oracle Spain', meta:'13.486 m²  ·  Álvaro S.',  status:'finalista', statusLabel:'Finalista'},
+                {day:'01 Mar',date:'01/03/2026',type:'pres',  typeLabel:'Presentación', title:'Oracle Spain', meta:'Consultor: Álvaro S.',       status:'finalista', statusLabel:'Finalista'},
+                {day:'28 Feb',date:'28/02/2026',type:'visit', typeLabel:'Visita',       title:'Empresa XYZ',  meta:'1.000 m²  ·  Álvaro S.',     status:'curso',     statusLabel:'En curso'},
+                {day:'12 Feb',date:'12/02/2026',type:'pres',  typeLabel:'Presentación', title:'Empresa XYZ',  meta:'Consultor: Álvaro S.',        status:'curso',     statusLabel:'En curso'},
+                {day:'20 Ene',date:'20/01/2026',type:'pres',  typeLabel:'Presentación', title:'Generali RE',  meta:'Consultor: María R.',          status:'firmado',   statusLabel:'Firmado'},
+              ].map((item,i)=>(
+                <div key={i} className="va-tl-item">
+                  <div className="va-tl-date"><span className="day">{item.day}</span>{item.date}</div>
+                  <div className="va-tl-body">
+                    <span className={`va-tl-type ${item.type}`}>{item.typeLabel}</span>
+                    <div className="va-tl-title">{item.title}</div>
+                    <div className="va-tl-meta">{item.meta}</div>
+                  </div>
+                  <div className="va-tl-status">
+                    <span className={`va-status-pill ${item.status}`}>{item.statusLabel}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -2997,38 +2997,36 @@ function RightPanel({ navigate, nEdificios, nPropietarios, plazas, esg, activo }
     <div className="ficha-right">
 
       {/* 1. Asistente IA — PRIMERO */}
-      <div className="rp-sec">
-        <div className="rp-lbl">Asistente IA</div>
-        <div className="ai-box">
-          <div className="ai-head">
-            <div className="ai-ico">✦</div>
-            <span className="ai-lbl">Insight activo</span>
-            <span className="ai-badge">Tiempo real</span>
+      <div className="va-side-card">
+        <div className="va-ai-card">
+          <div className="va-ai-header">
+            <span>Asistente IA · Insight activo</span>
+            <span className="va-ai-badge">✦ IA</span>
           </div>
-          <div className="ai-text">
+          <div className="va-ai-body">
             <strong>10.142 m² disponibles</strong> (21,6%). 2 break options vencidas o próximas. Renta zona 10,5 €/m² — margen de subida. Oracle en fase finalista para P1–P4.
           </div>
-          <div className="ai-cta" onClick={()=>setChatOpen(v=>!v)}>✎ {chatOpen?'Cerrar chat':'Preguntar a la IA'}</div>
+          <span className="va-ai-link" onClick={()=>setChatOpen(v=>!v)}>✎ {chatOpen?'Cerrar chat':'Preguntar a la IA'}</span>
         </div>
         {chatOpen && (
-          <div style={{marginTop:8,border:'1px solid var(--border)',borderRadius:8,overflow:'hidden',background:'var(--surface)'}}>
+          <div style={{marginTop:8,border:'1px solid var(--va-line)',borderRadius:8,overflow:'hidden',background:'#fff'}}>
             <div style={{maxHeight:180,overflowY:'auto',padding:'8px 10px',display:'flex',flexDirection:'column',gap:6}}>
               {chatLog.map((m,i)=>(
                 <div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}>
                   <div style={{maxWidth:'85%',padding:'5px 9px',borderRadius:8,fontSize:11,lineHeight:1.4,
-                    background:m.role==='user'?'var(--accent)':'var(--gray-lt)',
-                    color:m.role==='user'?'#fff':'var(--text2)',
-                    border:m.role==='ai'?'1px solid var(--border)':'none'
+                    background:m.role==='user'?'var(--pdb-blue)':'var(--va-line2)',
+                    color:m.role==='user'?'#fff':'var(--ink-2)',
+                    border:m.role==='ai'?'1px solid var(--va-line)':'none'
                   }}>{m.text}</div>
                 </div>
               ))}
             </div>
-            <div style={{display:'flex',borderTop:'1px solid var(--border)',padding:'6px 8px',gap:6}}>
-              <input style={{flex:1,border:'none',outline:'none',fontSize:11,fontFamily:'inherit',background:'transparent',color:'var(--text1)'}}
+            <div style={{display:'flex',borderTop:'1px solid var(--va-line)',padding:'6px 8px',gap:6}}>
+              <input style={{flex:1,border:'none',outline:'none',fontSize:11,fontFamily:'inherit',background:'transparent',color:'var(--ink)'}}
                 placeholder="Pregunta sobre el activo..."
                 value={chatMsg} onChange={e=>setChatMsg(e.target.value)}
                 onKeyDown={e=>{if(e.key==='Enter')sendChat()}}/>
-              <button onClick={sendChat} style={{padding:'3px 10px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>→</button>
+              <button onClick={sendChat} style={{padding:'3px 10px',background:'var(--pdb-blue)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>→</button>
             </div>
           </div>
         )}
@@ -3050,161 +3048,155 @@ function RightPanel({ navigate, nEdificios, nPropietarios, plazas, esg, activo }
           esg?.wiredscore  && {label:`WiredScore ${esg.wiredscore}`,  cls:'tag-gray'},
         ].filter(Boolean)
         return (
-          <div className="rp-sec">
-            <div className="rp-lbl">KPIs del activo</div>
-            <div className="kf-grid">
-              <div className="kf">
-                <div className="kf-lbl">SBA total</div>
-                <div className="kf-val">{activo?.sba ? activo.sba.toLocaleString('es-ES') + ' m²' : '—'}</div>
+          <div className="va-side-card">
+            <div className="va-side-title">KPIs del activo</div>
+            <div className="va-kpi-grid" style={{gridTemplateColumns:'1fr 1fr 1fr',marginBottom:10}}>
+              <div className="va-kpi featured">
+                <div className="k">SBA total</div>
+                <div className="v">{activo?.sba ? activo.sba.toLocaleString('es-ES') : '—'}<span className="unit">m²</span></div>
               </div>
-              <div className="kf">
-                <div className="kf-lbl">Nº edificios</div>
-                <div className="kf-val">{nEdificios ?? 1}</div>
+              <div className="va-kpi">
+                <div className="k">Edificios</div>
+                <div className="v">{nEdificios ?? 1}</div>
               </div>
-              <div className="kf">
-                <div className="kf-lbl">Total plazas</div>
-                <div className="kf-val">{totalPlazas > 0 ? totalPlazas.toLocaleString('es-ES') : '—'}</div>
+              <div className="va-kpi">
+                <div className="k">Plazas</div>
+                <div className="v">{totalPlazas > 0 ? totalPlazas.toLocaleString('es-ES') : '—'}</div>
               </div>
-              <div className="kf">
-                <div className="kf-lbl">Nº arrendatarios</div>
-                <div className="kf-val">{nArrendatarios}</div>
+              <div className="va-kpi">
+                <div className="k">Arrendatarios</div>
+                <div className="v">{nArrendatarios}</div>
               </div>
-              <div className="kf">
-                <div className="kf-lbl">Nº propietarios</div>
-                <div className="kf-val">{nPropietarios ?? '—'}</div>
+              <div className="va-kpi">
+                <div className="k">Propietarios</div>
+                <div className="v">{nPropietarios ?? '—'}</div>
               </div>
             </div>
-            <div style={{marginTop:8}}>
-              <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:5}}>Sellos sostenibilidad</div>
-              {sellos.length > 0 ? (
-                <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                  {sellos.map(s=>(
-                    <span key={s.label} className={`tag ${s.cls}`} style={{fontSize:9,padding:'2px 7px'}}>{s.label}</span>
-                  ))}
-                </div>
-              ) : (
-                <span style={{fontSize:11,color:'var(--text4)'}}>—</span>
-              )}
-            </div>
+            {sellos.length > 0 && (
+              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                {sellos.map(s=>(
+                  <span key={s.label} className={`tag ${s.cls}`} style={{fontSize:9,padding:'2px 7px'}}>{s.label}</span>
+                ))}
+              </div>
+            )}
           </div>
         )
       })()}
 
       {/* 3. Ubicación / datos de zona */}
-      <div className="rp-sec">
-        <div className="rp-lbl">Ubicación · datos de zona</div>
-        <div className="kf-grid">
-          <div className="kf"><div className="kf-lbl">Renta zona (media oferta)</div><div className="kf-val">10,5 €/m²</div></div>
-          <div className="kf"><div className="kf-lbl">Disponibilidad zona</div><div className="kf-val amber">11,4%</div></div>
+      <div className="va-side-card">
+        <div className="va-side-title">Ubicación · zona</div>
+        <div className="va-kpi-grid">
+          <div className="va-kpi"><div className="k">Renta zona</div><div className="v">10,5<span className="unit"> €/m²</span></div></div>
+          <div className="va-kpi warn"><div className="k">Disponibilidad</div><div className="v">11,4<span className="unit">%</span></div></div>
         </div>
       </div>
 
       {/* 4. KPIs Financieros */}
-      <div className="rp-sec">
-        <div className="rp-lbl">KPIs Financieros</div>
-        <div className="kf-grid">
-          <div className="kf"><div className="kf-lbl">Ocupación</div><div className="kf-val amber">78,4%</div></div>
-          <div className="kf"><div className="kf-lbl">Ingresos brutos</div><div className="kf-val">3,2 M€/año</div></div>
-          <div className="kf"><div className="kf-lbl">WAULT</div><div className="kf-val">2,8 años</div></div>
-          <div className="kf"><div className="kf-lbl">Yield</div><div className="kf-val">5,2%</div></div>
-          <div className="kf"><div className="kf-lbl">Precio Adquisición</div><div className="kf-val">130 M€</div></div>
+      <div className="va-side-card">
+        <div className="va-side-title">KPIs Financieros</div>
+        <div className="va-fin-grid">
+          <div className="va-fin-item warn"><div className="k">Ocupación</div><div className="v">78,4%</div></div>
+          <div className="va-fin-item ok"><div className="k">Ingresos brutos</div><div className="v">3,2 M€</div></div>
+          <div className="va-fin-item"><div className="k">WAULT</div><div className="v">2,8 años</div></div>
+          <div className="va-fin-item ok"><div className="k">Yield</div><div className="v">5,2%</div></div>
+          <div className="va-fin-item hero"><div className="k">Precio Adquisición</div><div className="v">130 M€</div></div>
         </div>
       </div>
 
       {/* 5. Vencimientos contractuales */}
-      <div className="rp-sec">
-        <div className="rp-lbl">Vencimientos contractuales</div>
+      <div className="va-side-card">
+        <div className="va-side-title">Vencimientos contractuales</div>
         {[
-          {color:'var(--red)',    label:'Celonis — Break option', sub:'Oct 2025 · 2.702 m²',  urgency:'Vencido'},
-          {color:'var(--amber)', label:'Oracle — Contrato',       sub:'Mar 2026 · 13.486 m²', urgency:'Próximo'},
-          {color:'var(--amber)', label:'Empresa XYZ — Break',     sub:'Dic 2026 · 1.000 m²',  urgency:'6 meses'},
-          {color:'var(--gray)',  label:'Repsol — Break option',   sub:'Jun 2027 · 1.967 m²',  urgency:''},
+          {color:'var(--pdb-red)',    label:'Celonis — Break option', sub:'Oct 2025 · 2.702 m²',  urgency:'Vencido',  urgBg:'#FEE2E2', urgColor:'#991B1B'},
+          {color:'var(--pdb-orange)', label:'Oracle — Contrato',      sub:'Mar 2026 · 13.486 m²', urgency:'Próximo',  urgBg:'#FEF3C7', urgColor:'#92400E'},
+          {color:'var(--pdb-orange)', label:'Empresa XYZ — Break',    sub:'Dic 2026 · 1.000 m²',  urgency:'6 meses',  urgBg:'#FEF3C7', urgColor:'#92400E'},
+          {color:'var(--va-muted2)',  label:'Repsol — Break option',  sub:'Jun 2027 · 1.967 m²',  urgency:'',         urgBg:'', urgColor:''},
         ].map((v,i)=>(
-          <div key={i} className="venc-item">
-            <div className="vd" style={{background:v.color,marginTop:4}}/>
+          <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8,padding:'7px 0',borderBottom:i<3?'1px dashed var(--va-line2)':'none'}}>
+            <div style={{width:8,height:8,borderRadius:'50%',background:v.color,flexShrink:0,marginTop:4}}/>
             <div style={{flex:1}}>
-              <div style={{fontSize:11,fontWeight:500,color:v.color==='var(--gray)'?'var(--text)':v.color}}>{v.label}</div>
-              <div style={{fontSize:10,color:'var(--text3)'}}>{v.sub}</div>
+              <div style={{fontSize:12,fontWeight:500,color:'var(--ink)'}}>{v.label}</div>
+              <div style={{fontSize:11,color:'var(--va-muted)'}}>{v.sub}</div>
             </div>
-            {v.urgency && <span style={{fontSize:9,fontWeight:600,color:v.color,background:v.color==='var(--red)'?'var(--red-lt)':v.color==='var(--amber)'?'var(--amber-lt)':'var(--gray-lt)',border:`1px solid ${v.color==='var(--red)'?'var(--red-bd)':v.color==='var(--amber)'?'var(--amber-bd)':'var(--gray-bd)'}`,padding:'1px 5px',borderRadius:8,whiteSpace:'nowrap'}}>{v.urgency}</span>}
+            {v.urgency && <span style={{fontSize:10,fontWeight:600,color:v.urgColor,background:v.urgBg,padding:'2px 8px',borderRadius:999,whiteSpace:'nowrap'}}>{v.urgency}</span>}
           </div>
         ))}
       </div>
 
       {/* 6. Propuestas / Proyectos en curso */}
-      <div className="rp-sec">
-        <div className="rp-lbl">Propuestas / Proyectos en curso</div>
+      <div className="va-side-card">
+        <div className="va-side-title">Propuestas / Proyectos</div>
         {[
-          {ico:'🏗',label:'Reforma integral lobby',sub:'Arquitectura · En curso',color:'var(--amber)'},
-          {ico:'📋',label:'Mandato captación P4-P5',sub:'Leasing · Activo',color:'var(--accent)'},
+          {ico:'🏗',label:'Reforma integral lobby',sub:'Arquitectura · En curso',dot:'var(--pdb-orange)'},
+          {ico:'📋',label:'Mandato captación P4-P5',sub:'Leasing · Activo',dot:'var(--pdb-blue)'},
         ].map((p,i)=>(
-          <div key={i} className="proj-item">
-            <div style={{width:26,height:26,borderRadius:5,background:'var(--gray-lt)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,flexShrink:0}}>{p.ico}</div>
+          <div key={i} className="va-proj-item">
+            <div className="va-proj-ico">{p.ico}</div>
             <div style={{flex:1}}>
-              <div style={{fontSize:11,fontWeight:500,color:'var(--text)'}}>{p.label}</div>
-              <div style={{fontSize:10,color:'var(--text3)'}}>{p.sub}</div>
+              <div className="va-proj-title">{p.label}</div>
+              <div className="va-proj-meta"><div className="va-proj-dot" style={{background:p.dot}}/>{p.sub}</div>
             </div>
-            <div style={{width:6,height:6,borderRadius:'50%',background:p.color,flexShrink:0,marginTop:5}}/>
           </div>
         ))}
       </div>
 
       {/* 7. Historial */}
-      <div className="rp-sec">
-        <div className="rp-lbl">Historial</div>
+      <div className="va-side-card">
+        <div className="va-side-title">Historial</div>
         {[
-          {tag:'tag-teal',  label:'Transacción', desc:'Repsol — Renovación',   fecha:'Mar 2022'},
-          {tag:'tag-blue',  label:'Mandato',     desc:'Exclusiva leasing 2023', fecha:'Ene 2023'},
-          {tag:'tag-amber', label:'Valoración',  desc:'Anual Q1 2026',          fecha:'Mar 2026'},
+          {cls:'transac',   label:'Transacción', desc:'Repsol — Renovación',   fecha:'Mar 2022'},
+          {cls:'mandato',   label:'Mandato',     desc:'Exclusiva leasing 2023', fecha:'Ene 2023'},
+          {cls:'valoracion',label:'Valoración',  desc:'Anual Q1 2026',          fecha:'Mar 2026'},
         ].map((h,i)=>(
-          <div key={i} style={{display:'flex',alignItems:'flex-start',gap:6,padding:'4px 0',borderBottom:i<2?'1px solid var(--border)':'none'}}>
-            <span className={`tag ${h.tag}`} style={{fontSize:9,marginTop:1,flexShrink:0}}>{h.label}</span>
-            <div style={{flex:1}}>
-              <div style={{fontSize:11,color:'var(--text2)'}}>{h.desc}</div>
-              <div style={{fontSize:10,color:'var(--text4)'}}>{h.fecha}</div>
+          <div key={i} className="va-hist-item">
+            <span className={`va-hist-tag ${h.cls}`}>{h.label}</span>
+            <div>
+              <div className="va-hist-title">{h.desc}</div>
+              <div className="va-hist-date">{h.fecha}</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* 8. Propietario y contactos */}
-      <div className="rp-sec">
-        <div className="rp-lbl">Propietario</div>
-        <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:8}}>
-          <div style={{width:28,height:28,borderRadius:6,background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'var(--accent)',flexShrink:0}}>BC</div>
+      <div className="va-side-card">
+        <div className="va-side-title">Propietario</div>
+        <div className="va-owner">
+          <div className="va-owner-avatar">BC</div>
           <div>
-            <div style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>Barings Core Spain SOCIMI</div>
-            <div style={{fontSize:10,color:'var(--text3)'}}>Fondo inversión · Yield 5,2%</div>
+            <div className="va-owner-name">Barings Core Spain SOCIMI</div>
+            <div className="va-owner-meta">Fondo inversión · Yield 5,2%</div>
           </div>
         </div>
-        <div className="cont-row">
-          <div className="c-av" style={{background:'#dbeafe',color:'#1e40af'}}>AS</div>
-          <div><div className="c-name">Sierra Álvaro</div><div className="c-role">Transaction Spain · Responsable</div></div>
+        <div className="va-team-item accent-blue">
+          <div className="va-team-ini">AS</div>
+          <div><div className="va-team-name">Sierra Álvaro</div><div className="va-team-role">Transaction Spain · Responsable</div></div>
         </div>
-        <div className="cont-row">
-          <div className="c-av" style={{background:'#fce7f3',color:'#9d174d'}}>MR</div>
-          <div><div className="c-name">María Ruiz</div><div className="c-role">Leasing Oficinas MAD</div></div>
+        <div className="va-team-item accent-pink">
+          <div className="va-team-ini">MR</div>
+          <div><div className="va-team-name">María Ruiz</div><div className="va-team-role">Leasing Oficinas MAD</div></div>
         </div>
       </div>
 
       {/* 9. Documentos recientes */}
-      <div className="rp-sec">
-        <div className="rp-lbl">Documentos recientes</div>
+      <div className="va-side-card">
+        <div className="va-side-title">Documentos recientes</div>
         {[
-          {ico:'📊',name:'Dossier Avalon',fecha:'07/02/2026',tag:'Comercial',tagCls:'tag-blue'},
-          {ico:'💰',name:'Valoración Q1 2026',fecha:'20/03/2026',tag:'Valoración',tagCls:'tag-amber'},
-          {ico:'📋',name:'Rent Roll 2026',fecha:'01/01/2026',tag:'Comercial',tagCls:'tag-blue'},
+          {ico:'📊',icoType:'pdf',name:'Dossier Avalon',      fecha:'07/02/2026',tag:'Comercial', tagType:'comercial'},
+          {ico:'💰',icoType:'xls',name:'Valoración Q1 2026',  fecha:'20/03/2026',tag:'Valoración',tagType:'valoracion'},
+          {ico:'📋',icoType:'ppt',name:'Rent Roll 2026',       fecha:'01/01/2026',tag:'Comercial', tagType:'comercial'},
         ].map((d,i)=>(
-          <div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',borderBottom:i<2?'1px solid var(--border)':'none'}}>
-            <span style={{fontSize:16,flexShrink:0}}>{d.ico}</span>
+          <div key={i} className="va-doc-item">
+            <div className={`va-doc-ico ${d.icoType}`}>{d.ico}</div>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:11,fontWeight:500,color:'var(--accent)',cursor:'pointer',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{d.name}</div>
-              <div style={{fontSize:10,color:'var(--text4)'}}>{d.fecha}</div>
+              <div className="va-doc-title">{d.name}</div>
+              <div className="va-doc-date">{d.fecha}</div>
             </div>
-            <span className={`tag ${d.tagCls}`} style={{fontSize:9,flexShrink:0}}>{d.tag}</span>
+            <span className={`va-doc-tag ${d.tagType}`}>{d.tag}</span>
           </div>
         ))}
-        <span className="add-link">Ver todos (8)</span>
+        <span className="va-doc-all">Ver todos (8)</span>
       </div>
 
     </div>
