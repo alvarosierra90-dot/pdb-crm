@@ -407,8 +407,8 @@ const NEW_FORM_INIT = {
   ref_catastral:'', clasificacion:'', uso_pgou:'', calificacion_urb:'', edificabilidad:'', sup_parcela:'',
 }
 
-const TABS = ['at-info','at-stacking','at-caract','at-prop','at-fotos','at-docs','at-adicional','at-360','at-followup']
-const TAB_LABELS = ['Información general','Stacking Plan','Características','Propietarios y arrendatarios','Multimedia','Documentos','Información adicional','Vista 360°','Follow-up']
+const TABS = ['at-info','at-stacking','at-caract','at-prop','at-ofertas','at-fotos','at-docs','at-adicional','at-360','at-followup']
+const TAB_LABELS = ['Información general','Stacking Plan','Características','Propietarios y arrendatarios','Ofertas','Multimedia','Documentos','Información adicional','Vista 360°','Follow-up']
 
 /* ── PLAZAS DE APARCAMIENTO ── */
 const UBICACIONES  = ['Interior','Exterior']
@@ -3680,6 +3680,9 @@ export default function FichaActivo() {
     params?.newTenantData ? [params.newTenantData] : []
   )
 
+  const [ofertas, setOfertas] = useState([])
+  const [loadingOfertas, setLoadingOfertas] = useState(false)
+
   const navigateToFichaProp = (substituteOwner = false) => {
     const previousOwner = propietariosReg[0]?.propietario || activo?.propietario || null
     navigate('ficha-propietario', {
@@ -3807,6 +3810,18 @@ export default function FichaActivo() {
             return [...mapped, ...extras]
           })
         }
+      })
+  }, [params?.ref])
+
+  // Load ofertas from Supabase for this activo
+  useEffect(() => {
+    const ref = params?.ref
+    if (!ref || params?.new) return
+    setLoadingOfertas(true)
+    supabase.from('ofertas').select('*').eq('activo_ref', ref)
+      .then(({ data }) => {
+        setOfertas(data || [])
+        setLoadingOfertas(false)
       })
   }, [params?.ref])
 
@@ -4559,6 +4574,56 @@ export default function FichaActivo() {
                   Las <strong>ofertas activas</strong> y las <strong>transacciones</strong> se gestionan desde sus módulos correspondientes y se sincronizan automáticamente con este activo.
                 </div>
 
+              </div>
+            </div>
+          )}
+
+          {/* ── TAB: Ofertas ── */}
+          {activeTab==='at-ofertas' && (
+            <div className="tab-content active">
+              <div className="info-pad">
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                  <div style={{fontSize:13,fontWeight:700,letterSpacing:'.01em',color:'var(--text1)'}}>OFERTAS VINCULADAS</div>
+                  <button className="ab-btn blue" onClick={()=>navigate('nueva-oferta',{activoRef:params?.ref})}>+ Nueva oferta</button>
+                </div>
+                {loadingOfertas ? (
+                  <div style={{textAlign:'center',padding:32,color:'var(--text4)',fontSize:12}}>Cargando ofertas…</div>
+                ) : (
+                  <table className="pat-table">
+                    <thead>
+                      <tr>
+                        <th>Ref</th>
+                        <th>Sup. disponible (m²)</th>
+                        <th>Renta €/m²</th>
+                        <th>Estado</th>
+                        <th>Tipo</th>
+                        <th>Fecha disponibilidad</th>
+                        <th>Activa</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ofertas.map(o => {
+                        const estadoClass = o.estado === 'Disponible' ? 'tag-green' : o.estado === 'En negociación' ? 'tag-amber' : 'tag-gray'
+                        return (
+                          <tr key={o.id || o.ref} style={{cursor:'pointer'}} onClick={()=>navigate('ficha-oferta',{ref:o.ref})}>
+                            <td><span className="pat-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{o.ref||'—'}</span></td>
+                            <td>{o.superficie_disponible ? Number(o.superficie_disponible).toLocaleString('es-ES') : '—'}</td>
+                            <td>{o.renta_m2 ? Number(o.renta_m2).toLocaleString('es-ES') : '—'}</td>
+                            <td>{o.estado ? <span className={`tag ${estadoClass}`}>{o.estado}</span> : '—'}</td>
+                            <td>{o.tipo_operacion || o.tipologia || '—'}</td>
+                            <td style={{fontFamily:'var(--mono)',fontSize:11}}>{o.fecha_disponibilidad || '—'}</td>
+                            <td>{o.activa ? <span className="tag tag-green">Sí</span> : <span className="tag tag-gray">No</span>}</td>
+                            <td><button className="ra" onClick={e=>{e.stopPropagation();navigate('ficha-oferta',{ref:o.ref})}}>↗ Ver</button></td>
+                          </tr>
+                        )
+                      })}
+                      {ofertas.length === 0 && (
+                        <tr><td colSpan={8} style={{textAlign:'center',color:'var(--text4)',fontSize:12,padding:16}}>Sin ofertas vinculadas</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           )}
