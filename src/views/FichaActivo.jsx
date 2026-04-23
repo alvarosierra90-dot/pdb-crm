@@ -1768,12 +1768,13 @@ const FOTO_SUB_FOTO = ['Interior','Exterior','Zonas comunes','Parking','Fotos a�
 const FOTO_SUB_PLAN = ['Plano de planta','Sección','Axonométrica']
 
 const MOCK_MEDIA = [
-  { id:1, tipo:'Fotografía', subtipo:'Exterior',        desc:'Fachada principal',        principal:true,  date:'07/02/2026', src:'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=80' },
-  { id:2, tipo:'Fotografía', subtipo:'Interior',        desc:'Planta tipo — open space', principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80' },
-  { id:3, tipo:'Fotografía', subtipo:'Interior',        desc:'Sala de reuniones',        principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1497366754035-f200968a7db3?w=800&q=80' },
-  { id:4, tipo:'Fotografía', subtipo:'Zonas comunes',   desc:'Lobby recepción',          principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1568992687947-868a62a9f521?w=800&q=80' },
-  { id:5, tipo:'Fotografía', subtipo:'Fotos aéreas',    desc:'Vista aérea conjunto',     principal:false, date:'01/01/2026', src:'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&q=80' },
-  { id:6, tipo:'Plano',      subtipo:'Plano de planta', desc:'Planta tipo — distribución', principal:false, date:'20/03/2026', src:'https://images.unsplash.com/photo-1541888846341-b14b40e47e34?w=800&q=80' },
+  { id:1, tipo:'Fotografía', subtipo:'Exterior',        desc:'Fachada principal',          principal:true,  date:'07/02/2026', src:'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80' },
+  { id:2, tipo:'Fotografía', subtipo:'Exterior',        desc:'Vista lateral edificio',     principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&q=80' },
+  { id:3, tipo:'Fotografía', subtipo:'Exterior',        desc:'Acceso principal',           principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80' },
+  { id:4, tipo:'Fotografía', subtipo:'Interior',        desc:'Planta tipo — open space',   principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80' },
+  { id:5, tipo:'Fotografía', subtipo:'Interior',        desc:'Sala de reuniones',          principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1497366754035-f200968a7db3?w=800&q=80' },
+  { id:6, tipo:'Fotografía', subtipo:'Zonas comunes',   desc:'Lobby recepción',            principal:false, date:'07/02/2026', src:'https://images.unsplash.com/photo-1577412647305-991150c7d163?w=800&q=80' },
+  { id:7, tipo:'Plano',      subtipo:'Plano de planta', desc:'Planta tipo — distribución', principal:false, date:'20/03/2026', src:'https://images.unsplash.com/photo-1541888846341-b14b40e47e34?w=800&q=80' },
 ]
 
 function TabMultimedia() {
