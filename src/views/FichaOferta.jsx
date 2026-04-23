@@ -116,6 +116,8 @@ export default function FichaOferta() {
   const [addingUser, setAddingUser] = useState(false)
   const [newUser, setNewUser] = useState('')
   const [showTarea, setShowTarea] = useState(false)
+  const [showNegociacion, setShowNegociacion] = useState(false)
+  const [negOk, setNegOk] = useState(false)
 
   // DB state
   const [oferta, setOferta]     = useState(null)   // loaded from Supabase
@@ -579,6 +581,10 @@ export default function FichaOferta() {
         <button className="ab-btn">🔄 Recalcular</button>
         <div className="ab-sep" />
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
+        {!isMock && oferta?.ref && oferta?.estado !== 'En negociación' && (
+          <button className="ab-btn" style={{ color:'var(--amber)', borderColor:'var(--amber-bd)', background:'var(--amber-lt)' }} onClick={() => setShowNegociacion(true)}>🤝 Iniciar negociación</button>
+        )}
+        {negOk && <span style={{ fontSize:11, color:'var(--amber)', marginLeft:8, fontWeight:600 }}>✓ Estado actualizado: En negociación</span>}
       </div>
 
       <div className="ficha-wrap">
@@ -607,7 +613,7 @@ export default function FichaOferta() {
                   {activoSeleccionado?.uso && <span className="tag tag-blue">{activoSeleccionado.uso}</span>}
                   {tipoComercializacion && <span className="tag tag-purple">{tipoComercializacion}</span>}
                   {tipoOperacion && <span className="tag tag-teal">{tipoOperacion}</span>}
-                  {oferta?.estado && <span className="tag tag-green">{oferta.estado}</span>}
+                  {oferta?.estado && <span className={`tag ${oferta.estado === 'En negociación' ? 'tag-amber' : 'tag-green'}`}>{oferta.estado}</span>}
                   {oferta?.dias_comercializacion > 0 && <span className="dias-pill">📅 {oferta.dias_comercializacion} días en comercialización</span>}
                 </div>
               </div>
@@ -1714,6 +1720,39 @@ export default function FichaOferta() {
           </div>
       </div>
       {showTarea && <AsignarTareaModal refTipo="Oferta" refNombre="OLBUR2315645" onClose={() => setShowTarea(false)} />}
+
+      {/* Modal Iniciar negociación */}
+      {showNegociacion && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setShowNegociacion(false)}>
+          <div style={{background:'var(--surface)',borderRadius:10,padding:24,maxWidth:420,width:'90%',boxShadow:'0 8px 32px rgba(0,0,0,.18)'}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+              <div style={{width:32,height:32,borderRadius:6,background:'var(--amber-lt)',border:'1px solid var(--amber-bd)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0}}>🤝</div>
+              <div>
+                <div style={{fontSize:14,fontWeight:700}}>Iniciar negociación</div>
+                <div style={{fontSize:11,color:'var(--text3)'}}>El estado de la oferta pasará a "En negociación"</div>
+              </div>
+            </div>
+            <div style={{background:'var(--amber-lt)',border:'1px solid var(--amber-bd)',borderRadius:7,padding:12,marginBottom:16,fontSize:11,color:'var(--text2)',lineHeight:1.6}}>
+              Al confirmar, se actualizará el estado de esta oferta a <strong>En negociación</strong> en el sistema. El equipo será notificado y la oferta quedará marcada para seguimiento activo.
+            </div>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button className="ab-btn" onClick={()=>setShowNegociacion(false)}>Cancelar</button>
+              <button style={{padding:'7px 16px',borderRadius:6,background:'var(--amber)',color:'#fff',border:'none',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}
+                onClick={async () => {
+                  setShowNegociacion(false)
+                  if (oferta?.ref) {
+                    await supabase.from('ofertas').update({ estado: 'En negociación' }).eq('ref', oferta.ref)
+                    setOferta(prev => prev ? { ...prev, estado: 'En negociación' } : prev)
+                    setNegOk(true)
+                    setTimeout(() => setNegOk(false), 4000)
+                  }
+                }}>
+                Confirmar → En negociación
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Dar de baja */}
       {showDarBaja && (

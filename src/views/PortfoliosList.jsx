@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
-import { PORTFOLIOS } from '../data/mockData'
+import { supabase } from '../lib/supabase'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 
@@ -16,16 +16,48 @@ const COLS = [
   { id: '_act',      label: '',                         sys: true },
 ]
 
+// Map DB row → local shape matching COLS
+function mapRow(r) {
+  const nombre = r.nombre || ''
+  const letra  = nombre.charAt(0).toUpperCase()
+  return {
+    nombre,
+    ticker:      r.ticker      || '',
+    tipo:        r.tipo        || '',
+    activos:     r.activos_count  ?? 0,
+    m2:          r.m2_totales     ?? 0,
+    disponible:  r.m2_disponible  ?? 0,
+    ofertas:     r.ofertas_activas ?? 0,
+    yield:       r.yield_pct      ?? 0,
+    contacto:    r.ultimo_contacto || '—',
+    letra,
+    colorBg:     'var(--gray-lt)',
+    colorBorder: 'var(--border)',
+    colorText:   'var(--text)',
+  }
+}
+
 export default function PortfoliosList() {
   const { navigate } = useNav()
+  const [portfolios, setPortfolios] = useState([])
+  const [loading,    setLoading]    = useState(true)
   const [query,   setQuery]   = useState('')
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ tipo: '' })
   const [vis, setVis] = useVisibleCols('portfolios', COLS)
 
+  useEffect(() => {
+    supabase.from('propietarios').select('*').order('nombre')
+      .then(({ data }) => {
+        setPortfolios((data || []).map(mapRow))
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
+
   const advCount = Object.values(af).filter(Boolean).length
 
-  const preFiltered = PORTFOLIOS.filter(p => {
+  const preFiltered = portfolios.filter(p => {
     const q = query.toLowerCase()
     if (q && !p.nombre.toLowerCase().includes(q) && !p.ticker.toLowerCase().includes(q)) return false
     if (af.tipo && p.tipo !== af.tipo) return false
@@ -83,11 +115,14 @@ export default function PortfoliosList() {
           <thead>
             <tr>{visibleCols.map(c =>
               c.sys ? <th key={c.id}>{c.label}</th> :
-              <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={PORTFOLIOS}/>
+              <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={portfolios}/>
             )}</tr>
           </thead>
           <tbody>
-            {result.map((p, i) => <tr key={i} onClick={() => navigate('portfolio')}>{visibleCols.map(c => cell(p)[c.id])}</tr>)}
+            {loading
+              ? <tr><td colSpan={visibleCols.length} style={{ textAlign:'center', padding:24, color:'var(--text4)', fontSize:12 }}>Cargando propietarios…</td></tr>
+              : result.map((p, i) => <tr key={i} onClick={() => navigate('portfolio')}>{visibleCols.map(c => cell(p)[c.id])}</tr>)
+            }
           </tbody>
         </table>
       </div>
