@@ -48,6 +48,23 @@ const MOCK_MEDIA_ACTIVO = [
   { id:6, tipo:'Plano',      subtipo:'Plano de planta', desc:'Planta tipo — distribución', src:'https://images.unsplash.com/photo-1541888846341-b14b40e47e34?w=800&q=80' },
 ]
 
+// ── Date helpers for dar de baja ──
+function parseDateDMY(ddmmyyyy) {
+  if (!ddmmyyyy || ddmmyyyy.length < 8) return null
+  const [d,m,y] = ddmmyyyy.trim().split('/').map(Number)
+  if (!d||!m||!y||y<1900) return null
+  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+}
+function addYearsDMY(ddmmyyyy, years) {
+  if (!ddmmyyyy || !years || isNaN(parseFloat(years))) return ''
+  const [d,m,y] = ddmmyyyy.trim().split('/').map(Number)
+  if (!d||!m||!y||y<1900) return ''
+  const dt = new Date(y + Math.floor(parseFloat(years)), m-1, d)
+  return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`
+}
+function fromInput(yyyymmdd) { if (!yyyymmdd) return ''; const [y,m,d]=yyyymmdd.split('-'); return `${d}/${m}/${y}` }
+function toInput(ddmmyyyy) { return parseDateDMY(ddmmyyyy)||'' }
+
 const TIPOLOGIA_MAP = {
   'Oficinas':['Oficina tradicional','Coworking','Subarriendo','Business park','Sede única (HQ)'],
   'Logístico':['Nave logística','Nave industrial','Última milla','Plataforma logística','Cross-docking'],
@@ -148,6 +165,22 @@ export default function FichaOferta() {
 
   // Live stacking buildings (updated by StackingPlan callback)
   const liveBuildings = useRef([])
+
+  // Dar de baja
+  const [showDarBaja, setShowDarBaja] = useState(false)
+  const [dbForm, setDbForm] = useState({ tenant:'', tenant_desconocido:false, anyo_firma:String(new Date().getFullYear()), trimestre:'Q1', fecha_inicio:'', anios_obligado:'', anios_obligado_2:'', closing_rent:'' })
+  const [dbSaving, setDbSaving] = useState(false)
+  const [dbErrors, setDbErrors] = useState([])
+  const setDbF = (k,v) => setDbForm(p => {
+    const n = {...p,[k]:v}
+    if (k==='fecha_inicio'||k==='anios_obligado') {
+      if (n.fecha_inicio&&n.anios_obligado) { const bo=addYearsDMY(n.fecha_inicio,n.anios_obligado); if(bo) { n.break_option=bo; if(n.anios_obligado_2){const ff=addYearsDMY(bo,n.anios_obligado_2);if(ff)n.fecha_fin=ff} } }
+    }
+    if (k==='anios_obligado_2'||k==='break_option') {
+      if (n.break_option&&n.anios_obligado_2) { const ff=addYearsDMY(n.break_option,n.anios_obligado_2); if(ff) n.fecha_fin=ff }
+    }
+    return n
+  })
 
   // Tab 3 + Stacking
   const [fechaDispGlobal, setFechaDispGlobal] = useState('2026-06-01')
@@ -461,6 +494,71 @@ export default function FichaOferta() {
     }
   }
 
+  const handleDarBaja = async () => {
+    const errs = []
+    if (!dbForm.tenant_desconocido && !dbForm.tenant.trim()) errs.push('Tenant o marca "Desconocido"')
+    if (!dbForm.fecha_inicio) errs.push('Fecha de inicio de contrato')
+    if (!dbForm.anios_obligado || isNaN(parseFloat(dbForm.anios_obligado))) errs.push('Años de obligado cumplimiento')
+    if (errs.length) { setDbErrors(errs); return }
+    setDbErrors([]); setDbSaving(true)
+
+    const tenantName = dbForm.tenant_desconocido ? 'Desconocido' : dbForm.tenant.trim()
+    const ofertaNombres = ofertasDesglose.map(o => o.nombre)
+    const supTotal = espaciosComercializables.reduce((s,e)=>s+(e.sup||0),0)
+    const bo = addYearsDMY(dbForm.fecha_inicio, dbForm.anios_obligado)
+    const ff = dbForm.anios_obligado_2 ? addYearsDMY(bo||dbForm.fecha_inicio, dbForm.anios_obligado_2) : bo
+
+    // 1. Dar de baja la oferta
+    await supabase.from('ofertas').update({ activa: false }).eq('ref', oferta.ref)
+
+    // 2. Actualizar stacking: vac → ten en todas las plantas con esta oferta
+    if (activoSeleccionado?.ref) {
+      const { data: acData } = await supabase.from('activos').select('stacking_data').eq('ref', activoSeleccionado.ref).single()
+      if (acData?.stacking_data) {
+        const updated = acData.stacking_data.map(b => ({
+          ...b,
+          arr: (b.arr||[]).map(row => {
+            const hasOffer = row.units.some(u=>u.type==='vac'&&ofertaNombres.includes(u.oferta))
+            if (!hasOffer) return row
+            const offerSup = row.units.filter(u=>u.type==='vac'&&ofertaNombres.includes(u.oferta)).reduce((s,u)=>s+u.sup,0)
+            const withoutOffers = row.units.filter(u=>!(u.type==='vac'&&ofertaNombres.includes(u.oferta)))
+            return {...row, units:[...withoutOffers,{type:'ten',n:tenantName,sup:offerSup}]}
+          })
+        }))
+        await supabase.from('activos').update({ stacking_data: updated }).eq('ref', activoSeleccionado.ref)
+      }
+    }
+
+    // 3. Crear arrendatario
+    const arrRef = 'ARR-' + Date.now()
+    const { data: newArr } = await supabase.from('arrendatarios').insert({
+      ref: arrRef,
+      nombre: tenantName,
+      tenant: tenantName,
+      tenant_desconocido: dbForm.tenant_desconocido,
+      activo_ref: activoSeleccionado?.ref || null,
+      uso: activoSeleccionado?.uso || null,
+      superficie: supTotal || null,
+      renta: parseFloat(dbForm.closing_rent)||oferta?.renta_m2||null,
+      closing_rent: parseFloat(dbForm.closing_rent)||oferta?.renta_m2||null,
+      anyo_firma: parseInt(dbForm.anyo_firma)||null,
+      trimestre: dbForm.trimestre,
+      inicio: parseDateDMY(dbForm.fecha_inicio),
+      break_option: parseDateDMY(bo),
+      vencimiento: parseDateDMY(ff),
+      anios_obligado: parseFloat(dbForm.anios_obligado)||null,
+      anios_obligado_2: parseFloat(dbForm.anios_obligado_2)||null,
+      tipo_contrato: 'Alquiler comercial',
+      meses_recordatorio: 3,
+      estado_arr: 'Vigente',
+      oferta_origen: oferta?.ref||null,
+    }).select().single()
+
+    setDbSaving(false)
+    setShowDarBaja(false)
+    navigate('ficha-arrendatario', { arrRef: newArr?.ref || arrRef })
+  }
+
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
       {/* Action bar */}
@@ -473,7 +571,9 @@ export default function FichaOferta() {
         {saveOk  && <span style={{fontSize:11,color:'var(--green)',marginLeft:8}}>✓ Guardado</span>}
         {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
         <button className="ab-btn">Nuevo</button>
-        <button className="ab-btn">Desactivar</button>
+        {!isMock && oferta?.ref && oferta?.activa !== false && (
+          <button className="ab-btn" style={{color:'var(--red)',borderColor:'var(--red)'}} onClick={()=>{ setDbForm(p=>({...p,closing_rent:oferta?.renta_m2?String(oferta.renta_m2):''})); setShowDarBaja(true) }}>🔒 Dar de baja</button>
+        )}
         <div className="ab-sep" />
         <button className="ab-btn">📄 Crear ficha</button>
         <button className="ab-btn">🔄 Recalcular</button>
@@ -1614,6 +1714,83 @@ export default function FichaOferta() {
           </div>
       </div>
       {showTarea && <AsignarTareaModal refTipo="Oferta" refNombre="OLBUR2315645" onClose={() => setShowTarea(false)} />}
+
+      {/* Modal Dar de baja */}
+      {showDarBaja && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'var(--surface)',borderRadius:12,padding:28,width:480,maxWidth:'95vw',boxShadow:'0 8px 40px rgba(0,0,0,.25)',display:'flex',flexDirection:'column',gap:16}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div><div style={{fontSize:15,fontWeight:700,color:'var(--text1)'}}>🔒 Dar de baja oferta</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Se creará un arrendatario y se actualizará el stacking plan</div></div>
+              <button onClick={()=>setShowDarBaja(false)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,color:'var(--text3)',lineHeight:1}}>✕</button>
+            </div>
+
+            {/* Tenant */}
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Arrendatario <span style={{color:'var(--red)'}}>*</span></span>
+                <label style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'var(--text3)',cursor:'pointer',marginLeft:'auto'}}>
+                  <input type="checkbox" checked={dbForm.tenant_desconocido} onChange={e=>setDbF('tenant_desconocido',e.target.checked)} style={{accentColor:'var(--accent)'}}/>
+                  Desconocido
+                </label>
+              </div>
+              {!dbForm.tenant_desconocido && <input value={dbForm.tenant} onChange={e=>setDbF('tenant',e.target.value)} placeholder="Nombre de empresa o persona" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}}/>}
+            </div>
+
+            {/* Año firma + Trimestre */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Año de firma <span style={{color:'var(--red)'}}>*</span></span>
+                <input type="number" value={dbForm.anyo_firma} onChange={e=>setDbF('anyo_firma',e.target.value)} style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit'}}/>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Trimestre</span>
+                <select value={dbForm.trimestre} onChange={e=>setDbF('trimestre',e.target.value)} style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)'}}>
+                  <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Fecha inicio + Años obligado */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Fecha inicio <span style={{color:'var(--red)'}}>*</span></span>
+                <input type="date" value={toInput(dbForm.fecha_inicio)} onChange={e=>setDbF('fecha_inicio',fromInput(e.target.value))} style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit'}}/>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Años OC 1 <span style={{color:'var(--red)'}}>*</span></span>
+                <input type="number" step="0.5" value={dbForm.anios_obligado} onChange={e=>setDbF('anios_obligado',e.target.value)} placeholder="3" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit'}}/>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Años OC 2</span>
+                <input type="number" step="0.5" value={dbForm.anios_obligado_2} onChange={e=>setDbF('anios_obligado_2',e.target.value)} placeholder="2" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit'}}/>
+              </div>
+            </div>
+
+            {/* Fechas auto-calculadas */}
+            {(dbForm.break_option||dbForm.fecha_fin) && (
+              <div style={{display:'flex',gap:12,padding:'8px 12px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:6}}>
+                {dbForm.break_option&&<span style={{fontSize:11,color:'var(--accent)'}}>Break option: <strong>{dbForm.break_option}</strong></span>}
+                {dbForm.fecha_fin&&<span style={{fontSize:11,color:'var(--accent)',marginLeft:8}}>Vencimiento: <strong>{dbForm.fecha_fin}</strong></span>}
+              </div>
+            )}
+
+            {/* Closing rent */}
+            <div style={{display:'flex',flexDirection:'column',gap:4}}>
+              <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Closing rent (€/m²/mes)</span>
+              <input type="number" step="0.01" value={dbForm.closing_rent} onChange={e=>setDbF('closing_rent',e.target.value)} placeholder={oferta?.renta_m2||''} style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit'}}/>
+            </div>
+
+            {dbErrors.length>0 && <div style={{padding:'8px 12px',background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:6,fontSize:11,color:'var(--red)'}}>{dbErrors.map((e,i)=><div key={i}>• {e}</div>)}</div>}
+
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:4}}>
+              <button onClick={()=>setShowDarBaja(false)} style={{padding:'8px 16px',background:'none',border:'1px solid var(--border)',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>Cancelar</button>
+              <button onClick={handleDarBaja} disabled={dbSaving} style={{padding:'8px 16px',background:'var(--red)',color:'#fff',border:'none',borderRadius:6,fontSize:12,fontWeight:600,cursor:dbSaving?'wait':'pointer',fontFamily:'inherit',opacity:dbSaving?.6:1}}>
+                {dbSaving ? 'Procesando...' : '🔒 Confirmar baja'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

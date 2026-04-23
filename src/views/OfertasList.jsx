@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { OFERTAS as MOCK_OFERTAS } from '../data/mockData'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 
-const estadoTag = { 'En revisión': 'tag-amber', 'Negociando': 'tag-purple', 'Pre-acuerdo': 'tag-green', 'En curso': 'tag-blue', 'Cerrada': 'tag-gray', 'Finalista': 'tag-green' }
+const estadoTag = { 'En revisión': 'tag-amber', 'Negociando': 'tag-purple', 'Pre-acuerdo': 'tag-green', 'En curso': 'tag-blue', 'Disponible': 'tag-green', 'En negociación': 'tag-amber', 'Cerrada': 'tag-gray', 'Finalista': 'tag-green' }
 
 function mapMock(list) {
   return list.map(o => ({
@@ -47,6 +47,7 @@ export default function OfertasList() {
   const [af, setAf] = useState({ tipo: '', estado: '', m2Min: '', m2Max: '' })
   const [ofertas, setOfertas] = useState([])
   const [loading, setLoading] = useState(true)
+  const [vista, setVista] = useState('activas') // 'activas' | 'desactivadas'
 
   useEffect(() => {
     Promise.all([
@@ -73,6 +74,7 @@ export default function OfertasList() {
             tipo:       o.tipo_operacion || '—',
             origen:     o.origen_oferta  || '—',
             estado:     o.estado         || '—',
+            activa:     o.activa !== false, // treat null/undefined as active
           }
         }))
       }
@@ -82,6 +84,12 @@ export default function OfertasList() {
 
   const [creando, setCreando] = useState(false)
 
+  const handleReactivar = async (ref, e) => {
+    e.stopPropagation()
+    await supabase.from('ofertas').update({ activa: true, estado: 'Disponible' }).eq('ref', ref)
+    setOfertas(prev => prev.map(o => o.ref === ref ? { ...o, activa: true, estado: 'Disponible' } : o))
+  }
+
   const handleNuevaOferta = async () => {
     setCreando(true)
     const ref = 'OF-' + Date.now()
@@ -89,7 +97,8 @@ export default function OfertasList() {
       ref,
       tipo_comercializacion: 'Mandato Savills',
       tipo_operacion: 'Alquiler',
-      estado: 'En curso',
+      estado: 'Disponible',
+      activa: true,
     }).select().single()
     setCreando(false)
     if (!error && data) {
@@ -97,8 +106,12 @@ export default function OfertasList() {
     }
   }
 
+  const ofertasActivas = ofertas.filter(o => o.activa)
+  const ofertasDesact  = ofertas.filter(o => !o.activa)
+  const vistaOfertas   = vista === 'activas' ? ofertasActivas : ofertasDesact
+
   const advCount = Object.values(af).filter(Boolean).length
-  const preFiltered = ofertas.filter(o => {
+  const preFiltered = vistaOfertas.filter(o => {
     const q = query.toLowerCase()
     if (q && !(o.activo||'').toLowerCase().includes(q) && !(o.ref||'').toLowerCase().includes(q) && !(o.activo_dir||'').toLowerCase().includes(q)) return false
     if (af.tipo      && o.tipo !== af.tipo) return false
@@ -110,6 +123,7 @@ export default function OfertasList() {
 
   const { result, sorts, filters, setSort, setFilter, clearFilter, clearAll, activeCount } = useTableFilter(preFiltered, COLS)
   const visibleCols = COLS
+  const allRows = vistaOfertas
 
   const cell = (o) => ({
     _chk:    <td key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} onClick={e => e.stopPropagation()} /></td>,
@@ -125,17 +139,24 @@ export default function OfertasList() {
     tipo:    <td key="tipo">{o.tipo !== '—' ? <span className="tag tag-blue">{o.tipo}</span> : <span style={{ color:'var(--text4)' }}>—</span>}</td>,
     origen:  <td key="origen" style={{ fontSize: 11, color: 'var(--text3)' }}>{o.origen}</td>,
     estado:  <td key="estado"><span className={`tag ${estadoTag[o.estado] || 'tag-gray'}`}>{o.estado}</span></td>,
-    _act:    <td key="_act"><div className="ra-cell"><button className="ra p" onClick={e => { e.stopPropagation(); navigate('ficha-oferta', { ofertaRef: o.ref }) }}>Ver</button></div></td>,
+    _act:    <td key="_act"><div className="ra-cell"><button className="ra p" onClick={e => { e.stopPropagation(); navigate('ficha-oferta', { ofertaRef: o.ref }) }}>Ver</button>{vista==='desactivadas' && <button className="ra" style={{color:'var(--green)',borderColor:'var(--green)'}} onClick={e=>handleReactivar(o.ref,e)}>Reactivar</button>}</div></td>,
   })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
       <div className="kpi-strip" style={{ gridTemplateColumns: 'repeat(5,1fr)' }}>
-        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Total Ofertas</div><div className="ks-val">{ofertas.length}</div><div className="ks-sub">Registradas</div></div>
-        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">En curso</div><div className="ks-val amber">{ofertas.filter(o=>o.estado==='En curso').length}</div></div>
-        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Finalistas</div><div className="ks-val" style={{ color: 'var(--accent)' }}>{ofertas.filter(o=>o.estado==='Finalista').length}</div></div>
-        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Cerradas</div><div className="ks-val green">{ofertas.filter(o=>o.estado==='Cerrada').length}</div></div>
-        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Sup. disponible</div><div className="ks-val">{ofertas.reduce((s,o)=>s+(o.m2||0),0).toLocaleString('es-ES')} m²</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Activas</div><div className="ks-val green">{ofertasActivas.length}</div><div className="ks-sub">Disponibles + negociación</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Disponibles</div><div className="ks-val">{ofertasActivas.filter(o=>o.estado==='Disponible'||o.estado==='En curso').length}</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">En negociación</div><div className="ks-val amber">{ofertasActivas.filter(o=>o.estado==='En negociación').length}</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Desactivadas</div><div className="ks-val" style={{color:'var(--text3)'}}>{ofertasDesact.length}</div><div className="ks-sub">Arrendadas / retiradas</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Sup. disponible</div><div className="ks-val">{ofertasActivas.reduce((s,o)=>s+(o.m2||0),0).toLocaleString('es-ES')} m²</div></div>
+      </div>
+      <div style={{display:'flex',borderBottom:'1px solid var(--border)',background:'var(--surface)',paddingLeft:16,paddingTop:6,gap:0}}>
+        {[['activas','Activas'],['desactivadas','Desactivadas']].map(([k,l])=>(
+          <button key={k} onClick={()=>setVista(k)} style={{padding:'6px 16px',fontSize:11,fontWeight:vista===k?600:500,cursor:'pointer',border:'none',borderBottom:vista===k?'2px solid var(--accent)':'2px solid transparent',background:'none',color:vista===k?'var(--accent)':'var(--text3)',fontFamily:'inherit'}}>
+            {l}{k==='desactivadas'&&ofertasDesact.length>0&&<span style={{marginLeft:5,fontSize:9,background:'var(--border)',borderRadius:8,padding:'0 4px'}}>{ofertasDesact.length}</span>}
+          </button>
+        ))}
       </div>
       <div className="list-toolbar">
         <div className="search-wrap">
@@ -166,7 +187,7 @@ export default function OfertasList() {
         ) : (
           <table className="main-tbl">
             <thead>
-              <tr>{visibleCols.map(c => c.id === '_chk' ? <th key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} /></th> : c.sys ? <th key={c.id}>{c.label}</th> : <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={ofertas} />)}</tr>
+              <tr>{visibleCols.map(c => c.id === '_chk' ? <th key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} /></th> : c.sys ? <th key={c.id}>{c.label}</th> : <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={allRows} />)}</tr>
             </thead>
             <tbody>
               {result.length === 0 ? (

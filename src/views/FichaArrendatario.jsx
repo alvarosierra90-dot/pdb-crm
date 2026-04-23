@@ -78,6 +78,7 @@ export default function FichaArrendatario() {
   const fromOferta = !!params?.fromOfertaRef
   const fromActivo = !!params?.fromActivoRef && !fromOferta
   const fromTenantClick = !!params?.tenantName && !fromOferta && !fromActivo
+  const fromDarBaja = !!params?.arrRef
   const isNew = fromOferta || fromActivo
 
   const EMPTY_FORM = {
@@ -206,6 +207,35 @@ export default function FichaArrendatario() {
     }
     return next
   })
+
+  // Load from arrRef (coming from dar de baja)
+  const [loadedRef, setLoadedRef] = useState(null)
+  useEffect(() => {
+    if (!params?.arrRef) return
+    supabase.from('arrendatarios').select('*').eq('ref', params.arrRef).single()
+      .then(({ data }) => {
+        if (!data) return
+        setLoadedRef(data.ref)
+        setForm(prev => ({
+          ...prev,
+          activo:           data.activo_ref || '',
+          tenant:           data.tenant || data.nombre || '',
+          tenant_desconocido: data.tenant_desconocido || false,
+          anyo_firma:       data.anyo_firma ? String(data.anyo_firma) : '',
+          trimestre:        data.trimestre || 'Q1',
+          superficie:       data.superficie ? String(data.superficie) : '',
+          closing_rent:     data.closing_rent ? String(data.closing_rent) : '',
+          tipo_contrato:    data.tipo_contrato || 'Alquiler comercial',
+          anios_obligado:   data.anios_obligado ? String(data.anios_obligado) : '',
+          anios_obligado_2: data.anios_obligado_2 ? String(data.anios_obligado_2) : '',
+          fecha_inicio:     data.inicio ? formatDate(data.inicio) : '',
+          break_option:     data.break_option ? formatDate(data.break_option) : '',
+          fecha_fin:        data.vencimiento ? formatDate(data.vencimiento) : '',
+          estado:           data.estado_arr || 'Vigente',
+          meses_recordatorio: data.meses_recordatorio ? String(data.meses_recordatorio) : '3',
+        }))
+      })
+  }, [params?.arrRef])
 
   const [showErrors, setShowErrors] = useState(false)
   const invalidFields = showErrors ? (() => {
@@ -410,6 +440,37 @@ export default function FichaArrendatario() {
     }
   }
 
+  const handleSaveUpdate = async () => {
+    if (!loadedRef) return
+    setSaving(true); setSaveErr('')
+    const tenantName = form.tenant_desconocido ? 'Desconocido' : form.tenant.trim()
+    const { error } = await supabase.from('arrendatarios').update({
+      nombre: tenantName, tenant: tenantName,
+      tenant_desconocido: form.tenant_desconocido,
+      anyo_firma: parseInt(form.anyo_firma)||null,
+      trimestre: form.trimestre,
+      superficie: parseFloat(form.superficie)||null,
+      asking_rent: parseFloat(form.asking_rent)||null,
+      closing_rent: parseFloat(form.closing_rent)||null,
+      renta: parseFloat(form.closing_rent)||null,
+      meses_carencia: parseInt(form.meses_carencia)||null,
+      tipo_contrato: form.tipo_contrato,
+      anios_obligado: parseFloat(form.anios_obligado)||null,
+      anios_obligado_2: parseFloat(form.anios_obligado_2)||null,
+      inicio: parseDate(form.fecha_inicio),
+      break_option: parseDate(form.break_option),
+      vencimiento: parseDate(form.fecha_fin),
+      meses_recordatorio: parseInt(form.meses_recordatorio)||3,
+      sector: form.sector||null,
+      agente_activo: form.agente_activo||null,
+      agente_pasivo: form.agente_pasivo||null,
+      estado_arr: form.estado||'Vigente',
+    }).eq('ref', loadedRef)
+    setSaving(false)
+    if (error) { setSaveErr(error.message); return }
+    setSaveOk(true); setTimeout(()=>setSaveOk(false),3000)
+  }
+
   const rentaMensual = form.superficie && form.closing_rent
     ? (parseFloat(form.superficie)*parseFloat(form.closing_rent)).toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0})
     : '—'
@@ -425,18 +486,19 @@ export default function FichaArrendatario() {
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
       <div className="action-bar">
-        <button className="ab-btn save" onClick={handleSave} disabled={saving}>{saving ? 'Guardando...' : '💾 Guardar'}</button>
-        {!isNew && <button className="ab-btn">Nuevo</button>}
-        {!isNew && <button className="ab-btn">Desactivar</button>}
+        <button className="ab-btn save" onClick={fromDarBaja ? handleSaveUpdate : handleSave} disabled={saving}>{saving ? 'Guardando...' : '💾 Guardar'}</button>
+        {!isNew && !fromDarBaja && <button className="ab-btn">Nuevo</button>}
+        {!isNew && !fromDarBaja && <button className="ab-btn">Desactivar</button>}
         <div className="ab-sep"/>
-        {!isNew && <button className="ab-btn blue" onClick={()=>navigate('ficha-activo')}>🏢 Ver activo</button>}
-        {!isNew && <button className="ab-btn blue" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>}
+        {((!isNew&&!fromDarBaja)||fromDarBaja) && <button className="ab-btn blue" onClick={()=>navigate('ficha-activo',{ref:fromDarBaja?(form.activo||params?.arrRef):undefined})}>🏢 Ver activo</button>}
+        {!isNew && !fromDarBaja && <button className="ab-btn blue" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>}
         <button className="ab-btn" onClick={()=>
-          fromOferta  ? navigate('ficha-oferta',{ofertaRef:params.fromOfertaRef})
+          fromDarBaja  ? navigate('arrendatarios')
+          : fromOferta  ? navigate('ficha-oferta',{ofertaRef:params.fromOfertaRef})
           : fromActivo ? navigate('ficha-activo',{ref:params.fromActivoRef,tab:'at-stacking'})
           : fromTenantClick ? navigate(-1)
           : navigate('arrendatarios')}>
-          ← {fromOferta ? 'Volver a la oferta' : fromActivo ? 'Volver al activo' : 'Volver'}
+          ← {fromDarBaja ? 'Ir al listado' : fromOferta ? 'Volver a la oferta' : fromActivo ? 'Volver al activo' : 'Volver'}
         </button>
         <div className="ab-sep"/>
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
