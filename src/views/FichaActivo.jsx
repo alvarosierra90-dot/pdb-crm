@@ -3793,7 +3793,7 @@ export default function FichaActivo() {
       .then(({ data }) => {
         if (data?.length) {
           const mapped = data.map(a => ({
-            id: a.id || a.ref, tenant: a.tenant || a.nombre,
+            id: a.id, ref: a.ref, tenant: a.tenant || a.nombre,
             activo: a.edificio || a.activo_ref,
             activo_ref: a.activo_ref,
             uso: a.uso || a.sector,
@@ -4553,7 +4553,7 @@ export default function FichaActivo() {
                   <thead><tr><th>Arrendatario</th><th>Uso</th><th>Sup. (m²)</th><th>Renta</th><th>Break option</th><th>Vencimiento</th><th>Año alquiler</th><th>Trim.</th><th></th></tr></thead>
                   <tbody>
                     {arrendatariosReg.map(a=>(
-                      <tr key={a.id} style={{cursor:'pointer'}} onClick={()=>navigate('ficha-arrendatario',{tenantName:a.tenant})}>
+                      <tr key={a.id} style={{cursor:'pointer'}} onClick={()=>navigate('ficha-arrendatario',a.ref?{arrRef:a.ref,fromActivoRef:activo?.ref||params?.ref}:{tenantName:a.tenant})}>
                         <td><span className="pat-link">{a.tenant}</span></td>
                         <td>{a.uso||'—'}</td>
                         <td>{a.sup ? Number(a.sup).toLocaleString('es-ES') : '—'}</td>
@@ -4562,7 +4562,7 @@ export default function FichaActivo() {
                         <td style={{color:'var(--green)',fontWeight:600}}>{a.fecha_fin||'—'}</td>
                         <td>{a.anyo_firma||'—'}</td>
                         <td>{a.trimestre && <span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>{a.trimestre}</span>}</td>
-                        <td><button className="ra" onClick={e=>{e.stopPropagation();navigate('ficha-arrendatario',{tenantName:a.tenant})}}>↗ Ver</button></td>
+                        <td><button className="ra" onClick={e=>{e.stopPropagation();navigate('ficha-arrendatario',a.ref?{arrRef:a.ref,fromActivoRef:activo?.ref||params?.ref}:{tenantName:a.tenant})}}>↗ Ver</button></td>
                       </tr>
                     ))}
                     {arrendatariosReg.length===0 && <tr><td colSpan={9} style={{textAlign:'center',color:'var(--text4)',fontSize:12,padding:16}}>Sin arrendatarios — añade uno con el botón</td></tr>}

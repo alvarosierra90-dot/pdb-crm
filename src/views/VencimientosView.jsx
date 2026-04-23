@@ -53,14 +53,14 @@ function mapDbToVencimientos(r) {
       _recordatorioFecha: calcRecordatorioISO(r.break_option, mesesRecordatorio),
     })
   }
-  if (r.fecha_fin) {
+  if (r.vencimiento) {
     entries.push({
       id: `DB-${r.ref}-FIN`,
       activo,
       arrendatario,
       sup,
       linea,
-      fecha: r.fecha_fin,
+      fecha: r.vencimiento,
       tipo: 'Fin contrato',
       origen: 'interna',
       oportunidad: null,
@@ -109,9 +109,9 @@ export default function VencimientosView() {
 
   useEffect(() => {
     supabase.from('arrendatarios')
-      .select('ref,nombre,activo_ref,break_option,fecha_fin,m2')
-      .not('fecha_fin', 'is', null)
-      .order('fecha_fin')
+      .select('ref,nombre,activo_ref,break_option,vencimiento,m2')
+      .not('vencimiento', 'is', null)
+      .order('vencimiento')
       .then(({ data }) => {
         if (data?.length > 0) {
           const dbEntries = data.flatMap(mapDbToVencimientos)

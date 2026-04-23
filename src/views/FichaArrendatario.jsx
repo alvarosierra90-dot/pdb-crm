@@ -79,7 +79,7 @@ export default function FichaArrendatario() {
   const fromActivo = !!params?.fromActivoRef && !fromOferta
   const fromTenantClick = !!params?.tenantName && !fromOferta && !fromActivo
   const fromDarBaja = !!params?.arrRef
-  const isNew = fromOferta || fromActivo
+  const isNew = (fromOferta || fromActivo) && !fromDarBaja
 
   const EMPTY_FORM = {
     activo: '',
@@ -490,15 +490,16 @@ export default function FichaArrendatario() {
         {!isNew && !fromDarBaja && <button className="ab-btn">Nuevo</button>}
         {!isNew && !fromDarBaja && <button className="ab-btn">Desactivar</button>}
         <div className="ab-sep"/>
-        {((!isNew&&!fromDarBaja)||fromDarBaja) && <button className="ab-btn blue" onClick={()=>navigate('ficha-activo',{ref:fromDarBaja?(form.activo||params?.arrRef):undefined})}>🏢 Ver activo</button>}
-        {!isNew && !fromDarBaja && <button className="ab-btn blue" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>}
+        {(params?.fromActivoRef || fromDarBaja || fromActivo) && <button className="ab-btn blue" onClick={()=>navigate('ficha-activo',{ref:params?.fromActivoRef||(fromDarBaja?(form.activo||params?.arrRef):undefined)})}>🏢 Ver activo</button>}
+        {!isNew && !fromDarBaja && !params?.fromActivoRef && <button className="ab-btn blue" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>}
         <button className="ab-btn" onClick={()=>
-          fromDarBaja  ? navigate('arrendatarios')
+          params?.fromActivoRef ? navigate('ficha-activo',{ref:params.fromActivoRef,tab:'at-prop'})
+          : fromDarBaja  ? navigate('arrendatarios')
           : fromOferta  ? navigate('ficha-oferta',{ofertaRef:params.fromOfertaRef})
           : fromActivo ? navigate('ficha-activo',{ref:params.fromActivoRef,tab:'at-stacking'})
           : fromTenantClick ? navigate(-1)
           : navigate('arrendatarios')}>
-          ← {fromDarBaja ? 'Ir al listado' : fromOferta ? 'Volver a la oferta' : fromActivo ? 'Volver al activo' : 'Volver'}
+          ← {params?.fromActivoRef ? 'Volver al activo' : fromDarBaja ? 'Ir al listado' : fromOferta ? 'Volver a la oferta' : fromActivo ? 'Volver al activo' : 'Volver'}
         </button>
         <div className="ab-sep"/>
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
