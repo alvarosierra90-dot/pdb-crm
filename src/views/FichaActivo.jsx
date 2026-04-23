@@ -2298,20 +2298,71 @@ function MapaCarrusel({ activo, direccion, onAddressChange }) {
   }, [direccion, activo?.direccion])
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+    <div className="va-hero">
 
-      {/* Mapa con barra de búsqueda integrada */}
-      <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', position: 'relative' }}>
-        {GMAPS_API_KEY ? (
-          <div ref={mapElRef} style={{ width: '100%', height: 220, background: '#e5e3df' }}/>
+      {/* Carrusel fotos — 1.5fr izquierda */}
+      <div style={{ background: 'var(--gray-lt)' }}>
+        {ordenadas.length > 0 ? (
+          <>
+            {/* Foto principal full-bleed */}
+            <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
+              {ordenadas[carIdx]?.src?.startsWith('http') ? (
+                <img src={ordenadas[carIdx].src} alt={ordenadas[carIdx].desc}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 72, background: '#f1f5f9' }}>{ordenadas[carIdx]?.src}</div>
+              )}
+              {/* Gradient overlay */}
+              <div style={{ position:'absolute',inset:0, background:'linear-gradient(180deg,rgba(0,0,0,0) 50%,rgba(0,0,0,0.55) 100%)', pointerEvents:'none' }}/>
+              {/* Label bottom */}
+              <div style={{ position:'absolute', bottom:14, left:16, right:16, zIndex:2, display:'flex', justifyContent:'space-between', alignItems:'flex-end' }}>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:600, color:'#fff', letterSpacing:'-.005em' }}>{ordenadas[carIdx]?.desc}</div>
+                  <div style={{ fontSize:10, color:'rgba(255,255,255,.8)' }}>{ordenadas[carIdx]?.subtipo}</div>
+                </div>
+                {ordenadas[carIdx]?.principal && <span style={{ fontSize:9, padding:'2px 8px', borderRadius:8, background:'var(--accent)', color:'#fff', fontWeight:700 }}>PRINCIPAL</span>}
+              </div>
+              {/* Thumbnails bottom-right */}
+              <div style={{ position:'absolute', bottom:50, right:12, display:'flex', gap:4, zIndex:2 }}>
+                {ordenadas.slice(0,4).map((f,i) => (
+                  <div key={f.id} onClick={() => setCarIdx(i)}
+                    style={{ width:32,height:32,borderRadius:4,border:`2px solid ${i===carIdx?'#fff':'rgba(255,255,255,.6)'}`,overflow:'hidden',cursor:'pointer',background:'#f8fafc',flexShrink:0 }}>
+                    {f.src?.startsWith('http') ? <img src={f.src} alt={f.desc} style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }} loading="lazy"/>
+                      : <div style={{ width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14 }}>{f.src}</div>}
+                  </div>
+                ))}
+              </div>
+              {/* Nav arrows */}
+              {ordenadas.length > 1 && (
+                <>
+                  <button onClick={() => setCarIdx(i => (i - 1 + ordenadas.length) % ordenadas.length)}
+                    style={{ position:'absolute',top:'50%',left:10,transform:'translateY(-50%)',width:28,height:28,borderRadius:'50%',background:'rgba(255,255,255,.9)',border:'none',cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',zIndex:3 }}>‹</button>
+                  <button onClick={() => setCarIdx(i => (i + 1) % ordenadas.length)}
+                    style={{ position:'absolute',top:'50%',right:10,transform:'translateY(-50%)',width:28,height:28,borderRadius:'50%',background:'rgba(255,255,255,.9)',border:'none',cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',zIndex:3 }}>›</button>
+                </>
+              )}
+            </div>
+          </>
         ) : (
-          <div style={{ width: '100%', height: 220, background: 'var(--gray-lt)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--text4)' }}>
+          <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, color:'var(--text4)' }}>
+            <div style={{ fontSize:40 }}>🖼</div>
+            <div style={{ fontSize:11 }}>Sin imágenes · añade en Multimedia</div>
+          </div>
+        )}
+      </div>
+
+      {/* Mapa — 1fr derecha */}
+      <div style={{ position: 'relative' }}>
+        {GMAPS_API_KEY ? (
+          <div ref={mapElRef} style={{ width: '100%', height: '100%', background: '#e5e3df' }}/>
+        ) : (
+          <div style={{ width: '100%', height: '100%', background: 'var(--gray-lt)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--text4)' }}>
             <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
             <div style={{ fontSize: 10 }}>Mapa no disponible</div>
           </div>
         )}
-        {/* Search bar overlay — always visible at top of map */}
-        <div style={{ position: 'absolute', top: 8, left: 8, right: 8, zIndex: 10 }}>
+        {/* Search bar overlay */}
+        <div style={{ position: 'absolute', top: 10, left: 10, right: 10, zIndex: 10 }}>
           <div style={{ position: 'relative' }}>
             <svg viewBox="0 0 16 16" fill="none" stroke="var(--text3)" strokeWidth="1.5"
               style={{ position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', width:12, height:12, pointerEvents:'none', zIndex:1 }}>
@@ -2319,66 +2370,15 @@ function MapaCarrusel({ activo, direccion, onAddressChange }) {
             </svg>
             <input ref={searchRef} type="text"
               placeholder="Buscar dirección en el mapa..."
-              style={{ width:'100%', boxSizing:'border-box', padding:'7px 10px 7px 26px',
-                background:'rgba(255,255,255,.96)', border:'1px solid rgba(0,0,0,.12)',
-                borderRadius:6, fontSize:11, fontFamily:'inherit', color:'var(--text1)',
-                boxShadow:'0 2px 6px rgba(0,0,0,.15)', outline:'none' }}/>
+              style={{ width:'100%', boxSizing:'border-box', padding:'8px 12px 8px 28px',
+                background:'rgba(255,255,255,.97)', border:'none',
+                borderRadius:6, fontSize:12, fontFamily:'inherit', color:'var(--text1)',
+                boxShadow:'0 2px 8px rgba(11,18,32,.15)', outline:'none' }}/>
           </div>
         </div>
         <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(255,255,255,.92)', borderRadius: 5, padding: '3px 8px', fontSize: 10, fontWeight: 600, color: 'var(--text2)', backdropFilter: 'blur(4px)', border: '1px solid var(--border)' }}>
           {activo?.zona || 'M-30'} · {activo?.ciudad || 'Madrid'}
         </div>
-      </div>
-
-      {/* Carrusel fotos */}
-      <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', position: 'relative', background: 'var(--gray-lt)' }}>
-        {ordenadas.length > 0 ? (
-          <>
-            {/* Foto principal */}
-            <div style={{ width: '100%', height: 166, overflow: 'hidden', background: '#f1f5f9', position: 'relative' }}>
-              {ordenadas[carIdx]?.src?.startsWith('http') ? (
-                <img src={ordenadas[carIdx].src} alt={ordenadas[carIdx].desc} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
-              ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 56 }}>{ordenadas[carIdx]?.src}</div>
-              )}
-            </div>
-            {/* Descripción */}
-            <div style={{ padding: '6px 10px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text1)' }}>{ordenadas[carIdx]?.desc}</div>
-                <div style={{ fontSize: 9, color: 'var(--text4)' }}>{ordenadas[carIdx]?.subtipo}</div>
-              </div>
-              {ordenadas[carIdx]?.principal && <span style={{ fontSize: 8, padding: '1px 6px', borderRadius: 8, background: 'var(--accent)', color: '#fff', fontWeight: 700 }}>PRINCIPAL</span>}
-            </div>
-            {/* Thumbnails scroll */}
-            <div style={{ display: 'flex', gap: 5, padding: '0 10px 8px', overflowX: 'auto' }}>
-              {ordenadas.map((f, i) => (
-                <div key={f.id} onClick={() => setCarIdx(i)}
-                  style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 5, border: `2px solid ${i === carIdx ? 'var(--accent)' : 'var(--border)'}`, overflow: 'hidden', cursor: 'pointer', background: '#f8fafc' }}>
-                  {f.src?.startsWith('http') ? (
-                    <img src={f.src} alt={f.desc} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy"/>
-                  ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{f.src}</div>
-                  )}
-                </div>
-              ))}
-            </div>
-            {/* Flechas nav */}
-            {ordenadas.length > 1 && (
-              <>
-                <button onClick={() => setCarIdx(i => (i - 1 + ordenadas.length) % ordenadas.length)}
-                  style={{ position: 'absolute', top: '50%', left: 6, transform: 'translateY(-50%)', width: 24, height: 24, borderRadius: '50%', background: 'rgba(255,255,255,.9)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -20 }}>‹</button>
-                <button onClick={() => setCarIdx(i => (i + 1) % ordenadas.length)}
-                  style={{ position: 'absolute', top: '50%', right: 6, transform: 'translateY(-50%)', width: 24, height: 24, borderRadius: '50%', background: 'rgba(255,255,255,.9)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -20 }}>›</button>
-              </>
-            )}
-          </>
-        ) : (
-          <div style={{ height: 220, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--text4)' }}>
-            <div style={{ fontSize: 28 }}>🖼</div>
-            <div style={{ fontSize: 11 }}>Sin imágenes · añade en Multimedia</div>
-          </div>
-        )}
       </div>
 
     </div>
@@ -2876,6 +2876,38 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
                 </span>
               </div>
             )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── SUPERFICIES Y DETALLES ── */}
+        <div className="va-meta-card" style={{marginBottom:20}}>
+          <div className="va-meta-head"><span className="dot green"/><span>Superficies y detalles</span></div>
+          <div className="va-chip-row" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
+            <div className="va-chip-cell">
+              <div className="chip-lbl">SBA total</div>
+              <div className="chip-val">{info.sba ? Number(info.sba).toLocaleString('es-ES') : '—'}<span className="chip-unit">m²</span></div>
+            </div>
+            <div className="va-chip-cell">
+              <div className="chip-lbl">Sup. neta</div>
+              <div className="chip-val">
+                {(info.sba && info.ratio_perdida)
+                  ? Math.round(Number(info.sba)*(1-Number(info.ratio_perdida)/100)).toLocaleString('es-ES')
+                  : '—'}
+                <span className="chip-unit">m²</span>
+              </div>
+            </div>
+            <div className="va-chip-cell">
+              <div className="chip-lbl">Ratio pérdida</div>
+              <div className="chip-val">{info.ratio_perdida ? `${info.ratio_perdida}%` : '—'}</div>
+            </div>
+            <div className="va-chip-cell">
+              <div className="chip-lbl">Planta tipo</div>
+              <div className="chip-val">{info.sup_planta_tipo ? Number(info.sup_planta_tipo).toLocaleString('es-ES') : '—'}<span className="chip-unit">m²</span></div>
+            </div>
+            <div className="va-chip-cell">
+              <div className="chip-lbl">Sup. parcela</div>
+              <div className="chip-val">{info.sup_parcela ? Number(info.sup_parcela).toLocaleString('es-ES') : '—'}<span className="chip-unit">m²</span></div>
             </div>
           </div>
         </div>
