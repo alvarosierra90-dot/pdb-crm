@@ -116,48 +116,71 @@ export default function FichaOportunidad() {
           <div style={{ padding:'18px 20px' }}>
 
             {tab === 'info' && (
-              <>
-                <div style={{ background:'#fef3c7', border:'1px solid #fde68a', borderRadius:8, padding:'8px 12px', marginBottom:18, fontSize:11, color:'#7c2d12' }}>
-                  ℹ️ Estos datos se sincronizan desde Microsoft Dynamics 365 y no son editables en PDB. La Cuenta vinculada se hereda automáticamente.
-                </div>
+              <div className="info-pad">
 
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24 }}>
-                  <div>
-                    <div className="rp-lbl">Identificación</div>
-                    <KV k="Nombre de la oportunidad" v={op.nombre} large />
-                    <KV k="ID" v={op.id} mono />
-                    <KV k="Cuenta vinculada" v={<span style={{ color:'var(--accent)', fontWeight:600 }}>🏢 {op.cuenta}</span>} />
-                    <KV k="Contacto" v={op.contacto} />
-                    <KV k="Responsable" v={op.responsable} />
-                    <KV k="División" v={op.div_user} />
+                {/* ── IDENTIFICACIÓN + ESTADO ── */}
+                <div className="va-two-col">
+                  <div className="va-meta-card">
+                    <div className="va-meta-head"><span className="dot"/>Identificación</div>
+                    <div className="va-kv-list">
+                      <div className="ir"><span className="ir-k">Nombre</span><span className="ir-v" style={{fontWeight:600}}>{op.nombre || '—'}</span></div>
+                      <div className="ir"><span className="ir-k">ID</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{op.id}</span></div>
+                      <div className="ir"><span className="ir-k">Cuenta vinculada</span><span className="ir-v" style={{color:'var(--accent)',fontWeight:600}}>{op.cuenta || '—'}</span></div>
+                      <div className="ir"><span className="ir-k">Contacto</span><span className="ir-v">{op.contacto || '—'}</span></div>
+                      <div className="ir"><span className="ir-k">Responsable</span><span className="ir-v">{op.responsable || '—'}</span></div>
+                      <div className="ir"><span className="ir-k">División</span><span className="ir-v">{op.div_user || '—'}</span></div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="rp-lbl">Estado y económica</div>
-                    <KV k="Etapa" v={<span className={`tag ${tagClass}`}>{op.etapa}</span>} />
-                    <KV k="Probabilidad de éxito" v={<span style={{ fontWeight:700, color:'var(--accent)' }}>{op.probabilidad || 50}%</span>} />
-                    <KV k="Importe estimado (lifetime)" v={<span style={{ color:'var(--green)', fontWeight:700, fontFamily:'var(--mono)' }}>{Number(op.lifetime).toLocaleString('es-ES')} €</span>} />
-                    <KV k="Línea de negocio" v={op.division} />
-                    <KV k="Fecha estimada cierre" v={op.marco} />
-                    <KV k="Origen del negocio" v={op.origen} />
-                    <KV k="Remitido por" v={op.remitido} />
-                    <KV k="Razón comercial" v={op.razon} />
-                  </div>
-                </div>
 
-                <div style={{ marginTop:24 }}>
-                  <div className="rp-lbl">Descripción</div>
-                  <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:6, padding:'10px 12px', fontSize:12, color:'var(--text)', lineHeight:1.5 }}>
-                    {op.descripcion || op.notas || '—'}
+                  <div className="va-meta-card">
+                    <div className="va-meta-head accent-purple"><span className="dot"/>Estado y económica</div>
+                    <div className="va-kv-list">
+                      <div className="ir"><span className="ir-k">Etapa</span><span className="ir-v"><span className={`tag ${tagClass}`}>{op.etapa}</span></span></div>
+                      <div className="ir"><span className="ir-k">Probabilidad</span><span className="ir-v" style={{fontWeight:700,color:'var(--accent)'}}>{op.probabilidad || 50}%</span></div>
+                      <div className="ir"><span className="ir-k">Importe estimado</span><span className="ir-v" style={{fontFamily:'var(--mono)',color:'var(--green)',fontWeight:700}}>{Number(op.lifetime).toLocaleString('es-ES')} €</span></div>
+                      <div className="ir"><span className="ir-k">Línea de negocio</span><span className="ir-v">{op.division || '—'}</span></div>
+                      <div className="ir"><span className="ir-k">Fecha estimada cierre</span><span className="ir-v">{op.marco || '—'}</span></div>
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ marginTop:18 }}>
-                  <div className="rp-lbl">Notas</div>
-                  <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:6, padding:'10px 12px', fontSize:11, color:'var(--text3)', lineHeight:1.5, fontStyle:'italic' }}>
-                    {op.notas || '—'}
+                {/* ── ORIGEN ── */}
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico">◉</span> Origen</h3>
+                  </div>
+                  <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:16}}>
+                    <div className="ir"><span className="ir-k">Origen del negocio</span><span className="ir-v">{op.origen || '—'}</span></div>
+                    <div className="ir"><span className="ir-k">Remitido por</span><span className="ir-v">{op.remitido !== '—' ? op.remitido : <span style={{color:'var(--text4)'}}>—</span>}</span></div>
+                    <div className="ir"><span className="ir-k">Razón comercial</span><span className="ir-v">{op.razon || '—'}</span></div>
+                    <div className="ir"><span className="ir-k">Fecha de alta</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{op.fecha || '—'}</span></div>
                   </div>
                 </div>
-              </>
+
+                {/* ── DESCRIPCIÓN ── */}
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico">▭</span> Descripción</h3>
+                  </div>
+                  <div style={{padding:'4px 20px 16px',fontSize:12,color:'var(--text2)',lineHeight:1.55}}>
+                    {op.descripcion || <span style={{color:'var(--text4)'}}>Sin descripción registrada.</span>}
+                  </div>
+                </div>
+
+                {/* ── NOTAS ── */}
+                {op.notas && (
+                  <div className="va-card">
+                    <div className="va-card-header">
+                      <h3><span className="ico">✎</span> Notas</h3>
+                      <span className="hint">internas</span>
+                    </div>
+                    <div style={{padding:'4px 20px 16px',fontSize:11,color:'var(--text3)',lineHeight:1.55,fontStyle:'italic'}}>
+                      {op.notas}
+                    </div>
+                  </div>
+                )}
+
+              </div>
             )}
 
             {tab === 'vinc' && (
