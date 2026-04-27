@@ -893,12 +893,6 @@ export default function FichaOferta() {
                             <div style={{fontSize:14,fontWeight:600}}>Stacking Plan</div>
                             <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Distribución de usos, propietarios y arrendatarios por planta y edificio</div>
                           </div>
-                          <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                            <span style={{fontSize:10,color:'var(--accent)',fontWeight:600,background:'var(--accent-lt)',padding:'3px 8px',borderRadius:10,border:'1px solid var(--accent-bd)'}}>Vista de Oferta · capa Arrendatarios y oferta</span>
-                            <button className="ab-btn" style={{fontSize:11}} onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref, stackingView: 'arr' })}>
-                              📊 Abrir desde Activo ↗
-                            </button>
-                          </div>
                         </div>
                         <StackingPlan
                       key={activoSeleccionado.ref}
