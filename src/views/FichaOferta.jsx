@@ -1293,62 +1293,88 @@ export default function FichaOferta() {
               {/* Condiciones */}
               {activeTab==='of-condiciones' && (
                 <div className="tab-content active"><div className="info-pad">
-                  <div style={{ fontSize:14, fontWeight:600, marginBottom:14 }}>Condiciones <span className="tag tag-green" style={{ fontSize:9, marginLeft:6 }}>+ Sincronizado</span></div>
-                  <div className="cond-grid">
-                    <div className="cond-block"><div className="cond-block-title">CONDICIONES CONTRACTUALES</div>
-                      <div className="cond-row"><span className="cond-key">Tipo arrendamiento</span><span className="cond-val">Alquiler comercial</span></div>
-                      <div className="cond-row"><span className="cond-key">Régimen fiscal</span><span className="cond-val">I.V.A.</span></div>
-                      <div className="cond-row"><span className="cond-key">Fianza legal</span><span className="cond-val">2 meses sin IVA</span></div>
-                      <div className="cond-row"><span className="cond-key">Indexación anual</span><span className="cond-val">Sí</span></div>
-                      <div className="cond-row"><span className="cond-key">Pago honorarios</span><span className="cond-val">A la firma</span></div>
-                    </div>
-                    <div className="cond-block"><div className="cond-block-title">CONDICIONES ECONÓMICAS</div>
-                      {(()=>{
-                        const rentaSpaces = espaciosComercializables.filter(e=>e.renta>0)
-                        const rentaMax = rentaSpaces.length>0 ? Math.max(...rentaSpaces.map(e=>e.renta)) : null
-                        const rentaMin = rentaSpaces.length>0 ? Math.min(...rentaSpaces.map(e=>e.renta)) : null
-                        const supConRenta = rentaSpaces.reduce((s,e)=>s+e.sup,0)
-                        const rentaMedia = supConRenta>0 ? rentaSpaces.reduce((s,e)=>s+e.renta*e.sup,0)/supConRenta : null
-                        const rentaMensual = espaciosComercializables.reduce((s,e)=>s+(e.renta||0)*e.sup,0)
-                        const withGastos = ofertasDesglose.filter(o=>o.cargasM2>0)
-                        const gastosMax = withGastos.length>0 ? Math.max(...withGastos.map(o=>o.cargasM2)) : null
-                        const gastosMin = withGastos.length>0 ? Math.min(...withGastos.map(o=>o.cargasM2)) : null
-                        let gNum=0, gDen=0
-                        ofertasDesglose.forEach(o=>{
-                          if(o.cargasM2>0){
-                            const asSup=espaciosComercializables.filter(e=>e.ofertaNombre===o.nombre).reduce((s,e)=>s+e.sup,0)
-                            if(asSup>0){gNum+=o.cargasM2*asSup;gDen+=asSup}else{gNum+=o.cargasM2;gDen+=1}
-                          }
-                        })
-                        const gastosMedia = gDen>0 ? gNum/gDen : null
-                        const withIbi = ofertasDesglose.filter(o=>o.ibiM2>0)
-                        const ibiMax = withIbi.length>0?Math.max(...withIbi.map(o=>o.ibiM2)):null
-                        const ibiMin = withIbi.length>0?Math.min(...withIbi.map(o=>o.ibiM2)):null
-                        return (<>
-                          <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginTop:4, marginBottom:6 }}>Renta · desde Stacking Plan</div>
-                          <div className="cond-row"><span className="cond-key">Renta media (€/m²/mes)</span><span className="cond-val" style={{ fontSize:14, color:'var(--green)' }}>{rentaMedia!=null?`${rentaMedia.toFixed(2)} €`:'—'}</span></div>
-                          <div className="cond-row"><span className="cond-key">Renta mínima / máxima</span><span className="cond-val">{rentaMin!=null?`${rentaMin.toFixed(2)} — ${rentaMax.toFixed(2)} €/m²`:'—'}</span></div>
-                          <div className="cond-row"><span className="cond-key">Renta mensual total</span><span className="cond-val" style={{ color:'var(--green)', fontWeight:700 }}>{rentaMensual>0?`${rentaMensual.toLocaleString(undefined,{maximumFractionDigits:0})} €`:'—'}</span></div>
-                          <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginTop:12, marginBottom:6 }}>Gastos · desde desglose de ofertas</div>
-                          <div className="cond-row"><span className="cond-key">Gastos medios (€/m²/mes)</span><span className="cond-val">{gastosMedia!=null?`${gastosMedia.toFixed(2)} €`:'—'}</span></div>
-                          <div className="cond-row"><span className="cond-key">Gastos mínimos / máximos</span><span className="cond-val">{gastosMin!=null?`${gastosMin.toFixed(2)} — ${gastosMax.toFixed(2)} €/m²`:'—'}</span></div>
-                          <div className="cond-row"><span className="cond-key">IBI mínimo / máximo</span><span className="cond-val">{ibiMin!=null?`${ibiMin.toFixed(2)} — ${ibiMax.toFixed(2)} €/m²`:'—'}</span></div>
-                          <label style={{ display:'flex', alignItems:'flex-start', gap:8, padding:'9px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', cursor:'pointer', marginTop:10 }}>
+                  {(()=>{
+                    const rentaSpaces = espaciosComercializables.filter(e=>e.renta>0)
+                    const rentaMax = rentaSpaces.length>0 ? Math.max(...rentaSpaces.map(e=>e.renta)) : null
+                    const rentaMin = rentaSpaces.length>0 ? Math.min(...rentaSpaces.map(e=>e.renta)) : null
+                    const supConRenta = rentaSpaces.reduce((s,e)=>s+e.sup,0)
+                    const rentaMedia = supConRenta>0 ? rentaSpaces.reduce((s,e)=>s+e.renta*e.sup,0)/supConRenta : null
+                    const rentaMensual = espaciosComercializables.reduce((s,e)=>s+(e.renta||0)*e.sup,0)
+                    const withGastos = ofertasDesglose.filter(o=>o.cargasM2>0)
+                    const gastosMax = withGastos.length>0 ? Math.max(...withGastos.map(o=>o.cargasM2)) : null
+                    const gastosMin = withGastos.length>0 ? Math.min(...withGastos.map(o=>o.cargasM2)) : null
+                    let gNum=0, gDen=0
+                    ofertasDesglose.forEach(o=>{
+                      if(o.cargasM2>0){
+                        const asSup=espaciosComercializables.filter(e=>e.ofertaNombre===o.nombre).reduce((s,e)=>s+e.sup,0)
+                        if(asSup>0){gNum+=o.cargasM2*asSup;gDen+=asSup}else{gNum+=o.cargasM2;gDen+=1}
+                      }
+                    })
+                    const gastosMedia = gDen>0 ? gNum/gDen : null
+                    const withIbi = ofertasDesglose.filter(o=>o.ibiM2>0)
+                    const ibiMax = withIbi.length>0?Math.max(...withIbi.map(o=>o.ibiM2)):null
+                    const ibiMin = withIbi.length>0?Math.min(...withIbi.map(o=>o.ibiM2)):null
+                    return (
+                    <>
+                      {/* ── 2 COL: CONTRACTUALES + INCENTIVOS Y CAPEX ── */}
+                      <div className="va-two-col">
+                        <div className="va-meta-card">
+                          <div className="va-meta-head"><span className="dot"/>Condiciones contractuales</div>
+                          <div className="va-kv-list">
+                            <div className="ir"><span className="ir-k">Tipo arrendamiento</span><span className="ir-v">Alquiler comercial</span></div>
+                            <div className="ir"><span className="ir-k">Régimen fiscal</span><span className="ir-v">I.V.A.</span></div>
+                            <div className="ir"><span className="ir-k">Fianza legal</span><span className="ir-v">2 meses sin IVA</span></div>
+                            <div className="ir"><span className="ir-k">Indexación anual</span><span className="ir-v">Sí</span></div>
+                            <div className="ir"><span className="ir-k">Pago honorarios</span><span className="ir-v">A la firma</span></div>
+                          </div>
+                        </div>
+                        <div className="va-meta-card">
+                          <div className="va-meta-head accent-purple"><span className="dot"/>Incentivos y CAPEX</div>
+                          <div className="va-kv-list">
+                            <div className="ir"><span className="ir-k">Meses de carencia</span><span className="ir-v"><span style={{color:'var(--text4)'}}>—</span></span></div>
+                            <div className="ir"><span className="ir-k">Aportación obras</span><span className="ir-v"><span style={{color:'var(--text4)'}}>—</span></span></div>
+                            <div className="ir"><span className="ir-k">Estado oferta</span><span className="ir-v"><span className="tag tag-green">Disponible</span></span></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ── ECONÓMICAS · RENTA ── */}
+                      <div className="va-card">
+                        <div className="va-card-header">
+                          <h3><span className="ico" style={{color:'var(--green)'}}>●</span> Renta</h3>
+                          <span className="hint">Calculada desde el Stacking Plan</span>
+                        </div>
+                        <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:16}}>
+                          <div className="ir"><span className="ir-k">Renta media (€/m²/mes)</span><span className="ir-v" style={{fontFamily:'var(--mono)',color:'var(--green)',fontWeight:700,fontSize:14}}>{rentaMedia!=null?`${rentaMedia.toFixed(2)} €`:'—'}</span></div>
+                          <div className="ir"><span className="ir-k">Renta mín. / máx.</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{rentaMin!=null?`${rentaMin.toFixed(2)} — ${rentaMax.toFixed(2)} €/m²`:'—'}</span></div>
+                          <div className="ir"><span className="ir-k">Renta mensual total</span><span className="ir-v" style={{fontFamily:'var(--mono)',color:'var(--green)',fontWeight:700}}>{rentaMensual>0?`${rentaMensual.toLocaleString(undefined,{maximumFractionDigits:0})} €`:'—'}</span></div>
+                        </div>
+                      </div>
+
+                      {/* ── ECONÓMICAS · GASTOS ── */}
+                      <div className="va-card">
+                        <div className="va-card-header">
+                          <h3><span className="ico">◇</span> Gastos e IBI</h3>
+                          <span className="hint">Desde el desglose de ofertas</span>
+                        </div>
+                        <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:14}}>
+                          <div className="ir"><span className="ir-k">Gastos medios (€/m²/mes)</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{gastosMedia!=null?`${gastosMedia.toFixed(2)} €`:'—'}</span></div>
+                          <div className="ir"><span className="ir-k">Gastos mín. / máx.</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{gastosMin!=null?`${gastosMin.toFixed(2)} — ${gastosMax.toFixed(2)} €/m²`:'—'}</span></div>
+                          <div className="ir"><span className="ir-k">IBI mín. / máx.</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{ibiMin!=null?`${ibiMin.toFixed(2)} — ${ibiMax.toFixed(2)} €/m²`:'—'}</span></div>
+                        </div>
+                        <div style={{padding:'0 20px 16px'}}>
+                          <label style={{ display:'flex', alignItems:'flex-start', gap:8, padding:'10px 12px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', cursor:'pointer' }}>
                             <input type="checkbox" checked={gastosIncluidos} onChange={e => setGastosIncluidos(e.target.checked)} style={{ accentColor:'var(--accent)', marginTop:1 }} />
                             <div>
-                              <div style={{ fontSize:11, fontWeight:600 }}>Gastos incluidos en renta</div>
-                              <div style={{ fontSize:9, color:'var(--text4)', marginTop:1 }}>{gastosIncluidos ? 'Los importes son informativos (ya incluidos en la renta)' : 'Los importes son adicionales a la renta'}</div>
+                              <div style={{ fontSize:12, fontWeight:600 }}>Gastos incluidos en renta</div>
+                              <div style={{ fontSize:10, color:'var(--text4)', marginTop:2 }}>{gastosIncluidos ? 'Los importes son informativos (ya incluidos en la renta)' : 'Los importes son adicionales a la renta'}</div>
                             </div>
                           </label>
-                        </>)
-                      })()}
-                    </div>
-                    <div className="cond-block"><div className="cond-block-title">INCENTIVOS Y CAPEX</div>
-                      <div className="cond-row"><span className="cond-key">Meses de carencia</span><span className="cond-val">—</span></div>
-                      <div className="cond-row"><span className="cond-key">Aportación obras</span><span className="cond-val">—</span></div>
-                      <div className="cond-row"><span className="cond-key">Estado oferta</span><span className="cond-val" style={{ color:'var(--green)' }}>Disponible</span></div>
-                    </div>
-                  </div>
+                        </div>
+                      </div>
+                    </>
+                    )
+                  })()}
                 </div></div>
               )}
 
@@ -1652,40 +1678,51 @@ export default function FichaOferta() {
               {/* Seguimiento */}
               {activeTab==='of-seg' && (
                 <div className="tab-content active"><div className="info-pad">
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:14 }}>
-                    {[
-                      {lbl:'Actividades totales',val:SEG_ACTS.length,color:'var(--text1)'},
-                      {lbl:'Presentaciones',val:SEG_ACTS.filter(a=>a.tipo==='Presentación').length,color:'var(--amber)'},
-                      {lbl:'Visitas realizadas',val:SEG_ACTS.filter(a=>a.tipo==='Visita').length,color:'var(--teal)'},
-                      {lbl:'Pendientes',val:SEG_ACTS.filter(a=>a.estado==='Abierto'||a.estado==='En curso').length,color:'var(--red)'},
-                    ].map(k => (
-                      <div key={k.lbl} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'8px 12px', textAlign:'center' }}>
-                        <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em', marginBottom:3 }}>{k.lbl}</div>
-                        <div style={{ fontSize:18, fontWeight:800, fontFamily:'var(--mono)', color:k.color }}>{k.val}</div>
-                      </div>
-                    ))}
+
+                  {/* ── KPIs de seguimiento ── */}
+                  <div className="va-card">
+                    <div className="va-card-header">
+                      <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Resumen de actividad</h3>
+                    </div>
+                    <div style={{padding:'4px 20px 16px',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
+                      {[
+                        {lbl:'Actividades totales',val:SEG_ACTS.length,color:'var(--text1)'},
+                        {lbl:'Presentaciones',val:SEG_ACTS.filter(a=>a.tipo==='Presentación').length,color:'var(--amber)'},
+                        {lbl:'Visitas realizadas',val:SEG_ACTS.filter(a=>a.tipo==='Visita').length,color:'var(--teal)'},
+                        {lbl:'Pendientes',val:SEG_ACTS.filter(a=>a.estado==='Abierto'||a.estado==='En curso').length,color:'var(--red)'},
+                      ].map(k => (
+                        <div key={k.lbl} style={{ textAlign:'center' }}>
+                          <div style={{ fontSize:22, fontWeight:800, fontFamily:'var(--mono)', color:k.color }}>{k.val}</div>
+                          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginTop:3 }}>{k.lbl}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-                    <div style={{ fontSize:11, fontWeight:600 }}>Actividades vinculadas a la oferta</div>
-                    <button className="ab-btn blue">+ Registrar actividad</button>
-                  </div>
-                  <div className="info-block" style={{ padding:0, overflow:'hidden' }}>
-                    <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
-                      <thead><tr>{['','ID','Tipo','Descripción','Fecha','Responsable','Estado'].map(h =>
-                        <th key={h} style={{ padding:'6px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', background:'var(--gray-lt)', borderBottom:'1px solid var(--border)', textTransform:'uppercase' }}>{h}</th>
-                      )}</tr></thead>
-                      <tbody>{SEG_ACTS.map(a => (
-                        <tr key={a.id} style={{ borderBottom:'1px solid var(--border)', cursor:'pointer' }} onClick={() => navigate('ficha-actividad')}>
-                          <td style={{ padding:'7px 10px', width:30 }}><div style={{ width:26, height:26, borderRadius:'50%', background:a.bg, color:a.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700 }}>{a.initials}</div></td>
-                          <td style={{ padding:'7px 12px' }}><span className="asset-link" style={{ fontFamily:'var(--mono)', fontSize:10 }}>{a.id}</span></td>
-                          <td style={{ padding:'7px 12px' }}><span className={`tag ${TIPO_TAG[a.tipo]||'tag-gray'}`}>{TIPO_ICO[a.tipo]} {a.tipo}</span></td>
-                          <td style={{ padding:'7px 12px', fontWeight:500, maxWidth:320 }}>{a.asunto}</td>
-                          <td style={{ padding:'7px 12px', color:'var(--text3)', whiteSpace:'nowrap' }}>{a.fecha}</td>
-                          <td style={{ padding:'7px 12px', fontSize:10, color:'var(--text3)' }}>{a.user}</td>
-                          <td style={{ padding:'7px 12px' }}><span className={`tag ${ACT_EST[a.estado]||'tag-gray'}`}>{a.estado}</span></td>
-                        </tr>
-                      ))}</tbody>
-                    </table>
+
+                  {/* ── Tabla actividades ── */}
+                  <div className="va-card">
+                    <div className="va-card-header">
+                      <h3><span className="ico">◈</span> Actividades vinculadas</h3>
+                      <button className="ab-btn blue">+ Registrar actividad</button>
+                    </div>
+                    <div style={{padding:'4px 0 0', overflow:'hidden'}}>
+                      <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+                        <thead><tr>{['','ID','Tipo','Descripción','Fecha','Responsable','Estado'].map(h =>
+                          <th key={h} style={{ padding:'8px 16px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', background:'var(--gray-lt)', borderBottom:'1px solid var(--border)', textTransform:'uppercase' }}>{h}</th>
+                        )}</tr></thead>
+                        <tbody>{SEG_ACTS.map(a => (
+                          <tr key={a.id} style={{ borderBottom:'1px solid var(--border)', cursor:'pointer' }} onClick={() => navigate('ficha-actividad')}>
+                            <td style={{ padding:'8px 12px', width:30 }}><div style={{ width:28, height:28, borderRadius:'50%', background:a.bg, color:a.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700 }}>{a.initials}</div></td>
+                            <td style={{ padding:'8px 16px' }}><span className="asset-link" style={{ fontFamily:'var(--mono)', fontSize:11 }}>{a.id}</span></td>
+                            <td style={{ padding:'8px 16px' }}><span className={`tag ${TIPO_TAG[a.tipo]||'tag-gray'}`}>{TIPO_ICO[a.tipo]} {a.tipo}</span></td>
+                            <td style={{ padding:'8px 16px', fontWeight:500, maxWidth:320 }}>{a.asunto}</td>
+                            <td style={{ padding:'8px 16px', color:'var(--text3)', whiteSpace:'nowrap' }}>{a.fecha}</td>
+                            <td style={{ padding:'8px 16px', fontSize:11, color:'var(--text3)' }}>{a.user}</td>
+                            <td style={{ padding:'8px 16px' }}><span className={`tag ${ACT_EST[a.estado]||'tag-gray'}`}>{a.estado}</span></td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
                   </div>
                 </div></div>
               )}
@@ -1693,12 +1730,18 @@ export default function FichaOferta() {
               {/* Crear ficha */}
               {activeTab==='of-ficha' && (
                 <div className="tab-content active"><div className="info-pad">
-                  <div className="info-block"><div className="ib-title">CREAR FICHA COMERCIAL</div>
-                    <div style={{ fontSize:11, color:'var(--text3)', marginBottom:12 }}>Genera la ficha comercial de esta oferta en diferentes formatos.</div>
-                    <div style={{ display:'flex', gap:8, marginTop:8 }}>
-                      <button className="ab-btn blue">📄 Generar PDF</button>
-                      <button className="ab-btn">📊 Generar PPT</button>
-                      <button className="ab-btn">🔗 Generar link</button>
+                  <div className="va-card">
+                    <div className="va-card-header">
+                      <h3><span className="ico">◇</span> Crear ficha comercial</h3>
+                      <span className="hint">Genera y comparte el dossier de la oferta</span>
+                    </div>
+                    <div style={{padding:'4px 20px 18px'}}>
+                      <div style={{ fontSize:12, color:'var(--text3)', marginBottom:14, lineHeight:1.5 }}>Genera la ficha comercial de esta oferta en diferentes formatos. Los datos se sincronizan automáticamente con el activo, las condiciones y los espacios comercializables.</div>
+                      <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                        <button className="ab-btn blue">📄 Generar PDF</button>
+                        <button className="ab-btn">📊 Generar PPT</button>
+                        <button className="ab-btn">🔗 Generar link</button>
+                      </div>
                     </div>
                   </div>
                 </div></div>
@@ -1707,7 +1750,9 @@ export default function FichaOferta() {
               {/* Confidencialidad */}
               {activeTab==='of-conf' && (
                 <div className="tab-content active" style={{ overflowY:'auto', flex:1 }}><div className="info-pad">
-                  <div style={{ display:'flex', alignItems:'center', gap:16, padding:'14px 16px', border:`1px solid ${confidential?'#334155':'var(--border)'}`, borderRadius:'var(--r2)', background:confidential?'#0f172a':'var(--surface)', marginBottom:18 }}>
+
+                  {/* ── Toggle confidencialidad (mantenido el estilo oscuro intencional) ── */}
+                  <div style={{ display:'flex', alignItems:'center', gap:16, padding:'14px 18px', border:`1px solid ${confidential?'#334155':'var(--border)'}`, borderRadius:'var(--r2)', background:confidential?'#0f172a':'var(--surface)', marginBottom:18 }}>
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:13, fontWeight:700, color:confidential?'#f8fafc':'var(--text)' }}>Oferta confidencial</div>
                       <div style={{ fontSize:11, color:confidential?'#94a3b8':'var(--text3)', marginTop:2 }}>{confidential?'Activo, dirección, documentos y condiciones ocultos para no autorizados.':'La oferta es visible para todos los usuarios con acceso al PDB.'}</div>
@@ -1716,80 +1761,107 @@ export default function FichaOferta() {
                       {confidential?'🔓 Desactivar':'🔒 Activar'}
                     </button>
                   </div>
+
+                  {/* ── Visibilidad (cuando confidencial está activo) ── */}
                   {confidential && (
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:18 }}>
-                      <div style={{ border:'1px solid var(--red-bd)', background:'var(--red-lt)', borderRadius:'var(--r2)', padding:12 }}>
-                        <div style={{ fontSize:10, fontWeight:700, color:'var(--red)', textTransform:'uppercase', marginBottom:8 }}>❌ Oculto (no autorizados)</div>
-                        {['Activo / Inmueble','Dirección y ubicación','Condiciones económicas','Documentación adjunta','Stacking plan'].map(item=>(<div key={item} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, marginBottom:4 }}><span style={{ color:'var(--red)', fontWeight:700 }}>✕</span> {item}</div>))}
+                    <div className="va-two-col">
+                      <div className="va-meta-card">
+                        <div className="va-meta-head accent-red"><span className="dot"/>Oculto para no autorizados</div>
+                        <div className="va-kv-list">
+                          {['Activo / Inmueble','Dirección y ubicación','Condiciones económicas','Documentación adjunta','Stacking plan'].map(item=>(
+                            <div key={item} className="ir"><span className="ir-k" style={{display:'flex',alignItems:'center',gap:6}}><span style={{color:'var(--red)',fontWeight:700}}>✕</span> {item}</span><span className="ir-v"><span style={{color:'var(--red)',fontSize:10,fontWeight:600}}>Oculto</span></span></div>
+                          ))}
+                        </div>
                       </div>
-                      <div style={{ border:'1px solid var(--green-bd)', background:'var(--green-lt)', borderRadius:'var(--r2)', padding:12 }}>
-                        <div style={{ fontSize:10, fontWeight:700, color:'var(--green)', textTransform:'uppercase', marginBottom:8 }}>✅ Visible (siempre)</div>
-                        {['Cliente / Cuenta','Tipo de operación','Estado de la oferta','Equipo responsable','Información básica'].map(item=>(<div key={item} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, marginBottom:4 }}><span style={{ color:'var(--green)', fontWeight:700 }}>✓</span> {item}</div>))}
+                      <div className="va-meta-card">
+                        <div className="va-meta-head accent-green"><span className="dot"/>Visible siempre</div>
+                        <div className="va-kv-list">
+                          {['Cliente / Cuenta','Tipo de operación','Estado de la oferta','Equipo responsable','Información básica'].map(item=>(
+                            <div key={item} className="ir"><span className="ir-k" style={{display:'flex',alignItems:'center',gap:6}}><span style={{color:'var(--green)',fontWeight:700}}>✓</span> {item}</span><span className="ir-v"><span style={{color:'var(--green)',fontSize:10,fontWeight:600}}>Visible</span></span></div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
-                  <div style={{ marginBottom:16 }}>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-                      <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Usuarios autorizados</div>
-                      <button className="ab-btn blue" onClick={() => setAddingUser(true)} style={{ fontSize:10, padding:'3px 9px' }}>+ Añadir usuario</button>
+
+                  {/* ── Usuarios autorizados ── */}
+                  <div className="va-card">
+                    <div className="va-card-header">
+                      <h3><span className="ico">◆</span> Usuarios autorizados</h3>
+                      <button className="ab-btn blue" onClick={() => setAddingUser(true)}>+ Añadir usuario</button>
                     </div>
-                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                      {authorizedUsers.map((u,i) => (
-                        <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                          <div style={{ width:30, height:30, borderRadius:'50%', background:u.bg, color:u.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>{u.initials}</div>
-                          <div style={{ flex:1 }}><div style={{ fontSize:12, fontWeight:600 }}>{u.name}</div><div style={{ fontSize:10, color:'var(--text3)' }}>{u.team} · {u.role}</div></div>
-                          {u.owner ? <span className="tag tag-blue">Propietario</span>
-                            : <><span style={{ fontSize:10, color:'var(--text4)' }}>Acceso: {u.granted}</span><button onClick={() => setAuthorizedUsers(prev=>prev.filter((_,j)=>j!==i))} style={{ fontSize:10, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }}>✕ Quitar</button></>}
+                    <div style={{padding:'4px 20px 16px'}}>
+                      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                        {authorizedUsers.map((u,i) => (
+                          <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                            <div style={{ width:30, height:30, borderRadius:'50%', background:u.bg, color:u.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>{u.initials}</div>
+                            <div style={{ flex:1 }}><div style={{ fontSize:12, fontWeight:600 }}>{u.name}</div><div style={{ fontSize:11, color:'var(--text3)' }}>{u.team} · {u.role}</div></div>
+                            {u.owner ? <span className="tag tag-blue">Propietario</span>
+                              : <><span style={{ fontSize:10, color:'var(--text4)' }}>Acceso: {u.granted}</span><button onClick={() => setAuthorizedUsers(prev=>prev.filter((_,j)=>j!==i))} style={{ fontSize:11, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }}>✕ Quitar</button></>}
+                          </div>
+                        ))}
+                      </div>
+                      {addingUser && (
+                        <div style={{ border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', borderRadius:'var(--r2)', padding:14, marginTop:12 }}>
+                          <div style={{ fontSize:12, fontWeight:600, marginBottom:10 }}>Conceder acceso</div>
+                          <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'flex-end' }}>
+                            <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                              <span style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Usuario</span>
+                              <select className="fsel" value={newUser} onChange={e => setNewUser(e.target.value)} style={{ minWidth:220 }}>
+                                <option value="">Seleccionar...</option>
+                                <option>GOMEZ Ignacio · Leasing Oficinas MAD</option>
+                                <option>García Marta · Capital Markets MAD</option>
+                                <option>López Carmen · Valoraciones MAD</option>
+                                <option>Alonso Abruña D. · Leasing MAD</option>
+                                <option>Martínez Rosa · Retail MAD</option>
+                              </select>
+                            </div>
+                            <button className="ab-btn save" onClick={() => {
+                              if(!newUser)return
+                              const [nameStr,teamStr]=[newUser.split('·')[0].trim(),newUser.split('·')[1]?.trim()||'']
+                              const ini=nameStr.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+                              const today=new Date().toLocaleDateString('es-ES')
+                              setAuthorizedUsers(prev=>[...prev,{name:nameStr,team:teamStr,role:'Autorizado',initials:ini,bg:'#f0fdf4',color:'#166534',granted:today,owner:false}])
+                              setAddingUser(false);setNewUser('')
+                            }}>Conceder acceso</button>
+                            <button className="ab-btn" onClick={() => {setAddingUser(false);setNewUser('')}}>Cancelar</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── Demo no autorizado ── */}
+                  {confidential && (
+                    <div className="va-card">
+                      <div className="va-card-header">
+                        <h3><span className="ico" style={{color:'var(--amber)'}}>●</span> Vista de usuario no autorizado (demo)</h3>
+                      </div>
+                      <div style={{padding:'4px 20px 16px'}}>
+                        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px', border:'1px solid var(--amber-bd)', borderRadius:'var(--r)', background:'var(--amber-lt)' }}>
+                          <span style={{ fontSize:22 }}>🔒</span>
+                          <div style={{ flex:1 }}><div style={{ fontSize:12, fontWeight:600 }}>Oferta confidencial</div><div style={{ fontSize:11, color:'var(--text3)' }}>No tienes permisos. Puedes solicitar acceso al responsable.</div></div>
+                          <button className="ab-btn save" style={{ flexShrink:0 }} onClick={() => alert('✅ Solicitud enviada a Sierra Álvaro')}>Solicitar acceso</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Trazabilidad ── */}
+                  <div className="va-card">
+                    <div className="va-card-header">
+                      <h3><span className="ico">◷</span> Trazabilidad de accesos</h3>
+                    </div>
+                    <div style={{padding:'4px 0 0'}}>
+                      {[{color:'var(--green)',msg:'Sierra Álvaro creó la oferta',date:'05/04/2026 · 10:00'},{color:'var(--accent)',msg:'Sierra Álvaro activó confidencialidad',date:'07/04/2026 · 09:00'}].map((e,i,arr) => (
+                        <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'10px 20px', borderTop:i===0?'1px solid var(--border)':'none', borderBottom:i<arr.length-1?'1px solid var(--border)':'none' }}>
+                          <div style={{ width:7, height:7, borderRadius:'50%', background:e.color, flexShrink:0, marginTop:5 }} />
+                          <div><div style={{ fontSize:12 }}>{e.msg}</div><div style={{ fontSize:10, color:'var(--text4)', marginTop:2 }}>{e.date}</div></div>
                         </div>
                       ))}
                     </div>
                   </div>
-                  {addingUser && (
-                    <div style={{ border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', borderRadius:'var(--r2)', padding:14, marginBottom:14 }}>
-                      <div style={{ fontSize:12, fontWeight:600, marginBottom:10 }}>Conceder acceso</div>
-                      <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'flex-end' }}>
-                        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                          <span style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Usuario</span>
-                          <select className="fsel" value={newUser} onChange={e => setNewUser(e.target.value)} style={{ minWidth:220 }}>
-                            <option value="">Seleccionar...</option>
-                            <option>GOMEZ Ignacio · Leasing Oficinas MAD</option>
-                            <option>García Marta · Capital Markets MAD</option>
-                            <option>López Carmen · Valoraciones MAD</option>
-                            <option>Alonso Abruña D. · Leasing MAD</option>
-                            <option>Martínez Rosa · Retail MAD</option>
-                          </select>
-                        </div>
-                        <button className="ab-btn save" onClick={() => {
-                          if(!newUser)return
-                          const [nameStr,teamStr]=[newUser.split('·')[0].trim(),newUser.split('·')[1]?.trim()||'']
-                          const ini=nameStr.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
-                          const today=new Date().toLocaleDateString('es-ES')
-                          setAuthorizedUsers(prev=>[...prev,{name:nameStr,team:teamStr,role:'Autorizado',initials:ini,bg:'#f0fdf4',color:'#166534',granted:today,owner:false}])
-                          setAddingUser(false);setNewUser('')
-                        }}>Conceder acceso</button>
-                        <button className="ab-btn" onClick={() => {setAddingUser(false);setNewUser('')}}>Cancelar</button>
-                      </div>
-                    </div>
-                  )}
-                  {confidential && (
-                    <div style={{ border:'1px solid var(--amber-bd)', background:'var(--amber-lt)', borderRadius:'var(--r2)', padding:14, marginBottom:16 }}>
-                      <div style={{ fontSize:10, fontWeight:700, color:'var(--amber)', textTransform:'uppercase', marginBottom:8 }}>DEMO — Vista de usuario no autorizado</div>
-                      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                        <span style={{ fontSize:20 }}>🔒</span>
-                        <div style={{ flex:1 }}><div style={{ fontSize:12, fontWeight:600 }}>Oferta confidencial</div><div style={{ fontSize:11, color:'var(--text3)' }}>No tienes permisos. Puedes solicitar acceso al responsable.</div></div>
-                        <button className="ab-btn save" style={{ flexShrink:0 }} onClick={() => alert('✅ Solicitud enviada a Sierra Álvaro')}>Solicitar acceso</button>
-                      </div>
-                    </div>
-                  )}
-                  <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:8 }}>Trazabilidad de accesos</div>
-                  <div style={{ border:'1px solid var(--border)', borderRadius:'var(--r)', overflow:'hidden' }}>
-                    {[{color:'var(--green)',msg:'Sierra Álvaro creó la oferta',date:'05/04/2026 · 10:00'},{color:'var(--accent)',msg:'Sierra Álvaro activó confidencialidad',date:'07/04/2026 · 09:00'}].map((e,i,arr) => (
-                      <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'9px 12px', borderBottom:i<arr.length-1?'1px solid var(--border)':'none' }}>
-                        <div style={{ width:7, height:7, borderRadius:'50%', background:e.color, flexShrink:0, marginTop:4 }} />
-                        <div><div style={{ fontSize:11 }}>{e.msg}</div><div style={{ fontSize:10, color:'var(--text4)' }}>{e.date}</div></div>
-                      </div>
-                    ))}
-                  </div>
+
                 </div></div>
               )}
             </>
