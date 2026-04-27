@@ -385,6 +385,10 @@ export default function FichaOferta() {
 
   const handleSave = async () => {
     if (!oferta?.ref) return
+    if (!activoSeleccionado?.ref) {
+      setSaveErr('Debes seleccionar un Activo antes de guardar la Oferta. La Oferta cuelga obligatoriamente de un Activo.')
+      return
+    }
     setSaving(true); setSaveErr(''); setSaveOk(false)
     try {
       // Derivar superficie y renta desde espacios asignados

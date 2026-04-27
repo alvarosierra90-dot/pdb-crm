@@ -245,14 +245,19 @@ function RightPanel({ navigate, naturaleza, cmFields }) {
 
       {!esInversion && (
         <div className="rp-sec">
-          <div className="rp-lbl">Activos presentados</div>
+          <div className="rp-lbl" style={{display:'flex',alignItems:'center',gap:6}}>
+            Ofertas presentadas
+            <span style={{fontSize:8,fontWeight:700,color:'#7c2d12',background:'#fef3c7',border:'1px solid #fde68a',borderRadius:6,padding:'1px 6px'}}>OFR · no activos</span>
+          </div>
           <div style={{background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',padding:'7px 9px',marginBottom:5,cursor:'pointer'}}>
-            <div style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>Albatros — Edif. D</div>
-            <div style={{fontSize:10,color:'var(--text3)'}}>13/11/2025 · Presentación · OLBUR2315645</div>
+            <div style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>OFR-0018</div>
+            <div style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>Albatros — Edif. D · P3-P4</div>
+            <div style={{fontSize:10,color:'var(--text3)'}}>6.742 m² · 14,5 €/m²·mes · Presentado 13/11/2025</div>
           </div>
           <div style={{background:'var(--green-lt)',border:'1px solid var(--green-bd)',borderRadius:'var(--r)',padding:'7px 9px',cursor:'pointer'}}>
-            <div style={{fontSize:11,fontWeight:600,color:'var(--green)'}}>Albatros — Visita</div>
-            <div style={{fontSize:10,color:'var(--text3)'}}>Calle de Anabel Segura 9-11</div>
+            <div style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>OFR-0019</div>
+            <div style={{fontSize:11,fontWeight:600,color:'var(--green)'}}>Albatros — Edif. D · P2 parcial</div>
+            <div style={{fontSize:10,color:'var(--text3)'}}>1.200 m² · 14,0 €/m²·mes · Visita programada</div>
           </div>
         </div>
       )}
@@ -278,9 +283,14 @@ function RightPanel({ navigate, naturaleza, cmFields }) {
           <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Matching automático</span><span className="ai-badge">Beta</span></div>
           {esInversion
             ? <div className="ai-text">Demanda de inversión · {cmFields.calidad||'—'} · Ticket {cmFields.ticket_min||'—'}–{cmFields.ticket_max||'—'} M€. <strong>Buscando ofertas de venta compatibles.</strong></div>
-            : <div className="ai-text">2.200–3.000 m² en A-1. <strong>3 activos compatibles</strong>. Albatros P4 (última planta con terraza) es el más ajustado.</div>
+            : <div className="ai-text">2.200–3.000 m² en A-1. <strong>3 ofertas compatibles + 5 alternativas razonables</strong>. OFR-0018 (Albatros P4) cumple requisitos exactos. OFR-0023 (Avalon P3) se ajusta con +10% sup.</div>
           }
-          <div className="ai-cta">✎ {esInversion ? 'Ver ofertas de venta compatibles' : 'Ver activos compatibles'}</div>
+          <div style={{display:'flex',gap:6,marginTop:8,flexWrap:'wrap'}}>
+            <span style={{fontSize:9,fontWeight:700,color:'#15803d',background:'#dcfce7',padding:'2px 7px',borderRadius:6}}>✓ Cumple req · 3</span>
+            <span style={{fontSize:9,fontWeight:700,color:'#7c2d12',background:'#fef3c7',padding:'2px 7px',borderRadius:6}}>± Flexible · 3</span>
+            <span style={{fontSize:9,fontWeight:700,color:'#475569',background:'#e2e8f0',padding:'2px 7px',borderRadius:6}}>≈ Alternativas · 2</span>
+          </div>
+          <div className="ai-cta">✎ Ver ofertas compatibles · Solo se muestran activos con oferta vigente</div>
         </div>
       </div>
     </div>

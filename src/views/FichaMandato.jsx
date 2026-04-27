@@ -155,6 +155,7 @@ export default function FichaMandato() {
   const [showTarea, setShowTarea] = useState(false)
 
   // ── Estado editable (nuevo modo + edición) ──
+  const [oportunidadV,   setOportunidadV]   = useState(null)
   const [ofertasV,       setOfertasV]       = useState([])
   const [activosV,       setActivosV]       = useState([])
   const [tipoV,          setTipoV]          = useState('Leasing')
@@ -178,7 +179,7 @@ export default function FichaMandato() {
   const [ofertaSelInput, setOfertaSelInput] = useState('')
   const [activoSelInput, setActivoSelInput] = useState('')
 
-  const canGuardar = ofertasV.length > 0 || activosV.length > 0
+  const canGuardar = !!oportunidadV && ofertasV.length > 0 && activosV.length > 0
 
   const honorariosEst = Math.round(honorariosPct / 100 * sbaMandato * rentaEuros * 12)
 
@@ -315,7 +316,7 @@ export default function FichaMandato() {
               💾 Guardar mandato
             </button>
             <button className="ab-btn" onClick={()=>navigate('mandatos')}>✕ Cancelar</button>
-            {!canGuardar && <span style={{fontSize:10,color:'var(--red)',marginLeft:4,fontWeight:600}}>★ Vincula al menos una oferta o un activo</span>}
+            {!canGuardar && <span style={{fontSize:10,color:'var(--red)',marginLeft:4,fontWeight:600}}>★ Faltan: {[!oportunidadV&&'Oportunidad', ofertasV.length===0&&'Oferta', activosV.length===0&&'Activo'].filter(Boolean).join(' · ')}</span>}
           </>
         ) : (
           <>
@@ -425,17 +426,52 @@ export default function FichaMandato() {
                 {/* Vinculaciones */}
                 <div className="info-block" style={{marginBottom:12,borderLeft: nuevoModo ? '3px solid var(--accent)' : undefined}}>
                   <div className="ib-title" style={{color: nuevoModo ? 'var(--accent)' : undefined}}>
-                    {nuevoModo ? '★ VINCULACIONES (al menos una oferta o un activo)' : 'VINCULACIONES'}
+                    {nuevoModo ? '★ VINCULACIONES OBLIGATORIAS · Oportunidad + Oferta + Activo' : 'VINCULACIONES'}
                   </div>
                   {nuevoModo && (
-                    <div style={{marginBottom:10,padding:'8px 10px',background:'var(--accent-lt)',borderRadius:6,fontSize:10,color:'var(--accent)'}}>
-                      Vincula al menos una <strong>oferta</strong> o un <strong>activo</strong> para poder guardar el mandato. Puedes añadir varios de cada tipo.
+                    <div style={{marginBottom:10,padding:'8px 10px',background:'#fef3c7',border:'1px solid #fde68a',borderRadius:6,fontSize:10,color:'#7c2d12'}}>
+                      🔒 Un mandato exige <strong>los tres anclajes obligatorios</strong>: una <strong>Oportunidad</strong> (Dynamics WIP), al menos una <strong>Oferta</strong> y al menos un <strong>Activo</strong>. Sin los tres no se puede guardar.
                     </div>
+                  )}
+
+                  {/* ── Oportunidad (FK obligatorio · Dynamics) ── */}
+                  {nuevoModo && (
+                    <>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+                        <span style={{width:14,height:14,borderRadius:3,background:'#0078d4',color:'#fff',fontSize:9,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>D</span>
+                        Oportunidad vinculada · OBLIGATORIO
+                      </div>
+                      <div style={{display:'flex',gap:8,marginBottom:12,alignItems:'center'}}>
+                        <select className="fsel" value={oportunidadV?.ref || ''} onChange={e=>{
+                          const ops = [
+                            { ref:'OP-2026-0042', nombre:'Captación mandato P.E. Avalon — Edif. A', cuenta:'Barings RE', etapa:'Calificación' },
+                            { ref:'OP-2026-0041', nombre:'Comercialización Albatros · Allianz RE', cuenta:'Allianz RE',  etapa:'Propuesta enviada' },
+                            { ref:'OP-2026-0038', nombre:'Mandato exclusiva Castellana 77 GMP',    cuenta:'GMP',         etapa:'Negociación' },
+                            { ref:'OP-2026-0036', nombre:'Captación Diagonal 95 Grosvenor',        cuenta:'Grosvenor',   etapa:'Identificación' },
+                          ]
+                          setOportunidadV(ops.find(o=>o.ref===e.target.value) || null)
+                        }} style={{flex:1,fontSize:11}}>
+                          <option value="">Seleccionar oportunidad de Dynamics...</option>
+                          <option value="OP-2026-0042">OP-2026-0042 · Captación mandato P.E. Avalon — Edif. A · Barings RE</option>
+                          <option value="OP-2026-0041">OP-2026-0041 · Comercialización Albatros · Allianz RE</option>
+                          <option value="OP-2026-0038">OP-2026-0038 · Mandato exclusiva Castellana 77 GMP</option>
+                          <option value="OP-2026-0036">OP-2026-0036 · Captación Diagonal 95 Grosvenor</option>
+                        </select>
+                      </div>
+                      {oportunidadV && (
+                        <div style={{padding:'8px 10px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:6,fontSize:11,marginBottom:12,display:'flex',alignItems:'center',gap:8}}>
+                          <span style={{fontWeight:700,color:'#1e40af'}}>{oportunidadV.ref}</span>
+                          <span style={{color:'#1e3a8a'}}>·</span>
+                          <span>{oportunidadV.nombre}</span>
+                          <span style={{marginLeft:'auto',fontSize:9,fontWeight:700,color:'#1e40af',background:'#dbeafe',padding:'2px 8px',borderRadius:6}}>{oportunidadV.etapa}</span>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* ── Ofertas ── */}
                   <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>
-                    Ofertas vinculadas {nuevoModo && <span style={{color:'var(--text4)',fontWeight:400}}>(opcional si hay activo)</span>}
+                    Ofertas vinculadas {nuevoModo && <span style={{color:'var(--red)',fontWeight:600}}>(★ obligatorio)</span>}
                   </div>
                   <div style={{display:'flex',gap:8,marginBottom:6,alignItems:'center'}}>
                     <select className="fsel" value={ofertaSelInput} onChange={e=>setOfertaSelInput(e.target.value)} style={{flex:1,fontSize:11}}>
@@ -476,7 +512,7 @@ export default function FichaMandato() {
 
                   {/* ── Activos ── */}
                   <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6,borderTop:'1px solid var(--border)',paddingTop:10}}>
-                    Activos vinculados {nuevoModo && <span style={{color:'var(--text4)',fontWeight:400}}>(opcional si hay oferta)</span>}
+                    Activos vinculados {nuevoModo && <span style={{color:'var(--red)',fontWeight:600}}>(★ obligatorio)</span>}
                   </div>
                   <div style={{display:'flex',gap:8,marginBottom:6,alignItems:'center'}}>
                     <select className="fsel" value={activoSelInput} onChange={e=>setActivoSelInput(e.target.value)} style={{flex:1,fontSize:11}}>

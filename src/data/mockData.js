@@ -1,3 +1,12 @@
+// ⚠ Deuda técnica documentada (auditoría 27/04/2026):
+// Los campos `occ`, `renta` y `dias` se mantienen aquí como mock-data por compatibilidad
+// con la UI actual, pero CONCEPTUALMENTE NO pertenecen al Activo. Son KPIs derivados
+// agregando las OFERTAS vinculadas por activo_ref:
+//   - occ:   100 - (sum(superficie_disponible_ofertas) / sba) * 100
+//   - renta: rango/promedio de rentas de las ofertas vigentes
+//   - dias:  max(días) de las ofertas activas
+// En producción (schema Supabase real) NO deben persistirse en la tabla `activos`.
+// Usa el helper `deriveActivoStats(ref, ofertas)` definido al final del archivo.
 export const ACTIVOS = [
   // ── Portfolio propio / mandatos ──
   { ref: 'MAD-OF-00189', name: 'P.E Avalon',                  propietario: 'Barings RE', zona: 'M-30',              subzona: 'Julián Camarillo', ciudad: 'Madrid',    uso: 'Oficinas',     sba: 46956, occ: 78.4, renta: 10.5, valor: '130 M€',  estado: 'Activo',              dias: 127 },
@@ -191,6 +200,24 @@ export const NEGOCIACIONES = [
   { ref: 'NEG-0035', parte: 'Sierra Álvaro', equipo: 'Transaction Spain', contraparte: 'ISDE', contacto: 'Lucía Herrero · Dir. Expansión', activo: 'P.E Avalon — P3', espacio: '2.200 m²', estado: 'Firmado', envio: '10/01/2026', ultima_mod: '14/02/2026', mod_desc: 'Contrato firmado', cierre: '01/03/2026' },
   { ref: 'NEG-0033', parte: 'GOMEZ Ignacio', equipo: 'Leasing Oficinas MAD', contraparte: 'Grupo Empresarial Altamira SL', contacto: 'Pedro Vidal · CEO', activo: 'Parque Empresarial Norte — P2', espacio: '2.800 m²', estado: 'Rechazado', envio: '15/12/2025', ultima_mod: '10/01/2026', mod_desc: 'Cliente rechaza condiciones', cierre: '—' },
 ]
+
+// ─── Helpers de KPI derivados ─────────────────────────────
+// El Activo NO almacena disponibilidad. Estas funciones agregan datos de OFERTAS
+// vinculadas por activo_ref para mostrar KPIs derivados en la UI del Activo.
+// Marca visual sugerida en UI: prefijar el valor con "Σ" para indicar agregación.
+export function deriveActivoStats(activoRef, ofertasArray = OFERTAS) {
+  const ofertasDelActivo = (ofertasArray || []).filter(o => o.activo_ref === activoRef && o.estado !== 'Cerrada')
+  if (ofertasDelActivo.length === 0) {
+    return { occ: null, rentaMin: null, rentaMax: null, dias: null, numOfertas: 0, supDisponible: 0 }
+  }
+  const supDisponible = ofertasDelActivo.reduce((s, o) => s + (o.m2 || 0), 0)
+  const rentas = ofertasDelActivo
+    .flatMap(o => (o.espacios || []).map(e => e.renta).filter(r => r > 0))
+  const rentaMin = rentas.length ? Math.min(...rentas) : null
+  const rentaMax = rentas.length ? Math.max(...rentas) : null
+  const dias = Math.max(...ofertasDelActivo.map(o => o.dias_mercado || 0), 0) || null
+  return { rentaMin, rentaMax, dias, numOfertas: ofertasDelActivo.length, supDisponible }
+}
 
 export const PORTFOLIOS = [
   { nombre: 'Merlín Properties SOCIMI', ticker: 'MRL', tipo: 'SOCIMI', activos: 64, m2: 2100000, disponible: 180000, ofertas: 31, yield: 5.1, contacto: '12/03/2026', colorBg: 'var(--gray-lt)', colorBorder: 'var(--border)', colorText: 'var(--text)', letra: 'M' },

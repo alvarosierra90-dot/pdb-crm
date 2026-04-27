@@ -24,23 +24,24 @@ export default function Nav() {
         <div className="nav-logo-text">PropDatabase</div>
       </div>
 
+      {/* ═══════════════════════════════════════════════════════════════
+          1. MI TRABAJO — vista personal del broker (día a día)
+         ═══════════════════════════════════════════════════════════════ */}
       <div className="nav-section" onClick={() => toggle('work')}>
-        My Work <ChevronDown collapsed={collapsed.work} />
+        Mi trabajo <ChevronDown collapsed={collapsed.work} />
       </div>
-      {open('work') && (
+      {open('work') && <>
         <div className={`nav-item ${isActive('paneles') ? 'active' : ''}`} onClick={() => navigate('paneles')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
           Paneles
         </div>
-      )}
-
-      <div className="nav-section" onClick={() => toggle('act')}>
-        Actividades <ChevronDown collapsed={collapsed.act} />
-      </div>
-      {open('act') && <>
+        <div className={`nav-item ${isActive('mis-clientes') ? 'active' : ''}`} onClick={() => navigate('mis-clientes')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 13c0-2.5 2-4 4-4s4 1.5 4 4"/><circle cx="6" cy="6" r="3"/><path d="M13 13c0-1.5-1-2.5-2.5-3"/><circle cx="11.5" cy="5.5" r="2"/></svg>
+          Mis clientes
+        </div>
         <div className={`nav-item ${isActive('actividades','ficha-actividad') ? 'active' : ''}`} onClick={() => navigate('actividades')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 8h10M3 4h10M3 12h6"/></svg>
-          Actividad <span className="nav-badge">10</span>
+          Actividades <span className="nav-badge">10</span>
         </div>
         <div className={`nav-item ${isActive('tareas','ficha-tarea') ? 'active' : ''}`} onClick={() => navigate('tareas')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M5 8l2 2 4-4"/><rect x="2" y="2" width="12" height="12" rx="2"/></svg>
@@ -54,24 +55,15 @@ export default function Nav() {
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><path d="M9 11.5h5M11.5 9v5"/></svg>
           Presentaciones
         </div>
-        <div className={`nav-item ${isActive('mis-clientes') ? 'active' : ''}`} onClick={() => navigate('mis-clientes')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 13c0-2.5 2-4 4-4s4 1.5 4 4"/><circle cx="6" cy="6" r="3"/><path d="M13 13c0-1.5-1-2.5-2.5-3"/><circle cx="11.5" cy="5.5" r="2"/></svg>
-          Mis Clientes
-        </div>
-        <div className={`nav-item ${isActive('propuestas','ficha-propuesta') ? 'active' : ''}`} onClick={() => navigate('propuestas')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4M5 8h6M5 11h4"/></svg>
-          Propuestas / Proyectos
-        </div>
       </>}
 
+      {/* ═══════════════════════════════════════════════════════════════
+          2. CLIENTES — datos maestros desde Dynamics (read-only)
+         ═══════════════════════════════════════════════════════════════ */}
       <div className="nav-section" onClick={() => toggle('cli')}>
         Clientes <ChevronDown collapsed={collapsed.cli} />
       </div>
       {open('cli') && <>
-        <div className={`nav-item ${isActive('leads','ficha-lead') ? 'active' : ''}`} onClick={() => navigate('leads')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></svg>
-          Leads <span className="nav-badge" style={{background:'#fef3c7',color:'#92400e'}}>{15}</span>
-        </div>
         <div className={`nav-item ${isActive('cuentas') ? 'active' : ''}`} onClick={() => navigate('cuentas')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6h12"/></svg>
           Cuentas <span className="nav-dyn">Dynamics</span>
@@ -82,37 +74,66 @@ export default function Nav() {
         </div>
         <div className={`nav-item ${isActive('entidades-legales') ? 'active' : ''}`} onClick={() => navigate('entidades-legales')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h6M5 12h4"/></svg>
-          Entidades Legales <span className="nav-dyn">Dynamics</span>
+          Entidades legales <span className="nav-dyn">Dynamics</span>
         </div>
       </>}
 
-      <div className="nav-section" onClick={() => toggle('act2')}>
-        Activos <ChevronDown collapsed={collapsed.act2} />
+      {/* ═══════════════════════════════════════════════════════════════
+          3. CAPTACIÓN — origen del funnel comercial
+             Lead → Oportunidad (Dynamics) → Propuesta · Mandato
+         ═══════════════════════════════════════════════════════════════ */}
+      <div className="nav-section" onClick={() => toggle('cap')}>
+        Captación <ChevronDown collapsed={collapsed.cap} />
       </div>
-      {open('act2') && <>
+      {open('cap') && <>
+        <div className={`nav-item ${isActive('leads','ficha-lead') ? 'active' : ''}`} onClick={() => navigate('leads')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></svg>
+          Leads <span className="nav-badge" style={{background:'#fef3c7',color:'#92400e'}}>15</span>
+        </div>
+        <div className={`nav-item ${isActive('oportunidades') ? 'active' : ''}`} onClick={() => navigate('oportunidades')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8h2l2-4 2 8 2-5 2 3h2"/></svg>
+          Oportunidades <span className="nav-dyn">Dynamics</span>
+        </div>
+        <div className={`nav-item ${isActive('propuestas','ficha-propuesta') ? 'active' : ''}`} onClick={() => navigate('propuestas')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4M5 8h6M5 11h4"/></svg>
+          Propuestas / Proyectos
+        </div>
+        <div className={`nav-item ${isActive('mandatos','ficha-mandato') ? 'active' : ''}`} onClick={() => navigate('mandatos')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4M6 9l1.5 1.5L11 7"/></svg>
+          Mandatos
+        </div>
+      </>}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          4. PRODUCTO — qué comercializamos
+             Activos (estructura) + Ofertas (disponibilidad) + actores físicos
+         ═══════════════════════════════════════════════════════════════ */}
+      <div className="nav-section" onClick={() => toggle('prod')}>
+        Producto <ChevronDown collapsed={collapsed.prod} />
+      </div>
+      {open('prod') && <>
         <div className={`nav-item ${isActive('activos','ficha-activo') ? 'active' : ''}`} onClick={() => navigate('activos')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="5" width="12" height="9" rx="1.5"/><path d="M5 5V4a3 3 0 016 0v1"/></svg>
           Activos
-        </div>
-        <div className={`nav-sub ${isActive('arrendatarios','ficha-arrendatario') ? 'active' : ''}`} onClick={() => navigate('arrendatarios')}>Arrendatarios</div>
-        <div className={`nav-sub ${isActive('propietarios','ficha-propietario') ? 'active' : ''}`} onClick={() => navigate('propietarios')}>Propietarios</div>
-      </>}
-
-      <div className="nav-section" onClick={() => toggle('com')}>
-        Comercialización <ChevronDown collapsed={collapsed.com} />
-      </div>
-      {open('com') && <>
-        <div className={`nav-item ${isActive('demandas') ? 'active' : ''}`} onClick={() => navigate('demandas')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
-          Demandas
         </div>
         <div className={`nav-item ${isActive('ofertas','ficha-oferta') ? 'active' : ''}`} onClick={() => navigate('ofertas')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"/><path d="M2 4l6 5 6-5"/></svg>
           Ofertas
         </div>
-        <div className={`nav-item ${isActive('mandatos','ficha-mandato') ? 'active' : ''}`} onClick={() => navigate('mandatos')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4M5 8h6M5 11h4"/></svg>
-          Mandatos
+        <div className={`nav-sub ${isActive('arrendatarios','ficha-arrendatario') ? 'active' : ''}`} onClick={() => navigate('arrendatarios')}>Arrendatarios</div>
+        <div className={`nav-sub ${isActive('propietarios','ficha-propietario') ? 'active' : ''}`} onClick={() => navigate('propietarios')}>Propietarios</div>
+      </>}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          5. COMERCIALIZACIÓN — cruce demanda↔oferta + visualización
+         ═══════════════════════════════════════════════════════════════ */}
+      <div className="nav-section" onClick={() => toggle('com')}>
+        Comercialización <ChevronDown collapsed={collapsed.com} />
+      </div>
+      {open('com') && <>
+        <div className={`nav-item ${isActive('demandas','ficha-demanda') ? 'active' : ''}`} onClick={() => navigate('demandas')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
+          Demandas
         </div>
         <div className={`nav-item ${isActive('mapas') ? 'active' : ''}`} onClick={() => navigate('mapas')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M6 2L2 4v10l4-2 4 2 4-2V2l-4 2-4-2z"/></svg>
@@ -120,35 +141,38 @@ export default function Nav() {
         </div>
       </>}
 
-      <div className="nav-section" onClick={() => toggle('trx')}>
-        Transacción <ChevronDown collapsed={collapsed.trx} />
+      {/* ═══════════════════════════════════════════════════════════════
+          6. CIERRE — formalización y facturación
+             Negociación → Instrucción (Dynamics, factura E.Legal)
+         ═══════════════════════════════════════════════════════════════ */}
+      <div className="nav-section" onClick={() => toggle('cierre')}>
+        Cierre <ChevronDown collapsed={collapsed.cierre} />
       </div>
-      {open('trx') && <>
-        <div className={`nav-item ${isActive('oportunidades') ? 'active' : ''}`} onClick={() => navigate('oportunidades')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8h2l2-4 2 8 2-5 2 3h2"/></svg>
-          Oportunidades <span className="nav-dyn">Dynamics</span>
-        </div>
+      {open('cierre') && <>
         <div className={`nav-item ${isActive('negociaciones','ficha-negociacion') ? 'active' : ''}`} onClick={() => navigate('negociaciones')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 3h12v7a1 1 0 01-1 1H3a1 1 0 01-1-1V3z"/><path d="M5 13l1-2h4l1 2"/><path d="M5 7h6M5 9.5h4"/></svg>
           Negociaciones <span className="nav-badge">4</span>
         </div>
         <div className={`nav-item ${isActive('instruccion') ? 'active' : ''}`} onClick={() => navigate('instruccion')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8h2l2-4 2 8 2-5 2 3h2"/></svg>
-          Transacción / Instrucción <span className="nav-dyn">Dynamics</span>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4M6 11l1.5 1.5L11 9"/></svg>
+          Instrucciones <span className="nav-dyn">Dynamics</span>
         </div>
       </>}
 
+      {/* ═══════════════════════════════════════════════════════════════
+          7. INTELIGENCIA — radar comercial
+         ═══════════════════════════════════════════════════════════════ */}
       <div className="nav-section" onClick={() => toggle('int')}>
         Inteligencia <ChevronDown collapsed={collapsed.int} />
       </div>
       {open('int') && <>
-        <div className={`nav-item ${isActive('inteligencia-comercial') ? 'active' : ''}`} onClick={() => navigate('inteligencia-comercial')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/><circle cx="8" cy="8" r="1" fill="currentColor"/></svg>
-          Inteligencia Comercial
-        </div>
         <div className={`nav-item ${isActive('vencimientos') ? 'active' : ''}`} onClick={() => navigate('vencimientos')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
           Vencimientos
+        </div>
+        <div className={`nav-item ${isActive('inteligencia-comercial') ? 'active' : ''}`} onClick={() => navigate('inteligencia-comercial')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/><circle cx="8" cy="8" r="1" fill="currentColor"/></svg>
+          Inteligencia comercial
         </div>
         <div className={`nav-item ${isActive('noticias') ? 'active' : ''}`} onClick={() => navigate('noticias')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>
@@ -156,37 +180,43 @@ export default function Nav() {
         </div>
       </>}
 
+      {/* ═══════════════════════════════════════════════════════════════
+          8. ANÁLISIS — reporting y consolidación
+         ═══════════════════════════════════════════════════════════════ */}
       <div className="nav-section" onClick={() => toggle('ana')}>
         Análisis <ChevronDown collapsed={collapsed.ana} />
       </div>
       {open('ana') && <>
         <div className={`nav-item ${isActive('portfolios','portfolio') ? 'active' : ''}`} onClick={() => navigate('portfolios')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="3" width="14" height="11" rx="1.5"/><path d="M5 3V2a1 1 0 012 0v1M9 3V2a1 1 0 012 0v1"/></svg>
-          Propietarios / Portfolios
+          Portfolios institucionales
         </div>
         <div className={`nav-item ${isActive('informes-mercado') ? 'active' : ''}`} onClick={() => navigate('informes-mercado')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 12l3-4 3 2 3-5 3 3"/><path d="M2 14h12"/></svg>
-          Informes de Mercado
+          Informes de mercado
         </div>
         <div className={`nav-item ${isActive('zonas','ficha-zona') ? 'active' : ''}`} onClick={() => navigate('zonas')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 2C5.8 2 4 3.8 4 6c0 3 4 8 4 8s4-5 4-8c0-2.2-1.8-4-4-4z"/><circle cx="8" cy="6" r="1.5"/></svg>
           Zonas
+        </div>
+      </>}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          9. ADMINISTRACIÓN
+         ═══════════════════════════════════════════════════════════════ */}
+      <div className="nav-section" onClick={() => toggle('adm')}>
+        Administración <ChevronDown collapsed={collapsed.adm} />
+      </div>
+      {open('adm') && <>
+        <div className={`nav-item ${isActive('marketing') ? 'active' : ''}`} onClick={() => navigate('marketing')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8l4-4 3 3 5-5"/><path d="M2 14h12"/></svg>
+          Marketing
         </div>
         <div className={`nav-item ${isActive('usuarios','ficha-usuario') ? 'active' : ''}`} onClick={() => navigate('usuarios')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 13c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5"/><circle cx="12" cy="5" r="2"/><path d="M14 13c0-1.8-1.3-3-3-3"/></svg>
           Usuarios Savills
         </div>
       </>}
-
-      <div className="nav-section" onClick={() => toggle('mkt')}>
-        Marketing <ChevronDown collapsed={collapsed.mkt} />
-      </div>
-      {open('mkt') && (
-        <div className={`nav-item ${isActive('marketing') ? 'active' : ''}`} onClick={() => navigate('marketing')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 8l4-4 3 3 5-5"/><path d="M2 14h12"/></svg>
-          Marketing
-        </div>
-      )}
 
       <div className="nav-user">
         <div className="nav-av">AS</div>

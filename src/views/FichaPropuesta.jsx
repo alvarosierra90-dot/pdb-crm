@@ -64,6 +64,8 @@ export default function FichaPropuesta() {
     linea: 'Capital Markets',
     estado: 'Activo',
     empresa: 'BBVA SA',
+    oportunidad: 'OP-2026-0078',
+    oportunidad_nombre: 'Pitch Torre Norte BBVA · Capital Markets',
     demanda: '',
     creado_por: 'Sierra Alvaro',
     fecha_creacion: '20/03/2026',
@@ -265,7 +267,19 @@ export default function FichaPropuesta() {
                 <div>
                   <div className="ib-title">Vinculaciones</div>
                   <div>
-                    <div style={{marginBottom:4,fontSize:10,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}>Obligatorio</div>
+                    <div style={{marginBottom:4,fontSize:10,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}>Obligatorios</div>
+
+                    {/* Oportunidad — FK obligatorio · Dynamics */}
+                    <div style={{marginBottom:10,padding:'8px 10px',border:'2px solid #fde68a',borderRadius:6,background:'#fef3c7'}}>
+                      <div className="rp-lbl" style={{color:'#7c2d12',display:'flex',alignItems:'center',gap:6}}>
+                        <span style={{width:14,height:14,borderRadius:3,background:'#0078d4',color:'#fff',fontSize:9,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>D</span>
+                        Oportunidad ★
+                      </div>
+                      <input className="kf-inp" value={form.oportunidad} onChange={e=>set('oportunidad',e.target.value)} style={{width:'100%',marginTop:4,fontWeight:600}} placeholder="Ej: OP-2026-0078"/>
+                      {form.oportunidad_nombre && <div style={{fontSize:10,color:'#7c2d12',marginTop:3}}>{form.oportunidad_nombre}</div>}
+                      <div style={{fontSize:9,color:'#92400e',marginTop:3}}>Una Propuesta SIEMPRE cuelga de una Oportunidad existente en Dynamics. Sin Oportunidad no puede guardarse.</div>
+                    </div>
+
                     <div style={{marginBottom:12,padding:'8px 10px',border:'2px solid var(--accent-bd)',borderRadius:6,background:'var(--accent-lt)'}}>
                       <div className="rp-lbl" style={{color:'var(--accent)'}}>Empresa / Cuenta ★</div>
                       <input className="kf-inp" value={form.empresa} onChange={e=>set('empresa',e.target.value)} style={{width:'100%',marginTop:4,fontWeight:600}} placeholder="Buscar cuenta en Dynamics..."/>

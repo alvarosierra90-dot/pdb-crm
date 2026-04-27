@@ -61,9 +61,10 @@ export default function OfertasList() {
           return {
             id:         o.id,
             ref:        o.ref || o.id,
-            activo:     act?.nombre || o.activo_ref || '—',
+            activo:     act?.nombre || o.activo_ref || (o.activo_ref ? o.activo_ref : '⚠ Pendiente Activo'),
             activo_dir: act?.direccion || '',
             activo_ref: o.activo_ref || '',
+            sin_activo: !o.activo_ref,
             area:       act?.ciudad   || '—',
             zona:       act?.zona     || '—',
             subzona:    act?.subzona  || '—',
