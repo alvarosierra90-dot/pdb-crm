@@ -639,10 +639,15 @@ export default function FichaOferta() {
                   {activoSeleccionado && <span className="tag tag-green" style={{ fontSize:9 }}>+ Vinculado</span>}
                 </div>
                 <div className="ah-name">
-                  {activoSeleccionado ? activoSeleccionado.nombre : <span style={{ color:'var(--text4)', fontStyle:'italic' }}>Sin activo asignado — selecciona uno en la pestaña Información</span>}
+                  {activoSeleccionado
+                    ? <>📍 {activoSeleccionado.direccion || activoSeleccionado.nombre}</>
+                    : <span style={{ color:'var(--text4)', fontStyle:'italic' }}>Sin activo asignado — selecciona uno en la pestaña Información</span>}
                 </div>
                 {activoSeleccionado && (
-                  <div className="ah-addr">📍 {activoSeleccionado.ciudad} · {activoSeleccionado.zona}{activoSeleccionado.subzona ? ` · ${activoSeleccionado.subzona}` : ''}</div>
+                  <div className="ah-addr">
+                    <span style={{fontWeight:600,color:'var(--text2)'}}>{activoSeleccionado.nombre}</span>
+                    <> · {activoSeleccionado.ciudad}{activoSeleccionado.zona ? ` · ${activoSeleccionado.zona}` : ''}{activoSeleccionado.subzona ? ` · ${activoSeleccionado.subzona}` : ''}</>
+                  </div>
                 )}
                 <div className="ah-tags">
                   {activoSeleccionado?.uso && <span className="tag tag-blue">{activoSeleccionado.uso}</span>}

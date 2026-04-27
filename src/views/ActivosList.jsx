@@ -313,8 +313,8 @@ export default function ActivosList() {
                       <div style={{ fontSize:24, fontWeight:800, fontFamily:'var(--mono)', color:occColor(a.occ), lineHeight:1, marginTop:2 }}>{a.occ}%</div>
                     </div>
                     <div style={{ position:'absolute', bottom:8, left:12, right:12 }}>
-                      <div style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.name || shortDir(a.direccion)}</div>
-                      <div style={{ fontSize:10, color:'var(--text3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.zona}{a.subzona ? ` · ${a.subzona}` : ''} · {a.ciudad}</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>📍 {shortDir(a.direccion) || a.name}</div>
+                      <div style={{ fontSize:10, color:'var(--text3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}><span style={{fontWeight:500}}>{a.name}</span> · {a.zona}{a.subzona ? ` · ${a.subzona}` : ''} · {a.ciudad}</div>
                     </div>
                   </div>
 

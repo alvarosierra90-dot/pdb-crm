@@ -4049,13 +4049,12 @@ export default function FichaActivo() {
                       </div>
                     ) : (
                       <div className="ah-name" style={{cursor:'text',display:'flex',alignItems:'center',gap:6}} onClick={() => { setEditNombreVal(displayNombre ?? activo?.nombre ?? ''); setEditingNombre(true) }}>
-                        {displayNombre ?? activo?.nombre ?? '—'}
-                        <span style={{fontSize:11,color:'var(--text4)',fontWeight:400,opacity:0.6}}>✎</span>
+                        📍 {displayDireccion ?? activo?.direccion ?? '—'}
                       </div>
                     )}
                     <div className="ah-addr">
-                      {(displayDireccion ?? activo?.direccion) && <>📍 {displayDireccion ?? activo.direccion} · </>}
-                      {[activo?.zona, activo?.subzona, activo?.ciudad].filter(Boolean).join(' · ')}
+                      <span style={{fontWeight:600,color:'var(--text2)'}}>{displayNombre ?? activo?.nombre ?? '—'}</span>
+                      {[activo?.zona, activo?.subzona, activo?.ciudad].filter(Boolean).length > 0 && <> · {[activo?.zona, activo?.subzona, activo?.ciudad].filter(Boolean).join(' · ')}</>}
                     </div>
                     <div className="ah-tags">
                       {activo?.uso && <span className={`tag ${activo.uso === 'Oficinas' ? 'tag-blue' : activo.uso === 'Logístico' ? 'tag-teal' : activo.uso === 'Data Center' ? 'tag-blue' : activo.uso === 'Residencial' ? 'tag-amber' : 'tag-purple'}`}>{activo.uso}</span>}
