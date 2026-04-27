@@ -4096,6 +4096,32 @@ export default function FichaActivo() {
                   </>
                 )}
               </div>
+
+              {/* KPIs destacados a la derecha del título */}
+              {!isNew && !loadingActivo && (
+                <div style={{ display:'flex', alignItems:'stretch', gap:0, flexShrink:0, border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', background:'var(--surface)' }}>
+                  {(() => {
+                    const sba       = activo?.sba ?? 0
+                    const ratio     = activo?.ratio_perdida ?? 0
+                    const supNeta   = sba && ratio ? Math.round(sba * (1 - ratio/100)) : null
+                    const occ       = activo?.occupancy_rate
+                    const dias      = activo?.dias_comercializacion ?? 0
+                    const items = [
+                      { lbl:'SBA',         val: sba > 0 ? sba.toLocaleString('es-ES') : '—',                                 sub:'m² brutos',         color:'var(--text1)' },
+                      { lbl:'Sup. neta',   val: supNeta != null ? supNeta.toLocaleString('es-ES') : '—',                     sub:'m² netos',          color:'var(--accent)' },
+                      { lbl:'Ocupación',   val: occ != null ? `${occ}%` : '—',                                              sub:'derivado',          color: occ >= 90 ? 'var(--green)' : occ >= 75 ? 'var(--amber)' : 'var(--red)' },
+                      { lbl:'Días comerc.',val: dias > 0 ? `${dias}d` : '—',                                                sub:'en mercado',        color: dias > 90 ? 'var(--red)' : dias > 60 ? 'var(--amber)' : 'var(--text1)' },
+                    ]
+                    return items.map((k, i) => (
+                      <div key={k.lbl} style={{ padding:'10px 18px', textAlign:'center', minWidth:96, borderLeft: i === 0 ? 'none' : '1px solid var(--border)' }}>
+                        <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4 }}>{k.lbl}</div>
+                        <div style={{ fontSize:24, fontWeight:800, fontFamily:'var(--mono)', color:k.color, lineHeight:1 }}>{k.val}</div>
+                        <div style={{ fontSize:9, color:'var(--text4)', marginTop:3 }}>{k.sub}</div>
+                      </div>
+                    ))
+                  })()}
+                </div>
+              )}
             </div>
           </div>
 
