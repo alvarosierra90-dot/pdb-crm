@@ -204,7 +204,7 @@ export const NEGOCIACIONES = [
 // ─── Helpers de KPI derivados ─────────────────────────────
 // El Activo NO almacena disponibilidad. Estas funciones agregan datos de OFERTAS
 // vinculadas por activo_ref para mostrar KPIs derivados en la UI del Activo.
-// Marca visual sugerida en UI: prefijar el valor con "Σ" para indicar agregación.
+// El valor mostrado en UI debe indicar (vía tooltip o subtítulo) que es derivado.
 export function deriveActivoStats(activoRef, ofertasArray = OFERTAS) {
   const ofertasDelActivo = (ofertasArray || []).filter(o => o.activo_ref === activoRef && o.estado !== 'Cerrada')
   if (ofertasDelActivo.length === 0) {

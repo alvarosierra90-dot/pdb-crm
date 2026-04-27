@@ -35,10 +35,10 @@ const COLS = [
   { id: 'subzona',    label: 'Sub-zona',                           type:'enum',   getValue: r => r.subzona },
   { id: 'ciudad',     label: 'Ciudad',                             type:'enum',   getValue: r => r.ciudad },
   { id: 'uso',        label: 'Uso principal',                      type:'enum',   getValue: r => r.uso },
-  { id: 'occ',        label: 'Ocupación Σ',                        type:'number', getValue: r => r.occ, derived: true },
+  { id: 'occ',        label: 'Ocupación',                          type:'number', getValue: r => r.occ, derived: true },
   { id: 'valor',      label: 'Precio Adquisición',                 type:'text',   getValue: r => r.valor },
   { id: 'estado',     label: 'Estado',                             type:'enum',   getValue: r => r.estado },
-  { id: 'dias',       label: 'Días comerc. Σ',                     type:'number', getValue: r => r.dias, derived: true },
+  { id: 'dias',       label: 'Días comerc.',                       type:'number', getValue: r => r.dias, derived: true },
   { id: 'propietario',   label: 'Propietario',                        type:'enum',   getValue: r => r.propietario },
   { id: 'uso_secundario', label: 'Uso secundario',                  type:'enum',   getValue: r => r.uso_secundario },
   { id: 'sup_planta_tipo', label: 'Sup. planta tipo (m²)',          type:'number', getValue: r => r.sup_planta_tipo },
@@ -118,10 +118,10 @@ export default function ActivosList() {
     subzona: <td key="subzona" style={{ fontSize: 11, color: 'var(--text3)' }}>{a.subzona || '—'}</td>,
     ciudad:  <td key="ciudad" style={{ fontSize: 11 }}>{a.ciudad}</td>,
     uso:     <td key="uso"><span className={`tag ${a.uso === 'Oficinas' ? 'tag-blue' : a.uso === 'Logístico' ? 'tag-teal' : a.uso === 'Data Center' ? 'tag-blue' : a.uso === 'Residencial' ? 'tag-amber' : 'tag-purple'}`}>{a.uso}</span></td>,
-    occ:     <td key="occ"><div className="occ-cell" title="KPI derivado de las Ofertas vinculadas a este Activo"><div className="occ-bar"><div className="occ-bar-fill" style={{ width: `${a.occ}%`, background: occColor(a.occ) }} /></div><span style={{ fontSize: 11, color: occColor(a.occ) }}>Σ {a.occ}%</span></div></td>,
+    occ:     <td key="occ"><div className="occ-cell" title="KPI derivado de las Ofertas vinculadas a este Activo"><div className="occ-bar"><div className="occ-bar-fill" style={{ width: `${a.occ}%`, background: occColor(a.occ) }} /></div><span style={{ fontSize: 11, color: occColor(a.occ) }}>{a.occ}%</span></div></td>,
     valor:   <td key="valor" className="mono">{a.valor}</td>,
     estado:  <td key="estado"><span className={`tag ${a.estado === 'Totalmente ocupado' ? 'tag-green' : a.estado === 'Activo' ? 'tag-green' : a.estado === 'Parcialmente disponible' ? 'tag-amber' : a.estado === 'En comercialización' ? 'tag-amber' : a.estado === 'Vacío al completo' ? 'tag-red' : 'tag-gray'}`}>{a.estado}</span></td>,
-    dias:    <td key="dias" title="KPI derivado de las Ofertas vinculadas a este Activo">{a.dias > 0 ? <span style={{ color: a.dias > 90 ? 'var(--red)' : a.dias > 60 ? 'var(--amber)' : 'var(--text3)', fontWeight: 600 }}>Σ {a.dias}d</span> : '—'}</td>,
+    dias:    <td key="dias" title="KPI derivado de las Ofertas vinculadas a este Activo">{a.dias > 0 ? <span style={{ color: a.dias > 90 ? 'var(--red)' : a.dias > 60 ? 'var(--amber)' : 'var(--text3)', fontWeight: 600 }}>{a.dias}d</span> : '—'}</td>,
     propietario:    <td key="propietario" style={{ fontSize: 11 }}>{a.propietario}</td>,
     uso_secundario: <td key="uso_secundario">{a.uso_secundario ? <span className="tag tag-gray" style={{fontSize:9}}>{a.uso_secundario}</span> : <span style={{color:'var(--text4)'}}>—</span>}</td>,
     sup_planta_tipo:<td key="sup_planta_tipo" className="mono">{a.sup_planta_tipo ? a.sup_planta_tipo.toLocaleString('es-ES') + ' m²' : '—'}</td>,
@@ -129,7 +129,7 @@ export default function ActivosList() {
     _act:    <td key="_act"><div className="ra-cell"><button className="ra" onClick={e => { e.stopPropagation(); navigate('ficha-activo', { ref: a.ref }) }}>Ver</button><button className="ra p" onClick={e => e.stopPropagation()}>Editar</button></div></td>,
   })
 
-  // KPIs derivados (Σ)
+  // KPIs derivados de las Ofertas vinculadas (no se almacenan en el activo)
   const totalActivos      = activos.length
   const sbaTotal          = activos.reduce((s, a) => s + (a.sba || 0), 0)
   const ocupPromedio      = totalActivos > 0 ? Math.round(activos.reduce((s, a) => s + (a.occ || 0), 0) / totalActivos) : 0
@@ -150,7 +150,7 @@ export default function ActivosList() {
         </div>
         <div className="ks">
           <div style={{ fontSize:22, fontWeight:800, color: ocupPromedio>=90?'var(--green)':ocupPromedio>=75?'var(--amber)':'var(--red)' }}>{ocupPromedio}%</div>
-          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Ocupación promedio Σ</div>
+          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Ocupación promedio</div>
         </div>
         <div className="ks">
           <div style={{ fontSize:22, fontWeight:800, color:'var(--amber)' }}>{enComercializacion}</div>

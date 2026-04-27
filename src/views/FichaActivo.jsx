@@ -4693,7 +4693,7 @@ export default function FichaActivo() {
                     <div className="ir"><span className="ir-k">Zona</span><span className="ir-v">{activo?.zona || '—'}</span></div>
                     <div className="ir"><span className="ir-k">Subzona</span><span className="ir-v">{activo?.subzona || '—'}</span></div>
                     <div className="ir"><span className="ir-k">Ciudad</span><span className="ir-v">{activo?.ciudad || '—'}</span></div>
-                    <div className="ir" title="KPI derivado: agregado de las Ofertas vinculadas a este Activo. La disponibilidad real vive en el módulo Ofertas."><span className="ir-k">Ocupación Σ</span><span className="ir-v" style={{fontWeight:700}}>{activo?.occupancy_rate != null ? `${activo.occupancy_rate}%` : '—'}</span></div>
+                    <div className="ir" title="KPI derivado de las Ofertas vinculadas a este Activo. La disponibilidad real vive en el módulo Ofertas."><span className="ir-k">Ocupación</span><span className="ir-v" style={{fontWeight:700}}>{activo?.occupancy_rate != null ? `${activo.occupancy_rate}%` : '—'}</span></div>
                   </div>
                   <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                     <button onClick={()=>exportFichaActivo()} style={{padding:'5px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5}}>
