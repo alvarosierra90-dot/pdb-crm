@@ -56,6 +56,8 @@ export default function ActivosList() {
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ uso: '', estado: '', ciudad: '', zona: '', sbaMin: '', sbaMax: '', occMin: '', occMax: '' })
   const [vis, setVis] = useVisibleCols('activos', COLS)
+  const [view, setView] = useState('tabla') // 'tabla' | 'cards'
+  const [quickFilter, setQuickFilter] = useState('') // chip activo: '', 'comercializacion', 'ocupado', 'parcial', 'vacio', 'oficinas', 'logistico', 'retail'
 
   useEffect(() => {
     supabase.from('activos').select('*').order('nombre').then(({ data, error }) => {
@@ -103,6 +105,16 @@ export default function ActivosList() {
     if (af.sbaMax && a.sba > parseInt(af.sbaMax)) return false
     if (af.occMin && a.occ < parseFloat(af.occMin)) return false
     if (af.occMax && a.occ > parseFloat(af.occMax)) return false
+    // Quick filter chips
+    if (quickFilter === 'comercializacion' && a.estado !== 'En comercialización') return false
+    if (quickFilter === 'ocupado'  && !(a.occ === 100 || a.estado === 'Totalmente ocupado')) return false
+    if (quickFilter === 'parcial'  && a.estado !== 'Parcialmente disponible') return false
+    if (quickFilter === 'vacio'    && a.estado !== 'Vacío al completo') return false
+    if (quickFilter === 'oficinas' && a.uso !== 'Oficinas') return false
+    if (quickFilter === 'logistico'&& a.uso !== 'Logístico') return false
+    if (quickFilter === 'retail'   && a.uso !== 'Retail') return false
+    if (quickFilter === 'datacenter' && a.uso !== 'Data Center') return false
+    if (quickFilter === 'residencial'&& a.uso !== 'Residencial') return false
     return true
   })
 
@@ -135,30 +147,85 @@ export default function ActivosList() {
   const ocupPromedio      = totalActivos > 0 ? Math.round(activos.reduce((s, a) => s + (a.occ || 0), 0) / totalActivos) : 0
   const enComercializacion = activos.filter(a => a.estado === 'En comercialización').length
   const totalmenteOcupados = activos.filter(a => a.occ === 100 || a.estado === 'Totalmente ocupado').length
+  const parcialDisp        = activos.filter(a => a.estado === 'Parcialmente disponible').length
+  const vacioCompleto      = activos.filter(a => a.estado === 'Vacío al completo').length
+  const cntOficinas    = activos.filter(a => a.uso === 'Oficinas').length
+  const cntLogistico   = activos.filter(a => a.uso === 'Logístico').length
+  const cntRetail      = activos.filter(a => a.uso === 'Retail').length
+  const cntDataCenter  = activos.filter(a => a.uso === 'Data Center').length
+  const cntResidencial = activos.filter(a => a.uso === 'Residencial').length
+
+  // Chip helper
+  const chip = (key, label, count, color) => {
+    const active = quickFilter === key
+    return (
+      <button onClick={() => setQuickFilter(active ? '' : key)} style={{
+        display:'inline-flex', alignItems:'center', gap:6, padding:'5px 12px',
+        border:`1px solid ${active ? color : 'var(--border)'}`, borderRadius:999,
+        background: active ? color : 'var(--surface)', color: active ? '#fff' : 'var(--text2)',
+        fontSize:11, fontWeight: active ? 600 : 500, cursor:'pointer', fontFamily:'inherit',
+        transition:'all .12s',
+      }}>
+        {label}
+        <span style={{
+          fontSize:10, fontWeight:700, padding:'1px 7px', borderRadius:9,
+          background: active ? 'rgba(255,255,255,.25)' : 'var(--gray-lt)',
+          color: active ? '#fff' : 'var(--text3)',
+        }}>{count}</span>
+      </button>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-      {/* KPI strip */}
-      <div className="kpi-strip" style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', display:'flex', gap:24, flexShrink:0, background:'var(--surface)' }}>
-        <div className="ks">
-          <div style={{ fontSize:22, fontWeight:800, color:'var(--text)' }}>{totalActivos}</div>
-          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Total activos</div>
+      {/* Hero band — KPIs visuales destacados */}
+      <div style={{ padding:'14px 16px 12px', borderBottom:'1px solid var(--border)', background:'linear-gradient(180deg, var(--surface) 0%, var(--gray-lt) 100%)', flexShrink:0 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+          <div>
+            <div style={{ fontSize:15, fontWeight:700, color:'var(--text)' }}>Activos</div>
+            <div style={{ fontSize:11, color:'var(--text3)', marginTop:1 }}>Estructura inmobiliaria · base maestra del inmueble</div>
+          </div>
+          <div style={{ display:'flex', gap:6 }}>
+            <ColumnEditor cols={COLS} vis={vis} setVis={setVis} />
+            <button className="tbtn">⬇ Exportar</button>
+            <button className="tbtn prim" onClick={() => navigate('ficha-activo', { new: true })}>+ Nuevo activo</button>
+          </div>
         </div>
-        <div className="ks">
-          <div style={{ fontSize:22, fontWeight:800, color:'var(--text)', fontFamily:'var(--mono)' }}>{sbaTotal.toLocaleString('es-ES')} m²</div>
-          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>SBA total</div>
+
+        {/* KPI hero numbers — más grandes que el strip anterior */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:1, background:'var(--border)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+          {[
+            { lbl:'Total activos',         val: totalActivos.toString(),                                      sub:'en cartera',     color:'var(--text)' },
+            { lbl:'SBA total',             val: sbaTotal > 0 ? `${(sbaTotal/1000).toFixed(0)}k` : '—',          sub:'m² brutos',      color:'var(--text)' },
+            { lbl:'Ocupación promedio',    val: `${ocupPromedio}%`,                                            sub:'derivado',       color: ocupPromedio>=90?'var(--green)':ocupPromedio>=75?'var(--amber)':'var(--red)' },
+            { lbl:'En comercialización',   val: enComercializacion.toString(),                                  sub:'activos',        color:'var(--amber)' },
+            { lbl:'Totalmente ocupados',   val: totalmenteOcupados.toString(),                                  sub:'sin disponibilidad', color:'var(--green)' },
+          ].map(k => (
+            <div key={k.lbl} style={{ background:'var(--surface)', padding:'14px 16px' }}>
+              <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em', marginBottom:5 }}>{k.lbl}</div>
+              <div style={{ fontSize:30, fontWeight:800, fontFamily:'var(--mono)', color:k.color, lineHeight:1 }}>{k.val}</div>
+              <div style={{ fontSize:10, color:'var(--text4)', marginTop:4 }}>{k.sub}</div>
+            </div>
+          ))}
         </div>
-        <div className="ks">
-          <div style={{ fontSize:22, fontWeight:800, color: ocupPromedio>=90?'var(--green)':ocupPromedio>=75?'var(--amber)':'var(--red)' }}>{ocupPromedio}%</div>
-          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Ocupación promedio</div>
-        </div>
-        <div className="ks">
-          <div style={{ fontSize:22, fontWeight:800, color:'var(--amber)' }}>{enComercializacion}</div>
-          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>En comercialización</div>
-        </div>
-        <div className="ks">
-          <div style={{ fontSize:22, fontWeight:800, color:'var(--green)' }}>{totalmenteOcupados}</div>
-          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Totalmente ocupados</div>
+
+        {/* Quick filter chips */}
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:12, alignItems:'center' }}>
+          <span style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginRight:4 }}>Estado</span>
+          {chip('comercializacion','En comercialización', enComercializacion, 'var(--amber)')}
+          {chip('parcial',         'Parcialmente disp.',  parcialDisp,         'var(--amber)')}
+          {chip('ocupado',         'Totalmente ocupado',  totalmenteOcupados,  'var(--green)')}
+          {chip('vacio',           'Vacío al completo',   vacioCompleto,       'var(--red)')}
+          <span style={{ width:1, height:18, background:'var(--border)', margin:'0 6px' }}/>
+          <span style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginRight:4 }}>Uso</span>
+          {chip('oficinas',        'Oficinas',            cntOficinas,         '#1e40af')}
+          {chip('logistico',       'Logístico',           cntLogistico,        '#0f766e')}
+          {chip('retail',          'Retail',              cntRetail,           '#7e22ce')}
+          {chip('datacenter',      'Data Center',         cntDataCenter,       '#0369a1')}
+          {chip('residencial',     'Residencial',         cntResidencial,      '#c2410c')}
+          {quickFilter && (
+            <button onClick={() => setQuickFilter('')} style={{ marginLeft:'auto', fontSize:10, color:'var(--red)', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>✕ Limpiar filtro</button>
+          )}
         </div>
       </div>
 
@@ -171,10 +238,18 @@ export default function ActivosList() {
           ⚙ Filtros{advCount > 0 && <span style={{ marginLeft: 4, fontSize: 9, background: 'var(--accent)', color: '#fff', borderRadius: 9, padding: '0 5px' }}>{advCount}</span>}
         </button>
         <FilterBadge count={activeCount} onClear={clearAll} />
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-          <ColumnEditor cols={COLS} vis={vis} setVis={setVis} />
-          <button className="tbtn">⬇ Exportar</button>
-          <button className="tbtn prim" onClick={() => navigate('ficha-activo', { new: true })}>+ Nuevo</button>
+        <span style={{ fontSize:11, color:'var(--text4)', marginLeft:6 }}>{result.length} de {totalActivos}</span>
+
+        {/* Toggle Tabla / Cards */}
+        <div style={{ marginLeft:'auto', display:'inline-flex', border:'1px solid var(--border)', borderRadius:6, overflow:'hidden' }}>
+          {[['tabla','Tabla'],['cards','Cards']].map(([k,l]) => (
+            <button key={k} onClick={() => setView(k)} style={{
+              padding:'5px 12px', fontSize:11, fontWeight: view === k ? 600 : 500,
+              background: view === k ? 'var(--accent)' : 'var(--surface)',
+              color: view === k ? '#fff' : 'var(--text2)',
+              border:'none', cursor:'pointer', fontFamily:'inherit',
+            }}>{l}</button>
+          ))}
         </div>
       </div>
       {showAdv && (
@@ -194,7 +269,7 @@ export default function ActivosList() {
       <div className="tbl-wrap">
         {loading ? (
           <div style={{ padding: '40px 24px', color: 'var(--text4)', fontSize: 13, textAlign: 'center' }}>Cargando activos...</div>
-        ) : (
+        ) : view === 'tabla' ? (
           <table className="main-tbl">
             <thead>
               <tr>
@@ -212,6 +287,68 @@ export default function ActivosList() {
               }
             </tbody>
           </table>
+        ) : (
+          /* Vista CARDS */
+          <div style={{ padding:'14px 16px', display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:12, alignContent:'start', overflowY:'auto' }}>
+            {result.length === 0 ? (
+              <div style={{ gridColumn:'1 / -1', textAlign:'center', padding:'40px 0', color:'var(--text4)', fontSize:13 }}>Sin activos.</div>
+            ) : result.map(a => {
+              const uc = usoColor(a.uso)
+              return (
+                <div key={a.ref} onClick={() => navigate('ficha-activo', { ref: a.ref })} style={{
+                  background:'var(--surface)', border:`1px solid ${a.ref === highlightRef ? 'var(--accent-bd)' : 'var(--border)'}`,
+                  borderRadius:10, overflow:'hidden', cursor:'pointer', boxShadow:'0 1px 3px rgba(11,18,32,.06)',
+                  transition:'box-shadow .12s, border-color .12s, transform .08s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 14px rgba(11,18,32,.10)'; e.currentTarget.style.borderColor = 'var(--accent-bd)' }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(11,18,32,.06)'; e.currentTarget.style.borderColor = a.ref === highlightRef ? 'var(--accent-bd)' : 'var(--border)' }}>
+                  {/* Hero del card: gradiente con uso + ocupación destacada */}
+                  <div style={{ height:90, background:`linear-gradient(135deg, ${uc.bg} 0%, var(--surface) 100%)`, position:'relative', borderBottom:'1px solid var(--border)' }}>
+                    <div style={{ position:'absolute', top:10, left:12, display:'flex', alignItems:'center', gap:6 }}>
+                      <div style={{ width:32, height:32, borderRadius:6, background:uc.bg, color:uc.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, border:`1px solid ${uc.color}33` }}>{(a.uso||'?')[0]}</div>
+                      <span className={`tag ${a.uso === 'Oficinas' ? 'tag-blue' : a.uso === 'Logístico' ? 'tag-teal' : a.uso === 'Data Center' ? 'tag-blue' : a.uso === 'Residencial' ? 'tag-amber' : 'tag-purple'}`} style={{ fontSize:9 }}>{a.uso}</span>
+                    </div>
+                    <div style={{ position:'absolute', top:10, right:12, textAlign:'right' }}>
+                      <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em' }}>Ocupación</div>
+                      <div style={{ fontSize:24, fontWeight:800, fontFamily:'var(--mono)', color:occColor(a.occ), lineHeight:1, marginTop:2 }}>{a.occ}%</div>
+                    </div>
+                    <div style={{ position:'absolute', bottom:8, left:12, right:12 }}>
+                      <div style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.name || shortDir(a.direccion)}</div>
+                      <div style={{ fontSize:10, color:'var(--text3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.zona}{a.subzona ? ` · ${a.subzona}` : ''} · {a.ciudad}</div>
+                    </div>
+                  </div>
+
+                  {/* Body: KPIs y datos */}
+                  <div style={{ padding:'12px 14px' }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px 12px', marginBottom:10 }}>
+                      <div>
+                        <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em' }}>SBA</div>
+                        <div style={{ fontSize:13, fontWeight:700, fontFamily:'var(--mono)' }}>{a.sba ? a.sba.toLocaleString('es-ES') + ' m²' : '—'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em' }}>Valor</div>
+                        <div style={{ fontSize:13, fontWeight:700, fontFamily:'var(--mono)' }}>{a.valor || '—'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em' }}>Días comerc.</div>
+                        <div style={{ fontSize:13, fontWeight:700, color: a.dias > 90 ? 'var(--red)' : a.dias > 60 ? 'var(--amber)' : 'var(--text2)' }}>{a.dias > 0 ? `${a.dias}d` : '—'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em' }}>Estado</div>
+                        <span className={`tag ${a.estado === 'Totalmente ocupado' ? 'tag-green' : a.estado === 'Activo' ? 'tag-green' : a.estado === 'Parcialmente disponible' ? 'tag-amber' : a.estado === 'En comercialización' ? 'tag-amber' : a.estado === 'Vacío al completo' ? 'tag-red' : 'tag-gray'}`} style={{ fontSize:9, marginTop:2 }}>{a.estado}</span>
+                      </div>
+                    </div>
+
+                    {/* Footer: propietario + ref */}
+                    <div style={{ paddingTop:8, borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                      <div style={{ fontSize:10, color:'var(--text3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'70%' }}>{a.propietario}</div>
+                      <span style={{ fontSize:9, color:'var(--text4)', fontFamily:'var(--mono)' }}>{a.ref}</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
     </div>
