@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import BannerInfo from '../components/BannerInfo'
 
 const MOCK_ENTIDADES = [
   { id:'EL-001', nombre_legal:'Savills Aguirre Newman SA',                cuenta:'Savills RE Spain SAU',                dir1:'Calle de Serrano 73',         ciudad:'Madrid',    pais:'España', reg:'A-28123456', duns:'12-345-6789' },
@@ -63,14 +64,7 @@ export default function EntidadesLegalesList() {
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
-      {/* Banner Dynamics */}
-      <div style={{ padding:'7px 16px', background:'#eff6ff', borderBottom:'1px solid #bfdbfe', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-        <div style={{ width:18, height:18, borderRadius:3, background:'#0078d4', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-          <span style={{ color:'#fff', fontWeight:800, fontSize:10 }}>D</span>
-        </div>
-        <span style={{ fontSize:11, color:'#1e40af', fontWeight:600 }}>Solo lectura · Entidades de facturación en Microsoft Dynamics 365</span>
-        <span style={{ fontSize:10, color:'#3b82f6', marginLeft:'auto' }}>Las entidades legales se definen y controlan exclusivamente en Dynamics</span>
-      </div>
+      <BannerInfo variant="dynamics" title="Solo lectura · Entidades de facturación en Microsoft Dynamics 365" hint="Las entidades legales se definen y controlan exclusivamente en Dynamics" />
 
       {/* Toolbar */}
       <div style={{ padding:'8px 16px', background:'var(--surface)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>

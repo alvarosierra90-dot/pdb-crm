@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import BannerInfo from '../components/BannerInfo'
 
 export const MOCK_OPORTUNIDADES = [
   { id:'OPO-2501', fecha:'15/03/2026', marco:'Q2 2026',  etapa:'Propuesta enviada', razon:'Expansión',         sup:'13.486', lifetime:'185.000', responsable:'Sierra Álvaro',  div_user:'Leasing Of. MAD', nombre:'Albatros D — Oracle Relocation 2026', cuenta:'Oracle Spain SL',             contacto:'James Richardson',  remitido:'Savills Estefanía', origen:'Partner/Consultor', notas:'Última planta con terraza. Muy avanzado.', division:'Oficinas', pitch:'Sí', pais:'España', creado:'Sierra Álvaro', probabilidad:65, descripcion:'Oracle busca reubicar su HQ Iberia. 13.486 m² en P1-P4 del Edif. D Albatros. Demanda en curso, propuesta enviada el 02/03/2026.', vinculaciones:{ activos:['ALC-OF-00231'], ofertas:['OFR-0018'], demandas:['DEM-0078'], mandatos:[], negociaciones:['NEG-0041'], propuestas:[] } },
@@ -31,12 +32,13 @@ const COLS = [
   { key:'creado',      label:'Creado por' },
 ]
 
-const ETAPA_TAG = {
-  'Identificación':      { bg:'#f0f9ff', color:'#0369a1', bd:'#bae6fd' },
-  'Calificación':        { bg:'#fefce8', color:'#92400e', bd:'#fde68a' },
-  'Propuesta enviada':   { bg:'#eff6ff', color:'#1d4ed8', bd:'#bfdbfe' },
-  'Negociación':         { bg:'#fdf4ff', color:'#7e22ce', bd:'#e9d5ff' },
-  'Acuerdo alcanzado':   { bg:'#f0fdf4', color:'#15803d', bd:'#bbf7d0' },
+// Mapeo a clases globales — coherencia visual con otros módulos
+export const ETAPA_TAG_CLASS = {
+  'Identificación':      'tag-blue',
+  'Calificación':        'tag-amber',
+  'Propuesta enviada':   'tag-blue',
+  'Negociación':         'tag-purple',
+  'Acuerdo alcanzado':   'tag-green',
 }
 
 function DynIcon() {
@@ -75,16 +77,40 @@ export default function OportunidadesList() {
       return sort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
     })
 
+  // KPIs
+  const total       = MOCK_OPORTUNIDADES.length
+  const identif     = MOCK_OPORTUNIDADES.filter(o => o.etapa === 'Identificación').length
+  const negociacion = MOCK_OPORTUNIDADES.filter(o => o.etapa === 'Negociación').length
+  const acuerdo     = MOCK_OPORTUNIDADES.filter(o => o.etapa === 'Acuerdo alcanzado').length
+  const lifetime    = MOCK_OPORTUNIDADES.reduce((s, o) => s + Number(o.lifetime || 0), 0)
+
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
-      {/* Banner Dynamics */}
-      <div style={{ padding:'7px 16px', background:'#eff6ff', borderBottom:'1px solid #bfdbfe', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-        <div style={{ width:18, height:18, borderRadius:3, background:'#0078d4', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-          <span style={{ color:'#fff', fontWeight:800, fontSize:10 }}>D</span>
+      <BannerInfo variant="dynamics" title="Solo lectura · WIP oficial en Microsoft Dynamics 365" hint="Las oportunidades se crean y editan exclusivamente en Dynamics" />
+
+      {/* KPI strip */}
+      <div className="kpi-strip" style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', display:'flex', gap:24, flexShrink:0, background:'var(--surface)' }}>
+        <div className="ks">
+          <div style={{ fontSize:22, fontWeight:800, color:'var(--text)' }}>{total}</div>
+          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Total</div>
         </div>
-        <span style={{ fontSize:11, color:'#1e40af', fontWeight:600 }}>Solo lectura · WIP oficial en Microsoft Dynamics 365</span>
-        <span style={{ fontSize:10, color:'#3b82f6', marginLeft:'auto' }}>Las oportunidades se crean y editan exclusivamente en Dynamics</span>
+        <div className="ks">
+          <div style={{ fontSize:22, fontWeight:800, color:'#1e40af' }}>{identif}</div>
+          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Identificación</div>
+        </div>
+        <div className="ks">
+          <div style={{ fontSize:22, fontWeight:800, color:'#7e22ce' }}>{negociacion}</div>
+          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Negociación</div>
+        </div>
+        <div className="ks">
+          <div style={{ fontSize:22, fontWeight:800, color:'#15803d' }}>{acuerdo}</div>
+          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Acuerdo alcanzado</div>
+        </div>
+        <div className="ks">
+          <div style={{ fontSize:22, fontWeight:800, color:'var(--green)', fontFamily:'var(--mono)' }}>{lifetime.toLocaleString('es-ES')} €</div>
+          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Lifetime total</div>
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -114,16 +140,14 @@ export default function OportunidadesList() {
             {data.length === 0
               ? <tr><td colSpan={COLS.length + 1} style={{ textAlign:'center', padding:32, color:'var(--text4)', fontSize:12 }}>No se encontraron registros</td></tr>
               : data.map(r => {
-                  const tag = ETAPA_TAG[r.etapa] || { bg:'var(--gray-lt)', color:'var(--text3)', bd:'var(--border)' }
+                  const tagClass = ETAPA_TAG_CLASS[r.etapa] || 'tag-gray'
                   return (
                     <tr key={r.id} style={{ cursor:'pointer' }} onClick={() => navigate('ficha-oportunidad', { id: r.id })}>
                       <td style={{ padding:'6px 8px' }}><DynIcon /></td>
                       <td style={{ fontSize:11, color:'var(--text3)', fontFamily:'var(--mono)', whiteSpace:'nowrap' }}>{r.fecha}</td>
                       <td style={{ fontSize:11 }}>{r.marco}</td>
                       <td>
-                        <span style={{ fontSize:9, background:tag.bg, color:tag.color, border:`1px solid ${tag.bd}`, borderRadius:8, padding:'2px 8px', fontWeight:700, whiteSpace:'nowrap' }}>
-                          {r.etapa}
-                        </span>
+                        <span className={`tag ${tagClass}`} style={{ whiteSpace:'nowrap' }}>{r.etapa}</span>
                       </td>
                       <td style={{ fontSize:11 }}>{r.razon}</td>
                       <td style={{ fontSize:11, fontFamily:'var(--mono)', textAlign:'right' }}>{Number(r.sup).toLocaleString('es-ES')} m²</td>

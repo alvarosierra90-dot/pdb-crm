@@ -14,7 +14,7 @@ const header = {
   display:'flex', alignItems:'center', justifyContent:'space-between',
   padding:'16px 20px 14px', borderBottom:'1px solid var(--border)',
 }
-const body = { padding:'18px 20px', display:'flex', flexDirection:'column', gap:12 }
+const body = { padding:'18px 20px', display:'flex', flexDirection:'column', gap:14 }
 const footer = { padding:'14px 20px', borderTop:'1px solid var(--border)', display:'flex', gap:8, justifyContent:'flex-end' }
 const lbl = { fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4, display:'block' }
 const inp = { width:'100%', padding:'7px 10px', fontSize:12, border:'1px solid var(--border)', borderRadius:6, background:'var(--surface)', color:'var(--text)', fontFamily:'inherit', boxSizing:'border-box', outline:'none' }

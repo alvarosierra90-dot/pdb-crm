@@ -15,17 +15,17 @@ const TABS = [
 function TipoTag({ tipo }) {
   const t = LEAD_TIPOS.find(x => x.key === tipo)
   if (!t) return null
-  return <span style={{ fontSize:11, fontWeight:700, color:t.color, background:t.bg, border:`1px solid ${t.color}33`, borderRadius:8, padding:'3px 10px' }}>{t.label}</span>
+  return <span className={`tag ${t.tagClass}`}>{t.label}</span>
 }
 function EstadoTag({ estado }) {
   const e = LEAD_ESTADOS.find(x => x.key === estado)
   if (!e) return null
-  return <span style={{ fontSize:11, fontWeight:700, color:e.color, background:e.bg, border:`1px solid ${e.color}33`, borderRadius:8, padding:'3px 10px' }}>{e.label}</span>
+  return <span className={`tag ${e.tagClass}`}>{e.label}</span>
 }
 function PrioridadTag({ prioridad }) {
   const p = LEAD_PRIORIDADES.find(x => x.key === prioridad)
   if (!p) return null
-  return <span style={{ fontSize:10, fontWeight:700, color:p.color, background:p.bg, border:`1px solid ${p.color}33`, borderRadius:8, padding:'2px 8px' }}>{p.label}</span>
+  return <span className={`tag ${p.tagClass}`}>{p.label}</span>
 }
 
 function KV({ k, v, mono = false }) {

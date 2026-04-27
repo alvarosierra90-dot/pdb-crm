@@ -129,8 +129,39 @@ export default function ActivosList() {
     _act:    <td key="_act"><div className="ra-cell"><button className="ra" onClick={e => { e.stopPropagation(); navigate('ficha-activo', { ref: a.ref }) }}>Ver</button><button className="ra p" onClick={e => e.stopPropagation()}>Editar</button></div></td>,
   })
 
+  // KPIs derivados (Σ)
+  const totalActivos      = activos.length
+  const sbaTotal          = activos.reduce((s, a) => s + (a.sba || 0), 0)
+  const ocupPromedio      = totalActivos > 0 ? Math.round(activos.reduce((s, a) => s + (a.occ || 0), 0) / totalActivos) : 0
+  const enComercializacion = activos.filter(a => a.estado === 'En comercialización').length
+  const totalmenteOcupados = activos.filter(a => a.occ === 100 || a.estado === 'Totalmente ocupado').length
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      {/* KPI strip */}
+      <div className="kpi-strip" style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', display:'flex', gap:24, flexShrink:0, background:'var(--surface)' }}>
+        <div className="ks">
+          <div style={{ fontSize:22, fontWeight:800, color:'var(--text)' }}>{totalActivos}</div>
+          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Total activos</div>
+        </div>
+        <div className="ks">
+          <div style={{ fontSize:22, fontWeight:800, color:'var(--text)', fontFamily:'var(--mono)' }}>{sbaTotal.toLocaleString('es-ES')} m²</div>
+          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>SBA total</div>
+        </div>
+        <div className="ks">
+          <div style={{ fontSize:22, fontWeight:800, color: ocupPromedio>=90?'var(--green)':ocupPromedio>=75?'var(--amber)':'var(--red)' }}>{ocupPromedio}%</div>
+          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Ocupación promedio Σ</div>
+        </div>
+        <div className="ks">
+          <div style={{ fontSize:22, fontWeight:800, color:'var(--amber)' }}>{enComercializacion}</div>
+          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>En comercialización</div>
+        </div>
+        <div className="ks">
+          <div style={{ fontSize:22, fontWeight:800, color:'var(--green)' }}>{totalmenteOcupados}</div>
+          <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Totalmente ocupados</div>
+        </div>
+      </div>
+
       <div className="list-toolbar">
         <div className="search-wrap">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4" /><path d="M11 11l3 3" /></svg>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { LEADS, LEAD_TIPOS, LEAD_ESTADOS, LEAD_CANALES, LEAD_PRIORIDADES } from '../data/mockLeads'
+import BannerInfo from '../components/BannerInfo'
 
 const COLS = [
   { key:'id',           label:'ID' },
@@ -25,31 +26,19 @@ function SortIcon({ active, dir }) {
 function TipoTag({ tipo }) {
   const t = LEAD_TIPOS.find(x => x.key === tipo)
   if (!t) return <span style={{ color:'var(--text4)' }}>—</span>
-  return (
-    <span style={{ fontSize:10, fontWeight:700, color:t.color, background:t.bg, border:`1px solid ${t.color}33`, borderRadius:8, padding:'2px 8px', whiteSpace:'nowrap' }}>
-      {t.label}
-    </span>
-  )
+  return <span className={`tag ${t.tagClass}`} style={{ whiteSpace:'nowrap' }}>{t.label}</span>
 }
 
 function EstadoTag({ estado }) {
   const e = LEAD_ESTADOS.find(x => x.key === estado)
   if (!e) return <span style={{ color:'var(--text4)' }}>—</span>
-  return (
-    <span style={{ fontSize:10, fontWeight:700, color:e.color, background:e.bg, border:`1px solid ${e.color}33`, borderRadius:8, padding:'2px 8px', whiteSpace:'nowrap' }}>
-      {e.label}
-    </span>
-  )
+  return <span className={`tag ${e.tagClass}`} style={{ whiteSpace:'nowrap' }}>{e.label}</span>
 }
 
 function PrioridadTag({ prioridad }) {
   const p = LEAD_PRIORIDADES.find(x => x.key === prioridad)
   if (!p) return <span style={{ color:'var(--text4)' }}>—</span>
-  return (
-    <span style={{ fontSize:9, fontWeight:700, color:p.color, background:p.bg, border:`1px solid ${p.color}33`, borderRadius:8, padding:'1px 7px' }}>
-      {p.label}
-    </span>
-  )
+  return <span className={`tag ${p.tagClass}`}>{p.label}</span>
 }
 
 export default function LeadsList() {
@@ -89,14 +78,7 @@ export default function LeadsList() {
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
-      {/* Banner explicativo */}
-      <div style={{ padding:'7px 16px', background:'#fef3c7', borderBottom:'1px solid #fde68a', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-        <div style={{ width:18, height:18, borderRadius:3, background:'#ea580c', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-          <span style={{ color:'#fff', fontWeight:800, fontSize:10 }}>L</span>
-        </div>
-        <span style={{ fontSize:11, color:'#7c2d12', fontWeight:600 }}>Punto inicial del funnel comercial · Captura automática desde web, portales, formularios y campañas</span>
-        <span style={{ fontSize:10, color:'#9a3412', marginLeft:'auto' }}>Sincronizado con anuncios + Microsoft Dynamics 365</span>
-      </div>
+      <BannerInfo variant="info" title="Punto inicial del funnel comercial · Captura automática desde web, portales, formularios y campañas" hint="Sincronizado con anuncios + Microsoft Dynamics 365" />
 
       {/* KPI strip */}
       <div className="kpi-strip" style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', display:'flex', gap:24, flexShrink:0, background:'var(--surface)' }}>

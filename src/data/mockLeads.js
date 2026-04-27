@@ -1,17 +1,18 @@
+// Mapeo a clases globales — coherencia visual con resto del sistema (.tag-*)
 export const LEAD_TIPOS = [
-  { key:'demanda',  label:'Demanda',          color:'#7c3aed', bg:'#ede9fe' },
-  { key:'oferta',   label:'Oferta',           color:'#15803d', bg:'#dcfce7' },
-  { key:'servicio', label:'Cuenta / Servicio', color:'#ea580c', bg:'#ffedd5' },
+  { key:'demanda',  label:'Demanda',          tagClass:'tag-purple' },
+  { key:'oferta',   label:'Oferta',           tagClass:'tag-green'  },
+  { key:'servicio', label:'Cuenta / Servicio', tagClass:'tag-amber' },
 ]
 
 export const LEAD_ESTADOS = [
-  { key:'nuevo',         label:'Nuevo',         color:'#1e40af', bg:'#dbeafe' },
-  { key:'revision',      label:'En revisión',   color:'#92400e', bg:'#fef3c7' },
-  { key:'seguimiento',   label:'En seguimiento',color:'#7c2d12', bg:'#fed7aa' },
-  { key:'cualificado',   label:'Cualificado',   color:'#15803d', bg:'#dcfce7' },
-  { key:'nulo',          label:'Lead nulo',     color:'#991b1b', bg:'#fee2e2' },
-  { key:'convertido',    label:'Convertido',    color:'#0e7490', bg:'#cffafe' },
-  { key:'descartado',    label:'Descartado',    color:'#475569', bg:'#e2e8f0' },
+  { key:'nuevo',         label:'Nuevo',         tagClass:'tag-blue'   },
+  { key:'revision',      label:'En revisión',   tagClass:'tag-amber'  },
+  { key:'seguimiento',   label:'En seguimiento',tagClass:'tag-amber'  },
+  { key:'cualificado',   label:'Cualificado',   tagClass:'tag-green'  },
+  { key:'nulo',          label:'Lead nulo',     tagClass:'tag-red'    },
+  { key:'convertido',    label:'Convertido',    tagClass:'tag-teal'   },
+  { key:'descartado',    label:'Descartado',    tagClass:'tag-gray'   },
 ]
 
 export const LEAD_CANALES = [
@@ -30,9 +31,9 @@ export const LEAD_CANALES = [
 ]
 
 export const LEAD_PRIORIDADES = [
-  { key:'alta',  label:'Alta',  color:'#dc2626', bg:'#fee2e2' },
-  { key:'media', label:'Media', color:'#ea580c', bg:'#ffedd5' },
-  { key:'baja',  label:'Baja',  color:'#475569', bg:'#e2e8f0' },
+  { key:'alta',  label:'Alta',  tagClass:'tag-red'   },
+  { key:'media', label:'Media', tagClass:'tag-amber' },
+  { key:'baja',  label:'Baja',  tagClass:'tag-gray'  },
 ]
 
 export const MOTIVOS_LEAD_NULO = [

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import BannerInfo from '../components/BannerInfo'
 
 const MOCK_CONTACTOS = [
   { id:'CON-001', titulo:'Mr.', nombre:'James',       apellido:'Richardson',  cuenta:'Oracle Spain SL',                cargo:'Director Real Estate',    anio_rel:2019, cat_alumni:'—',   of_alumni:'—',  div_alumni:'—',  linkedin:'linkedin.com/in/jrichardson', ciudad:'Madrid',    pais:'España',  no_email:false, no_llamada:false, ap_ant:'—',     email:'j.richardson@oracle.com',     dir_email:'Calle Basauri 17, Madrid' },
@@ -73,14 +74,7 @@ export default function ContactosList() {
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
-      {/* Banner Dynamics */}
-      <div style={{ padding:'7px 16px', background:'#eff6ff', borderBottom:'1px solid #bfdbfe', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-        <div style={{ width:18, height:18, borderRadius:3, background:'#0078d4', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-          <span style={{ color:'#fff', fontWeight:800, fontSize:10 }}>D</span>
-        </div>
-        <span style={{ fontSize:11, color:'#1e40af', fontWeight:600 }}>Solo lectura · Datos sincronizados desde Microsoft Dynamics 365</span>
-        <span style={{ fontSize:10, color:'#3b82f6', marginLeft:'auto' }}>Cualquier modificación debe realizarse directamente en Dynamics</span>
-      </div>
+      <BannerInfo variant="dynamics" title="Solo lectura · Datos sincronizados desde Microsoft Dynamics 365" hint="Cualquier modificación debe realizarse directamente en Dynamics" />
 
       {/* Toolbar */}
       <div style={{ padding:'8px 16px', background:'var(--surface)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>

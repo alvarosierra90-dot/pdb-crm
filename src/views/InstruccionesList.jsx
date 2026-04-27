@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import BannerInfo from '../components/BannerInfo'
 
 const MOCK_INSTRUCCIONES = [
   { id:'INS-2501', pais:'España', nombre:'Avalon P5 — Generali Arrendamiento',         entidad_legal:'Savills Aguirre Newman SA',    razon:'Contrato firmado',   sup:'1.500',  lifetime:'85.000',  oficina:'Madrid · Oficinas',    division:'Leasing',          cuenta:'Generali Real Estate',        contacto:'Carlos Vega',       fecha:'15/04/2026', responsable:'Sierra Álvaro' },
@@ -62,14 +63,7 @@ export default function InstruccionesList() {
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
-      {/* Banner Dynamics */}
-      <div style={{ padding:'7px 16px', background:'#eff6ff', borderBottom:'1px solid #bfdbfe', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-        <div style={{ width:18, height:18, borderRadius:3, background:'#0078d4', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-          <span style={{ color:'#fff', fontWeight:800, fontSize:10 }}>D</span>
-        </div>
-        <span style={{ fontSize:11, color:'#1e40af', fontWeight:600 }}>Solo lectura · Cierre oficial en Microsoft Dynamics 365</span>
-        <span style={{ fontSize:10, color:'#3b82f6', marginLeft:'auto' }}>Las instrucciones se crean y gestionan exclusivamente en Dynamics</span>
-      </div>
+      <BannerInfo variant="dynamics" title="Solo lectura · Cierre oficial en Microsoft Dynamics 365" hint="Las instrucciones se crean y gestionan exclusivamente en Dynamics" />
 
       {/* Toolbar */}
       <div style={{ padding:'8px 16px', background:'var(--surface)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>

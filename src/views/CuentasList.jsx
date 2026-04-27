@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import BannerInfo from '../components/BannerInfo'
 
 const MOCK_CUENTAS = [
   { id:'CTA-001', nombre:'Corporación Financiera Azuaga SL',   dir:'Avda. Diego Martínez Barrios 4',  ciudad:'Sevilla',   pais:'España',  industria:'Servicios financieros',  companero:'Sierra Álvaro',   principal:'—',               rel_cap:'IH' },
@@ -67,14 +68,7 @@ export default function CuentasList() {
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
-      {/* Banner Dynamics */}
-      <div style={{ padding:'7px 16px', background:'#eff6ff', borderBottom:'1px solid #bfdbfe', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-        <div style={{ width:18, height:18, borderRadius:3, background:'#0078d4', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-          <span style={{ color:'#fff', fontWeight:800, fontSize:10 }}>D</span>
-        </div>
-        <span style={{ fontSize:11, color:'#1e40af', fontWeight:600 }}>Solo lectura · Datos sincronizados desde Microsoft Dynamics 365</span>
-        <span style={{ fontSize:10, color:'#3b82f6', marginLeft:'auto' }}>Cualquier modificación debe realizarse directamente en Dynamics</span>
-      </div>
+      <BannerInfo variant="dynamics" title="Solo lectura · Datos sincronizados desde Microsoft Dynamics 365" hint="Cualquier modificación debe realizarse directamente en Dynamics" />
 
       {/* Toolbar */}
       <div style={{ padding:'8px 16px', background:'var(--surface)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>

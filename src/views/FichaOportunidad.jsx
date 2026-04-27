@@ -1,14 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
-import { MOCK_OPORTUNIDADES } from './OportunidadesList'
-
-const ETAPA_TAG = {
-  'Identificación':      { bg:'#f0f9ff', color:'#0369a1', bd:'#bae6fd' },
-  'Calificación':        { bg:'#fefce8', color:'#92400e', bd:'#fde68a' },
-  'Propuesta enviada':   { bg:'#eff6ff', color:'#1d4ed8', bd:'#bfdbfe' },
-  'Negociación':         { bg:'#fdf4ff', color:'#7e22ce', bd:'#e9d5ff' },
-  'Acuerdo alcanzado':   { bg:'#f0fdf4', color:'#15803d', bd:'#bbf7d0' },
-}
+import { MOCK_OPORTUNIDADES, ETAPA_TAG_CLASS } from './OportunidadesList'
 
 function KV({ k, v, mono = false, large = false }) {
   return (
@@ -63,7 +55,7 @@ export default function FichaOportunidad() {
   const [tab, setTab] = useState('info')
 
   const v = op.vinculaciones || { activos:[], ofertas:[], demandas:[], mandatos:[], negociaciones:[], propuestas:[] }
-  const tag = ETAPA_TAG[op.etapa] || { bg:'var(--gray-lt)', color:'var(--text3)', bd:'var(--border)' }
+  const tagClass = ETAPA_TAG_CLASS[op.etapa] || 'tag-gray'
 
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
@@ -102,7 +94,7 @@ export default function FichaOportunidad() {
                   {op.id} · {op.cuenta} · {op.contacto || '—'} · Resp. {op.responsable}
                 </div>
                 <div className="ah-tags" style={{ marginTop:8, display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' }}>
-                  <span style={{ fontSize:11, fontWeight:700, color:tag.color, background:tag.bg, border:`1px solid ${tag.bd}`, borderRadius:8, padding:'3px 10px' }}>{op.etapa}</span>
+                  <span className={`tag ${tagClass}`}>{op.etapa}</span>
                   <span className={`tag ${op.division === 'Capital Markets' ? 'tag-amber' : 'tag-blue'}`}>{op.division}</span>
                   <span className="tag tag-gray">{op.marco}</span>
                   {op.pitch === 'Sí' && <span className="tag tag-green">Pitch</span>}
@@ -141,7 +133,7 @@ export default function FichaOportunidad() {
                   </div>
                   <div>
                     <div className="rp-lbl">Estado y económica</div>
-                    <KV k="Etapa" v={<span style={{ fontSize:11, fontWeight:700, color:tag.color, background:tag.bg, border:`1px solid ${tag.bd}`, borderRadius:8, padding:'2px 10px' }}>{op.etapa}</span>} />
+                    <KV k="Etapa" v={<span className={`tag ${tagClass}`}>{op.etapa}</span>} />
                     <KV k="Probabilidad de éxito" v={<span style={{ fontWeight:700, color:'var(--accent)' }}>{op.probabilidad || 50}%</span>} />
                     <KV k="Importe estimado (lifetime)" v={<span style={{ color:'var(--green)', fontWeight:700, fontFamily:'var(--mono)' }}>{Number(op.lifetime).toLocaleString('es-ES')} €</span>} />
                     <KV k="Línea de negocio" v={op.division} />
