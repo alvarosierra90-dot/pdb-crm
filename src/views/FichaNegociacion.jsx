@@ -172,7 +172,7 @@ function UploadPanel({ onUpload, onClose, nextVersion }) {
 }
 
 const TABS = ['neg-chat','neg-condiciones','neg-docs','neg-historial','neg-colab']
-const TAB_LABELS = ['💬 Negociación','📋 Condiciones acordadas','📁 Documentos contractuales','🕐 Historial completo','👥 Equipos colaboradores']
+const TAB_LABELS = ['Negociación','Condiciones acordadas','Documentos contractuales','Historial completo','Equipos colaboradores']
 
 const COLAB_INIT_NEG = [
   { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable negociación', initials:'AS', bg:'#dbeafe', color:'#1e40af', principal:true },

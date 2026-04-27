@@ -372,7 +372,7 @@ export default function FichaMandato() {
 
           {/* Tabs */}
           <div className="tabs">
-            {[['info','Información'],['alertas',`Alertas (${ALERTAS.filter(a=>a.activa).length})`],['actividades',`Actividades (${ACTS.length})`],['transacciones',`Transacciones (${TRANS.length})`],['visitas',`Visitas (${VISS.length})`],['docs',`Documentación (${DOCS.length})`],['equipo','Equipo'],['informe','📊 Informe de gestión']].map(([k,l])=>(
+            {[['info','Información'],['alertas',`Alertas (${ALERTAS.filter(a=>a.activa).length})`],['actividades',`Actividades (${ACTS.length})`],['transacciones',`Transacciones (${TRANS.length})`],['visitas',`Visitas (${VISS.length})`],['docs',`Documentación (${DOCS.length})`],['equipo','Equipo'],['informe','Informe de gestión']].map(([k,l])=>(
               <div key={k} className={`tab ${tab===k?'active':''}`} onClick={()=>setTab(k)}>{l}</div>
             ))}
           </div>

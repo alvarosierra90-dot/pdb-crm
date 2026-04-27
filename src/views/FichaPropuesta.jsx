@@ -3,7 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 
 const TABS = ['datos','equipos','trazabilidad','docs','resumen']
-const TAB_LABELS = ['📋 Datos del proyecto','👥 Equipos y participantes','🔄 Trazabilidad','📁 Documentación','📊 Resumen']
+const TAB_LABELS = ['Datos del proyecto','Equipos y participantes','Trazabilidad','Documentación','Resumen']
 
 const TIPOS = ['Pitch','Valoración','Propuesta de servicios','Mandato comercial','Consultoría','Urbanismo','Proyecto de arquitectura / workplace']
 const ESTADOS = ['Activo','Standby','Cancelado','Adjudicado']
@@ -216,7 +216,7 @@ export default function FichaPropuesta() {
           {/* Tabs */}
           <div className="tabs">
             {TABS.map((t,i)=>(
-              <button key={t} className={`tab${tab===t?' active':''}`} onClick={()=>setTab(t)}>{TAB_LABELS[i]}</button>
+              <div key={t} className={`tab${tab===t?' active':''}`} onClick={()=>setTab(t)}>{TAB_LABELS[i]}</div>
             ))}
           </div>
 

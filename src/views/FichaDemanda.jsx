@@ -8,9 +8,9 @@ const DEM_USERS_INIT = [
 
 const DEM_TABS = [
   ['dem-info','Información Demanda'],['dem-req','Requisitos'],['dem-zona','Zona búsqueda'],
-  ['dem-seg','Seguimiento comercial'],['dem-360','🔄 Ciclo 360°'],['dem-act','Actividades'],
+  ['dem-seg','Seguimiento comercial'],['dem-360','Ciclo 360°'],['dem-act','Actividades'],
   ['dem-partes','Partes involucradas'],['dem-docs','Documentos'],['dem-neg','Negociaciones en curso'],['dem-followup','Follow-up'],
-  ['dem-conf','🔒 Confidencialidad'],
+  ['dem-conf','Confidencialidad'],
 ]
 
 /* ── LÓGICA CONDICIONAL DEMANDA ── */

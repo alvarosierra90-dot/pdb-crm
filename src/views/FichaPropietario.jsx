@@ -39,7 +39,7 @@ function ExportMenu({ getConfig }) {
 }
 
 const TABS = ['datos','condiciones','historico','analisis']
-const TAB_LABELS = ['🏢 Datos del propietario','💰 Condiciones de inversión','🕐 Histórico propietarios','📊 Análisis']
+const TAB_LABELS = ['Datos del propietario','Condiciones de inversión','Histórico propietarios','Análisis']
 
 const USOS_PROPIETARIO = [
   'Oficinas','Logístico / Industrial','Retail','Centros comerciales',
@@ -349,7 +349,7 @@ export default function FichaPropietario() {
           {/* Tabs */}
           <div className="tabs">
             {TABS.map((t,i)=>(
-              <button key={t} className={`tab${tab===t?' active':''}`} onClick={()=>setTab(t)}>{TAB_LABELS[i]}</button>
+              <div key={t} className={`tab${tab===t?' active':''}`} onClick={()=>setTab(t)}>{TAB_LABELS[i]}</div>
             ))}
           </div>
 

@@ -55,7 +55,7 @@ export default function FichaVisita() {
             <div className={`tab ${tab==='info'?'active':''}`} onClick={()=>setTab('info')}>Información</div>
             <div className={`tab ${tab==='feed'?'active':''}`} onClick={()=>setTab('feed')}>Feedback comercial</div>
             <div className={`tab ${tab==='acts'?'active':''}`} onClick={()=>setTab('acts')}>Actividades relacionadas</div>
-            <div className={`tab ${tab==='colab'?'active':''}`} onClick={()=>setTab('colab')}>👥 Equipos colaboradores{colabTeams.length > 1 && <span style={{marginLeft:5,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{colabTeams.length}</span>}</div>
+            <div className={`tab ${tab==='colab'?'active':''}`} onClick={()=>setTab('colab')}>Equipos colaboradores{colabTeams.length > 1 && <span style={{marginLeft:5,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{colabTeams.length}</span>}</div>
           </div>
 
           {/* Tab Información */}

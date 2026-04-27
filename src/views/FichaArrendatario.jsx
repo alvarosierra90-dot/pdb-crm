@@ -48,7 +48,7 @@ function diasHasta(fechaStr) {
 }
 
 const TABS = ['datos','condiciones','alertas','historial']
-const TAB_LABELS = ['📋 Datos del arrendatario','💰 Condiciones económicas','🔔 Alertas y break option','🕐 Historial']
+const TAB_LABELS = ['Datos del arrendatario','Condiciones económicas','Alertas y break option','Historial']
 
 const TIPO_TAG_ARR = { Email:'tag-blue', Llamada:'tag-green', Reunión:'tag-purple', Tarea:'tag-gray', Nota:'tag-gray', Alerta:'tag-red', Modificación:'tag-amber' }
 const TIPO_ICO_ARR = { Email:'📧', Llamada:'📞', Reunión:'🤝', Tarea:'✅', Nota:'📝', Alerta:'🔔', Modificación:'✏️' }
