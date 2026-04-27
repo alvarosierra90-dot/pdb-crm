@@ -1,6 +1,61 @@
 # Flujos PDB — Mapa de procesos
 
-Este documento describe los 10 procesos clave del PDB CRM y su relación con Dynamics. En todos los diagramas, los nodos azules pertenecen a **Dynamics** (sistema maestro) y los nodos verdes pertenecen al **PDB** (sistema operativo del broker). El sentido de las flechas indica el flujo natural del proceso; los retornos sombreados representan la sincronización automática Dynamics → PDB.
+Este documento describe los 11 procesos clave del PDB CRM y su relación con Dynamics. En todos los diagramas, los nodos azules pertenecen a **Dynamics** (sistema maestro) y los nodos verdes pertenecen al **PDB** (sistema operativo del broker). Los nodos amarillos representan el **LEAD**, punto de entrada de todo el funnel comercial. El sentido de las flechas indica el flujo natural del proceso; los retornos sombreados representan la sincronización automática Dynamics → PDB.
+
+---
+
+## 0. LEAD — Punto de entrada del funnel
+
+```mermaid
+flowchart LR
+    subgraph EXT[CANALES EXTERNOS · captura automática]
+        C1[1 · Web<br/>+ landing pages]
+        C2[2 · Portales<br/>Idealista · Habitaclia · Belbex]
+        C3[3 · LinkedIn<br/>+ campañas]
+        C4[4 · Formularios<br/>consultoría · advisory]
+        C5[5 · Recomendación<br/>+ contacto directo]
+    end
+
+    subgraph PDB[PDB · Módulo LEADS]
+        L1[6 · Captura automática<br/>anuncio · campaña · URL · fecha]
+        L2[7 · Clasificación tipo<br/>Demanda / Oferta / Servicio]
+        L3[8 · Cualificación<br/>actividades · llamadas]
+        L4[9 · Vinculación obligatoria<br/>Cuenta y/o Contacto]
+        L5{10 · Decisión}
+    end
+
+    subgraph DEST[DESTINOS · transformación]
+        T1[11a · Demanda + Oportunidad<br/>tipo Demanda]
+        T2[11b · Oferta + Oportunidad<br/>tipo Oferta]
+        T3[11c · Solo Oportunidad Dynamics<br/>tipo Servicio]
+        T4[11d · Lead Nulo<br/>15 motivos · trazabilidad]
+    end
+
+    C1 --> L1
+    C2 --> L1
+    C3 --> L1
+    C4 --> L1
+    C5 --> L1
+    L1 --> L2
+    L2 --> L3
+    L3 --> L4
+    L4 --> L5
+    L5 -->|Lead Demanda| T1
+    L5 -->|Lead Oferta| T2
+    L5 -->|Lead Servicio| T3
+    L5 -.->|no válido| T4
+
+    classDef ext fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,stroke-width:1.5px
+    classDef pdb fill:#fef3c7,stroke:#92400e,color:#7c2d12,stroke-width:2px
+    classDef dest fill:#dcfce7,stroke:#15803d,color:#14532d,stroke-width:1.5px
+    classDef nulo fill:#fee2e2,stroke:#991b1b,color:#7f1d1d,stroke-width:1.5px
+    class C1,C2,C3,C4,C5 ext
+    class L1,L2,L3,L4,L5 pdb
+    class T1,T2,T3 dest
+    class T4 nulo
+```
+
+El módulo LEADS es **el verdadero origen del funnel**. La captura es **automática** desde múltiples canales (1–5): web corporativa, portales inmobiliarios (Idealista, Habitaclia, Belbex), LinkedIn, formularios de captación, recomendaciones, contacto directo y otros. Cada lead capturado registra automáticamente anuncio, campaña, URL, fecha y canal de origen (6). Se clasifica por tipo (7) — **Demanda**, **Oferta** o **Servicio** — y se cualifica con actividades (8). Para transformar es **obligatorio** vincular Cuenta o Contacto (9). Tras la decisión (10), el lead se transforma según su tipo (11a/b/c) o se cierra como Lead Nulo con motivo trazable (11d). Sin vinculación a Cuenta/Contacto, el lead no puede transformarse — esto evita oportunidades sin trazabilidad comercial.
 
 ---
 
@@ -8,9 +63,12 @@ Este documento describe los 10 procesos clave del PDB CRM y su relación con Dyn
 
 ```mermaid
 flowchart LR
+    subgraph LEAD[LEAD · Punto de entrada del funnel]
+        L0[0 · LEAD<br/>captura automática<br/>web · portales · campañas]
+    end
+
     subgraph DYN[DYNAMICS · Sistema maestro]
-        D1[1 · Cuenta-Propietario<br/>fuente de verdad]
-        D4[4 · Cuenta-Arrendatario<br/>fuente de verdad]
+        D1[1 · Cuenta<br/>fuente de verdad]
         D7[7 · Oportunidad WIP<br/>handoff #1]
         D9[9 · Instrucción<br/>handoff #2 · contrato]
     end
@@ -24,25 +82,29 @@ flowchart LR
         P10[10 · Transacción<br/>cierre + honorarios]
     end
 
+    L0 -->|cualificación + vinculación| D1
     D1 ==>|FK CRÍTICO| P2
     P2 --> P3
-    D4 -->|FK| P5
+    D1 -->|FK Arrendatario| P5
     P3 --> P6
     P5 --> P6
-    P6 -->|handoff| D7
+    P6 -->|handoff #1| D7
+    L0 -.->|servicio · sin activo/oferta/demanda| D7
     D7 -->|sync| P8
-    P8 -->|handoff| D9
+    P8 -->|handoff #2| D9
     D9 -->|sync| P10
 
+    classDef lead fill:#fef3c7,stroke:#92400e,color:#7c2d12,stroke-width:2px
     classDef dyn fill:#1e40af,stroke:#1e3a8a,color:#fff,stroke-width:2px
     classDef pdb fill:#15803d,stroke:#14532d,color:#fff,stroke-width:2px
     classDef critical stroke:#dc2626,stroke-width:3px,color:#fff
-    class D1,D4,D7,D9 dyn
+    class L0 lead
+    class D1,D7,D9 dyn
     class P2,P3,P5,P6,P8,P10 pdb
     class D1,P2 critical
 ```
 
-El ciclo arranca con la **Cuenta-Propietario** (1) en Dynamics, sobre la que se da de alta el **Activo** (2) en PDB con FK obligatorio. Sobre el activo se publica una **Oferta** (3) — el producto disponible al mercado. Por el otro lado, una **Cuenta-Arrendatario** (4) genera una **Demanda** (5) en PDB con su perfil de búsqueda. El sistema realiza el **match Oferta ↔ Demanda** (6), y cuando hay tracción real se ejecuta el **handoff #1 a Dynamics** creando la **Oportunidad WIP** (7). De ahí baja a **Negociación** (8) en PDB, cuyo acuerdo final dispara el **handoff #2** a Dynamics como **Instrucción** (9), y el cierre se registra como **Transacción** (10). La Oportunidad no es el origen del ciclo: es el WIP intermedio que aparece tras el match.
+El ciclo arranca con el **LEAD** (0), que se captura automáticamente desde web, portales (Idealista, Habitaclia, Belbex), LinkedIn, formularios y campañas. Tras cualificarlo y vincularlo obligatoriamente a una **Cuenta** o Contacto en Dynamics (1), el flujo se bifurca según el tipo: los leads de Demanda y Oferta alimentan **Activos** (2), **Ofertas** (3), **Demandas** (5) en PDB, que machean (6) y disparan la **Oportunidad WIP** en Dynamics (7); los leads de Servicio van directos a Oportunidad sin pasar por activo/oferta/demanda. De ahí baja a **Negociación** (8), **Instrucción** (9) y se cierra como **Transacción** (10). El LEAD es el verdadero origen del funnel: ningún proceso comercial debería empezar sin él.
 
 ---
 
