@@ -3091,14 +3091,8 @@ function RightPanel({ navigate, nEdificios, nPropietarios, plazas, esg, activo }
         )}
       </div>
 
-      {/* 2. KPIs del activo */}
+      {/* 2. Sellos ESG / certificaciones (los KPIs del activo están en la cabecera) */}
       {(()=>{
-        const totalPlazas = (plazas||[]).reduce((s,p)=>s+p.cantidad,0)
-        const nArrendatarios = new Set(
-          RENT_ROLL_ROWS
-            .filter(r => r.arrendatario !== 'DISPONIBLE' && r.arrendatario !== '—' && r.uso !== 'Parking')
-            .map(r => r.arrendatario)
-        ).size
         const sellos = [
           esg?.leed        && {label:`LEED ${esg.leed}`,              cls:'tag-leed'},
           esg?.breeam      && {label:`BREEAM ${esg.breeam}`,          cls:'tag-esg'},
@@ -3106,38 +3100,15 @@ function RightPanel({ navigate, nEdificios, nPropietarios, plazas, esg, activo }
           esg?.dgnb        && {label:`DGNB ${esg.dgnb}`,             cls:'tag-blue'},
           esg?.wiredscore  && {label:`WiredScore ${esg.wiredscore}`,  cls:'tag-gray'},
         ].filter(Boolean)
+        if (sellos.length === 0) return null
         return (
           <div className="va-side-card">
-            <div className="va-side-title">KPIs del activo</div>
-            <div className="va-kpi-grid" style={{gridTemplateColumns:'1fr 1fr 1fr',marginBottom:10}}>
-              <div className="va-kpi featured">
-                <div className="k">SBA total</div>
-                <div className="v">{activo?.sba ? activo.sba.toLocaleString('es-ES') : '—'}<span className="unit">m²</span></div>
-              </div>
-              <div className="va-kpi">
-                <div className="k">Edificios</div>
-                <div className="v">{nEdificios ?? 1}</div>
-              </div>
-              <div className="va-kpi">
-                <div className="k">Plazas</div>
-                <div className="v">{totalPlazas > 0 ? totalPlazas.toLocaleString('es-ES') : '—'}</div>
-              </div>
-              <div className="va-kpi">
-                <div className="k">Arrendatarios</div>
-                <div className="v">{nArrendatarios}</div>
-              </div>
-              <div className="va-kpi">
-                <div className="k">Propietarios</div>
-                <div className="v">{nPropietarios ?? '—'}</div>
-              </div>
+            <div className="va-side-title">Certificaciones</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+              {sellos.map(s=>(
+                <span key={s.label} className={`tag ${s.cls}`} style={{fontSize:9,padding:'2px 7px'}}>{s.label}</span>
+              ))}
             </div>
-            {sellos.length > 0 && (
-              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                {sellos.map(s=>(
-                  <span key={s.label} className={`tag ${s.cls}`} style={{fontSize:9,padding:'2px 7px'}}>{s.label}</span>
-                ))}
-              </div>
-            )}
           </div>
         )
       })()}
@@ -4101,21 +4072,24 @@ export default function FichaActivo() {
               {!isNew && !loadingActivo && (
                 <div style={{ display:'flex', alignItems:'stretch', gap:0, flexShrink:0, border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', background:'var(--surface)' }}>
                   {(() => {
-                    const sba       = activo?.sba ?? 0
-                    const ratio     = activo?.ratio_perdida ?? 0
-                    const supNeta   = sba && ratio ? Math.round(sba * (1 - ratio/100)) : null
-                    const occ       = activo?.occupancy_rate
-                    const dias      = activo?.dias_comercializacion ?? 0
+                    const sba          = activo?.sba ?? 0
+                    const occ          = activo?.occupancy_rate
+                    const totalPlazas  = (plazas || []).reduce((s, p) => s + (p.cantidad || 0), 0)
+                    const nEdif        = liveEdifCount ?? activo?.n_edificios ?? 1
+                    const nArr         = arrendatariosReg.length
+                    const nProp        = propietariosReg.length
                     const items = [
-                      { lbl:'SBA',         val: sba > 0 ? sba.toLocaleString('es-ES') : '—',                                 sub:'m² brutos',         color:'var(--text1)' },
-                      { lbl:'Sup. neta',   val: supNeta != null ? supNeta.toLocaleString('es-ES') : '—',                     sub:'m² netos',          color:'var(--accent)' },
-                      { lbl:'Ocupación',   val: occ != null ? `${occ}%` : '—',                                              sub:'derivado',          color: occ >= 90 ? 'var(--green)' : occ >= 75 ? 'var(--amber)' : 'var(--red)' },
-                      { lbl:'Días comerc.',val: dias > 0 ? `${dias}d` : '—',                                                sub:'en mercado',        color: dias > 90 ? 'var(--red)' : dias > 60 ? 'var(--amber)' : 'var(--text1)' },
+                      { lbl:'SBA',           val: sba > 0 ? sba.toLocaleString('es-ES') : '—',          sub:'m²',          color:'var(--text1)' },
+                      { lbl:'Edificios',     val: nEdif > 0 ? String(nEdif) : '—',                      sub:'edif.',       color:'var(--text1)' },
+                      { lbl:'Plazas',        val: totalPlazas > 0 ? totalPlazas.toLocaleString('es-ES') : '—', sub:'aparcamiento', color:'var(--text1)' },
+                      { lbl:'Arrendatarios', val: String(nArr),                                          sub:'tenants',      color: nArr > 0 ? 'var(--accent)' : 'var(--text4)' },
+                      { lbl:'Propietarios',  val: String(nProp),                                         sub:'titulares',    color: nProp > 0 ? 'var(--accent)' : 'var(--text4)' },
+                      { lbl:'Ocupación',     val: occ != null ? `${occ}%` : '—',                        sub:'derivado',    color: occ >= 90 ? 'var(--green)' : occ >= 75 ? 'var(--amber)' : 'var(--red)' },
                     ]
                     return items.map((k, i) => (
-                      <div key={k.lbl} style={{ padding:'10px 18px', textAlign:'center', minWidth:96, borderLeft: i === 0 ? 'none' : '1px solid var(--border)' }}>
+                      <div key={k.lbl} style={{ padding:'10px 16px', textAlign:'center', minWidth:88, borderLeft: i === 0 ? 'none' : '1px solid var(--border)' }}>
                         <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4 }}>{k.lbl}</div>
-                        <div style={{ fontSize:24, fontWeight:800, fontFamily:'var(--mono)', color:k.color, lineHeight:1 }}>{k.val}</div>
+                        <div style={{ fontSize:22, fontWeight:800, fontFamily:'var(--mono)', color:k.color, lineHeight:1 }}>{k.val}</div>
                         <div style={{ fontSize:9, color:'var(--text4)', marginTop:3 }}>{k.sub}</div>
                       </div>
                     ))
