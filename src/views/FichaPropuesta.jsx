@@ -224,49 +224,56 @@ export default function FichaPropuesta() {
           {tab==='datos' && (
             <div className="tab-content active">
               <div className="info-pad">
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:20}}>
 
-                {/* Col 1: Identificación */}
-                <div className="va-meta-card">
-                  <div className="va-meta-head"><span className="dot"/>Identificación</div>
-                  <div style={{padding:'12px 14px'}}>
-                    <div className="kf-grid">
-                      <KF label="ID" value={form.id} mono/>
-                      <KF label="Nombre del proyecto" value={form.nombre} set={v=>set('nombre',v)}/>
-                      <KF label="Tipo de proyecto">
-                        <select className="kf-sel" value={form.tipo} onChange={e=>set('tipo',e.target.value)}>
-                          {TIPOS.map(o=><option key={o}>{o}</option>)}
-                        </select>
-                      </KF>
-                      <KF label="Línea de negocio">
-                        <select className="kf-sel" value={form.linea} onChange={e=>set('linea',e.target.value)}>
-                          {LINEAS.map(o=><option key={o}>{o}</option>)}
-                        </select>
-                      </KF>
-                      <KF label="Estado">
-                        <select className="kf-sel" value={form.estado} onChange={e=>set('estado',e.target.value)} style={{color:ESTADO_COLOR[form.estado],fontWeight:700}}>
-                          {ESTADOS.map(o=><option key={o}>{o}</option>)}
-                        </select>
-                      </KF>
-                      <KF label="Creado por" value={form.creado_por} set={v=>set('creado_por',v)}/>
-                      <KF label="Fecha creación" value={form.fecha_creacion} mono/>
-                      <KF label="Última modificación" value={form.fecha_mod} mono/>
-                    </div>
-                    <div style={{marginTop:10}}>
-                      <div className="rp-lbl">Descripción del proyecto</div>
-                      <textarea className="kf-inp" value={form.descripcion} onChange={e=>set('descripcion',e.target.value)} rows={4} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
-                    </div>
-                    <div style={{marginTop:8}}>
-                      <div className="rp-lbl">Notas internas</div>
-                      <textarea className="kf-inp" value={form.notas_internas} onChange={e=>set('notas_internas',e.target.value)} rows={3} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
-                    </div>
+                {/* ── IDENTIFICACIÓN ── */}
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Identificación</h3>
+                  </div>
+                  <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:14}}>
+                    <div className="ir"><span className="ir-k">ID</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{form.id}</span></div>
+                    <div className="ir"><span className="ir-k">Nombre del proyecto</span><span className="ir-v" style={{fontWeight:600}}><input className="kf-inp" value={form.nombre} onChange={e=>set('nombre',e.target.value)} style={{width:'100%'}}/></span></div>
+                    <div className="ir"><span className="ir-k">Tipo de proyecto</span><span className="ir-v">
+                      <select className="kf-sel" value={form.tipo} onChange={e=>set('tipo',e.target.value)} style={{minWidth:160}}>
+                        {TIPOS.map(o=><option key={o}>{o}</option>)}
+                      </select>
+                    </span></div>
+                    <div className="ir"><span className="ir-k">Línea de negocio</span><span className="ir-v">
+                      <select className="kf-sel" value={form.linea} onChange={e=>set('linea',e.target.value)} style={{minWidth:160}}>
+                        {LINEAS.map(o=><option key={o}>{o}</option>)}
+                      </select>
+                    </span></div>
+                    <div className="ir"><span className="ir-k">Estado</span><span className="ir-v">
+                      <select className="kf-sel" value={form.estado} onChange={e=>set('estado',e.target.value)} style={{color:ESTADO_COLOR[form.estado],fontWeight:700,minWidth:140}}>
+                        {ESTADOS.map(o=><option key={o}>{o}</option>)}
+                      </select>
+                    </span></div>
+                    <div className="ir"><span className="ir-k">Creado por</span><span className="ir-v"><input className="kf-inp" value={form.creado_por} onChange={e=>set('creado_por',e.target.value)} style={{width:'100%'}}/></span></div>
+                    <div className="ir"><span className="ir-k">Fecha creación</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{form.fecha_creacion}</span></div>
+                    <div className="ir"><span className="ir-k">Última modificación</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{form.fecha_mod}</span></div>
                   </div>
                 </div>
 
-                {/* Col 2: Vinculaciones */}
-                <div className="va-meta-card">
-                  <div className="va-meta-head accent-purple"><span className="dot"/>Vinculaciones</div>
-                  <div style={{padding:'12px 14px'}}>
+                {/* ── DESCRIPCIÓN ── */}
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico">▭</span> Descripción y notas</h3>
+                  </div>
+                  <div style={{padding:'4px 20px 16px'}}>
+                    <div className="rp-lbl">Descripción del proyecto</div>
+                    <textarea className="kf-inp" value={form.descripcion} onChange={e=>set('descripcion',e.target.value)} rows={4} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
+                    <div className="rp-lbl" style={{marginTop:14}}>Notas internas</div>
+                    <textarea className="kf-inp" value={form.notas_internas} onChange={e=>set('notas_internas',e.target.value)} rows={3} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
+                  </div>
+                </div>
+
+                {/* ── VINCULACIONES ── */}
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico" style={{color:'var(--pdb-purple)'}}>●</span> Vinculaciones</h3>
+                    <span className="hint">Oportunidad y Cuenta obligatorias</span>
+                  </div>
+                  <div style={{padding:'4px 20px 16px'}}>
                     <div style={{marginBottom:4,fontSize:10,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}>Obligatorios</div>
 
                     {/* Oportunidad — FK obligatorio · Dynamics */}
@@ -352,54 +359,36 @@ export default function FichaPropuesta() {
                   </div>
                 </div>
 
-                {/* Col 3: Económico */}
-                <div className="va-meta-card">
-                  <div className="va-meta-head accent-green"><span className="dot"/>Datos económicos</div>
-                  <div style={{padding:'12px 14px'}}>
-                    <div className="kf-grid">
-                      <KF label="Fees potenciales (€)">
-                        <input className="kf-inp" value={form.fees} onChange={e=>set('fees',e.target.value)} style={{fontFamily:'var(--mono)',fontWeight:700,fontSize:14}}/>
-                      </KF>
-                      <KF label="Fecha estimada de cierre">
-                        <input className="kf-inp" value={form.fecha_cierre} onChange={e=>set('fecha_cierre',e.target.value)} placeholder="DD/MM/AAAA" style={{fontFamily:'var(--mono)'}}/>
-                      </KF>
-                      <KF label="Probabilidad de éxito (%)">
-                        <div style={{display:'flex',alignItems:'center',gap:8}}>
-                          <input type="range" min={0} max={100} step={5} value={form.probabilidad} onChange={e=>set('probabilidad',e.target.value)} style={{flex:1,accentColor:'var(--accent)'}}/>
-                          <span style={{fontFamily:'var(--mono)',fontWeight:700,fontSize:14,color:'var(--accent)',minWidth:36}}>{form.probabilidad}%</span>
-                        </div>
-                      </KF>
+                {/* ── DATOS ECONÓMICOS ── */}
+                <div className="va-two-col">
+                  <div className="va-meta-card">
+                    <div className="va-meta-head accent-green"><span className="dot"/>Datos económicos</div>
+                    <div className="va-kv-list">
+                      <div className="ir"><span className="ir-k">Fees potenciales (€)</span><span className="ir-v"><input className="kf-inp" value={form.fees} onChange={e=>set('fees',e.target.value)} style={{fontFamily:'var(--mono)',fontWeight:700,fontSize:13,width:140,textAlign:'right'}}/></span></div>
+                      <div className="ir"><span className="ir-k">Fecha estimada cierre</span><span className="ir-v"><input className="kf-inp" value={form.fecha_cierre} onChange={e=>set('fecha_cierre',e.target.value)} placeholder="DD/MM/AAAA" style={{fontFamily:'var(--mono)',width:140,textAlign:'right'}}/></span></div>
+                      <div className="ir"><span className="ir-k">Probabilidad de éxito</span><span className="ir-v" style={{display:'flex',alignItems:'center',gap:8,minWidth:200}}>
+                        <input type="range" min={0} max={100} step={5} value={form.probabilidad} onChange={e=>set('probabilidad',e.target.value)} style={{flex:1,accentColor:'var(--accent)'}}/>
+                        <span style={{fontFamily:'var(--mono)',fontWeight:700,fontSize:13,color:'var(--accent)',minWidth:42,textAlign:'right'}}>{form.probabilidad}%</span>
+                      </span></div>
+                      <div className="ir"><span className="ir-k">Fees brutos</span><span className="ir-v" style={{fontFamily:'var(--mono)',fontWeight:700}}>{parseInt(form.fees.replace(/[^0-9]/g,'')||0).toLocaleString('es-ES')} €</span></div>
+                      <div className="ir"><span className="ir-k">Fees ajustados (× prob.)</span><span className="ir-v" style={{fontFamily:'var(--mono)',color:'var(--green)',fontWeight:700}}>{Math.round(feesAdj).toLocaleString('es-ES')} €</span></div>
                     </div>
-
-                    <div style={{marginTop:14,display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                      {[
-                        {label:'Fees brutos',val:`${parseInt(form.fees.replace(/[^0-9]/g,'')||0).toLocaleString('es-ES')} €`,color:'var(--text1)'},
-                        {label:'Fees ajustados',val:`${Math.round(feesAdj).toLocaleString('es-ES')} €`,color:'var(--green)'},
-                      ].map(m=>(
-                        <div key={m.label} style={{background:'var(--gray-lt)',borderRadius:6,padding:'10px 12px',textAlign:'center'}}>
-                          <div style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:4}}>{m.label}</div>
-                          <div style={{fontSize:16,fontWeight:700,fontFamily:'var(--mono)',color:m.color}}>{m.val}</div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div style={{marginTop:14,borderTop:'1px solid var(--border)',paddingTop:12}}>
-                      <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:8}}>Acciones rápidas</div>
-                      <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                        <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-actividad')}>📝 Crear actividad vinculada</button>
-                        <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-oferta')}>📧 Emitir oferta</button>
-                        <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>
-                        {form.estado==='Adjudicado'&&!form.convertido_mandato&&(
-                          <button style={{background:'var(--green)',color:'#fff',border:'none',borderRadius:5,padding:'6px 12px',cursor:'pointer',fontWeight:700,fontSize:11,fontFamily:'inherit',textAlign:'left'}} onClick={convertirMandato}>
-                            🏆 Convertir en mandato →
-                          </button>
-                        )}
-                      </div>
+                  </div>
+                  <div className="va-meta-card">
+                    <div className="va-meta-head accent-purple"><span className="dot"/>Acciones rápidas</div>
+                    <div style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:8}}>
+                      <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-actividad')}>📝 Crear actividad vinculada</button>
+                      <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-oferta')}>📧 Emitir oferta</button>
+                      <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>
+                      {form.estado==='Adjudicado'&&!form.convertido_mandato&&(
+                        <button style={{background:'var(--green)',color:'#fff',border:'none',borderRadius:5,padding:'7px 14px',cursor:'pointer',fontWeight:700,fontSize:11,fontFamily:'inherit',textAlign:'left'}} onClick={convertirMandato}>
+                          🏆 Convertir en mandato →
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
 
-              </div>
               </div>
             </div>
           )}
