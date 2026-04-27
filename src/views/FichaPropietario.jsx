@@ -356,12 +356,12 @@ export default function FichaPropietario() {
           {/* TAB: DATOS */}
           {tab==='datos' && (
             <div className="tab-content active">
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
+              <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,alignItems:'start'}}>
 
                 {/* Col 1: Propietario */}
-                <div>
-                  <div className="rp-sec">Propietario</div>
-                  <div className="info-pad">
+                <div className="va-meta-card">
+                  <div className="va-meta-head"><span className="dot"/>Propietario</div>
+                  <div style={{padding:'10px 14px'}}>
                     <div className="kf-grid">
                       <KF label="ID" value={form.id} mono/>
                       <KF label="Razón social" value={form.propietario} set={(v)=>set('propietario',v)}/>
@@ -424,9 +424,9 @@ export default function FichaPropietario() {
                 </div>
 
                 {/* Col 2: Activo vinculado */}
-                <div>
-                  <div className="rp-sec">Activo vinculado</div>
-                  <div className="info-pad">
+                <div className="va-meta-card">
+                  <div className="va-meta-head accent-purple"><span className="dot"/>Activo vinculado</div>
+                  <div style={{padding:'10px 14px'}}>
                     <div className="kf-grid">
                       <KF label="Activo">
                         <span className="asset-link" style={{cursor:'pointer'}} onClick={()=>navigate('ficha-activo')}>{form.activo}</span>
@@ -487,9 +487,9 @@ export default function FichaPropietario() {
                 </div>
 
                 {/* Col 3: Financiación */}
-                <div>
-                  <div className="rp-sec">Financiación y estrategia</div>
-                  <div className="info-pad">
+                <div className="va-meta-card">
+                  <div className="va-meta-head accent-green"><span className="dot"/>Financiación y estrategia</div>
+                  <div style={{padding:'10px 14px'}}>
                     <div className="kf-grid">
                       <KF label="LTV %" value={form.ltv} set={(v)=>set('ltv',v)} mono
                         extra={<span style={{fontSize:10,color:parseFloat(form.ltv)>55?'var(--amber)':'var(--green)',fontWeight:700,marginLeft:4}}>{parseFloat(form.ltv)>55?'⚠ Alto':'✓ OK'}</span>}

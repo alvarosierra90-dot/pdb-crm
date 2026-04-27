@@ -577,137 +577,156 @@ export default function FichaArrendatario() {
           {/* Tab Datos */}
           {tab==='datos' && (
             <div className="tab-content active">
-              <div className="info-pad">
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
+              <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,alignItems:'start'}}>
 
-                  {/* Columna izquierda — Inquilino */}
-                  <div>
-                    <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:10}}>🏷 INQUILINO</div>
-                    <FField label="Activo">
-                      <div style={{padding:'6px 9px',border:'1px solid var(--border2)',borderRadius:'var(--r)',fontSize:12,color:'var(--accent)',cursor:'pointer'}} onClick={()=>navigate('ficha-activo')}>{form.activo} ↗</div>
-                    </FField>
-                    <div style={{display:'flex',gap:12,marginBottom:8}}>
-                      <label style={{display:'flex',alignItems:'center',gap:5,fontSize:11,cursor:'pointer'}}>
-                        <input type="checkbox" checked={form.persona_fisica} onChange={e=>set('persona_fisica',e.target.checked)} style={{accentColor:'var(--accent)'}}/>
-                        Persona física
-                      </label>
-                      <label style={{display:'flex',alignItems:'center',gap:5,fontSize:11,cursor:'pointer'}}>
-                        <input type="checkbox" checked={form.tenant_desconocido} onChange={e=>set('tenant_desconocido',e.target.checked)} style={{accentColor:'var(--accent)'}}/>
-                        Tenant desconocido
-                      </label>
-                    </div>
-                    <FField label="Tenant (Cuenta)" invalid={invalidFields.has('tenant')}><input className="of-inp" value={form.tenant} onChange={e=>set('tenant',e.target.value)}/></FField>
-                    <FField label="Tenant mayoritario"><input className="of-inp" value={form.tenant_mayoritario} onChange={e=>set('tenant_mayoritario',e.target.value)}/></FField>
-                    <FField label="Propiedad (Cuenta)"><input className="of-inp" value={form.propietario} onChange={e=>set('propietario',e.target.value)}/></FField>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                      <FField label="Año firma" invalid={invalidFields.has('anyo_firma')}><input className="of-inp" value={form.anyo_firma} onChange={e=>set('anyo_firma',e.target.value)}/></FField>
-                      <FField label="Trimestre" invalid={invalidFields.has('trimestre')}>
-                        <select className="of-sel" value={form.trimestre} onChange={e=>set('trimestre',e.target.value)}>
-                          <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
+                {/* Columna izquierda — Inquilino */}
+                <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
+                  <div className="va-meta-card">
+                    <div className="va-meta-head"><span className="dot"/>Inquilino</div>
+                    <div style={{padding:'10px 14px'}}>
+                      <FField label="Activo">
+                        <div style={{padding:'6px 9px',border:'1px solid var(--border2)',borderRadius:'var(--r)',fontSize:12,color:'var(--accent)',cursor:'pointer'}} onClick={()=>navigate('ficha-activo')}>{form.activo} ↗</div>
+                      </FField>
+                      <div style={{display:'flex',gap:12,marginBottom:8}}>
+                        <label style={{display:'flex',alignItems:'center',gap:5,fontSize:11,cursor:'pointer'}}>
+                          <input type="checkbox" checked={form.persona_fisica} onChange={e=>set('persona_fisica',e.target.checked)} style={{accentColor:'var(--accent)'}}/>
+                          Persona física
+                        </label>
+                        <label style={{display:'flex',alignItems:'center',gap:5,fontSize:11,cursor:'pointer'}}>
+                          <input type="checkbox" checked={form.tenant_desconocido} onChange={e=>set('tenant_desconocido',e.target.checked)} style={{accentColor:'var(--accent)'}}/>
+                          Tenant desconocido
+                        </label>
+                      </div>
+                      <FField label="Tenant (Cuenta)" invalid={invalidFields.has('tenant')}><input className="of-inp" value={form.tenant} onChange={e=>set('tenant',e.target.value)}/></FField>
+                      <FField label="Tenant mayoritario"><input className="of-inp" value={form.tenant_mayoritario} onChange={e=>set('tenant_mayoritario',e.target.value)}/></FField>
+                      <FField label="Propiedad (Cuenta)"><input className="of-inp" value={form.propietario} onChange={e=>set('propietario',e.target.value)}/></FField>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                        <FField label="Año firma" invalid={invalidFields.has('anyo_firma')}><input className="of-inp" value={form.anyo_firma} onChange={e=>set('anyo_firma',e.target.value)}/></FField>
+                        <FField label="Trimestre" invalid={invalidFields.has('trimestre')}>
+                          <select className="of-sel" value={form.trimestre} onChange={e=>set('trimestre',e.target.value)}>
+                            <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
+                          </select>
+                        </FField>
+                      </div>
+                      <FField label="Sector actividad">
+                        <select className="of-sel" value={form.sector} onChange={e=>set('sector',e.target.value)}>
+                          <option>Tecnología</option><option>Logística</option><option>Sanidad</option><option>Comunicación / Media</option><option>Finanzas / Inversión</option><option>Consultoría</option><option>Retail / Distribución</option><option>Hostelería</option>
                         </select>
                       </FField>
+                      <FField label="Área">
+                        <select className="of-sel" value={form.area} onChange={e=>set('area',e.target.value)}>
+                          <option>CBD</option><option>Centro</option><option>Descentralizado</option><option>Periferia</option><option>Corredor de Carretera</option>
+                        </select>
+                      </FField>
+                      <FField label="Estado contrato">
+                        <select className="of-sel" value={form.estado} onChange={e=>set('estado',e.target.value)}>
+                          <option>Activo</option><option>Próximo a vencimiento</option><option>En negociación</option><option>Renovado</option><option>Finalizado</option>
+                        </select>
+                      </FField>
+                      <FField label="Color identificativo">
+                        <div style={{display:'flex',alignItems:'center',gap:8}}>
+                          <input type="color" value={form.color} onChange={e=>set('color',e.target.value)} style={{width:36,height:28,border:'1px solid var(--border)',borderRadius:'var(--r)',cursor:'pointer',padding:2}}/>
+                          <span style={{fontSize:11,color:'var(--text3)'}}>Para stacking plan</span>
+                        </div>
+                      </FField>
                     </div>
-                    <FField label="Sector actividad">
-                      <select className="of-sel" value={form.sector} onChange={e=>set('sector',e.target.value)}>
-                        <option>Tecnología</option><option>Logística</option><option>Sanidad</option><option>Comunicación / Media</option><option>Finanzas / Inversión</option><option>Consultoría</option><option>Retail / Distribución</option><option>Hostelería</option>
-                      </select>
-                    </FField>
-                    <FField label="Área">
-                      <select className="of-sel" value={form.area} onChange={e=>set('area',e.target.value)}>
-                        <option>CBD</option><option>Centro</option><option>Descentralizado</option><option>Periferia</option><option>Corredor de Carretera</option>
-                      </select>
-                    </FField>
-                    <FField label="Estado contrato">
-                      <select className="of-sel" value={form.estado} onChange={e=>set('estado',e.target.value)}>
-                        <option>Activo</option><option>Próximo a vencimiento</option><option>En negociación</option><option>Renovado</option><option>Finalizado</option>
-                      </select>
-                    </FField>
-                    <FField label="Color identificativo">
-                      <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <input type="color" value={form.color} onChange={e=>set('color',e.target.value)} style={{width:36,height:28,border:'1px solid var(--border)',borderRadius:'var(--r)',cursor:'pointer',padding:2}}/>
-                        <span style={{fontSize:11,color:'var(--text3)'}}>Para stacking plan</span>
-                      </div>
-                    </FField>
                   </div>
+                </div>
 
-                  {/* Columna central — Condiciones */}
-                  <div>
-                    <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:10}}>💰 CONDICIONES</div>
-                    <FField label="Superficie total ocupada (m²)" req><input className="of-inp" value={form.superficie} onChange={e=>set('superficie',e.target.value)}/></FField>
-                    <FField label="Asking rent (€/m²/mes)"><input className="of-inp" value={form.asking_rent} onChange={e=>set('asking_rent',e.target.value)}/></FField>
-                    <FField label="Closing rent (€/m²/mes)" req invalid={invalidFields.has('closing_rent')}><input className="of-inp" value={form.closing_rent} onChange={e=>set('closing_rent',e.target.value)}/></FField>
-                    <FField label="Renta mensual (€)">
-                      <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontWeight:700,color:'var(--accent)',background:'var(--gray-lt)'}}>{rentaMensual} €</div>
-                    </FField>
-                    <FField label="Nº meses carencia"><input className="of-inp" value={form.meses_carencia} onChange={e=>set('meses_carencia',e.target.value)}/></FField>
-                    <div style={{height:1,background:'var(--border)',margin:'10px 0'}}/>
-                    <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>🅿 APARCAMIENTO</div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                {/* Columna central — Condiciones / Aparcamiento / Intervinientes */}
+                <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
+                  <div className="va-meta-card">
+                    <div className="va-meta-head accent-green"><span className="dot"/>Condiciones económicas</div>
+                    <div style={{padding:'10px 14px'}}>
+                      <FField label="Superficie total ocupada (m²)" req><input className="of-inp" value={form.superficie} onChange={e=>set('superficie',e.target.value)}/></FField>
+                      <FField label="Asking rent (€/m²/mes)"><input className="of-inp" value={form.asking_rent} onChange={e=>set('asking_rent',e.target.value)}/></FField>
+                      <FField label="Closing rent (€/m²/mes)" req invalid={invalidFields.has('closing_rent')}><input className="of-inp" value={form.closing_rent} onChange={e=>set('closing_rent',e.target.value)}/></FField>
+                      <FField label="Renta mensual (€)">
+                        <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontWeight:700,color:'var(--accent)',background:'var(--gray-lt)'}}>{rentaMensual} €</div>
+                      </FField>
+                      <FField label="Nº meses carencia"><input className="of-inp" value={form.meses_carencia} onChange={e=>set('meses_carencia',e.target.value)}/></FField>
+                    </div>
+                  </div>
+                  <div className="va-meta-card">
+                    <div className="va-meta-head accent-purple"><span className="dot"/>Aparcamiento</div>
+                    <div style={{padding:'10px 14px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
                       <FField label="Plazas interior"><input className="of-inp" value={form.plazas_int} onChange={e=>set('plazas_int',e.target.value)}/></FField>
                       <FField label="Precio/plaza int. (€)"><input className="of-inp" value={form.precio_int} onChange={e=>set('precio_int',e.target.value)}/></FField>
                       <FField label="Plazas exterior"><input className="of-inp" value={form.plazas_ext} onChange={e=>set('plazas_ext',e.target.value)}/></FField>
                       <FField label="Precio/plaza ext. (€)"><input className="of-inp" value={form.precio_ext} onChange={e=>set('precio_ext',e.target.value)}/></FField>
                     </div>
-                    <div style={{height:1,background:'var(--border)',margin:'10px 0'}}/>
-                    <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>👥 INTERVINIENTES</div>
-                    <FField label="Agente activo">
-                      <select className="of-sel" value={form.agente_activo} onChange={e=>set('agente_activo',e.target.value)}>
-                        <option>Sierra Alvaro</option><option>GOMEZ Ignacio</option><option>García Marta</option><option>López Carmen</option>
-                      </select>
-                    </FField>
-                    <FField label="Agente pasivo (cobroker)"><input className="of-inp" value={form.agente_pasivo} onChange={e=>set('agente_pasivo',e.target.value)}/></FField>
                   </div>
+                  <div className="va-meta-card">
+                    <div className="va-meta-head"><span className="dot"/>Intervinientes</div>
+                    <div style={{padding:'10px 14px'}}>
+                      <FField label="Agente activo">
+                        <select className="of-sel" value={form.agente_activo} onChange={e=>set('agente_activo',e.target.value)}>
+                          <option>Sierra Alvaro</option><option>GOMEZ Ignacio</option><option>García Marta</option><option>López Carmen</option>
+                        </select>
+                      </FField>
+                      <FField label="Agente pasivo (cobroker)"><input className="of-inp" value={form.agente_pasivo} onChange={e=>set('agente_pasivo',e.target.value)}/></FField>
+                    </div>
+                  </div>
+                </div>
 
-                  {/* Columna derecha — Contrato y gestión */}
-                  <div>
-                    <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:10}}>🏗 WORKPLACE</div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                {/* Columna derecha — Workplace / Contrato / Acción */}
+                <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
+                  <div className="va-meta-card">
+                    <div className="va-meta-head accent-purple"><span className="dot"/>Workplace</div>
+                    <div style={{padding:'10px 14px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
                       <FField label="Aportación obras (€/m²)"><input className="of-inp" value={form.aportacion_obras_m2} onChange={e=>set('aportacion_obras_m2',e.target.value)}/></FField>
                       <FField label="Aportación total (€)">
                         <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontWeight:700,color:'var(--accent)',background:'var(--gray-lt)'}}>{aportacionTotal} €</div>
                       </FField>
                     </div>
-                    <div style={{height:1,background:'var(--border)',margin:'10px 0'}}/>
-                    <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>📄 CONTRATO</div>
-                    <FField label="Tipo de contrato">
-                      <select className="of-sel" value={form.tipo_contrato} onChange={e=>set('tipo_contrato',e.target.value)}>
-                        <option>Alquiler comercial</option><option>Alquiler industrial</option><option>Arrendamiento mixto</option>
-                      </select>
-                    </FField>
-                    <FField label="Obligado cumplimiento del primer periodo (años)" req invalid={invalidFields.has('anios_obligado')}><input className="of-inp" value={form.anios_obligado} onChange={e=>set('anios_obligado',e.target.value)} placeholder="ej. 3"/></FField>
-                    <FField label="Fecha inicio" req invalid={invalidFields.has('fecha_inicio')}>
-                      <input type="date" className="of-inp" value={toInputDate(form.fecha_inicio)} onChange={e=>set('fecha_inicio',fromInputDate(e.target.value))}/>
-                    </FField>
-                    <FField label="Break option (automática — calculada)">
-                      <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                        <input type="date" className="of-inp" value={toInputDate(form.break_option)} onChange={e=>set('break_option',fromInputDate(e.target.value))} style={{flex:1}}/>
-                        {form.break_option && <span style={{fontSize:9,color:'var(--accent)',fontWeight:700,flexShrink:0,padding:'2px 6px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:3}}>AUTO</span>}
-                      </div>
-                    </FField>
-                    <FField label="Años obligado cumplimiento del segundo periodo"><input className="of-inp" value={form.anios_obligado_2} onChange={e=>set('anios_obligado_2',e.target.value)} placeholder="ej. 2"/></FField>
-                    <FField label="Fecha fin contrato (automática — calculada)">
-                      <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                        <input type="date" className="of-inp" value={toInputDate(form.fecha_fin)} onChange={e=>set('fecha_fin',fromInputDate(e.target.value))} style={{flex:1}}/>
-                        {form.fecha_fin && <span style={{fontSize:9,color:'var(--accent)',fontWeight:700,flexShrink:0,padding:'2px 6px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:3}}>AUTO</span>}
-                      </div>
-                    </FField>
-                    <FField label="Fecha salida efectiva">
-                      <input type="date" className="of-inp" value={toInputDate(form.fecha_salida)} onChange={e=>set('fecha_salida',fromInputDate(e.target.value))}/>
-                    </FField>
-                    <div style={{height:1,background:'var(--border)',margin:'10px 0'}}/>
-                    <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>🔔 ACCIÓN COMERCIAL</div>
-                    <FField label="Recordatorio (meses antes de break option)" req invalid={invalidFields.has('meses_recordatorio')}>
-                      <input className="of-inp" type="number" value={form.meses_recordatorio} onChange={e=>set('meses_recordatorio',e.target.value)} min="1" max="24"/>
-                    </FField>
-                    <FField label="Fecha recordatorio (automática)">
-                      <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontWeight:700,color:diasRecord!==null&&diasRecord<=0?'var(--red)':diasRecord!==null&&diasRecord<=30?'var(--amber)':'var(--text)',background:'var(--gray-lt)'}}>
-                        {fechaRecordatorio}
-                        {diasRecord!==null&&diasRecord<=0&&<span style={{fontSize:10,fontWeight:700,color:'var(--red)',marginLeft:8}}>⚠ Vencida</span>}
-                        {diasRecord!==null&&diasRecord>0&&diasRecord<=30&&<span style={{fontSize:10,fontWeight:700,color:'var(--amber)',marginLeft:8}}>En {diasRecord}d</span>}
-                      </div>
-                    </FField>
+                  </div>
+                  <div className="va-meta-card">
+                    <div className="va-meta-head"><span className="dot"/>Contrato</div>
+                    <div style={{padding:'10px 14px'}}>
+                      <FField label="Tipo de contrato">
+                        <select className="of-sel" value={form.tipo_contrato} onChange={e=>set('tipo_contrato',e.target.value)}>
+                          <option>Alquiler comercial</option><option>Alquiler industrial</option><option>Arrendamiento mixto</option>
+                        </select>
+                      </FField>
+                      <FField label="Obligado cumplimiento del primer periodo (años)" req invalid={invalidFields.has('anios_obligado')}><input className="of-inp" value={form.anios_obligado} onChange={e=>set('anios_obligado',e.target.value)} placeholder="ej. 3"/></FField>
+                      <FField label="Fecha inicio" req invalid={invalidFields.has('fecha_inicio')}>
+                        <input type="date" className="of-inp" value={toInputDate(form.fecha_inicio)} onChange={e=>set('fecha_inicio',fromInputDate(e.target.value))}/>
+                      </FField>
+                      <FField label="Break option (automática — calculada)">
+                        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                          <input type="date" className="of-inp" value={toInputDate(form.break_option)} onChange={e=>set('break_option',fromInputDate(e.target.value))} style={{flex:1}}/>
+                          {form.break_option && <span style={{fontSize:9,color:'var(--accent)',fontWeight:700,flexShrink:0,padding:'2px 6px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:3}}>AUTO</span>}
+                        </div>
+                      </FField>
+                      <FField label="Años obligado cumplimiento del segundo periodo"><input className="of-inp" value={form.anios_obligado_2} onChange={e=>set('anios_obligado_2',e.target.value)} placeholder="ej. 2"/></FField>
+                      <FField label="Fecha fin contrato (automática — calculada)">
+                        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                          <input type="date" className="of-inp" value={toInputDate(form.fecha_fin)} onChange={e=>set('fecha_fin',fromInputDate(e.target.value))} style={{flex:1}}/>
+                          {form.fecha_fin && <span style={{fontSize:9,color:'var(--accent)',fontWeight:700,flexShrink:0,padding:'2px 6px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:3}}>AUTO</span>}
+                        </div>
+                      </FField>
+                      <FField label="Fecha salida efectiva">
+                        <input type="date" className="of-inp" value={toInputDate(form.fecha_salida)} onChange={e=>set('fecha_salida',fromInputDate(e.target.value))}/>
+                      </FField>
+                    </div>
+                  </div>
+                  <div className="va-meta-card">
+                    <div className="va-meta-head accent-red"><span className="dot"/>Acción comercial</div>
+                    <div style={{padding:'10px 14px'}}>
+                      <FField label="Recordatorio (meses antes de break option)" req invalid={invalidFields.has('meses_recordatorio')}>
+                        <input className="of-inp" type="number" value={form.meses_recordatorio} onChange={e=>set('meses_recordatorio',e.target.value)} min="1" max="24"/>
+                      </FField>
+                      <FField label="Fecha recordatorio (automática)">
+                        <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontWeight:700,color:diasRecord!==null&&diasRecord<=0?'var(--red)':diasRecord!==null&&diasRecord<=30?'var(--amber)':'var(--text)',background:'var(--gray-lt)'}}>
+                          {fechaRecordatorio}
+                          {diasRecord!==null&&diasRecord<=0&&<span style={{fontSize:10,fontWeight:700,color:'var(--red)',marginLeft:8}}>⚠ Vencida</span>}
+                          {diasRecord!==null&&diasRecord>0&&diasRecord<=30&&<span style={{fontSize:10,fontWeight:700,color:'var(--amber)',marginLeft:8}}>En {diasRecord}d</span>}
+                        </div>
+                      </FField>
+                    </div>
                   </div>
                 </div>
+
               </div>
             </div>
           )}
