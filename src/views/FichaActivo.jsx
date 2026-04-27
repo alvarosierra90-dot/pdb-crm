@@ -558,7 +558,10 @@ const INIT_BUILDINGS = [
 ]
 
 
-function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, extraOfertas=[], initView='principal', defaultLabel='', defaultSupPlantaTipo }) {
+// Exportado para que FichaOferta consuma EXACTAMENTE el mismo componente.
+// La regla del usuario: el Stacking Plan debe ser un único componente reutilizable,
+// no varios componentes replicados. (Ver memoria project_stacking_compartido.md)
+export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, onTenantClick, extraOfertas=[], initView='principal', defaultLabel='', defaultSupPlantaTipo, allowCreate=true, noDataMessage=null }) {
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
   const [setupForm, setSetupForm]       = useState({ label: defaultLabel || '', sobre:'5', bajo:'1', sup: defaultSupPlantaTipo ? String(defaultSupPlantaTipo) : '1500' })

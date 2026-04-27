@@ -3,7 +3,9 @@ import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { supabase } from '../lib/supabase'
 import { OFERTAS as MOCK_OFERTAS, ACTIVOS as MOCK_ACTIVOS } from '../data/mockData'
-import StackingPlan from '../components/StackingPlan'
+// IMPORTANTE: Importar el StackingPlan exacto de FichaActivo para garantizar
+// igualdad visual y funcional total entre Activo y Oferta (regla del usuario).
+import { StackingPlan } from './FichaActivo'
 
 const TABS = ['of-info','of-stacking','of-espacios','of-condiciones','of-caract','of-docs','of-web','of-seg','of-ficha','of-conf']
 const TAB_LABELS = ['Información oferta','Stacking plan','Espacios comerciales','Condiciones','Características','Documentos','Contenido web','Seguimiento comercial','Crear ficha','🔒 Confidencialidad']
