@@ -776,6 +776,64 @@ export default function FichaPropietario() {
           )}
 
         </div>
+
+        {/* Barra lateral derecha — coherencia con FichaArrendatario y FichaActivo */}
+        <div className="ficha-right">
+          <div className="rp-sec">
+            <div className="rp-lbl">Estado del propietario</div>
+            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
+              <div style={{width:10,height:10,borderRadius:'50%',background:ESTADO_COLOR[form.estado]||'var(--text4)'}}/>
+              <span style={{fontSize:13,fontWeight:700,color:ESTADO_COLOR[form.estado]||'var(--text4)'}}>{form.estado}</span>
+            </div>
+            <button className="acc-btn" onClick={()=>navigate('ficha-activo')}>🏢 Ver activo</button>
+            <button className="acc-btn" onClick={()=>navigate('ficha-actividad')}>📞 Registrar actividad</button>
+            <button className="acc-btn" onClick={()=>navigate('portfolios')}>📊 Ver portfolio</button>
+          </div>
+
+          <div className="rp-sec">
+            <div className="rp-lbl">KPIs económicos</div>
+            <div className="kf-grid">
+              <div className="kf"><div className="kf-lbl">Precio compra</div><div className="kf-val" style={{fontFamily:'var(--mono)'}}>{form.precio_compra || '—'}</div></div>
+              <div className="kf"><div className="kf-lbl">Valoración actual</div><div className="kf-val" style={{fontFamily:'var(--mono)',color:'var(--green)'}}>{form.valoracion_actual || '—'}</div></div>
+              <div className="kf"><div className="kf-lbl">Plusvalía latente</div><div className="kf-val" style={{fontFamily:'var(--mono)',color:plusvaliaNum.startsWith('+')?'var(--green)':'var(--red)'}}>{plusvaliaNum || '—'}</div></div>
+              <div className="kf"><div className="kf-lbl">Cap Rate</div><div className="kf-val" style={{color:'var(--accent)'}}>{form.cap_rate ? `${form.cap_rate}%` : '—'}</div></div>
+              <div className="kf"><div className="kf-lbl">Yield</div><div className="kf-val" style={{color:'var(--purple)'}}>{form.yield ? `${form.yield}%` : '—'}</div></div>
+              <div className="kf"><div className="kf-lbl">LTV</div><div className="kf-val" style={{color:parseFloat(form.ltv)>55?'var(--amber)':'var(--text2)'}}>{form.ltv ? `${form.ltv}%` : '—'}</div></div>
+            </div>
+          </div>
+
+          <div className="rp-sec">
+            <div className="rp-lbl">Estrategia de inversión</div>
+            <div className="info-block" style={{padding:0}}>
+              {[
+                {k:'Estrategia', v:form.estrategia},
+                {k:'TIR objetivo', v:form.tir_objetivo ? `${form.tir_objetivo}%` : '—'},
+                {k:'Horizonte', v:form.horizonte_inv ? `${form.horizonte_inv} años` : '—'},
+                {k:'Año compra', v:form.anyo_compra ? `${form.anyo_compra} ${form.trimestre || ''}` : '—'},
+              ].map((r,i) => (
+                <div key={i} className="ir" style={{padding:'6px 10px'}}>
+                  <span className="ir-k">{r.k}</span>
+                  <span className="ir-v">{r.v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rp-sec">
+            <div className="rp-lbl">Activo vinculado</div>
+            <div style={{background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'8px 10px',cursor:'pointer'}} onClick={()=>navigate('ficha-activo')}>
+              <div style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{form.activo}</div>
+              <div style={{fontSize:10,color:'var(--text3)'}}>{form.zona}{form.subzona ? ` · ${form.subzona}` : ''} · {form.superficie} m²</div>
+            </div>
+          </div>
+
+          <div className="rp-sec">
+            <div className="rp-lbl">Contacto principal</div>
+            <div style={{fontSize:11,fontWeight:600,marginBottom:4}}>{form.contacto_principal || '—'}</div>
+            <div style={{fontSize:10,color:'var(--accent)'}}>{form.email || '—'}</div>
+            <div style={{fontSize:10,color:'var(--text3)'}}>{form.telefono || '—'}</div>
+          </div>
+        </div>
       </div>
       {showTarea && <AsignarTareaModal refTipo="Propietario" refNombre="Merlín Properties SOCIMI" onClose={() => setShowTarea(false)} />}
     </div>
