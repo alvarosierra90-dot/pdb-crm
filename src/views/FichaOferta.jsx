@@ -167,6 +167,33 @@ export default function FichaOferta() {
 
   // Live stacking buildings (updated by StackingPlan callback)
   const liveBuildings = useRef([])
+  // Debounced auto-save del stacking — mismo patrón que FichaActivo para mantener
+  // consistencia funcional: edición en Oferta persiste igual que edición en Activo.
+  const stackingAutoSaveTimer = useRef(null)
+
+  // Handlers de creación equivalentes a FichaActivo: navegan a la ficha del
+  // tipo correspondiente con datos del activo vinculado prerrellenados.
+  const handleStackingAddOwner = () => {
+    if (!activoSeleccionado?.ref) return
+    navigate('ficha-propietario', {
+      fromActivoRef: activoSeleccionado.ref,
+      fromActivoNombre: activoSeleccionado.nombre || '',
+      fromActivoZona: activoSeleccionado.zona || '',
+      fromActivoSba: activoSeleccionado.sba || 0,
+      fromOfertaRef: oferta?.ref,
+    })
+  }
+  const handleStackingAddTenant = () => {
+    if (!activoSeleccionado?.ref) return
+    navigate('ficha-arrendatario', {
+      fromActivoRef: activoSeleccionado.ref,
+      fromActivoNombre: activoSeleccionado.nombre || '',
+      fromActivoZona: activoSeleccionado.zona || '',
+      fromActivoSba: activoSeleccionado.sba || 0,
+      fromActivoPropietario: activoSeleccionado.propietario || '',
+      fromOfertaRef: oferta?.ref,
+    })
+  }
 
   // Dar de baja
   const [showDarBaja, setShowDarBaja] = useState(false)
@@ -862,12 +889,15 @@ export default function FichaOferta() {
                       key={activoSeleccionado.ref}
                       initBuildings={activoSeleccionado.stacking_data?.length > 0 ? activoSeleccionado.stacking_data : []}
                       initView='arr'
-                      allowCreate={false}
+                      allowCreate={true}
                       extraOfertas={ofertasDesglose}
                       activoPropietario={activoSeleccionado.propietario || ''}
+                      extraOwners={[activoSeleccionado.propietario].filter(Boolean)}
                       extraTenants={stackingExtraTenants}
-                      onAddOwner={() => {}}
-                      onAddTenant={() => {}}
+                      defaultLabel={activoSeleccionado.nombre || ''}
+                      defaultSupPlantaTipo={activoSeleccionado.sup_planta_tipo || undefined}
+                      onAddOwner={handleStackingAddOwner}
+                      onAddTenant={handleStackingAddTenant}
                       onTenantClick={(name) => navigate('ficha-arrendatario', {
                         tenantName: name,
                         fromActivoRef: activoSeleccionado?.ref,
@@ -914,6 +944,16 @@ export default function FichaOferta() {
                           )
                         )
                         setEspaciosComercializables(newEspacios)
+                        // Auto-save del stacking_data al activo (debounce 1.5 s) — mismo patrón
+                        // que FichaActivo. Mantiene la consistencia: edición desde Oferta
+                        // persiste igual que edición desde Activo.
+                        if (activoSeleccionado?.ref) {
+                          clearTimeout(stackingAutoSaveTimer.current)
+                          stackingAutoSaveTimer.current = setTimeout(() => {
+                            supabase.from('activos').update({ stacking_data: blds }).eq('ref', activoSeleccionado.ref)
+                            setActivoSeleccionado(prev => prev ? { ...prev, stacking_data: blds } : prev)
+                          }, 1500)
+                        }
                       }}
                     />
                   )}
