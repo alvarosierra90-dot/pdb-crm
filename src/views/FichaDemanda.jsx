@@ -405,8 +405,9 @@ export default function FichaDemanda() {
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
                 <div>
                   {/* ── Oportunidad vinculada (opcional) ── */}
-                  <div className="of-section">⚡ OPORTUNIDAD VINCULADA</div>
-                  <div className="info-block" style={{marginBottom:10,padding:'10px 12px',background:'#eff6ff',border:'1px solid #bfdbfe'}}>
+                  <div className="va-meta-card" style={{marginBottom:14}}>
+                  <div className="va-meta-head"><span className="dot"/>Oportunidad vinculada</div>
+                  <div style={{padding:'10px 14px'}}>
                     <div className="ir">
                       <span className="ir-k" style={{display:'flex',alignItems:'center',gap:6}}>
                         <span style={{width:14,height:14,borderRadius:3,background:'#0078d4',color:'#fff',fontSize:9,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>D</span>
@@ -424,9 +425,11 @@ export default function FichaDemanda() {
                     </div>
                     <div style={{fontSize:9,color:'#1e3a8a',marginTop:4,fontStyle:'italic'}}>Si vinculas a una Oportunidad, la Cuenta se hereda automáticamente desde Dynamics</div>
                   </div>
+                  </div>
 
-                  <div className="of-section">🏢 CUENTA <span style={{fontSize:9,fontWeight:700,color:'#15803d',background:'#dcfce7',padding:'1px 6px',borderRadius:6,marginLeft:6}}>🔒 heredada de Op.</span></div>
-                  <div className="info-block" style={{marginBottom:10}}>
+                  <div className="va-meta-card" style={{marginBottom:14}}>
+                  <div className="va-meta-head accent-green"><span className="dot"/>Cuenta · heredada de Oportunidad</div>
+                  <div style={{padding:'10px 14px'}}>
                     <div style={{fontSize:12,fontWeight:600,color:'var(--accent)',marginBottom:10,cursor:'pointer'}}>Corporacion Financiera Azuaga SL ↗</div>
                     <div className="ir"><span className="ir-k">Teléfono</span><span className="ir-v">—</span></div>
                     <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v" style={{fontSize:10}}>Avda. Diego Martínez Barrios</span></div>
@@ -436,32 +439,43 @@ export default function FichaDemanda() {
                     <div className="ir"><span className="ir-k">Cía. sustituta</span><span className="ir-v"><input type="checkbox" style={{accentColor:'var(--accent)'}}/></span></div>
                     <div className="ir"><span className="ir-k">KYC demanda</span><span className="ir-v link">— ↗</span></div>
                   </div>
-                  <div className="of-section">🏷 TIPO DE DEMANDA</div>
-                  <div className="info-block">
+                  </div>
+
+                  <div className="va-meta-card">
+                  <div className="va-meta-head accent-purple"><span className="dot"/>Tipo de demanda</div>
+                  <div style={{padding:'10px 14px'}}>
                     <div className="ir"><span className="ir-k">Demanda corporativa</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>No</option><option>Sí</option></select></span></div>
                     <div className="ir"><span className="ir-k">Confidencial</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>No</option><option>Sí</option></select></span></div>
                   </div>
+                  </div>
                 </div>
                 <div>
-                  <div className="of-section">👤 CONTACTO</div>
-                  <div className="info-block" style={{marginBottom:10}}>
+                  <div className="va-meta-card" style={{marginBottom:14}}>
+                  <div className="va-meta-head"><span className="dot"/>Contacto</div>
+                  <div style={{padding:'10px 14px'}}>
                     <div className="ir"><span className="ir-k">Persona física</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>No</option><option>Sí</option></select></span></div>
                     <div className="ir"><span className="ir-k">Contacto mandante</span><span className="ir-v link">— ↗</span></div>
                   </div>
-                  <div className="of-section">📋 ESTADO</div>
-                  <div className="info-block">
+                  </div>
+
+                  <div className="va-meta-card">
+                  <div className="va-meta-head accent-purple"><span className="dot"/>Estado</div>
+                  <div style={{padding:'10px 14px'}}>
                     <div className="ir"><span className="ir-k">Motivo del estado</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>En Curso</option><option>Potencial</option><option>Paralizado</option></select></span></div>
                     <div className="ir"><span className="ir-k">Equipo</span><span className="ir-v">Leasing Oficinas – MAD</span></div>
                   </div>
+                  </div>
                 </div>
                 <div>
-                  <div className="of-section">👥 OTROS CONTACTOS ASOCIADOS</div>
-                  <div className="info-block">
+                  <div className="va-meta-card">
+                  <div className="va-meta-head accent-red"><span className="dot"/>Otros contactos asociados</div>
+                  <div style={{padding:'10px 14px'}}>
                     <table className="pat-table">
                       <thead><tr><th>Nombre com.</th><th>Persona física</th></tr></thead>
                       <tbody><tr><td colSpan={2} style={{textAlign:'center',color:'var(--text4)',padding:16,fontSize:11}}>No se encontró nada para mostrar aquí</td></tr></tbody>
                     </table>
                     <div style={{fontSize:10,color:'var(--text4)',marginTop:5}}>Filas: 0</div>
+                  </div>
                   </div>
                 </div>
               </div>

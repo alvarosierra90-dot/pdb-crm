@@ -227,9 +227,9 @@ export default function FichaPropuesta() {
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:20}}>
 
                 {/* Col 1: Identificación */}
-                <div>
-                  <div className="ib-title">Identificación</div>
-                  <div>
+                <div className="va-meta-card">
+                  <div className="va-meta-head"><span className="dot"/>Identificación</div>
+                  <div style={{padding:'12px 14px'}}>
                     <div className="kf-grid">
                       <KF label="ID" value={form.id} mono/>
                       <KF label="Nombre del proyecto" value={form.nombre} set={v=>set('nombre',v)}/>
@@ -264,9 +264,9 @@ export default function FichaPropuesta() {
                 </div>
 
                 {/* Col 2: Vinculaciones */}
-                <div>
-                  <div className="ib-title">Vinculaciones</div>
-                  <div>
+                <div className="va-meta-card">
+                  <div className="va-meta-head accent-purple"><span className="dot"/>Vinculaciones</div>
+                  <div style={{padding:'12px 14px'}}>
                     <div style={{marginBottom:4,fontSize:10,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}>Obligatorios</div>
 
                     {/* Oportunidad — FK obligatorio · Dynamics */}
@@ -353,9 +353,9 @@ export default function FichaPropuesta() {
                 </div>
 
                 {/* Col 3: Económico */}
-                <div>
-                  <div className="ib-title">Datos económicos</div>
-                  <div>
+                <div className="va-meta-card">
+                  <div className="va-meta-head accent-green"><span className="dot"/>Datos económicos</div>
+                  <div style={{padding:'12px 14px'}}>
                     <div className="kf-grid">
                       <KF label="Fees potenciales (€)">
                         <input className="kf-inp" value={form.fees} onChange={e=>set('fees',e.target.value)} style={{fontFamily:'var(--mono)',fontWeight:700,fontSize:14}}/>
