@@ -43,8 +43,10 @@ import ContactosList from './views/ContactosList'
 import OportunidadesList from './views/OportunidadesList'
 import InstruccionesList from './views/InstruccionesList'
 import EntidadesLegalesList from './views/EntidadesLegalesList'
+import LeadsList from './views/LeadsList'
+import FichaLead from './views/FichaLead'
 
-const BUILT = ['activos','ficha-activo','ofertas','ficha-oferta','negociaciones','ficha-negociacion','portfolios','portfolio','demandas','ficha-demanda','actividades','ficha-actividad','visitas','ficha-visita','tareas','ficha-tarea','zonas','ficha-zona','usuarios','ficha-usuario','mandatos','ficha-mandato','mapas','mis-clientes','inteligencia-comercial','vencimientos','marketing','informes-mercado','noticias','arrendatarios','ficha-arrendatario','propietarios','ficha-propietario','propuestas','ficha-propuesta','presentaciones','ficha-presentacion','cuentas','contactos','oportunidades','instruccion','entidades-legales']
+const BUILT = ['activos','ficha-activo','ofertas','ficha-oferta','negociaciones','ficha-negociacion','portfolios','portfolio','demandas','ficha-demanda','actividades','ficha-actividad','visitas','ficha-visita','tareas','ficha-tarea','zonas','ficha-zona','usuarios','ficha-usuario','mandatos','ficha-mandato','mapas','mis-clientes','inteligencia-comercial','vencimientos','marketing','informes-mercado','noticias','arrendatarios','ficha-arrendatario','propietarios','ficha-propietario','propuestas','ficha-propuesta','presentaciones','ficha-presentacion','cuentas','contactos','oportunidades','instruccion','entidades-legales','leads','ficha-lead']
 
 function Router() {
   const { view } = useNav()
@@ -92,6 +94,8 @@ function Router() {
       {view === 'oportunidades' && <OportunidadesList />}
       {view === 'instruccion' && <InstruccionesList />}
       {view === 'entidades-legales' && <EntidadesLegalesList />}
+      {view === 'leads' && <LeadsList />}
+      {view === 'ficha-lead' && <FichaLead />}
       {!BUILT.includes(view) && (
         <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: 'var(--text4)' }}>
           <div style={{ fontSize: 32 }}>🚧</div>

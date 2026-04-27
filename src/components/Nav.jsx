@@ -68,6 +68,10 @@ export default function Nav() {
         Clientes <ChevronDown collapsed={collapsed.cli} />
       </div>
       {open('cli') && <>
+        <div className={`nav-item ${isActive('leads','ficha-lead') ? 'active' : ''}`} onClick={() => navigate('leads')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></svg>
+          Leads <span className="nav-badge" style={{background:'#fef3c7',color:'#92400e'}}>{15}</span>
+        </div>
         <div className={`nav-item ${isActive('cuentas') ? 'active' : ''}`} onClick={() => navigate('cuentas')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6h12"/></svg>
           Cuentas <span className="nav-dyn">Dynamics</span>
