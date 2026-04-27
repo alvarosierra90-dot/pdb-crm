@@ -405,26 +405,39 @@ export default function FichaNegociacion() {
           {activeTab === 'neg-condiciones' && (
             <div style={{ overflowY: 'auto', flex: 1 }}>
               <div className="info-pad">
-                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Condiciones acordadas <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text4)' }}>· Ronda 3 — actualizado 15/03/2026</span></div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', marginBottom: 16 }}>
-                  {[['3','Ronda'],['19,00 €','Renta última','Inicial: 18,00 €','var(--purple)'],['5 años','Duración'],['↔ Negociando','Estado',null,'var(--amber)']].map(([v,l,s,c],i) => (
-                    <div key={i} style={{ background: 'var(--surface)', padding: 12, textAlign: 'center' }}>
-                      <div style={{ fontSize: 9, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>{l}</div>
-                      <div style={{ fontSize: 20, fontWeight: 700, color: c || 'var(--text)' }}>{v}</div>
-                      {s && <div style={{ fontSize: 9, color: 'var(--text3)' }}>{s}</div>}
-                    </div>
-                  ))}
+
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Resumen ronda actual</h3>
+                    <span className="hint">Ronda 3 — actualizado 15/03/2026</span>
+                  </div>
+                  <div style={{padding:'4px 20px 16px',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:24}}>
+                    {[['3','Ronda',null,'var(--text)'],['19,00 €','Renta última','Inicial: 18,00 €','var(--purple)'],['5 años','Duración',null,'var(--text)'],['↔ Negociando','Estado',null,'var(--amber)']].map(([v,l,s,c],i) => (
+                      <div key={i} style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: c || 'var(--text)', fontFamily:'var(--mono)' }}>{v}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '.04em', marginTop:3 }}>{l}</div>
+                        {s && <div style={{ fontSize: 10, color: 'var(--text3)', marginTop:2, fontStyle:'italic' }}>{s}</div>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <table className="pat-table">
-                  <thead><tr><th>Condición</th><th>Oferta inicial</th><th>Contraoferta 1</th><th>Ajuste 2</th><th>Estado</th></tr></thead>
-                  <tbody>
-                    <tr><td style={{ fontWeight: 500 }}>Renta (€/m²/mes)</td><td>18,00 €</td><td style={{ color: 'var(--amber)' }}>20,00 €</td><td style={{ color: 'var(--purple)', fontWeight: 700 }}>19,00 €</td><td><span className="tag tag-amber">En negociación</span></td></tr>
-                    <tr><td style={{ fontWeight: 500 }}>Superficie (m²)</td><td>1.000</td><td>1.000</td><td style={{ fontWeight: 700 }}>1.000</td><td><span className="tag tag-green">Acordado</span></td></tr>
-                    <tr><td style={{ fontWeight: 500 }}>Duración contrato</td><td>5 años</td><td>5 años</td><td style={{ fontWeight: 700 }}>5 años</td><td><span className="tag tag-green">Acordado</span></td></tr>
-                    <tr><td style={{ fontWeight: 500 }}>Carencia (meses)</td><td>2</td><td>2</td><td style={{ fontWeight: 700, color: 'var(--purple)' }}>3</td><td><span className="tag tag-amber">En negociación</span></td></tr>
-                    <tr><td style={{ fontWeight: 500 }}>Gastos comunes</td><td>3,50 €/m² aparte</td><td>Incluidos en renta</td><td style={{ fontWeight: 700 }}>Incluidos en renta</td><td><span className="tag tag-amber">En negociación</span></td></tr>
-                  </tbody>
-                </table>
+
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico">◇</span> Condiciones por ronda</h3>
+                  </div>
+                  <table className="pat-table">
+                    <thead><tr><th>Condición</th><th>Oferta inicial</th><th>Contraoferta 1</th><th>Ajuste 2</th><th>Estado</th></tr></thead>
+                    <tbody>
+                      <tr><td style={{ fontWeight: 500 }}>Renta (€/m²/mes)</td><td>18,00 €</td><td style={{ color: 'var(--amber)' }}>20,00 €</td><td style={{ color: 'var(--purple)', fontWeight: 700 }}>19,00 €</td><td><span className="tag tag-amber">En negociación</span></td></tr>
+                      <tr><td style={{ fontWeight: 500 }}>Superficie (m²)</td><td>1.000</td><td>1.000</td><td style={{ fontWeight: 700 }}>1.000</td><td><span className="tag tag-green">Acordado</span></td></tr>
+                      <tr><td style={{ fontWeight: 500 }}>Duración contrato</td><td>5 años</td><td>5 años</td><td style={{ fontWeight: 700 }}>5 años</td><td><span className="tag tag-green">Acordado</span></td></tr>
+                      <tr><td style={{ fontWeight: 500 }}>Carencia (meses)</td><td>2</td><td>2</td><td style={{ fontWeight: 700, color: 'var(--purple)' }}>3</td><td><span className="tag tag-amber">En negociación</span></td></tr>
+                      <tr><td style={{ fontWeight: 500 }}>Gastos comunes</td><td>3,50 €/m² aparte</td><td>Incluidos en renta</td><td style={{ fontWeight: 700 }}>Incluidos en renta</td><td><span className="tag tag-amber">En negociación</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
               </div>
             </div>
           )}
@@ -475,8 +488,12 @@ export default function FichaNegociacion() {
           {activeTab === 'neg-historial' && (
             <div style={{ overflowY: 'auto', flex: 1 }}>
               <div className="info-pad">
-                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Historial completo <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text4)' }}>· AUDITABLE · 6 eventos</span></div>
-                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico">◷</span> Historial completo</h3>
+                    <span className="hint">AUDITABLE · 6 eventos</span>
+                  </div>
+                <div>
                   {[
                     { color: 'var(--purple)', msg: <>Ana Gómez (Empresa XYZ) envió <strong>ajuste final</strong> — renta 19 €/m², carencia 3 meses, gastos incluidos</>, date: '15/03/2026 · 11:05 · Via link externo NEG-0044' },
                     { color: 'var(--accent)', msg: <>Sierra Álvaro subió <strong>modelo de contrato v1</strong> y lo compartió con Empresa XYZ</>, date: '14/03/2026 · 10:00 · Documento: Modelo contrato v1' },
@@ -485,14 +502,15 @@ export default function FichaNegociacion() {
                     { color: 'var(--accent)', msg: <>Sierra Álvaro envió <strong>oferta inicial</strong> — 1.000 m², renta 18 €/m²/mes, duración 5 años, carencia 2 meses</>, date: '10/03/2026 · 09:45' },
                     { color: 'var(--green)', msg: <>Negociación creada — link NEG-0044 generado y enviado a Ana Gómez (Empresa XYZ)</>, date: '10/03/2026 · 09:30 · Sierra Álvaro' },
                   ].map((e, i, arr) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 20px', borderTop: i===0?'1px solid var(--border)':'none', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: e.color, flexShrink: 0, marginTop: 4 }} />
                       <div>
-                        <div style={{ fontSize: 11, fontWeight: 500 }}>{e.msg}</div>
-                        <div style={{ fontSize: 10, color: 'var(--text4)' }}>{e.date}</div>
+                        <div style={{ fontSize: 12, fontWeight: 500 }}>{e.msg}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text4)', marginTop:2 }}>{e.date}</div>
                       </div>
                     </div>
                   ))}
+                </div>
                 </div>
               </div>
             </div>

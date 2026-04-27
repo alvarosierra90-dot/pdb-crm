@@ -108,190 +108,216 @@ export default function FichaLead() {
           </div>
 
           {/* Tab content */}
-          <div style={{ padding:'18px 20px' }}>
+          <div className="info-pad">
 
             {tab === 'ld-info' && (
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24 }}>
-                <div>
-                  <div className="rp-lbl">Datos del lead</div>
-                  <KV k="ID" v={lead.id} mono />
-                  <KV k="Nombre" v={lead.nombre} />
-                  <KV k="Tipo" v={LEAD_TIPOS.find(t => t.key === lead.tipo)?.label} />
-                  <KV k="Estado" v={LEAD_ESTADOS.find(e => e.key === lead.estado)?.label} />
-                  <KV k="Prioridad" v={LEAD_PRIORIDADES.find(p => p.key === lead.prioridad)?.label} />
-                  <KV k="Fecha entrada" v={lead.fecha} />
-                  <KV k="Última actividad" v={lead.ultimaActividad} />
-                </div>
-                <div>
-                  <div className="rp-lbl">Asignación</div>
-                  <KV k="Equipo" v={lead.equipo} />
-                  <KV k="Responsable" v={lead.responsable} />
-                  <div className="rp-lbl" style={{ marginTop:18 }}>Descripción</div>
-                  <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:6, padding:'10px 12px', fontSize:12, color:'var(--text)', lineHeight:1.5 }}>
-                    {lead.descripcion}
+              <>
+                <div className="va-two-col">
+                  <div className="va-meta-card">
+                    <div className="va-meta-head"><span className="dot"/>Datos del lead</div>
+                    <div className="va-kv-list">
+                      <div className="ir"><span className="ir-k">ID</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{lead.id}</span></div>
+                      <div className="ir"><span className="ir-k">Nombre</span><span className="ir-v" style={{fontWeight:600}}>{lead.nombre}</span></div>
+                      <div className="ir"><span className="ir-k">Tipo</span><span className="ir-v">{LEAD_TIPOS.find(t => t.key === lead.tipo)?.label || '—'}</span></div>
+                      <div className="ir"><span className="ir-k">Estado</span><span className="ir-v"><EstadoTag estado={lead.estado}/></span></div>
+                      <div className="ir"><span className="ir-k">Prioridad</span><span className="ir-v"><PrioridadTag prioridad={lead.prioridad}/></span></div>
+                      <div className="ir"><span className="ir-k">Fecha entrada</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{lead.fecha}</span></div>
+                      <div className="ir"><span className="ir-k">Última actividad</span><span className="ir-v">{lead.ultimaActividad || '—'}</span></div>
+                    </div>
+                  </div>
+                  <div className="va-meta-card">
+                    <div className="va-meta-head accent-purple"><span className="dot"/>Asignación</div>
+                    <div className="va-kv-list">
+                      <div className="ir"><span className="ir-k">Equipo</span><span className="ir-v">{lead.equipo || '—'}</span></div>
+                      <div className="ir"><span className="ir-k">Responsable</span><span className="ir-v">{lead.responsable || '—'}</span></div>
+                    </div>
                   </div>
                 </div>
-              </div>
+
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico">▭</span> Descripción</h3>
+                  </div>
+                  <div style={{padding:'4px 20px 16px',fontSize:12,color:'var(--text2)',lineHeight:1.55}}>
+                    {lead.descripcion || <span style={{color:'var(--text4)'}}>Sin descripción.</span>}
+                  </div>
+                </div>
+              </>
             )}
 
             {tab === 'ld-origen' && (
-              <div>
-                <div style={{ background:'#fef3c7', border:'1px solid #fde68a', borderRadius:8, padding:12, marginBottom:18 }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:'#7c2d12', marginBottom:4 }}>📡 Captura automática</div>
-                  <div style={{ fontSize:11, color:'#7c2d12' }}>
+              <>
+                <div className="va-two-col">
+                  <div className="va-meta-card">
+                    <div className="va-meta-head"><span className="dot"/>Canal y origen</div>
+                    <div className="va-kv-list">
+                      <div className="ir"><span className="ir-k">Canal de entrada</span><span className="ir-v">{lead.canal}</span></div>
+                      <div className="ir"><span className="ir-k">Campaña asociada</span><span className="ir-v">{lead.campana !== '—' ? lead.campana : <span style={{color:'var(--text4)'}}>—</span>}</span></div>
+                      <div className="ir"><span className="ir-k">Anuncio concreto</span><span className="ir-v">{lead.anuncio !== '—' ? lead.anuncio : <span style={{color:'var(--text4)'}}>—</span>}</span></div>
+                      <div className="ir"><span className="ir-k">URL de origen</span><span className="ir-v" style={{fontFamily:'var(--mono)',fontSize:11}}>{lead.url !== '—' ? lead.url : <span style={{color:'var(--text4)'}}>—</span>}</span></div>
+                    </div>
+                  </div>
+                  <div className="va-meta-card">
+                    <div className="va-meta-head accent-purple"><span className="dot"/>Captura automática</div>
+                    <div className="va-kv-list">
+                      <div className="ir"><span className="ir-k">Fecha y hora</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{lead.fecha}</span></div>
+                      <div className="ir"><span className="ir-k">Equipo por defecto</span><span className="ir-v">{lead.equipo}</span></div>
+                      <div className="ir"><span className="ir-k">Responsable inicial</span><span className="ir-v">{lead.responsable}</span></div>
+                      <div className="ir"><span className="ir-k">Tipo sugerido</span><span className="ir-v"><TipoTag tipo={lead.tipo}/></span></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico" style={{color:'var(--amber)'}}>●</span> Captura automática</h3>
+                  </div>
+                  <div style={{padding:'4px 20px 16px',fontSize:12,color:'var(--text3)',lineHeight:1.55}}>
                     Estos datos se han registrado automáticamente al entrar el lead. Permiten medir qué canales y campañas generan leads útiles vs nulos.
                   </div>
                 </div>
-
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24 }}>
-                  <div>
-                    <div className="rp-lbl">Canal y origen</div>
-                    <KV k="Canal de entrada" v={lead.canal} />
-                    <KV k="Campaña asociada" v={lead.campana !== '—' ? lead.campana : null} />
-                    <KV k="Anuncio concreto" v={lead.anuncio !== '—' ? lead.anuncio : null} />
-                    <KV k="URL de origen" v={lead.url !== '—' ? lead.url : null} mono />
-                  </div>
-                  <div>
-                    <div className="rp-lbl">Captura</div>
-                    <KV k="Fecha y hora" v={lead.fecha} />
-                    <KV k="Equipo asignado por defecto" v={lead.equipo} />
-                    <KV k="Responsable inicial" v={lead.responsable} />
-                    <KV k="Tipo de lead sugerido" v={LEAD_TIPOS.find(t => t.key === lead.tipo)?.label} />
-                  </div>
-                </div>
-              </div>
+              </>
             )}
 
             {tab === 'ld-vinc' && (
-              <div>
-                <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:12, marginBottom:18, display:'flex', alignItems:'flex-start', gap:8 }}>
-                  <span style={{ width:18, height:18, borderRadius:3, background:'#0078d4', color:'#fff', fontSize:10, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>D</span>
-                  <div style={{ fontSize:11, color:'#1e3a8a' }}>
+              <>
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Vinculación obligatoria</h3>
+                    <span className="hint">Para transformar el lead</span>
+                  </div>
+                  <div style={{padding:'4px 20px 16px',fontSize:12,color:'var(--text3)',lineHeight:1.55}}>
                     Para transformar este lead en oportunidad es <strong>obligatorio</strong> vincularlo al menos a una Cuenta o un Contacto. Sin vinculación no se puede crear oportunidad en Dynamics.
                   </div>
                 </div>
 
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24 }}>
-                  <div>
-                    <div className="rp-lbl">Cuenta</div>
-                    {lead.cuenta ? (
-                      <div style={{ background:'#dbeafe', border:'1px solid #93c5fd', borderRadius:8, padding:'10px 12px', fontSize:12, fontWeight:600, color:'#1e40af', cursor:'pointer' }} onClick={() => navigate('cuentas')}>
-                        🏢 {lead.cuenta}
-                      </div>
-                    ) : (
-                      <div style={{ background:'var(--surface-2)', border:'1px dashed var(--border)', borderRadius:8, padding:'10px 12px', fontSize:11, color:'var(--text4)', textAlign:'center' }}>
-                        Sin cuenta vinculada · vincular antes de transformar
-                      </div>
-                    )}
-
-                    <div className="rp-lbl" style={{ marginTop:18 }}>Contacto</div>
-                    {lead.contacto && lead.contacto !== '—' ? (
-                      <div style={{ background:'#f0fdf4', border:'1px solid #86efac', borderRadius:8, padding:'10px 12px', fontSize:12, fontWeight:600, color:'#15803d' }}>
-                        👤 {lead.contacto}
-                      </div>
-                    ) : (
-                      <div style={{ background:'var(--surface-2)', border:'1px dashed var(--border)', borderRadius:8, padding:'10px 12px', fontSize:11, color:'var(--text4)', textAlign:'center' }}>
-                        Sin contacto vinculado
-                      </div>
-                    )}
+                <div className="va-two-col">
+                  <div className="va-meta-card">
+                    <div className="va-meta-head"><span className="dot"/>Cuenta</div>
+                    <div style={{padding:'12px 14px'}}>
+                      {lead.cuenta ? (
+                        <div onClick={() => navigate('cuentas')} style={{ background:'#dbeafe', border:'1px solid #93c5fd', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#1e40af', cursor:'pointer' }}>
+                          🏢 {lead.cuenta}
+                        </div>
+                      ) : (
+                        <div style={{ background:'var(--surface-2)', border:'1px dashed var(--border)', borderRadius:'var(--r)', padding:'10px 12px', fontSize:11, color:'var(--text4)', textAlign:'center' }}>
+                          Sin cuenta vinculada
+                        </div>
+                      )}
+                    </div>
                   </div>
-
-                  <div>
-                    <div className="rp-lbl">Vinculaciones inmobiliarias (opcionales)</div>
-                    <KV k="Activo" v={lead.activo ? <span style={{ color:'var(--accent)', fontWeight:600 }}>{lead.activo}</span> : null} />
-                    <KV k="Oferta" v={lead.oferta} />
-                    <KV k="Demanda" v={lead.demanda ? <span style={{ color:'var(--accent)', fontWeight:600 }}>{lead.demanda}</span> : null} />
-
-                    <div style={{ marginTop:18, fontSize:11, color:'var(--text3)', background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:6, padding:'10px 12px', lineHeight:1.5 }}>
-                      Un lead <strong>no requiere</strong> activo, oferta ni demanda para existir. Pueden estar vacíos en leads de cuenta/servicio o en leads tempranos sin contexto inmobiliario claro.
+                  <div className="va-meta-card">
+                    <div className="va-meta-head accent-green"><span className="dot"/>Contacto</div>
+                    <div style={{padding:'12px 14px'}}>
+                      {lead.contacto && lead.contacto !== '—' ? (
+                        <div style={{ background:'#f0fdf4', border:'1px solid #86efac', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#15803d' }}>
+                          👤 {lead.contacto}
+                        </div>
+                      ) : (
+                        <div style={{ background:'var(--surface-2)', border:'1px dashed var(--border)', borderRadius:'var(--r)', padding:'10px 12px', fontSize:11, color:'var(--text4)', textAlign:'center' }}>
+                          Sin contacto vinculado
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
+
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico">◇</span> Vinculaciones inmobiliarias</h3>
+                    <span className="hint">opcionales</span>
+                  </div>
+                  <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 40px',paddingBottom:14}}>
+                    <div className="ir"><span className="ir-k">Activo</span><span className="ir-v" style={{color:lead.activo?'var(--accent)':undefined,fontWeight:lead.activo?600:400}}>{lead.activo || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
+                    <div className="ir"><span className="ir-k">Oferta</span><span className="ir-v">{lead.oferta || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
+                    <div className="ir"><span className="ir-k">Demanda</span><span className="ir-v" style={{color:lead.demanda?'var(--accent)':undefined,fontWeight:lead.demanda?600:400}}>{lead.demanda || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
+                  </div>
+                  <div style={{padding:'0 20px 16px',fontSize:11,color:'var(--text3)',lineHeight:1.5}}>
+                    Un lead <strong>no requiere</strong> activo, oferta ni demanda para existir. Pueden estar vacíos en leads de cuenta/servicio o en leads tempranos sin contexto inmobiliario claro.
+                  </div>
+                </div>
+              </>
             )}
 
             {tab === 'ld-act' && (
-              <div>
-                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-                  <div className="rp-lbl" style={{ marginBottom:0 }}>Actividades del lead</div>
-                  <button className="ab-btn blue" style={{ marginLeft:'auto', padding:'4px 10px', fontSize:11 }}>+ Nueva actividad</button>
+              <div className="va-card">
+                <div className="va-card-header">
+                  <h3><span className="ico">◈</span> Actividades del lead</h3>
+                  <button className="ab-btn blue">+ Nueva actividad</button>
                 </div>
-
-                <table className="main-tbl">
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Tipo</th>
-                      <th>Asunto</th>
-                      <th>Responsable</th>
-                      <th>Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td style={{ fontSize:11 }}>{lead.fecha}</td>
-                      <td><span className="tag tag-blue">📥 Entrada</span></td>
-                      <td style={{ fontSize:11 }}>Lead capturado automáticamente desde {lead.canal}</td>
-                      <td style={{ fontSize:11 }}>Sistema</td>
-                      <td><span className="tag tag-green">Completada</span></td>
-                    </tr>
-                    {lead.estado !== 'nuevo' && (
-                      <tr>
-                        <td style={{ fontSize:11 }}>—</td>
-                        <td><span className="tag tag-purple">📞 Llamada</span></td>
-                        <td style={{ fontSize:11 }}>Cualificación inicial</td>
-                        <td style={{ fontSize:11 }}>{lead.responsable}</td>
-                        <td><span className="tag tag-green">Completada</span></td>
+                <div style={{padding:'4px 0 0'}}>
+                  <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+                    <thead><tr>{['Fecha','Tipo','Asunto','Responsable','Estado'].map(h =>
+                      <th key={h} style={{ padding:'8px 16px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', background:'var(--gray-lt)', borderBottom:'1px solid var(--border)', textTransform:'uppercase' }}>{h}</th>
+                    )}</tr></thead>
+                    <tbody>
+                      <tr style={{borderBottom:'1px solid var(--border)'}}>
+                        <td style={{ padding:'8px 16px', fontSize:11 }}>{lead.fecha}</td>
+                        <td style={{ padding:'8px 16px' }}><span className="tag tag-blue">📥 Entrada</span></td>
+                        <td style={{ padding:'8px 16px', fontSize:11 }}>Lead capturado automáticamente desde {lead.canal}</td>
+                        <td style={{ padding:'8px 16px', fontSize:11 }}>Sistema</td>
+                        <td style={{ padding:'8px 16px' }}><span className="tag tag-green">Completada</span></td>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
+                      {lead.estado !== 'nuevo' && (
+                        <tr style={{borderBottom:'1px solid var(--border)'}}>
+                          <td style={{ padding:'8px 16px', fontSize:11 }}>—</td>
+                          <td style={{ padding:'8px 16px' }}><span className="tag tag-purple">📞 Llamada</span></td>
+                          <td style={{ padding:'8px 16px', fontSize:11 }}>Cualificación inicial</td>
+                          <td style={{ padding:'8px 16px', fontSize:11 }}>{lead.responsable}</td>
+                          <td style={{ padding:'8px 16px' }}><span className="tag tag-green">Completada</span></td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {tab === 'ld-traz' && (
-              <div>
-                <div className="rp-lbl">Trazabilidad completa</div>
-                <div style={{ display:'flex', flexDirection:'column', gap:10, marginTop:8 }}>
-                  <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
+              <div className="va-card">
+                <div className="va-card-header">
+                  <h3><span className="ico">◷</span> Trazabilidad completa</h3>
+                </div>
+                <div style={{padding:'4px 20px 18px',display:'flex',flexDirection:'column',gap:10}}>
+                  <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
                     <div style={{ width:24, height:24, borderRadius:'50%', background:'#dbeafe', color:'#1e40af', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>1</div>
                     <div style={{ flex:1 }}>
-                      <div style={{ fontSize:11, fontWeight:600 }}>Lead capturado</div>
+                      <div style={{ fontSize:12, fontWeight:600 }}>Lead capturado</div>
                       <div style={{ fontSize:10, color:'var(--text4)' }}>{lead.fecha} · {lead.canal}{lead.anuncio !== '—' ? ` · ${lead.anuncio}` : ''}</div>
                     </div>
                   </div>
                   {lead.estado !== 'nuevo' && (
-                    <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
+                    <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
                       <div style={{ width:24, height:24, borderRadius:'50%', background:'#fef3c7', color:'#92400e', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>2</div>
                       <div style={{ flex:1 }}>
-                        <div style={{ fontSize:11, fontWeight:600 }}>Asignado a {lead.responsable}</div>
+                        <div style={{ fontSize:12, fontWeight:600 }}>Asignado a {lead.responsable}</div>
                         <div style={{ fontSize:10, color:'var(--text4)' }}>{lead.equipo}</div>
                       </div>
                     </div>
                   )}
                   {(lead.estado === 'cualificado' || lead.estado === 'convertido') && (
-                    <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
+                    <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
                       <div style={{ width:24, height:24, borderRadius:'50%', background:'#dcfce7', color:'#15803d', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>3</div>
                       <div style={{ flex:1 }}>
-                        <div style={{ fontSize:11, fontWeight:600 }}>Cualificado</div>
+                        <div style={{ fontSize:12, fontWeight:600 }}>Cualificado</div>
                         <div style={{ fontSize:10, color:'var(--text4)' }}>Vinculado a Cuenta y Contacto</div>
                       </div>
                     </div>
                   )}
                   {lead.estado === 'convertido' && (
-                    <div style={{ background:'#cffafe', border:'1px solid #67e8f9', borderRadius:8, padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
+                    <div style={{ background:'#cffafe', border:'1px solid #67e8f9', borderRadius:'var(--r)', padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
                       <div style={{ width:24, height:24, borderRadius:'50%', background:'#0078d4', color:'#fff', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>D</div>
                       <div style={{ flex:1 }}>
-                        <div style={{ fontSize:11, fontWeight:600, color:'#0e7490' }}>Transformado · Oportunidad creada en Dynamics</div>
+                        <div style={{ fontSize:12, fontWeight:600, color:'#0e7490' }}>Transformado · Oportunidad creada en Dynamics</div>
                         <div style={{ fontSize:10, color:'#0891b2' }}>Sincronizado de vuelta al PDB</div>
                       </div>
                     </div>
                   )}
                   {(lead.estado === 'nulo' || lead.estado === 'descartado') && (
-                    <div style={{ background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:8, padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
+                    <div style={{ background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:'var(--r)', padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
                       <div style={{ width:24, height:24, borderRadius:'50%', background:'#dc2626', color:'#fff', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>✗</div>
                       <div style={{ flex:1 }}>
-                        <div style={{ fontSize:11, fontWeight:600, color:'#991b1b' }}>Lead nulo · {lead.motivoNulo || 'Sin motivo registrado'}</div>
+                        <div style={{ fontSize:12, fontWeight:600, color:'#991b1b' }}>Lead nulo · {lead.motivoNulo || 'Sin motivo registrado'}</div>
                         <div style={{ fontSize:10, color:'#7f1d1d' }}>{lead.fechaNulo} · {lead.usuarioNulo}</div>
                       </div>
                     </div>

@@ -818,29 +818,31 @@ export default function FichaMandato() {
           {tab==='actividades' && (
             <div className="tab-content active">
               <div className="info-pad">
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-                  <div style={{fontSize:11,fontWeight:600}}>Actividades vinculadas al mandato</div>
-                  <button className="ab-btn blue" onClick={()=>navigate('ficha-actividad')}>+ Nueva actividad</button>
-                </div>
-                <div className="info-block" style={{padding:0,overflow:'hidden'}}>
-                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                    <thead>
-                      <tr>{['ID','Tipo','Asunto','Fecha','Estado'].map(h=>(
-                        <th key={h} style={{padding:'6px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
-                      ))}</tr>
-                    </thead>
-                    <tbody>
-                      {ACTS.map(a=>(
-                        <tr key={a.id} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-actividad')}>
-                          <td style={{padding:'7px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{a.id}</span></td>
-                          <td style={{padding:'7px 12px'}}><span className={`tag ${TIPO_TAG[a.tipo]||'tag-gray'}`}>{TIPO_ICO[a.tipo]} {a.tipo}</span></td>
-                          <td style={{padding:'7px 12px',fontWeight:500}}>{a.asunto}</td>
-                          <td style={{padding:'7px 12px',color:'var(--text3)'}}>{a.fecha}</td>
-                          <td style={{padding:'7px 12px'}}><span className={`tag ${ACT_EST[a.estado]||'tag-gray'}`}>{a.estado}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico">◈</span> Actividades vinculadas al mandato</h3>
+                    <button className="ab-btn blue" onClick={()=>navigate('ficha-actividad')}>+ Nueva actividad</button>
+                  </div>
+                  <div style={{padding:'4px 0 0'}}>
+                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+                      <thead>
+                        <tr>{['ID','Tipo','Asunto','Fecha','Estado'].map(h=>(
+                          <th key={h} style={{padding:'8px 16px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                        ))}</tr>
+                      </thead>
+                      <tbody>
+                        {ACTS.map(a=>(
+                          <tr key={a.id} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-actividad')}>
+                            <td style={{padding:'8px 16px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{a.id}</span></td>
+                            <td style={{padding:'8px 16px'}}><span className={`tag ${TIPO_TAG[a.tipo]||'tag-gray'}`}>{TIPO_ICO[a.tipo]} {a.tipo}</span></td>
+                            <td style={{padding:'8px 16px',fontWeight:500}}>{a.asunto}</td>
+                            <td style={{padding:'8px 16px',color:'var(--text3)'}}>{a.fecha}</td>
+                            <td style={{padding:'8px 16px'}}><span className={`tag ${ACT_EST[a.estado]||'tag-gray'}`}>{a.estado}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>
