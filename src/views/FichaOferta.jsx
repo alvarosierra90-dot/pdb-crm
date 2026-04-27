@@ -652,13 +652,26 @@ export default function FichaOferta() {
                   {oferta?.dias_comercializacion > 0 && <span className="dias-pill">📅 {oferta.dias_comercializacion} días en comercialización</span>}
                 </div>
               </div>
-              <div style={{ textAlign:'right', flexShrink:0 }}>
-                <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase' }}>Equipo</div>
-                <div style={{ fontSize:11, fontWeight:600 }}>{equipoMembers[0]?.team || 'Transaction Spain'}</div>
-                <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:4, justifyContent:'flex-end' }}>
-                  <div className="c-av" style={{ background: equipoMembers[0]?.bg || '#dbeafe', color: equipoMembers[0]?.color || '#1e40af', width:22, height:22, fontSize:8 }}>{equipoMembers[0]?.initials || 'AS'}</div>
-                  <span style={{ fontSize:11 }}>{equipoMembers[0]?.name || 'Sierra Álvaro'}</span>
-                </div>
+              {/* KPIs destacados a la derecha del título */}
+              <div style={{ display:'flex', alignItems:'stretch', gap:0, flexShrink:0, border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', background:'var(--surface)' }}>
+                {(() => {
+                  const supDisp  = espaciosComercializables.reduce((s,e) => s + (e.sup||0), 0)
+                  const rentaTot = espaciosComercializables.reduce((s,e) => s + (e.renta||0)*(e.sup||0), 0)
+                  const rentaM2  = supDisp > 0 ? (rentaTot / supDisp) : 0
+                  const items = [
+                    { lbl:'Renta',         val: rentaM2 > 0 ? rentaM2.toFixed(2) : '—',                                sub:'€/m²/mes',    color:'var(--green)' },
+                    { lbl:'Gastos',        val: '3,01',                                                                sub:'€/m²/mes',    color:'var(--text1)' },
+                    { lbl:'Sup. disp.',    val: supDisp > 0 ? supDisp.toLocaleString('es-ES') : '—',                  sub:'m²',          color:'var(--accent)' },
+                    { lbl:'Renta mensual', val: rentaTot > 0 ? Math.round(rentaTot).toLocaleString('es-ES') : '—',     sub:'€/mes',        color:'var(--green)' },
+                  ]
+                  return items.map((k, i) => (
+                    <div key={k.lbl} style={{ padding:'10px 18px', textAlign:'center', minWidth:96, borderLeft: i === 0 ? 'none' : '1px solid var(--border)' }}>
+                      <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4 }}>{k.lbl}</div>
+                      <div style={{ fontSize:24, fontWeight:800, fontFamily:'var(--mono)', color:k.color, lineHeight:1 }}>{k.val}</div>
+                      <div style={{ fontSize:9, color:'var(--text4)', marginTop:3 }}>{k.sub}</div>
+                    </div>
+                  ))
+                })()}
               </div>
             </div>
           </div>
@@ -1889,12 +1902,13 @@ export default function FichaOferta() {
               </div>
             </div>
             <div className="rp-sec">
-              <div className="rp-lbl">KPIs de la oferta</div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
-                <div><div style={{ fontSize:9, color:'var(--text4)', marginBottom:1 }}>Renta (€/m²/mes)</div><div style={{ fontSize:14, fontWeight:700 }}>12,50</div></div>
-                <div><div style={{ fontSize:9, color:'var(--text4)', marginBottom:1 }}>Gastos (€/m²/mes)</div><div style={{ fontSize:14, fontWeight:700 }}>3,01</div></div>
-                <div><div style={{ fontSize:9, color:'var(--text4)', marginBottom:1 }}>Renta mensual</div><div style={{ fontSize:12, fontWeight:700 }}>{espaciosComercializables.reduce((s,e)=>s+e.renta*e.sup,0).toLocaleString(undefined,{maximumFractionDigits:0})} €</div></div>
-                <div><div style={{ fontSize:9, color:'var(--text4)', marginBottom:1 }}>Sup. disponible</div><div style={{ fontSize:12, fontWeight:700, color:'var(--amber)' }}>{supTotal.toLocaleString()} m²</div></div>
+              <div className="rp-lbl">Equipo responsable</div>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <div className="c-av" style={{ background: equipoMembers[0]?.bg || '#dbeafe', color: equipoMembers[0]?.color || '#1e40af', width:30, height:30, fontSize:10 }}>{equipoMembers[0]?.initials || 'AS'}</div>
+                <div>
+                  <div style={{ fontSize:12, fontWeight:600 }}>{equipoMembers[0]?.name || 'Sierra Álvaro'}</div>
+                  <div style={{ fontSize:10, color:'var(--text3)' }}>{equipoMembers[0]?.team || 'Transaction Spain'}</div>
+                </div>
               </div>
             </div>
             <div className="rp-sec">
