@@ -131,7 +131,7 @@ function explanation(slide, text, y = 6.3) {
   s.addShape(prs.ShapeType.rect, { x:0, y:7.44, w:13.33, h:0.06, fill:{color:'FF9800'}, line:{color:'FF9800'} })
   s.addText('FLUJOS PDB', { x:1, y:2.0, w:11.33, h:1.2, fontSize:60, bold:true, color:'FFFFFF', fontFace:'Calibri', align:'center' })
   s.addText('Mapa de procesos · 10 ciclos clave', { x:1, y:3.4, w:11.33, h:0.6, fontSize:22, color:'90CAF9', fontFace:'Calibri', align:'center' })
-  s.addText('Cuenta · Oportunidad · Demanda · Activo · Visita · Oferta · Negociación · Instrucción · Transacción', {
+  s.addText('Activo · Oferta · Demanda · Match · Oportunidad WIP · Negociación · Instrucción · Transacción', {
     x:1, y:4.1, w:11.33, h:0.4, fontSize:12, color:'BBDEFB', fontFace:'Calibri', align:'center',
   })
   // Legend
@@ -153,7 +153,7 @@ function explanation(slide, text, y = 6.3) {
 // ══════════════════════════════════════════════════════════════════════════
 {
   const s = prs.addSlide()
-  slideHeader(s, { num:1, title:'Ciclo comercial completo (end-to-end)', subtitle:'Cuenta → Oportunidad → Demanda → Activo → Visita → Oferta → Negociación → Instrucción → Transacción' })
+  slideHeader(s, { num:1, title:'Ciclo comercial completo (end-to-end)', subtitle:'Activo → Oferta + Demanda → Match → Oportunidad WIP → Negociación → Instrucción → Transacción' })
 
   // Subgraph DYNAMICS arriba
   section(s, { x:0.3, y:1.0, w:12.73, h:1.85, label:'☁️  DYNAMICS · Sistema maestro', color:C.dynamics.fill })
@@ -161,43 +161,51 @@ function explanation(slide, text, y = 6.3) {
   section(s, { x:0.3, y:3.45, w:12.73, h:2.55, label:'🟢  PDB · Sistema operativo', color:C.pdb.fill })
 
   // Pasos Dynamics
-  box(s, { x:0.6,  y:1.45, w:1.9, h:1.2, label:'Cuenta', sub:'Alta fuente\nde verdad', scheme:'dynamics', num:1, fontSize:10 })
-  box(s, { x:2.85, y:1.45, w:1.9, h:1.2, label:'Oportunidad', sub:'Detección\ncomercial', scheme:'dynamics', num:2, fontSize:10 })
-  box(s, { x:9.5,  y:1.45, w:1.9, h:1.2, label:'Instrucción', sub:'Mandato\nformal', scheme:'dynamics', num:8, fontSize:10 })
+  box(s, { x:0.5,  y:1.45, w:1.85, h:1.2, label:'Cuenta-\nPropietario', sub:'fuente de\nverdad', scheme:'dynamics', num:1, fontSize:10 })
+  box(s, { x:4.55, y:1.45, w:1.85, h:1.2, label:'Cuenta-\nArrendatario', sub:'fuente de\nverdad', scheme:'dynamics', num:4, fontSize:10 })
+  box(s, { x:7.95, y:1.45, w:1.85, h:1.2, label:'Oportunidad\nWIP', sub:'handoff #1\nregistro maestro', scheme:'dynamics', num:7, fontSize:9 })
+  box(s, { x:11.05,y:1.45, w:1.85, h:1.2, label:'Instrucción', sub:'handoff #2\ncontrato', scheme:'dynamics', num:9, fontSize:10 })
 
   // Pasos PDB
-  box(s, { x:0.6,  y:3.95, w:1.7, h:1.2, label:'Demanda', sub:'Cualificación\nnecesidad', scheme:'pdb', num:3, fontSize:10 })
-  box(s, { x:2.55, y:3.95, w:1.7, h:1.2, label:'Activo', sub:'Producto\ndisponible', scheme:'pdb', num:4, fontSize:10 })
-  box(s, { x:4.50, y:3.95, w:1.7, h:1.2, label:'Visita', sub:'Inspección\nfísica', scheme:'pdb', num:5, fontSize:10 })
-  box(s, { x:6.45, y:3.95, w:1.7, h:1.2, label:'Oferta', sub:'Propuesta\neconómica', scheme:'pdb', num:6, fontSize:10 })
-  box(s, { x:8.40, y:3.95, w:1.7, h:1.2, label:'Negociación', sub:'Hilo\ncondiciones', scheme:'pdb', num:7, fontSize:10 })
-  box(s, { x:11.05,y:3.95, w:1.9, h:1.2, label:'Transacción', sub:'Cierre +\nhonorarios', scheme:'pdb', num:9, fontSize:10 })
+  box(s, { x:0.5,  y:3.95, w:1.85, h:1.2, label:'Activo', sub:'alta +\npublicación', scheme:'pdb', num:2, fontSize:10 })
+  box(s, { x:2.55, y:3.95, w:1.85, h:1.2, label:'Oferta', sub:'producto\nal mercado', scheme:'pdb', num:3, fontSize:10 })
+  box(s, { x:4.55, y:3.95, w:1.85, h:1.2, label:'Demanda', sub:'perfil\nbúsqueda', scheme:'pdb', num:5, fontSize:10 })
+  box(s, { x:6.55, y:3.95, w:1.85, h:1.2, label:'Match', sub:'Oferta ↔\nDemanda', scheme:'pdb', num:6, fontSize:10 })
+  box(s, { x:9.0,  y:3.95, w:1.85, h:1.2, label:'Negociación', sub:'hilo\ncondiciones', scheme:'pdb', num:8, fontSize:10 })
+  box(s, { x:11.05,y:3.95, w:1.85, h:1.2, label:'Transacción', sub:'cierre +\nhonorarios', scheme:'pdb', num:10, fontSize:10 })
 
   // Flujo principal
-  arrow(s, { x1:2.5,  y1:2.05, x2:2.85, y2:2.05 })                          // 1→2 dyn
-  arrow(s, { x1:3.8,  y1:2.65, x2:1.45, y2:3.95, label:'sync', color:'0078D4' })  // 2→3
-  arrow(s, { x1:2.30, y1:4.55, x2:2.55, y2:4.55 })                          // 3→4
-  arrow(s, { x1:4.25, y1:4.55, x2:4.50, y2:4.55 })                          // 4→5
-  arrow(s, { x1:6.20, y1:4.55, x2:6.45, y2:4.55 })                          // 5→6
-  arrow(s, { x1:8.15, y1:4.55, x2:8.40, y2:4.55 })                          // 6→7
-  arrow(s, { x1:9.30, y1:3.95, x2:10.45,y2:2.65, label:'handoff', color:'7C3AED' }) // 7→8
-  arrow(s, { x1:10.45,y1:2.65, x2:12.0, y2:3.95, label:'sync', color:'0078D4' })   // 8→9
-
-  // Vínculo CRÍTICO Activo ↔ Cuenta
+  // Cuenta-Prop → Activo (FK CRÍTICO)
   s.addShape(prs.ShapeType.line, {
-    x:1.55, y:2.65, w:1.85, h:1.3,
-    line:{ color:'DC2626', width:3.5, beginArrowType:'arrow', endArrowType:'arrow' },
+    x:1.4, y:2.65, w:0.0, h:1.3,
+    line:{ color:'DC2626', width:3.5, endArrowType:'arrow' },
   })
   s.addShape(prs.ShapeType.roundRect, {
-    x:0.4, y:3.05, w:2.55, h:0.32,
+    x:0.4, y:3.05, w:2.05, h:0.32,
     fill:{ color:'FEE2E2' }, line:{ color:'DC2626', width:1.5 }, rectRadius:0.06,
   })
-  s.addText('🔗 vínculo Cuenta-Propietario · CRÍTICO', {
-    x:0.4, y:3.05, w:2.55, h:0.32,
+  s.addText('🔗 FK · CRÍTICO', {
+    x:0.4, y:3.05, w:2.05, h:0.32,
     fontSize:9, bold:true, color:'991B1B', align:'center', valign:'middle', fontFace:'Calibri',
   })
+  // Activo → Oferta
+  arrow(s, { x1:2.35, y1:4.55, x2:2.55, y2:4.55 })
+  // Cuenta-Arr → Demanda
+  arrow(s, { x1:5.5, y1:2.65, x2:5.5, y2:3.95, label:'FK', color:'1e40af' })
+  // Oferta → Match
+  arrow(s, { x1:4.40, y1:4.55, x2:6.55, y2:4.45 })
+  // Demanda → Match
+  arrow(s, { x1:6.40, y1:4.55, x2:6.55, y2:4.65 })
+  // Match → Oportunidad (handoff #1)
+  arrow(s, { x1:7.85, y1:3.95, x2:8.85, y2:2.65, label:'handoff #1', color:'7C3AED' })
+  // Oportunidad → Negociación (sync)
+  arrow(s, { x1:8.85, y1:2.65, x2:9.6, y2:3.95, label:'sync', color:'0078D4' })
+  // Negociación → Instrucción (handoff #2)
+  arrow(s, { x1:10.85,y1:3.95, x2:11.95,y2:2.65, label:'handoff #2', color:'7C3AED' })
+  // Instrucción → Transacción (sync)
+  arrow(s, { x1:11.95,y1:2.65, x2:11.95,y2:3.95, label:'sync', color:'0078D4' })
 
-  explanation(s, 'El ciclo arranca en Dynamics con el alta de la Cuenta (1) y la detección de la Oportunidad (2). Una vez sincronizada al PDB, se cualifica como Demanda (3) y se conecta con uno o varios Activos (4). Se ejecutan Visitas (5), se formaliza la Oferta (6) y se abre la Negociación (7). El acuerdo final se devuelve a Dynamics como Instrucción (8), y el cierre se registra como Transacción (9). El vínculo Activo ↔ Cuenta-Propietario atraviesa todo el ciclo: sin él, el flujo se rompe.')
+  explanation(s, 'El ciclo arranca con la Cuenta-Propietario (1) en Dynamics, sobre la que se da de alta el Activo (2) en PDB con FK obligatorio. Sobre el activo se publica una Oferta (3) — el producto disponible al mercado. Por el otro lado, una Cuenta-Arrendatario (4) genera una Demanda (5) en PDB. El sistema realiza el match Oferta ↔ Demanda (6), y cuando hay tracción real se ejecuta el handoff #1 a Dynamics creando la Oportunidad WIP (7). Baja a Negociación (8) en PDB; el acuerdo final dispara el handoff #2 como Instrucción (9), y el cierre se registra como Transacción (10). La Oportunidad NO es el origen del ciclo: es el WIP intermedio que aparece tras el match.')
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -241,44 +249,37 @@ function explanation(slide, text, y = 6.3) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// SLIDE 3 — OPORTUNIDADES
+// SLIDE 3 — OPORTUNIDADES (WIP)
 // ══════════════════════════════════════════════════════════════════════════
 {
   const s = prs.addSlide()
-  slideHeader(s, { num:3, title:'Oportunidades', subtitle:'Detección → cualificación → conversión a Demanda → seguimiento → cierre · Trazabilidad bidireccional' })
+  slideHeader(s, { num:3, title:'Oportunidades (WIP)', subtitle:'Match Oferta↔Demanda → handoff Dynamics → seguimiento WIP en PDB → avanza a Negociación o cierre Perdida' })
 
-  section(s, { x:0.3, y:1.0, w:6.2, h:5.0, label:'☁️  DYNAMICS', color:C.dynamics.fill })
-  section(s, { x:6.7, y:1.0, w:6.33, h:5.0, label:'🟢  PDB', color:C.pdb.fill })
+  section(s, { x:0.3, y:1.0, w:12.73, h:1.85, label:'🟢  PDB · Sistema operativo (origen y seguimiento)', color:C.pdb.fill })
+  section(s, { x:0.3, y:3.45, w:12.73, h:2.55, label:'☁️  DYNAMICS · Sistema maestro (handoff #1)', color:C.dynamics.fill })
 
-  box(s, { x:0.6, y:1.6, w:2.6, h:1.0, label:'Detección', sub:'Lead u origen\ncomercial', scheme:'dynamics', num:1, fontSize:10 })
-  box(s, { x:3.5, y:1.6, w:2.6, h:1.0, label:'Cualificación', sub:'BANT + score', scheme:'dynamics', num:2, fontSize:10 })
+  // PDB top
+  box(s, { x:0.5,  y:1.45, w:1.85, h:1.2, label:'Match', sub:'Oferta ↔\nDemanda', scheme:'pdb', num:1, fontSize:10, bold:true })
+  box(s, { x:2.65, y:1.45, w:1.85, h:1.2, label:'Click\nTransformar', sub:'en Oportunidad', scheme:'pdb', num:2, fontSize:10 })
+  box(s, { x:7.45, y:1.45, w:1.85, h:1.2, label:'Sync vuelta', sub:'WIP visible\nen lectura', scheme:'pdb', num:5, fontSize:10 })
+  box(s, { x:9.50, y:1.45, w:1.85, h:1.2, label:'Seguimiento\nWIP', sub:'actividades\n+ visitas', scheme:'pdb', num:6, fontSize:10 })
+  box(s, { x:11.55,y:1.45, w:1.4, h:1.2, label:'Avanza a\nNegociación', scheme:'pdb', num:'7a', fontSize:10 })
 
-  box(s, { x:6.9,  y:1.6, w:1.85, h:1.0, label:'Conversión\na Demanda', sub:'en PDB', scheme:'pdb', num:3, fontSize:10 })
-  box(s, { x:9.0,  y:1.6, w:1.85, h:1.0, label:'Seguimiento', sub:'Actividades\n+ visitas', scheme:'pdb', num:4, fontSize:10 })
-  box(s, { x:11.1, y:1.6, w:1.85, h:1.0, label:'Negociación', sub:'Oferta viva', scheme:'pdb', num:5, fontSize:10 })
-
-  // Cierre — vuelve a Dynamics
-  box(s, { x:1.5, y:4.4, w:2.4, h:1.2, label:'Cierre Ganada', sub:'→ Transacción', scheme:'result', num:'6a', fontSize:11 })
-  box(s, { x:4.2, y:4.4, w:2.4, h:1.2, label:'Cierre Perdida', sub:'Motivo +\nlecciones', scheme:'critical', num:'6b', fontSize:11 })
+  // Dynamics bottom
+  box(s, { x:3.0,  y:4.0, w:1.95, h:1.5, label:'Apertura\nDynamics', sub:'datos\npreasignados', scheme:'dynamics', num:3, fontSize:10 })
+  box(s, { x:5.15, y:4.0, w:1.95, h:1.5, label:'Creación\nOportunidad', sub:'registro\nmaestro WIP', scheme:'dynamics', num:4, fontSize:10, bold:true })
+  box(s, { x:9.5,  y:4.0, w:1.95, h:1.5, label:'Cierre Perdida', sub:'motivo +\nlecciones', scheme:'critical', num:'7b', fontSize:10 })
 
   // Flow
-  arrow(s, { x1:3.2, y1:2.1, x2:3.5, y2:2.1 })
-  arrow(s, { x1:6.1, y1:2.1, x2:6.9, y2:2.1, label:'sync + handoff', color:'7C3AED' })
-  arrow(s, { x1:8.75,y1:2.1, x2:9.0, y2:2.1 })
-  arrow(s, { x1:10.85,y1:2.1, x2:11.1, y2:2.1 })
+  arrow(s, { x1:2.35, y1:2.05, x2:2.65, y2:2.05 })
+  arrow(s, { x1:3.6,  y1:2.65, x2:3.95, y2:4.0, label:'abre', color:'7C3AED' })
+  arrow(s, { x1:4.95, y1:4.75, x2:5.15, y2:4.75 })
+  arrow(s, { x1:6.1,  y1:4.0,  x2:8.4,  y2:2.65, label:'sync auto', color:'0078D4' })
+  arrow(s, { x1:9.30, y1:2.05, x2:9.50, y2:2.05 })
+  arrow(s, { x1:11.35,y1:2.05, x2:11.55,y2:2.05 })
+  arrow(s, { x1:10.4, y1:2.65, x2:10.4, y2:4.0, label:'outcome', color:'DC2626', dash:true })
 
-  // Cierres
-  arrow(s, { x1:11.5, y1:2.6, x2:2.7, y2:4.4, label:'outcome', color:'7C3AED' })
-  arrow(s, { x1:11.5, y1:2.6, x2:5.4, y2:4.4, label:'outcome', color:'DC2626' })
-
-  // Trazabilidad bidireccional
-  s.addShape(prs.ShapeType.line, {
-    x:4.8, y:2.6, w:3.05, h:0.7,
-    line:{ color:'888888', width:1.2, dashType:'dash', beginArrowType:'arrow', endArrowType:'arrow' },
-  })
-  s.addText('trazabilidad bidireccional', { x:4.5, y:3.3, w:3.5, h:0.25, fontSize:8, italic:true, color:'666666', align:'center', fontFace:'Calibri' })
-
-  explanation(s, 'La oportunidad nace en Dynamics (1) y se cualifica allí (2). Cuando supera el filtro BANT, se convierte en Demanda dentro del PDB (3), donde el broker ejecuta el seguimiento operativo (4) y abre la negociación (5). El resultado — ganada (6a) o perdida (6b) — se registra de nuevo en Dynamics. La trazabilidad Oportunidad ↔ Demanda ↔ Negociación se mantiene bidireccional en todo momento para reporting y forecasting.')
+  explanation(s, 'La Oportunidad NO es el origen del ciclo, es WIP intermedio. Nace cuando hay un match Oferta ↔ Demanda (1) con tracción real en el PDB. El broker pulsa Transformar en Oportunidad (2), abriendo Dynamics con datos preasignados (3) para que el usuario complete y cree el registro maestro (4). Dynamics sincroniza la oportunidad de vuelta al PDB en modo lectura (5), donde el broker continúa el seguimiento WIP (6). El estado avanza a Negociación (7a) si hay tracción, o se cierra como Perdida en Dynamics (7b). Es el primer cruce a Dynamics del ciclo comercial.')
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -323,7 +324,7 @@ function explanation(slide, text, y = 6.3) {
 // ══════════════════════════════════════════════════════════════════════════
 {
   const s = prs.addSlide()
-  slideHeader(s, { num:5, title:'Gestión de Demanda', subtitle:'Cuenta-Arrendatario → alta demanda → matching activos → visitas → shortlist → oferta' })
+  slideHeader(s, { num:5, title:'Gestión de Demanda', subtitle:'Cuenta-Arrendatario → alta demanda → matching contra Ofertas → visitas → shortlist → match definitivo' })
 
   section(s, { x:0.3, y:1.0, w:2.7, h:5.0, label:'☁️  DYNAMICS', color:C.dynamics.fill })
   section(s, { x:3.25, y:1.0, w:9.78, h:5.0, label:'🟢  PDB', color:C.pdb.fill })
@@ -331,11 +332,11 @@ function explanation(slide, text, y = 6.3) {
   box(s, { x:0.5, y:2.5, w:2.3, h:1.8, label:'Cuenta-\nArrendatario', sub:'origen demanda', scheme:'dynamics', num:1, fontSize:11, bold:true })
 
   const ds = [
-    { x:3.5,  label:'Alta Demanda', sub:'Uso + sup\n+ renta máx', num:2 },
-    { x:5.4,  label:'Matching Activos', sub:'cruce automático', num:3 },
+    { x:3.5,  label:'Alta Demanda', sub:'uso + sup\n+ renta máx', num:2 },
+    { x:5.4,  label:'Matching Ofertas', sub:'cruce automático\n(no contra activos)', num:3 },
     { x:7.3,  label:'Visitas', sub:'presencial\no virtual', num:4 },
-    { x:9.2,  label:'Shortlist', sub:'preselección\n3-5', num:5 },
-    { x:11.1, label:'Oferta', sub:'sobre activo\nfinal', num:6 },
+    { x:9.2,  label:'Shortlist', sub:'preselección\nde Ofertas', num:5 },
+    { x:11.1, label:'Match\ndefinitivo', sub:'handoff a\nOportunidad', num:6 },
   ]
   ds.forEach(({ x, label, sub, num }) => {
     box(s, { x, y:2.7, w:1.7, h:1.4, label, sub, scheme:'pdb', num, fontSize:10 })
@@ -346,7 +347,7 @@ function explanation(slide, text, y = 6.3) {
     arrow(s, { x1: ds[i].x + 1.7, y1: 3.4, x2: ds[i+1].x, y2: 3.4 })
   }
 
-  explanation(s, 'Toda demanda parte de una Cuenta-Arrendatario en Dynamics (1). El broker da de alta la demanda en el PDB (2) con el perfil de búsqueda (uso, superficie, renta máxima, zona). El sistema realiza un matching automático contra los activos disponibles (3), se ejecutan visitas (4) y se construye una shortlist (5) que culmina en una oferta concreta (6) sobre el activo seleccionado.')
+  explanation(s, 'Toda demanda parte de una Cuenta-Arrendatario en Dynamics (1). El broker da de alta la demanda en el PDB (2) con el perfil de búsqueda. El sistema realiza un matching automático contra las Ofertas publicadas (3) — no contra activos sueltos: el activo está detrás de cada oferta, pero el cruce comercial es Demanda↔Oferta. Se ejecutan visitas (4) y se construye una shortlist de ofertas (5) hasta llegar al match definitivo (6) que dispara el handoff a Oportunidad WIP.')
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -354,17 +355,17 @@ function explanation(slide, text, y = 6.3) {
 // ══════════════════════════════════════════════════════════════════════════
 {
   const s = prs.addSlide()
-  slideHeader(s, { num:6, title:'Flujo de Oferta', subtitle:'Creación → envío → respuesta → apertura Negociación → versionado documentos → cierre · Vive íntegramente en PDB' })
+  slideHeader(s, { num:6, title:'Flujo de Oferta', subtitle:'Producto al mercado: creación sobre Activo → publicación → match con demanda → handoff a Oportunidad WIP → cierre' })
 
   section(s, { x:0.3, y:1.0, w:12.73, h:5.0, label:'🟢  PDB', color:C.pdb.fill })
 
   const os = [
-    { x:0.6,  label:'Creación', sub:'Activo + Demanda\n+ condiciones', num:1 },
-    { x:2.65, label:'Envío', sub:'al propietario', num:2 },
-    { x:4.7,  label:'Respuesta', sub:'aceptada /\ncontrapropuesta /\nrechazada', num:3 },
-    { x:6.75, label:'Apertura\nNegociación', sub:'hilo formal', num:4 },
-    { x:8.8,  label:'Versionado docs', sub:'borradores +\ndiff', num:5 },
-    { x:10.85,label:'Cierre', sub:'acuerdo o\nruptura', num:6 },
+    { x:0.6,  label:'Creación', sub:'cuelga del\nActivo', num:1 },
+    { x:2.65, label:'Publicación', sub:'activa al\nmercado', num:2 },
+    { x:4.7,  label:'Recepción\ninterés', sub:'demandas que\nmachean', num:3 },
+    { x:6.75, label:'Match\ncon Demanda', sub:'concreta', num:4 },
+    { x:8.8,  label:'Handoff\nOportunidad', sub:'oferta\nlockeada', num:5 },
+    { x:10.85,label:'Cierre Oferta', sub:'retirada del\nmercado', num:6 },
   ]
   os.forEach(({ x, label, sub, num }) => {
     box(s, { x, y:2.7, w:1.85, h:1.7, label, sub, scheme:'pdb', num, fontSize:10 })
@@ -373,7 +374,7 @@ function explanation(slide, text, y = 6.3) {
     arrow(s, { x1: os[i].x + 1.85, y1: 3.55, x2: os[i+1].x, y2: 3.55 })
   }
 
-  explanation(s, 'La oferta vive íntegramente dentro del PDB. Se crea (1) vinculando un activo y una demanda, con las condiciones económicas. Se envía al propietario (2) y se registra su respuesta (3): aceptación, contrapropuesta o rechazo. Si avanza, se abre formalmente la Negociación (4) y se gestiona el versionado de borradores (5) hasta el cierre (6), positivo o negativo. La oferta es siempre el contenedor económico previo a la negociación.')
+  explanation(s, 'La oferta es el producto disponible al mercado: cuelga del Activo y existe antes de que llegue la demanda concreta que la captura. Se crea (1) sobre el activo con las condiciones publicables, se activa al mercado (2) y empieza a recibir interés de demandas que machean (3). Cuando una demanda concreta selecciona la oferta (4), se ejecuta el handoff a Oportunidad WIP (5) y la oferta queda lockeada — ya no admite nuevas demandas. Tras la transacción o si se retira, la oferta se cierra (6). La oferta es el contenedor de mercado, no el contenedor de la transacción.')
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -381,27 +382,27 @@ function explanation(slide, text, y = 6.3) {
 // ══════════════════════════════════════════════════════════════════════════
 {
   const s = prs.addSlide()
-  slideHeader(s, { num:7, title:'Negociación', subtitle:'Apertura hilo → intercambio condiciones → tabla evolutiva → acuerdo final → handoff a Instrucción' })
+  slideHeader(s, { num:7, title:'Negociación', subtitle:'Apertura desde Oportunidad WIP → intercambio condiciones → tabla evolutiva → acuerdo final → handoff #2 a Instrucción' })
 
   section(s, { x:0.3, y:1.0, w:9.0, h:5.0, label:'🟢  PDB', color:C.pdb.fill })
   section(s, { x:9.55, y:1.0, w:3.48, h:5.0, label:'☁️  DYNAMICS', color:C.dynamics.fill })
 
   const ns = [
-    { x:0.6,  label:'Apertura hilo', sub:'desde Oferta\naceptada', num:1, scheme:'pdb' },
+    { x:0.6,  label:'Apertura hilo', sub:'desde Oportunidad\nWIP', num:1, scheme:'pdb' },
     { x:2.7,  label:'Intercambio\ncondiciones', sub:'chat + adjuntos', num:2, scheme:'pdb' },
     { x:4.8,  label:'Tabla evolutiva', sub:'versiones lado\na lado', num:3, scheme:'pdb' },
     { x:6.9,  label:'Acuerdo final', sub:'firma\ncondiciones', num:4, scheme:'pdb' },
-    { x:9.85, label:'Handoff a\nInstrucción', sub:'creación registro\nmaestro', num:5, scheme:'dynamics' },
+    { x:9.85, label:'Handoff #2\nInstrucción', sub:'creación registro\nmaestro', num:5, scheme:'dynamics' },
   ]
   ns.forEach(({ x, label, sub, num, scheme }) => {
     box(s, { x, y:2.7, w:1.95, h:1.7, label, sub, scheme, num, fontSize:10 })
   })
   for (let i = 0; i < ns.length - 1; i++) {
-    const lbl = i === ns.length - 2 ? 'handoff' : null
+    const lbl = i === ns.length - 2 ? 'handoff #2' : null
     arrow(s, { x1: ns[i].x + 1.95, y1: 3.55, x2: ns[i+1].x, y2: 3.55, label:lbl, color: lbl ? '7C3AED' : null })
   }
 
-  explanation(s, 'La negociación abre un hilo formal a partir de la oferta aceptada como base (1). Las partes intercambian condiciones documentadas en un chat con adjuntos (2), y el PDB mantiene una tabla evolutiva con todas las versiones lado a lado (3) para trazabilidad. Cuando se alcanza el acuerdo final (4), se ejecuta el handoff a Dynamics (5) para crear la Instrucción maestra. No existe contrato sin Instrucción en Dynamics.')
+  explanation(s, 'La negociación abre un hilo formal a partir de la Oportunidad WIP (1) — no directamente desde la oferta. Las partes intercambian condiciones documentadas en un chat con adjuntos (2), y el PDB mantiene una tabla evolutiva con todas las versiones lado a lado (3) para trazabilidad. Cuando se alcanza el acuerdo final (4), se ejecuta el handoff #2 a Dynamics (5) para crear la Instrucción maestra. No existe contrato sin Instrucción en Dynamics.')
 }
 
 // ══════════════════════════════════════════════════════════════════════════

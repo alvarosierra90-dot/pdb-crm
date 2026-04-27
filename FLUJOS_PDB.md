@@ -9,39 +9,40 @@ Este documento describe los 10 procesos clave del PDB CRM y su relación con Dyn
 ```mermaid
 flowchart LR
     subgraph DYN[DYNAMICS · Sistema maestro]
-        D1[1 · Cuenta<br/>Alta fuente de verdad]
-        D2[2 · Oportunidad<br/>Detección comercial]
-        D8[8 · Instrucción<br/>Mandato formal]
+        D1[1 · Cuenta-Propietario<br/>fuente de verdad]
+        D4[4 · Cuenta-Arrendatario<br/>fuente de verdad]
+        D7[7 · Oportunidad WIP<br/>handoff #1]
+        D9[9 · Instrucción<br/>handoff #2 · contrato]
     end
 
     subgraph PDB[PDB · Sistema operativo]
-        P3[3 · Demanda<br/>Cualificación necesidad]
-        P4[4 · Activo<br/>Producto disponible]
-        P5[5 · Visita<br/>Inspección física]
-        P6[6 · Oferta<br/>Propuesta económica]
-        P7[7 · Negociación<br/>Hilo condiciones]
-        P9[9 · Transacción<br/>Cierre + honorarios]
+        P2[2 · Activo<br/>alta + publicación]
+        P3[3 · Oferta<br/>producto al mercado]
+        P5[5 · Demanda<br/>perfil de búsqueda]
+        P6[6 · Match<br/>Oferta ↔ Demanda]
+        P8[8 · Negociación<br/>hilo condiciones]
+        P10[10 · Transacción<br/>cierre + honorarios]
     end
 
-    D1 --> D2
-    D2 -->|sync| P3
-    P3 --> P4
-    P4 --> P5
+    D1 ==>|FK CRÍTICO| P2
+    P2 --> P3
+    D4 -->|FK| P5
+    P3 --> P6
     P5 --> P6
-    P6 --> P7
-    P7 -->|handoff| D8
-    D8 -->|sync| P9
-
-    P4 <-.->|vínculo Cuenta-Propietario<br/>CRÍTICO| D1
+    P6 -->|handoff| D7
+    D7 -->|sync| P8
+    P8 -->|handoff| D9
+    D9 -->|sync| P10
 
     classDef dyn fill:#1e40af,stroke:#1e3a8a,color:#fff,stroke-width:2px
     classDef pdb fill:#15803d,stroke:#14532d,color:#fff,stroke-width:2px
     classDef critical stroke:#dc2626,stroke-width:3px,color:#fff
-    class D1,D2,D8 dyn
-    class P3,P4,P5,P6,P7,P9 pdb
+    class D1,D4,D7,D9 dyn
+    class P2,P3,P5,P6,P8,P10 pdb
+    class D1,P2 critical
 ```
 
-El ciclo arranca en Dynamics con el alta de la **Cuenta** (paso 1) y la detección de la **Oportunidad** (paso 2). Una vez sincronizada al PDB, se cualifica como **Demanda** (paso 3) y se conecta con uno o varios **Activos** (paso 4). Se ejecutan **Visitas** (5), se formaliza la **Oferta** (6) y se abre la **Negociación** (7). El acuerdo final se devuelve a Dynamics como **Instrucción** (8), y el cierre se registra como **Transacción** (9). El vínculo Activo ↔ Cuenta-Propietario atraviesa todo el ciclo: sin él, el flujo se rompe.
+El ciclo arranca con la **Cuenta-Propietario** (1) en Dynamics, sobre la que se da de alta el **Activo** (2) en PDB con FK obligatorio. Sobre el activo se publica una **Oferta** (3) — el producto disponible al mercado. Por el otro lado, una **Cuenta-Arrendatario** (4) genera una **Demanda** (5) en PDB con su perfil de búsqueda. El sistema realiza el **match Oferta ↔ Demanda** (6), y cuando hay tracción real se ejecuta el **handoff #1 a Dynamics** creando la **Oportunidad WIP** (7). De ahí baja a **Negociación** (8) en PDB, cuyo acuerdo final dispara el **handoff #2** a Dynamics como **Instrucción** (9), y el cierre se registra como **Transacción** (10). La Oportunidad no es el origen del ciclo: es el WIP intermedio que aparece tras el match.
 
 ---
 
@@ -81,42 +82,41 @@ La cuenta se da de alta siempre en Dynamics (1), porque es el sistema maestro fi
 
 ---
 
-## 3. Oportunidades
+## 3. Oportunidades (WIP)
 
 ```mermaid
 flowchart LR
-    subgraph DYN[DYNAMICS]
-        D1[1 · Detección<br/>Lead u origen comercial]
-        D2[2 · Cualificación<br/>BANT + score]
-        D6a[6a · Cierre Ganada<br/>Transacción]
-        D6b[6b · Cierre Perdida<br/>Motivo + lecciones]
+    subgraph PDB[PDB · Sistema operativo]
+        P1[1 · Match<br/>Oferta ↔ Demanda]
+        P2[2 · Click<br/>Transformar en Oportunidad]
+        P5[5 · Sync vuelta<br/>Oportunidad WIP en PDB lectura]
+        P6[6 · Seguimiento WIP<br/>actividades + visitas]
+        P7a[7a · Avanza a Negociación]
     end
 
-    subgraph PDB[PDB]
-        P3[3 · Conversión a Demanda<br/>en PDB]
-        P4[4 · Seguimiento<br/>Actividades + visitas]
-        P5[5 · Negociación<br/>Oferta viva]
+    subgraph DYN[DYNAMICS · Sistema maestro]
+        D3[3 · Apertura Dynamics<br/>datos preasignados]
+        D4[4 · Creación Oportunidad<br/>registro maestro WIP]
+        D7b[7b · Cierre Perdida<br/>motivo + lecciones]
     end
 
-    D1 --> D2
-    D2 -->|sync + handoff| P3
-    P3 --> P4
-    P4 --> P5
-    P5 -->|outcome| D6a
-    P5 -->|outcome| D6b
-
-    P3 -.->|trazabilidad<br/>bidireccional| D2
-    P5 -.->|trazabilidad<br/>bidireccional| D2
+    P1 --> P2
+    P2 -->|abre| D3
+    D3 --> D4
+    D4 -->|sync auto| P5
+    P5 --> P6
+    P6 --> P7a
+    P6 -.->|outcome| D7b
 
     classDef dyn fill:#1e40af,stroke:#1e3a8a,color:#fff,stroke-width:2px
     classDef pdb fill:#15803d,stroke:#14532d,color:#fff,stroke-width:2px
-    classDef result fill:#7c3aed,stroke:#6d28d9,color:#fff,stroke-width:2px
-    class D1,D2 dyn
-    class P3,P4,P5 pdb
-    class D6a,D6b result
+    classDef result fill:#dc2626,stroke:#991b1b,color:#fff,stroke-width:2px
+    class D3,D4 dyn
+    class P1,P2,P5,P6,P7a pdb
+    class D7b result
 ```
 
-La oportunidad nace en Dynamics (1) y se cualifica allí (2). Cuando supera el filtro BANT, se convierte en **Demanda** dentro del PDB (3), donde el broker ejecuta el seguimiento operativo (4) y abre la negociación (5). El resultado — ganada (6a) o perdida (6b) — se registra de nuevo en Dynamics. La trazabilidad **Oportunidad ↔ Demanda ↔ Negociación** se mantiene bidireccional en todo momento para reporting y forecasting.
+La Oportunidad **no es el origen del ciclo, es WIP intermedio**. Nace cuando hay un **match Oferta ↔ Demanda** (1) con tracción real en el PDB. El broker pulsa "Transformar en Oportunidad" (2), lo que abre Dynamics con los datos preasignados (3) para que el usuario complete y cree el registro maestro (4). Dynamics sincroniza la oportunidad de vuelta al PDB en modo lectura (5), donde el broker continúa el **seguimiento WIP** con actividades y visitas (6). El estado avanza a **Negociación** (7a) si hay tracción, o se cierra como **Perdida** en Dynamics (7b) con motivo. Es el primer cruce a Dynamics del ciclo comercial.
 
 ---
 
@@ -163,11 +163,11 @@ flowchart LR
     end
 
     subgraph PDB[PDB]
-        P2[2 · Alta Demanda<br/>Uso + sup + renta máx]
-        P3[3 · Matching Activos<br/>cruce automático]
+        P2[2 · Alta Demanda<br/>uso + sup + renta máx]
+        P3[3 · Matching contra Ofertas<br/>cruce automático]
         P4[4 · Visitas<br/>presencial o virtual]
-        P5[5 · Shortlist<br/>preselección 3-5]
-        P6[6 · Oferta<br/>sobre activo final]
+        P5[5 · Shortlist<br/>preselección de Ofertas]
+        P6[6 · Match definitivo<br/>handoff a Oportunidad WIP]
     end
 
     D1 -->|FK obligatorio| P2
@@ -182,7 +182,7 @@ flowchart LR
     class P2,P3,P4,P5,P6 pdb
 ```
 
-Toda demanda parte de una **Cuenta-Arrendatario** en Dynamics (1). El broker da de alta la demanda en el PDB (2) con el perfil de búsqueda (uso, superficie, renta máxima, zona). El sistema realiza un matching automático contra los activos disponibles (3), se ejecutan visitas (4) y se construye una shortlist (5) que culmina en una oferta concreta (6) sobre el activo seleccionado.
+Toda demanda parte de una **Cuenta-Arrendatario** en Dynamics (1). El broker da de alta la demanda en el PDB (2) con el perfil de búsqueda (uso, superficie, renta máxima, zona). El sistema realiza un matching automático **contra las Ofertas publicadas** (3) — no contra activos sueltos: el activo está detrás de cada oferta, pero el cruce comercial es Demanda↔Oferta. Se ejecutan visitas (4) y se construye una shortlist de ofertas (5) hasta llegar al match definitivo (6) que dispara el handoff a Oportunidad WIP.
 
 ---
 
@@ -191,12 +191,12 @@ Toda demanda parte de una **Cuenta-Arrendatario** en Dynamics (1). El broker da 
 ```mermaid
 flowchart LR
     subgraph PDB[PDB]
-        P1[1 · Creación<br/>Activo + Demanda + condiciones]
-        P2[2 · Envío<br/>al propietario]
-        P3[3 · Respuesta<br/>aceptada / contrapropuesta / rechazada]
-        P4[4 · Apertura Negociación<br/>hilo formal]
-        P5[5 · Versionado docs<br/>borradores + diff]
-        P6[6 · Cierre<br/>acuerdo o ruptura]
+        P1[1 · Creación<br/>cuelga del Activo]
+        P2[2 · Publicación<br/>activa al mercado]
+        P3[3 · Recepción interés<br/>demandas que machean]
+        P4[4 · Match con Demanda<br/>concreta]
+        P5[5 · Handoff a Oportunidad WIP<br/>oferta lockeada]
+        P6[6 · Cierre Oferta<br/>retirada del mercado]
     end
 
     P1 --> P2
@@ -209,7 +209,7 @@ flowchart LR
     class P1,P2,P3,P4,P5,P6 pdb
 ```
 
-La oferta vive íntegramente dentro del PDB. Se crea (1) vinculando un activo y una demanda, con las condiciones económicas. Se envía al propietario (2) y se registra su respuesta (3): aceptación, contrapropuesta o rechazo. Si avanza, se abre formalmente la **Negociación** (4) y se gestiona el versionado de borradores (5) hasta el cierre (6), positivo o negativo. La oferta es siempre el contenedor económico previo a la negociación.
+La oferta es el **producto disponible al mercado**: cuelga del Activo y existe antes de que llegue la demanda concreta que la captura. Se crea (1) sobre el activo con las condiciones publicables, se activa al mercado (2) y empieza a recibir interés de demandas que machean (3). Cuando una demanda concreta selecciona la oferta (4), se ejecuta el handoff a **Oportunidad WIP** (5) y la oferta queda lockeada — ya no admite nuevas demandas. Tras la transacción (o si se retira por otro motivo), la oferta se cierra (6) y desaparece del mercado activo. La oferta es el contenedor de mercado, no el contenedor de la transacción.
 
 ---
 
@@ -218,7 +218,7 @@ La oferta vive íntegramente dentro del PDB. Se crea (1) vinculando un activo y 
 ```mermaid
 flowchart LR
     subgraph PDB[PDB]
-        P1[1 · Apertura hilo<br/>desde Oferta aceptada<br/>como base]
+        P1[1 · Apertura hilo<br/>desde Oportunidad WIP]
         P2[2 · Intercambio condiciones<br/>chat + adjuntos]
         P3[3 · Tabla evolutiva<br/>versiones lado a lado]
         P4[4 · Acuerdo final<br/>firma condiciones]
@@ -231,7 +231,7 @@ flowchart LR
     P1 --> P2
     P2 --> P3
     P3 --> P4
-    P4 -->|handoff| D5
+    P4 -->|handoff #2| D5
 
     classDef dyn fill:#1e40af,stroke:#1e3a8a,color:#fff,stroke-width:2px
     classDef pdb fill:#15803d,stroke:#14532d,color:#fff,stroke-width:2px
@@ -239,7 +239,7 @@ flowchart LR
     class P1,P2,P3,P4 pdb
 ```
 
-La negociación abre un hilo formal a partir de la oferta aceptada como base (1). Las partes intercambian condiciones documentadas en un chat con adjuntos (2), y el PDB mantiene una tabla evolutiva con todas las versiones lado a lado (3) para trazabilidad. Cuando se alcanza el acuerdo final (4), se ejecuta el handoff a Dynamics (5) para crear la Instrucción maestra. **No existe contrato sin Instrucción en Dynamics.**
+La negociación abre un hilo formal **a partir de la Oportunidad WIP** (1) — no directamente desde la oferta. Las partes intercambian condiciones documentadas en un chat con adjuntos (2), y el PDB mantiene una tabla evolutiva con todas las versiones lado a lado (3) para trazabilidad. Cuando se alcanza el acuerdo final (4), se ejecuta el **handoff #2 a Dynamics** (5) para crear la Instrucción maestra. **No existe contrato sin Instrucción en Dynamics.**
 
 ---
 
