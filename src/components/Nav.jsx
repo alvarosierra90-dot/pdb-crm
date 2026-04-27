@@ -105,32 +105,40 @@ export default function Nav() {
       </>}
 
       {/* ═══════════════════════════════════════════════════════════════
-          4. PRODUCTO — qué comercializamos
-             Activos (estructura) + Ofertas (disponibilidad) + actores físicos
+          4. ACTIVO — base maestra del inmueble
+             Activo (estructura física) + Arrendatarios (ocupación)
+             + Propietarios (titularidad)
          ═══════════════════════════════════════════════════════════════ */}
-      <div className="nav-section" onClick={() => toggle('prod')}>
-        Producto <ChevronDown collapsed={collapsed.prod} />
+      <div className="nav-section" onClick={() => toggle('act2')}>
+        Activo <ChevronDown collapsed={collapsed.act2} />
       </div>
-      {open('prod') && <>
+      {open('act2') && <>
         <div className={`nav-item ${isActive('activos','ficha-activo') ? 'active' : ''}`} onClick={() => navigate('activos')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="5" width="12" height="9" rx="1.5"/><path d="M5 5V4a3 3 0 016 0v1"/></svg>
           Activos
         </div>
-        <div className={`nav-item ${isActive('ofertas','ficha-oferta') ? 'active' : ''}`} onClick={() => navigate('ofertas')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"/><path d="M2 4l6 5 6-5"/></svg>
-          Ofertas
+        <div className={`nav-item ${isActive('arrendatarios','ficha-arrendatario') ? 'active' : ''}`} onClick={() => navigate('arrendatarios')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 14c0-2.5 2-4 4-4s4 1.5 4 4"/><circle cx="6" cy="6" r="2.5"/><path d="M11 8h3M11 11h3"/></svg>
+          Arrendatarios
         </div>
-        <div className={`nav-sub ${isActive('arrendatarios','ficha-arrendatario') ? 'active' : ''}`} onClick={() => navigate('arrendatarios')}>Arrendatarios</div>
-        <div className={`nav-sub ${isActive('propietarios','ficha-propietario') ? 'active' : ''}`} onClick={() => navigate('propietarios')}>Propietarios</div>
+        <div className={`nav-item ${isActive('propietarios','ficha-propietario') ? 'active' : ''}`} onClick={() => navigate('propietarios')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6l5-4 5 4v8H3V6z"/><circle cx="8" cy="9" r="1.5"/></svg>
+          Propietarios
+        </div>
       </>}
 
       {/* ═══════════════════════════════════════════════════════════════
-          5. COMERCIALIZACIÓN — cruce demanda↔oferta + visualización
+          5. COMERCIALIZACIÓN — capa comercial sobre el activo
+             Oferta (disponibilidad) + Demanda (búsqueda) + Mapas (cruce)
          ═══════════════════════════════════════════════════════════════ */}
       <div className="nav-section" onClick={() => toggle('com')}>
         Comercialización <ChevronDown collapsed={collapsed.com} />
       </div>
       {open('com') && <>
+        <div className={`nav-item ${isActive('ofertas','ficha-oferta') ? 'active' : ''}`} onClick={() => navigate('ofertas')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"/><path d="M2 4l6 5 6-5"/></svg>
+          Ofertas
+        </div>
         <div className={`nav-item ${isActive('demandas','ficha-demanda') ? 'active' : ''}`} onClick={() => navigate('demandas')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
           Demandas
