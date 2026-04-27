@@ -562,10 +562,31 @@ export default function FichaArrendatario() {
                   )}
                 </div>
               </div>
-              <div style={{textAlign:'right',flexShrink:0}}>
-                <div style={{fontSize:9,color:'var(--text4)',textTransform:'uppercase'}}>Renta mensual</div>
-                <div style={{fontSize:22,fontWeight:700,color:'var(--accent)'}}>{rentaMensual} €</div>
-                <div style={{fontSize:10,color:'var(--text3)'}}>Anual: {form.superficie&&form.closing_rent?(parseFloat(form.superficie)*parseFloat(form.closing_rent)*12/1000).toFixed(0)+'k':'—'} €</div>
+              {/* KPIs económicos a la derecha del título */}
+              <div style={{ display:'flex', alignItems:'stretch', gap:0, flexShrink:0, border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', background:'var(--surface)' }}>
+                {(() => {
+                  const sup       = parseFloat(form.superficie || 0)
+                  const closing   = parseFloat(form.closing_rent || 0)
+                  const rentaMes  = sup && closing ? sup * closing : 0
+                  const rentaAno  = rentaMes * 12
+                  const carencia  = parseInt(form.meses_carencia || 0)
+                  const aportTot  = parseFloat(String(aportacionTotal).replace(/[^0-9.]/g,'')) || 0
+                  const items = [
+                    { lbl:'Closing rent', val: closing > 0 ? closing.toFixed(2) : '—',                                            sub:'€/m²/mes',  color:'var(--accent)' },
+                    { lbl:'Renta mensual',val: rentaMes > 0 ? Math.round(rentaMes).toLocaleString('es-ES') : '—',                  sub:'€/mes',     color:'var(--green)' },
+                    { lbl:'Renta anual',  val: rentaAno > 0 ? `${(rentaAno/1000).toFixed(0)}k` : '—',                              sub:'€/año',     color:'var(--green)' },
+                    { lbl:'Superficie',   val: sup > 0 ? sup.toLocaleString('es-ES') : '—',                                       sub:'m²',         color:'var(--text1)' },
+                    { lbl:'Carencia',     val: carencia > 0 ? `${carencia}m` : '—',                                                sub:'meses',      color:'var(--text1)' },
+                    { lbl:'Aportación',   val: aportTot > 0 ? `${(aportTot/1000).toFixed(0)}k` : '—',                              sub:'€ obras',    color: aportTot > 0 ? 'var(--accent)' : 'var(--text4)' },
+                  ]
+                  return items.map((k, i) => (
+                    <div key={k.lbl} style={{ padding:'10px 14px', textAlign:'center', minWidth:80, borderLeft: i === 0 ? 'none' : '1px solid var(--border)' }}>
+                      <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4 }}>{k.lbl}</div>
+                      <div style={{ fontSize:22, fontWeight:800, fontFamily:'var(--mono)', color:k.color, lineHeight:1 }}>{k.val}</div>
+                      <div style={{ fontSize:9, color:'var(--text4)', marginTop:3 }}>{k.sub}</div>
+                    </div>
+                  ))
+                })()}
               </div>
             </div>
           </div>

@@ -335,14 +335,28 @@ export default function FichaPropietario() {
                 <div className="ah-name">{form.propietario}</div>
                 <div className="ah-sub">{form.activo} · {form.zona} · {form.superficie} m² · {form.anyo_compra}/{form.trimestre}</div>
               </div>
-            </div>
-            <div style={{display:'flex',gap:24,marginTop:12,paddingTop:12,borderTop:'1px solid var(--border)',flexWrap:'wrap'}}>
-              <KpiMini label="Precio compra" value={form.precio_compra} color="var(--text1)"/>
-              <KpiMini label="Valoración actual" value={form.valoracion_actual} color="var(--green)"/>
-              <KpiMini label="Plusvalía latente" value={plusvaliaNum} color={plusvaliaNum.startsWith('+') ? 'var(--green)' : 'var(--red)'}/>
-              <KpiMini label="Cap Rate" value={`${form.cap_rate}%`} color="var(--accent)"/>
-              <KpiMini label="Yield" value={`${form.yield}%`} color="var(--purple)"/>
-              <KpiMini label="LTV" value={`${form.ltv}%`} color={parseFloat(form.ltv)>55?'var(--amber)':'var(--text2)'}/>
+
+              {/* KPIs económicos a la derecha del título */}
+              <div style={{ display:'flex', alignItems:'stretch', gap:0, flexShrink:0, border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', background:'var(--surface)' }}>
+                {(() => {
+                  const ltvNum = parseFloat(form.ltv) || 0
+                  const items = [
+                    { lbl:'Precio compra',  val: form.precio_compra || '—',                                     sub:'€',          color:'var(--text1)' },
+                    { lbl:'Valoración',     val: form.valoracion_actual || '—',                                 sub:'€ actual',   color:'var(--green)' },
+                    { lbl:'Plusvalía',      val: plusvaliaNum || '—',                                            sub:'latente',    color: plusvaliaNum.startsWith('+') ? 'var(--green)' : 'var(--red)' },
+                    { lbl:'Cap Rate',       val: form.cap_rate ? `${form.cap_rate}%` : '—',                     sub:'actual',     color:'var(--accent)' },
+                    { lbl:'Yield',          val: form.yield ? `${form.yield}%` : '—',                            sub:'NOI/V',      color:'var(--purple)' },
+                    { lbl:'LTV',            val: form.ltv ? `${form.ltv}%` : '—',                                sub:'leverage',   color: ltvNum > 55 ? 'var(--amber)' : 'var(--text1)' },
+                  ]
+                  return items.map((k, i) => (
+                    <div key={k.lbl} style={{ padding:'10px 14px', textAlign:'center', minWidth:88, borderLeft: i === 0 ? 'none' : '1px solid var(--border)' }}>
+                      <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4 }}>{k.lbl}</div>
+                      <div style={{ fontSize:20, fontWeight:800, fontFamily:'var(--mono)', color:k.color, lineHeight:1 }}>{k.val}</div>
+                      <div style={{ fontSize:9, color:'var(--text4)', marginTop:3 }}>{k.sub}</div>
+                    </div>
+                  ))
+                })()}
+              </div>
             </div>
           </div>
 
