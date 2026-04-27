@@ -136,6 +136,8 @@ export default function FichaOferta() {
   const [origenOferta, setOrigenOferta] = useState('')
   const [modalidadVisita, setModalidadVisita] = useState('')
   const [comentarios, setComentarios] = useState('')
+  const [condContractuales, setCondContractuales] = useState('Tipo arrendamiento: Alquiler comercial.\nRégimen fiscal: I.V.A.\nFianza legal: 2 meses sin IVA.\nIndexación anual: Sí (IPC).\nPago honorarios: a la firma.')
+  const [incentivosCapex, setIncentivosCapex]     = useState('Meses de carencia: —\nAportación obras: —\nEstado oferta: Disponible.')
   const [gastosComunes, setGastosComunes] = useState(3.01)
   const [ibi, setIbi] = useState('')
   const [gastosIncluidos, setGastosIncluidos] = useState(false)
@@ -1321,24 +1323,30 @@ export default function FichaOferta() {
                     const ibiMin = withIbi.length>0?Math.min(...withIbi.map(o=>o.ibiM2)):null
                     return (
                     <>
-                      {/* ── 2 COL: CONTRACTUALES + INCENTIVOS Y CAPEX ── */}
+                      {/* ── 2 COL: CONTRACTUALES + INCENTIVOS Y CAPEX (texto libre) ── */}
                       <div className="va-two-col">
                         <div className="va-meta-card">
                           <div className="va-meta-head"><span className="dot"/>Condiciones contractuales</div>
-                          <div className="va-kv-list">
-                            <div className="ir"><span className="ir-k">Tipo arrendamiento</span><span className="ir-v">Alquiler comercial</span></div>
-                            <div className="ir"><span className="ir-k">Régimen fiscal</span><span className="ir-v">I.V.A.</span></div>
-                            <div className="ir"><span className="ir-k">Fianza legal</span><span className="ir-v">2 meses sin IVA</span></div>
-                            <div className="ir"><span className="ir-k">Indexación anual</span><span className="ir-v">Sí</span></div>
-                            <div className="ir"><span className="ir-k">Pago honorarios</span><span className="ir-v">A la firma</span></div>
+                          <div style={{padding:'10px 14px'}}>
+                            <textarea
+                              className="of-textarea"
+                              value={condContractuales}
+                              onChange={e => setCondContractuales(e.target.value)}
+                              placeholder="Describe libremente las condiciones contractuales: tipo de arrendamiento, régimen fiscal, fianza, indexación, pago de honorarios, cláusulas particulares..."
+                              style={{ width:'100%', minHeight:140, resize:'vertical', fontSize:12, lineHeight:1.55 }}
+                            />
                           </div>
                         </div>
                         <div className="va-meta-card">
                           <div className="va-meta-head accent-purple"><span className="dot"/>Incentivos y CAPEX</div>
-                          <div className="va-kv-list">
-                            <div className="ir"><span className="ir-k">Meses de carencia</span><span className="ir-v"><span style={{color:'var(--text4)'}}>—</span></span></div>
-                            <div className="ir"><span className="ir-k">Aportación obras</span><span className="ir-v"><span style={{color:'var(--text4)'}}>—</span></span></div>
-                            <div className="ir"><span className="ir-k">Estado oferta</span><span className="ir-v"><span className="tag tag-green">Disponible</span></span></div>
+                          <div style={{padding:'10px 14px'}}>
+                            <textarea
+                              className="of-textarea"
+                              value={incentivosCapex}
+                              onChange={e => setIncentivosCapex(e.target.value)}
+                              placeholder="Describe libremente los incentivos: meses de carencia, aportación a obras, mejoras pactadas, estado de la oferta, observaciones..."
+                              style={{ width:'100%', minHeight:140, resize:'vertical', fontSize:12, lineHeight:1.55 }}
+                            />
                           </div>
                         </div>
                       </div>
