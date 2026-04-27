@@ -1135,7 +1135,7 @@ tr:hover .ra-cell { opacity: 1; }
   box-shadow: 0 1px 3px rgba(11,18,32,.06); overflow: hidden;
 }
 .va-card-header {
-  padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 18px; display: flex; align-items: center; justify-content: space-between;
   border-bottom: 1px solid var(--va-line);
 }
 .va-card-header h3 {
@@ -1147,10 +1147,10 @@ tr:hover .ra-cell { opacity: 1; }
 .va-card-header .hint { font-size: 12px; color: var(--va-muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
 
 /* va-kv-list / va-kv — display rows inside cards */
-.va-kv-list { padding: 8px 20px; display: flex; flex-direction: column; }
+.va-kv-list { padding: 4px 18px; display: flex; flex-direction: column; }
 .va-kv {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 0; border-bottom: 1px dashed var(--va-line2); font-size: 13px; gap: 16px;
+  padding: 7px 0; border-bottom: 1px dashed var(--va-line2); font-size: 13px; gap: 16px;
 }
 .va-kv:last-child { border-bottom: none; }
 .va-kv .k { color: var(--va-muted); flex-shrink: 0; }
@@ -1161,11 +1161,18 @@ tr:hover .ra-cell { opacity: 1; }
 /* ir rows inside va-card and va-meta-card match va-kv style */
 .va-card .ir, .va-meta-card .ir {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 0; border-bottom: 1px dashed var(--va-line2); gap: 16px; font-size: 13px;
+  padding: 7px 0; border-bottom: 1px dashed var(--va-line2); gap: 16px; font-size: 13px;
 }
 .va-card .ir:last-child, .va-meta-card .ir:last-child { border-bottom: none; }
-.va-card .ir-k, .va-meta-card .ir-k { font-size: 13px; color: var(--va-muted); flex-shrink: 0; }
-.va-card .ir-v, .va-meta-card .ir-v { font-size: 13px; color: var(--ink); font-weight: 500; text-align: right; }
+.va-card .ir-k, .va-meta-card .ir-k { font-size: 12px; color: var(--va-muted); flex-shrink: 0; }
+.va-card .ir-v, .va-meta-card .ir-v { font-size: 12px; color: var(--ink); font-weight: 500; text-align: right; }
+/* Spacing between stacked cards inside info-pad */
+.info-pad > .va-card,
+.info-pad > .va-two-col,
+.info-pad > .va-meta-card { margin-bottom: 12px; }
+.info-pad > .va-card:last-child,
+.info-pad > .va-two-col:last-child,
+.info-pad > .va-meta-card:last-child { margin-bottom: 0; }
 
 /* btn (design system) */
 .btn {
@@ -1216,7 +1223,7 @@ tr:hover .ra-cell { opacity: 1; }
   box-shadow: var(--va-shadow); overflow: hidden;
 }
 .va-meta-head {
-  padding: 14px 20px; border-bottom: 1px solid var(--va-line);
+  padding: 10px 18px; border-bottom: 1px solid var(--va-line);
   display: flex; align-items: center; gap: 8px;
   font-size: 11px; font-weight: 700; text-transform: uppercase;
   letter-spacing: .1em; color: var(--va-muted);
@@ -1232,14 +1239,16 @@ tr:hover .ra-cell { opacity: 1; }
 .va-meta-head .dot.green  { background: var(--pdb-green); }
 .va-meta-body { padding: 4px 20px 12px; }
 
-/* Restyle .ir rows inside va-meta-card */
+/* Restyle .ir rows inside va-meta-card (compact) */
 .va-meta-card .ir {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 9px 0; border-bottom: 1px dashed var(--va-line2); gap: 12px;
+  padding: 6px 0; border-bottom: 1px dashed var(--va-line2); gap: 12px;
 }
 .va-meta-card .ir:last-child { border-bottom: none; }
-.va-meta-card .ir-k { font-size: 13px; color: var(--va-muted); flex-shrink: 0; }
-.va-meta-card .ir-v { font-size: 13px; color: var(--ink); font-weight: 500; text-align: right; }
+.va-meta-card .ir-k { font-size: 12px; color: var(--va-muted); flex-shrink: 0; }
+.va-meta-card .ir-v { font-size: 12px; color: var(--ink); font-weight: 500; text-align: right; }
+.va-meta-card .va-kv-list { padding: 4px 18px; }
+.va-two-col { gap: 12px; margin-bottom: 12px; }
 
 /* — Ofertas table — */
 .va-table { width: 100%; border-collapse: collapse; font-size: 13px; }
