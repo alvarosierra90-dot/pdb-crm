@@ -873,19 +873,34 @@ export default function FichaOferta() {
                 </div>
               )}
 
-              {/* ── TAB: Stacking plan ── */}
+              {/* ── TAB: Stacking plan — mismo layout que FichaActivo ── */}
               {activeTab==='of-stacking' && (
-                <div className="tab-content active" style={{ padding:0 }}>
-                  {!activoSeleccionado && !loadingActivo ? (
-                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'48px 24px',gap:12}}>
-                      <div style={{fontSize:32}}>🔗</div>
-                      <div style={{fontSize:14,fontWeight:600}}>Sin activo vinculado</div>
-                      <div style={{fontSize:12,color:'var(--text3)',textAlign:'center'}}>Vincula un activo en la pestaña Información para ver su stacking plan.</div>
-                    </div>
-                  ) : loadingActivo ? (
-                    <div style={{padding:'48px 24px',textAlign:'center',color:'var(--text4)',fontSize:13}}>Cargando stacking...</div>
-                  ) : (
-                    <StackingPlan
+                <div className="tab-content active">
+                  <div className="info-pad">
+                    {!activoSeleccionado && !loadingActivo ? (
+                      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'48px 24px',gap:12}}>
+                        <div style={{fontSize:32}}>🔗</div>
+                        <div style={{fontSize:14,fontWeight:600}}>Sin activo vinculado</div>
+                        <div style={{fontSize:12,color:'var(--text3)',textAlign:'center'}}>Vincula un activo en la pestaña Información para ver su stacking plan.</div>
+                      </div>
+                    ) : loadingActivo ? (
+                      <div style={{padding:'48px 24px',textAlign:'center',color:'var(--text4)',fontSize:13}}>Cargando stacking...</div>
+                    ) : (
+                      <>
+                        {/* Header idéntico al de FichaActivo */}
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                          <div>
+                            <div style={{fontSize:14,fontWeight:600}}>Stacking Plan</div>
+                            <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Distribución de usos, propietarios y arrendatarios por planta y edificio</div>
+                          </div>
+                          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                            <span style={{fontSize:10,color:'var(--accent)',fontWeight:600,background:'var(--accent-lt)',padding:'3px 8px',borderRadius:10,border:'1px solid var(--accent-bd)'}}>Vista de Oferta · capa Arrendatarios y oferta</span>
+                            <button className="ab-btn" style={{fontSize:11}} onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref, stackingView: 'arr' })}>
+                              📊 Abrir desde Activo ↗
+                            </button>
+                          </div>
+                        </div>
+                        <StackingPlan
                       key={activoSeleccionado.ref}
                       initBuildings={activoSeleccionado.stacking_data?.length > 0 ? activoSeleccionado.stacking_data : []}
                       initView='arr'
@@ -956,7 +971,9 @@ export default function FichaOferta() {
                         }
                       }}
                     />
-                  )}
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
 
