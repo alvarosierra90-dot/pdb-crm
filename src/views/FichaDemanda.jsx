@@ -404,7 +404,28 @@ export default function FichaDemanda() {
             <div className="tab-content active"><div className="info-pad">
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
                 <div>
-                  <div className="of-section">🏢 CUENTA</div>
+                  {/* ── Oportunidad vinculada (opcional) ── */}
+                  <div className="of-section">⚡ OPORTUNIDAD VINCULADA</div>
+                  <div className="info-block" style={{marginBottom:10,padding:'10px 12px',background:'#eff6ff',border:'1px solid #bfdbfe'}}>
+                    <div className="ir">
+                      <span className="ir-k" style={{display:'flex',alignItems:'center',gap:6}}>
+                        <span style={{width:14,height:14,borderRadius:3,background:'#0078d4',color:'#fff',fontSize:9,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>D</span>
+                        Oportunidad
+                      </span>
+                      <span className="ir-v">
+                        <select className="of-sel" style={{width:'100%',padding:'2px 6px',fontSize:11}} defaultValue="OPO-2501">
+                          <option value="">— Sin oportunidad vinculada</option>
+                          <option value="OPO-2501">OPO-2501 · Albatros D — Oracle Relocation 2026</option>
+                          <option value="OPO-2502">OPO-2502 · Avalon P5 — Generali 2026</option>
+                          <option value="OPO-2503">OPO-2503 · Torre Norte — Grupo Mediática 2027</option>
+                          <option value="OPO-2506">OPO-2506 · Oficinas Flexwork</option>
+                        </select>
+                      </span>
+                    </div>
+                    <div style={{fontSize:9,color:'#1e3a8a',marginTop:4,fontStyle:'italic'}}>Si vinculas a una Oportunidad, la Cuenta se hereda automáticamente desde Dynamics</div>
+                  </div>
+
+                  <div className="of-section">🏢 CUENTA <span style={{fontSize:9,fontWeight:700,color:'#15803d',background:'#dcfce7',padding:'1px 6px',borderRadius:6,marginLeft:6}}>🔒 heredada de Op.</span></div>
                   <div className="info-block" style={{marginBottom:10}}>
                     <div style={{fontSize:12,fontWeight:600,color:'var(--accent)',marginBottom:10,cursor:'pointer'}}>Corporacion Financiera Azuaga SL ↗</div>
                     <div className="ir"><span className="ir-k">Teléfono</span><span className="ir-v">—</span></div>

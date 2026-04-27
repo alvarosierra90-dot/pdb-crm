@@ -25,6 +25,7 @@ function EstadoTag({ estado }) {
 const COLS = [
   { id:'_chk',       label:'',                 sys:true },
   { id:'ref',        label:'ID',                required:true, type:'text', getValue:r=>r.ref },
+  { id:'oportunidad',label:'Oportunidad ★',      required:true, type:'text', getValue:r=>r.oportunidad },
   { id:'contraparte',label:'Contraparte',       required:true, type:'text', getValue:r=>r.contraparte },
   { id:'parte',      label:'Parte (Savills)',                  type:'enum', getValue:r=>r.parte },
   { id:'equipo',     label:'Equipo',                          type:'enum', getValue:r=>r.equipo },
@@ -124,6 +125,7 @@ export default function NegociacionesList() {
   const cell = (n) => ({
     _chk:       <td key="_chk"><input type="checkbox" style={{accentColor:'var(--accent)'}} onClick={e=>e.stopPropagation()}/></td>,
     ref:        <td key="ref"><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{n.ref}</span></td>,
+    oportunidad:<td key="oportunidad" title="FK Oportunidad obligatorio · Cuenta heredada">{n.oportunidad ? <span style={{fontFamily:'var(--mono)',fontSize:10,fontWeight:700,color:'#1e40af',background:'#dbeafe',padding:'2px 7px',borderRadius:6,whiteSpace:'nowrap'}} onClick={e=>{e.stopPropagation();navigate('ficha-oportunidad',{id:n.oportunidad})}}>D · {n.oportunidad}</span> : <span style={{color:'var(--red)',fontSize:10,fontWeight:600}}>★ FALTA</span>}</td>,
     contraparte:<td key="contraparte"><div className="asset-link">{n.contraparte}</div><div className="asset-sub">{n.contacto}</div></td>,
     parte:      <td key="parte"><div style={{fontSize:11,fontWeight:600}}>{n.parte}</div><div className="asset-sub">{n.equipo}</div></td>,
     equipo:     <td key="equipo" style={{fontSize:11,color:'var(--text3)'}}>{n.equipo}</td>,

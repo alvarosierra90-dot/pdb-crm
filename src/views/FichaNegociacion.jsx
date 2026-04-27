@@ -237,6 +237,19 @@ export default function FichaNegociacion() {
               <span className="dias-pill">📅 20 días</span>
               <span style={{ background: 'var(--green-lt)', color: 'var(--green)', border: '1px solid var(--green-bd)', padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 600 }}>🔗 Link activo</span>
             </div>
+            {/* ─── Vinculaciones obligatorias · Oportunidad + herencia Cuenta ─── */}
+            <div style={{ marginTop:10, padding:'8px 10px', background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:6, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+              <span style={{ width:18, height:18, borderRadius:3, background:'#0078d4', color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>D</span>
+              <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+                <span style={{ fontSize:9, fontWeight:700, color:'#1e3a8a', textTransform:'uppercase', letterSpacing:'.04em' }}>Oportunidad ★ obligatorio</span>
+                <span onClick={() => navigate('ficha-oportunidad', { id:'OPO-2501' })} style={{ fontSize:11, fontWeight:700, color:'#1e40af', cursor:'pointer', textDecoration:'underline' }}>OPO-2501 · Albatros D — Oracle Relocation 2026</span>
+              </div>
+              <div style={{ width:1, height:28, background:'#bfdbfe' }}/>
+              <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+                <span style={{ fontSize:9, fontWeight:700, color:'#1e3a8a', textTransform:'uppercase', letterSpacing:'.04em' }}>Cuenta · heredada de Op.</span>
+                <span style={{ fontSize:11, fontWeight:600, color:'#1e3a8a' }}>🏢 Oracle Spain SL</span>
+              </div>
+            </div>
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
             <div style={{ fontSize: 9, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Cierre estimado</div>

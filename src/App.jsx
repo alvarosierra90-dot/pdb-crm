@@ -45,8 +45,9 @@ import InstruccionesList from './views/InstruccionesList'
 import EntidadesLegalesList from './views/EntidadesLegalesList'
 import LeadsList from './views/LeadsList'
 import FichaLead from './views/FichaLead'
+import FichaOportunidad from './views/FichaOportunidad'
 
-const BUILT = ['activos','ficha-activo','ofertas','ficha-oferta','negociaciones','ficha-negociacion','portfolios','portfolio','demandas','ficha-demanda','actividades','ficha-actividad','visitas','ficha-visita','tareas','ficha-tarea','zonas','ficha-zona','usuarios','ficha-usuario','mandatos','ficha-mandato','mapas','mis-clientes','inteligencia-comercial','vencimientos','marketing','informes-mercado','noticias','arrendatarios','ficha-arrendatario','propietarios','ficha-propietario','propuestas','ficha-propuesta','presentaciones','ficha-presentacion','cuentas','contactos','oportunidades','instruccion','entidades-legales','leads','ficha-lead']
+const BUILT = ['activos','ficha-activo','ofertas','ficha-oferta','negociaciones','ficha-negociacion','portfolios','portfolio','demandas','ficha-demanda','actividades','ficha-actividad','visitas','ficha-visita','tareas','ficha-tarea','zonas','ficha-zona','usuarios','ficha-usuario','mandatos','ficha-mandato','mapas','mis-clientes','inteligencia-comercial','vencimientos','marketing','informes-mercado','noticias','arrendatarios','ficha-arrendatario','propietarios','ficha-propietario','propuestas','ficha-propuesta','presentaciones','ficha-presentacion','cuentas','contactos','oportunidades','ficha-oportunidad','instruccion','entidades-legales','leads','ficha-lead']
 
 function Router() {
   const { view } = useNav()
@@ -92,6 +93,7 @@ function Router() {
       {view === 'cuentas' && <CuentasList />}
       {view === 'contactos' && <ContactosList />}
       {view === 'oportunidades' && <OportunidadesList />}
+      {view === 'ficha-oportunidad' && <FichaOportunidad />}
       {view === 'instruccion' && <InstruccionesList />}
       {view === 'entidades-legales' && <EntidadesLegalesList />}
       {view === 'leads' && <LeadsList />}

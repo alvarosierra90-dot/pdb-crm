@@ -281,9 +281,12 @@ export default function FichaPropuesta() {
                     </div>
 
                     <div style={{marginBottom:12,padding:'8px 10px',border:'2px solid var(--accent-bd)',borderRadius:6,background:'var(--accent-lt)'}}>
-                      <div className="rp-lbl" style={{color:'var(--accent)'}}>Empresa / Cuenta ★</div>
-                      <input className="kf-inp" value={form.empresa} onChange={e=>set('empresa',e.target.value)} style={{width:'100%',marginTop:4,fontWeight:600}} placeholder="Buscar cuenta en Dynamics..."/>
-                      <div style={{fontSize:9,color:'var(--text4)',marginTop:3}}>Campo obligatorio — vinculado a Dynamics CRM</div>
+                      <div className="rp-lbl" style={{color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                        <span>Empresa / Cuenta ★</span>
+                        {form.oportunidad && <span style={{fontSize:9,fontWeight:700,color:'#15803d',background:'#dcfce7',padding:'2px 7px',borderRadius:6}}>🔒 heredada de Oportunidad</span>}
+                      </div>
+                      <input className="kf-inp" value={form.empresa} onChange={e=>!form.oportunidad && set('empresa',e.target.value)} disabled={!!form.oportunidad} style={{width:'100%',marginTop:4,fontWeight:600,background:form.oportunidad?'var(--gray-lt)':undefined,cursor:form.oportunidad?'not-allowed':undefined}} placeholder="Buscar cuenta en Dynamics..."/>
+                      <div style={{fontSize:9,color:'var(--text4)',marginTop:3}}>{form.oportunidad ? 'Cuenta heredada automáticamente desde la Oportunidad seleccionada · No editable manualmente' : 'Campo obligatorio — vinculado a Dynamics CRM'}</div>
                     </div>
 
                     <div style={{marginBottom:4,fontSize:10,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginTop:12}}>Opcional</div>

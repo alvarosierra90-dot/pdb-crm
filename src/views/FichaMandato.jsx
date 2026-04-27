@@ -459,12 +459,20 @@ export default function FichaMandato() {
                         </select>
                       </div>
                       {oportunidadV && (
-                        <div style={{padding:'8px 10px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:6,fontSize:11,marginBottom:12,display:'flex',alignItems:'center',gap:8}}>
-                          <span style={{fontWeight:700,color:'#1e40af'}}>{oportunidadV.ref}</span>
-                          <span style={{color:'#1e3a8a'}}>·</span>
-                          <span>{oportunidadV.nombre}</span>
-                          <span style={{marginLeft:'auto',fontSize:9,fontWeight:700,color:'#1e40af',background:'#dbeafe',padding:'2px 8px',borderRadius:6}}>{oportunidadV.etapa}</span>
-                        </div>
+                        <>
+                          <div style={{padding:'8px 10px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:6,fontSize:11,marginBottom:8,display:'flex',alignItems:'center',gap:8}}>
+                            <span style={{fontWeight:700,color:'#1e40af'}}>{oportunidadV.ref}</span>
+                            <span style={{color:'#1e3a8a'}}>·</span>
+                            <span>{oportunidadV.nombre}</span>
+                            <span style={{marginLeft:'auto',fontSize:9,fontWeight:700,color:'#1e40af',background:'#dbeafe',padding:'2px 8px',borderRadius:6}}>{oportunidadV.etapa}</span>
+                          </div>
+                          {/* Cuenta heredada automáticamente · read-only */}
+                          <div style={{padding:'8px 10px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:6,fontSize:11,marginBottom:12,display:'flex',alignItems:'center',gap:8}}>
+                            <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Cuenta heredada de la oportunidad</span>
+                            <span style={{fontWeight:700,color:'var(--accent)'}}>🏢 {oportunidadV.cuenta}</span>
+                            <span style={{marginLeft:'auto',fontSize:9,fontWeight:700,color:'#15803d',background:'#dcfce7',padding:'2px 8px',borderRadius:6}}>🔒 read-only</span>
+                          </div>
+                        </>
                       )}
                     </>
                   )}
