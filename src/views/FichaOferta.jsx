@@ -670,207 +670,272 @@ export default function FichaOferta() {
               {activeTab==='of-info' && (
                 <div className="tab-content active">
                   <div className="info-pad">
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
-                      {/* LEFT: form fields */}
-                      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                        <div>
-                          <FieldLbl req>Activo / Asset</FieldLbl>
-                          {activoSeleccionado ? (
-                            <div style={{ padding:'6px 9px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)', display:'flex', alignItems:'center', gap:6 }}>
-                              <span>🏢</span>
-                              <span style={{ flex:1, fontSize:12, fontWeight:500, color:'var(--accent)' }}>{activoSeleccionado.nombre}</span>
-                              <button onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref })} style={{ fontSize:9, fontWeight:700, color:'var(--accent)', background:'none', border:'none', cursor:'pointer', padding:'0 3px' }}>↗</button>
-                              <button onClick={() => setActivoSeleccionado(null)} style={{ fontSize:11, color:'var(--text4)', background:'none', border:'none', cursor:'pointer', padding:'0 3px' }}>✕</button>
-                            </div>
-                          ) : (
-                            <div style={{ position:'relative' }}>
-                              <input className="of-inp" placeholder="🔍 Buscar activo por nombre..." value={activoBuscador}
-                                onChange={e => { setActivoBuscador(e.target.value); setShowActivoDropdown(true) }}
-                                onFocus={() => setShowActivoDropdown(true)}
-                                onBlur={() => setTimeout(() => setShowActivoDropdown(false), 150)} />
-                              {showActivoDropdown && (
-                                <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 4px 12px rgba(0,0,0,.12)', zIndex:200, maxHeight:200, overflowY:'auto' }}>
-                                  {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).slice(0,8).map(a => (
-                                    <div key={a.ref} onMouseDown={() => {
-                                      setActivoBuscador(''); setShowActivoDropdown(false)
-                                      setLoadingActivo(true)
-                                      supabase.from('activos').select('*').eq('ref', a.ref).single()
-                                        .then(({ data: full }) => { setActivoSeleccionado(full || a); setLoadingActivo(false) })
-                                    }}
-                                      style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
-                                      <div style={{ fontWeight:600 }}>{a.nombre}</div>
-                                      <div style={{ color:'var(--text4)', fontSize:10 }}>{a.ref} · {a.uso}</div>
-                                    </div>
-                                  ))}
-                                  {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).length === 0 && (
-                                    <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Sin resultados</div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <div><FieldLbl>Uso principal</FieldLbl><ReadonlyPill value={activoSeleccionado?.uso || '—'} /></div>
-                        <div><FieldLbl>Estado de construcción</FieldLbl><ReadonlyPill value={activoSeleccionado?.estado_construccion || '—'} /></div>
-                        <div>
-                          <FieldLbl req>Tipología de comercialización</FieldLbl>
-                          <select className="of-sel" value={tipoComercializacion} onChange={e => setTipoComercializacion(e.target.value)}>
-                            <option>Mandato Savills</option><option>Sin mandato</option><option>Otras consultoras</option>
-                          </select>
-                        </div>
-                        <div>
-                          <FieldLbl req>Tipología</FieldLbl>
-                          <select className="of-sel" value={tipologia} onChange={e => setTipologia(e.target.value)}>
-                            <option value="">— Seleccionar —</option>
-                            {tipologiaOpciones.map(t => <option key={t}>{t}</option>)}
-                          </select>
-                          {tipologiaOpciones.length > 0 && activoSeleccionado?.uso && <div style={{ fontSize:9, color:'var(--text4)', marginTop:2 }}>Opciones para <strong>{activoSeleccionado.uso}</strong></div>}
-                        </div>
-                        <div>
-                          <FieldLbl>Estado del espacio</FieldLbl>
-                          <select className="of-sel" value={estadoEspacio} onChange={e => setEstadoEspacio(e.target.value)}>
-                            <option value="">— Seleccionar —</option>
-                            {['Nuevo','Obra nueva','Muy buen estado','En bruto','Segunda mano','Implantado','Plug&Play','Por reformar','Amueblado','Sin amueblar'].map(o => <option key={o}>{o}</option>)}
-                          </select>
-                        </div>
-                        <div>
-                          <FieldLbl req>Tipo de operación</FieldLbl>
-                          <select className="of-sel" value={tipoOperacion} onChange={e => setTipoOperacion(e.target.value)}>
-                            <option>Alquiler</option><option>Venta</option><option>Alquiler / Venta</option>
-                          </select>
-                        </div>
-                        <div>
-                          <FieldLbl>Origen de la oferta</FieldLbl>
-                          <select className="of-sel" value={origenOferta} onChange={e => setOrigenOferta(e.target.value)}>
-                            <option value="">— Seleccionar —</option>
-                            {['Demanda entrante','Prospección directa','Referencia interna','Portal web','Red de colaboradores','Otra consultora'].map(o => <option key={o}>{o}</option>)}
-                          </select>
-                        </div>
-                        <div><FieldLbl>Mandato asociado</FieldLbl><input className="of-inp" placeholder="🔍  Buscar mandato..." /></div>
-                        <div><FieldLbl>KYC</FieldLbl><input className="of-inp" placeholder="🔍  Buscar registro KYC..." /></div>
-                        <div><FieldLbl>Comentarios</FieldLbl><textarea className="of-textarea" placeholder="Observaciones internas..." value={comentarios} onChange={e => setComentarios(e.target.value)} style={{ minHeight:72 }} /></div>
+
+                    {/* ── ACTIVO VINCULADO ── */}
+                    <div className="va-card">
+                      <div className="va-card-header">
+                        <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Activo vinculado</h3>
+                        {activoSeleccionado && <span className="hint">Datos heredados del activo</span>}
                       </div>
-                      {/* RIGHT: map + images + contacts */}
-                      <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-                        <div>
-                          <FieldLbl>Ubicación · Georreferenciado desde activo</FieldLbl>
-                          <div style={{ borderRadius:'var(--r2)', overflow:'hidden', border:'1px solid var(--border)', height:220 }}>
-                            {activoSeleccionado?.direccion ? (
-                              <iframe title="Mapa oferta" width="100%" height="100%" style={{ border:0 }} loading="lazy"
-                                src={`https://maps.google.com/maps?q=${encodeURIComponent(activoSeleccionado.direccion)}&z=15&output=embed`} />
+                      <div className="va-kv-list" style={{paddingBottom:14}}>
+                        <div className="ir">
+                          <span className="ir-k">Activo / Asset *</span>
+                          <span className="ir-v" style={{minWidth:'60%'}}>
+                            {activoSeleccionado ? (
+                              <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
+                                <span>🏢</span>
+                                <span style={{ fontWeight:600, color:'var(--accent)' }}>{activoSeleccionado.nombre}</span>
+                                <button onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref })} style={{ fontSize:10, fontWeight:700, color:'var(--accent)', background:'none', border:'none', cursor:'pointer', padding:'0 2px' }}>↗</button>
+                                <button onClick={() => setActivoSeleccionado(null)} style={{ fontSize:11, color:'var(--text4)', background:'none', border:'none', cursor:'pointer', padding:'0 2px' }}>✕</button>
+                              </div>
                             ) : (
-                              <div style={{ width:'100%', height:'100%', background:'var(--gray-lt)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, color:'var(--text4)' }}>
-                                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                                <div style={{ fontSize:11 }}>Selecciona un activo para ver el mapa</div>
+                              <div style={{ position:'relative', display:'inline-block', minWidth:280 }}>
+                                <input className="of-inp" placeholder="🔍 Buscar activo por nombre..." value={activoBuscador}
+                                  onChange={e => { setActivoBuscador(e.target.value); setShowActivoDropdown(true) }}
+                                  onFocus={() => setShowActivoDropdown(true)}
+                                  onBlur={() => setTimeout(() => setShowActivoDropdown(false), 150)} />
+                                {showActivoDropdown && (
+                                  <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 4px 12px rgba(0,0,0,.12)', zIndex:200, maxHeight:200, overflowY:'auto', textAlign:'left' }}>
+                                    {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).slice(0,8).map(a => (
+                                      <div key={a.ref} onMouseDown={() => {
+                                        setActivoBuscador(''); setShowActivoDropdown(false)
+                                        setLoadingActivo(true)
+                                        supabase.from('activos').select('*').eq('ref', a.ref).single()
+                                          .then(({ data: full }) => { setActivoSeleccionado(full || a); setLoadingActivo(false) })
+                                      }} style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
+                                        <div style={{ fontWeight:600 }}>{a.nombre}</div>
+                                        <div style={{ color:'var(--text4)', fontSize:10 }}>{a.ref} · {a.uso}</div>
+                                      </div>
+                                    ))}
+                                    {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).length === 0 && (
+                                      <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Sin resultados</div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             )}
-                          </div>
-                          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:8 }}>
-                            <div style={{ background:'var(--gray-lt)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'7px 10px', fontSize:11 }}>
-                              <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em' }}>Dirección</div>
-                              <div style={{ color:'var(--text2)', marginTop:2 }}>{activoSeleccionado?.direccion || '—'}</div>
-                              <div style={{ color:'var(--text3)' }}>{activoSeleccionado?.ciudad || ''}</div>
-                            </div>
-                            <div style={{ background:'var(--gray-lt)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'7px 10px', fontSize:11 }}>
-                              <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em' }}>Zona</div>
-                              <div style={{ color:'var(--text2)', marginTop:2 }}>{activoSeleccionado?.zona || '—'}</div>
-                              <div style={{ color:'var(--text3)' }}>{activoSeleccionado?.subzona || ''}</div>
-                            </div>
-                          </div>
+                          </span>
                         </div>
-                        <div><FieldLbl>Imágenes · Vinculadas al activo</FieldLbl><div className="img-strip"><div className="img-thumb principal">🏢</div><div className="img-thumb">🏙</div><div className="img-thumb">🖼</div></div></div>
-                        {/* Contacts in right column */}
-                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text2)', paddingTop:4 }}>Datos de contacto</div>
-                        <div className="info-block">
-                          <div className="ib-title">🏠 PROPIETARIO</div>
-                          <div style={{ fontSize:9, color:'var(--text4)', marginBottom:8, fontWeight:600, letterSpacing:'.04em' }}>Heredado del activo · Solo lectura</div>
-                          {activoSeleccionado?.propietario ? (
-                            <>
-                              <div style={{ fontSize:12, fontWeight:600, marginBottom:6 }}>{activoSeleccionado.propietario}</div>
-                              <div style={{ fontSize:10, color:'var(--text4)', fontStyle:'italic' }}>Para contacto detallado, consulta la ficha del activo.</div>
-                              <div style={{ marginTop:8 }}><span style={{ fontSize:9, background:'var(--green-lt)', color:'var(--green)', border:'1px solid var(--green-bd)', padding:'2px 7px', borderRadius:10, fontWeight:700 }}>ↈ Sincronizado</span></div>
-                            </>
-                          ) : (
-                            <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>
-                              {activoSeleccionado ? 'Sin propietario registrado en el activo.' : 'Selecciona un activo para ver el propietario.'}
-                            </div>
-                          )}
+                        <div className="ir"><span className="ir-k">Uso principal</span><span className="ir-v">{activoSeleccionado?.uso || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
+                        <div className="ir"><span className="ir-k">Estado de construcción</span><span className="ir-v">{activoSeleccionado?.estado_construccion || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
+                        <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v">{activoSeleccionado?.direccion || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
+                        <div className="ir"><span className="ir-k">Zona / Subzona</span><span className="ir-v">{activoSeleccionado?.zona || '—'}{activoSeleccionado?.subzona ? ` · ${activoSeleccionado.subzona}` : ''}</span></div>
+                      </div>
+                    </div>
+
+                    {/* ── COMERCIALIZACIÓN + TIPOLOGÍA Y ESTADO ── */}
+                    <div className="va-two-col">
+                      <div className="va-meta-card">
+                        <div className="va-meta-head"><span className="dot"/>Comercialización</div>
+                        <div className="va-kv-list">
+                          <div className="ir"><span className="ir-k">Tipología comerc. *</span><span className="ir-v">
+                            <select className="of-sel" value={tipoComercializacion} onChange={e => setTipoComercializacion(e.target.value)} style={{minWidth:160}}>
+                              <option>Mandato Savills</option><option>Sin mandato</option><option>Otras consultoras</option>
+                            </select>
+                          </span></div>
+                          <div className="ir"><span className="ir-k">Tipo de operación *</span><span className="ir-v">
+                            <select className="of-sel" value={tipoOperacion} onChange={e => setTipoOperacion(e.target.value)} style={{minWidth:160}}>
+                              <option>Alquiler</option><option>Venta</option><option>Alquiler / Venta</option>
+                            </select>
+                          </span></div>
+                          <div className="ir"><span className="ir-k">Origen de la oferta</span><span className="ir-v">
+                            <select className="of-sel" value={origenOferta} onChange={e => setOrigenOferta(e.target.value)} style={{minWidth:160}}>
+                              <option value="">— Seleccionar —</option>
+                              {['Demanda entrante','Prospección directa','Referencia interna','Portal web','Red de colaboradores','Otra consultora'].map(o => <option key={o}>{o}</option>)}
+                            </select>
+                          </span></div>
+                          <div className="ir"><span className="ir-k">Mandato asociado</span><span className="ir-v"><input className="of-inp" placeholder="🔍 Buscar mandato..." style={{minWidth:160}}/></span></div>
+                          <div className="ir"><span className="ir-k">KYC</span><span className="ir-v"><input className="of-inp" placeholder="🔍 Buscar registro KYC..." style={{minWidth:160}}/></span></div>
                         </div>
-                        <div className="info-block">
-                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-                            <div className="ib-title" style={{ marginBottom:0 }}>🤝 COLABORADORES</div>
-                            {tipoComercializacion==='Otras consultoras' && <button className="ab-btn blue" style={{ fontSize:10, padding:'2px 8px' }} onClick={() => setAddingColab(true)}>+ Añadir</button>}
-                          </div>
-                          {tipoComercializacion!=='Otras consultoras'
-                            ? <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Selecciona "Otras consultoras" para activar.</div>
-                            : colaboradores.length===0 && !addingColab
-                              ? <button className="ab-btn" style={{ fontSize:10 }} onClick={() => setAddingColab(true)}>+ Añadir consultora</button>
-                              : null
-                          }
-                          {colaboradores.map((c,i) => (
-                            <div key={i} style={{ border:'1px solid var(--border)', borderRadius:'var(--r)', padding:10, marginBottom:8, fontSize:11 }}>
-                              <div style={{ fontWeight:600 }}>{c.empresa}</div>
-                              {c.contacto && <div style={{ color:'var(--accent)' }}>{c.contacto}</div>}
-                              <button onClick={() => setColaboradores(prev => prev.filter((_,j)=>j!==i))} style={{ fontSize:10, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'4px 0', fontFamily:'inherit' }}>✕ Quitar</button>
-                            </div>
-                          ))}
-                          {addingColab && (
-                            <div style={{ border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', borderRadius:'var(--r)', padding:12 }}>
-                              <div style={{ marginBottom:7 }}><FieldLbl>Empresa</FieldLbl>
-                                <select className="fsel" style={{ width:'100%' }} value={newColabEmpresa} onChange={e => setNewColabEmpresa(e.target.value)}>
-                                  <option value="">Buscar...</option>
-                                  {['CBRE','JLL','Cushman & Wakefield','Colliers','Knight Frank','BNP Paribas RE'].map(e => <option key={e}>{e}</option>)}
-                                </select>
-                              </div>
-                              <div style={{ marginBottom:10 }}><FieldLbl>Contacto</FieldLbl><input className="of-inp" placeholder="Buscar..." value={newColabContacto} onChange={e => setNewColabContacto(e.target.value)} /></div>
-                              <div style={{ display:'flex', gap:6 }}>
-                                <button className="ab-btn save" onClick={() => { if(!newColabEmpresa)return; setColaboradores(prev=>[...prev,{empresa:newColabEmpresa,contacto:newColabContacto}]); setAddingColab(false); setNewColabEmpresa(''); setNewColabContacto('') }}>Añadir</button>
-                                <button className="ab-btn" onClick={() => { setAddingColab(false); setNewColabEmpresa(''); setNewColabContacto('') }}>Cancelar</button>
-                              </div>
-                            </div>
+                      </div>
+
+                      <div className="va-meta-card">
+                        <div className="va-meta-head accent-purple"><span className="dot"/>Tipología y estado</div>
+                        <div className="va-kv-list">
+                          <div className="ir"><span className="ir-k">Tipología *</span><span className="ir-v">
+                            <select className="of-sel" value={tipologia} onChange={e => setTipologia(e.target.value)} style={{minWidth:160}}>
+                              <option value="">— Seleccionar —</option>
+                              {tipologiaOpciones.map(t => <option key={t}>{t}</option>)}
+                            </select>
+                          </span></div>
+                          {tipologiaOpciones.length > 0 && activoSeleccionado?.uso && (
+                            <div className="ir"><span className="ir-k" style={{fontStyle:'italic',fontSize:10}}>Opciones para</span><span className="ir-v" style={{fontStyle:'italic',color:'var(--text4)'}}>{activoSeleccionado.uso}</span></div>
                           )}
-                        </div>
-                        <div className="info-block">
-                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-                            <div className="ib-title" style={{ marginBottom:0 }}>👥 EQUIPO SAVILLS</div>
-                            <div style={{ display:'flex', gap:5 }}>
-                              <button className="ab-btn" style={{ fontSize:9, padding:'2px 7px' }} onClick={() => setAddingMiembro(true)}>+ Miembro</button>
-                              <button className="ab-btn" style={{ fontSize:9, padding:'2px 7px' }}>+ Equipo</button>
-                            </div>
-                          </div>
-                          <div style={{ fontSize:9, color:'var(--amber)', background:'var(--amber-lt)', border:'1px solid var(--amber-bd)', borderRadius:4, padding:'4px 8px', marginBottom:10, fontWeight:600 }}>Solo editable por creador o manager</div>
-                          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                            {equipoMembers.map((m,i) => (
-                              <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                                <div style={{ width:28, height:28, borderRadius:'50%', background:m.bg, color:m.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>{m.initials}</div>
-                                <div style={{ flex:1 }}><div style={{ fontSize:11, fontWeight:600 }}>{m.name}</div><div style={{ fontSize:10, color:'var(--text3)' }}>{m.team}</div></div>
-                                {m.owner ? <span className="tag tag-blue" style={{ fontSize:9 }}>Responsable</span>
-                                  : <button onClick={() => setEquipoMembers(prev=>prev.filter((_,j)=>j!==i))} style={{ fontSize:10, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 4px', fontFamily:'inherit' }}>✕</button>}
-                              </div>
-                            ))}
-                          </div>
-                          {addingMiembro && (
-                            <div style={{ border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', borderRadius:'var(--r)', padding:10, marginTop:8 }}>
-                              <FieldLbl>Usuario</FieldLbl>
-                              <select className="fsel" style={{ width:'100%', marginBottom:8 }} value={newMiembro} onChange={e => setNewMiembro(e.target.value)}>
-                                <option value="">Seleccionar...</option>
-                                {['GOMEZ Ignacio · Leasing Oficinas MAD','García Marta · Capital Markets MAD','López Carmen · Valoraciones MAD','Martínez Rosa · Retail MAD'].map(u => <option key={u}>{u}</option>)}
-                              </select>
-                              <div style={{ display:'flex', gap:6 }}>
-                                <button className="ab-btn save" style={{ fontSize:10 }} onClick={() => {
-                                  if(!newMiembro)return
-                                  const [nameStr,teamStr]=[newMiembro.split('·')[0].trim(),newMiembro.split('·')[1]?.trim()||'']
-                                  const ini=nameStr.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
-                                  setEquipoMembers(prev=>[...prev,{name:nameStr,team:teamStr,role:'Colaborador',initials:ini,bg:'#f0fdf4',color:'#166534',owner:false}])
-                                  setAddingMiembro(false); setNewMiembro('')
-                                }}>Añadir</button>
-                                <button className="ab-btn" style={{ fontSize:10 }} onClick={() => { setAddingMiembro(false); setNewMiembro('') }}>Cancelar</button>
-                              </div>
-                            </div>
-                          )}
+                          <div className="ir"><span className="ir-k">Estado del espacio</span><span className="ir-v">
+                            <select className="of-sel" value={estadoEspacio} onChange={e => setEstadoEspacio(e.target.value)} style={{minWidth:160}}>
+                              <option value="">— Seleccionar —</option>
+                              {['Nuevo','Obra nueva','Muy buen estado','En bruto','Segunda mano','Implantado','Plug&Play','Por reformar','Amueblado','Sin amueblar'].map(o => <option key={o}>{o}</option>)}
+                            </select>
+                          </span></div>
                         </div>
                       </div>
                     </div>
+
+                    {/* ── LOCALIZACIÓN ── */}
+                    <div className="va-card">
+                      <div className="va-card-header">
+                        <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Localización</h3>
+                        <span className="hint">Georreferenciado desde el activo</span>
+                      </div>
+                      <div style={{padding:'4px 20px 16px'}}>
+                        <div style={{ borderRadius:'var(--r2)', overflow:'hidden', border:'1px solid var(--border)', height:240, marginBottom:10 }}>
+                          {activoSeleccionado?.direccion ? (
+                            <iframe title="Mapa oferta" width="100%" height="100%" style={{ border:0 }} loading="lazy"
+                              src={`https://maps.google.com/maps?q=${encodeURIComponent(activoSeleccionado.direccion)}&z=15&output=embed`} />
+                          ) : (
+                            <div style={{ width:'100%', height:'100%', background:'var(--gray-lt)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, color:'var(--text4)' }}>
+                              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                              <div style={{ fontSize:11 }}>Selecciona un activo para ver el mapa</div>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 40px'}}>
+                          <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v">{activoSeleccionado?.direccion || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
+                          <div className="ir"><span className="ir-k">Ciudad</span><span className="ir-v">{activoSeleccionado?.ciudad || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
+                          <div className="ir"><span className="ir-k">Zona / Subzona</span><span className="ir-v">{activoSeleccionado?.zona || '—'}{activoSeleccionado?.subzona ? ` · ${activoSeleccionado.subzona}` : ''}</span></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── IMÁGENES ── */}
+                    <div className="va-card">
+                      <div className="va-card-header">
+                        <h3><span className="ico">◇</span> Imágenes</h3>
+                        <span className="hint">Vinculadas al activo</span>
+                      </div>
+                      <div style={{padding:'4px 20px 16px'}}>
+                        <div className="img-strip"><div className="img-thumb principal">🏢</div><div className="img-thumb">🏙</div><div className="img-thumb">🖼</div></div>
+                      </div>
+                    </div>
+
+                    {/* ── PROPIETARIO ── */}
+                    <div className="va-card">
+                      <div className="va-card-header">
+                        <h3><span className="ico">◉</span> Propietario</h3>
+                        <span className="hint">Heredado del activo · Solo lectura</span>
+                      </div>
+                      <div style={{padding:'4px 20px 16px'}}>
+                        {activoSeleccionado?.propietario ? (
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+                            <div>
+                              <div style={{ fontSize:13, fontWeight:600, color:'var(--text1)', marginBottom:3 }}>{activoSeleccionado.propietario}</div>
+                              <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Para contacto detallado, consulta la ficha del activo.</div>
+                            </div>
+                            <span className="tag tag-green">ↈ Sincronizado</span>
+                          </div>
+                        ) : (
+                          <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>
+                            {activoSeleccionado ? 'Sin propietario registrado en el activo.' : 'Selecciona un activo para ver el propietario.'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* ── COLABORADORES ── */}
+                    <div className="va-card">
+                      <div className="va-card-header">
+                        <h3><span className="ico">◈</span> Colaboradores</h3>
+                        {tipoComercializacion==='Otras consultoras' && <button className="ab-btn blue" onClick={() => setAddingColab(true)}>+ Añadir consultora</button>}
+                      </div>
+                      <div style={{padding:'4px 20px 16px'}}>
+                        {tipoComercializacion!=='Otras consultoras' ? (
+                          <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Selecciona "Otras consultoras" en Comercialización para activar.</div>
+                        ) : (
+                          <>
+                            {colaboradores.length===0 && !addingColab && (
+                              <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin colaboradores añadidos.</div>
+                            )}
+                            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                              {colaboradores.map((c,i) => (
+                                <div key={i} style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'8px 12px',border:'1px solid var(--border)', borderRadius:'var(--r)', fontSize:12 }}>
+                                  <div>
+                                    <div style={{ fontWeight:600 }}>{c.empresa}</div>
+                                    {c.contacto && <div style={{ color:'var(--accent)', fontSize:11 }}>{c.contacto}</div>}
+                                  </div>
+                                  <button onClick={() => setColaboradores(prev => prev.filter((_,j)=>j!==i))} style={{ fontSize:11, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }}>✕ Quitar</button>
+                                </div>
+                              ))}
+                            </div>
+                            {addingColab && (
+                              <div style={{ border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', borderRadius:'var(--r)', padding:12, marginTop:10 }}>
+                                <div style={{ marginBottom:8 }}>
+                                  <FieldLbl>Empresa</FieldLbl>
+                                  <select className="fsel" style={{ width:'100%' }} value={newColabEmpresa} onChange={e => setNewColabEmpresa(e.target.value)}>
+                                    <option value="">Buscar...</option>
+                                    {['CBRE','JLL','Cushman & Wakefield','Colliers','Knight Frank','BNP Paribas RE'].map(e => <option key={e}>{e}</option>)}
+                                  </select>
+                                </div>
+                                <div style={{ marginBottom:10 }}>
+                                  <FieldLbl>Contacto</FieldLbl>
+                                  <input className="of-inp" placeholder="Buscar..." value={newColabContacto} onChange={e => setNewColabContacto(e.target.value)} />
+                                </div>
+                                <div style={{ display:'flex', gap:6 }}>
+                                  <button className="ab-btn save" onClick={() => { if(!newColabEmpresa)return; setColaboradores(prev=>[...prev,{empresa:newColabEmpresa,contacto:newColabContacto}]); setAddingColab(false); setNewColabEmpresa(''); setNewColabContacto('') }}>Añadir</button>
+                                  <button className="ab-btn" onClick={() => { setAddingColab(false); setNewColabEmpresa(''); setNewColabContacto('') }}>Cancelar</button>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* ── EQUIPO SAVILLS ── */}
+                    <div className="va-card">
+                      <div className="va-card-header">
+                        <h3><span className="ico">◆</span> Equipo Savills</h3>
+                        <div style={{display:'flex',gap:5}}>
+                          <button className="ab-btn" onClick={() => setAddingMiembro(true)}>+ Miembro</button>
+                          <button className="ab-btn">+ Equipo</button>
+                        </div>
+                      </div>
+                      <div style={{padding:'4px 20px 16px'}}>
+                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                          {equipoMembers.map((m,i) => (
+                            <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                              <div style={{ width:30, height:30, borderRadius:'50%', background:m.bg, color:m.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>{m.initials}</div>
+                              <div style={{ flex:1 }}>
+                                <div style={{ fontSize:12, fontWeight:600 }}>{m.name}</div>
+                                <div style={{ fontSize:11, color:'var(--text3)' }}>{m.team}</div>
+                              </div>
+                              {m.owner ? <span className="tag tag-blue">Responsable</span>
+                                : <button onClick={() => setEquipoMembers(prev=>prev.filter((_,j)=>j!==i))} style={{ fontSize:11, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }}>✕</button>}
+                            </div>
+                          ))}
+                        </div>
+                        {addingMiembro && (
+                          <div style={{ border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', borderRadius:'var(--r)', padding:12, marginTop:10 }}>
+                            <FieldLbl>Usuario</FieldLbl>
+                            <select className="fsel" style={{ width:'100%', marginBottom:8 }} value={newMiembro} onChange={e => setNewMiembro(e.target.value)}>
+                              <option value="">Seleccionar...</option>
+                              {['GOMEZ Ignacio · Leasing Oficinas MAD','García Marta · Capital Markets MAD','López Carmen · Valoraciones MAD','Martínez Rosa · Retail MAD'].map(u => <option key={u}>{u}</option>)}
+                            </select>
+                            <div style={{ display:'flex', gap:6 }}>
+                              <button className="ab-btn save" onClick={() => {
+                                if(!newMiembro)return
+                                const [nameStr,teamStr]=[newMiembro.split('·')[0].trim(),newMiembro.split('·')[1]?.trim()||'']
+                                const ini=nameStr.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+                                setEquipoMembers(prev=>[...prev,{name:nameStr,team:teamStr,role:'Colaborador',initials:ini,bg:'#f0fdf4',color:'#166534',owner:false}])
+                                setAddingMiembro(false); setNewMiembro('')
+                              }}>Añadir</button>
+                              <button className="ab-btn" onClick={() => { setAddingMiembro(false); setNewMiembro('') }}>Cancelar</button>
+                            </div>
+                          </div>
+                        )}
+                        <div style={{ fontSize:10, color:'var(--amber)', marginTop:10, fontStyle:'italic' }}>Solo editable por creador o manager</div>
+                      </div>
+                    </div>
+
+                    {/* ── COMENTARIOS INTERNOS ── */}
+                    <div className="va-card">
+                      <div className="va-card-header">
+                        <h3><span className="ico">✎</span> Comentarios internos</h3>
+                      </div>
+                      <div style={{padding:'4px 20px 16px'}}>
+                        <textarea className="of-textarea" placeholder="Observaciones internas..." value={comentarios} onChange={e => setComentarios(e.target.value)} style={{ minHeight:80, width:'100%' }} />
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               )}
