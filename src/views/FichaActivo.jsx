@@ -562,6 +562,7 @@ const INIT_BUILDINGS = [
 // La regla del usuario: el Stacking Plan debe ser un único componente reutilizable,
 // no varios componentes replicados. (Ver memoria project_stacking_compartido.md)
 export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, onTenantClick, extraOfertas=[], initView='principal', defaultLabel='', defaultSupPlantaTipo, allowCreate=true, noDataMessage=null }) {
+  const { navigate: spNavigate } = useNav()
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
   const [setupForm, setSetupForm]       = useState({ label: defaultLabel || '', sobre:'5', bajo:'1', sup: defaultSupPlantaTipo ? String(defaultSupPlantaTipo) : '1500' })
@@ -654,7 +655,40 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
     updBuilding(b=>({...b, prop:(b.prop||[]).map(r=>r.p!==floorId?r:{...r,units:r.units.filter((_,i)=>i!==idx)})}))
   }
   const removeArrUnit = (floorId, idx) => {
-    updBuilding(b=>({...b, arr:(b.arr||[]).map(r=>r.p!==floorId?r:{...r,units:r.units.filter((_,i)=>i!==idx)})}))
+    // Localiza la unidad antes de eliminar para detectar si es una oferta.
+    const bldNow = buildings.find(b => b.id === edifId)
+    const unit = bldNow?.arr?.find(r => r.p === floorId)?.units?.[idx]
+    const esOferta = unit && unit.type === 'vac'
+
+    if (esOferta) {
+      // Si es una oferta, preguntar si se quiere convertir en arrendatario.
+      // Mismo flujo que tenía la versión anterior del Stacking Plan.
+      const ofertaLabel = unit.oferta || `${unit.sup || 0} m²`
+      const msg = `Has eliminado la oferta "${ofertaLabel}" de la planta ${floorId}.\n\n¿Quieres convertir esta oferta en un nuevo Arrendatario?\n\n• Aceptar: abre el formulario de Arrendatario con los datos prerrellenados.\n• Cancelar: la oferta queda simplemente eliminada del stacking.`
+      if (window.confirm(msg)) {
+        // Eliminar la unidad del stacking (se persistirá vía onBuildingsChange)
+        updBuilding(b => ({ ...b, arr: (b.arr || []).map(r => r.p !== floorId ? r : { ...r, units: r.units.filter((_, i) => i !== idx) }) }))
+        // Si el padre proporciona el callback, dejar que él gestione la navegación
+        // (FichaOferta lo hace con datos del activo seleccionado y de la oferta original)
+        if (typeof onConvertToTenant === 'function') {
+          onConvertToTenant(unit, floorId, idx)
+          return
+        }
+        // Fallback: navegar directamente a ficha-arrendatario con los datos disponibles
+        spNavigate('ficha-arrendatario', {
+          prefilledTenant: unit.oferta || '',
+          prefilledSup:    String(unit.sup || ''),
+          prefilledRenta:  String(unit.renta || ''),
+          fromFloorId:     floorId,
+          fromOfertaName:  unit.oferta || '',
+        })
+        return
+      }
+      // Si declina, eliminar igualmente sin convertir.
+    }
+
+    // Comportamiento por defecto: eliminar la unidad sin más preguntas.
+    updBuilding(b => ({ ...b, arr: (b.arr || []).map(r => r.p !== floorId ? r : { ...r, units: r.units.filter((_, i) => i !== idx) }) }))
   }
 
   const savePASup = () => {
