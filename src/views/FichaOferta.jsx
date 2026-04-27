@@ -669,7 +669,8 @@ export default function FichaOferta() {
               {/* ── TAB 1: Información oferta ── */}
               {activeTab==='of-info' && (
                 <div className="tab-content active">
-                  <div className="info-pad">
+                  <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1.45fr 1fr',gap:12,alignItems:'start'}}>
+                  <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
 
                     {/* ── ACTIVO VINCULADO ── */}
                     <div className="va-card">
@@ -796,6 +797,9 @@ export default function FichaOferta() {
                         </div>
                       </div>
                     </div>
+
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
 
                     {/* ── IMÁGENES ── */}
                     <div className="va-card">
@@ -936,6 +940,7 @@ export default function FichaOferta() {
                       </div>
                     </div>
 
+                  </div>
                   </div>
                 </div>
               )}
