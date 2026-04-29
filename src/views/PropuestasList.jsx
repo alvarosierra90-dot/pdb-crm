@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
+import { supabase } from '../lib/supabase'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 
@@ -54,16 +55,69 @@ const COLS = [
 
 const DEFAULT_VIS = new Set(['_chk','id','oportunidad','nombre','tipo','linea','delegacion','empresa','activo','creado_por','estado','fees','fecha_cierre','_act'])
 
+function fmtDateEs(ts) {
+  if (!ts) return ''
+  return new Date(ts).toLocaleDateString('es-ES')
+}
+
+const ESTADO_PROP_LABEL = {
+  borrador:'Activo', presentada:'Activo', standby:'Standby',
+  ganada:'Adjudicado', perdida:'Cancelado', cancelada:'Cancelado',
+}
+
 export default function PropuestasList() {
   const { navigate } = useNav()
   const [query,   setQuery]   = useState('')
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ tipo:'', linea:'', delegacion:'', estado:'', creado_por:'' })
   const [vis, setVis] = useVisibleCols('propuestas', COLS, DEFAULT_VIS)
+  const [supabaseProps, setSupabaseProps] = useState([])
+
+  useEffect(() => {
+    let cancel = false
+    async function load() {
+      const { data, error } = await supabase
+        .from('propuestas')
+        .select(`
+          id, ref, nombre, tipo, estado, fees, fecha_cierre, created_at,
+          equipo, responsable,
+          dynamics_account_id,
+          dynamics_opportunity_id,
+          dynamics_accounts:dynamics_account_id ( nombre ),
+          dynamics_opportunities:dynamics_opportunity_id ( nombre )
+        `)
+        .order('created_at', { ascending: false })
+      if (cancel || error) return
+      const rows = (data || []).map(p => ({
+        id:           p.ref,
+        oportunidad:  p.dynamics_opportunities?.nombre || p.dynamics_opportunity_id || '—',
+        nombre:       p.nombre || '(Sin nombre — completar)',
+        tipo:         p.tipo || '—',
+        linea:        '—',
+        delegacion:   '—',
+        empresa:      p.dynamics_accounts?.nombre || '(Cuenta pendiente)',
+        activo:       '—',
+        demanda:      '—',
+        oferta:       '—',
+        creado_por:   p.responsable || '—',
+        fecha_mod:    fmtDateEs(p.created_at),
+        estado:       ESTADO_PROP_LABEL[p.estado] || p.estado || 'Activo',
+        fees:         p.fees ? `${Number(p.fees).toLocaleString('es-ES')} €` : '—',
+        fecha_cierre: p.fecha_cierre ? fmtDateEs(p.fecha_cierre) : '—',
+        _isSupabase:  true,
+        _pendiente:   !p.nombre,
+      }))
+      setSupabaseProps(rows)
+    }
+    load()
+    return () => { cancel = true }
+  }, [])
+
+  const allPropuestas = [...supabaseProps, ...PROPUESTAS]
 
   const advCount = Object.values(af).filter(Boolean).length
 
-  const preFiltered = PROPUESTAS.filter(p => {
+  const preFiltered = allPropuestas.filter(p => {
     const q = query.toLowerCase()
     if (q && !p.nombre.toLowerCase().includes(q) && !p.empresa.toLowerCase().includes(q) && !p.id.toLowerCase().includes(q)) return false
     if (af.tipo       && p.tipo !== af.tipo) return false
@@ -88,7 +142,7 @@ export default function PropuestasList() {
 
   const cell = (p) => ({
     _chk:         <td key="_chk"><input type="checkbox" onClick={e=>e.stopPropagation()} style={{accentColor:'var(--accent)'}}/></td>,
-    id:           <td key="id"><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{p.id}</span></td>,
+    id:           <td key="id"><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{p.id}</span>{p._pendiente && <span className="tag tag-amber" style={{ marginLeft:6, fontSize:9 }}>PENDIENTE</span>}</td>,
     oportunidad:  <td key="oportunidad" title="FK Oportunidad obligatorio · Dynamics WIP">{p.oportunidad ? <span style={{fontFamily:'var(--mono)',fontSize:10,fontWeight:700,color:'#1e40af',background:'#dbeafe',padding:'2px 7px',borderRadius:6,whiteSpace:'nowrap'}}>D · {p.oportunidad}</span> : <span style={{color:'var(--red)',fontSize:10,fontWeight:600}}>★ FALTA</span>}</td>,
     nombre:       <td key="nombre"><div className="asset-link" style={{fontWeight:600,maxWidth:260}}>{p.nombre}</div></td>,
     tipo:         <td key="tipo"><span className={`tag ${TIPO_TAG[p.tipo]||'tag-gray'}`} style={{fontSize:9,whiteSpace:'nowrap'}}>{p.tipo}</span></td>,
@@ -103,7 +157,7 @@ export default function PropuestasList() {
     estado:       <td key="estado"><span className={`tag ${ESTADO_TAG[p.estado]||'tag-gray'}`}>{p.estado}</span></td>,
     fees:         <td key="fees"><span style={{fontFamily:'var(--mono)',fontSize:12,fontWeight:700,color:p.estado==='Adjudicado'?'var(--green)':p.estado==='Cancelado'?'var(--text4)':'var(--text1)'}}>{p.fees}</span></td>,
     fecha_cierre: <td key="fecha_cierre" style={{fontSize:11,color:p.estado==='Cancelado'?'var(--text4)':'var(--text2)'}}>{p.fecha_cierre}</td>,
-    _act:         <td key="_act"><div className="ra-cell"><button className="ra p" onClick={e=>{e.stopPropagation();navigate('ficha-propuesta')}}>Ver</button></div></td>,
+    _act:         <td key="_act"><div className="ra-cell"><button className="ra p" onClick={e=>{e.stopPropagation();navigate('ficha-propuesta', { id: p.id })}}>Ver</button></div></td>,
   })
 
   return (
@@ -199,7 +253,7 @@ export default function PropuestasList() {
           </thead>
           <tbody>
             {result.map(p=>(
-              <tr key={p.id} onClick={()=>navigate('ficha-propuesta')} style={{cursor:'pointer'}}>
+              <tr key={p.id} onClick={()=>navigate('ficha-propuesta', { id: p.id })} style={{cursor:'pointer'}}>
                 {visibleCols.map(c=>cell(p)[c.id])}
               </tr>
             ))}

@@ -113,8 +113,9 @@ function ReadonlyPill({ value }) {
 
 export default function FichaOferta() {
   const { params } = useNav()
-  if (isSupabaseRef(params.id)) {
-    return <FichaPendienteSupabase entity="oferta" refOrId={params.id} />
+  const ref = params.id || params.ofertaRef
+  if (isSupabaseRef(ref)) {
+    return <FichaPendienteSupabase entity="oferta" refOrId={ref} />
   }
   return <FichaOfertaMock />
 }

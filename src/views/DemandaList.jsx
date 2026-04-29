@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
+import { supabase } from '../lib/supabase'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 
@@ -34,15 +35,63 @@ const COLS = [
   { id: '_act',   label: '',               sys: true },
 ]
 
+function fmtDateEs(ts) {
+  if (!ts) return ''
+  const d = new Date(ts)
+  return d.toLocaleDateString('es-ES')
+}
+
 export default function DemandaList() {
   const { navigate } = useNav()
   const [query, setQuery] = useState('')
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ estado: '', origen: '', by: '', tipoB: '', supMin: '', supMax: '' })
   const [vis, setVis] = useVisibleCols('demandas', COLS)
+  const [supabaseDems, setSupabaseDems] = useState([])
+
+  // Carga las demandas reales desde Supabase y las mapea al formato de la lista
+  useEffect(() => {
+    let cancel = false
+    async function load() {
+      const { data, error } = await supabase
+        .from('demandas')
+        .select(`
+          id, ref, nombre, estatus, notas, requisitos, created_at,
+          dynamics_account_id,
+          dynamics_accounts:dynamics_account_id ( nombre )
+        `)
+        .order('created_at', { ascending: false })
+      if (cancel || error) return
+      const rows = (data || []).map(d => ({
+        ref:    d.ref,
+        cuenta: d.dynamics_accounts?.nombre || '(Cuenta pendiente)',
+        origen: 'Lead',
+        created: fmtDateEs(d.created_at),
+        by:     '—',
+        desc:   d.nombre || d.notas || '(Sin descripción — completar)',
+        estado: d.estatus === 'ongoing' ? 'En Curso'
+              : d.estatus === 'paralizada' ? 'Paralizado'
+              : d.estatus === 'descartada' ? 'Descartado'
+              : d.estatus === 'cerrada_concedido' ? 'Cerrada · Concedido'
+              : d.estatus === 'cerrada_perdida' ? 'Cerrada · Perdida'
+              : d.estatus || '—',
+        supMin: Number(d.requisitos?.m2_min) || 0,
+        supMax: Number(d.requisitos?.m2_max) || 0,
+        tipoB:  d.requisitos?.tipologia || '',
+        razon:  '—',
+        _isSupabase: true,
+        _pendiente: !d.nombre && !d.notas,
+      }))
+      setSupabaseDems(rows)
+    }
+    load()
+    return () => { cancel = true }
+  }, [])
+
+  const allDemandas = [...supabaseDems, ...DEMANDAS]
 
   const advCount = Object.values(af).filter(Boolean).length
-  const preFiltered = DEMANDAS.filter(d => {
+  const preFiltered = allDemandas.filter(d => {
     const q = query.toLowerCase()
     if (q && !d.cuenta.toLowerCase().includes(q) && !d.ref.toLowerCase().includes(q) && !d.origen.toLowerCase().includes(q)) return false
     if (af.estado && d.estado !== af.estado) return false
@@ -59,18 +108,21 @@ export default function DemandaList() {
 
   const cell = (d) => ({
     _chk:   <td key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} onClick={e => e.stopPropagation()} /></td>,
-    ref:    <td key="ref"><span className="asset-link" style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>{d.ref}</span></td>,
+    ref:    <td key="ref">
+              <span className="asset-link" style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>{d.ref}</span>
+              {d._pendiente && <span className="tag tag-amber" style={{ marginLeft:6, fontSize:9 }}>PENDIENTE</span>}
+            </td>,
     cuenta: <td key="cuenta"><div className="asset-link">{d.cuenta}</div></td>,
     origen: <td key="origen"><span className="tag tag-gray" style={{ fontSize: 9 }}>{d.origen}</span></td>,
     created:<td key="created" style={{ fontSize: 11 }}>{d.created}</td>,
     by:     <td key="by" style={{ fontSize: 11 }}>{d.by}</td>,
     desc:   <td key="desc" style={{ fontSize: 11, color: 'var(--text3)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.desc}</td>,
     estado: <td key="estado"><span className={`tag ${estadoTag(d.estado)}`}>{d.estado}</span></td>,
-    supMin: <td key="supMin" className="mono">{d.supMin.toLocaleString('es-ES')}</td>,
-    supMax: <td key="supMax" className="mono">{d.supMax.toLocaleString('es-ES')}</td>,
+    supMin: <td key="supMin" className="mono">{d.supMin ? d.supMin.toLocaleString('es-ES') : '—'}</td>,
+    supMax: <td key="supMax" className="mono">{d.supMax ? d.supMax.toLocaleString('es-ES') : '—'}</td>,
     tipoB:  <td key="tipoB" style={{ fontSize: 11 }}>{d.tipoB || '—'}</td>,
     razon:  <td key="razon" style={{ fontSize: 11 }}>{d.razon}</td>,
-    _act:   <td key="_act"><div className="ra-cell"><button className="ra p" onClick={e => { e.stopPropagation(); navigate('ficha-demanda') }}>Ver</button></div></td>,
+    _act:   <td key="_act"><div className="ra-cell"><button className="ra p" onClick={e => { e.stopPropagation(); navigate('ficha-demanda', { id: d.ref }) }}>Ver</button></div></td>,
   })
 
   return (
@@ -114,7 +166,7 @@ export default function DemandaList() {
             <tr>{visibleCols.map(c => c.id === '_chk' ? <th key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} /></th> : c.sys ? <th key={c.id}>{c.label}</th> : <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={DEMANDAS} />)}</tr>
           </thead>
           <tbody>
-            {result.map(d => <tr key={d.ref} onClick={() => navigate('ficha-demanda')} style={{ cursor: 'pointer' }}>{visibleCols.map(c => cell(d)[c.id])}</tr>)}
+            {result.map(d => <tr key={d.ref} onClick={() => navigate('ficha-demanda', { id: d.ref })} style={{ cursor: 'pointer' }}>{visibleCols.map(c => cell(d)[c.id])}</tr>)}
           </tbody>
         </table>
       </div>
