@@ -192,7 +192,7 @@ export default function LeadsList() {
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
           <input className="search-inp" placeholder="Buscar leads..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
-        <button className="tbtn prim" onClick={() => setShowNuevo(true)}>+ Nuevo lead</button>
+        <button className="tbtn prim" onClick={() => setShowNuevo(true)}>+ Nuevo lead 🆕</button>
       </div>
 
       {/* Tabla */}
