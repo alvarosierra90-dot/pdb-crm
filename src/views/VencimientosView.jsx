@@ -51,6 +51,7 @@ function mapDbToVencimientos(r) {
       _arrendatarioRef: r.ref,
       _activoRef: r.activo_ref,
       _tenantName: r.nombre,
+      _estadoArr: r.estado_arr || 'Vigente',
       _mesesRecordatorio: mesesRecordatorio,
       _recordatorioFecha: calcRecordatorioISO(r.break_option, mesesRecordatorio),
     })
@@ -71,9 +72,19 @@ function mapDbToVencimientos(r) {
       _arrendatarioRef: r.ref,
       _activoRef: r.activo_ref,
       _tenantName: r.nombre,
+      _estadoArr: r.estado_arr || 'Vigente',
     })
   }
   return entries
+}
+
+const ESTADO_ARR_TAG = {
+  'Vigente':                  { bg:'#f0fdf4', color:'#15803d', border:'#bbf7d0' },
+  'Activo':                   { bg:'#f0fdf4', color:'#15803d', border:'#bbf7d0' },
+  'Próximo a vencimiento':    { bg:'#fef9c3', color:'#ca8a04', border:'#fde047' },
+  'En negociación':           { bg:'#f5f3ff', color:'#7c3aed', border:'#ddd6fe' },
+  'Renovado':                 { bg:'#eff6ff', color:'#1d4ed8', border:'#bfdbfe' },
+  'Finalizado':               { bg:'#f1f5f9', color:'#475569', border:'#cbd5e1' },
 }
 
 function calcRecordatorioISO(isoDate, meses) {
@@ -132,9 +143,13 @@ export default function VencimientosView() {
   useEffect(() => {
     let cancel = false
     setLoadingDB(true)
+    // Excluimos los arrendatarios cuyo contrato ya ha terminado
+    // (estado_arr = 'Finalizado'). Los renovados (Renovado) sí aparecen
+    // porque tienen una nueva fecha futura que sigue siendo deal-flow.
     supabase.from('arrendatarios')
-      .select('ref,nombre,activo_ref,break_option,vencimiento,m2')
+      .select('ref,nombre,activo_ref,break_option,vencimiento,m2,estado_arr')
       .or('break_option.not.is.null,vencimiento.not.is.null')
+      .or('estado_arr.is.null,estado_arr.neq.Finalizado')
       .order('vencimiento', { nullsFirst: false })
       .then(({ data }) => {
         if (cancel) return
@@ -187,13 +202,15 @@ export default function VencimientosView() {
     if (!modal || !modal.fecha) return
     setWorking(true)
     const col = modal.row.tipo === 'Break' ? 'break_option' : 'vencimiento'
+    // Renovar = nueva fecha + estado_arr a 'Renovado' (marca histórica
+    // de que este contrato ha sido renovado al menos una vez).
     const { error } = await supabase
       .from('arrendatarios')
-      .update({ [col]: modal.fecha })
+      .update({ [col]: modal.fecha, estado_arr: 'Renovado' })
       .eq('ref', modal.row._arrendatarioRef)
     setWorking(false)
     if (error) { setToast({ type:'err', msg:`Error renovando: ${error.message}` }); return }
-    setToast({ type:'ok', msg:`✓ Fecha ${modal.row.tipo === 'Break' ? 'de break' : 'de fin de contrato'} actualizada a ${fmtFecha(modal.fecha)}` })
+    setToast({ type:'ok', msg:`✓ Contrato renovado · ${modal.row.tipo === 'Break' ? 'break' : 'fin'} → ${fmtFecha(modal.fecha)} · estado: Renovado` })
     setModal(null)
     setReloadKey(k => k + 1)
   }
@@ -236,11 +253,14 @@ export default function VencimientosView() {
       setToast({ type:'err', msg:`Error creando oferta: ${ofErr.message}` })
       return
     }
-    // 4. Limpiar la fecha del arrendatario para que desaparezca del listado
-    const col = modal.row.tipo === 'Break' ? 'break_option' : 'vencimiento'
-    await supabase.from('arrendatarios').update({ [col]: null }).eq('ref', modal.row._arrendatarioRef)
+    // 4. Marcar el arrendatario como 'Finalizado' + fijar fecha de salida.
+    //    Conservamos las fechas (vencimiento / break_option) como histórico.
+    //    El listado de Vencimientos filtra Finalizado y deja de mostrarlo.
+    await supabase.from('arrendatarios')
+      .update({ estado_arr: 'Finalizado', fecha_salida: modal.row.fecha })
+      .eq('ref', modal.row._arrendatarioRef)
     setWorking(false)
-    setToast({ type:'ok', msg:`✓ Oferta ${ofData.ref} generada para ${activo.nombre || activo.ref}.` })
+    setToast({ type:'ok', msg:`✓ Oferta ${ofData.ref} generada para ${activo.nombre || activo.ref}. Arrendatario marcado como Finalizado.` })
     setModal(null)
     setReloadKey(k => k + 1)
   }
@@ -315,14 +335,14 @@ export default function VencimientosView() {
         <table className="main-tbl">
           <thead>
             <tr>
-              {['','Activo','Arrendatario','Superficie','Línea','Fecha vencim.','Tipo','Recordatorio','Alerta','Acciones'].map(h=>(
+              {['','Activo','Arrendatario','Superficie','Línea','Fecha vencim.','Tipo','Estado','Recordatorio','Alerta','Acciones'].map(h=>(
                 <th key={h}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0
-              ? <tr><td colSpan={10} style={{textAlign:'center',padding:32,color:'var(--text4)',fontSize:12}}>No hay vencimientos para los filtros aplicados</td></tr>
+              ? <tr><td colSpan={11} style={{textAlign:'center',padding:32,color:'var(--text4)',fontSize:12}}>No hay vencimientos para los filtros aplicados</td></tr>
               : filtered.map(v => {
                   const dias = diasRestantes(v.fecha)
                   const recActivo = isRecordatorioActivo(v)
@@ -337,6 +357,12 @@ export default function VencimientosView() {
                       <td><span className="tag tag-blue" style={{fontSize:9}}>{v.linea}</span></td>
                       <td style={{fontSize:11,fontFamily:'var(--mono)',fontWeight:600}}>{fmtFecha(v.fecha)}</td>
                       <td><span className={`tag ${TIPOS_TAG[v.tipo]||'tag-gray'}`} style={{fontSize:9}}>{v.tipo}</span></td>
+                      <td>
+                        {v._estadoArr ? (() => {
+                          const c = ESTADO_ARR_TAG[v._estadoArr] || { bg:'#f1f5f9', color:'#475569', border:'#cbd5e1' }
+                          return <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:9, background:c.bg, color:c.color, border:`1px solid ${c.border}` }}>{v._estadoArr}</span>
+                        })() : <span style={{ fontSize:9, color:'var(--text4)' }}>—</span>}
+                      </td>
                       <td style={{fontSize:10,color:recActivo?'var(--red)':'var(--text3)'}}>
                         {v._recordatorioFecha
                           ? <>{fmtFecha(v._recordatorioFecha)}{recActivo && <span style={{marginLeft:4,fontSize:8,fontWeight:700,color:'var(--red)'}}>⚠ ACTIVO</span>}</>
