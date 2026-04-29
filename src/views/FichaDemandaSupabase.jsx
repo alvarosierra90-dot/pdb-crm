@@ -93,7 +93,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [saveError, setSaveError] = useState(null)
 
   const [form, setForm] = useState({
-    nombre:'', estatus:'', notas:'',
+    nombre:'', estatus:'', notas:'', motivo_descarte:'',
     naturaleza:'', tipo_activo:'', uso_principal:'', tipologia:'', razon_busqueda:'', timing:'',
     sup_min:'', sup_max:'',
     presupuesto_tipo:'', alq_min:'', alq_max:'', venta_m2_min:'', venta_m2_max:'',
@@ -106,7 +106,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
     const { data, error } = await supabase
       .from('demandas')
       .select(`
-        *,
+        id, ref, nombre, estatus, notas, motivo_descarte, requisitos, otros_contactos,
+        dynamics_account_id, dynamics_opportunity_id, created_at, updated_at,
         dynamics_accounts:dynamics_account_id ( dynamics_id, nombre, tipo, sector, direccion, codigo_postal, ciudad, pais, telefono, web ),
         dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo )
       `)
@@ -157,6 +158,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
       nombre:           demanda.nombre || (cuenta?.nombre || ''),
       estatus:          demanda.estatus || 'ongoing',
       notas:            demanda.notas || '',
+      motivo_descarte:  demanda.motivo_descarte || '',
       naturaleza:       r.naturaleza || '',
       tipo_activo:      r.tipo_activo || '',
       uso_principal:    r.uso_principal || '',
@@ -186,6 +188,11 @@ export default function FichaDemandaSupabase({ refOrId }) {
   }
 
   const saveEdit = async () => {
+    // Si pasa a descartada, motivo es obligatorio
+    if (form.estatus === 'descartada' && !form.motivo_descarte.trim()) {
+      setSaveError('Debes indicar el motivo del descarte antes de guardar.')
+      return
+    }
     setSaving(true)
     const requisitos = {
       naturaleza:       form.naturaleza || undefined,
@@ -213,6 +220,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
       nombre:    form.nombre.trim() || null,
       estatus:   form.estatus || 'ongoing',
       notas:     form.notas || null,
+      motivo_descarte: form.estatus === 'descartada' ? (form.motivo_descarte.trim() || null) : null,
       requisitos: Object.keys(requisitos).length ? requisitos : null,
       otros_contactos: form.otros_contactos.length ? form.otros_contactos : null,
       updated_at: new Date().toISOString(),
@@ -384,6 +392,24 @@ export default function FichaDemandaSupabase({ refOrId }) {
                             : (ESTADO_LABEL[demanda.estatus] || demanda.estatus || '—')}
                         </span>
                       </div>
+                      {/* Motivo de descarte: obligatorio cuando se elige descartada */}
+                      {(form.estatus === 'descartada' || demanda.motivo_descarte) && (
+                        <div className="ir" style={{ alignItems:'flex-start' }}>
+                          <span className="ir-k" style={{ color: form.estatus === 'descartada' ? '#dc2626' : 'var(--text4)', fontWeight:700 }}>
+                            Motivo del descarte {form.estatus === 'descartada' && <span style={{ color:'#dc2626' }}>*</span>}
+                          </span>
+                          <span className="ir-v" style={{ flex:1 }}>
+                            {editing
+                              ? <textarea
+                                  style={{ ...ta, minHeight:50, borderColor: form.estatus === 'descartada' && !form.motivo_descarte.trim() ? '#dc2626' : 'var(--border)' }}
+                                  value={form.motivo_descarte}
+                                  onChange={e => setF('motivo_descarte', e.target.value)}
+                                  placeholder={form.estatus === 'descartada' ? 'Obligatorio: explica por qué se descarta esta demanda...' : ''}
+                                />
+                              : (demanda.motivo_descarte || <span style={{ color:'var(--text4)' }}>—</span>)}
+                          </span>
+                        </div>
+                      )}
                       <div className="ir"><span className="ir-k">Equipo</span><span className="ir-v">Leasing Oficinas — MAD</span></div>
                     </div>
                   </div>

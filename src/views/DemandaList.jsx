@@ -4,19 +4,8 @@ import { supabase } from '../lib/supabase'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 
-const DEMANDAS = [
-  {ref:'D251035690',origen:'OTRAS CONSULTORAS',created:'17/10/2025',by:'Sierra Alvaro',cuenta:'Grupo Empresarial Altamira SL',desc:'Búsqueda de oficinas estándar en zona norte de Madrid, aprox. 2.500 m².',estado:'En Curso',supMin:2200,supMax:3000,tipoB:'Estándar',razon:'Expansión / Crecimiento'},
-  {ref:'D251035500',origen:'IDEALISTA',created:'20/10/2025',by:'GOMEZ Ignacio',cuenta:'Nexo Digital Media SL',desc:'Interesados en espacios flexibles en entorno tecnológico Madrid.',estado:'En Curso',supMin:300,supMax:500,tipoB:'',razon:'Expansión / Crecimiento'},
-  {ref:'D250935800',origen:'Web Savills',created:'01/10/2025',by:'Sierra Alvaro',cuenta:'Centro Médico Integra SL',desc:'Búsqueda de local u oficina en zona norte para uso sanitario.',estado:'En Curso',supMin:200,supMax:300,tipoB:'',razon:'Expansión / Crecimiento'},
-  {ref:'D250935600',origen:'Web Savills',created:'30/09/2025',by:'Sierra Alvaro',cuenta:'Hospitality Group Iberia SL',desc:'Contacto directo. Gestión patrimonial busca inmueble para nueva operación.',estado:'En Curso',supMin:2000,supMax:6000,tipoB:'',razon:'Expansión / Crecimiento'},
-  {ref:'D250935400',origen:'WEB EXTERNA',created:'25/09/2025',by:'GOMEZ Ignacio',cuenta:'Estudio Arquitectura Vértice',desc:'Demanda captada vía portal externo. Buscan oficina representativa.',estado:'En Curso',supMin:600,supMax:1000,tipoB:'Estándar',razon:'Expansión / Crecimiento'},
-  {ref:'D250934800',origen:'Savills Internacional',created:'15/09/2025',by:'GOMEZ Ignacio',cuenta:'Flexwork Solutions Spain SL',desc:'Demanda recurrente de operador de espacios flexibles a nivel nacional.',estado:'En Curso',supMin:800,supMax:6000,tipoB:'Estándar / Flexible',razon:'Expansión / Crecimiento'},
-  {ref:'D250934600',origen:'COVERAGE',created:'12/09/2025',by:'GOMEZ Ignacio',cuenta:'Grupo Mediática España',desc:'Empresa de comunicación busca nueva sede para 2027. Proceso largo.',estado:'En Curso',supMin:13000,supMax:18000,tipoB:'Estándar',razon:'Reagrupación de espacios'},
-  {ref:'D250934200',origen:'Private Wealth',created:'04/09/2025',by:'GOMEZ Ignacio',cuenta:'Capital Industrial Partners',desc:'Family office busca activo de oficinas como inversión patrimonial.',estado:'En Curso',supMin:500,supMax:700,tipoB:'Estándar',razon:'Reubicación'},
-  {ref:'D250934000',origen:'COLABORADOR',created:'03/09/2025',by:'Sierra Alvaro',cuenta:'Academia Global Formación SL',desc:'Referenciado por colaborador externo. Necesitan espacio formativo.',estado:'En Curso',supMin:700,supMax:900,tipoB:'',razon:'Expansión / Crecimiento'},
-  {ref:'D250733400',origen:'SAVILLS ESPAÑA',created:'16/07/2025',by:'GOMEZ Ignacio',cuenta:'Inversiones Familiar Velada',desc:'Family office busca inmueble premium entre 1.800 y 2.500 m².',estado:'En Curso',supMin:1400,supMax:2500,tipoB:'',razon:'Creación'},
-  {ref:'D250733200',origen:'OTROS SITIOS WEB',created:'09/07/2025',by:'Sierra Alvaro',cuenta:'Maritime Trading España',desc:'Captado vía portal externo. Búsqueda en zona consolidada.',estado:'Paralizado',supMin:220,supMax:400,tipoB:'',razon:'Expansión / Crecimiento'},
-]
+// Las demandas viven en Supabase (migración 016 las migró todas).
+// Aquí solo queda el mapeo visual de estados.
 const estadoTag = e => e === 'En Curso' ? 'tag-green' : e === 'Paralizado' ? 'tag-amber' : 'tag-gray'
 
 const COLS = [
@@ -41,6 +30,9 @@ function fmtDateEs(ts) {
   return d.toLocaleDateString('es-ES')
 }
 
+// estatus que computan como "activas" en el listado principal
+const ESTATUS_ACTIVAS = ['ongoing','potencial','paralizada']
+
 export default function DemandaList() {
   const { navigate } = useNav()
   const [query, setQuery] = useState('')
@@ -48,6 +40,8 @@ export default function DemandaList() {
   const [af, setAf] = useState({ estado: '', origen: '', by: '', tipoB: '', supMin: '', supMax: '' })
   const [vis, setVis] = useVisibleCols('demandas', COLS)
   const [supabaseDems, setSupabaseDems] = useState([])
+  const [vista, setVista] = useState('activas') // 'activas' | 'desactivadas'
+  const [reloadKey, setReloadKey] = useState(0)
 
   // Carga las demandas reales desde Supabase y las mapea al formato de la lista
   useEffect(() => {
@@ -56,7 +50,7 @@ export default function DemandaList() {
       const { data, error } = await supabase
         .from('demandas')
         .select(`
-          id, ref, nombre, estatus, notas, requisitos, created_at,
+          id, ref, nombre, estatus, notas, requisitos, motivo_descarte, created_at,
           dynamics_account_id,
           dynamics_accounts:dynamics_account_id ( nombre )
         `)
@@ -64,6 +58,7 @@ export default function DemandaList() {
       if (cancel || error) return
       const rows = (data || []).map(d => ({
         ref:    d.ref,
+        id:     d.id,
         cuenta: d.dynamics_accounts?.nombre || '(Cuenta pendiente)',
         origen: 'Lead',
         created: fmtDateEs(d.created_at),
@@ -79,19 +74,31 @@ export default function DemandaList() {
         supMax: Number(d.requisitos?.m2_max) || 0,
         tipoB:  d.requisitos?.tipologia || '',
         razon:  '—',
-        _isSupabase: true,
-        _pendiente: !d.nombre && !d.notas,
+        _estatus:    d.estatus,
+        _activa:     ESTATUS_ACTIVAS.includes(d.estatus),
+        _motivo:     d.motivo_descarte || null,
+        _pendiente:  !d.nombre && !d.notas,
       }))
       setSupabaseDems(rows)
     }
     load()
     return () => { cancel = true }
-  }, [])
+  }, [reloadKey])
 
-  const allDemandas = [...supabaseDems, ...DEMANDAS]
+  const handleReactivar = async (id, e) => {
+    e.stopPropagation()
+    await supabase.from('demandas')
+      .update({ estatus: 'ongoing', motivo_descarte: null, updated_at: new Date().toISOString() })
+      .eq('id', id)
+    setReloadKey(k => k + 1)
+  }
+
+  const demandasActivas = supabaseDems.filter(d => d._activa)
+  const demandasDesact  = supabaseDems.filter(d => !d._activa)
+  const vistaList = vista === 'activas' ? demandasActivas : demandasDesact
 
   const advCount = Object.values(af).filter(Boolean).length
-  const preFiltered = allDemandas.filter(d => {
+  const preFiltered = vistaList.filter(d => {
     const q = query.toLowerCase()
     if (q && !d.cuenta.toLowerCase().includes(q) && !d.ref.toLowerCase().includes(q) && !d.origen.toLowerCase().includes(q)) return false
     if (af.estado && d.estado !== af.estado) return false
@@ -122,18 +129,41 @@ export default function DemandaList() {
     supMax: <td key="supMax" className="mono">{d.supMax ? d.supMax.toLocaleString('es-ES') : '—'}</td>,
     tipoB:  <td key="tipoB" style={{ fontSize: 11 }}>{d.tipoB || '—'}</td>,
     razon:  <td key="razon" style={{ fontSize: 11 }}>{d.razon}</td>,
-    _act:   <td key="_act"><div className="ra-cell"><button className="ra p" onClick={e => { e.stopPropagation(); navigate('ficha-demanda', { id: d.ref }) }}>Ver</button></div></td>,
+    _act:   <td key="_act"><div className="ra-cell">
+              <button className="ra p" onClick={e => { e.stopPropagation(); navigate('ficha-demanda', { id: d.ref }) }}>Ver</button>
+              {vista === 'desactivadas' && d.id && (
+                <button className="ra" style={{ color:'var(--green)', borderColor:'var(--green)' }} onClick={e => handleReactivar(d.id, e)}>Reactivar</button>
+              )}
+            </div></td>,
   })
+
+  // KPIs derivados de los datos reales
+  const enCurso       = demandasActivas.filter(d => d._estatus === 'ongoing').length
+  const paralizadas   = demandasActivas.filter(d => d._estatus === 'paralizada').length
+  const potenciales   = demandasActivas.filter(d => d._estatus === 'potencial').length
+  const supMediaBusc  = demandasActivas.length
+    ? Math.round(demandasActivas.reduce((s, d) => s + ((d.supMin + d.supMax) / 2), 0) / demandasActivas.length)
+    : 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
       <div className="kpi-strip" style={{ gridTemplateColumns: 'repeat(5,1fr)' }}>
-        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Total demandas</div><div className="ks-val">63</div><div className="ks-sub">Equipo Off Leas MAD · 2025</div></div>
-        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">En curso</div><div className="ks-val green">58</div></div>
-        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Paralizadas</div><div className="ks-val amber">5</div></div>
-        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Sup. media buscada</div><div className="ks-val">2.800 m²</div></div>
-        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Sólo alquiler</div><div className="ks-val" style={{ color: 'var(--accent)' }}>63</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Activas</div><div className="ks-val green">{demandasActivas.length}</div><div className="ks-sub">En curso + potencial + paralizada</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">En curso</div><div className="ks-val">{enCurso}</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Paralizadas</div><div className="ks-val amber">{paralizadas}</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Potenciales</div><div className="ks-val" style={{ color:'var(--accent)' }}>{potenciales}</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Desactivadas</div><div className="ks-val" style={{ color:'var(--text3)' }}>{demandasDesact.length}</div><div className="ks-sub">Descartadas / cerradas</div></div>
       </div>
+
+      {/* Tabs Activas / Desactivadas */}
+      <div style={{ display:'flex', borderBottom:'1px solid var(--border)', background:'var(--surface)', paddingLeft:16, paddingTop:6, gap:0 }}>
+        {[['activas','Activas'],['desactivadas','Desactivadas']].map(([k, l]) => (
+          <button key={k} onClick={() => setVista(k)} style={{ padding:'6px 16px', fontSize:11, fontWeight: vista === k ? 600 : 500, cursor:'pointer', border:'none', borderBottom: vista === k ? '2px solid var(--accent)' : '2px solid transparent', background:'none', color: vista === k ? 'var(--accent)' : 'var(--text3)', fontFamily:'inherit' }}>
+            {l}{k === 'desactivadas' && demandasDesact.length > 0 && <span style={{ marginLeft:5, fontSize:9, background:'var(--border)', borderRadius:8, padding:'0 4px' }}>{demandasDesact.length}</span>}
+          </button>
+        ))}
+      </div>
+
       <div className="list-toolbar">
         <div className="search-wrap">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4" /><path d="M11 11l3 3" /></svg>
@@ -163,7 +193,7 @@ export default function DemandaList() {
       <div className="tbl-wrap">
         <table className="main-tbl">
           <thead>
-            <tr>{visibleCols.map(c => c.id === '_chk' ? <th key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} /></th> : c.sys ? <th key={c.id}>{c.label}</th> : <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={DEMANDAS} />)}</tr>
+            <tr>{visibleCols.map(c => c.id === '_chk' ? <th key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} /></th> : c.sys ? <th key={c.id}>{c.label}</th> : <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={vistaList} />)}</tr>
           </thead>
           <tbody>
             {result.map(d => <tr key={d.ref} onClick={() => navigate('ficha-demanda', { id: d.ref })} style={{ cursor: 'pointer' }}>{visibleCols.map(c => cell(d)[c.id])}</tr>)}
