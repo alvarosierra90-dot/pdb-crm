@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
+import FichaPendienteSupabase, { isSupabaseRef } from '../components/FichaPendienteSupabase'
 
 const DEM_USERS_INIT = [
   { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', granted:'—', owner:true },
@@ -298,6 +299,17 @@ function RightPanel({ navigate, naturaleza, cmFields }) {
 }
 
 export default function FichaDemanda() {
+  const { params } = useNav()
+  // Si la ref viene del nuevo formato Supabase (DEM-2026-XXXX),
+  // delega en la ficha real cargada desde BBDD. Wrapper al exterior
+  // para no violar las reglas de hooks (la ficha mock tiene muchos useState).
+  if (isSupabaseRef(params.id)) {
+    return <FichaPendienteSupabase entity="demanda" refOrId={params.id} />
+  }
+  return <FichaDemandaMock />
+}
+
+function FichaDemandaMock() {
   const { navigate } = useNav()
   const [activeTab, setActiveTab] = useState('dem-info')
   const [showTarea, setShowTarea] = useState(false)

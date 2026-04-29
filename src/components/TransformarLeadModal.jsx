@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { tipoOportunidad } from '../data/mockLeads'
 
@@ -88,6 +89,7 @@ const ESQUEMAS = {
 }
 
 export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
+  const { navigate } = useNav()
   const [pitch, setPitch] = useState(null) // null | true | false
   const [cuentaQuery, setCuentaQuery]     = useState(lead.dynamics_accounts?.nombre || '')
   const [cuentaPick, setCuentaPick]       = useState(lead.dynamics_account_id ? { dynamics_id: lead.dynamics_account_id, nombre: lead.dynamics_accounts?.nombre } : null)
@@ -173,38 +175,34 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
         ultima_actividad:        ahora,
       }
 
-      // 2) Crear destino según esquema
+      // 2) Crear destino según esquema. NO se prefillan campos de contenido
+      //    (nombre, tipo, notas, comentarios, equipo, responsable). Solo
+      //    los FK estructurales obligatorios. El usuario los completa en
+      //    la ficha del nuevo registro.
+      let destinoView = null
       if (esquema.destino === 'propuesta') {
         const ref = await nextRef('PRY')
         const { data: prop, error: e2 } = await supabase.from('propuestas').insert({
           ref,
-          nombre: lead.nombre,
           dynamics_opportunity_id: dynOppId,
           dynamics_account_id:     cuentaId,
           lead_id:                 lead.id,
-          tipo:                    `Pitch ${lead.tipo === 'demanda' ? 'Demanda' : lead.tipo === 'oferta' ? 'Oferta' : 'Genérico'}`,
-          estado:                  'borrador',
-          equipo:                  lead.equipo,
-          responsable:             lead.responsable,
-          notas:                   lead.descripcion,
         }).select('id, ref').single()
         if (e2) throw new Error(`Propuesta: ${e2.message}`)
         leadUpdate.propuesta_id = prop.id
         out.destinoRef = prop.ref
+        destinoView = 'ficha-propuesta'
       } else if (esquema.destino === 'demanda') {
         const ref = await nextRef('DEM')
         const { data: dem, error: e2 } = await supabase.from('demandas').insert({
           ref,
-          nombre:                  lead.nombre,
           dynamics_opportunity_id: dynOppId,
           dynamics_account_id:     cuentaId,
-          requisitos:              {},
-          estatus:                 'ongoing',
-          notas:                   lead.descripcion,
         }).select('id, ref').single()
         if (e2) throw new Error(`Demanda: ${e2.message}`)
         leadUpdate.demanda_id = dem.id
         out.destinoRef = dem.ref
+        destinoView = 'ficha-demanda'
       } else if (esquema.destino === 'oferta') {
         const ref = await nextRef('OFE')
         const { data: ofe, error: e2 } = await supabase.from('ofertas').insert({
@@ -212,21 +210,30 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
           activo_id:               activoPick.id,
           dynamics_opportunity_id: dynOppId,
           dynamics_account_id:     cuentaId,
-          tipo_mercado:            'mercado',
-          estado:                  'En curso',
-          comentarios:             lead.descripcion,
         }).select('id, ref').single()
         if (e2) throw new Error(`Oferta: ${e2.message}`)
         leadUpdate.oferta_id = ofe.id
         out.destinoRef = ofe.ref
+        destinoView = 'ficha-oferta'
       }
 
       // 3) Actualizar el lead
       const { error: e3 } = await supabase.from('leads').update(leadUpdate).eq('id', lead.id)
       if (e3) throw new Error(`Lead: ${e3.message}`)
 
+      out.destinoView = destinoView
       setSubmitted(out)
       setSubmitting(false)
+
+      // 4) Redirigir directamente a la ficha del registro creado.
+      //    Si no hay destino (genérico directo), se queda en el lead.
+      if (destinoView && out.destinoRef) {
+        // Pequeño delay para que el usuario vea el éxito antes de saltar
+        setTimeout(() => {
+          if (onSuccess) onSuccess()
+          navigate(destinoView, { id: out.destinoRef })
+        }, 1200)
+      }
     } catch (e) {
       setError(e.message)
       setSubmitting(false)

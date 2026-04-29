@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { supabase } from '../lib/supabase'
 import { OFERTAS as MOCK_OFERTAS, ACTIVOS as MOCK_ACTIVOS } from '../data/mockData'
+import FichaPendienteSupabase, { isSupabaseRef } from '../components/FichaPendienteSupabase'
 // IMPORTANTE: Importar el StackingPlan exacto de FichaActivo para garantizar
 // igualdad visual y funcional total entre Activo y Oferta (regla del usuario).
 import { StackingPlan } from './FichaActivo'
@@ -111,6 +112,14 @@ function ReadonlyPill({ value }) {
 
 
 export default function FichaOferta() {
+  const { params } = useNav()
+  if (isSupabaseRef(params.id)) {
+    return <FichaPendienteSupabase entity="oferta" refOrId={params.id} />
+  }
+  return <FichaOfertaMock />
+}
+
+function FichaOfertaMock() {
   const { navigate, params } = useNav()
   const [activeTab, setActiveTab] = useState('of-info')
   const [confidential, setConfidential] = useState(false)
