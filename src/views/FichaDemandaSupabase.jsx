@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
+import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
 
 const DEM_TABS = [
   ['dem-info',     'Información Demanda'],
+  ['dem-equipo',   'Equipo de trabajo'],
   ['dem-req',      'Requisitos'],
   ['dem-zona',     'Zona búsqueda'],
   ['dem-seg',      'Seguimiento comercial'],
@@ -120,7 +122,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
     const { data, error } = await supabase
       .from('demandas')
       .select(`
-        id, ref, nombre, estatus, notas, motivo_descarte, requisitos, otros_contactos,
+        id, ref, nombre, estatus, notas, motivo_descarte, requisitos, otros_contactos, equipo_trabajo,
         dynamics_account_id, dynamics_opportunity_id, created_at, updated_at,
         dynamics_accounts:dynamics_account_id ( dynamics_id, nombre, tipo, sector, direccion, codigo_postal, ciudad, pais, telefono, web ),
         dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo )
@@ -533,6 +535,29 @@ export default function FichaDemandaSupabase({ refOrId }) {
               </div>
             </div></div>
           )}
+
+          {/* TAB: Equipo de trabajo */}
+          {tab === 'dem-equipo' && (() => {
+            const equipo = Array.isArray(demanda.equipo_trabajo) ? demanda.equipo_trabajo : []
+            const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
+            const canManage = userIsPrincipal || equipo.length === 0
+            const handlers = makeEquipoHandlers({
+              supabase, table:'demandas', idValue:demanda.id, equipo,
+              onAfter: () => load(),
+              onError: (msg) => setSaveError(msg),
+            })
+            return (
+              <div className="tab-content active"><div className="info-pad">
+                <EquipoTrabajoCard
+                  equipo={equipo}
+                  canManage={canManage}
+                  onAdd={handlers.addMiembro}
+                  onRemove={handlers.removeMiembro}
+                  onUpdateRol={handlers.updateMiembroRol}
+                />
+              </div></div>
+            )
+          })()}
 
           {/* TAB: Requisitos */}
           {tab === 'dem-req' && (

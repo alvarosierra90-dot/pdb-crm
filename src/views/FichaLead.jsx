@@ -5,7 +5,11 @@ import { LEAD_TIPOS, LEAD_ESTADOS, LEAD_PRIORIDADES, LEAD_CANALES } from '../dat
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import TransformarLeadModal from '../components/TransformarLeadModal'
 import LeadNuloModal from '../components/LeadNuloModal'
+import EquipoTrabajoCard, { isPrincipal as _isPrincipal } from '../components/EquipoTrabajoCard'
 
+// Lista de equipos para el dropdown legacy "Asignación → Equipo" del
+// lead. El equipo de trabajo (Principal/Soporte/Colaborador) usa los
+// equipos definidos en components/EquipoTrabajoCard.
 const EQUIPOS = [
   'Leasing Oficinas Madrid',
   'Leasing Oficinas Barcelona',
@@ -17,27 +21,6 @@ const EQUIPOS = [
   'Advisory & Consultancy',
   'Valuations',
 ]
-
-// Catálogo de miembros por equipo (espejo de UsuariosList; cuando exista
-// la tabla `usuarios` en Supabase esto se reemplaza por una query).
-const MIEMBROS_POR_EQUIPO = {
-  'Leasing Oficinas Madrid':    ['Sierra Álvaro','GOMEZ Ignacio','Consultor MAD','Alonso Abruña D.'],
-  'Leasing Oficinas Barcelona': ['Pérez Joan','Martí Sara'],
-  'Industrial & Logistics':     ['Castro Andrea','Romero David'],
-  'Retail':                     ['Ortega Sergio'],
-  'Capital Markets':            ['García Marta','Ruiz Pablo','Vidal Elena'],
-  'Hotels':                     ['Aguirre Laura'],
-  'Alternativos':               ['Hernández Lucía'],
-  'Advisory & Consultancy':     ['López Carmen','Domínguez Pedro'],
-  'Valuations':                 ['López Carmen'],
-}
-
-const ROLES = ['Principal','Soporte','Colaborador']
-const ROL_TAG = {
-  'Principal':   { bg:'#eff6ff', color:'#1d4ed8', border:'#bfdbfe' },
-  'Soporte':     { bg:'#f5f3ff', color:'#7c3aed', border:'#ddd6fe' },
-  'Colaborador': { bg:'#f1f5f9', color:'#475569', border:'#cbd5e1' },
-}
 
 const inlineInp = {
   width:'100%', padding:'4px 7px', fontSize:11.5, border:'1px solid var(--border)',
@@ -158,11 +141,10 @@ export default function FichaLead() {
   const oportunidadNombre = lead.dynamics_opportunities?.nombre || null
 
   const equipoTrabajo = Array.isArray(lead.equipo_trabajo) ? lead.equipo_trabajo : []
-  const principales   = equipoTrabajo.filter(m => m.rol === 'Principal')
   // Spec: solo Principales pueden añadir/quitar miembros y editar la ficha.
   // Si aún no hay equipo de trabajo (lead recién capturado), permitimos
   // edición al usuario actual o al responsable legacy.
-  const userIsPrincipal = principales.some(m => (m.nombre || '').trim().toLowerCase() === CURRENT_USER.nombre.toLowerCase())
+  const userIsPrincipal = _isPrincipal(equipoTrabajo, CURRENT_USER.nombre)
   const cerrado  = lead.estado === 'cualificado' || lead.estado === 'no_cualificado'
   const canEdit  = userIsPrincipal || (equipoTrabajo.length === 0 && (esResponsable(lead) || !lead.responsable))
   const canManageTeam = userIsPrincipal || equipoTrabajo.length === 0
@@ -629,128 +611,6 @@ export default function FichaLead() {
 
       {showTransformar && <TransformarLeadModal lead={lead} onClose={() => setShowTransformar(false)} onSuccess={() => { setShowTransformar(false); loadLead() }} />}
       {showNulo        && <LeadNuloModal       lead={lead} onClose={() => setShowNulo(false)}       onSuccess={() => { setShowNulo(false); loadLead() }} />}
-    </div>
-  )
-}
-
-// ============================================================
-// Equipo de trabajo: tabla de miembros + form para añadir uno nuevo
-// ============================================================
-function EquipoTrabajoCard({ equipo, canManage, onAdd, onRemove, onUpdateRol }) {
-  const [adding, setAdding] = useState(false)
-  const [draftEquipo, setDraftEquipo] = useState('')
-  const [draftMiembro, setDraftMiembro] = useState('')
-  const [draftRol, setDraftRol]         = useState('Soporte')
-
-  const principales = equipo.filter(m => m.rol === 'Principal').length
-
-  const submit = () => {
-    if (!draftEquipo || !draftMiembro || !draftRol) return
-    onAdd(draftMiembro, draftEquipo, draftRol)
-    setAdding(false)
-    setDraftEquipo(''); setDraftMiembro(''); setDraftRol('Soporte')
-  }
-
-  return (
-    <div className="va-card" style={{ marginBottom:14 }}>
-      <div className="va-card-header" style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <h3><span className="ico" style={{ color:'var(--accent)' }}>●</span> Equipo de trabajo</h3>
-        <span style={{ fontSize:10, color:'var(--text4)' }}>
-          {equipo.length === 0 ? 'Sin miembros' : `${equipo.length} miembro(s) · ${principales} Principal(es)`}
-        </span>
-      </div>
-
-      <div style={{ padding:'4px 20px 14px' }}>
-        {equipo.length === 0 ? (
-          <div style={{ fontSize:11, color:'var(--text4)', padding:'6px 0' }}>
-            Aún no hay equipo de trabajo asignado. Añade al menos un Principal.
-          </div>
-        ) : (
-          <table className="pat-table" style={{ marginBottom:10 }}>
-            <thead>
-              <tr>
-                <th>Miembro</th>
-                <th>Equipo</th>
-                <th style={{ width:140 }}>Rol</th>
-                {canManage && <th style={{ width:32 }}></th>}
-              </tr>
-            </thead>
-            <tbody>
-              {equipo.map((m, idx) => {
-                const c = ROL_TAG[m.rol] || ROL_TAG['Colaborador']
-                return (
-                  <tr key={`${m.nombre}-${m.equipo}-${idx}`}>
-                    <td style={{ fontWeight:600 }}>{m.nombre}</td>
-                    <td style={{ fontSize:11, color:'var(--text3)' }}>{m.equipo || '—'}</td>
-                    <td>
-                      {canManage ? (
-                        <select
-                          value={m.rol}
-                          onChange={e => onUpdateRol(idx, e.target.value)}
-                          style={{ fontSize:11, padding:'3px 6px', border:`1px solid ${c.border}`, borderRadius:4, color:c.color, background:c.bg, fontWeight:700, fontFamily:'inherit' }}
-                        >
-                          {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
-                      ) : (
-                        <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:9, background:c.bg, color:c.color, border:`1px solid ${c.border}` }}>{m.rol}</span>
-                      )}
-                    </td>
-                    {canManage && (
-                      <td style={{ textAlign:'right' }}>
-                        <button
-                          onClick={() => onRemove(idx)}
-                          style={{ background:'none', border:'none', color:'var(--text4)', cursor:'pointer', fontSize:14, padding:'2px 6px' }}
-                          title="Quitar del equipo"
-                        >×</button>
-                      </td>
-                    )}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-
-        {!canManage && equipo.length > 0 && (
-          <div style={{ fontSize:10, color:'var(--text4)', fontStyle:'italic' }}>
-            🔒 Solo los Principales del equipo pueden añadir o quitar miembros.
-          </div>
-        )}
-
-        {canManage && !adding && (
-          <button
-            onClick={() => setAdding(true)}
-            style={{ padding:'6px 12px', fontSize:11, fontWeight:600, border:'1px dashed var(--accent)', color:'var(--accent)', background:'var(--accent-lt)', borderRadius:5, cursor:'pointer', fontFamily:'inherit' }}
-          >
-            + Añadir miembro
-          </button>
-        )}
-
-        {canManage && adding && (
-          <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:6, padding:12, display:'grid', gridTemplateColumns:'1fr 1fr 130px auto auto', gap:8, alignItems:'center' }}>
-            <select value={draftEquipo} onChange={e => { setDraftEquipo(e.target.value); setDraftMiembro('') }} style={{ padding:'7px 9px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background:'#fff', fontFamily:'inherit' }}>
-              <option value="">Selecciona equipo...</option>
-              {EQUIPOS.map(eq => <option key={eq} value={eq}>{eq}</option>)}
-            </select>
-            <select value={draftMiembro} onChange={e => setDraftMiembro(e.target.value)} disabled={!draftEquipo} style={{ padding:'7px 9px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background: draftEquipo ? '#fff' : 'var(--gray-lt)', fontFamily:'inherit' }}>
-              <option value="">{draftEquipo ? 'Selecciona miembro...' : '— elige equipo primero —'}</option>
-              {(MIEMBROS_POR_EQUIPO[draftEquipo] || []).map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-            <select value={draftRol} onChange={e => setDraftRol(e.target.value)} style={{ padding:'7px 9px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background:'#fff', fontFamily:'inherit' }}>
-              {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-            <button
-              onClick={submit}
-              disabled={!draftEquipo || !draftMiembro}
-              style={{ padding:'7px 14px', fontSize:12, fontWeight:600, border:'none', borderRadius:5, background:'var(--accent)', color:'#fff', cursor:'pointer', fontFamily:'inherit', opacity:(draftEquipo&&draftMiembro)?1:0.5 }}
-            >Añadir</button>
-            <button
-              onClick={() => { setAdding(false); setDraftEquipo(''); setDraftMiembro(''); setDraftRol('Soporte') }}
-              style={{ padding:'7px 10px', fontSize:11, border:'1px solid var(--border)', borderRadius:5, background:'#fff', cursor:'pointer', fontFamily:'inherit' }}
-            >Cancelar</button>
-          </div>
-        )}
-      </div>
     </div>
   )
 }

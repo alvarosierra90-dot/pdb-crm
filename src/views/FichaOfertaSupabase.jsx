@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
+import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
 
 // Mismas pestañas que la mock (FichaOferta TABS / TAB_LABELS)
 const OF_TABS = [
   ['of-info',        'Información oferta'],
+  ['of-equipo',      'Equipo de trabajo'],
   ['of-stacking',    'Stacking plan'],
   ['of-espacios',    'Espacios comerciales'],
   ['of-condiciones', 'Condiciones'],
@@ -474,6 +476,27 @@ export default function FichaOfertaSupabase({ refOrId }) {
             </div></div>
           )}
 
+          {tab === 'of-equipo' && (() => {
+            const equipo = Array.isArray(oferta.equipo_trabajo) ? oferta.equipo_trabajo : []
+            const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
+            const canManage = userIsPrincipal || equipo.length === 0
+            const handlers = makeEquipoHandlers({
+              supabase, table:'ofertas', idValue:oferta.id, equipo,
+              onAfter: () => load(),
+              onError: (msg) => setSaveError(msg),
+            })
+            return (
+              <div className="tab-content active"><div className="info-pad">
+                <EquipoTrabajoCard
+                  equipo={equipo}
+                  canManage={canManage}
+                  onAdd={handlers.addMiembro}
+                  onRemove={handlers.removeMiembro}
+                  onUpdateRol={handlers.updateMiembroRol}
+                />
+              </div></div>
+            )
+          })()}
           {tab === 'of-stacking' && <div className="tab-content active"><StubTab label="Stacking plan" /></div>}
           {tab === 'of-espacios' && <div className="tab-content active"><StubTab label="Espacios comerciales" /></div>}
           {tab === 'of-caract'   && <div className="tab-content active"><StubTab label="Características" /></div>}

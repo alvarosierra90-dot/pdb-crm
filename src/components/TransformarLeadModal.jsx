@@ -231,6 +231,12 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
       //    (nombre, tipo, notas, comentarios, equipo, responsable). Solo
       //    los FK estructurales obligatorios. El usuario los completa en
       //    la ficha del nuevo registro.
+      // Propagación del equipo de trabajo: cada entidad downstream
+      // hereda una copia editable del equipo del Lead. La copia es
+      // independiente: editar el equipo del downstream no contamina
+      // al lead origen.
+      const equipoHeredado = Array.isArray(lead.equipo_trabajo) ? lead.equipo_trabajo : []
+
       let destinoView = null
       if (esquema.destino === 'propuesta') {
         const ref = await nextRef('PRY')
@@ -241,6 +247,7 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
           dynamics_opportunity_id: dynOppId,
           dynamics_account_id:     cuentaId,
           lead_id:                 lead.id,
+          equipo_trabajo:          equipoHeredado,
         }).select('id, ref').single()
         if (e2) throw new Error(`Propuesta: ${e2.message}`)
         leadUpdate.propuesta_id = prop.id
@@ -256,6 +263,7 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
           nombre:                  nombreDerivado,
           dynamics_opportunity_id: dynOppId,
           dynamics_account_id:     cuentaId,
+          equipo_trabajo:          equipoHeredado,
         }).select('id, ref').single()
         if (e2) throw new Error(`Demanda: ${e2.message}`)
         leadUpdate.demanda_id = dem.id
@@ -268,6 +276,7 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
           activo_id:               activoPick.id,
           dynamics_opportunity_id: dynOppId,
           dynamics_account_id:     cuentaId,
+          equipo_trabajo:          equipoHeredado,
         }).select('id, ref').single()
         if (e2) throw new Error(`Oferta: ${e2.message}`)
         leadUpdate.oferta_id = ofe.id

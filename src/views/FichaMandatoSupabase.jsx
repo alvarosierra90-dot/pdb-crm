@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER } from '../lib/currentUser'
+import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
 
 const MAN_TABS = [
   ['man-info',     'Información'],
+  ['man-equipo',   'Equipo de trabajo'],
   ['man-activos',  'Activos vinculados'],
   ['man-vigencia', 'Vigencia y alertas'],
   ['man-excl',     'Exclusividad'],
@@ -124,7 +126,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
         fecha_firma, fecha_inicio, fecha_vencimiento, preaviso_dias, alerta_dias,
         prorroga_tacita, prorroga_meses,
         fee_porcentaje, fee_eur_fijo, fee_min_garantizado, fee_sliding_jsonb, fee_compartido_jsonb,
-        responsable, equipo, departamento, provincia, zona, notas,
+        responsable, equipo, departamento, provincia, zona, notas, equipo_trabajo,
         dynamics_account_id, dynamics_opportunity_id, cuenta_agente_id, contacto_agente_id,
         created_at, updated_at,
         dynamics_accounts:dynamics_account_id ( dynamics_id, nombre, tipo, sector, telefono, ciudad, direccion, codigo_postal, pais, web ),
@@ -888,6 +890,27 @@ export default function FichaMandatoSupabase({ refOrId }) {
             )
           })()}
 
+          {tab === 'man-equipo' && (() => {
+            const equipo = Array.isArray(mandato.equipo_trabajo) ? mandato.equipo_trabajo : []
+            const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
+            const canManage = userIsPrincipal || equipo.length === 0
+            const handlers = makeEquipoHandlers({
+              supabase, table:'mandatos', idValue:mandato.id, equipo,
+              onAfter: () => load(),
+              onError: (msg) => setSaveError(msg),
+            })
+            return (
+              <div className="tab-content active"><div className="info-pad">
+                <EquipoTrabajoCard
+                  equipo={equipo}
+                  canManage={canManage}
+                  onAdd={handlers.addMiembro}
+                  onRemove={handlers.removeMiembro}
+                  onUpdateRol={handlers.updateMiembroRol}
+                />
+              </div></div>
+            )
+          })()}
           {tab === 'man-docs' && <StubTab label="Documentos del mandato" />}
           {tab === 'man-act'  && <StubTab label="Actividades asociadas" />}
           {tab === 'man-conf' && <StubTab label="Confidencialidad" />}
