@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { supabase } from '../lib/supabase'
 import { MOTIVOS_LEAD_NULO } from '../data/mockLeads'
 
 const overlay = {
@@ -19,17 +20,40 @@ const footer = { padding:'14px 20px', borderTop:'1px solid var(--border)', displ
 const lbl = { fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4, display:'block' }
 const inp = { width:'100%', padding:'7px 10px', fontSize:12, border:'1px solid var(--border)', borderRadius:6, background:'var(--surface)', color:'var(--text)', fontFamily:'inherit', boxSizing:'border-box', outline:'none' }
 
-export default function LeadNuloModal({ lead, onClose }) {
+export default function LeadNuloModal({ lead, onClose, onSuccess }) {
   const [motivo, setMotivo] = useState('')
   const [otroTexto, setOtroTexto] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState(null)
 
   const esOtro = motivo === 'Otro motivo'
-  const valido = motivo && (!esOtro || (esOtro && otroTexto.trim()))
+  const valido = motivo && (!esOtro || (esOtro && otroTexto.trim())) && !submitting
 
-  const handleConfirmar = () => {
+  const handleConfirmar = async () => {
     if (!valido) return
+    setSubmitting(true)
+    setError(null)
+
+    const motivoFinal = esOtro ? otroTexto.trim() : motivo
+    const ahora = new Date().toISOString()
+
+    const { error } = await supabase.from('leads').update({
+      estado:                 'no_cualificado',
+      motivo_no_cualificado:  motivoFinal,
+      fecha_nulo:             ahora,
+      usuario_nulo:           'Sierra Álvaro',
+      ultima_actividad:       ahora,
+    }).eq('id', lead.id)
+
+    if (error) {
+      setError(`Error: ${error.message}`)
+      setSubmitting(false)
+      return
+    }
+
     setSubmitted(true)
+    setSubmitting(false)
   }
 
   return (
@@ -39,7 +63,7 @@ export default function LeadNuloModal({ lead, onClose }) {
         <div style={header}>
           <div>
             <div style={{ fontSize:14, fontWeight:700, color:'#991b1b' }}>✗ Marcar como Lead Nulo</div>
-            <div style={{ fontSize:11, color:'var(--text4)', marginTop:2 }}>{lead.id} · {lead.nombre}</div>
+            <div style={{ fontSize:11, color:'var(--text4)', marginTop:2 }}>{lead.ref} · {lead.nombre}</div>
           </div>
           <button onClick={onClose} style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', color:'var(--text4)' }}>×</button>
         </div>
@@ -61,7 +85,7 @@ export default function LeadNuloModal({ lead, onClose }) {
               </div>
             </div>
             <div style={footer}>
-              <button className="ab-btn save" onClick={onClose}>Cerrar</button>
+              <button className="ab-btn save" onClick={() => onSuccess ? onSuccess() : onClose()}>Cerrar</button>
             </div>
           </>
         ) : (
@@ -92,6 +116,12 @@ export default function LeadNuloModal({ lead, onClose }) {
                   />
                 </div>
               )}
+
+              {error && (
+                <div style={{ background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:8, padding:10, fontSize:11, color:'#991b1b' }}>
+                  {error}
+                </div>
+              )}
             </div>
 
             <div style={footer}>
@@ -107,7 +137,7 @@ export default function LeadNuloModal({ lead, onClose }) {
                   opacity: valido ? 1 : 0.7,
                 }}
               >
-                Confirmar Lead Nulo
+                {submitting ? 'Guardando…' : 'Confirmar Lead Nulo'}
               </button>
             </div>
           </>

@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
+import { tipoOportunidad } from '../data/mockLeads'
 
 const overlay = {
   position:'fixed', inset:0, background:'rgba(0,0,0,0.48)', zIndex:2000,
@@ -6,7 +8,7 @@ const overlay = {
 }
 const panel = {
   background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12,
-  width:560, maxWidth:'94vw', maxHeight:'90vh', overflowY:'auto',
+  width:600, maxWidth:'94vw', maxHeight:'90vh', overflowY:'auto',
   boxShadow:'0 20px 60px rgba(0,0,0,.22)',
 }
 const header = {
@@ -18,37 +20,123 @@ const footer = { padding:'14px 20px', borderTop:'1px solid var(--border)', displ
 const lbl = { fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4, display:'block' }
 const inp = { width:'100%', padding:'7px 10px', fontSize:12, border:'1px solid var(--border)', borderRadius:6, background:'var(--surface)', color:'var(--text)', fontFamily:'inherit', boxSizing:'border-box', outline:'none' }
 
-const TIPO_DESTINOS = {
-  demanda:  [
-    { key:'demanda',   label:'Crear Demanda en PDB', desc:'Perfil de búsqueda con uso, superficie, renta máx.' },
-    { key:'oport',     label:'Crear Oportunidad en Dynamics', desc:'Registro maestro WIP en sistema Dynamics 365.' },
-    { key:'ambas',     label:'Demanda + Oportunidad', desc:'Crea ambas y las vincula automáticamente.' },
-  ],
-  oferta:   [
-    { key:'oferta',    label:'Crear Oferta en PDB', desc:'Producto disponible al mercado, vinculado al activo.' },
-    { key:'oport',     label:'Crear Oportunidad en Dynamics', desc:'Registro maestro WIP en sistema Dynamics 365.' },
-    { key:'ambas',     label:'Oferta + Oportunidad', desc:'Crea ambas y las vincula automáticamente.' },
-  ],
-  servicio: [
-    { key:'oport',     label:'Crear Oportunidad en Dynamics', desc:'Único destino válido. Sin activo, oferta ni demanda.' },
-  ],
+function Typeahead({ label, placeholder, value, onChange, onPick, options, fieldKey = 'nombre' }) {
+  const [focused, setFocused] = useState(false)
+  const matches = !value
+    ? options.slice(0, 8)
+    : options.filter(o => (o[fieldKey] || '').toLowerCase().includes(value.toLowerCase())).slice(0, 8)
+
+  return (
+    <div style={{ position:'relative' }}>
+      <label style={lbl}>{label}</label>
+      <input
+        style={inp}
+        placeholder={placeholder}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setTimeout(() => setFocused(false), 150)}
+      />
+      {focused && matches.length > 0 && (
+        <div style={{
+          position:'absolute', top:'calc(100% + 2px)', left:0, right:0, zIndex:10,
+          background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6,
+          maxHeight:220, overflowY:'auto', boxShadow:'0 6px 20px rgba(0,0,0,0.08)',
+        }}>
+          {matches.map(o => (
+            <div
+              key={o.dynamics_id}
+              onMouseDown={() => onPick(o)}
+              style={{ padding:'7px 10px', fontSize:12, cursor:'pointer', borderBottom:'1px solid var(--border)' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
+            >
+              <div style={{ fontWeight:600 }}>{o[fieldKey]}</div>
+              {o.tipo   && <div style={{ fontSize:10, color:'var(--text4)' }}>{o.tipo}</div>}
+              {o.email  && <div style={{ fontSize:10, color:'var(--text4)' }}>{o.email}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
-export default function TransformarLeadModal({ lead, onClose }) {
-  const [destino, setDestino]   = useState(lead.tipo === 'servicio' ? 'oport' : '')
-  const [cuenta, setCuenta]     = useState(lead.cuenta || '')
-  const [contacto, setContacto] = useState(lead.contacto || '')
-  const [crearCuenta, setCrearCuenta] = useState(false)
-  const [submitted, setSubmitted]     = useState(false)
+export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
+  const esGenerico = lead.tipo === 'generico'
 
-  const opciones = TIPO_DESTINOS[lead.tipo] || []
+  const [via, setVia]                = useState(lead.via || (esGenerico ? null : ''))
+  const [cuentaQuery, setCuentaQuery]     = useState(lead.dynamics_accounts?.nombre || '')
+  const [cuentaPick, setCuentaPick]       = useState(lead.dynamics_account_id ? { dynamics_id: lead.dynamics_account_id, nombre: lead.dynamics_accounts?.nombre } : null)
+  const [contactoQuery, setContactoQuery] = useState(lead.dynamics_contacts?.nombre || '')
+  const [contactoPick, setContactoPick]   = useState(lead.dynamics_contact_id ? { dynamics_id: lead.dynamics_contact_id, nombre: lead.dynamics_contacts?.nombre } : null)
 
-  const tieneVinculo = (cuenta && cuenta.trim()) || (contacto && contacto.trim())
-  const puedeTransformar = tieneVinculo && destino
+  const [accounts, setAccounts] = useState([])
+  const [contacts, setContacts] = useState([])
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted]   = useState(null)
+  const [error, setError]           = useState(null)
 
-  const handleTransformar = () => {
+  useEffect(() => {
+    async function loadDynamics() {
+      const [{ data: accs }, { data: cts }] = await Promise.all([
+        supabase.from('dynamics_accounts').select('dynamics_id, nombre, tipo').order('nombre'),
+        supabase.from('dynamics_contacts').select('dynamics_id, nombre, email, cuenta_dynamics_id').order('nombre'),
+      ])
+      setAccounts(accs || [])
+      setContacts(cts || [])
+    }
+    loadDynamics()
+  }, [])
+
+  const tieneVinculo  = !!cuentaPick || !!contactoPick
+  const viaOk         = esGenerico || !!via
+  const puedeTransformar = tieneVinculo && viaOk && !submitting
+
+  const handleTransformar = async () => {
     if (!puedeTransformar) return
-    setSubmitted(true)
+    setSubmitting(true)
+    setError(null)
+
+    const tipoOpp = tipoOportunidad(lead.tipo, via)
+    const dynId   = `dyn-opp-${Date.now().toString(36)}`
+    const cuentaId   = cuentaPick?.dynamics_id   || null
+    const contactoId = contactoPick?.dynamics_id || null
+
+    const { error: e1 } = await supabase.from('dynamics_opportunities').insert({
+      dynamics_id:          dynId,
+      nombre:               lead.nombre,
+      tipo:                 tipoOpp,
+      cuenta_dynamics_id:   cuentaId,
+      contacto_dynamics_id: contactoId,
+      estado:               'abierta',
+      fecha_creacion:       new Date().toISOString(),
+    })
+    if (e1) {
+      setError(`Error creando oportunidad: ${e1.message}`)
+      setSubmitting(false)
+      return
+    }
+
+    const { error: e2 } = await supabase.from('leads').update({
+      estado:                  'cualificado',
+      via:                     esGenerico ? null : via,
+      dynamics_account_id:     cuentaId,
+      dynamics_contact_id:     contactoId,
+      dynamics_opportunity_id: dynId,
+      fecha_cualificacion:     new Date().toISOString(),
+      cualificado_por:         'Sierra Álvaro',
+      ultima_actividad:        new Date().toISOString(),
+    }).eq('id', lead.id)
+
+    if (e2) {
+      setError(`Oportunidad creada pero el lead no se actualizó: ${e2.message}`)
+      setSubmitting(false)
+      return
+    }
+
+    setSubmitted({ dynId, tipoOpp })
+    setSubmitting(false)
   }
 
   return (
@@ -58,7 +146,7 @@ export default function TransformarLeadModal({ lead, onClose }) {
         <div style={header}>
           <div>
             <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>⚡ Transformar lead</div>
-            <div style={{ fontSize:11, color:'var(--text4)', marginTop:2 }}>{lead.id} · {lead.nombre}</div>
+            <div style={{ fontSize:11, color:'var(--text4)', marginTop:2 }}>{lead.ref} · {lead.nombre}</div>
           </div>
           <button onClick={onClose} style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', color:'var(--text4)' }}>×</button>
         </div>
@@ -69,24 +157,24 @@ export default function TransformarLeadModal({ lead, onClose }) {
               <div style={{ background:'#dcfce7', border:'1px solid #86efac', borderRadius:8, padding:14, display:'flex', flexDirection:'column', gap:6 }}>
                 <div style={{ fontSize:13, fontWeight:700, color:'#15803d' }}>✓ Lead transformado correctamente</div>
                 <div style={{ fontSize:11, color:'#166534' }}>
-                  En producción, este flujo lanzará Dynamics 365 con los datos preasignados.
-                  El usuario completará el registro en Dynamics y la oportunidad sincronizará de vuelta al PDB automáticamente.
+                  Oportunidad <strong>{submitted.tipoOpp}</strong> creada en Dynamics y vinculada al lead. El lead pasa a estado <strong>cualificado</strong>.
                 </div>
               </div>
               <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:8, padding:12 }}>
-                <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:8 }}>Destino creado</div>
-                <div style={{ fontSize:12, color:'var(--text)', fontWeight:600 }}>
-                  {opciones.find(o => o.key === destino)?.label}
+                <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:8 }}>Oportunidad creada</div>
+                <div style={{ fontSize:12, color:'var(--text)', fontWeight:600, fontFamily:'monospace' }}>{submitted.dynId}</div>
+                <div style={{ fontSize:11, color:'var(--text3)', marginTop:4 }}>Tipo: {submitted.tipoOpp}</div>
+              </div>
+              {(cuentaPick || contactoPick) && (
+                <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:8, padding:12 }}>
+                  <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:8 }}>Vinculaciones</div>
+                  {cuentaPick   && <div style={{ fontSize:11, color:'var(--text)', marginBottom:3 }}>🏢 Cuenta: <strong>{cuentaPick.nombre}</strong></div>}
+                  {contactoPick && <div style={{ fontSize:11, color:'var(--text)' }}>👤 Contacto: <strong>{contactoPick.nombre}</strong></div>}
                 </div>
-              </div>
-              <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:8, padding:12 }}>
-                <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:8 }}>Vinculaciones</div>
-                {cuenta && <div style={{ fontSize:11, color:'var(--text)', marginBottom:3 }}>🏢 Cuenta: <strong>{cuenta}</strong></div>}
-                {contacto && <div style={{ fontSize:11, color:'var(--text)' }}>👤 Contacto: <strong>{contacto}</strong></div>}
-              </div>
+              )}
             </div>
             <div style={footer}>
-              <button className="ab-btn save" onClick={onClose}>Cerrar</button>
+              <button className="ab-btn save" onClick={() => onSuccess ? onSuccess() : onClose()}>Cerrar</button>
             </div>
           </>
         ) : (
@@ -98,62 +186,85 @@ export default function TransformarLeadModal({ lead, onClose }) {
                   ⚠️ Vinculación obligatoria
                 </div>
                 <div style={{ fontSize:11, color:'#7c2d12' }}>
-                  Para transformar un lead es <strong>obligatorio</strong> vincularlo al menos a una Cuenta o un Contacto. No se puede crear oportunidad sin trazabilidad comercial.
+                  Para transformar un lead es <strong>obligatorio</strong> vincularlo al menos a una Cuenta o Contacto de Dynamics. Selecciona del typeahead.
                 </div>
               </div>
 
-              <div>
-                <label style={lbl}>Cuenta vinculada</label>
-                <input style={inp} placeholder="Buscar cuenta existente o escribir nueva..." value={cuenta} onChange={e => setCuenta(e.target.value)} />
-                <div style={{ fontSize:10, color:'var(--text4)', marginTop:4 }}>
-                  {lead.cuenta ? `Cuenta detectada en el lead: ${lead.cuenta}` : 'Sin cuenta detectada — vincula una existente o crea una nueva'}
-                </div>
-              </div>
-
-              <div>
-                <label style={lbl}>Contacto vinculado</label>
-                <input style={inp} placeholder="Nombre del contacto..." value={contacto} onChange={e => setContacto(e.target.value)} />
-              </div>
-
-              {!tieneVinculo && (
-                <div style={{ fontSize:11, color:'#dc2626', fontWeight:600 }}>
-                  ✗ Necesitas al menos Cuenta o Contacto para continuar
+              {/* Vía: pitch o directo (no aplica a genérico) */}
+              {!esGenerico && (
+                <div>
+                  <label style={lbl}>Vía de transformación *</label>
+                  <div style={{ display:'flex', gap:8, marginTop:4 }}>
+                    {[
+                      { key:'pitch',   label:'Pitch',   desc:'Competimos por el mandato. Requiere Propuesta antes del Mandato.' },
+                      { key:'directo', label:'Directo', desc:'Mandato directo, sin Propuesta competitiva.' },
+                    ].map(opt => (
+                      <div
+                        key={opt.key}
+                        onClick={() => setVia(opt.key)}
+                        style={{
+                          flex:1,
+                          border: via === opt.key ? '2px solid var(--accent)' : '1px solid var(--border)',
+                          background: via === opt.key ? 'var(--accent-lt)' : 'var(--surface)',
+                          borderRadius:8, padding:'10px 12px', cursor:'pointer',
+                        }}
+                      >
+                        <div style={{ fontSize:12, fontWeight:700, color: via === opt.key ? 'var(--accent)' : 'var(--text)' }}>
+                          {via === opt.key ? '● ' : '○ '}{opt.label}
+                        </div>
+                        <div style={{ fontSize:10, color:'var(--text3)', marginTop:3, marginLeft:14 }}>{opt.desc}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Destino según tipo */}
-              <div>
-                <label style={lbl}>Destino · Lead de tipo "{lead.tipo === 'demanda' ? 'Demanda' : lead.tipo === 'oferta' ? 'Oferta' : 'Cuenta / Servicio'}"</label>
-                <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:4 }}>
-                  {opciones.map(opt => (
-                    <div
-                      key={opt.key}
-                      onClick={() => setDestino(opt.key)}
-                      style={{
-                        border: destino === opt.key ? '2px solid var(--accent)' : '1px solid var(--border)',
-                        background: destino === opt.key ? 'var(--accent-lt)' : 'var(--surface)',
-                        borderRadius:8, padding:'10px 12px', cursor:'pointer',
-                      }}
-                    >
-                      <div style={{ fontSize:12, fontWeight:700, color: destino === opt.key ? 'var(--accent)' : 'var(--text)' }}>
-                        {destino === opt.key ? '● ' : '○ '}{opt.label}
-                      </div>
-                      <div style={{ fontSize:11, color:'var(--text3)', marginTop:3, marginLeft:14 }}>{opt.desc}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Typeahead
+                label="Cuenta vinculada (Dynamics)"
+                placeholder="Buscar cuenta..."
+                value={cuentaQuery}
+                onChange={v => { setCuentaQuery(v); setCuentaPick(null) }}
+                onPick={a => { setCuentaPick(a); setCuentaQuery(a.nombre) }}
+                options={accounts}
+              />
+              {cuentaPick && (
+                <div style={{ fontSize:10, color:'#15803d' }}>✓ Cuenta seleccionada: {cuentaPick.nombre}</div>
+              )}
 
-              {/* Info Dynamics */}
-              {(destino === 'oport' || destino === 'ambas') && (
+              <Typeahead
+                label="Contacto vinculado (Dynamics)"
+                placeholder="Buscar contacto..."
+                value={contactoQuery}
+                onChange={v => { setContactoQuery(v); setContactoPick(null) }}
+                onPick={c => { setContactoPick(c); setContactoQuery(c.nombre) }}
+                options={contacts}
+              />
+              {contactoPick && (
+                <div style={{ fontSize:10, color:'#15803d' }}>✓ Contacto seleccionado: {contactoPick.nombre}</div>
+              )}
+
+              {!tieneVinculo && (
+                <div style={{ fontSize:11, color:'#dc2626', fontWeight:600 }}>
+                  ✗ Necesitas seleccionar al menos Cuenta o Contacto del typeahead
+                </div>
+              )}
+
+              {/* Resumen de la transformación */}
+              {tieneVinculo && viaOk && (
                 <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:12 }}>
                   <div style={{ fontSize:11, fontWeight:700, color:'#1e40af', display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
                     <span style={{ width:14, height:14, borderRadius:3, background:'#0078d4', color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>D</span>
-                    Sincronización con Microsoft Dynamics 365
+                    Resumen
                   </div>
-                  <div style={{ fontSize:11, color:'#1e3a8a' }}>
-                    PDB lanzará Dynamics con los datos preasignados. El usuario completa el registro allí. Dynamics sincroniza la oportunidad de vuelta al PDB automáticamente, manteniendo la trazabilidad con este lead.
+                  <div style={{ fontSize:11, color:'#1e3a8a', lineHeight:1.5 }}>
+                    Se creará una Oportunidad de tipo <strong>{tipoOportunidad(lead.tipo, via)}</strong> en Dynamics, vinculada a {cuentaPick ? `cuenta "${cuentaPick.nombre}"` : '—'}{contactoPick ? ` y contacto "${contactoPick.nombre}"` : ''}. El lead pasará a <strong>cualificado</strong>.
                   </div>
+                </div>
+              )}
+
+              {error && (
+                <div style={{ background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:8, padding:10, fontSize:11, color:'#991b1b' }}>
+                  {error}
                 </div>
               )}
             </div>
@@ -169,7 +280,7 @@ export default function TransformarLeadModal({ lead, onClose }) {
                   cursor: puedeTransformar ? 'pointer' : 'not-allowed',
                 }}
               >
-                ⚡ Transformar lead
+                {submitting ? 'Transformando…' : '⚡ Transformar lead'}
               </button>
             </div>
           </>

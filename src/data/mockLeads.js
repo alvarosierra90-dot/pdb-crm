@@ -1,18 +1,24 @@
+// Constantes de UI para Leads. Los datos viven en Supabase (tabla leads).
 // Mapeo a clases globales — coherencia visual con resto del sistema (.tag-*)
+
 export const LEAD_TIPOS = [
-  { key:'demanda',  label:'Demanda',          tagClass:'tag-purple' },
-  { key:'oferta',   label:'Oferta',           tagClass:'tag-green'  },
-  { key:'servicio', label:'Cuenta / Servicio', tagClass:'tag-amber' },
+  { key:'demanda',  label:'Demanda',  tagClass:'tag-purple' },
+  { key:'oferta',   label:'Oferta',   tagClass:'tag-green'  },
+  { key:'generico', label:'Genérico', tagClass:'tag-amber'  },
 ]
 
+// Estados alineados al CHECK de la tabla leads (4 estados canónicos)
 export const LEAD_ESTADOS = [
-  { key:'nuevo',         label:'Nuevo',         tagClass:'tag-blue'   },
-  { key:'revision',      label:'En revisión',   tagClass:'tag-amber'  },
-  { key:'seguimiento',   label:'En seguimiento',tagClass:'tag-amber'  },
-  { key:'cualificado',   label:'Cualificado',   tagClass:'tag-green'  },
-  { key:'nulo',          label:'Lead nulo',     tagClass:'tag-red'    },
-  { key:'convertido',    label:'Convertido',    tagClass:'tag-teal'   },
-  { key:'descartado',    label:'Descartado',    tagClass:'tag-gray'   },
+  { key:'nuevo',             label:'Nuevo',             tagClass:'tag-blue'  },
+  { key:'en_cualificacion',  label:'En cualificación',  tagClass:'tag-amber' },
+  { key:'cualificado',       label:'Cualificado',       tagClass:'tag-green' },
+  { key:'no_cualificado',    label:'No cualificado',    tagClass:'tag-red'   },
+]
+
+// Vía: pitch o directo (decisión en cualificación)
+export const LEAD_VIAS = [
+  { key:'pitch',   label:'Pitch (con propuesta competitiva)' },
+  { key:'directo', label:'Directo (sin propuesta)'           },
 ]
 
 export const LEAD_CANALES = [
@@ -54,174 +60,10 @@ export const MOTIVOS_LEAD_NULO = [
   'Otro motivo',
 ]
 
-export const LEADS = [
-  {
-    id:'LD-2026-0042', nombre:'Búsqueda 2.000 m² oficinas Madrid centro',
-    tipo:'demanda', estado:'nuevo', prioridad:'alta',
-    cuenta:null, contacto:'Marta Rodríguez · Director Real Estate',
-    activo:null, oferta:null, demanda:null,
-    canal:'Web corporativa', campana:'Q2-2026 Oficinas Madrid',
-    anuncio:'Form contacto general', url:'savills.es/contacto',
-    fecha:'2026-04-26 14:32', equipo:'Leasing Oficinas Madrid', responsable:'Sierra Álvaro',
-    descripcion:'Multinacional tecnológica busca relocation HQ. Sup. 2.000 m². Eje Castellana o La Castellana.',
-    ultimaActividad:'Hace 2h',
-  },
-  {
-    id:'LD-2026-0041', nombre:'Edificio en alquiler — Calle Serrano',
-    tipo:'oferta', estado:'cualificado', prioridad:'alta',
-    cuenta:'Inversiones Familiar Velada', contacto:'José María Velada · Family Office',
-    activo:null, oferta:null, demanda:null,
-    canal:'Recomendación', campana:'—',
-    anuncio:'—', url:'—',
-    fecha:'2026-04-25 10:15', equipo:'Leasing Oficinas Madrid', responsable:'Sierra Álvaro',
-    descripcion:'Propietario quiere poner en alquiler edificio completo de 4.500 m² en Serrano 90.',
-    ultimaActividad:'Hace 1d',
-  },
-  {
-    id:'LD-2026-0040', nombre:'Consultoría estratégica relocation grupo media',
-    tipo:'servicio', estado:'seguimiento', prioridad:'media',
-    cuenta:'Grupo Mediática España', contacto:'Ignacio Lara · COO',
-    activo:null, oferta:null, demanda:null,
-    canal:'LinkedIn', campana:'Advisory Strategic Q1',
-    anuncio:'Post Savills Advisory', url:'linkedin.com/savills-spain',
-    fecha:'2026-04-24 09:48', equipo:'Advisory & Consultancy', responsable:'GOMEZ Ignacio',
-    descripcion:'Quieren contratar servicio de consultoría estratégica inmobiliaria para reorganizar 3 sedes.',
-    ultimaActividad:'Hace 3d',
-  },
-  {
-    id:'LD-2026-0039', nombre:'Logística 12.000 m² A-2 corredor del Henares',
-    tipo:'demanda', estado:'cualificado', prioridad:'alta',
-    cuenta:'Hospitality Group Iberia SL', contacto:'Laura Fernández · Procurement',
-    activo:null, oferta:null, demanda:null,
-    canal:'Idealista', campana:'—',
-    anuncio:'Nave logística A-2 Coslada', url:'idealista.com/anuncio/2348790',
-    fecha:'2026-04-23 16:20', equipo:'Industrial & Logistics', responsable:'GOMEZ Ignacio',
-    descripcion:'Operador logístico 3PL busca plataforma 12.000 m² en corredor del Henares. Altura libre 11m.',
-    ultimaActividad:'Hace 4d',
-  },
-  {
-    id:'LD-2026-0038', nombre:'Venta portfolio retail high street',
-    tipo:'oferta', estado:'revision', prioridad:'alta',
-    cuenta:'Capital Industrial Partners', contacto:'Eduardo Mancera · Investment Director',
-    activo:null, oferta:null, demanda:null,
-    canal:'Contacto directo', campana:'—',
-    anuncio:'—', url:'—',
-    fecha:'2026-04-22 11:05', equipo:'Capital Markets', responsable:'Sierra Álvaro',
-    descripcion:'CIP desinvierte cartera 8 locales high street en Madrid + Barcelona. Valor estimado 45 M€.',
-    ultimaActividad:'Hace 5d',
-  },
-  {
-    id:'LD-2026-0037', nombre:'Búsqueda data center 5MW',
-    tipo:'demanda', estado:'seguimiento', prioridad:'media',
-    cuenta:'Oracle Spain SL', contacto:'David Sánchez · Infrastructure Lead',
-    activo:null, oferta:null, demanda:null,
-    canal:'Belbex', campana:'—',
-    anuncio:'Data center San Fernando', url:'belbex.com/dc/madrid-1',
-    fecha:'2026-04-21 13:50', equipo:'Alternativos', responsable:'Sierra Álvaro',
-    descripcion:'Ampliación capacidad. 5MW IT load. Proximidad fibra óptica troncal. Madrid Sur preferente.',
-    ultimaActividad:'Hace 6d',
-  },
-  {
-    id:'LD-2026-0036', nombre:'Consultoría valoración portfolio residencial',
-    tipo:'servicio', estado:'cualificado', prioridad:'media',
-    cuenta:'Neinor Homes', contacto:'Carmen Ruiz · CFO',
-    activo:null, oferta:null, demanda:null,
-    canal:'Formulario consultoría', campana:'Valuations Q2',
-    anuncio:'Form valoración portfolio', url:'savills.es/valuations',
-    fecha:'2026-04-20 17:12', equipo:'Valuations', responsable:'GOMEZ Ignacio',
-    descripcion:'Valoración independiente portfolio 850 unidades BTR para refinanciación.',
-    ultimaActividad:'Hace 1sem',
-  },
-  {
-    id:'LD-2026-0035', nombre:'Local Gran Vía 200 m² flagship',
-    tipo:'demanda', estado:'nulo', prioridad:'baja',
-    cuenta:null, contacto:'Pablo Estrada · Retail Manager',
-    activo:null, oferta:null, demanda:null,
-    canal:'Habitaclia', campana:'—',
-    anuncio:'Local Gran Vía 32', url:'habitaclia.com/loc/8923',
-    fecha:'2026-04-19 12:00', equipo:'Retail', responsable:'Sierra Álvaro',
-    descripcion:'Marca DTC busca flagship 200 m² Gran Vía o Preciados.',
-    ultimaActividad:'Hace 1sem',
-    motivoNulo:'Presupuesto insuficiente',
-    fechaNulo:'2026-04-21 09:30', usuarioNulo:'Sierra Álvaro',
-  },
-  {
-    id:'LD-2026-0034', nombre:'Comercialización P.E. Avalon edificio 4',
-    tipo:'oferta', estado:'convertido', prioridad:'alta',
-    cuenta:'Barings RE', contacto:'Sebastián Wagner · Asset Manager',
-    activo:'MAD-OF-00189', oferta:null, demanda:null,
-    canal:'Recomendación', campana:'—',
-    anuncio:'—', url:'—',
-    fecha:'2026-04-18 10:30', equipo:'Leasing Oficinas Madrid', responsable:'Sierra Álvaro',
-    descripcion:'Propietario quiere comercializar plantas 5-7 (3.200 m² netos) en exclusiva.',
-    ultimaActividad:'Hace 2sem',
-  },
-  {
-    id:'LD-2026-0033', nombre:'2.500 m² coworking flexible Barcelona',
-    tipo:'demanda', estado:'seguimiento', prioridad:'media',
-    cuenta:'Flexwork Solutions Spain SL', contacto:'Elena Vidal · Expansion',
-    activo:null, oferta:null, demanda:null,
-    canal:'LinkedIn', campana:'Q2-2026 Coworking BCN',
-    anuncio:'Post oficinas flexibles', url:'linkedin.com/savills-spain',
-    fecha:'2026-04-17 15:45', equipo:'Leasing Oficinas Barcelona', responsable:'GOMEZ Ignacio',
-    descripcion:'Operador coworking expansión 22@. 2.500 m² + 200 puestos. Plug & play preferente.',
-    ultimaActividad:'Hace 2sem',
-  },
-  {
-    id:'LD-2026-0032', nombre:'Spam — venta de leads inmobiliarios',
-    tipo:'servicio', estado:'descartado', prioridad:'baja',
-    cuenta:null, contacto:'—',
-    activo:null, oferta:null, demanda:null,
-    canal:'Email entrante', campana:'—',
-    anuncio:'—', url:'—',
-    fecha:'2026-04-16 08:20', equipo:'—', responsable:'—',
-    descripcion:'Email no solicitado ofreciendo bases de datos.',
-    ultimaActividad:'Hace 2sem',
-    motivoNulo:'Spam',
-    fechaNulo:'2026-04-16 08:25', usuarioNulo:'Sistema',
-  },
-  {
-    id:'LD-2026-0031', nombre:'Hotel boutique centro histórico Sevilla',
-    tipo:'demanda', estado:'nuevo', prioridad:'media',
-    cuenta:null, contacto:'Antonio Rivera · Operations',
-    activo:null, oferta:null, demanda:null,
-    canal:'Web corporativa', campana:'—',
-    anuncio:'Form hotel investment', url:'savills.es/hotels',
-    fecha:'2026-04-15 19:08', equipo:'Hotels', responsable:'Sierra Álvaro',
-    descripcion:'Cadena hotelera busca 30-50 habitaciones centro Sevilla. Edificio singular.',
-    ultimaActividad:'Hace 2sem',
-  },
-  {
-    id:'LD-2026-0030', nombre:'Advisory expansión retail España',
-    tipo:'servicio', estado:'cualificado', prioridad:'alta',
-    cuenta:'Nexo Digital Media SL', contacto:'Marina Costa · CEO',
-    activo:null, oferta:null, demanda:null,
-    canal:'Evento / Networking', campana:'MIPIM 2026',
-    anuncio:'—', url:'—',
-    fecha:'2026-04-14 11:25', equipo:'Advisory & Consultancy', responsable:'GOMEZ Ignacio',
-    descripcion:'Cliente busca asesoramiento estratégico para abrir 12 puntos de venta en 18 meses.',
-    ultimaActividad:'Hace 2sem',
-  },
-  {
-    id:'LD-2026-0029', nombre:'Venta suelo logístico Zaragoza PLAZA',
-    tipo:'oferta', estado:'seguimiento', prioridad:'media',
-    cuenta:'FREO Investments Spain SL', contacto:'Hans Müller · Investment',
-    activo:null, oferta:null, demanda:null,
-    canal:'Contacto directo', campana:'—',
-    anuncio:'—', url:'—',
-    fecha:'2026-04-13 14:00', equipo:'Capital Markets', responsable:'Sierra Álvaro',
-    descripcion:'Suelo finalista 45.000 m² PLAZA Zaragoza. Edificable nave logística.',
-    ultimaActividad:'Hace 2sem',
-  },
-  {
-    id:'LD-2026-0028', nombre:'Oficinas 800 m² Diagonal BCN',
-    tipo:'demanda', estado:'convertido', prioridad:'media',
-    cuenta:'Academia Global Formación SL', contacto:'Roger Pi · COO',
-    activo:null, oferta:null, demanda:'D-2026-0451',
-    canal:'Idealista', campana:'—',
-    anuncio:'Edificio Diagonal 95', url:'idealista.com/anuncio/2349123',
-    fecha:'2026-04-10 09:50', equipo:'Leasing Oficinas Barcelona', responsable:'GOMEZ Ignacio',
-    descripcion:'Centro formación busca aulas + oficinas 800 m² eje Diagonal.',
-    ultimaActividad:'Hace 3sem',
-  },
-]
+// Mapeo lead.tipo + via → tipo de Oportunidad en Dynamics
+export function tipoOportunidad(leadTipo, via) {
+  if (leadTipo === 'generico') return 'generica'
+  if (leadTipo === 'demanda')  return via === 'pitch' ? 'pitch_demanda' : 'demanda'
+  if (leadTipo === 'oferta')   return via === 'pitch' ? 'pitch_oferta'  : 'oferta'
+  return null
+}
