@@ -46,29 +46,51 @@ export default function FichaLead() {
   const loadLead = useCallback(async () => {
     if (!params.id) return
     setLoading(true)
+    // Carga el lead con relaciones Dynamics (siempre disponibles).
+    // Las relaciones a propuestas/demandas/ofertas se intentan después
+    // y se ignoran si la migración 013 aún no se aplicó.
+    const baseSelect = `
+      *,
+      dynamics_accounts:dynamics_account_id     ( dynamics_id, nombre ),
+      dynamics_contacts:dynamics_contact_id     ( dynamics_id, nombre, email ),
+      dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo )
+    `
     const { data, error } = await supabase
       .from('leads')
-      .select(`
-        *,
-        dynamics_accounts:dynamics_account_id     ( dynamics_id, nombre ),
-        dynamics_contacts:dynamics_contact_id     ( dynamics_id, nombre, email ),
-        dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo ),
-        propuestas:propuesta_id ( id, ref, nombre, estado ),
-        demandas:demanda_id     ( id, ref, nombre, estatus ),
-        ofertas:oferta_id       ( id, ref )
-      `)
+      .select(baseSelect)
       .eq('ref', params.id)
       .maybeSingle()
+
     if (error) {
       setError(error.message)
       setLead(null)
-    } else if (!data) {
+      setLoading(false)
+      return
+    }
+    if (!data) {
       setError('Lead no encontrado')
       setLead(null)
-    } else {
-      setLead(data)
-      setError(null)
+      setLoading(false)
+      return
     }
+
+    // Carga opcional de propuesta/demanda/oferta vinculadas
+    const enriched = { ...data }
+    if (data.propuesta_id) {
+      const { data: p } = await supabase.from('propuestas').select('id, ref, nombre, estado').eq('id', data.propuesta_id).maybeSingle()
+      if (p) enriched.propuestas = p
+    }
+    if (data.demanda_id) {
+      const { data: d } = await supabase.from('demandas').select('id, ref, nombre, estatus').eq('id', data.demanda_id).maybeSingle()
+      if (d) enriched.demandas = d
+    }
+    if (data.oferta_id) {
+      const { data: o } = await supabase.from('ofertas').select('id, ref').eq('id', data.oferta_id).maybeSingle()
+      if (o) enriched.ofertas = o
+    }
+
+    setLead(enriched)
+    setError(null)
     setLoading(false)
   }, [params.id])
 
