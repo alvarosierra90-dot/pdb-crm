@@ -94,7 +94,8 @@ export default function FichaMandatoSupabase({ refOrId }) {
     preaviso_dias:30, alerta_dias:60, prorroga_tacita:false, prorroga_meses:0,
     exclusividad_modo:'exclusiva', cuenta_agente_id:'', contacto_agente_id:'',
     fee_porcentaje:'', fee_eur_fijo:'', fee_min_garantizado:'',
-    fee_sliding:'', fee_compartido:'',
+    fee_sliding:'',
+    fee_reparto:[], // [{ nombre, tipo:'interno'|'externo', porcentaje }]
     motivo_cancelacion:'', notas:'',
   })
 
@@ -205,7 +206,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
       fee_eur_fijo:         mandato.fee_eur_fijo ?? '',
       fee_min_garantizado:  mandato.fee_min_garantizado ?? '',
       fee_sliding:          mandato.fee_sliding_jsonb ? JSON.stringify(mandato.fee_sliding_jsonb) : '',
-      fee_compartido:       mandato.fee_compartido_jsonb ? JSON.stringify(mandato.fee_compartido_jsonb) : '',
+      fee_reparto:          Array.isArray(mandato.fee_compartido_jsonb?.reparto) ? mandato.fee_compartido_jsonb.reparto : [],
       motivo_cancelacion:   mandato.motivo_cancelacion || '',
       notas:                mandato.notas || '',
     })
@@ -227,7 +228,9 @@ export default function FichaMandatoSupabase({ refOrId }) {
     setSaving(true)
     let slidingJson = null, compartidoJson = null
     try { if (form.fee_sliding.trim())    slidingJson    = JSON.parse(form.fee_sliding) } catch (e) { /* permitimos guardar sin parse */ }
-    try { if (form.fee_compartido.trim()) compartidoJson = JSON.parse(form.fee_compartido) } catch (e) { /* permitimos guardar sin parse */ }
+    if (form.fee_reparto.length > 0) {
+      compartidoJson = { reparto: form.fee_reparto.filter(r => r.nombre || r.porcentaje) }
+    }
 
     const payload = {
       titulo:                form.titulo.trim() || null,
@@ -670,19 +673,84 @@ export default function FichaMandatoSupabase({ refOrId }) {
                 </div>
 
                 <div>
-                  <div className="of-section">📈 FEES AVANZADOS (JSON)</div>
-                  <div className="info-block">
+                  <div className="of-section">📈 SLIDING SCALE (avanzado)</div>
+                  <div className="info-block" style={{ marginBottom:14 }}>
                     <div style={{ padding:'8px 0' }}>
-                      <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', marginBottom:4 }}>Sliding scale</div>
-                      <textarea style={{ ...ta, minHeight:80, fontFamily:'var(--mono)', fontSize:10 }} value={form.fee_sliding} onChange={e => setF('fee_sliding', e.target.value)} placeholder='{"tramos":[{"hasta":1000000,"pct":2},{"desde":1000000,"pct":3}]}' />
-                    </div>
-                    <div style={{ padding:'8px 0' }}>
-                      <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', marginBottom:4 }}>Fee compartido (con otra agencia)</div>
-                      <textarea style={{ ...ta, minHeight:60, fontFamily:'var(--mono)', fontSize:10 }} value={form.fee_compartido} onChange={e => setF('fee_compartido', e.target.value)} placeholder='{"agencia":"CBRE","reparto":"50/50"}' />
+                      <div style={{ fontSize:10, color:'var(--text4)', marginBottom:4 }}>Define tramos en JSON si el fee escala con el importe.</div>
+                      <textarea style={{ ...ta, minHeight:60, fontFamily:'var(--mono)', fontSize:10 }} value={form.fee_sliding} onChange={e => setF('fee_sliding', e.target.value)} placeholder='{"tramos":[{"hasta":1000000,"pct":2},{"desde":1000000,"pct":3}]}' />
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Reparto del fee total entre colaboradores / equipos / agencias */}
+              <div className="of-section" style={{ marginTop:18 }}>🤝 REPARTO DEL FEE (% sobre el total cobrado por Savills)</div>
+              <div style={{ fontSize:10, color:'var(--text4)', marginBottom:10 }}>
+                El 100% es el fee total de Savills. Cada línea indica qué porcentaje se lleva un equipo interno o un colaborador externo (otra agencia).
+              </div>
+
+              {(() => {
+                const reparto = form.fee_reparto
+                const sum = reparto.reduce((s, r) => s + (Number(r.porcentaje) || 0), 0)
+                const restante = 100 - sum
+                const sumOk = sum === 100
+                const updateRow = (idx, key, val) => {
+                  setF('fee_reparto', reparto.map((r,i) => i === idx ? { ...r, [key]: val } : r))
+                }
+                const addRow = () => setF('fee_reparto', [...reparto, { nombre:'', tipo:'interno', porcentaje:'' }])
+                const removeRow = idx => setF('fee_reparto', reparto.filter((_,i) => i !== idx))
+
+                return (
+                  <>
+                    {reparto.length === 0 ? (
+                      <div style={{ padding:'12px 0', color:'var(--text4)', fontSize:12 }}>Sin reparto definido. El 100% del fee se lo lleva el responsable del mandato.</div>
+                    ) : (
+                      <table className="pat-table" style={{ marginBottom:10 }}>
+                        <thead><tr><th style={{ width:'45%' }}>Colaborador / equipo / agencia</th><th>Tipo</th><th style={{ textAlign:'right' }}>Porcentaje</th><th></th></tr></thead>
+                        <tbody>
+                          {reparto.map((r, idx) => (
+                            <tr key={idx}>
+                              <td>
+                                <input style={{ ...inp, width:'100%' }} value={r.nombre || ''} onChange={e => updateRow(idx, 'nombre', e.target.value)} placeholder="Nombre / equipo / agencia externa" />
+                              </td>
+                              <td>
+                                <select style={sel} value={r.tipo || 'interno'} onChange={e => updateRow(idx, 'tipo', e.target.value)}>
+                                  <option value="interno">Interno (Savills)</option>
+                                  <option value="externo">Externo (otra agencia)</option>
+                                </select>
+                              </td>
+                              <td style={{ textAlign:'right' }}>
+                                <input type="number" step="0.5" min="0" max="100" style={{ ...inp, width:80, textAlign:'right' }} value={r.porcentaje ?? ''} onChange={e => updateRow(idx, 'porcentaje', e.target.value)} placeholder="0" />
+                                <span style={{ marginLeft:4, fontSize:11, color:'var(--text3)' }}>%</span>
+                              </td>
+                              <td style={{ textAlign:'right' }}>
+                                <button onClick={() => removeRow(idx)} style={{ background:'none', border:'none', color:'var(--text4)', cursor:'pointer', fontSize:14 }}>×</button>
+                              </td>
+                            </tr>
+                          ))}
+                          <tr style={{ background:'var(--gray-lt)' }}>
+                            <td colSpan="2" style={{ fontWeight:700, fontSize:11, textAlign:'right', paddingRight:10 }}>Total reparto</td>
+                            <td style={{ textAlign:'right', fontWeight:700, fontSize:12, color: sumOk ? 'var(--green)' : (sum > 100 ? 'var(--red)' : 'var(--amber)') }}>
+                              {sum}%
+                              {!sumOk && <div style={{ fontSize:9, fontWeight:500, color: sum > 100 ? 'var(--red)' : 'var(--amber)' }}>
+                                {sum > 100 ? `Excede en ${sum - 100}%` : `Falta ${restante}%`}
+                              </div>}
+                            </td>
+                            <td></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    )}
+
+                    <button className="ab-btn" onClick={addRow} style={{ fontSize:11 }}>+ Añadir colaborador</button>
+                    {reparto.length > 0 && !sumOk && (
+                      <span style={{ marginLeft:12, fontSize:11, color: sum > 100 ? '#dc2626' : 'var(--amber)', fontWeight:600 }}>
+                        ⚠ El reparto debe sumar 100% para ser válido.
+                      </span>
+                    )}
+                  </>
+                )
+              })()}
             </div></div>
           )}
 
