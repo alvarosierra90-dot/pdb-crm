@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { LEAD_TIPOS, LEAD_ESTADOS, LEAD_CANALES, LEAD_PRIORIDADES } from '../data/mockLeads'
 import BannerInfo from '../components/BannerInfo'
+import NuevoLeadModal from '../components/NuevoLeadModal'
 
 const COLS = [
   { key:'ref',            label:'ID' },
@@ -70,6 +71,8 @@ export default function LeadsList() {
   const [fTipo, setFTipo]     = useState('')
   const [fEstado, setFEstado] = useState('')
   const [fCanal, setFCanal]   = useState('')
+  const [showNuevo, setShowNuevo] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -102,7 +105,7 @@ export default function LeadsList() {
     }
     load()
     return () => { cancelled = true }
-  }, [])
+  }, [reloadKey])
 
   const toggleSort = (col) => setSort(s => ({ col, dir: s.col === col && s.dir === 'asc' ? 'desc' : 'asc' }))
 
@@ -189,7 +192,7 @@ export default function LeadsList() {
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
           <input className="search-inp" placeholder="Buscar leads..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
-        <button className="tbtn prim" onClick={()=>alert('Próximamente: formulario de captura manual de lead.')}>+ Nuevo lead</button>
+        <button className="tbtn prim" onClick={() => setShowNuevo(true)}>+ Nuevo lead</button>
       </div>
 
       {/* Tabla */}
@@ -234,6 +237,17 @@ export default function LeadsList() {
       <div style={{ padding:'5px 16px', fontSize:10, color:'var(--text4)', borderTop:'1px solid var(--border)', flexShrink:0 }}>
         Filas: {data.length} · Captura automática desde {LEAD_CANALES.length} canales · Trazabilidad completa hasta cierre
       </div>
+
+      {showNuevo && (
+        <NuevoLeadModal
+          onClose={() => setShowNuevo(false)}
+          onSuccess={(ref) => {
+            setShowNuevo(false)
+            setReloadKey(k => k + 1)
+            navigate('ficha-lead', { id: ref })
+          }}
+        />
+      )}
     </div>
   )
 }
