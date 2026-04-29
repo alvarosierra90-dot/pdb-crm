@@ -53,6 +53,22 @@ const MOTIVOS_CANCELACION = [
 const DEPARTAMENTOS = ['Oficinas','Capital Markets','Valoraciones','Property Management','Logístico','Retail','Industrial','Living']
 const PROVINCIAS    = ['Madrid','Barcelona','Valencia','Sevilla','Bilbao','Málaga','Zaragoza','Alicante']
 
+// Equipos y miembros internos de Savills (espejo de UsuariosList; cuando
+// haya tabla `usuarios` en Supabase esto se reemplaza por una query).
+const MIEMBROS_POR_EQUIPO = {
+  'Leasing Oficinas MAD':  ['Sierra Alvaro','GOMEZ Ignacio','Consultor MAD','Alonso Abruña D.'],
+  'Leasing Oficinas BCN':  ['Pérez Joan','Martí Sara'],
+  'Capital Markets MAD':   ['García Marta','Ruiz Pablo'],
+  'Capital Markets BCN':   ['Vidal Elena'],
+  'Valoraciones MAD':      ['López Carmen','Domínguez Pedro'],
+  'Property Management':   ['Hernández Lucía'],
+  'Retail Spain':          ['Ortega Sergio'],
+  'Logístico Spain':       ['Castro Andrea'],
+  'Industrial Spain':      ['Romero David'],
+  'Living Spain':          ['Aguirre Laura'],
+}
+const EQUIPOS_SAVILLS = Object.keys(MIEMBROS_POR_EQUIPO)
+
 const sel = { width:'auto', padding:'2px 6px', fontSize:11, border:'1px solid var(--border)', borderRadius:4, background:'var(--surface)', fontFamily:'inherit' }
 const inp = { width:120,   padding:'2px 6px', fontSize:11, border:'1px solid var(--border)', borderRadius:4, background:'var(--surface)', fontFamily:'inherit' }
 const inpFull = { ...inp, width:'100%' }
@@ -654,87 +670,192 @@ export default function FichaMandatoSupabase({ refOrId }) {
           )}
 
           {/* TAB Fees */}
-          {tab === 'man-fees' && (
-            <div className="tab-content active"><div className="info-pad">
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-                <div>
-                  <div className="of-section">💰 FEES BASE</div>
-                  <div className="info-block">
-                    <div className="ir"><span className="ir-k">Fee porcentaje (%)</span>
-                      <span className="ir-v"><input type="number" step="0.1" style={inp} value={form.fee_porcentaje} onChange={e => setF('fee_porcentaje', e.target.value)} placeholder="—" /></span>
+          {tab === 'man-fees' && (() => {
+            const reparto      = form.fee_reparto
+            const totalFeeEur  = Number(form.fee_eur_fijo) || 0
+            const sumPct       = reparto.reduce((s, r) => s + (Number(r.porcentaje) || 0), 0)
+            const restante     = 100 - sumPct
+            const sumOk        = sumPct === 100
+            const sinTotal     = totalFeeEur <= 0
+            const updateRow = (idx, key, val) => {
+              setF('fee_reparto', reparto.map((r,i) => i === idx ? { ...r, [key]: val } : r))
+            }
+            const addRow = () => setF('fee_reparto', [...reparto, { nombre:'', tipo:'interno', porcentaje:'' }])
+            const removeRow = idx => setF('fee_reparto', reparto.filter((_,i) => i !== idx))
+            const fmtEur = n => n ? n.toLocaleString('es-ES', { maximumFractionDigits:2 }) : '0'
+
+            const totalEurDistribuido = (sumPct / 100) * totalFeeEur
+
+            return (
+              <div className="tab-content active"><div className="info-pad" style={{ maxWidth:1100 }}>
+
+                {/* BLOQUE 1: Importe total del fee */}
+                <div style={{ background:'linear-gradient(135deg, var(--accent-lt), #fff)', border:'1px solid var(--accent-bd)', borderRadius:8, padding:'20px 24px', marginBottom:24 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:20 }}>
+                    <div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:6 }}>💰 Importe total del fee</div>
+                      <div style={{ fontSize:11, color:'var(--text3)', marginBottom:10, maxWidth:380 }}>
+                        Total que cobra Savills por este mandato. Sobre este importe se distribuye el reparto entre colaboradores y/o agencias externas.
+                      </div>
+                      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                        <input
+                          type="number"
+                          step="100"
+                          value={form.fee_eur_fijo}
+                          onChange={e => setF('fee_eur_fijo', e.target.value)}
+                          placeholder="0"
+                          style={{ width:240, padding:'12px 16px', fontSize:24, fontWeight:700, border:'2px solid var(--accent)', borderRadius:6, background:'#fff', fontFamily:'inherit', textAlign:'right', color:'var(--accent)' }}
+                        />
+                        <span style={{ fontSize:24, fontWeight:700, color:'var(--accent)' }}>€</span>
+                      </div>
                     </div>
-                    <div className="ir"><span className="ir-k">Fee fijo (€)</span>
-                      <span className="ir-v"><input type="number" style={inp} value={form.fee_eur_fijo} onChange={e => setF('fee_eur_fijo', e.target.value)} placeholder="—" /></span>
-                    </div>
-                    <div className="ir"><span className="ir-k">Mínimo garantizado (€)</span>
-                      <span className="ir-v"><input type="number" style={inp} value={form.fee_min_garantizado} onChange={e => setF('fee_min_garantizado', e.target.value)} placeholder="—" /></span>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, minWidth:260 }}>
+                      <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:6, padding:'10px 12px' }}>
+                        <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:4 }}>% sobre operación</div>
+                        <input type="number" step="0.1" style={{ width:'100%', padding:'4px 6px', fontSize:14, fontWeight:600, border:'1px solid var(--border)', borderRadius:4, fontFamily:'inherit' }} value={form.fee_porcentaje} onChange={e => setF('fee_porcentaje', e.target.value)} placeholder="—" />
+                      </div>
+                      <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:6, padding:'10px 12px' }}>
+                        <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:4 }}>Mínimo garantizado (€)</div>
+                        <input type="number" style={{ width:'100%', padding:'4px 6px', fontSize:14, fontWeight:600, border:'1px solid var(--border)', borderRadius:4, fontFamily:'inherit' }} value={form.fee_min_garantizado} onChange={e => setF('fee_min_garantizado', e.target.value)} placeholder="—" />
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div>
-                  <div className="of-section">📈 SLIDING SCALE (avanzado)</div>
-                  <div className="info-block" style={{ marginBottom:14 }}>
-                    <div style={{ padding:'8px 0' }}>
-                      <div style={{ fontSize:10, color:'var(--text4)', marginBottom:4 }}>Define tramos en JSON si el fee escala con el importe.</div>
-                      <textarea style={{ ...ta, minHeight:60, fontFamily:'var(--mono)', fontSize:10 }} value={form.fee_sliding} onChange={e => setF('fee_sliding', e.target.value)} placeholder='{"tramos":[{"hasta":1000000,"pct":2},{"desde":1000000,"pct":3}]}' />
+                {/* BLOQUE 2: Reparto del fee */}
+                <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:24 }}>
+                  <div style={{ background:'var(--gray-lt)', padding:'14px 20px', borderBottom:'1px solid var(--border)' }}>
+                    <div style={{ fontSize:14, fontWeight:700, color:'var(--text)', marginBottom:4 }}>🤝 Reparto del fee</div>
+                    <div style={{ fontSize:11, color:'var(--text3)' }}>
+                      El 100% es el importe total del fee. Cada línea indica qué porcentaje se lleva un equipo interno o un colaborador externo. El importe en € se calcula automáticamente.
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Reparto del fee total entre colaboradores / equipos / agencias */}
-              <div className="of-section" style={{ marginTop:18 }}>🤝 REPARTO DEL FEE (% sobre el total cobrado por Savills)</div>
-              <div style={{ fontSize:10, color:'var(--text4)', marginBottom:10 }}>
-                El 100% es el fee total de Savills. Cada línea indica qué porcentaje se lleva un equipo interno o un colaborador externo (otra agencia).
-              </div>
+                  {sinTotal && (
+                    <div style={{ padding:'12px 20px', background:'var(--amber-lt)', borderBottom:'1px solid var(--amber-bd)', fontSize:12, color:'var(--amber)', fontWeight:600 }}>
+                      ⚠ Introduce primero el importe total del fee arriba para que se calculen los € de cada colaborador.
+                    </div>
+                  )}
 
-              {(() => {
-                const reparto = form.fee_reparto
-                const sum = reparto.reduce((s, r) => s + (Number(r.porcentaje) || 0), 0)
-                const restante = 100 - sum
-                const sumOk = sum === 100
-                const updateRow = (idx, key, val) => {
-                  setF('fee_reparto', reparto.map((r,i) => i === idx ? { ...r, [key]: val } : r))
-                }
-                const addRow = () => setF('fee_reparto', [...reparto, { nombre:'', tipo:'interno', porcentaje:'' }])
-                const removeRow = idx => setF('fee_reparto', reparto.filter((_,i) => i !== idx))
-
-                return (
-                  <>
+                  <div style={{ padding:'14px 20px' }}>
                     {reparto.length === 0 ? (
-                      <div style={{ padding:'12px 0', color:'var(--text4)', fontSize:12 }}>Sin reparto definido. El 100% del fee se lo lleva el responsable del mandato.</div>
+                      <div style={{ padding:'24px 0', textAlign:'center', color:'var(--text4)', fontSize:13 }}>
+                        <div style={{ fontSize:24, marginBottom:6 }}>💼</div>
+                        Sin reparto definido. El 100% del fee se lo lleva el responsable del mandato.
+                      </div>
                     ) : (
-                      <table className="pat-table" style={{ marginBottom:10 }}>
-                        <thead><tr><th style={{ width:'45%' }}>Colaborador / equipo / agencia</th><th>Tipo</th><th style={{ textAlign:'right' }}>Porcentaje</th><th></th></tr></thead>
-                        <tbody>
-                          {reparto.map((r, idx) => (
-                            <tr key={idx}>
-                              <td>
-                                <input style={{ ...inp, width:'100%' }} value={r.nombre || ''} onChange={e => updateRow(idx, 'nombre', e.target.value)} placeholder="Nombre / equipo / agencia externa" />
-                              </td>
-                              <td>
-                                <select style={sel} value={r.tipo || 'interno'} onChange={e => updateRow(idx, 'tipo', e.target.value)}>
-                                  <option value="interno">Interno (Savills)</option>
-                                  <option value="externo">Externo (otra agencia)</option>
-                                </select>
-                              </td>
-                              <td style={{ textAlign:'right' }}>
-                                <input type="number" step="0.5" min="0" max="100" style={{ ...inp, width:80, textAlign:'right' }} value={r.porcentaje ?? ''} onChange={e => updateRow(idx, 'porcentaje', e.target.value)} placeholder="0" />
-                                <span style={{ marginLeft:4, fontSize:11, color:'var(--text3)' }}>%</span>
-                              </td>
-                              <td style={{ textAlign:'right' }}>
-                                <button onClick={() => removeRow(idx)} style={{ background:'none', border:'none', color:'var(--text4)', cursor:'pointer', fontSize:14 }}>×</button>
-                              </td>
-                            </tr>
-                          ))}
+                      <table style={{ width:'100%', borderCollapse:'separate', borderSpacing:0 }}>
+                        <thead>
                           <tr style={{ background:'var(--gray-lt)' }}>
-                            <td colSpan="2" style={{ fontWeight:700, fontSize:11, textAlign:'right', paddingRight:10 }}>Total reparto</td>
-                            <td style={{ textAlign:'right', fontWeight:700, fontSize:12, color: sumOk ? 'var(--green)' : (sum > 100 ? 'var(--red)' : 'var(--amber)') }}>
-                              {sum}%
-                              {!sumOk && <div style={{ fontSize:9, fontWeight:500, color: sum > 100 ? 'var(--red)' : 'var(--amber)' }}>
-                                {sum > 100 ? `Excede en ${sum - 100}%` : `Falta ${restante}%`}
+                            <th style={{ textAlign:'left',  padding:'10px 12px', fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', borderBottom:'1px solid var(--border)' }}>Colaborador / equipo / agencia</th>
+                            <th style={{ textAlign:'left',  padding:'10px 12px', fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', borderBottom:'1px solid var(--border)', width:180 }}>Tipo</th>
+                            <th style={{ textAlign:'right', padding:'10px 12px', fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', borderBottom:'1px solid var(--border)', width:130 }}>Porcentaje</th>
+                            <th style={{ textAlign:'right', padding:'10px 12px', fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', borderBottom:'1px solid var(--border)', width:160 }}>Importe €</th>
+                            <th style={{ borderBottom:'1px solid var(--border)', width:40 }}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reparto.map((r, idx) => {
+                            const pct  = Number(r.porcentaje) || 0
+                            const eur  = (pct / 100) * totalFeeEur
+                            const isInterno = (r.tipo || 'interno') === 'interno'
+                            const miembrosDisp = isInterno ? (MIEMBROS_POR_EQUIPO[r.equipo] || []) : []
+                            return (
+                              <tr key={idx} style={{ borderBottom:'1px solid var(--border-lt, #f1f5f9)' }}>
+                                <td style={{ padding:'10px 12px', verticalAlign:'top' }}>
+                                  {isInterno ? (
+                                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                                      <select
+                                        style={{ width:'100%', padding:'8px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', background:'#fff' }}
+                                        value={r.equipo || ''}
+                                        onChange={e => {
+                                          // resetear miembro si cambia el equipo
+                                          setF('fee_reparto', reparto.map((row,i) => i === idx ? { ...row, equipo:e.target.value, miembro:'' } : row))
+                                        }}
+                                      >
+                                        <option value="">Selecciona equipo...</option>
+                                        {EQUIPOS_SAVILLS.map(eq => <option key={eq} value={eq}>{eq}</option>)}
+                                      </select>
+                                      <select
+                                        style={{ width:'100%', padding:'8px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', background: r.equipo ? '#fff' : 'var(--gray-lt)' }}
+                                        value={r.miembro || ''}
+                                        onChange={e => updateRow(idx, 'miembro', e.target.value)}
+                                        disabled={!r.equipo}
+                                      >
+                                        <option value="">{r.equipo ? 'Selecciona miembro...' : '— elige equipo primero —'}</option>
+                                        {miembrosDisp.map(m => <option key={m} value={m}>{m}</option>)}
+                                      </select>
+                                    </div>
+                                  ) : (
+                                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                                      <select
+                                        style={{ width:'100%', padding:'8px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', background:'#fff' }}
+                                        value={r.agencia_id || ''}
+                                        onChange={e => {
+                                          const cuenta = cuentasCatalog.find(c => c.dynamics_id === e.target.value)
+                                          setF('fee_reparto', reparto.map((row,i) => i === idx ? { ...row, agencia_id:e.target.value, nombre: cuenta?.nombre || '' } : row))
+                                        }}
+                                      >
+                                        <option value="">Selecciona agencia externa...</option>
+                                        {cuentasCatalog.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>)}
+                                      </select>
+                                      <input
+                                        style={{ width:'100%', padding:'8px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit' }}
+                                        value={r.contacto || ''}
+                                        onChange={e => updateRow(idx, 'contacto', e.target.value)}
+                                        placeholder="Contacto del agente (opcional)"
+                                      />
+                                    </div>
+                                  )}
+                                </td>
+                                <td style={{ padding:'10px 12px', verticalAlign:'top' }}>
+                                  <select
+                                    style={{ width:'100%', padding:'8px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', background:'#fff' }}
+                                    value={r.tipo || 'interno'}
+                                    onChange={e => {
+                                      // al cambiar tipo, limpiar campos no aplicables
+                                      const next = e.target.value
+                                      setF('fee_reparto', reparto.map((row,i) => i === idx ? {
+                                        ...row, tipo:next,
+                                        ...(next === 'interno' ? { agencia_id:'', contacto:'', nombre:'' } : { equipo:'', miembro:'' }),
+                                      } : row))
+                                    }}
+                                  >
+                                    <option value="interno">Interno (Savills)</option>
+                                    <option value="externo">Externo (otra agencia)</option>
+                                  </select>
+                                </td>
+                                <td style={{ padding:'10px 12px', textAlign:'right', verticalAlign:'top' }}>
+                                  <div style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                                    <input
+                                      type="number" step="0.5" min="0" max="100"
+                                      style={{ width:80, padding:'8px 10px', fontSize:14, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', textAlign:'right' }}
+                                      value={r.porcentaje ?? ''}
+                                      onChange={e => updateRow(idx, 'porcentaje', e.target.value)}
+                                      placeholder="0"
+                                    />
+                                    <span style={{ fontSize:13, fontWeight:700, color:'var(--text3)' }}>%</span>
+                                  </div>
+                                </td>
+                                <td style={{ padding:'10px 12px', textAlign:'right', fontFamily:'var(--mono)', fontSize:13, fontWeight:600, color: sinTotal ? 'var(--text4)' : 'var(--text)', verticalAlign:'top' }}>
+                                  {sinTotal ? '—' : `${fmtEur(eur)} €`}
+                                </td>
+                                <td style={{ padding:'10px 4px', textAlign:'right', verticalAlign:'top' }}>
+                                  <button onClick={() => removeRow(idx)} style={{ background:'none', border:'none', color:'var(--text4)', cursor:'pointer', fontSize:18, padding:'4px 8px' }} title="Eliminar">×</button>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                          <tr style={{ background: sumOk ? 'var(--green-lt, #f0fdf4)' : (sumPct > 100 ? 'var(--red-lt)' : 'var(--amber-lt)'), borderTop:'2px solid var(--border)' }}>
+                            <td colSpan="2" style={{ padding:'14px 12px', fontSize:13, fontWeight:700, textAlign:'right', color:'var(--text)' }}>TOTAL</td>
+                            <td style={{ padding:'14px 12px', textAlign:'right' }}>
+                              <div style={{ fontSize:18, fontWeight:800, color: sumOk ? 'var(--green)' : (sumPct > 100 ? 'var(--red)' : 'var(--amber)') }}>{sumPct}%</div>
+                              {!sumOk && <div style={{ fontSize:10, fontWeight:600, color: sumPct > 100 ? 'var(--red)' : 'var(--amber)' }}>
+                                {sumPct > 100 ? `Excede en ${sumPct - 100}%` : `Falta ${restante}%`}
                               </div>}
+                            </td>
+                            <td style={{ padding:'14px 12px', textAlign:'right', fontFamily:'var(--mono)', fontSize:16, fontWeight:800, color: sumOk ? 'var(--green)' : 'var(--text)' }}>
+                              {sinTotal ? '—' : `${fmtEur(totalEurDistribuido)} €`}
                             </td>
                             <td></td>
                           </tr>
@@ -742,17 +863,30 @@ export default function FichaMandatoSupabase({ refOrId }) {
                       </table>
                     )}
 
-                    <button className="ab-btn" onClick={addRow} style={{ fontSize:11 }}>+ Añadir colaborador</button>
-                    {reparto.length > 0 && !sumOk && (
-                      <span style={{ marginLeft:12, fontSize:11, color: sum > 100 ? '#dc2626' : 'var(--amber)', fontWeight:600 }}>
-                        ⚠ El reparto debe sumar 100% para ser válido.
-                      </span>
-                    )}
-                  </>
-                )
-              })()}
-            </div></div>
-          )}
+                    <div style={{ marginTop:14, display:'flex', alignItems:'center', gap:12 }}>
+                      <button
+                        onClick={addRow}
+                        style={{ padding:'8px 14px', fontSize:12, fontWeight:600, border:'1px dashed var(--accent)', color:'var(--accent)', background:'var(--accent-lt)', borderRadius:6, cursor:'pointer', fontFamily:'inherit' }}
+                      >
+                        + Añadir colaborador
+                      </button>
+                      {reparto.length > 0 && !sumOk && (
+                        <span style={{ fontSize:11, color: sumPct > 100 ? '#dc2626' : 'var(--amber)', fontWeight:600 }}>
+                          ⚠ El reparto debe sumar exactamente 100% para ser válido.
+                        </span>
+                      )}
+                      {sumOk && reparto.length > 0 && (
+                        <span style={{ fontSize:11, color:'var(--green)', fontWeight:600 }}>
+                          ✓ Reparto correcto · 100%.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+              </div></div>
+            )
+          })()}
 
           {tab === 'man-docs' && <StubTab label="Documentos del mandato" />}
           {tab === 'man-act'  && <StubTab label="Actividades asociadas" />}
