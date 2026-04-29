@@ -1,9 +1,28 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
-import { LEAD_TIPOS, LEAD_ESTADOS, LEAD_PRIORIDADES } from '../data/mockLeads'
+import { LEAD_TIPOS, LEAD_ESTADOS, LEAD_PRIORIDADES, LEAD_CANALES } from '../data/mockLeads'
+import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import TransformarLeadModal from '../components/TransformarLeadModal'
 import LeadNuloModal from '../components/LeadNuloModal'
+
+const EQUIPOS = [
+  'Leasing Oficinas Madrid',
+  'Leasing Oficinas Barcelona',
+  'Industrial & Logistics',
+  'Retail',
+  'Capital Markets',
+  'Hotels',
+  'Alternativos',
+  'Advisory & Consultancy',
+  'Valuations',
+]
+
+const inlineInp = {
+  width:'100%', padding:'4px 7px', fontSize:11.5, border:'1px solid var(--border)',
+  borderRadius:5, background:'var(--surface)', color:'var(--text)', fontFamily:'inherit', boxSizing:'border-box', outline:'none',
+}
+const inlineTa = { ...inlineInp, padding:'6px 8px', resize:'vertical', minHeight:60, lineHeight:1.5 }
 
 const TABS = [
   ['ld-info',    'Información'],
@@ -42,6 +61,10 @@ export default function FichaLead() {
   const [lead, setLead] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({})
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(null)
 
   const loadLead = useCallback(async () => {
     if (!params.id) return
@@ -113,36 +136,113 @@ export default function FichaLead() {
   const oportunidadId  = lead.dynamics_opportunities?.dynamics_id || null
   const oportunidadNombre = lead.dynamics_opportunities?.nombre || null
 
-  const cerrado = lead.estado === 'cualificado' || lead.estado === 'no_cualificado'
+  const cerrado  = lead.estado === 'cualificado' || lead.estado === 'no_cualificado'
+  const canEdit  = esResponsable(lead) || !lead.responsable
+
+  const startEdit = () => {
+    setForm({
+      nombre:               lead.nombre               || '',
+      prioridad:            lead.prioridad            || '',
+      equipo:               lead.equipo               || '',
+      responsable:          lead.responsable          || '',
+      descripcion:          lead.descripcion          || '',
+      notas_cualificacion:  lead.notas_cualificacion  || '',
+      email:                lead.email                || '',
+      telefono:             lead.telefono             || '',
+      origen_canal:         lead.origen_canal         || '',
+      origen_campana:       lead.origen_campana       || '',
+      origen_anuncio:       lead.origen_anuncio       || '',
+      origen_url:           lead.origen_url           || '',
+    })
+    setSaveError(null)
+    setEditing(true)
+  }
+
+  const cancelEdit = () => { setEditing(false); setSaveError(null) }
+
+  const saveEdit = async () => {
+    if (!form.nombre.trim()) {
+      setSaveError('El nombre del lead no puede estar vacío')
+      return
+    }
+    setSaving(true)
+    const payload = {
+      nombre:              form.nombre.trim(),
+      prioridad:           form.prioridad || null,
+      equipo:              form.equipo || null,
+      responsable:         form.responsable || null,
+      descripcion:         form.descripcion || null,
+      notas_cualificacion: form.notas_cualificacion || null,
+      email:               form.email || null,
+      telefono:            form.telefono || null,
+      origen_canal:        form.origen_canal || null,
+      origen_campana:      form.origen_campana || null,
+      origen_anuncio:      form.origen_anuncio || null,
+      origen_url:          form.origen_url || null,
+      ultima_actividad:    new Date().toISOString(),
+    }
+    const { error } = await supabase.from('leads').update(payload).eq('id', lead.id)
+    setSaving(false)
+    if (error) {
+      setSaveError(`Error: ${error.message}`)
+      return
+    }
+    setEditing(false)
+    await loadLead()
+  }
+
+  const setF = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
 
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
       {/* Action bar */}
       <div className="action-bar">
-        <button className="ab-btn save">💾 Guardar</button>
-        <button className="ab-btn">Guardar y cerrar</button>
-        <button className="ab-btn" onClick={() => navigate('leads')}>← Volver</button>
-        <div className="ab-sep"/>
-        <button
-          className="ab-btn"
-          style={{ background:'#0078d4', color:'#fff', border:'none', fontWeight:700, opacity: cerrado ? 0.5 : 1, cursor: cerrado ? 'not-allowed' : 'pointer' }}
-          disabled={cerrado}
-          onClick={() => !cerrado && setShowTransformar(true)}
-        >
-          ⚡ Transformar
-        </button>
-        <button
-          className="ab-btn"
-          style={{ background:'#dc2626', color:'#fff', border:'none', fontWeight:700, opacity: cerrado ? 0.5 : 1, cursor: cerrado ? 'not-allowed' : 'pointer' }}
-          disabled={cerrado}
-          onClick={() => !cerrado && setShowNulo(true)}
-        >
-          ✗ Lead Nulo
-        </button>
-        <div className="ab-sep"/>
-        <button className="ab-btn">✅ Asignar tarea</button>
-        <button className="ab-btn">📞 Registrar llamada</button>
+        {editing ? (
+          <>
+            <button className="ab-btn save" onClick={saveEdit} disabled={saving}>
+              {saving ? 'Guardando…' : '💾 Guardar cambios'}
+            </button>
+            <button className="ab-btn" onClick={cancelEdit} disabled={saving}>Cancelar</button>
+          </>
+        ) : (
+          <>
+            {canEdit ? (
+              <button className="ab-btn save" onClick={startEdit}>✎ Editar</button>
+            ) : (
+              <button className="ab-btn" disabled style={{ opacity:0.55, cursor:'not-allowed' }} title={`Solo el responsable (${lead.responsable || 'sin asignar'}) puede editar`}>
+                🔒 Solo lectura
+              </button>
+            )}
+            <button className="ab-btn" onClick={() => navigate('leads')}>← Volver</button>
+            <div className="ab-sep"/>
+            <button
+              className="ab-btn"
+              style={{ background:'#0078d4', color:'#fff', border:'none', fontWeight:700, opacity: cerrado ? 0.5 : 1, cursor: cerrado ? 'not-allowed' : 'pointer' }}
+              disabled={cerrado}
+              onClick={() => !cerrado && setShowTransformar(true)}
+            >
+              ⚡ Transformar
+            </button>
+            <button
+              className="ab-btn"
+              style={{ background:'#dc2626', color:'#fff', border:'none', fontWeight:700, opacity: cerrado ? 0.5 : 1, cursor: cerrado ? 'not-allowed' : 'pointer' }}
+              disabled={cerrado}
+              onClick={() => !cerrado && setShowNulo(true)}
+            >
+              ✗ Lead Nulo
+            </button>
+            <div className="ab-sep"/>
+            <button className="ab-btn">✅ Asignar tarea</button>
+            <button className="ab-btn">📞 Registrar llamada</button>
+          </>
+        )}
+        {saveError && <span style={{ marginLeft:12, fontSize:11, color:'#991b1b', fontWeight:600 }}>{saveError}</span>}
+        {!editing && !canEdit && (
+          <span style={{ marginLeft:12, fontSize:10, color:'var(--text4)' }}>
+            Editas si el responsable eres tú ({CURRENT_USER.nombre}). Actual: {lead.responsable || '—'}
+          </span>
+        )}
       </div>
 
       <div className="ficha-wrap">
@@ -187,11 +287,22 @@ export default function FichaLead() {
                     <div className="va-meta-head"><span className="dot"/>Datos del lead</div>
                     <div className="va-kv-list">
                       <div className="ir"><span className="ir-k">ID</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{lead.ref}</span></div>
-                      <div className="ir"><span className="ir-k">Nombre</span><span className="ir-v" style={{fontWeight:600}}>{lead.nombre}</span></div>
+                      <div className="ir"><span className="ir-k">Nombre</span><span className="ir-v" style={{fontWeight:600}}>
+                        {editing
+                          ? <input style={inlineInp} value={form.nombre} onChange={e => setF('nombre', e.target.value)} />
+                          : (lead.nombre || <span style={{color:'var(--text4)'}}>—</span>)}
+                      </span></div>
                       <div className="ir"><span className="ir-k">Tipo</span><span className="ir-v">{LEAD_TIPOS.find(t => t.key === lead.tipo)?.label || '—'}</span></div>
                       <div className="ir"><span className="ir-k">Vía</span><span className="ir-v">{lead.via ? (lead.via === 'pitch' ? 'Pitch (con propuesta)' : 'Directo') : <span style={{color:'var(--text4)'}}>Por decidir</span>}</span></div>
                       <div className="ir"><span className="ir-k">Estado</span><span className="ir-v"><EstadoTag estado={lead.estado}/></span></div>
-                      <div className="ir"><span className="ir-k">Prioridad</span><span className="ir-v"><PrioridadTag prioridad={lead.prioridad}/></span></div>
+                      <div className="ir"><span className="ir-k">Prioridad</span><span className="ir-v">
+                        {editing
+                          ? <select style={inlineInp} value={form.prioridad} onChange={e => setF('prioridad', e.target.value)}>
+                              <option value="">— sin definir —</option>
+                              {LEAD_PRIORIDADES.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+                            </select>
+                          : <PrioridadTag prioridad={lead.prioridad}/>}
+                      </span></div>
                       <div className="ir"><span className="ir-k">Fecha entrada</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{fmtFecha(lead.created_at)}</span></div>
                       <div className="ir"><span className="ir-k">Última actividad</span><span className="ir-v">{fmtFecha(lead.ultima_actividad)}</span></div>
                     </div>
@@ -199,8 +310,29 @@ export default function FichaLead() {
                   <div className="va-meta-card">
                     <div className="va-meta-head accent-purple"><span className="dot"/>Asignación</div>
                     <div className="va-kv-list">
-                      <div className="ir"><span className="ir-k">Equipo</span><span className="ir-v">{lead.equipo || '—'}</span></div>
-                      <div className="ir"><span className="ir-k">Responsable</span><span className="ir-v">{lead.responsable || '—'}</span></div>
+                      <div className="ir"><span className="ir-k">Equipo</span><span className="ir-v">
+                        {editing
+                          ? <select style={inlineInp} value={form.equipo} onChange={e => setF('equipo', e.target.value)}>
+                              <option value="">— sin asignar —</option>
+                              {EQUIPOS.map(eq => <option key={eq} value={eq}>{eq}</option>)}
+                            </select>
+                          : (lead.equipo || <span style={{color:'var(--text4)'}}>—</span>)}
+                      </span></div>
+                      <div className="ir"><span className="ir-k">Responsable</span><span className="ir-v">
+                        {editing
+                          ? <input style={inlineInp} value={form.responsable} onChange={e => setF('responsable', e.target.value)} placeholder="Nombre del broker" />
+                          : (lead.responsable || <span style={{color:'var(--text4)'}}>—</span>)}
+                      </span></div>
+                      <div className="ir"><span className="ir-k">Email</span><span className="ir-v">
+                        {editing
+                          ? <input style={inlineInp} value={form.email} onChange={e => setF('email', e.target.value)} placeholder="contacto@..." />
+                          : (lead.email || <span style={{color:'var(--text4)'}}>—</span>)}
+                      </span></div>
+                      <div className="ir"><span className="ir-k">Teléfono</span><span className="ir-v">
+                        {editing
+                          ? <input style={inlineInp} value={form.telefono} onChange={e => setF('telefono', e.target.value)} placeholder="+34 ..." />
+                          : (lead.telefono || <span style={{color:'var(--text4)'}}>—</span>)}
+                      </span></div>
                     </div>
                   </div>
                 </div>
@@ -210,17 +342,21 @@ export default function FichaLead() {
                     <h3><span className="ico">▭</span> Descripción</h3>
                   </div>
                   <div style={{padding:'4px 20px 16px',fontSize:12,color:'var(--text2)',lineHeight:1.55}}>
-                    {lead.descripcion || <span style={{color:'var(--text4)'}}>Sin descripción.</span>}
+                    {editing
+                      ? <textarea style={inlineTa} value={form.descripcion} onChange={e => setF('descripcion', e.target.value)} placeholder="Detalles del lead..." />
+                      : (lead.descripcion || <span style={{color:'var(--text4)'}}>Sin descripción.</span>)}
                   </div>
                 </div>
 
-                {lead.notas_cualificacion && (
+                {(lead.notas_cualificacion || editing) && (
                   <div className="va-card">
                     <div className="va-card-header">
                       <h3><span className="ico" style={{color:'var(--green)'}}>●</span> Notas de cualificación</h3>
                     </div>
                     <div style={{padding:'4px 20px 16px',fontSize:12,color:'var(--text2)',lineHeight:1.55}}>
-                      {lead.notas_cualificacion}
+                      {editing
+                        ? <textarea style={inlineTa} value={form.notas_cualificacion} onChange={e => setF('notas_cualificacion', e.target.value)} placeholder="Notas internas durante la cualificación..." />
+                        : lead.notas_cualificacion}
                     </div>
                   </div>
                 )}
@@ -233,10 +369,29 @@ export default function FichaLead() {
                   <div className="va-meta-card">
                     <div className="va-meta-head"><span className="dot"/>Canal y origen</div>
                     <div className="va-kv-list">
-                      <div className="ir"><span className="ir-k">Canal de entrada</span><span className="ir-v">{lead.origen_canal || '—'}</span></div>
-                      <div className="ir"><span className="ir-k">Campaña asociada</span><span className="ir-v">{lead.origen_campana || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Anuncio concreto</span><span className="ir-v">{lead.origen_anuncio || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">URL de origen</span><span className="ir-v" style={{fontFamily:'var(--mono)',fontSize:11}}>{lead.origen_url || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
+                      <div className="ir"><span className="ir-k">Canal de entrada</span><span className="ir-v">
+                        {editing
+                          ? <select style={inlineInp} value={form.origen_canal} onChange={e => setF('origen_canal', e.target.value)}>
+                              <option value="">—</option>
+                              {LEAD_CANALES.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                          : (lead.origen_canal || <span style={{color:'var(--text4)'}}>—</span>)}
+                      </span></div>
+                      <div className="ir"><span className="ir-k">Campaña asociada</span><span className="ir-v">
+                        {editing
+                          ? <input style={inlineInp} value={form.origen_campana} onChange={e => setF('origen_campana', e.target.value)} placeholder="Q2-2026 Oficinas Madrid" />
+                          : (lead.origen_campana || <span style={{color:'var(--text4)'}}>—</span>)}
+                      </span></div>
+                      <div className="ir"><span className="ir-k">Anuncio concreto</span><span className="ir-v">
+                        {editing
+                          ? <input style={inlineInp} value={form.origen_anuncio} onChange={e => setF('origen_anuncio', e.target.value)} placeholder="Form contacto general" />
+                          : (lead.origen_anuncio || <span style={{color:'var(--text4)'}}>—</span>)}
+                      </span></div>
+                      <div className="ir"><span className="ir-k">URL de origen</span><span className="ir-v" style={{fontFamily:'var(--mono)',fontSize:11}}>
+                        {editing
+                          ? <input style={{ ...inlineInp, fontFamily:'var(--mono)' }} value={form.origen_url} onChange={e => setF('origen_url', e.target.value)} placeholder="savills.es/contacto" />
+                          : (lead.origen_url || <span style={{color:'var(--text4)'}}>—</span>)}
+                      </span></div>
                     </div>
                   </div>
                   <div className="va-meta-card">
