@@ -30,6 +30,21 @@ const ESTADO_OFERTA = [
   { v:'Retirada',         label:'Retirada' },
 ]
 
+// Estados que computan como "cierre" de la oferta y exigen motivo
+const ESTADOS_CIERRE_OFERTA = ['Ocupada total','Retirada']
+
+const MOTIVOS_DESCARTE_OFERTA = [
+  'Arrendado / vendido a otro cliente',
+  'Retirada por la propiedad',
+  'Mandato finalizado / no renovado',
+  'Cambio de precio o condiciones',
+  'Activo en obras / no comercializable',
+  'Operación interna del propietario',
+  'Off-market estratégico',
+  'Comercialización exclusiva por otra agencia',
+  'Otro motivo',
+]
+
 const sel = { width:'auto', padding:'2px 6px', fontSize:11, border:'1px solid var(--border)', borderRadius:4, background:'var(--surface)', fontFamily:'inherit' }
 const inp = { width:90, padding:'2px 6px', fontSize:11, border:'1px solid var(--border)', borderRadius:4, background:'var(--surface)', fontFamily:'inherit' }
 const inpFull = { ...inp, width:'100%' }
@@ -63,7 +78,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
   const [form, setForm] = useState({
     tipo_operacion:'', tipo_comercializacion:'', tipologia:'', tipo_mercado:'mercado', estado:'',
     superficie_disponible:'', plazas:'', renta_m2:'', gastos_comunes:'',
-    descriptivo:'', comentarios:'',
+    descriptivo:'', comentarios:'', motivo_descarte:'',
     titulo_web:'', descripcion_web:'',
   })
 
@@ -123,6 +138,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
       gastos_comunes:        oferta.gastos_comunes        || '',
       descriptivo:           oferta.descriptivo           || '',
       comentarios:           oferta.comentarios           || '',
+      motivo_descarte:       oferta.motivo_descarte       || '',
       titulo_web:            oferta.titulo_web            || '',
       descripcion_web:       oferta.descripcion_web       || '',
     })
@@ -135,6 +151,12 @@ export default function FichaOfertaSupabase({ refOrId }) {
   }
 
   const saveEdit = async () => {
+    // Si el estado pasa a uno de cierre (Retirada, Ocupada total), el motivo es obligatorio
+    const requiereMotivo = ESTADOS_CIERRE_OFERTA.includes(form.estado)
+    if (requiereMotivo && !form.motivo_descarte.trim()) {
+      setSaveError('Debes indicar el motivo antes de cerrar/retirar la oferta.')
+      return
+    }
     setSaving(true)
     const num = v => v === '' || v === undefined ? null : Number(v)
     const txt = v => (v === '' || v === undefined) ? null : v
@@ -150,6 +172,9 @@ export default function FichaOfertaSupabase({ refOrId }) {
       gastos_comunes:        num(form.gastos_comunes),
       descriptivo:           txt(form.descriptivo),
       comentarios:           txt(form.comentarios),
+      motivo_descarte:       requiereMotivo ? (txt(form.motivo_descarte) || null) : null,
+      // En ofertas también marcamos activa según estado (alinea con la vista activas/desactivadas)
+      activa:                !requiereMotivo,
       titulo_web:            txt(form.titulo_web),
       descripcion_web:       txt(form.descripcion_web),
       updated_at:            new Date().toISOString(),
@@ -294,6 +319,58 @@ export default function FichaOfertaSupabase({ refOrId }) {
                             </select>
                           : (oferta.estado || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
                       </div>
+
+                      {/* Motivo: obligatorio cuando estado es Retirada / Ocupada total */}
+                      {(ESTADOS_CIERRE_OFERTA.includes(form.estado) || oferta.motivo_descarte) && (() => {
+                        const motivoEsPredef = MOTIVOS_DESCARTE_OFERTA.includes(form.motivo_descarte)
+                        const motivoEsOtro   = !!form.motivo_descarte && !motivoEsPredef
+                        const sel_v          = motivoEsOtro ? 'Otro motivo' : (form.motivo_descarte || '')
+                        const otroTexto      = motivoEsOtro ? form.motivo_descarte : ''
+                        const requiereMotivo = ESTADOS_CIERRE_OFERTA.includes(form.estado)
+                        const sinMotivo      = requiereMotivo && !form.motivo_descarte.trim()
+                        return (
+                          <>
+                            <div className="ir" style={{ alignItems:'flex-start' }}>
+                              <span className="ir-k" style={{ color: requiereMotivo ? '#dc2626' : 'var(--text4)', fontWeight:700 }}>
+                                Motivo del cierre {requiereMotivo && <span style={{ color:'#dc2626' }}>*</span>}
+                              </span>
+                              <span className="ir-v">
+                                {editing
+                                  ? <select
+                                      style={{ ...sel, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
+                                      value={sel_v}
+                                      onChange={e => {
+                                        const v = e.target.value
+                                        if (v === '') setF('motivo_descarte', '')
+                                        else if (v === 'Otro motivo') setF('motivo_descarte', otroTexto || ' ')
+                                        else setF('motivo_descarte', v)
+                                      }}
+                                    >
+                                      <option value="">Selecciona un motivo...</option>
+                                      {MOTIVOS_DESCARTE_OFERTA.map(m => <option key={m}>{m}</option>)}
+                                    </select>
+                                  : (motivoEsPredef ? form.motivo_descarte : (motivoEsOtro ? 'Otro motivo' : <span style={{ color:'var(--text4)' }}>—</span>))}
+                              </span>
+                            </div>
+                            {(sel_v === 'Otro motivo' || motivoEsOtro) && (
+                              <div className="ir" style={{ alignItems:'flex-start' }}>
+                                <span className="ir-k">Describe el motivo</span>
+                                <span className="ir-v" style={{ flex:1 }}>
+                                  {editing
+                                    ? <textarea
+                                        style={{ ...ta, minHeight:50, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
+                                        value={otroTexto}
+                                        onChange={e => setF('motivo_descarte', e.target.value)}
+                                        placeholder="Describe brevemente por qué se cierra/retira esta oferta..."
+                                      />
+                                    : (oferta.motivo_descarte || <span style={{ color:'var(--text4)' }}>—</span>)}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
+
                       <div className="ir">
                         <span className="ir-k">Mercado</span>
                         <span className="ir-v">{editing

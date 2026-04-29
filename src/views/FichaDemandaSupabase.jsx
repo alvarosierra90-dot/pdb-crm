@@ -32,6 +32,20 @@ const USOS_TIPOLOGIAS = {
 
 const RAZONES_LEASING = ['Expansión / Crecimiento','Reducción','Reubicación','Reagrupación','Creación','Obsoleto']
 
+// Motivos por los que se descarta una Demanda (buy-side)
+const MOTIVOS_DESCARTE_DEMANDA = [
+  'Renegocia en su actual ubicación',
+  'Firma en otra ubicación',
+  'Operación cerrada con otra consultora',
+  'Cliente cancela el proyecto',
+  'Aplaza decisión sin fecha',
+  'Sin presupuesto / proyecto inviable',
+  'Cambio de estrategia interna',
+  'Sin respuesta del cliente',
+  'Spam / no cualificada',
+  'Otro motivo',
+]
+
 const PROVINCIAS_LISTA = ['Madrid','Barcelona','Valencia','Sevilla','Bilbao','Málaga','Zaragoza','Alicante','Las Palmas','Mallorca']
 const ZONAS_MADRID = ['CBD','M-30','A-1 · Alcobendas','A-1 · Tres Cantos','A-2 · Corredor del Henares','A-3 · Vallecas','A-4 · Getafe','A-5 · Pozuelo','A-6 · Las Rozas','M-40','M-50','Centro','Salamanca','Chamberí','Chamartín','Castellana']
 
@@ -392,24 +406,58 @@ export default function FichaDemandaSupabase({ refOrId }) {
                             : (ESTADO_LABEL[demanda.estatus] || demanda.estatus || '—')}
                         </span>
                       </div>
-                      {/* Motivo de descarte: obligatorio cuando se elige descartada */}
-                      {(form.estatus === 'descartada' || demanda.motivo_descarte) && (
-                        <div className="ir" style={{ alignItems:'flex-start' }}>
-                          <span className="ir-k" style={{ color: form.estatus === 'descartada' ? '#dc2626' : 'var(--text4)', fontWeight:700 }}>
-                            Motivo del descarte {form.estatus === 'descartada' && <span style={{ color:'#dc2626' }}>*</span>}
-                          </span>
-                          <span className="ir-v" style={{ flex:1 }}>
-                            {editing
-                              ? <textarea
-                                  style={{ ...ta, minHeight:50, borderColor: form.estatus === 'descartada' && !form.motivo_descarte.trim() ? '#dc2626' : 'var(--border)' }}
-                                  value={form.motivo_descarte}
-                                  onChange={e => setF('motivo_descarte', e.target.value)}
-                                  placeholder={form.estatus === 'descartada' ? 'Obligatorio: explica por qué se descarta esta demanda...' : ''}
-                                />
-                              : (demanda.motivo_descarte || <span style={{ color:'var(--text4)' }}>—</span>)}
-                          </span>
-                        </div>
-                      )}
+                      {/* Motivo de descarte: obligatorio cuando se elige descartada.
+                          Desplegable con opciones predefinidas + "Otro motivo" → textarea libre. */}
+                      {(form.estatus === 'descartada' || demanda.motivo_descarte) && (() => {
+                        const motivoEsPredef = MOTIVOS_DESCARTE_DEMANDA.includes(form.motivo_descarte)
+                        const motivoEsOtro   = !!form.motivo_descarte && !motivoEsPredef
+                        const sel_v          = motivoEsOtro ? 'Otro motivo' : (form.motivo_descarte || '')
+                        const otroTexto      = motivoEsOtro ? form.motivo_descarte : ''
+                        const requiereMotivo = form.estatus === 'descartada'
+                        const sinMotivo      = requiereMotivo && !form.motivo_descarte.trim()
+                        return (
+                          <>
+                            <div className="ir" style={{ alignItems:'flex-start' }}>
+                              <span className="ir-k" style={{ color: requiereMotivo ? '#dc2626' : 'var(--text4)', fontWeight:700 }}>
+                                Motivo del descarte {requiereMotivo && <span style={{ color:'#dc2626' }}>*</span>}
+                              </span>
+                              <span className="ir-v">
+                                {editing
+                                  ? <select
+                                      style={{ ...sel, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
+                                      value={sel_v}
+                                      onChange={e => {
+                                        const v = e.target.value
+                                        if (v === '') setF('motivo_descarte', '')
+                                        else if (v === 'Otro motivo') setF('motivo_descarte', otroTexto || ' ')
+                                        else setF('motivo_descarte', v)
+                                      }}
+                                    >
+                                      <option value="">Selecciona un motivo...</option>
+                                      {MOTIVOS_DESCARTE_DEMANDA.map(m => <option key={m}>{m}</option>)}
+                                    </select>
+                                  : (motivoEsPredef ? form.motivo_descarte : (motivoEsOtro ? 'Otro motivo' : <span style={{ color:'var(--text4)' }}>—</span>))}
+                              </span>
+                            </div>
+                            {/* Textarea solo cuando se eligió "Otro motivo" */}
+                            {(sel_v === 'Otro motivo' || motivoEsOtro) && (
+                              <div className="ir" style={{ alignItems:'flex-start' }}>
+                                <span className="ir-k">Describe el motivo</span>
+                                <span className="ir-v" style={{ flex:1 }}>
+                                  {editing
+                                    ? <textarea
+                                        style={{ ...ta, minHeight:50, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
+                                        value={otroTexto}
+                                        onChange={e => setF('motivo_descarte', e.target.value)}
+                                        placeholder="Describe brevemente por qué se descarta esta demanda..."
+                                      />
+                                    : (demanda.motivo_descarte || <span style={{ color:'var(--text4)' }}>—</span>)}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
                       <div className="ir"><span className="ir-k">Equipo</span><span className="ir-v">Leasing Oficinas — MAD</span></div>
                     </div>
                   </div>

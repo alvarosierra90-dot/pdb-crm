@@ -28,6 +28,22 @@ const ESTADO_TAG = {
 }
 const LINEAS = ['Oficinas','Capital Markets','Retail','Industrial / Logística','Residencial','Hoteles','Alternativos','Workplace & Consulting','Urbanismo','Valoraciones']
 
+// Estados de cierre que exigen motivo (perdida o cancelada)
+const ESTADOS_CIERRE_PROPUESTA = ['perdida','cancelada']
+
+const MOTIVOS_DESCARTE_PROPUESTA = [
+  'Cliente eligió otra consultora',
+  'Cliente decide no contratar',
+  'Fees no aceptados',
+  'Plazos no aceptados',
+  'Cambio de scope del cliente',
+  'Cliente pospone el encargo',
+  'Operación fuera de mercado',
+  'Conflicto de intereses',
+  'Cliente cierra otra alternativa internamente',
+  'Otro motivo',
+]
+
 const sel = { width:'auto', padding:'2px 6px', fontSize:11, border:'1px solid var(--border)', borderRadius:4, background:'var(--surface)', fontFamily:'inherit' }
 const inp = { width:120, padding:'2px 6px', fontSize:11, border:'1px solid var(--border)', borderRadius:4, background:'var(--surface)', fontFamily:'inherit' }
 const inpFull = { ...inp, width:'100%' }
@@ -60,7 +76,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
   const [form, setForm] = useState({
     nombre:'', tipo:'', linea:'', estado:'',
     fees:'', fecha_presentacion:'', fecha_resolucion:'', fecha_cierre:'',
-    equipo:'', responsable:'', notas:'',
+    equipo:'', responsable:'', notas:'', motivo_descarte:'',
   })
 
   const load = useCallback(async () => {
@@ -110,6 +126,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
       equipo:             propuesta.equipo             || '',
       responsable:        propuesta.responsable        || CURRENT_USER.nombre,
       notas:              propuesta.notas              || '',
+      motivo_descarte:    propuesta.motivo_descarte    || '',
     })
     setSaveError(null)
   }, [propuesta, cuenta])
@@ -120,6 +137,11 @@ export default function FichaPropuestaSupabase({ refOrId }) {
   }
 
   const saveEdit = async () => {
+    const requiereMotivo = ESTADOS_CIERRE_PROPUESTA.includes(form.estado)
+    if (requiereMotivo && !form.motivo_descarte.trim()) {
+      setSaveError('Debes indicar el motivo antes de cerrar la propuesta como perdida o cancelada.')
+      return
+    }
     setSaving(true)
     const num = v => v === '' || v === undefined ? null : Number(v)
     const txt = v => (v === '' || v === undefined) ? null : v
@@ -134,6 +156,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
       equipo:             txt(form.equipo),
       responsable:        txt(form.responsable),
       notas:              txt(form.notas),
+      motivo_descarte:    requiereMotivo ? (txt(form.motivo_descarte) || null) : null,
       updated_at:         new Date().toISOString(),
     }).eq('id', propuesta.id)
     setSaving(false)
@@ -272,6 +295,57 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                             {ESTADOS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
                           </select>
                         : (ESTADO_LABEL[propuesta.estado] || propuesta.estado || '—')}</span></div>
+
+                      {/* Motivo: obligatorio si la propuesta se cierra como perdida o cancelada */}
+                      {(ESTADOS_CIERRE_PROPUESTA.includes(form.estado) || propuesta.motivo_descarte) && (() => {
+                        const motivoEsPredef = MOTIVOS_DESCARTE_PROPUESTA.includes(form.motivo_descarte)
+                        const motivoEsOtro   = !!form.motivo_descarte && !motivoEsPredef
+                        const sel_v          = motivoEsOtro ? 'Otro motivo' : (form.motivo_descarte || '')
+                        const otroTexto      = motivoEsOtro ? form.motivo_descarte : ''
+                        const requiereMotivo = ESTADOS_CIERRE_PROPUESTA.includes(form.estado)
+                        const sinMotivo      = requiereMotivo && !form.motivo_descarte.trim()
+                        return (
+                          <>
+                            <div className="ir" style={{ alignItems:'flex-start' }}>
+                              <span className="ir-k" style={{ color: requiereMotivo ? '#dc2626' : 'var(--text4)', fontWeight:700 }}>
+                                Motivo del cierre {requiereMotivo && <span style={{ color:'#dc2626' }}>*</span>}
+                              </span>
+                              <span className="ir-v">
+                                {editing
+                                  ? <select
+                                      style={{ ...sel, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
+                                      value={sel_v}
+                                      onChange={e => {
+                                        const v = e.target.value
+                                        if (v === '') setF('motivo_descarte', '')
+                                        else if (v === 'Otro motivo') setF('motivo_descarte', otroTexto || ' ')
+                                        else setF('motivo_descarte', v)
+                                      }}
+                                    >
+                                      <option value="">Selecciona un motivo...</option>
+                                      {MOTIVOS_DESCARTE_PROPUESTA.map(m => <option key={m}>{m}</option>)}
+                                    </select>
+                                  : (motivoEsPredef ? form.motivo_descarte : (motivoEsOtro ? 'Otro motivo' : <span style={{ color:'var(--text4)' }}>—</span>))}
+                              </span>
+                            </div>
+                            {(sel_v === 'Otro motivo' || motivoEsOtro) && (
+                              <div className="ir" style={{ alignItems:'flex-start' }}>
+                                <span className="ir-k">Describe el motivo</span>
+                                <span className="ir-v" style={{ flex:1 }}>
+                                  {editing
+                                    ? <textarea
+                                        style={{ ...ta, minHeight:50, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
+                                        value={otroTexto}
+                                        onChange={e => setF('motivo_descarte', e.target.value)}
+                                        placeholder="Describe brevemente por qué se cierra esta propuesta..."
+                                      />
+                                    : (propuesta.motivo_descarte || <span style={{ color:'var(--text4)' }}>—</span>)}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
                     </div>
                   </div>
 
