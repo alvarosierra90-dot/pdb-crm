@@ -32,7 +32,7 @@ function mapDbToVencimientos(r) {
   const activo = r.activo_ref || '—'
   const arrendatario = r.nombre || '—'
   const sup = Number(r.m2) || 0
-  const linea = sectorToLinea(null) // default Oficinas; sector not stored in arrendatarios
+  const linea = sectorToLinea(null)
   const mesesRecordatorio = 3
 
   if (r.break_option) {
@@ -48,6 +48,8 @@ function mapDbToVencimientos(r) {
       oportunidad: null,
       instruccion: null,
       _real: true,
+      _arrendatarioRef: r.ref,
+      _activoRef: r.activo_ref,
       _tenantName: r.nombre,
       _mesesRecordatorio: mesesRecordatorio,
       _recordatorioFecha: calcRecordatorioISO(r.break_option, mesesRecordatorio),
@@ -66,6 +68,8 @@ function mapDbToVencimientos(r) {
       oportunidad: null,
       instruccion: null,
       _real: true,
+      _arrendatarioRef: r.ref,
+      _activoRef: r.activo_ref,
       _tenantName: r.nombre,
     })
   }
@@ -98,6 +102,20 @@ function AlertaBadge({ dias }) {
   return <span style={{fontSize:8,background:'#f0fdf4',color:'#15803d',border:'1px solid #bbf7d0',borderRadius:8,padding:'1px 6px',fontWeight:700}}>🟢 {dias}d</span>
 }
 
+// Genera el siguiente ref disponible OFE-YYYY-NNNN
+async function generarRefOferta() {
+  const year = new Date().getFullYear()
+  const { data } = await supabase
+    .from('ofertas')
+    .select('ref')
+    .ilike('ref', `OFE-${year}-%`)
+    .order('ref', { ascending: false })
+    .limit(1)
+  const last = data?.[0]?.ref
+  const next = last ? (parseInt(last.split('-')[2], 10) + 1) : 1
+  return `OFE-${year}-${String(next).padStart(4, '0')}`
+}
+
 export default function VencimientosView() {
   const { navigate } = useNav()
   const [fAnio,   setFAnio]   = useState('')
@@ -106,20 +124,28 @@ export default function VencimientosView() {
   const [fTipo,   setFTipo]   = useState('')
   const [allVencimientos, setAllVencimientos] = useState(MOCK_VENCIMIENTOS)
   const [loadingDB, setLoadingDB] = useState(true)
+  const [reloadKey, setReloadKey] = useState(0)
+  const [modal, setModal] = useState(null) // { action:'renovar'|'oferta', row, fecha?, tipoOp?, tipoMercado? }
+  const [working, setWorking] = useState(false)
+  const [toast, setToast] = useState(null) // { type:'ok'|'err', msg }
 
   useEffect(() => {
+    let cancel = false
+    setLoadingDB(true)
     supabase.from('arrendatarios')
       .select('ref,nombre,activo_ref,break_option,vencimiento,m2')
-      .not('vencimiento', 'is', null)
-      .order('vencimiento')
+      .or('break_option.not.is.null,vencimiento.not.is.null')
+      .order('vencimiento', { nullsFirst: false })
       .then(({ data }) => {
+        if (cancel) return
         if (data?.length > 0) {
           const dbEntries = data.flatMap(mapDbToVencimientos)
           setAllVencimientos(dbEntries)
         }
         setLoadingDB(false)
       })
-  }, [])
+    return () => { cancel = true }
+  }, [reloadKey])
 
   const filtered = allVencimientos.filter(v => {
     const [y, m] = v.fecha.split('-')
@@ -134,18 +160,89 @@ export default function VencimientosView() {
   const alertas  = filtered.filter(v => diasRestantes(v.fecha) < 90).length
   const proximos = filtered.filter(v => { const d = diasRestantes(v.fecha); return d >= 0 && d < 365 }).length
 
-  // Check if recordatorio alert is active for Break entries
   function isRecordatorioActivo(v) {
     if (v.tipo !== 'Break' || !v._recordatorioFecha) return false
     return diasRestantes(v._recordatorioFecha) <= 0
   }
 
-  const handleClick = (v) => {
+  const handleRowClick = (v) => {
     if (v._real && v._tenantName) {
       navigate('ficha-arrendatario', { tenantName: v._tenantName })
     } else {
       navigate('ficha-arrendatario')
     }
+  }
+
+  const openRenovar = (v, e) => {
+    e.stopPropagation()
+    setModal({ action:'renovar', row:v, fecha:v.fecha })
+  }
+  const openGenerarOferta = (v, e) => {
+    e.stopPropagation()
+    setModal({ action:'oferta', row:v, tipoOp:'Alquiler', tipoMercado:'mercado' })
+  }
+  const closeModal = () => { if (!working) { setModal(null) } }
+
+  const confirmRenovar = async () => {
+    if (!modal || !modal.fecha) return
+    setWorking(true)
+    const col = modal.row.tipo === 'Break' ? 'break_option' : 'vencimiento'
+    const { error } = await supabase
+      .from('arrendatarios')
+      .update({ [col]: modal.fecha })
+      .eq('ref', modal.row._arrendatarioRef)
+    setWorking(false)
+    if (error) { setToast({ type:'err', msg:`Error renovando: ${error.message}` }); return }
+    setToast({ type:'ok', msg:`✓ Fecha ${modal.row.tipo === 'Break' ? 'de break' : 'de fin de contrato'} actualizada a ${fmtFecha(modal.fecha)}` })
+    setModal(null)
+    setReloadKey(k => k + 1)
+  }
+
+  const confirmGenerarOferta = async () => {
+    if (!modal || !modal.row._activoRef) return
+    setWorking(true)
+    // 1. Resolver activo
+    const { data: activo, error: actErr } = await supabase
+      .from('activos')
+      .select('id, ref, nombre, dynamics_account_id, portfolio_id, uso, ciudad')
+      .eq('ref', modal.row._activoRef)
+      .maybeSingle()
+    if (actErr || !activo) {
+      setWorking(false)
+      setToast({ type:'err', msg:`No encuentro activo ${modal.row._activoRef} en BBDD.` })
+      return
+    }
+    // 2. Generar ref único
+    const newRef = await generarRefOferta()
+    // 3. Insertar oferta
+    const sup = Number(modal.row.sup) || null
+    const payload = {
+      ref:                   newRef,
+      activo_id:             activo.id,
+      dynamics_account_id:   activo.dynamics_account_id,
+      portfolio_id:          activo.portfolio_id,
+      tipo_operacion:        modal.tipoOp || 'Alquiler',
+      tipo_mercado:          modal.tipoMercado || 'mercado',
+      tipologia:             activo.uso || 'Oficinas',
+      estado:                'En curso',
+      superficie_disponible: sup,
+      m2_oferta:             sup,
+      tipo_comercializacion: 'Mandato Savills',
+      comentarios:           `Oferta generada desde Vencimiento (${modal.row.tipo}) del arrendatario ${modal.row.arrendatario}. Disponibilidad: ${fmtFecha(modal.row.fecha)}.`,
+    }
+    const { error: ofErr, data: ofData } = await supabase.from('ofertas').insert(payload).select('id, ref').single()
+    if (ofErr) {
+      setWorking(false)
+      setToast({ type:'err', msg:`Error creando oferta: ${ofErr.message}` })
+      return
+    }
+    // 4. Limpiar la fecha del arrendatario para que desaparezca del listado
+    const col = modal.row.tipo === 'Break' ? 'break_option' : 'vencimiento'
+    await supabase.from('arrendatarios').update({ [col]: null }).eq('ref', modal.row._arrendatarioRef)
+    setWorking(false)
+    setToast({ type:'ok', msg:`✓ Oferta ${ofData.ref} generada para ${activo.nombre || activo.ref}.` })
+    setModal(null)
+    setReloadKey(k => k + 1)
   }
 
   return (
@@ -176,6 +273,20 @@ export default function VencimientosView() {
         </div>
       </div>
 
+      {/* Toast */}
+      {toast && (
+        <div onClick={() => setToast(null)} style={{
+          padding:'8px 16px', cursor:'pointer',
+          background: toast.type === 'ok' ? '#f0fdf4' : '#fee2e2',
+          color:      toast.type === 'ok' ? '#15803d' : '#991b1b',
+          borderBottom: '1px solid', borderColor: toast.type === 'ok' ? '#bbf7d0' : '#fca5a5',
+          fontSize:12, fontWeight:600,
+        }}>
+          {toast.msg}
+          <span style={{ marginLeft:12, fontSize:10, fontWeight:500, opacity:0.6 }}>(click para cerrar)</span>
+        </div>
+      )}
+
       {/* Filtros */}
       <div style={{padding:'8px 16px',background:'var(--surface)',borderBottom:'1px solid var(--border)',display:'flex',gap:10,alignItems:'center',flexShrink:0}}>
         {[
@@ -204,19 +315,19 @@ export default function VencimientosView() {
         <table className="main-tbl">
           <thead>
             <tr>
-              {['','Activo','Arrendatario','Superficie','Línea','Fecha vencim.','Tipo','Recordatorio','Alerta'].map(h=>(
+              {['','Activo','Arrendatario','Superficie','Línea','Fecha vencim.','Tipo','Recordatorio','Alerta','Acciones'].map(h=>(
                 <th key={h}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0
-              ? <tr><td colSpan={9} style={{textAlign:'center',padding:32,color:'var(--text4)',fontSize:12}}>No hay vencimientos para los filtros aplicados</td></tr>
+              ? <tr><td colSpan={10} style={{textAlign:'center',padding:32,color:'var(--text4)',fontSize:12}}>No hay vencimientos para los filtros aplicados</td></tr>
               : filtered.map(v => {
                   const dias = diasRestantes(v.fecha)
                   const recActivo = isRecordatorioActivo(v)
                   return (
-                    <tr key={v.id} onClick={()=>handleClick(v)} style={{cursor:'pointer'}}>
+                    <tr key={v.id} onClick={()=>handleRowClick(v)} style={{cursor:'pointer'}}>
                       <td style={{width:8,padding:'0 4px'}}>
                         {v._real && <span title="Dato real" style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:'var(--green)'}}/>}
                       </td>
@@ -232,6 +343,28 @@ export default function VencimientosView() {
                           : '—'}
                       </td>
                       <td><AlertaBadge dias={dias}/></td>
+                      <td style={{ whiteSpace:'nowrap' }}>
+                        {v._real ? (
+                          <div style={{ display:'flex', gap:4 }}>
+                            <button
+                              onClick={(e) => openRenovar(v, e)}
+                              style={{ fontSize:10, padding:'3px 9px', borderRadius:4, border:'1px solid var(--green-bd, #bbf7d0)', background:'var(--green-lt, #f0fdf4)', color:'var(--green, #15803d)', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}
+                              title="Renovar el contrato (cambia la fecha)"
+                            >
+                              🔄 Renovar
+                            </button>
+                            <button
+                              onClick={(e) => openGenerarOferta(v, e)}
+                              style={{ fontSize:10, padding:'3px 9px', borderRadius:4, border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', color:'var(--accent)', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}
+                              title="El inquilino se va: crear oferta sell-side"
+                            >
+                              📢 Generar oferta
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize:9, color:'var(--text4)', fontStyle:'italic' }}>(demo)</span>
+                        )}
+                      </td>
                     </tr>
                   )
                 })
@@ -239,6 +372,97 @@ export default function VencimientosView() {
           </tbody>
         </table>
       </div>
+
+      {/* Modal */}
+      {modal && (
+        <div onClick={closeModal} style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:10, width:'min(520px, 92vw)', boxShadow:'0 20px 50px rgba(15,23,42,0.25)' }}>
+            <div style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)' }}>
+              <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>
+                {modal.action === 'renovar' ? '🔄 Renovar contrato' : '📢 Generar oferta'}
+              </div>
+              <div style={{ fontSize:11, color:'var(--text3)', marginTop:4 }}>
+                {modal.row.activo} · {modal.row.arrendatario} · {modal.row.tipo}
+              </div>
+            </div>
+
+            <div style={{ padding:'16px 22px' }}>
+              {modal.action === 'renovar' && (
+                <>
+                  <div style={{ fontSize:12, color:'var(--text3)', marginBottom:12, lineHeight:1.55 }}>
+                    Cambia la fecha {modal.row.tipo === 'Break' ? 'de break option' : 'de fin de contrato'} en el arrendatario.
+                    El registro seguirá apareciendo en la lista con la nueva fecha.
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', minWidth:120 }}>Nueva fecha</span>
+                    <input
+                      type="date"
+                      value={modal.fecha || ''}
+                      onChange={e => setModal({ ...modal, fecha:e.target.value })}
+                      style={{ padding:'8px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit' }}
+                    />
+                  </div>
+                  <div style={{ marginTop:6, fontSize:10, color:'var(--text4)' }}>
+                    Fecha actual: {fmtFecha(modal.row.fecha)}
+                  </div>
+                </>
+              )}
+
+              {modal.action === 'oferta' && (
+                <>
+                  <div style={{ fontSize:12, color:'var(--text3)', marginBottom:12, lineHeight:1.55 }}>
+                    Se creará una <strong>oferta sell-side</strong> sobre el activo con los datos del arrendamiento actual.
+                    El registro de vencimiento desaparecerá del listado (la fecha se limpia en el arrendatario).
+                  </div>
+                  <div style={{ display:'grid', gridTemplateColumns:'120px 1fr', gap:'8px 12px', alignItems:'center' }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Activo</span>
+                    <span style={{ fontSize:12, fontWeight:600 }}>{modal.row.activo}</span>
+
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Disponibilidad</span>
+                    <span style={{ fontSize:12, fontWeight:600 }}>{fmtFecha(modal.row.fecha)}</span>
+
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Superficie</span>
+                    <span style={{ fontSize:12, fontWeight:600 }}>{Number(modal.row.sup||0).toLocaleString('es-ES')} m²</span>
+
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Tipo operación</span>
+                    <select
+                      value={modal.tipoOp || 'Alquiler'}
+                      onChange={e => setModal({ ...modal, tipoOp:e.target.value })}
+                      style={{ padding:'6px 10px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', background:'#fff', width:'fit-content' }}
+                    >
+                      <option value="Alquiler">Alquiler</option>
+                      <option value="Venta">Venta</option>
+                    </select>
+
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Mercado</span>
+                    <select
+                      value={modal.tipoMercado || 'mercado'}
+                      onChange={e => setModal({ ...modal, tipoMercado:e.target.value })}
+                      style={{ padding:'6px 10px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', background:'#fff', width:'fit-content' }}
+                    >
+                      <option value="mercado">Mercado</option>
+                      <option value="off_market">Off-market</option>
+                    </select>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div style={{ padding:'12px 22px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'flex-end', gap:8 }}>
+              <button onClick={closeModal} disabled={working} style={{ padding:'8px 14px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background:'#fff', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>
+                Cancelar
+              </button>
+              <button
+                onClick={modal.action === 'renovar' ? confirmRenovar : confirmGenerarOferta}
+                disabled={working || (modal.action === 'renovar' && !modal.fecha)}
+                style={{ padding:'8px 14px', fontSize:12, border:'none', borderRadius:5, background:'var(--accent)', color:'#fff', cursor:working?'wait':'pointer', fontFamily:'inherit', fontWeight:600, opacity: working ? 0.6 : 1 }}
+              >
+                {working ? 'Procesando…' : (modal.action === 'renovar' ? '🔄 Renovar' : '📢 Generar oferta')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
