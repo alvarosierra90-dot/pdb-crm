@@ -104,6 +104,8 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted]   = useState(null)
   const [error, setError]           = useState(null)
+  const [warnings, setWarnings]     = useState([])     // [{ key, msg }]
+  const [warningsOK, setWarningsOK] = useState(false)  // el broker ha aceptado los avisos
 
   useEffect(() => {
     async function loadAll() {
@@ -126,9 +128,59 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
   const esquema = esquemaKey ? ESQUEMAS[esquemaKey] : null
 
   const necesitaActivo = esquema?.destino === 'oferta'
-  const tieneVinculo   = !!cuentaPick || !!contactoPick
+  // Spec: Cuenta + Contacto SIEMPRE obligatorios (gate de cualificación)
+  const tieneVinculo   = !!cuentaPick && !!contactoPick
   const activoOk       = !necesitaActivo || !!activoPick
-  const puedeTransformar = pitch !== null && tieneVinculo && activoOk && !submitting
+  // Si hay avisos, el broker tiene que confirmar que los ha visto antes de transformar
+  const avisosOk       = warnings.length === 0 || warningsOK
+  const puedeTransformar = pitch !== null && tieneVinculo && activoOk && avisosOk && !submitting
+
+  // Recalcular avisos cuando cambian cuenta / contacto / pitch / lead
+  useEffect(() => {
+    let cancel = false
+    async function detectar() {
+      const w = []
+      // 1. Email o teléfono ya presente en otro lead
+      const matchers = []
+      if (lead.email)    matchers.push({ col:'email',    val:lead.email })
+      if (lead.telefono) matchers.push({ col:'telefono', val:lead.telefono })
+      for (const m of matchers) {
+        const { data } = await supabase
+          .from('leads')
+          .select('ref, nombre, estado')
+          .eq(m.col, m.val)
+          .neq('id', lead.id)
+          .limit(3)
+        if (data && data.length) {
+          w.push({
+            key: `dup-${m.col}`,
+            msg: `Ya existe ${data.length === 1 ? 'otro lead' : `${data.length} leads`} con el mismo ${m.col} (${m.val}): ${data.map(d => `${d.ref} · ${d.nombre}`).join(', ')}.`,
+          })
+        }
+      }
+      // 2. Cuenta con demanda activa similar (mismo lead.tipo=demanda → estatus ongoing)
+      if (cuentaPick?.dynamics_id && lead.tipo === 'demanda') {
+        const { data } = await supabase
+          .from('demandas')
+          .select('ref, nombre, estatus')
+          .eq('dynamics_account_id', cuentaPick.dynamics_id)
+          .in('estatus', ['ongoing','potencial'])
+          .limit(3)
+        if (data && data.length) {
+          w.push({
+            key: 'dup-demanda-cuenta',
+            msg: `La cuenta ${cuentaPick.nombre} ya tiene ${data.length} demanda(s) en curso: ${data.map(d => `${d.ref}${d.nombre ? ' · ' + d.nombre : ''}`).join(', ')}. Verifica si son la misma búsqueda.`,
+          })
+        }
+      }
+      if (!cancel) {
+        setWarnings(w)
+        setWarningsOK(false)
+      }
+    }
+    detectar()
+    return () => { cancel = true }
+  }, [cuentaPick?.dynamics_id, contactoPick?.dynamics_id, lead.id, lead.email, lead.telefono, lead.tipo])
 
   const handleTransformar = async () => {
     if (!puedeTransformar) return
@@ -290,7 +342,7 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
                   ⚠️ Vinculación obligatoria
                 </div>
                 <div style={{ fontSize:11, color:'#7c2d12' }}>
-                  Para transformar es <strong>obligatorio</strong> vincular Cuenta o Contacto de Dynamics. Selecciona del typeahead.
+                  Para transformar son <strong>obligatorios Cuenta y Contacto</strong> de Dynamics. Selecciona ambos del typeahead.
                 </div>
               </div>
 
@@ -349,7 +401,28 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
 
               {!tieneVinculo && (
                 <div style={{ fontSize:11, color:'#dc2626', fontWeight:600 }}>
-                  ✗ Necesitas seleccionar al menos Cuenta o Contacto del typeahead
+                  ✗ Necesitas seleccionar Cuenta <strong>y</strong> Contacto del typeahead.
+                </div>
+              )}
+
+              {/* Avisos de duplicados — no bloquean, requieren acuse de recibo */}
+              {warnings.length > 0 && (
+                <div style={{ background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:8, padding:12 }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#c2410c', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
+                    ⚠️ Posibles duplicados detectados
+                  </div>
+                  <ul style={{ margin:0, paddingLeft:18, fontSize:11, color:'#7c2d12', lineHeight:1.5 }}>
+                    {warnings.map(w => (<li key={w.key} style={{ marginBottom:4 }}>{w.msg}</li>))}
+                  </ul>
+                  <label style={{ marginTop:10, display:'flex', alignItems:'center', gap:6, fontSize:11, color:'#7c2d12', cursor:'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={warningsOK}
+                      onChange={e => setWarningsOK(e.target.checked)}
+                      style={{ accentColor:'#c2410c' }}
+                    />
+                    He revisado los duplicados y quiero continuar igualmente.
+                  </label>
                 </div>
               )}
 
