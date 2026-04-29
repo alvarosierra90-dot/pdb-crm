@@ -8,7 +8,7 @@ const overlay = {
 }
 const panel = {
   background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12,
-  width:600, maxWidth:'94vw', maxHeight:'90vh', overflowY:'auto',
+  width:640, maxWidth:'94vw', maxHeight:'90vh', overflowY:'auto',
   boxShadow:'0 20px 60px rgba(0,0,0,.22)',
 }
 const header = {
@@ -20,7 +20,7 @@ const footer = { padding:'14px 20px', borderTop:'1px solid var(--border)', displ
 const lbl = { fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4, display:'block' }
 const inp = { width:'100%', padding:'7px 10px', fontSize:12, border:'1px solid var(--border)', borderRadius:6, background:'var(--surface)', color:'var(--text)', fontFamily:'inherit', boxSizing:'border-box', outline:'none' }
 
-function Typeahead({ label, placeholder, value, onChange, onPick, options, fieldKey = 'nombre' }) {
+function Typeahead({ label, placeholder, value, onChange, onPick, options, fieldKey = 'nombre', secondaryKey, tertiaryKey }) {
   const [focused, setFocused] = useState(false)
   const matches = !value
     ? options.slice(0, 8)
@@ -45,15 +45,15 @@ function Typeahead({ label, placeholder, value, onChange, onPick, options, field
         }}>
           {matches.map(o => (
             <div
-              key={o.dynamics_id}
+              key={o.dynamics_id || o.id || o.ref}
               onMouseDown={() => onPick(o)}
               style={{ padding:'7px 10px', fontSize:12, cursor:'pointer', borderBottom:'1px solid var(--border)' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
               onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
             >
               <div style={{ fontWeight:600 }}>{o[fieldKey]}</div>
-              {o.tipo   && <div style={{ fontSize:10, color:'var(--text4)' }}>{o.tipo}</div>}
-              {o.email  && <div style={{ fontSize:10, color:'var(--text4)' }}>{o.email}</div>}
+              {secondaryKey && o[secondaryKey] && <div style={{ fontSize:10, color:'var(--text4)' }}>{o[secondaryKey]}</div>}
+              {tertiaryKey  && o[tertiaryKey]  && <div style={{ fontSize:10, color:'var(--text4)' }}>{o[tertiaryKey]}</div>}
             </div>
           ))}
         </div>
@@ -62,81 +62,175 @@ function Typeahead({ label, placeholder, value, onChange, onPick, options, field
   )
 }
 
-export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
-  const esGenerico = lead.tipo === 'generico'
+async function nextRef(prefix) {
+  const year = new Date().getFullYear()
+  const fullPrefix = `${prefix}-${year}-`
+  const { data } = await supabase
+    .from(prefix === 'PRY' ? 'propuestas' : prefix === 'DEM' ? 'demandas' : 'ofertas')
+    .select('ref')
+    .like('ref', `${fullPrefix}%`)
+    .order('ref', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const last = data?.ref ? parseInt(String(data.ref).split('-').pop(), 10) : 0
+  return `${fullPrefix}${String((isNaN(last) ? 0 : last) + 1).padStart(4, '0')}`
+}
 
-  const [via, setVia]                = useState(lead.via || (esGenerico ? null : ''))
+const ESQUEMAS = {
+  // pitch=true: crea Oport + Propuesta (sea cual sea el tipo)
+  pitch_demanda:  { oppType:'pitch_demanda',  destino:'propuesta', label:'Pitch Demanda → Propuesta' },
+  pitch_oferta:   { oppType:'pitch_oferta',   destino:'propuesta', label:'Pitch Oferta → Propuesta' },
+  pitch_generico: { oppType:'generica',       destino:'propuesta', label:'Pitch Genérico → Propuesta' },
+  // pitch=false: crea Oport + (Demanda | Oferta | nada)
+  directo_demanda:  { oppType:'demanda',  destino:'demanda',  label:'Mandato directo → Demanda' },
+  directo_oferta:   { oppType:'oferta',   destino:'oferta',   label:'Mandato directo → Oferta' },
+  directo_generico: { oppType:'generica', destino:'ninguno',  label:'Servicio genérico directo' },
+}
+
+export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
+  const [pitch, setPitch] = useState(null) // null | true | false
   const [cuentaQuery, setCuentaQuery]     = useState(lead.dynamics_accounts?.nombre || '')
   const [cuentaPick, setCuentaPick]       = useState(lead.dynamics_account_id ? { dynamics_id: lead.dynamics_account_id, nombre: lead.dynamics_accounts?.nombre } : null)
   const [contactoQuery, setContactoQuery] = useState(lead.dynamics_contacts?.nombre || '')
   const [contactoPick, setContactoPick]   = useState(lead.dynamics_contact_id ? { dynamics_id: lead.dynamics_contact_id, nombre: lead.dynamics_contacts?.nombre } : null)
+  const [activoQuery, setActivoQuery]     = useState('')
+  const [activoPick, setActivoPick]       = useState(null)
 
   const [accounts, setAccounts] = useState([])
   const [contacts, setContacts] = useState([])
+  const [activos, setActivos]   = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted]   = useState(null)
   const [error, setError]           = useState(null)
 
   useEffect(() => {
-    async function loadDynamics() {
-      const [{ data: accs }, { data: cts }] = await Promise.all([
+    async function loadAll() {
+      const [{ data: accs }, { data: cts }, { data: acts }] = await Promise.all([
         supabase.from('dynamics_accounts').select('dynamics_id, nombre, tipo').order('nombre'),
         supabase.from('dynamics_contacts').select('dynamics_id, nombre, email, cuenta_dynamics_id').order('nombre'),
+        supabase.from('activos').select('id, ref, nombre, ciudad, zona, uso').order('nombre'),
       ])
       setAccounts(accs || [])
       setContacts(cts || [])
+      setActivos((acts || []).map(a => ({ ...a, _label: `${a.nombre} · ${a.zona || ''} ${a.ciudad || ''}`.trim() })))
     }
-    loadDynamics()
+    loadAll()
   }, [])
 
-  const tieneVinculo  = !!cuentaPick || !!contactoPick
-  const viaOk         = esGenerico || !!via
-  const puedeTransformar = tieneVinculo && viaOk && !submitting
+  // Determina el esquema según pitch + lead.tipo
+  const esquemaKey = pitch === null
+    ? null
+    : `${pitch ? 'pitch' : 'directo'}_${lead.tipo}`
+  const esquema = esquemaKey ? ESQUEMAS[esquemaKey] : null
+
+  const necesitaActivo = esquema?.destino === 'oferta'
+  const tieneVinculo   = !!cuentaPick || !!contactoPick
+  const activoOk       = !necesitaActivo || !!activoPick
+  const puedeTransformar = pitch !== null && tieneVinculo && activoOk && !submitting
 
   const handleTransformar = async () => {
     if (!puedeTransformar) return
     setSubmitting(true)
     setError(null)
 
-    const tipoOpp = tipoOportunidad(lead.tipo, via)
-    const dynId   = `dyn-opp-${Date.now().toString(36)}`
-    const cuentaId   = cuentaPick?.dynamics_id   || null
+    const dynOppId = `dyn-opp-${Date.now().toString(36)}`
+    // Auto-deriva Cuenta desde Contacto si no se eligió una
+    const cuentaId = cuentaPick?.dynamics_id
+      || contactoPick?.cuenta_dynamics_id
+      || null
     const contactoId = contactoPick?.dynamics_id || null
+    const ahora = new Date().toISOString()
+    const out = { dynOppId, oppType: esquema.oppType, destino: esquema.destino, destinoRef: null }
 
-    const { error: e1 } = await supabase.from('dynamics_opportunities').insert({
-      dynamics_id:          dynId,
-      nombre:               lead.nombre,
-      tipo:                 tipoOpp,
-      cuenta_dynamics_id:   cuentaId,
-      contacto_dynamics_id: contactoId,
-      estado:               'abierta',
-      fecha_creacion:       new Date().toISOString(),
-    })
-    if (e1) {
-      setError(`Error creando oportunidad: ${e1.message}`)
+    // Demanda exige cuenta (NOT NULL en BD)
+    if (esquema.destino === 'demanda' && !cuentaId) {
+      setError('Para crear una Demanda necesitas seleccionar una Cuenta de Dynamics (o un Contacto con Cuenta vinculada).')
       setSubmitting(false)
       return
     }
 
-    const { error: e2 } = await supabase.from('leads').update({
-      estado:                  'cualificado',
-      via:                     esGenerico ? null : via,
-      dynamics_account_id:     cuentaId,
-      dynamics_contact_id:     contactoId,
-      dynamics_opportunity_id: dynId,
-      fecha_cualificacion:     new Date().toISOString(),
-      cualificado_por:         'Sierra Álvaro',
-      ultima_actividad:        new Date().toISOString(),
-    }).eq('id', lead.id)
+    try {
+      // 1) Crear Oportunidad en dynamics_opportunities
+      const { error: e1 } = await supabase.from('dynamics_opportunities').insert({
+        dynamics_id:          dynOppId,
+        nombre:               lead.nombre,
+        tipo:                 esquema.oppType,
+        cuenta_dynamics_id:   cuentaId,
+        contacto_dynamics_id: contactoId,
+        estado:               'abierta',
+        fecha_creacion:       ahora,
+      })
+      if (e1) throw new Error(`Oportunidad: ${e1.message}`)
 
-    if (e2) {
-      setError(`Oportunidad creada pero el lead no se actualizó: ${e2.message}`)
+      const leadUpdate = {
+        estado:                  'cualificado',
+        via:                     pitch ? 'pitch' : 'directo',
+        dynamics_account_id:     cuentaId,
+        dynamics_contact_id:     contactoId,
+        dynamics_opportunity_id: dynOppId,
+        fecha_cualificacion:     ahora,
+        cualificado_por:         'Sierra Álvaro',
+        ultima_actividad:        ahora,
+      }
+
+      // 2) Crear destino según esquema
+      if (esquema.destino === 'propuesta') {
+        const ref = await nextRef('PRY')
+        const { data: prop, error: e2 } = await supabase.from('propuestas').insert({
+          ref,
+          nombre: lead.nombre,
+          dynamics_opportunity_id: dynOppId,
+          dynamics_account_id:     cuentaId,
+          lead_id:                 lead.id,
+          tipo:                    `Pitch ${lead.tipo === 'demanda' ? 'Demanda' : lead.tipo === 'oferta' ? 'Oferta' : 'Genérico'}`,
+          estado:                  'borrador',
+          equipo:                  lead.equipo,
+          responsable:             lead.responsable,
+          notas:                   lead.descripcion,
+        }).select('id, ref').single()
+        if (e2) throw new Error(`Propuesta: ${e2.message}`)
+        leadUpdate.propuesta_id = prop.id
+        out.destinoRef = prop.ref
+      } else if (esquema.destino === 'demanda') {
+        const ref = await nextRef('DEM')
+        const { data: dem, error: e2 } = await supabase.from('demandas').insert({
+          ref,
+          nombre:                  lead.nombre,
+          dynamics_opportunity_id: dynOppId,
+          dynamics_account_id:     cuentaId,
+          requisitos:              {},
+          estatus:                 'ongoing',
+          notas:                   lead.descripcion,
+        }).select('id, ref').single()
+        if (e2) throw new Error(`Demanda: ${e2.message}`)
+        leadUpdate.demanda_id = dem.id
+        out.destinoRef = dem.ref
+      } else if (esquema.destino === 'oferta') {
+        const ref = await nextRef('OFE')
+        const { data: ofe, error: e2 } = await supabase.from('ofertas').insert({
+          ref,
+          activo_id:               activoPick.id,
+          dynamics_opportunity_id: dynOppId,
+          dynamics_account_id:     cuentaId,
+          tipo_mercado:            'mercado',
+          estado:                  'En curso',
+          comentarios:             lead.descripcion,
+        }).select('id, ref').single()
+        if (e2) throw new Error(`Oferta: ${e2.message}`)
+        leadUpdate.oferta_id = ofe.id
+        out.destinoRef = ofe.ref
+      }
+
+      // 3) Actualizar el lead
+      const { error: e3 } = await supabase.from('leads').update(leadUpdate).eq('id', lead.id)
+      if (e3) throw new Error(`Lead: ${e3.message}`)
+
+      setSubmitted(out)
       setSubmitting(false)
-      return
+    } catch (e) {
+      setError(e.message)
+      setSubmitting(false)
     }
-
-    setSubmitted({ dynId, tipoOpp })
-    setSubmitting(false)
   }
 
   return (
@@ -157,21 +251,18 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
               <div style={{ background:'#dcfce7', border:'1px solid #86efac', borderRadius:8, padding:14, display:'flex', flexDirection:'column', gap:6 }}>
                 <div style={{ fontSize:13, fontWeight:700, color:'#15803d' }}>✓ Lead transformado correctamente</div>
                 <div style={{ fontSize:11, color:'#166534' }}>
-                  Oportunidad <strong>{submitted.tipoOpp}</strong> creada en Dynamics y vinculada al lead. El lead pasa a estado <strong>cualificado</strong>.
+                  Oportunidad <strong>{submitted.oppType}</strong> creada en Dynamics.
+                  {submitted.destino !== 'ninguno' && <> Se ha generado además una <strong>{submitted.destino}</strong> ({submitted.destinoRef}).</>}
+                  {' '}El lead pasa a <strong>cualificado</strong>.
                 </div>
               </div>
               <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:8, padding:12 }}>
-                <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:8 }}>Oportunidad creada</div>
-                <div style={{ fontSize:12, color:'var(--text)', fontWeight:600, fontFamily:'monospace' }}>{submitted.dynId}</div>
-                <div style={{ fontSize:11, color:'var(--text3)', marginTop:4 }}>Tipo: {submitted.tipoOpp}</div>
+                <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:8 }}>Registros creados</div>
+                <div style={{ fontSize:11, color:'var(--text)', marginBottom:3 }}>⚡ Oportunidad: <strong style={{ fontFamily:'monospace' }}>{submitted.dynOppId}</strong> · tipo {submitted.oppType}</div>
+                {submitted.destino !== 'ninguno' && submitted.destinoRef && (
+                  <div style={{ fontSize:11, color:'var(--text)' }}>📄 {submitted.destino === 'propuesta' ? 'Propuesta' : submitted.destino === 'demanda' ? 'Demanda' : 'Oferta'}: <strong style={{ fontFamily:'monospace' }}>{submitted.destinoRef}</strong></div>
+                )}
               </div>
-              {(cuentaPick || contactoPick) && (
-                <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:8, padding:12 }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:8 }}>Vinculaciones</div>
-                  {cuentaPick   && <div style={{ fontSize:11, color:'var(--text)', marginBottom:3 }}>🏢 Cuenta: <strong>{cuentaPick.nombre}</strong></div>}
-                  {contactoPick && <div style={{ fontSize:11, color:'var(--text)' }}>👤 Contacto: <strong>{contactoPick.nombre}</strong></div>}
-                </div>
-              )}
             </div>
             <div style={footer}>
               <button className="ab-btn save" onClick={() => onSuccess ? onSuccess() : onClose()}>Cerrar</button>
@@ -186,38 +277,36 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
                   ⚠️ Vinculación obligatoria
                 </div>
                 <div style={{ fontSize:11, color:'#7c2d12' }}>
-                  Para transformar un lead es <strong>obligatorio</strong> vincularlo al menos a una Cuenta o Contacto de Dynamics. Selecciona del typeahead.
+                  Para transformar es <strong>obligatorio</strong> vincular Cuenta o Contacto de Dynamics. Selecciona del typeahead.
                 </div>
               </div>
 
-              {/* Vía: pitch o directo (no aplica a genérico) */}
-              {!esGenerico && (
-                <div>
-                  <label style={lbl}>Vía de transformación *</label>
-                  <div style={{ display:'flex', gap:8, marginTop:4 }}>
-                    {[
-                      { key:'pitch',   label:'Pitch',   desc:'Competimos por el mandato. Requiere Propuesta antes del Mandato.' },
-                      { key:'directo', label:'Directo', desc:'Mandato directo, sin Propuesta competitiva.' },
-                    ].map(opt => (
-                      <div
-                        key={opt.key}
-                        onClick={() => setVia(opt.key)}
-                        style={{
-                          flex:1,
-                          border: via === opt.key ? '2px solid var(--accent)' : '1px solid var(--border)',
-                          background: via === opt.key ? 'var(--accent-lt)' : 'var(--surface)',
-                          borderRadius:8, padding:'10px 12px', cursor:'pointer',
-                        }}
-                      >
-                        <div style={{ fontSize:12, fontWeight:700, color: via === opt.key ? 'var(--accent)' : 'var(--text)' }}>
-                          {via === opt.key ? '● ' : '○ '}{opt.label}
-                        </div>
-                        <div style={{ fontSize:10, color:'var(--text3)', marginTop:3, marginLeft:14 }}>{opt.desc}</div>
+              {/* Pitch yes/no */}
+              <div>
+                <label style={lbl}>¿Hay pitch? *</label>
+                <div style={{ display:'flex', gap:8, marginTop:4 }}>
+                  {[
+                    { v:true,  label:'Sí, hay pitch',  desc:'Vamos a competir → se generará una Propuesta/Proyecto.' },
+                    { v:false, label:'No, directo',    desc:'Mandato directo → se generará Demanda u Oferta directamente (según tipo).' },
+                  ].map(opt => (
+                    <div
+                      key={String(opt.v)}
+                      onClick={() => setPitch(opt.v)}
+                      style={{
+                        flex:1,
+                        border: pitch === opt.v ? '2px solid var(--accent)' : '1px solid var(--border)',
+                        background: pitch === opt.v ? 'var(--accent-lt)' : 'var(--surface)',
+                        borderRadius:8, padding:'10px 12px', cursor:'pointer',
+                      }}
+                    >
+                      <div style={{ fontSize:12, fontWeight:700, color: pitch === opt.v ? 'var(--accent)' : 'var(--text)' }}>
+                        {pitch === opt.v ? '● ' : '○ '}{opt.label}
                       </div>
-                    ))}
-                  </div>
+                      <div style={{ fontSize:10, color:'var(--text3)', marginTop:3, marginLeft:14 }}>{opt.desc}</div>
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
 
               <Typeahead
                 label="Cuenta vinculada (Dynamics)"
@@ -226,6 +315,7 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
                 onChange={v => { setCuentaQuery(v); setCuentaPick(null) }}
                 onPick={a => { setCuentaPick(a); setCuentaQuery(a.nombre) }}
                 options={accounts}
+                secondaryKey="tipo"
               />
               {cuentaPick && (
                 <div style={{ fontSize:10, color:'#15803d' }}>✓ Cuenta seleccionada: {cuentaPick.nombre}</div>
@@ -238,6 +328,7 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
                 onChange={v => { setContactoQuery(v); setContactoPick(null) }}
                 onPick={c => { setContactoPick(c); setContactoQuery(c.nombre) }}
                 options={contacts}
+                secondaryKey="email"
               />
               {contactoPick && (
                 <div style={{ fontSize:10, color:'#15803d' }}>✓ Contacto seleccionado: {contactoPick.nombre}</div>
@@ -249,15 +340,40 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
                 </div>
               )}
 
-              {/* Resumen de la transformación */}
-              {tieneVinculo && viaOk && (
+              {/* Activo (solo cuando directo + oferta) */}
+              {necesitaActivo && (
+                <>
+                  <Typeahead
+                    label="Activo a comercializar (PDB) *"
+                    placeholder="Buscar activo existente..."
+                    value={activoQuery}
+                    onChange={v => { setActivoQuery(v); setActivoPick(null) }}
+                    onPick={a => { setActivoPick(a); setActivoQuery(a.nombre) }}
+                    options={activos}
+                    fieldKey="nombre"
+                    secondaryKey="zona"
+                    tertiaryKey="ciudad"
+                  />
+                  {activoPick ? (
+                    <div style={{ fontSize:10, color:'#15803d' }}>✓ Activo seleccionado: {activoPick.nombre} ({activoPick.ref})</div>
+                  ) : (
+                    <div style={{ fontSize:11, color:'#dc2626', fontWeight:600 }}>
+                      ✗ Necesitas seleccionar el activo. Si no existe aún, créalo primero en el módulo Activos y vuelve aquí.
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Resumen */}
+              {esquema && tieneVinculo && activoOk && (
                 <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:12 }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:'#1e40af', display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
-                    <span style={{ width:14, height:14, borderRadius:3, background:'#0078d4', color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>D</span>
-                    Resumen
-                  </div>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#1e40af', marginBottom:4 }}>Resumen de la transformación</div>
                   <div style={{ fontSize:11, color:'#1e3a8a', lineHeight:1.5 }}>
-                    Se creará una Oportunidad de tipo <strong>{tipoOportunidad(lead.tipo, via)}</strong> en Dynamics, vinculada a {cuentaPick ? `cuenta "${cuentaPick.nombre}"` : '—'}{contactoPick ? ` y contacto "${contactoPick.nombre}"` : ''}. El lead pasará a <strong>cualificado</strong>.
+                    {esquema.label}.
+                    {' '}Oportunidad <strong>{esquema.oppType}</strong>
+                    {esquema.destino !== 'ninguno' && <> + <strong>{esquema.destino === 'propuesta' ? 'Propuesta/Proyecto' : esquema.destino === 'demanda' ? 'Demanda' : 'Oferta'}</strong></>}
+                    {activoPick && <> sobre el activo <strong>{activoPick.nombre}</strong></>}
+                    . Lead → <strong>cualificado</strong>.
                   </div>
                 </div>
               )}
@@ -275,10 +391,7 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
                 className="ab-btn save"
                 onClick={handleTransformar}
                 disabled={!puedeTransformar}
-                style={{
-                  opacity: puedeTransformar ? 1 : 0.5,
-                  cursor: puedeTransformar ? 'pointer' : 'not-allowed',
-                }}
+                style={{ opacity: puedeTransformar ? 1 : 0.5, cursor: puedeTransformar ? 'pointer' : 'not-allowed' }}
               >
                 {submitting ? 'Transformando…' : '⚡ Transformar lead'}
               </button>

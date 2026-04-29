@@ -52,7 +52,10 @@ export default function FichaLead() {
         *,
         dynamics_accounts:dynamics_account_id     ( dynamics_id, nombre ),
         dynamics_contacts:dynamics_contact_id     ( dynamics_id, nombre, email ),
-        dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo )
+        dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo ),
+        propuestas:propuesta_id ( id, ref, nombre, estado ),
+        demandas:demanda_id     ( id, ref, nombre, estatus ),
+        ofertas:oferta_id       ( id, ref )
       `)
       .eq('ref', params.id)
       .maybeSingle()
@@ -282,12 +285,27 @@ export default function FichaLead() {
                 {oportunidadId && (
                   <div className="va-card">
                     <div className="va-card-header">
-                      <h3><span className="ico" style={{color:'var(--accent)'}}>●</span> Oportunidad creada</h3>
+                      <h3><span className="ico" style={{color:'var(--accent)'}}>●</span> Registros generados al transformar</h3>
                     </div>
-                    <div style={{padding:'4px 20px 16px'}}>
+                    <div style={{padding:'4px 20px 16px', display:'flex', flexDirection:'column', gap:8}}>
                       <div style={{ background:'#cffafe', border:'1px solid #67e8f9', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#0e7490' }}>
-                        ⚡ {oportunidadNombre} <span style={{ fontFamily:'var(--mono)', fontSize:10, marginLeft:8, opacity:0.7 }}>{oportunidadId}</span>
+                        ⚡ Oportunidad: {oportunidadNombre} <span style={{ fontFamily:'var(--mono)', fontSize:10, marginLeft:8, opacity:0.7 }}>{oportunidadId}</span>
                       </div>
+                      {lead.propuestas && (
+                        <div onClick={() => navigate('propuestas')} style={{ background:'#fef3c7', border:'1px solid #fde68a', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#92400e', cursor:'pointer' }}>
+                          📄 Propuesta: {lead.propuestas.nombre || lead.propuestas.ref} <span className="tag tag-amber" style={{ marginLeft:8 }}>{lead.propuestas.estado}</span>
+                        </div>
+                      )}
+                      {lead.demandas && (
+                        <div onClick={() => navigate('demandas')} style={{ background:'#f3e8ff', border:'1px solid #d8b4fe', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#6b21a8', cursor:'pointer' }}>
+                          🎯 Demanda: {lead.demandas.nombre || lead.demandas.ref} <span className="tag tag-purple" style={{ marginLeft:8 }}>{lead.demandas.estatus}</span>
+                        </div>
+                      )}
+                      {lead.ofertas && (
+                        <div onClick={() => navigate('ofertas')} style={{ background:'#dcfce7', border:'1px solid #86efac', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#15803d', cursor:'pointer' }}>
+                          🏢 Oferta: {lead.ofertas.ref}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
