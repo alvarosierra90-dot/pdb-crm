@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
-import FichaPendienteSupabase, { isSupabaseRef } from '../components/FichaPendienteSupabase'
+import { isSupabaseRef } from '../components/FichaPendienteSupabase'
+import FichaPropuestaSupabase from './FichaPropuestaSupabase'
 
 const TABS = ['datos','equipos','trazabilidad','docs','resumen']
 const TAB_LABELS = ['Datos del proyecto','Equipos y participantes','Trazabilidad','Documentación','Resumen']
@@ -57,7 +58,7 @@ const TIPO_COLOR   = { 'Pitch':'var(--accent)', 'Valoración':'var(--teal)', 'Pr
 export default function FichaPropuesta() {
   const { params } = useNav()
   if (isSupabaseRef(params.id)) {
-    return <FichaPendienteSupabase entity="propuesta" refOrId={params.id} />
+    return <FichaPropuestaSupabase refOrId={params.id} />
   }
   return <FichaPropuestaMock />
 }

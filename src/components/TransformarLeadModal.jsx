@@ -182,8 +182,10 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
       let destinoView = null
       if (esquema.destino === 'propuesta') {
         const ref = await nextRef('PRY')
+        const nombreDerivado = cuentaPick?.nombre || null
         const { data: prop, error: e2 } = await supabase.from('propuestas').insert({
           ref,
+          nombre:                  nombreDerivado,
           dynamics_opportunity_id: dynOppId,
           dynamics_account_id:     cuentaId,
           lead_id:                 lead.id,
