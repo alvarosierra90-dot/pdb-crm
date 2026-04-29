@@ -56,7 +56,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
   const [oportunidad, setOportunidad] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [editing, setEditing] = useState(false)
+  const editing = true
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
 
@@ -109,7 +109,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
 
   useEffect(() => { load() }, [load])
 
-  const startEdit = () => {
+  useEffect(() => {
     if (!oferta) return
     setForm({
       tipo_operacion:        oferta.tipo_operacion        || '',
@@ -127,9 +127,12 @@ export default function FichaOfertaSupabase({ refOrId }) {
       descripcion_web:       oferta.descripcion_web       || '',
     })
     setSaveError(null)
-    setEditing(true)
+  }, [oferta])
+
+  const restablecer = async () => {
+    setSaveError(null)
+    await load()
   }
-  const cancelEdit = () => { setEditing(false); setSaveError(null) }
 
   const saveEdit = async () => {
     setSaving(true)
@@ -153,7 +156,6 @@ export default function FichaOfertaSupabase({ refOrId }) {
     }).eq('id', oferta.id)
     setSaving(false)
     if (error) { setSaveError(error.message); return }
-    setEditing(false)
     await load()
   }
 
@@ -178,19 +180,11 @@ export default function FichaOfertaSupabase({ refOrId }) {
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
       <div className="action-bar">
-        {editing ? (
-          <>
-            <button className="ab-btn save" onClick={saveEdit} disabled={saving}>{saving ? 'Guardando…' : '💾 Guardar'}</button>
-            <button className="ab-btn" onClick={cancelEdit} disabled={saving}>Cancelar</button>
-          </>
-        ) : (
-          <>
-            <button className="ab-btn save" onClick={startEdit}>✎ Editar</button>
-            <button className="ab-btn" onClick={() => navigate('ofertas')}>← Volver</button>
-            <div className="ab-sep"/>
-            <button className="ab-btn" disabled style={{ opacity:0.45 }}>Desactivar</button>
-          </>
-        )}
+        <button className="ab-btn save" onClick={saveEdit} disabled={saving}>{saving ? 'Guardando…' : '💾 Guardar cambios'}</button>
+        <button className="ab-btn" onClick={restablecer} disabled={saving}>↺ Restablecer</button>
+        <button className="ab-btn" onClick={() => navigate('ofertas')}>← Volver</button>
+        <div className="ab-sep"/>
+        <button className="ab-btn" disabled style={{ opacity:0.45 }}>Desactivar</button>
         {saveError && <span style={{ marginLeft:12, fontSize:11, color:'#991b1b', fontWeight:600 }}>{saveError}</span>}
       </div>
 

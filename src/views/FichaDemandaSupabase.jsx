@@ -86,7 +86,9 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [otrosContactosFull, setOtrosContactosFull] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [editing, setEditing] = useState(false)
+  // editing siempre true: los campos son inputs reales desde el primer
+  // segundo. Se mantiene la variable para no tocar el resto del JSX.
+  const editing = true
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
 
@@ -145,7 +147,10 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
   useEffect(() => { load() }, [load])
 
-  const startEdit = () => {
+  // Cada vez que la demanda se (re)carga, sincroniza el form para que los
+  // inputs reflejen el estado persistido. El usuario puede modificar
+  // libremente y pulsar Guardar para persistir.
+  useEffect(() => {
     if (!demanda) return
     const r = demanda.requisitos || {}
     setForm({
@@ -173,9 +178,12 @@ export default function FichaDemandaSupabase({ refOrId }) {
       otros_contactos:  Array.isArray(demanda.otros_contactos) ? demanda.otros_contactos : [],
     })
     setSaveError(null)
-    setEditing(true)
+  }, [demanda, cuenta])
+
+  const restablecer = async () => {
+    setSaveError(null)
+    await load()
   }
-  const cancelEdit = () => { setEditing(false); setSaveError(null) }
 
   const saveEdit = async () => {
     setSaving(true)
@@ -212,7 +220,6 @@ export default function FichaDemandaSupabase({ refOrId }) {
     const { error } = await supabase.from('demandas').update(payload).eq('id', demanda.id)
     setSaving(false)
     if (error) { setSaveError(error.message); return }
-    setEditing(false)
     await load()
   }
 
@@ -258,24 +265,16 @@ export default function FichaDemandaSupabase({ refOrId }) {
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
       <div className="action-bar">
-        {editing ? (
-          <>
-            <button className="ab-btn save" onClick={saveEdit} disabled={saving}>
-              {saving ? 'Guardando…' : '💾 Guardar'}
-            </button>
-            <button className="ab-btn" onClick={cancelEdit} disabled={saving}>Cancelar</button>
-          </>
-        ) : (
-          <>
-            <button className="ab-btn save" onClick={startEdit}>✎ Editar</button>
-            <button className="ab-btn" onClick={() => navigate('demandas')}>← Volver</button>
-            <div className="ab-sep"/>
-            <button className="ab-btn" disabled style={{ opacity:0.45 }}>Transformar</button>
-            <button className="ab-btn" disabled style={{ opacity:0.45 }}>Desactivar</button>
-            <div className="ab-sep"/>
-            <button className="ab-btn" disabled style={{ opacity:0.45 }}>✅ Asignar tarea</button>
-          </>
-        )}
+        <button className="ab-btn save" onClick={saveEdit} disabled={saving}>
+          {saving ? 'Guardando…' : '💾 Guardar cambios'}
+        </button>
+        <button className="ab-btn" onClick={restablecer} disabled={saving}>↺ Restablecer</button>
+        <button className="ab-btn" onClick={() => navigate('demandas')}>← Volver</button>
+        <div className="ab-sep"/>
+        <button className="ab-btn" disabled style={{ opacity:0.45 }}>Transformar</button>
+        <button className="ab-btn" disabled style={{ opacity:0.45 }}>Desactivar</button>
+        <div className="ab-sep"/>
+        <button className="ab-btn" disabled style={{ opacity:0.45 }}>✅ Asignar tarea</button>
         {saveError && <span style={{ marginLeft:12, fontSize:11, color:'#991b1b', fontWeight:600 }}>{saveError}</span>}
       </div>
 

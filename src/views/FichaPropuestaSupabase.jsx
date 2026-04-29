@@ -53,7 +53,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
   const [oportunidad, setOportunidad] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [editing, setEditing] = useState(false)
+  const editing = true
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
 
@@ -96,7 +96,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
 
   useEffect(() => { load() }, [load])
 
-  const startEdit = () => {
+  useEffect(() => {
     if (!propuesta) return
     setForm({
       nombre:             propuesta.nombre             || (cuenta?.nombre || ''),
@@ -112,9 +112,12 @@ export default function FichaPropuestaSupabase({ refOrId }) {
       notas:              propuesta.notas              || '',
     })
     setSaveError(null)
-    setEditing(true)
+  }, [propuesta, cuenta])
+
+  const restablecer = async () => {
+    setSaveError(null)
+    await load()
   }
-  const cancelEdit = () => { setEditing(false); setSaveError(null) }
 
   const saveEdit = async () => {
     setSaving(true)
@@ -135,7 +138,6 @@ export default function FichaPropuestaSupabase({ refOrId }) {
     }).eq('id', propuesta.id)
     setSaving(false)
     if (error) { setSaveError(error.message); return }
-    setEditing(false)
     await load()
   }
 
@@ -160,19 +162,11 @@ export default function FichaPropuestaSupabase({ refOrId }) {
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
       <div className="action-bar">
-        {editing ? (
-          <>
-            <button className="ab-btn save" onClick={saveEdit} disabled={saving}>{saving ? 'Guardando…' : '💾 Guardar'}</button>
-            <button className="ab-btn" onClick={cancelEdit} disabled={saving}>Cancelar</button>
-          </>
-        ) : (
-          <>
-            <button className="ab-btn save" onClick={startEdit}>✎ Editar</button>
-            <button className="ab-btn" onClick={() => navigate('propuestas')}>← Volver</button>
-            <div className="ab-sep"/>
-            <button className="ab-btn" disabled style={{ opacity:0.45 }}>Marcar como ganada</button>
-          </>
-        )}
+        <button className="ab-btn save" onClick={saveEdit} disabled={saving}>{saving ? 'Guardando…' : '💾 Guardar cambios'}</button>
+        <button className="ab-btn" onClick={restablecer} disabled={saving}>↺ Restablecer</button>
+        <button className="ab-btn" onClick={() => navigate('propuestas')}>← Volver</button>
+        <div className="ab-sep"/>
+        <button className="ab-btn" disabled style={{ opacity:0.45 }}>Marcar como ganada</button>
         {saveError && <span style={{ marginLeft:12, fontSize:11, color:'#991b1b', fontWeight:600 }}>{saveError}</span>}
       </div>
 
