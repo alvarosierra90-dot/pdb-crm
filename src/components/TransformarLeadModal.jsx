@@ -194,8 +194,12 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
         destinoView = 'ficha-propuesta'
       } else if (esquema.destino === 'demanda') {
         const ref = await nextRef('DEM')
+        // El nombre se deriva de la Cuenta vinculada para que la ficha
+        // no aparezca "sin nombre". Si no hay cuenta, queda null.
+        const nombreDerivado = cuentaPick?.nombre || null
         const { data: dem, error: e2 } = await supabase.from('demandas').insert({
           ref,
+          nombre:                  nombreDerivado,
           dynamics_opportunity_id: dynOppId,
           dynamics_account_id:     cuentaId,
         }).select('id, ref').single()
