@@ -196,6 +196,10 @@ export default function VencimientosView() {
     e.stopPropagation()
     setModal({ action:'oferta', row:v, tipoOp:'Alquiler', tipoMercado:'mercado' })
   }
+  const openFinalizarSinOferta = (v, e) => {
+    e.stopPropagation()
+    setModal({ action:'finalizar', row:v })
+  }
   const closeModal = () => { if (!working) { setModal(null) } }
 
   const confirmRenovar = async () => {
@@ -211,6 +215,22 @@ export default function VencimientosView() {
     setWorking(false)
     if (error) { setToast({ type:'err', msg:`Error renovando: ${error.message}` }); return }
     setToast({ type:'ok', msg:`✓ Contrato renovado · ${modal.row.tipo === 'Break' ? 'break' : 'fin'} → ${fmtFecha(modal.fecha)} · estado: Renovado` })
+    setModal(null)
+    setReloadKey(k => k + 1)
+  }
+
+  const confirmFinalizarSinOferta = async () => {
+    if (!modal || !modal.row._arrendatarioRef) return
+    setWorking(true)
+    const { error } = await supabase.from('arrendatarios')
+      .update({ estado_arr: 'Finalizado', fecha_salida: modal.row.fecha })
+      .eq('ref', modal.row._arrendatarioRef)
+    setWorking(false)
+    if (error) { setToast({ type:'err', msg:`Error finalizando: ${error.message}` }); return }
+    setToast({
+      type:'ok',
+      msg:`✓ ${modal.row.arrendatario} marcado como Finalizado el ${fmtFecha(modal.row.fecha)} (sin oferta — activo cubierto por pre-alquiler).`,
+    })
     setModal(null)
     setReloadKey(k => k + 1)
   }
@@ -244,6 +264,7 @@ export default function VencimientosView() {
       estado:                'En curso',
       superficie_disponible: sup,
       m2_oferta:             sup,
+      fecha_disponibilidad:  modal.row.fecha,
       tipo_comercializacion: 'Mandato Savills',
       comentarios:           `Oferta generada desde Vencimiento (${modal.row.tipo}) del arrendatario ${modal.row.arrendatario}. Disponibilidad: ${fmtFecha(modal.row.fecha)}.`,
     }
@@ -260,7 +281,11 @@ export default function VencimientosView() {
       .update({ estado_arr: 'Finalizado', fecha_salida: modal.row.fecha })
       .eq('ref', modal.row._arrendatarioRef)
     setWorking(false)
-    setToast({ type:'ok', msg:`✓ Oferta ${ofData.ref} generada para ${activo.nombre || activo.ref}. Arrendatario marcado como Finalizado.` })
+    setToast({
+      type:'ok',
+      msg:`✓ Oferta ${ofData.ref} generada para ${activo.nombre || activo.ref} con disponibilidad ${fmtFecha(modal.row.fecha)}. Arrendatario marcado como Finalizado.`,
+      ofertaRef: ofData.ref,
+    })
     setModal(null)
     setReloadKey(k => k + 1)
   }
@@ -295,15 +320,24 @@ export default function VencimientosView() {
 
       {/* Toast */}
       {toast && (
-        <div onClick={() => setToast(null)} style={{
-          padding:'8px 16px', cursor:'pointer',
+        <div style={{
+          padding:'8px 16px',
           background: toast.type === 'ok' ? '#f0fdf4' : '#fee2e2',
           color:      toast.type === 'ok' ? '#15803d' : '#991b1b',
           borderBottom: '1px solid', borderColor: toast.type === 'ok' ? '#bbf7d0' : '#fca5a5',
           fontSize:12, fontWeight:600,
+          display:'flex', alignItems:'center', gap:12,
         }}>
-          {toast.msg}
-          <span style={{ marginLeft:12, fontSize:10, fontWeight:500, opacity:0.6 }}>(click para cerrar)</span>
+          <span style={{ flex:1 }}>{toast.msg}</span>
+          {toast.ofertaRef && (
+            <button
+              onClick={() => navigate('ficha-oferta', { id: toast.ofertaRef })}
+              style={{ background:'#15803d', color:'#fff', border:'none', borderRadius:5, padding:'4px 10px', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}
+            >
+              Ver oferta {toast.ofertaRef} →
+            </button>
+          )}
+          <button onClick={() => setToast(null)} style={{ background:'none', border:'none', color:'inherit', fontSize:14, fontWeight:700, cursor:'pointer', opacity:0.6 }}>×</button>
         </div>
       )}
 
@@ -382,9 +416,16 @@ export default function VencimientosView() {
                             <button
                               onClick={(e) => openGenerarOferta(v, e)}
                               style={{ fontSize:10, padding:'3px 9px', borderRadius:4, border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', color:'var(--accent)', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}
-                              title="El inquilino se va: crear oferta sell-side"
+                              title="Sale a mercado: crear oferta sell-side"
                             >
                               📢 Generar oferta
+                            </button>
+                            <button
+                              onClick={(e) => openFinalizarSinOferta(v, e)}
+                              style={{ fontSize:10, padding:'3px 9px', borderRadius:4, border:'1px solid var(--border)', background:'var(--surface)', color:'var(--text3)', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}
+                              title="Cubierto por pre-alquiler: finalizar sin generar oferta"
+                            >
+                              ✓ Sin oferta
                             </button>
                           </div>
                         ) : (
@@ -405,7 +446,9 @@ export default function VencimientosView() {
           <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:10, width:'min(520px, 92vw)', boxShadow:'0 20px 50px rgba(15,23,42,0.25)' }}>
             <div style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)' }}>
               <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>
-                {modal.action === 'renovar' ? '🔄 Renovar contrato' : '📢 Generar oferta'}
+                {modal.action === 'renovar' ? '🔄 Renovar contrato'
+                  : modal.action === 'finalizar' ? '✓ Finalizar sin oferta'
+                  : '📢 Generar oferta'}
               </div>
               <div style={{ fontSize:11, color:'var(--text3)', marginTop:4 }}>
                 {modal.row.activo} · {modal.row.arrendatario} · {modal.row.tipo}
@@ -434,11 +477,26 @@ export default function VencimientosView() {
                 </>
               )}
 
+              {modal.action === 'finalizar' && (
+                <>
+                  <div style={{ fontSize:12, color:'var(--text3)', marginBottom:12, lineHeight:1.55 }}>
+                    El arrendatario <strong>{modal.row.arrendatario}</strong> deja el activo el <strong>{fmtFecha(modal.row.fecha)}</strong>, pero <strong>no</strong> sale a mercado (pre-alquiler firmado, ocupación interna, u otro motivo).
+                    El arrendatario pasará a <em>Finalizado</em> y desaparece del listado. <strong>No se crea ninguna oferta.</strong>
+                  </div>
+                  <div style={{ display:'grid', gridTemplateColumns:'120px 1fr', gap:'8px 12px', alignItems:'center' }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Activo</span>
+                    <span style={{ fontSize:12, fontWeight:600 }}>{modal.row.activo}</span>
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Fecha salida</span>
+                    <span style={{ fontSize:12, fontWeight:600 }}>{fmtFecha(modal.row.fecha)}</span>
+                  </div>
+                </>
+              )}
+
               {modal.action === 'oferta' && (
                 <>
                   <div style={{ fontSize:12, color:'var(--text3)', marginBottom:12, lineHeight:1.55 }}>
-                    Se creará una <strong>oferta sell-side</strong> sobre el activo con los datos del arrendamiento actual.
-                    El registro de vencimiento desaparecerá del listado (la fecha se limpia en el arrendatario).
+                    Se creará una <strong>oferta sell-side</strong> sobre el activo con <strong>fecha de disponibilidad = la del vencimiento</strong>.
+                    El arrendatario pasa a <em>Finalizado</em> (las fechas se conservan como histórico) y deja de aparecer en este listado.
                   </div>
                   <div style={{ display:'grid', gridTemplateColumns:'120px 1fr', gap:'8px 12px', alignItems:'center' }}>
                     <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Activo</span>
@@ -479,11 +537,18 @@ export default function VencimientosView() {
                 Cancelar
               </button>
               <button
-                onClick={modal.action === 'renovar' ? confirmRenovar : confirmGenerarOferta}
+                onClick={
+                  modal.action === 'renovar'   ? confirmRenovar
+                  : modal.action === 'finalizar' ? confirmFinalizarSinOferta
+                  : confirmGenerarOferta
+                }
                 disabled={working || (modal.action === 'renovar' && !modal.fecha)}
                 style={{ padding:'8px 14px', fontSize:12, border:'none', borderRadius:5, background:'var(--accent)', color:'#fff', cursor:working?'wait':'pointer', fontFamily:'inherit', fontWeight:600, opacity: working ? 0.6 : 1 }}
               >
-                {working ? 'Procesando…' : (modal.action === 'renovar' ? '🔄 Renovar' : '📢 Generar oferta')}
+                {working ? 'Procesando…'
+                  : modal.action === 'renovar'   ? '🔄 Renovar'
+                  : modal.action === 'finalizar' ? '✓ Finalizar sin oferta'
+                  : '📢 Generar oferta'}
               </button>
             </div>
           </div>
