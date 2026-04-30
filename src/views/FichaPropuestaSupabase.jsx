@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
+import MarcarPropuestaGanadaModal from '../components/MarcarPropuestaGanadaModal'
 
 // Mismas pestañas que la mock (FichaPropuesta TABS / TAB_LABELS)
 const PRY_TABS = [
@@ -73,6 +74,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
   const editing = true
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
+  const [showGanadaModal, setShowGanadaModal] = useState(false)
 
   const [form, setForm] = useState({
     nombre:'', tipo:'', linea:'', estado:'',
@@ -190,9 +192,38 @@ export default function FichaPropuestaSupabase({ refOrId }) {
         <button className="ab-btn" onClick={restablecer} disabled={saving}>↺ Restablecer</button>
         <button className="ab-btn" onClick={() => navigate('propuestas')}>← Volver</button>
         <div className="ab-sep"/>
-        <button className="ab-btn" disabled style={{ opacity:0.45 }}>Marcar como ganada</button>
+        {(() => {
+          const yaCerrada = ['ganada','perdida','cancelada'].includes(propuesta.estado)
+          const puede     = !yaCerrada && !!propuesta.dynamics_opportunity_id && !!propuesta.dynamics_account_id
+          const tip = yaCerrada
+            ? `Propuesta ya cerrada (${ESTADO_LABEL[propuesta.estado]})`
+            : !propuesta.dynamics_opportunity_id ? 'Falta oportunidad Dynamics'
+            : !propuesta.dynamics_account_id     ? 'Falta cuenta'
+            : 'Crear instrucción + mandato'
+          return (
+            <button
+              className="ab-btn"
+              onClick={() => setShowGanadaModal(true)}
+              disabled={!puede}
+              title={tip}
+              style={{ background: puede ? 'var(--green)' : undefined, color: puede ? '#fff' : undefined, border: puede ? '1px solid var(--green)' : undefined, opacity: puede ? 1 : 0.45 }}
+            >
+              🏆 Marcar como ganada
+            </button>
+          )
+        })()}
         {saveError && <span style={{ marginLeft:12, fontSize:11, color:'#991b1b', fontWeight:600 }}>{saveError}</span>}
       </div>
+
+      {showGanadaModal && (
+        <MarcarPropuestaGanadaModal
+          propuesta={propuesta}
+          oportunidad={oportunidad}
+          cuenta={cuenta}
+          onClose={() => setShowGanadaModal(false)}
+          onSuccess={() => { setShowGanadaModal(false); load() }}
+        />
+      )}
 
       <div className="ficha-wrap">
         <div className="ficha-main">
