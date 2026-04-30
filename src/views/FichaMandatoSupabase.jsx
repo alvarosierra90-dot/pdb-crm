@@ -107,6 +107,9 @@ export default function FichaMandatoSupabase({ refOrId }) {
   const [showCierreVencido, setShowCierreVencido] = useState(false)
   const [cerrandoVencido, setCerrandoVencido] = useState(false)
   const [ofertasMandato, setOfertasMandato] = useState([])
+  const [showCancelar, setShowCancelar] = useState(false)
+  const [cancelando, setCancelando] = useState(false)
+  const [cancelMotivo, setCancelMotivo] = useState('')
 
   const [form, setForm] = useState({
     titulo:'', tipo:'alquiler', via:'directo', estado:'en_curso',
@@ -321,6 +324,40 @@ export default function FichaMandatoSupabase({ refOrId }) {
   //                   Solo se rompe el vínculo (mandato_id=null, tipo_comercializacion).
   //   'retirar'     → mandato cerrado y ofertas retiradas (el activo sale del
   //                   mercado: propietario lo ocupa, no renueva, etc.).
+  // Cancelar mandato (antes del vencimiento). Misma decisión sobre las ofertas
+  // que en el cierre por vencimiento — ver feedback_cierre_mandato.md.
+  const cancelarMandato = async (modo) => {
+    if (!mandato) return
+    if (!cancelMotivo.trim()) { setSaveError('Selecciona un motivo de cancelación.'); return }
+    setCancelando(true); setSaveError(null)
+    const ahora = new Date().toISOString()
+    try {
+      const { error: e1 } = await supabase.from('mandatos').update({
+        estado:             'cancelado',
+        motivo_cancelacion: cancelMotivo.trim(),
+        updated_at:         ahora,
+      }).eq('id', mandato.id)
+      if (e1) throw new Error(`Mandato: ${e1.message}`)
+
+      const ofVivas = ofertasMandato.filter(o => o.estado !== 'Retirada' && o.estado !== 'Ocupada total')
+      if (ofVivas.length > 0) {
+        const payload = modo === 'retirar'
+          ? { estado:'Retirada', activa:false, motivo_descarte:'Mandato cancelado', updated_at:ahora }
+          : { mandato_id: null, tipo_comercializacion: 'Sin mandato', updated_at: ahora }
+        const { error: e2 } = await supabase.from('ofertas').update(payload).in('id', ofVivas.map(o => o.id))
+        if (e2) throw new Error(`Ofertas: ${e2.message}`)
+      }
+
+      setShowCancelar(false)
+      setCancelMotivo('')
+      await load()
+    } catch (e) {
+      setSaveError(e.message)
+    } finally {
+      setCancelando(false)
+    }
+  }
+
   const cerrarMandato = async (modo) => {
     if (!mandato) return
     setCerrandoVencido(true); setSaveError(null)
@@ -397,7 +434,12 @@ export default function FichaMandatoSupabase({ refOrId }) {
             </button>
           )
         })()}
-        <button className="ab-btn" disabled={form.estado==='cancelado'} onClick={() => setF('estado','cancelado')} style={{ color:'var(--red)' }}>Cancelar mandato</button>
+        <button
+          className="ab-btn"
+          disabled={mandato.estado==='cancelado' || mandato.estado==='cerrado'}
+          onClick={() => setShowCancelar(true)}
+          style={{ color:'var(--red)' }}
+        >Cancelar mandato</button>
         {saveError && <span style={{ marginLeft:12, fontSize:11, color:'#991b1b', fontWeight:600 }}>{saveError}</span>}
       </div>
 
@@ -458,6 +500,96 @@ export default function FichaMandatoSupabase({ refOrId }) {
               </div>
               <div style={{ padding:'12px 22px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'flex-end', gap:8 }}>
                 <button onClick={() => setShowCierreVencido(false)} disabled={cerrandoVencido} style={{ padding:'8px 14px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background:'#fff', cursor:'pointer', fontWeight:600 }}>Cancelar</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {showCancelar && (() => {
+        const ofVivas = ofertasMandato.filter(o => o.estado !== 'Retirada' && o.estado !== 'Ocupada total')
+        const motivoEsPredef = MOTIVOS_CANCELACION.includes(cancelMotivo)
+        const motivoEsOtro   = !!cancelMotivo && !motivoEsPredef
+        const sel_v = motivoEsOtro ? 'Otro motivo' : (cancelMotivo || '')
+        return (
+          <div onClick={() => !cancelando && (setShowCancelar(false), setCancelMotivo(''))} style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:10, width:'min(620px, 94vw)', maxHeight:'90vh', overflowY:'auto', boxShadow:'0 20px 50px rgba(15,23,42,0.25)' }}>
+              <div style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)' }}>
+                <div style={{ fontSize:14, fontWeight:700 }}>✕ Cancelar mandato</div>
+                <div style={{ fontSize:11, color:'var(--text3)', marginTop:4 }}>{mandato.ref} · {mandato.titulo || cuenta?.nombre || '—'}</div>
+              </div>
+              <div style={{ padding:'16px 22px', display:'flex', flexDirection:'column', gap:14 }}>
+
+                <div>
+                  <div style={{ fontSize:11, fontWeight:700, color:'var(--text3)', marginBottom:6, textTransform:'uppercase', letterSpacing:'.04em' }}>Motivo de cancelación *</div>
+                  <select
+                    value={sel_v}
+                    onChange={e => {
+                      const v = e.target.value
+                      if (v === '') setCancelMotivo('')
+                      else if (v === 'Otro motivo') setCancelMotivo(motivoEsOtro ? cancelMotivo : ' ')
+                      else setCancelMotivo(v)
+                    }}
+                    style={{ width:'100%', padding:'8px 10px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background:'#fff', fontFamily:'inherit' }}
+                  >
+                    <option value="">Selecciona un motivo...</option>
+                    {MOTIVOS_CANCELACION.map(m => <option key={m}>{m}</option>)}
+                  </select>
+                  {(sel_v === 'Otro motivo' || motivoEsOtro) && (
+                    <textarea
+                      value={motivoEsOtro ? cancelMotivo : ''}
+                      onChange={e => setCancelMotivo(e.target.value)}
+                      placeholder="Describe el motivo..."
+                      style={{ width:'100%', marginTop:8, padding:'8px 10px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', minHeight:60, resize:'vertical', boxSizing:'border-box' }}
+                    />
+                  )}
+                </div>
+
+                {ofVivas.length > 0 && (
+                  <>
+                    <div style={{ fontSize:12, color:'var(--text3)', lineHeight:1.55 }}>
+                      Hay <strong>{ofVivas.length} oferta{ofVivas.length === 1 ? '' : 's'}</strong> vinculada{ofVivas.length === 1 ? '' : 's'} a este mandato. ¿Qué hacemos con {ofVivas.length === 1 ? 'ella' : 'ellas'}?
+                    </div>
+                    <div style={{ background:'var(--gray-lt)', borderRadius:6, padding:10, fontSize:11 }}>
+                      {ofVivas.map(o => (
+                        <div key={o.id} style={{ fontFamily:'var(--mono)', color:'var(--text2)' }}>· {o.ref} <span style={{ color:'var(--text4)', marginLeft:6 }}>({o.estado || '—'})</span></div>
+                      ))}
+                    </div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                      <button
+                        onClick={() => cancelarMandato('desvincular')}
+                        disabled={cancelando || !cancelMotivo.trim()}
+                        style={{ padding:'12px 14px', fontSize:13, border:'1px solid var(--accent)', background:'var(--accent-lt)', color:'var(--accent)', borderRadius:8, cursor: cancelando || !cancelMotivo.trim() ? 'not-allowed' : 'pointer', fontFamily:'inherit', fontWeight:700, textAlign:'left', lineHeight:1.4, opacity: cancelando || !cancelMotivo.trim() ? 0.5 : 1 }}
+                      >
+                        🔄 Cancelar mandato y mantener ofertas activas
+                        <div style={{ fontSize:10, fontWeight:500, color:'var(--text3)', marginTop:3 }}>El activo sigue en mercado pero ya no es nuestro mandato. Ofertas: tipo "Sin mandato".</div>
+                      </button>
+                      <button
+                        onClick={() => cancelarMandato('retirar')}
+                        disabled={cancelando || !cancelMotivo.trim()}
+                        style={{ padding:'12px 14px', fontSize:13, border:'1px solid var(--red)', background:'var(--red-lt)', color:'var(--red)', borderRadius:8, cursor: cancelando || !cancelMotivo.trim() ? 'not-allowed' : 'pointer', fontFamily:'inherit', fontWeight:700, textAlign:'left', lineHeight:1.4, opacity: cancelando || !cancelMotivo.trim() ? 0.5 : 1 }}
+                      >
+                        🏁 Cancelar mandato y retirar ofertas
+                        <div style={{ fontSize:10, fontWeight:500, color:'var(--text3)', marginTop:3 }}>El activo sale del mercado. Ofertas → Retirada con motivo "Mandato cancelado".</div>
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {ofVivas.length === 0 && (
+                  <button
+                    onClick={() => cancelarMandato('desvincular')}
+                    disabled={cancelando || !cancelMotivo.trim()}
+                    style={{ padding:'10px 14px', fontSize:13, border:'1px solid var(--red)', background:'var(--red)', color:'#fff', borderRadius:8, cursor: cancelando || !cancelMotivo.trim() ? 'not-allowed' : 'pointer', fontFamily:'inherit', fontWeight:700, opacity: cancelando || !cancelMotivo.trim() ? 0.5 : 1 }}
+                  >
+                    ✕ Cancelar mandato (no hay ofertas que actualizar)
+                  </button>
+                )}
+
+                {saveError && <div style={{ background:'#fef2f2', border:'1px solid #fecaca', borderRadius:6, padding:10, fontSize:11, color:'#991b1b' }}>{saveError}</div>}
+              </div>
+              <div style={{ padding:'12px 22px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'flex-end', gap:8 }}>
+                <button onClick={() => { setShowCancelar(false); setCancelMotivo('') }} disabled={cancelando} style={{ padding:'8px 14px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background:'#fff', cursor:'pointer', fontWeight:600 }}>Volver</button>
               </div>
             </div>
           </div>
