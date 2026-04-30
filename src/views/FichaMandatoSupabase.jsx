@@ -104,6 +104,9 @@ export default function FichaMandatoSupabase({ refOrId }) {
   const editing = true
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
+  const [showCierreVencido, setShowCierreVencido] = useState(false)
+  const [cerrandoVencido, setCerrandoVencido] = useState(false)
+  const [ofertasMandato, setOfertasMandato] = useState([])
 
   const [form, setForm] = useState({
     titulo:'', tipo:'alquiler', via:'directo', estado:'en_curso',
@@ -175,6 +178,13 @@ export default function FichaMandatoSupabase({ refOrId }) {
     } else {
       setContactosAgente([])
     }
+
+    // Ofertas vinculadas (necesarias para la cascada de cierre por vencimiento)
+    const { data: ofMan } = await supabase
+      .from('ofertas')
+      .select('id, ref, estado, activa')
+      .eq('mandato_id', data.id)
+    setOfertasMandato(ofMan || [])
 
     setError(null)
     setLoading(false)
@@ -305,6 +315,39 @@ export default function FichaMandatoSupabase({ refOrId }) {
     await load()
   }
 
+  // Cascada spec sec.7: al vencer sin renovar, mandato pasa a 'cerrado' y todas
+  // las ofertas asociadas se retiran (estado='Retirada', activa=false, motivo).
+  const cerrarMandatoVencido = async () => {
+    if (!mandato) return
+    setCerrandoVencido(true); setSaveError(null)
+    const ahora = new Date().toISOString()
+    try {
+      const { error: e1 } = await supabase.from('mandatos').update({
+        estado: 'cerrado',
+        updated_at: ahora,
+      }).eq('id', mandato.id)
+      if (e1) throw new Error(`Mandato: ${e1.message}`)
+
+      const ofVivas = ofertasMandato.filter(o => o.estado !== 'Retirada' && o.estado !== 'Ocupada total')
+      if (ofVivas.length > 0) {
+        const { error: e2 } = await supabase.from('ofertas').update({
+          estado:          'Retirada',
+          activa:          false,
+          motivo_descarte: 'Mandato finalizado / no renovado',
+          updated_at:      ahora,
+        }).in('id', ofVivas.map(o => o.id))
+        if (e2) throw new Error(`Ofertas: ${e2.message}`)
+      }
+
+      setShowCierreVencido(false)
+      await load()
+    } catch (e) {
+      setSaveError(e.message)
+    } finally {
+      setCerrandoVencido(false)
+    }
+  }
+
   if (loading) return <div style={{ padding:32, color:'var(--text4)', fontSize:12 }}>Cargando…</div>
   if (error || !mandato) {
     return (
@@ -337,9 +380,61 @@ export default function FichaMandatoSupabase({ refOrId }) {
         <button className="ab-btn" onClick={() => navigate('mandatos')}>← Volver</button>
         <div className="ab-sep"/>
         <button className="ab-btn" disabled style={{ opacity:0.45 }}>📄 Generar contrato</button>
+        {(() => {
+          const vencido = dr !== null && dr < 0
+          const aunVivo = mandato.estado === 'en_curso'
+          if (!vencido || !aunVivo) return null
+          return (
+            <button
+              className="ab-btn"
+              onClick={() => setShowCierreVencido(true)}
+              style={{ background:'var(--red)', color:'#fff', border:'1px solid var(--red)', fontWeight:700 }}
+              title="Cerrar mandato vencido y retirar ofertas asociadas"
+            >
+              🏁 Cerrar mandato vencido
+            </button>
+          )
+        })()}
         <button className="ab-btn" disabled={form.estado==='cancelado'} onClick={() => setF('estado','cancelado')} style={{ color:'var(--red)' }}>Cancelar mandato</button>
         {saveError && <span style={{ marginLeft:12, fontSize:11, color:'#991b1b', fontWeight:600 }}>{saveError}</span>}
       </div>
+
+      {showCierreVencido && (() => {
+        const ofVivas = ofertasMandato.filter(o => o.estado !== 'Retirada' && o.estado !== 'Ocupada total')
+        return (
+          <div onClick={() => !cerrandoVencido && setShowCierreVencido(false)} style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:10, width:'min(560px, 92vw)', maxHeight:'90vh', overflowY:'auto', boxShadow:'0 20px 50px rgba(15,23,42,0.25)' }}>
+              <div style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)' }}>
+                <div style={{ fontSize:14, fontWeight:700 }}>🏁 Cerrar mandato vencido</div>
+                <div style={{ fontSize:11, color:'var(--text3)', marginTop:4 }}>{mandato.ref} · {mandato.titulo || cuenta?.nombre || '—'}</div>
+              </div>
+              <div style={{ padding:'16px 22px', display:'flex', flexDirection:'column', gap:12 }}>
+                <div style={{ fontSize:12, color:'var(--text3)', lineHeight:1.55 }}>
+                  El mandato venció el <strong>{fmtDate(mandato.fecha_vencimiento)}</strong> ({Math.abs(dr)}d). Se aplicará la cascada de la spec:
+                </div>
+                <ul style={{ margin:0, paddingLeft:20, fontSize:12, color:'var(--text2)', lineHeight:1.7 }}>
+                  <li>Mandato → estado <strong>cerrado</strong>.</li>
+                  <li>{ofVivas.length === 0 ? 'No hay ofertas activas vinculadas que retirar.' : <>Las <strong>{ofVivas.length} oferta{ofVivas.length === 1 ? '' : 's'}</strong> asociadas pasan a <strong>Retirada</strong> con motivo "Mandato finalizado / no renovado".</>}</li>
+                </ul>
+                {ofVivas.length > 0 && (
+                  <div style={{ background:'var(--gray-lt)', borderRadius:6, padding:10, fontSize:11 }}>
+                    {ofVivas.map(o => (
+                      <div key={o.id} style={{ fontFamily:'var(--mono)', color:'var(--text2)' }}>· {o.ref} <span style={{ color:'var(--text4)', marginLeft:6 }}>({o.estado || '—'})</span></div>
+                    ))}
+                  </div>
+                )}
+                {saveError && <div style={{ background:'#fef2f2', border:'1px solid #fecaca', borderRadius:6, padding:10, fontSize:11, color:'#991b1b' }}>{saveError}</div>}
+              </div>
+              <div style={{ padding:'12px 22px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'flex-end', gap:8 }}>
+                <button onClick={() => setShowCierreVencido(false)} disabled={cerrandoVencido} style={{ padding:'8px 14px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background:'#fff', cursor:'pointer', fontWeight:600 }}>Cancelar</button>
+                <button onClick={cerrarMandatoVencido} disabled={cerrandoVencido} style={{ padding:'8px 14px', fontSize:12, border:'none', borderRadius:5, background:'var(--red)', color:'#fff', cursor:'pointer', fontWeight:700 }}>
+                  {cerrandoVencido ? 'Procesando…' : '🏁 Cerrar y retirar ofertas'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       <div className="ficha-wrap">
         <div className="ficha-main">

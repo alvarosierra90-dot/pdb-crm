@@ -22,6 +22,7 @@ function DiasRestantes({ n }) {
   if (n < 0)   return <span style={{fontSize:10,fontWeight:700,color:'var(--red)',background:'var(--red-lt)',border:'1px solid var(--red-bd)',padding:'1px 7px',borderRadius:9}}>Vencido {Math.abs(n)}d</span>
   if (n <= 30) return <span style={{fontSize:10,fontWeight:700,color:'var(--red)',background:'var(--red-lt)',border:'1px solid var(--red-bd)',padding:'1px 7px',borderRadius:9}}>⚠ {n}d restantes</span>
   if (n <= 60) return <span style={{fontSize:10,fontWeight:700,color:'var(--amber)',background:'var(--amber-lt)',border:'1px solid var(--amber-bd)',padding:'1px 7px',borderRadius:9}}>⏳ {n}d restantes</span>
+  if (n <= 90) return <span style={{fontSize:10,fontWeight:600,color:'var(--accent)',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',padding:'1px 7px',borderRadius:9}}>{n}d restantes</span>
   return <span style={{fontSize:10,fontWeight:600,color:'var(--text3)'}}>{n}d restantes</span>
 }
 
