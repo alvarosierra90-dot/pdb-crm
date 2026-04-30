@@ -964,6 +964,13 @@ export default function FichaArrendatario() {
                             supabase.from('activos').update({ stacking_data: blds }).eq('ref', stackingActivo.ref)
                           }, 1500)
                         }}
+                        onAddTenant={() => navigate('ficha-arrendatario', {
+                          fromActivoRef:         stackingActivo.ref,
+                          fromActivoNombre:      stackingActivo.nombre || '',
+                          fromActivoZona:        stackingActivo.zona || '',
+                          fromActivoSba:         stackingActivo.sba || 0,
+                          fromActivoPropietario: stackingActivo.propietario || '',
+                        })}
                         onTenantClick={(name) => navigate('ficha-arrendatario', {
                           tenantName: name,
                           fromActivoRef: stackingActivo.ref,

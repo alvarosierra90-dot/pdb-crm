@@ -185,6 +185,35 @@ function FichaOfertaMock() {
   // Debounced auto-save del stacking — mismo patrón que FichaActivo para mantener
   // consistencia funcional: edición en Oferta persiste igual que edición en Activo.
   const stackingAutoSaveTimer = useRef(null)
+  // Forzamos remount del StackingPlan cuando cambia el nombre de una oferta
+  // para que las unidades 'vac' arrastradas reflejen el nombre nuevo en pantalla.
+  const [stackingKey, setStackingKey] = useState(0)
+
+  // Renombrar oferta en la tabla de espacios comerciales debe propagarse a todas
+  // las unidades del stacking que la referencian (capa 'arr', type='vac').
+  // Sin esto, el panel izquierdo muestra el nombre nuevo pero los bloques pintan
+  // el nombre antiguo, que es lo que el usuario marcó como "lío".
+  const renameOferta = (id, oldName, newName) => {
+    if (!newName || newName === oldName) {
+      setOfertasDesglose(prev => prev.map(x => x.id === id ? { ...x, nombre: newName || x.nombre } : x))
+      return
+    }
+    setOfertasDesglose(prev => prev.map(x => x.id === id ? { ...x, nombre: newName } : x))
+    if (liveBuildings.current?.length > 0) {
+      const updated = liveBuildings.current.map(b => ({
+        ...b,
+        arr: (b.arr || []).map(r => ({
+          ...r,
+          units: r.units.map(u => (u.type === 'vac' && u.oferta === oldName) ? { ...u, oferta: newName } : u),
+        })),
+      }))
+      liveBuildings.current = updated
+      if (activoSeleccionado?.ref) {
+        supabase.from('activos').update({ stacking_data: updated }).eq('ref', activoSeleccionado.ref)
+      }
+      setStackingKey(k => k + 1)
+    }
+  }
 
   // Handlers de creación equivalentes a FichaActivo: navegan a la ficha del
   // tipo correspondiente con datos del activo vinculado prerrellenados.
@@ -998,8 +1027,8 @@ function FichaOfertaMock() {
                           </div>
                         </div>
                         <StackingPlan
-                      key={activoSeleccionado.ref}
-                      initBuildings={activoSeleccionado.stacking_data?.length > 0 ? activoSeleccionado.stacking_data : []}
+                      key={`${activoSeleccionado.ref}-${stackingKey}`}
+                      initBuildings={liveBuildings.current?.length > 0 ? liveBuildings.current : (activoSeleccionado.stacking_data?.length > 0 ? activoSeleccionado.stacking_data : [])}
                       initView='arr'
                       allowCreate={true}
                       extraOfertas={ofertasDesglose}
@@ -1134,8 +1163,8 @@ function FichaOfertaMock() {
                                     <td style={{ padding:'7px 12px' }}>
                                       {editNombreId===o.id
                                         ? <input autoFocus value={editNombreVal} onChange={e => setEditNombreVal(e.target.value)}
-                                            onBlur={() => { setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,nombre:editNombreVal||x.nombre}:x)); setEditNombreId(null) }}
-                                            onKeyDown={e => { if(e.key==='Enter'){setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,nombre:editNombreVal||x.nombre}:x));setEditNombreId(null)} }}
+                                            onBlur={() => { renameOferta(o.id, o.nombre, editNombreVal); setEditNombreId(null) }}
+                                            onKeyDown={e => { if(e.key==='Enter'){ renameOferta(o.id, o.nombre, editNombreVal); setEditNombreId(null) } }}
                                             style={{ fontSize:11, border:'1px solid var(--accent)', borderRadius:3, padding:'2px 6px', fontFamily:'inherit', width:120 }} />
                                         : <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                                             <div style={{ width:8, height:8, borderRadius:'50%', background:col.dot, flexShrink:0 }} />
