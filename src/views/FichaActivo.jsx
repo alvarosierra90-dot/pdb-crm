@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Fragment } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
+import BajaArrendatarioModal from '../components/BajaArrendatarioModal'
 import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
 import { supabase } from '../lib/supabase'
 
@@ -561,7 +562,7 @@ const INIT_BUILDINGS = [
 // Exportado para que FichaOferta consuma EXACTAMENTE el mismo componente.
 // La regla del usuario: el Stacking Plan debe ser un único componente reutilizable,
 // no varios componentes replicados. (Ver memoria project_stacking_compartido.md)
-export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, onTenantClick, extraOfertas=[], initView='principal', defaultLabel='', defaultSupPlantaTipo, allowCreate=true, noDataMessage=null }) {
+export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, onRemoveTenant, onTenantClick, extraOfertas=[], initView='principal', defaultLabel='', defaultSupPlantaTipo, allowCreate=true, noDataMessage=null }) {
   const { navigate: spNavigate } = useNav()
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
@@ -687,7 +688,20 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
       // Si declina, eliminar igualmente sin convertir.
     }
 
-    // Comportamiento por defecto: eliminar la unidad sin más preguntas.
+    // Bloque de arrendatario / parking / retail-tenant: delegar al padre
+    // que abre el modal de baja (Generar oferta / Sin oferta / Cancelar).
+    // Si confirma, el padre llama doRemove() para borrar la unidad del JSON.
+    if (unit && (unit.type === 'ten' || unit.type === 'rt' || unit.type === 'pk')) {
+      const doRemove = () => updBuilding(b => ({
+        ...b,
+        arr: (b.arr || []).map(r => r.p !== floorId ? r : { ...r, units: r.units.filter((_, i) => i !== idx) }),
+      }))
+      if (typeof onRemoveTenant === 'function') {
+        onRemoveTenant({ unit, floorId, idx, doRemove })
+        return
+      }
+    }
+    // Fallback: eliminar la unidad sin más preguntas (no hay padre que gestione).
     updBuilding(b => ({ ...b, arr: (b.arr || []).map(r => r.p !== floorId ? r : { ...r, units: r.units.filter((_, i) => i !== idx) }) }))
   }
 
@@ -3704,6 +3718,7 @@ export default function FichaActivo() {
 
   const [ofertas, setOfertas] = useState([])
   const [loadingOfertas, setLoadingOfertas] = useState(false)
+  const [bajaArr, setBajaArr] = useState(null) // { unit, doRemove, activo }
 
   const navigateToFichaProp = (substituteOwner = false) => {
     const previousOwner = propietariosReg[0]?.propietario || activo?.propietario || null
@@ -4161,6 +4176,9 @@ export default function FichaActivo() {
                 extraTenants={arrendatariosReg.map(a=>a.tenant)}
                 onAddOwner={handleAddOwner}
                 onAddTenant={handleAddTenant}
+                onRemoveTenant={({ unit, doRemove }) => {
+                  setBajaArr({ unit, doRemove })
+                }}
                 extraOfertas={params?.ofertasFromOferta || []}
                 initView={params?.newOwnerData ? 'prop' : params?.newTenantData ? 'arr' : (params?.stackingView || 'principal')}
               />
@@ -4990,6 +5008,28 @@ export default function FichaActivo() {
 
       </div>{/* /ficha-wrap */}
       {showTarea && <AsignarTareaModal refTipo="Activo" refNombre="P.E Avalon" onClose={() => setShowTarea(false)} />}
+      {bajaArr && (
+        <BajaArrendatarioModal
+          arrendatario={{
+            nombre:     bajaArr.unit.n,
+            sup:        bajaArr.unit.sup,
+            activo_ref: activo?.ref,
+          }}
+          activo={activo ? {
+            id:                  activo.id,
+            ref:                 activo.ref,
+            nombre:              activo.nombre || activo.direccion,
+            dynamics_account_id: activo.dynamics_account_id,
+            portfolio_id:        activo.portfolio_id,
+            uso:                 activo.uso || 'Oficinas',
+          } : null}
+          onClose={() => setBajaArr(null)}
+          onSuccess={() => {
+            try { bajaArr.doRemove() } catch (e) {}
+            setBajaArr(null)
+          }}
+        />
+      )}
       {showSubstConfirm && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
           <div style={{background:'var(--surface)',borderRadius:'var(--r2)',width:'100%',maxWidth:440,boxShadow:'0 20px 60px rgba(0,0,0,.3)',overflow:'hidden'}}>

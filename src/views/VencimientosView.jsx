@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
+import BajaArrendatarioModal from '../components/BajaArrendatarioModal'
 
 const LINEAS = ['Oficinas','Industrial / Logística','Retail','Residencial','Living','Hoteles','Suelos']
 const TIPOS_TAG = { 'Break':'tag-amber', 'Fin contrato':'tag-red' }
@@ -113,20 +114,6 @@ function AlertaBadge({ dias }) {
   return <span style={{fontSize:8,background:'#f0fdf4',color:'#15803d',border:'1px solid #bbf7d0',borderRadius:8,padding:'1px 6px',fontWeight:700}}>🟢 {dias}d</span>
 }
 
-// Genera el siguiente ref disponible OFE-YYYY-NNNN
-async function generarRefOferta() {
-  const year = new Date().getFullYear()
-  const { data } = await supabase
-    .from('ofertas')
-    .select('ref')
-    .ilike('ref', `OFE-${year}-%`)
-    .order('ref', { ascending: false })
-    .limit(1)
-  const last = data?.[0]?.ref
-  const next = last ? (parseInt(last.split('-')[2], 10) + 1) : 1
-  return `OFE-${year}-${String(next).padStart(4, '0')}`
-}
-
 export default function VencimientosView() {
   const { navigate } = useNav()
   const [fAnio,   setFAnio]   = useState('')
@@ -136,9 +123,10 @@ export default function VencimientosView() {
   const [allVencimientos, setAllVencimientos] = useState(MOCK_VENCIMIENTOS)
   const [loadingDB, setLoadingDB] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
-  const [modal, setModal] = useState(null) // { action:'renovar'|'oferta', row, fecha?, tipoOp?, tipoMercado? }
+  const [modal, setModal] = useState(null) // { action:'renovar', row, fecha }
+  const [bajaArr, setBajaArr] = useState(null) // { row } — abre BajaArrendatarioModal
   const [working, setWorking] = useState(false)
-  const [toast, setToast] = useState(null) // { type:'ok'|'err', msg }
+  const [toast, setToast] = useState(null) // { type:'ok'|'err', msg, ofertaRef? }
 
   useEffect(() => {
     let cancel = false
@@ -194,11 +182,11 @@ export default function VencimientosView() {
   }
   const openGenerarOferta = (v, e) => {
     e.stopPropagation()
-    setModal({ action:'oferta', row:v, tipoOp:'Alquiler', tipoMercado:'mercado' })
+    setBajaArr({ row: v, mode: 'oferta' })
   }
   const openFinalizarSinOferta = (v, e) => {
     e.stopPropagation()
-    setModal({ action:'finalizar', row:v })
+    setBajaArr({ row: v, mode: 'finalizar' })
   }
   const closeModal = () => { if (!working) { setModal(null) } }
 
@@ -219,74 +207,20 @@ export default function VencimientosView() {
     setReloadKey(k => k + 1)
   }
 
-  const confirmFinalizarSinOferta = async () => {
-    if (!modal || !modal.row._arrendatarioRef) return
-    setWorking(true)
-    const { error } = await supabase.from('arrendatarios')
-      .update({ estado_arr: 'Finalizado', fecha_salida: modal.row.fecha })
-      .eq('ref', modal.row._arrendatarioRef)
-    setWorking(false)
-    if (error) { setToast({ type:'err', msg:`Error finalizando: ${error.message}` }); return }
-    setToast({
-      type:'ok',
-      msg:`✓ ${modal.row.arrendatario} marcado como Finalizado el ${fmtFecha(modal.row.fecha)} (sin oferta — activo cubierto por pre-alquiler).`,
-    })
-    setModal(null)
-    setReloadKey(k => k + 1)
-  }
-
-  const confirmGenerarOferta = async () => {
-    if (!modal || !modal.row._activoRef) return
-    setWorking(true)
-    // 1. Resolver activo
-    const { data: activo, error: actErr } = await supabase
-      .from('activos')
-      .select('id, ref, nombre, dynamics_account_id, portfolio_id, uso, ciudad')
-      .eq('ref', modal.row._activoRef)
-      .maybeSingle()
-    if (actErr || !activo) {
-      setWorking(false)
-      setToast({ type:'err', msg:`No encuentro activo ${modal.row._activoRef} en BBDD.` })
-      return
+  const onBajaArrSuccess = (result) => {
+    if (result.action === 'oferta') {
+      setToast({
+        type:'ok',
+        msg:`✓ Oferta ${result.ofertaRef} generada con disponibilidad ${fmtFecha(result.fechaSalida)}. Arrendatario marcado como Finalizado.`,
+        ofertaRef: result.ofertaRef,
+      })
+    } else if (result.action === 'finalizar') {
+      setToast({
+        type:'ok',
+        msg:`✓ Arrendatario marcado como Finalizado el ${fmtFecha(result.fechaSalida)} (sin oferta — activo cubierto).`,
+      })
     }
-    // 2. Generar ref único
-    const newRef = await generarRefOferta()
-    // 3. Insertar oferta
-    const sup = Number(modal.row.sup) || null
-    const payload = {
-      ref:                   newRef,
-      activo_id:             activo.id,
-      dynamics_account_id:   activo.dynamics_account_id,
-      portfolio_id:          activo.portfolio_id,
-      tipo_operacion:        modal.tipoOp || 'Alquiler',
-      tipo_mercado:          modal.tipoMercado || 'mercado',
-      tipologia:             activo.uso || 'Oficinas',
-      estado:                'En curso',
-      superficie_disponible: sup,
-      m2_oferta:             sup,
-      fecha_disponibilidad:  modal.row.fecha,
-      tipo_comercializacion: 'Mandato Savills',
-      comentarios:           `Oferta generada desde Vencimiento (${modal.row.tipo}) del arrendatario ${modal.row.arrendatario}. Disponibilidad: ${fmtFecha(modal.row.fecha)}.`,
-    }
-    const { error: ofErr, data: ofData } = await supabase.from('ofertas').insert(payload).select('id, ref').single()
-    if (ofErr) {
-      setWorking(false)
-      setToast({ type:'err', msg:`Error creando oferta: ${ofErr.message}` })
-      return
-    }
-    // 4. Marcar el arrendatario como 'Finalizado' + fijar fecha de salida.
-    //    Conservamos las fechas (vencimiento / break_option) como histórico.
-    //    El listado de Vencimientos filtra Finalizado y deja de mostrarlo.
-    await supabase.from('arrendatarios')
-      .update({ estado_arr: 'Finalizado', fecha_salida: modal.row.fecha })
-      .eq('ref', modal.row._arrendatarioRef)
-    setWorking(false)
-    setToast({
-      type:'ok',
-      msg:`✓ Oferta ${ofData.ref} generada para ${activo.nombre || activo.ref} con disponibilidad ${fmtFecha(modal.row.fecha)}. Arrendatario marcado como Finalizado.`,
-      ofertaRef: ofData.ref,
-    })
-    setModal(null)
+    setBajaArr(null)
     setReloadKey(k => k + 1)
   }
 
@@ -440,119 +374,62 @@ export default function VencimientosView() {
         </table>
       </div>
 
-      {/* Modal */}
-      {modal && (
+      {/* Modal Renovar (acción específica de esta vista) */}
+      {modal && modal.action === 'renovar' && (
         <div onClick={closeModal} style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200 }}>
           <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:10, width:'min(520px, 92vw)', boxShadow:'0 20px 50px rgba(15,23,42,0.25)' }}>
             <div style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)' }}>
-              <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>
-                {modal.action === 'renovar' ? '🔄 Renovar contrato'
-                  : modal.action === 'finalizar' ? '✓ Finalizar sin oferta'
-                  : '📢 Generar oferta'}
-              </div>
+              <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>🔄 Renovar contrato</div>
               <div style={{ fontSize:11, color:'var(--text3)', marginTop:4 }}>
                 {modal.row.activo} · {modal.row.arrendatario} · {modal.row.tipo}
               </div>
             </div>
-
             <div style={{ padding:'16px 22px' }}>
-              {modal.action === 'renovar' && (
-                <>
-                  <div style={{ fontSize:12, color:'var(--text3)', marginBottom:12, lineHeight:1.55 }}>
-                    Cambia la fecha {modal.row.tipo === 'Break' ? 'de break option' : 'de fin de contrato'} en el arrendatario.
-                    El registro seguirá apareciendo en la lista con la nueva fecha.
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', minWidth:120 }}>Nueva fecha</span>
-                    <input
-                      type="date"
-                      value={modal.fecha || ''}
-                      onChange={e => setModal({ ...modal, fecha:e.target.value })}
-                      style={{ padding:'8px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit' }}
-                    />
-                  </div>
-                  <div style={{ marginTop:6, fontSize:10, color:'var(--text4)' }}>
-                    Fecha actual: {fmtFecha(modal.row.fecha)}
-                  </div>
-                </>
-              )}
-
-              {modal.action === 'finalizar' && (
-                <>
-                  <div style={{ fontSize:12, color:'var(--text3)', marginBottom:12, lineHeight:1.55 }}>
-                    El arrendatario <strong>{modal.row.arrendatario}</strong> deja el activo el <strong>{fmtFecha(modal.row.fecha)}</strong>, pero <strong>no</strong> sale a mercado (pre-alquiler firmado, ocupación interna, u otro motivo).
-                    El arrendatario pasará a <em>Finalizado</em> y desaparece del listado. <strong>No se crea ninguna oferta.</strong>
-                  </div>
-                  <div style={{ display:'grid', gridTemplateColumns:'120px 1fr', gap:'8px 12px', alignItems:'center' }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Activo</span>
-                    <span style={{ fontSize:12, fontWeight:600 }}>{modal.row.activo}</span>
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Fecha salida</span>
-                    <span style={{ fontSize:12, fontWeight:600 }}>{fmtFecha(modal.row.fecha)}</span>
-                  </div>
-                </>
-              )}
-
-              {modal.action === 'oferta' && (
-                <>
-                  <div style={{ fontSize:12, color:'var(--text3)', marginBottom:12, lineHeight:1.55 }}>
-                    Se creará una <strong>oferta sell-side</strong> sobre el activo con <strong>fecha de disponibilidad = la del vencimiento</strong>.
-                    El arrendatario pasa a <em>Finalizado</em> (las fechas se conservan como histórico) y deja de aparecer en este listado.
-                  </div>
-                  <div style={{ display:'grid', gridTemplateColumns:'120px 1fr', gap:'8px 12px', alignItems:'center' }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Activo</span>
-                    <span style={{ fontSize:12, fontWeight:600 }}>{modal.row.activo}</span>
-
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Disponibilidad</span>
-                    <span style={{ fontSize:12, fontWeight:600 }}>{fmtFecha(modal.row.fecha)}</span>
-
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Superficie</span>
-                    <span style={{ fontSize:12, fontWeight:600 }}>{Number(modal.row.sup||0).toLocaleString('es-ES')} m²</span>
-
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Tipo operación</span>
-                    <select
-                      value={modal.tipoOp || 'Alquiler'}
-                      onChange={e => setModal({ ...modal, tipoOp:e.target.value })}
-                      style={{ padding:'6px 10px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', background:'#fff', width:'fit-content' }}
-                    >
-                      <option value="Alquiler">Alquiler</option>
-                      <option value="Venta">Venta</option>
-                    </select>
-
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase' }}>Mercado</span>
-                    <select
-                      value={modal.tipoMercado || 'mercado'}
-                      onChange={e => setModal({ ...modal, tipoMercado:e.target.value })}
-                      style={{ padding:'6px 10px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', background:'#fff', width:'fit-content' }}
-                    >
-                      <option value="mercado">Mercado</option>
-                      <option value="off_market">Off-market</option>
-                    </select>
-                  </div>
-                </>
-              )}
+              <div style={{ fontSize:12, color:'var(--text3)', marginBottom:12, lineHeight:1.55 }}>
+                Cambia la fecha {modal.row.tipo === 'Break' ? 'de break option' : 'de fin de contrato'} en el arrendatario.
+                El registro seguirá apareciendo en la lista con la nueva fecha.
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', minWidth:120 }}>Nueva fecha</span>
+                <input
+                  type="date"
+                  value={modal.fecha || ''}
+                  onChange={e => setModal({ ...modal, fecha:e.target.value })}
+                  style={{ padding:'8px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit' }}
+                />
+              </div>
+              <div style={{ marginTop:6, fontSize:10, color:'var(--text4)' }}>
+                Fecha actual: {fmtFecha(modal.row.fecha)}
+              </div>
             </div>
-
             <div style={{ padding:'12px 22px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'flex-end', gap:8 }}>
-              <button onClick={closeModal} disabled={working} style={{ padding:'8px 14px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background:'#fff', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>
-                Cancelar
-              </button>
+              <button onClick={closeModal} disabled={working} style={{ padding:'8px 14px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background:'#fff', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>Cancelar</button>
               <button
-                onClick={
-                  modal.action === 'renovar'   ? confirmRenovar
-                  : modal.action === 'finalizar' ? confirmFinalizarSinOferta
-                  : confirmGenerarOferta
-                }
-                disabled={working || (modal.action === 'renovar' && !modal.fecha)}
+                onClick={confirmRenovar}
+                disabled={working || !modal.fecha}
                 style={{ padding:'8px 14px', fontSize:12, border:'none', borderRadius:5, background:'var(--accent)', color:'#fff', cursor:working?'wait':'pointer', fontFamily:'inherit', fontWeight:600, opacity: working ? 0.6 : 1 }}
               >
-                {working ? 'Procesando…'
-                  : modal.action === 'renovar'   ? '🔄 Renovar'
-                  : modal.action === 'finalizar' ? '✓ Finalizar sin oferta'
-                  : '📢 Generar oferta'}
+                {working ? 'Procesando…' : '🔄 Renovar'}
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal compartido para "el arrendatario se va" (oferta o sin oferta) */}
+      {bajaArr && (
+        <BajaArrendatarioModal
+          arrendatario={{
+            ref:        bajaArr.row._arrendatarioRef,
+            nombre:     bajaArr.row.arrendatario,
+            sup:        bajaArr.row.sup,
+            fecha:      bajaArr.row.fecha,
+            activo_ref: bajaArr.row._activoRef,
+          }}
+          activo={null}
+          onClose={() => setBajaArr(null)}
+          onSuccess={onBajaArrSuccess}
+        />
       )}
     </div>
   )
