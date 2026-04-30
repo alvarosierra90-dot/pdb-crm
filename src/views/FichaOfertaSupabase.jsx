@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
+import FirmarMandatoModal from '../components/FirmarMandatoModal'
 
 // Mismas pestañas que la mock (FichaOferta TABS / TAB_LABELS)
 const OF_TABS = [
@@ -76,6 +77,8 @@ export default function FichaOfertaSupabase({ refOrId }) {
   const editing = true
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
+  const [showFirmarModal, setShowFirmarModal] = useState(false)
+  const [mandatoVinculado, setMandatoVinculado] = useState(null)
 
   const [form, setForm] = useState({
     tipo_operacion:'', tipo_comercializacion:'', tipologia:'', tipo_mercado:'mercado', estado:'',
@@ -119,6 +122,14 @@ export default function FichaOfertaSupabase({ refOrId }) {
       setOportunidad(o)
     } else {
       setOportunidad(null)
+    }
+    // Mandato vinculado (si la oferta ya cuelga de uno)
+    if (data.mandato_id) {
+      const { data: m } = await supabase.from('mandatos')
+        .select('id, ref').eq('id', data.mandato_id).maybeSingle()
+      setMandatoVinculado(m)
+    } else {
+      setMandatoVinculado(null)
     }
     setError(null)
     setLoading(false)
@@ -211,9 +222,46 @@ export default function FichaOfertaSupabase({ refOrId }) {
         <button className="ab-btn" onClick={restablecer} disabled={saving}>↺ Restablecer</button>
         <button className="ab-btn" onClick={() => navigate('ofertas')}>← Volver</button>
         <div className="ab-sep"/>
+        {(() => {
+          const yaTieneMandato = !!oferta.mandato_id
+          const cerrada = ['Retirada','Ocupada total'].includes(oferta.estado)
+          const puede = !yaTieneMandato && !cerrada && !!oferta.dynamics_opportunity_id && !!oferta.dynamics_account_id && !!oferta.activo_id
+          const tip = yaTieneMandato
+            ? `Ya cuelga del mandato ${mandatoVinculado?.ref || ''}`
+            : cerrada ? 'Oferta cerrada/retirada'
+            : !oferta.dynamics_opportunity_id ? 'Falta oportunidad'
+            : !oferta.dynamics_account_id     ? 'Falta cuenta'
+            : !oferta.activo_id               ? 'Falta activo'
+            : 'Crear instrucción + mandato'
+          return yaTieneMandato && mandatoVinculado ? (
+            <button className="ab-btn" onClick={() => navigate('ficha-mandato', { id: mandatoVinculado.ref })}>
+              📜 Mandato {mandatoVinculado.ref}
+            </button>
+          ) : (
+            <button
+              className="ab-btn"
+              onClick={() => setShowFirmarModal(true)}
+              disabled={!puede}
+              title={tip}
+              style={{ background: puede ? 'var(--purple, #7c3aed)' : undefined, color: puede ? '#fff' : undefined, border: puede ? '1px solid var(--purple, #7c3aed)' : undefined, opacity: puede ? 1 : 0.45 }}
+            >
+              📜 Firmar mandato
+            </button>
+          )
+        })()}
         <button className="ab-btn" disabled style={{ opacity:0.45 }}>Desactivar</button>
         {saveError && <span style={{ marginLeft:12, fontSize:11, color:'#991b1b', fontWeight:600 }}>{saveError}</span>}
       </div>
+
+      {showFirmarModal && (
+        <FirmarMandatoModal
+          origen={{ tipo:'oferta', record: oferta }}
+          oportunidad={oportunidad}
+          cuenta={propietario}
+          onClose={() => setShowFirmarModal(false)}
+          onSuccess={() => { setShowFirmarModal(false); load() }}
+        />
+      )}
 
       <div className="ficha-wrap">
         <div className="ficha-main">

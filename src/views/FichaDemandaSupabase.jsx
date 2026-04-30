@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
+import FirmarMandatoModal from '../components/FirmarMandatoModal'
 
 const DEM_TABS = [
   ['dem-info',     'Información Demanda'],
@@ -107,6 +108,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const editing = true
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
+  const [showFirmarModal, setShowFirmarModal] = useState(false)
+  const [oportunidad, setOportunidad] = useState(null)
 
   const [form, setForm] = useState({
     nombre:'', estatus:'', notas:'', motivo_descarte:'',
@@ -123,9 +126,10 @@ export default function FichaDemandaSupabase({ refOrId }) {
       .from('demandas')
       .select(`
         id, ref, nombre, estatus, notas, motivo_descarte, requisitos, otros_contactos, equipo_trabajo,
-        dynamics_account_id, dynamics_opportunity_id, created_at, updated_at,
+        dynamics_account_id, dynamics_opportunity_id, mandato_id, created_at, updated_at,
         dynamics_accounts:dynamics_account_id ( dynamics_id, nombre, tipo, sector, direccion, codigo_postal, ciudad, pais, telefono, web ),
-        dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo )
+        dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo ),
+        mandato:mandato_id ( id, ref )
       `)
       .eq('ref', refOrId)
       .maybeSingle()
@@ -133,6 +137,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
     if (!data)  { setError(`Demanda ${refOrId} no encontrada`); setDemanda(null); setLoading(false); return }
     setDemanda(data)
     setCuenta(data.dynamics_accounts)
+    setOportunidad(data.dynamics_opportunities)
 
     // Cargar todos los contactos de la cuenta para el typeahead
     if (data.dynamics_account_id) {
@@ -295,12 +300,47 @@ export default function FichaDemandaSupabase({ refOrId }) {
         <button className="ab-btn" onClick={restablecer} disabled={saving}>↺ Restablecer</button>
         <button className="ab-btn" onClick={() => navigate('demandas')}>← Volver</button>
         <div className="ab-sep"/>
-        <button className="ab-btn" disabled style={{ opacity:0.45 }}>Transformar</button>
+        {(() => {
+          const yaTieneMandato = !!demanda.mandato_id
+          const cerrada = ['descartada','cerrada_concedido','cerrada_perdida'].includes(demanda.estatus)
+          const puede = !yaTieneMandato && !cerrada && !!demanda.dynamics_opportunity_id && !!demanda.dynamics_account_id
+          const tip = yaTieneMandato
+            ? `Ya cuelga del mandato ${demanda.mandato?.ref || ''}`
+            : cerrada ? 'Demanda cerrada'
+            : !demanda.dynamics_opportunity_id ? 'Falta oportunidad'
+            : !demanda.dynamics_account_id     ? 'Falta cuenta'
+            : 'Crear instrucción + mandato'
+          return yaTieneMandato ? (
+            <button className="ab-btn" onClick={() => navigate('ficha-mandato', { id: demanda.mandato.ref })}>
+              📜 Mandato {demanda.mandato.ref}
+            </button>
+          ) : (
+            <button
+              className="ab-btn"
+              onClick={() => setShowFirmarModal(true)}
+              disabled={!puede}
+              title={tip}
+              style={{ background: puede ? 'var(--purple, #7c3aed)' : undefined, color: puede ? '#fff' : undefined, border: puede ? '1px solid var(--purple, #7c3aed)' : undefined, opacity: puede ? 1 : 0.45 }}
+            >
+              📜 Firmar mandato
+            </button>
+          )
+        })()}
         <button className="ab-btn" disabled style={{ opacity:0.45 }}>Desactivar</button>
         <div className="ab-sep"/>
         <button className="ab-btn" disabled style={{ opacity:0.45 }}>✅ Asignar tarea</button>
         {saveError && <span style={{ marginLeft:12, fontSize:11, color:'#991b1b', fontWeight:600 }}>{saveError}</span>}
       </div>
+
+      {showFirmarModal && (
+        <FirmarMandatoModal
+          origen={{ tipo:'demanda', record: demanda }}
+          oportunidad={oportunidad}
+          cuenta={cuenta}
+          onClose={() => setShowFirmarModal(false)}
+          onSuccess={() => { setShowFirmarModal(false); load() }}
+        />
+      )}
 
       <div className="ficha-wrap">
         <div className="ficha-main">
