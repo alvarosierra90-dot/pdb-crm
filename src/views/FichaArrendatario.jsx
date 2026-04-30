@@ -49,8 +49,8 @@ function diasHasta(fechaStr) {
   return Math.ceil((new Date(y,m-1,d) - new Date())/(1000*60*60*24))
 }
 
-const TABS = ['datos','condiciones','alertas','stacking','historial']
-const TAB_LABELS = ['Datos del arrendatario','Condiciones económicas','Alertas y break option','Stacking plan','Historial']
+const TABS = ['datos','stacking','condiciones','alertas','historial']
+const TAB_LABELS = ['Datos del arrendatario','Stacking plan','Condiciones económicas','Alertas y break option','Historial']
 
 const TIPO_TAG_ARR = { Email:'tag-blue', Llamada:'tag-green', Reunión:'tag-purple', Tarea:'tag-gray', Nota:'tag-gray', Alerta:'tag-red', Modificación:'tag-amber' }
 const TIPO_ICO_ARR = { Email:'📧', Llamada:'📞', Reunión:'🤝', Tarea:'✅', Nota:'📝', Alerta:'🔔', Modificación:'✏️' }
@@ -281,28 +281,35 @@ export default function FichaArrendatario() {
   useEffect(() => {
     if (tab !== 'stacking') return
     let cancel = false
+    const SELECT = 'id, ref, nombre, direccion, stacking_data, sup_planta_tipo, propietario, dynamics_account_id, portfolio_id, uso'
     async function lookupActivo() {
-      const idOrName = (form.activo || '').trim()
-      if (!idOrName) { if (!cancel) setStackingActivo(null); return }
-      // Intentar primero por ref, luego por nombre
-      let { data } = await supabase
-        .from('activos')
-        .select('id, ref, nombre, direccion, stacking_data, sup_planta_tipo, propietario, dynamics_account_id, portfolio_id, uso')
-        .eq('ref', idOrName)
-        .maybeSingle()
-      if (!data) {
-        const { data: byName } = await supabase
-          .from('activos')
-          .select('id, ref, nombre, direccion, stacking_data, sup_planta_tipo, propietario, dynamics_account_id, portfolio_id, uso')
-          .eq('nombre', idOrName)
-          .maybeSingle()
-        data = byName
+      // Estrategias en orden: 1) param explícito, 2) ref, 3) nombre exacto,
+      // 4) ilike por nombre. La primera que devuelva fila gana.
+      const candRef  = (params?.fromActivoRef || '').trim()
+      const candForm = (form.activo || '').trim()
+      let data = null
+
+      if (candRef) {
+        const r = await supabase.from('activos').select(SELECT).eq('ref', candRef).maybeSingle()
+        data = r.data
+      }
+      if (!data && candForm) {
+        const r = await supabase.from('activos').select(SELECT).eq('ref', candForm).maybeSingle()
+        data = r.data
+      }
+      if (!data && candForm) {
+        const r = await supabase.from('activos').select(SELECT).eq('nombre', candForm).maybeSingle()
+        data = r.data
+      }
+      if (!data && candForm) {
+        const r = await supabase.from('activos').select(SELECT).ilike('nombre', `%${candForm}%`).limit(1)
+        data = r.data?.[0] || null
       }
       if (!cancel) setStackingActivo(data || null)
     }
     lookupActivo()
     return () => { cancel = true }
-  }, [tab, form.activo])
+  }, [tab, form.activo, params?.fromActivoRef])
 
   // ── Load from DB when opened by tenant name click ─────────────
   useEffect(() => {
@@ -902,54 +909,71 @@ export default function FichaArrendatario() {
           {tab==='stacking' && (
             <div className="tab-content active">
               <div className="info-pad">
-                {!form.activo ? (
-                  <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
-                    <div style={{ fontSize:32, marginBottom:8 }}>🏢</div>
-                    Este arrendatario no está vinculado a un activo. Asigna uno desde la pestaña "Datos del arrendatario" para ver su stacking plan.
-                  </div>
-                ) : !stackingActivo ? (
-                  <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
-                    Buscando el stacking plan de <strong>{form.activo}</strong>…
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-                      <div>
-                        <div style={{ fontSize:13, fontWeight:700 }}>Stacking plan · {stackingActivo.nombre || stackingActivo.ref}</div>
-                        <div style={{ fontSize:10, color:'var(--text4)', marginTop:2 }}>
-                          Mismo plan que en la ficha del activo y la oferta. Vista por defecto: arrendatarios. Los cambios se sincronizan al activo.
-                        </div>
+                {(() => {
+                  const ref = (params?.fromActivoRef || '').trim() || (form.activo || '').trim()
+                  if (!ref) {
+                    return (
+                      <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
+                        <div style={{ fontSize:32, marginBottom:8 }}>🏢</div>
+                        Este arrendatario no está vinculado a un activo. Asigna uno desde la pestaña "Datos del arrendatario" para ver su stacking plan.
                       </div>
-                      <button
-                        className="ab-btn"
-                        onClick={() => navigate('ficha-activo', { ref: stackingActivo.ref, tab: 'at-stacking' })}
-                        style={{ fontSize:11 }}
-                      >
-                        Abrir en ficha del activo →
-                      </button>
-                    </div>
-                    <StackingPlan
-                      key={stackingActivo.ref}
-                      initBuildings={Array.isArray(stackingActivo.stacking_data) && stackingActivo.stacking_data.length > 0 ? stackingActivo.stacking_data : []}
-                      defaultLabel={stackingActivo.nombre || stackingActivo.direccion || ''}
-                      defaultSupPlantaTipo={stackingActivo.sup_planta_tipo || undefined}
-                      activoPropietario={stackingActivo.propietario || ''}
-                      initView="arr"
-                      onBuildingsChange={(blds) => {
-                        clearTimeout(stackingAutoSaveTimer.current)
-                        stackingAutoSaveTimer.current = setTimeout(() => {
-                          supabase.from('activos').update({ stacking_data: blds }).eq('ref', stackingActivo.ref)
-                        }, 1500)
-                      }}
-                      onTenantClick={(name) => navigate('ficha-arrendatario', {
-                        tenantName: name,
-                        fromActivoRef: stackingActivo.ref,
-                        fromActivoNombre: stackingActivo.nombre || '',
-                      })}
-                      onRemoveTenant={({ unit, doRemove }) => setBajaArr({ unit, doRemove })}
-                    />
-                  </>
-                )}
+                    )
+                  }
+                  if (!stackingActivo) {
+                    return (
+                      <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
+                        <div style={{ fontSize:32, marginBottom:8 }}>🔍</div>
+                        <div style={{ marginBottom:8 }}>No encuentro el activo <strong>{ref}</strong> en la BBDD.</div>
+                        <div style={{ fontSize:11, color:'var(--text3)' }}>El stacking plan se nutre del activo, así que primero hay que tenerlo dado de alta.</div>
+                      </div>
+                    )
+                  }
+                  const hasStacking = Array.isArray(stackingActivo.stacking_data) && stackingActivo.stacking_data.length > 0
+                  return (
+                    <>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                        <div>
+                          <div style={{ fontSize:13, fontWeight:700 }}>Stacking plan · {stackingActivo.nombre || stackingActivo.ref}</div>
+                          <div style={{ fontSize:10, color:'var(--text4)', marginTop:2 }}>
+                            Mismo plan que en la ficha del activo y la oferta. Vista por defecto: arrendatarios. Los cambios se sincronizan al activo.
+                          </div>
+                        </div>
+                        <button
+                          className="ab-btn"
+                          onClick={() => navigate('ficha-activo', { ref: stackingActivo.ref, tab: 'at-stacking' })}
+                          style={{ fontSize:11 }}
+                        >
+                          Abrir en ficha del activo →
+                        </button>
+                      </div>
+                      {!hasStacking && (
+                        <div style={{ background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:6, padding:10, marginBottom:10, fontSize:11, color:'#7c2d12' }}>
+                          ⚠ Este activo todavía no tiene stacking plan creado. Construirlo aquí lo guarda en la ficha del activo (es el mismo plan).
+                        </div>
+                      )}
+                      <StackingPlan
+                        key={stackingActivo.ref}
+                        initBuildings={hasStacking ? stackingActivo.stacking_data : []}
+                        defaultLabel={stackingActivo.nombre || stackingActivo.direccion || ''}
+                        defaultSupPlantaTipo={stackingActivo.sup_planta_tipo || undefined}
+                        activoPropietario={stackingActivo.propietario || ''}
+                        initView="arr"
+                        onBuildingsChange={(blds) => {
+                          clearTimeout(stackingAutoSaveTimer.current)
+                          stackingAutoSaveTimer.current = setTimeout(() => {
+                            supabase.from('activos').update({ stacking_data: blds }).eq('ref', stackingActivo.ref)
+                          }, 1500)
+                        }}
+                        onTenantClick={(name) => navigate('ficha-arrendatario', {
+                          tenantName: name,
+                          fromActivoRef: stackingActivo.ref,
+                          fromActivoNombre: stackingActivo.nombre || '',
+                        })}
+                        onRemoveTenant={({ unit, doRemove }) => setBajaArr({ unit, doRemove })}
+                      />
+                    </>
+                  )
+                })()}
               </div>
             </div>
           )}
