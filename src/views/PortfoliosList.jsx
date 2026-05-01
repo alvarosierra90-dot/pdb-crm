@@ -21,6 +21,7 @@ function mapRow(r) {
   const nombre = r.nombre || ''
   const letra  = nombre.charAt(0).toUpperCase()
   return {
+    id: r.id,
     nombre,
     ticker:      r.ticker      || '',
     tipo:        r.tipo        || '',
@@ -80,7 +81,7 @@ export default function PortfoliosList() {
     ofertas:   <td key="ofertas">{p.ofertas}</td>,
     yield:     <td key="yield">{p.yield}%</td>,
     contacto:  <td key="contacto">{p.contacto}</td>,
-    _act:      <td key="_act"><div className="ra-cell"><button className="ra p" onClick={e => { e.stopPropagation(); navigate('portfolio') }}>Ver</button></div></td>,
+    _act:      <td key="_act"><div className="ra-cell"><button className="ra p" onClick={e => { e.stopPropagation(); navigate('portfolio', { id: p.id }) }}>Ver</button></div></td>,
   })
 
   const visibleCols = COLS.filter(c => vis.has(c.id))
@@ -121,7 +122,7 @@ export default function PortfoliosList() {
           <tbody>
             {loading
               ? <tr><td colSpan={visibleCols.length} style={{ textAlign:'center', padding:24, color:'var(--text4)', fontSize:12 }}>Cargando propietarios…</td></tr>
-              : result.map((p, i) => <tr key={i} onClick={() => navigate('portfolio')}>{visibleCols.map(c => cell(p)[c.id])}</tr>)
+              : result.map((p, i) => <tr key={i} onClick={() => navigate('portfolio', { id: p.id })}>{visibleCols.map(c => cell(p)[c.id])}</tr>)
             }
           </tbody>
         </table>

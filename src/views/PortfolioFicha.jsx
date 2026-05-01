@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
+import { supabase } from '../lib/supabase'
 import { exportPDF, exportPPT } from '../utils/exportReport'
 
 function ExportMenu({ getConfig }) {
@@ -37,7 +38,7 @@ function ExportMenu({ getConfig }) {
 }
 
 const TABS = ['pt-overview','pt-activos','pt-ofertas','pt-actividad','pt-oportunidades','pt-transaccion','pt-financiero']
-const TAB_LABELS = ['Overview','Activos (8)','Ofertas (5)','Actividad comercial','Oportunidades (3)','Transacción / Instrucción (6)','Financiero']
+// Las etiquetas con conteo se generan en runtime — ver tabLabel(idx, counts)
 
 const USOS_FILTRO = ['Todo','Oficinas','Logístico','Retail','Residencial','Suelo','Centros comerciales','Hoteles']
 
@@ -169,23 +170,6 @@ function getReportConfig() {
     ],
   }
 }
-
-/* ── Oportunidades ── */
-const MOCK_OPORTUNIDADES = [
-  { id:'OPO-2501', activo:'P.E Avalon — Edif. A P5', empresa:'Celonis Spain SL', sup:1202, renta:'14,5 €/m²/mes', estado:'Oferta enviada', responsable:'A. Sierra', fecha:'2026-03-15', linea:'Leasing Oficinas' },
-  { id:'OPO-2502', activo:'Albatros — Edif. D',      empresa:'Oracle Spain SL',  sup:2800, renta:'12,0 €/m²/mes', estado:'Visita realizada', responsable:'A. Sierra', fecha:'2026-02-28', linea:'Leasing Oficinas' },
-  { id:'OPO-2503', activo:'Park Logístico Getafe',   empresa:'Amazon Logistics',  sup:8400, renta:'6,8 €/m²/mes',  estado:'En seguimiento',  responsable:'C. López',  fecha:'2026-04-01', linea:'Industrial' },
-]
-
-/* ── Transacción / Instrucción ── */
-const MOCK_TRANSACCIONES = [
-  { id:'TRN-2601', tipo:'Arrendamiento', activo:'P.E Avalon P4', empresa:'Mapfre', sup:1967, renta:'10,5 €/m²/mes', fee:'185.000 €', estado:'Firmado',       fecha:'2026-01-20', linea:'Leasing Oficinas' },
-  { id:'TRN-2602', tipo:'Arrendamiento', activo:'Torre Glòries P8', empresa:'Telefónica', sup:2200, renta:'28,0 €/m²/mes', fee:'620.000 €', estado:'Firmado', fecha:'2026-03-05', linea:'Leasing Oficinas' },
-  { id:'TRN-2502', tipo:'Arrendamiento', activo:'Park Logístico Getafe', empresa:'DHL', sup:8400, renta:'6,8 €/m²/mes', fee:'320.000 €', estado:'Instrucción', fecha:'2025-11-10', linea:'Industrial' },
-  { id:'TRN-2503', tipo:'Arrendamiento', activo:'C.C. La Maquinista', empresa:'Inditex', sup:1800, renta:'95 €/m²/mes', fee:'210.000 €', estado:'Instrucción',  fecha:'2026-01-08', linea:'Retail' },
-  { id:'TRN-2401', tipo:'Venta',         activo:'Edificio Realia BCN', empresa:'Inmo Capital III', sup:28200, renta:null, fee:'1.030.000 €', estado:'Firmado', fecha:'2025-06-30', linea:'Capital Markets' },
-  { id:'TRN-2402', tipo:'Venta',         activo:'Logístico Coslada',   empresa:'Prologis Europe',  sup:18000, renta:null, fee:'780.000 €',   estado:'Firmado', fecha:'2025-09-15', linea:'Capital Markets' },
-]
 
 /* ── Datos financieros por año/trimestre/línea ── */
 const FIN_LINEAS = ['Oficinas','Industrial','Retail','Residencial','Hoteles','Capital Markets','Valoraciones']
@@ -333,11 +317,84 @@ function FinancieroTab() {
 }
 
 export default function PortfolioFicha() {
-  const { navigate } = useNav()
+  const { navigate, params } = useNav()
   const [activeTab, setActiveTab] = useState('pt-overview')
   const [fUso,    setFUso]    = useState('Todo')
   const [fAnio,   setFAnio]   = useState('')
   const [fPeriodo,setFPeriodo]= useState('')
+
+  // Datos reales del portfolio (propietario)
+  const [propietario, setPropietario] = useState(null)
+  const [activos, setActivos]         = useState([])
+  const [ofertas, setOfertas]         = useState([])
+  const [oportunidades, setOportunidades] = useState([])
+  const [mandatos, setMandatos]       = useState([])
+  const [loadingPort, setLoadingPort] = useState(true)
+
+  useEffect(() => {
+    let cancel = false
+    async function load() {
+      if (!params?.id) { setLoadingPort(false); return }
+      setLoadingPort(true)
+      const { data: prop } = await supabase.from('propietarios').select('*').eq('id', params.id).maybeSingle()
+      if (cancel) return
+      if (!prop) { setLoadingPort(false); return }
+      setPropietario(prop)
+
+      const { data: acts } = await supabase
+        .from('activos')
+        .select('id, ref, nombre, ciudad, zona, uso, sba, m2_totales, m2_disponibles, estado, dynamics_account_id')
+        .eq('portfolio_id', prop.id)
+      const actList = acts || []
+      setActivos(actList)
+
+      const actIds = actList.map(a => a.id)
+      if (actIds.length > 0) {
+        const { data: ofs } = await supabase
+          .from('ofertas')
+          .select('id, ref, activo_id, estado, tipo_operacion, superficie_disponible, renta_m2, fecha_disponibilidad, mandato_id')
+          .in('activo_id', actIds)
+        setOfertas(ofs || [])
+      } else {
+        setOfertas([])
+      }
+
+      // Oportunidades por cuenta del propietario (si existe vínculo a Dynamics)
+      if (prop.dynamics_account_id) {
+        const { data: opps } = await supabase
+          .from('dynamics_opportunities')
+          .select('dynamics_id, nombre, tipo, estado, fecha_creacion')
+          .eq('cuenta_dynamics_id', prop.dynamics_account_id)
+          .order('fecha_creacion', { ascending: false })
+        setOportunidades(opps || [])
+
+        const { data: mans } = await supabase
+          .from('mandatos')
+          .select('id, ref, titulo, tipo, estado, fecha_firma, fecha_vencimiento, fee_eur_fijo, fee_porcentaje, dynamics_account_id')
+          .eq('dynamics_account_id', prop.dynamics_account_id)
+          .order('fecha_firma', { ascending: false })
+        setMandatos(mans || [])
+      } else {
+        setOportunidades([])
+        setMandatos([])
+      }
+
+      setLoadingPort(false)
+    }
+    load()
+    return () => { cancel = true }
+  }, [params?.id])
+
+  // Conteos derivados (filtran por uso si está activo)
+  const filterUso = (a) => fUso === 'Todo' || (a.uso || '').toLowerCase().includes(fUso.toLowerCase())
+  const activosFiltrados = activos.filter(filterUso)
+  const ofertasFiltradas = ofertas.filter(o => activosFiltrados.some(a => a.id === o.activo_id))
+  const totalSba = activosFiltrados.reduce((s, a) => s + (Number(a.sba) || Number(a.m2_totales) || 0), 0)
+  const totalDisp = activosFiltrados.reduce((s, a) => s + (Number(a.m2_disponibles) || 0), 0)
+  const ocupacionPct = totalSba > 0 ? Math.round(((totalSba - totalDisp) / totalSba) * 1000) / 10 : 0
+  const dispPct = totalSba > 0 ? Math.round((totalDisp / totalSba) * 1000) / 10 : 0
+  const ofertasActivas = ofertasFiltradas.filter(o => o.estado !== 'Retirada' && o.estado !== 'Ocupada total').length
+  const oportunidadesActivas = oportunidades.filter(o => o.estado !== 'cerrada' && o.estado !== 'perdida')
 
   /* ── Datos absorción según filtros ── */
   const absData = (() => {
@@ -371,17 +428,21 @@ export default function PortfolioFicha() {
         {/* Header */}
         <div className="port-header">
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-            <div className="port-ico">M</div>
+            <div className="port-ico">{(propietario?.nombre || '?').charAt(0).toUpperCase()}</div>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div className="port-name">Merlín Properties SOCIMI</div>
-                    <span className="tag tag-gray">MRL</span>
-                    <span className="tag tag-gray">SOCIMI</span>
+                    <div className="port-name">{propietario?.nombre || (loadingPort ? 'Cargando…' : 'Portfolio sin datos')}</div>
+                    {propietario?.ticker && <span className="tag tag-gray">{propietario.ticker}</span>}
+                    {propietario?.tipo   && <span className="tag tag-gray">{propietario.tipo}</span>}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Mayor SOCIMI cotizada de España. Portfolio diversificado con activos prime en principales mercados.</div>
-                  <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 4 }}>📅 Último contacto: 12/03/2026</div>
+                  {propietario?.descripcion && (
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>{propietario.descripcion}</div>
+                  )}
+                  {propietario?.ultimo_contacto && (
+                    <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 4 }}>📅 Último contacto: {propietario.ultimo_contacto}</div>
+                  )}
                 </div>
                 <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink: 0, marginLeft: 16 }}>
                   <div style={{ textAlign: 'right' }}>
@@ -434,19 +495,32 @@ export default function PortfolioFicha() {
 
         {/* KPI strip */}
         <div className="port-kpi-strip">
-          <div className="pks"><div className="pks-lbl">Portfolio total (m²)</div><div className="pks-val">612.800</div><div className="pks-sub">Filtrado: {fUso}</div></div>
-          <div className="pks"><div className="pks-lbl">Disponible (m²)</div><div className="pks-val amber">48.496</div><div className="pks-sub">Disponibilidad: 7.9%</div></div>
-          <div className="pks"><div className="pks-lbl">Ocupación media</div><div className="pks-val green">88.8%</div><div className="pks-sub">WAULT: 4.2 años</div></div>
-          <div className="pks"><div className="pks-lbl">Take-up 2026</div><div className="pks-val">52.000</div><div className="pks-sub">m² absorbidos</div></div>
-          <div className="pks"><div className="pks-lbl">Yield medio</div><div className="pks-val">5.1%</div><div className="pks-sub">Cap rate: 4.8%</div></div>
+          <div className="pks"><div className="pks-lbl">Activos</div><div className="pks-val">{activosFiltrados.length}</div><div className="pks-sub">Filtrado: {fUso}</div></div>
+          <div className="pks"><div className="pks-lbl">Portfolio total (m²)</div><div className="pks-val">{totalSba.toLocaleString('es-ES')}</div><div className="pks-sub">SBA</div></div>
+          <div className="pks"><div className="pks-lbl">Disponible (m²)</div><div className="pks-val amber">{totalDisp.toLocaleString('es-ES')}</div><div className="pks-sub">Disponibilidad: {dispPct}%</div></div>
+          <div className="pks"><div className="pks-lbl">Ocupación</div><div className="pks-val green">{ocupacionPct}%</div><div className="pks-sub">{ofertasActivas} ofertas activas</div></div>
+          <div className="pks"><div className="pks-lbl">Mandatos</div><div className="pks-val">{mandatos.filter(m => m.estado === 'en_curso').length}</div><div className="pks-sub">{mandatos.length} totales</div></div>
         </div>
 
-        {/* Tabs */}
-        <div className="tabs">
-          {TABS.map((t, i) => (
-            <div key={t} className={`tab ${activeTab === t ? 'active' : ''}`} onClick={() => setActiveTab(t)}>{TAB_LABELS[i]}</div>
-          ))}
-        </div>
+        {/* Tabs (con conteos reales del portfolio) */}
+        {(() => {
+          const labels = [
+            'Overview',
+            `Activos (${activosFiltrados.length})`,
+            `Ofertas (${ofertasActivas})`,
+            'Actividad comercial',
+            `Oportunidades (${oportunidadesActivas.length})`,
+            `Mandatos (${mandatos.length})`,
+            'Financiero',
+          ]
+          return (
+            <div className="tabs">
+              {TABS.map((t, i) => (
+                <div key={t} className={`tab ${activeTab === t ? 'active' : ''}`} onClick={() => setActiveTab(t)}>{labels[i]}</div>
+              ))}
+            </div>
+          )
+        })()}
 
         {/* ── Overview ── */}
         {activeTab === 'pt-overview' && (
@@ -590,46 +664,49 @@ export default function PortfolioFicha() {
                 </div>
               </div>
 
-              {/* Resumen Oportunidades */}
+              {/* Resumen Oportunidades — top 5 reales */}
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden', marginTop: 12 }}>
                 <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ fontSize: 11, fontWeight: 600 }}>Oportunidades activas</div>
                   <button onClick={() => setActiveTab('pt-oportunidades')} style={{ fontSize: 10, padding: '2px 10px', borderRadius: 4, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', color: 'var(--accent)', fontFamily: 'inherit', fontWeight: 600 }}>Ver todas →</button>
                 </div>
                 <table className="dtbl">
-                  <thead><tr><th>Ref.</th><th>Activo</th><th>Empresa</th><th>M²</th><th>Estado</th><th>Línea</th></tr></thead>
+                  <thead><tr><th>Ref.</th><th>Nombre</th><th>Tipo</th><th>Estado</th><th>Fecha</th></tr></thead>
                   <tbody>
-                    {MOCK_OPORTUNIDADES.map(o => (
-                      <tr key={o.id} onClick={() => setActiveTab('pt-oportunidades')} style={{ cursor: 'pointer' }}>
-                        <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)' }}>{o.id}</span></td>
-                        <td style={{ fontSize: 11 }}>{o.activo}</td>
-                        <td style={{ fontSize: 11 }}>{o.empresa}</td>
-                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{o.sup.toLocaleString('es-ES')}</td>
-                        <td><span className="tag tag-blue" style={{ fontSize: 9 }}>{o.estado}</span></td>
-                        <td style={{ fontSize: 10, color: 'var(--text3)' }}>{o.linea}</td>
+                    {oportunidadesActivas.length === 0 ? (
+                      <tr><td colSpan={5} style={{ textAlign:'center', padding:18, color:'var(--text4)', fontSize:11 }}>{loadingPort ? 'Cargando…' : 'Sin oportunidades activas.'}</td></tr>
+                    ) : oportunidadesActivas.slice(0, 5).map(o => (
+                      <tr key={o.dynamics_id} onClick={() => setActiveTab('pt-oportunidades')} style={{ cursor: 'pointer' }}>
+                        <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)' }}>{o.dynamics_id}</span></td>
+                        <td style={{ fontSize: 11 }}>{o.nombre || '—'}</td>
+                        <td><span className="tag tag-blue" style={{ fontSize: 9 }}>{o.tipo || '—'}</span></td>
+                        <td><span className="tag tag-gray" style={{ fontSize: 9 }}>{o.estado || '—'}</span></td>
+                        <td style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--text3)' }}>{o.fecha_creacion ? new Date(o.fecha_creacion).toLocaleDateString('es-ES') : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              {/* Resumen Transacción / Instrucción */}
+              {/* Resumen Mandatos — top 4 reales */}
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden', marginTop: 12 }}>
                 <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: 11, fontWeight: 600 }}>Transacción / Instrucción recientes</div>
-                  <button onClick={() => setActiveTab('pt-transaccion')} style={{ fontSize: 10, padding: '2px 10px', borderRadius: 4, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', color: 'var(--accent)', fontFamily: 'inherit', fontWeight: 600 }}>Ver todas →</button>
+                  <div style={{ fontSize: 11, fontWeight: 600 }}>Mandatos recientes</div>
+                  <button onClick={() => setActiveTab('pt-transaccion')} style={{ fontSize: 10, padding: '2px 10px', borderRadius: 4, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', color: 'var(--accent)', fontFamily: 'inherit', fontWeight: 600 }}>Ver todos →</button>
                 </div>
                 <table className="dtbl">
-                  <thead><tr><th>Ref.</th><th>Tipo</th><th>Activo</th><th>Empresa</th><th>Fee</th><th>Estado</th></tr></thead>
+                  <thead><tr><th>Ref.</th><th>Título</th><th>Tipo</th><th>Vencimiento</th><th>Fee</th><th>Estado</th></tr></thead>
                   <tbody>
-                    {MOCK_TRANSACCIONES.slice(0, 4).map(t => (
-                      <tr key={t.id} onClick={() => setActiveTab('pt-transaccion')} style={{ cursor: 'pointer' }}>
-                        <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)' }}>{t.id}</span></td>
-                        <td><span className={`tag ${t.tipo === 'Venta' ? 'tag-purple' : 'tag-blue'}`} style={{ fontSize: 9 }}>{t.tipo}</span></td>
-                        <td style={{ fontSize: 11 }}>{t.activo}</td>
-                        <td style={{ fontSize: 11 }}>{t.empresa}</td>
-                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)', fontWeight: 600 }}>{t.fee}</td>
-                        <td><span className={`tag ${t.estado === 'Firmado' ? 'tag-green' : 'tag-amber'}`} style={{ fontSize: 9 }}>{t.estado}</span></td>
+                    {mandatos.length === 0 ? (
+                      <tr><td colSpan={6} style={{ textAlign:'center', padding:18, color:'var(--text4)', fontSize:11 }}>{loadingPort ? 'Cargando…' : 'Sin mandatos.'}</td></tr>
+                    ) : mandatos.slice(0, 4).map(m => (
+                      <tr key={m.id} onClick={() => navigate('ficha-mandato', { id: m.ref })} style={{ cursor: 'pointer' }}>
+                        <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)' }}>{m.ref}</span></td>
+                        <td style={{ fontSize: 11 }}>{m.titulo || '—'}</td>
+                        <td><span className="tag tag-blue" style={{ fontSize: 9 }}>{m.tipo || '—'}</span></td>
+                        <td style={{ fontSize: 10, fontFamily: 'var(--mono)' }}>{m.fecha_vencimiento ? new Date(m.fecha_vencimiento).toLocaleDateString('es-ES') : '—'}</td>
+                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)', fontWeight: 600 }}>{m.fee_eur_fijo ? `${Number(m.fee_eur_fijo).toLocaleString('es-ES')} €` : '—'}</td>
+                        <td><span className={`tag ${m.estado === 'en_curso' ? 'tag-green' : m.estado === 'cancelado' ? 'tag-red' : 'tag-gray'}`} style={{ fontSize: 9 }}>{m.estado || '—'}</span></td>
                       </tr>
                     ))}
                   </tbody>
@@ -692,13 +769,28 @@ export default function PortfolioFicha() {
                 </button>
               </div>
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Activos del portfolio (8)</div>
+                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Activos del portfolio ({activosFiltrados.length})</div>
                 <table className="dtbl">
-                  <thead><tr><th>Activo</th><th>Ciudad</th><th>Uso</th><th>SBA (m²)</th><th>Ocupación</th><th>Renta €/m²</th><th>Estado</th></tr></thead>
+                  <thead><tr><th>Ref.</th><th>Activo</th><th>Ciudad</th><th>Uso</th><th>SBA (m²)</th><th>Disponible</th><th>Estado</th></tr></thead>
                   <tbody>
-                    <tr onClick={() => navigate('ficha-activo')}><td className="dtbl-link">P.E Avalon</td><td>Madrid</td><td><span className="tag tag-blue">Oficinas</span></td><td>46.956</td><td style={{ color: 'var(--amber)' }}>78.4%</td><td>10,5</td><td><span className="tag tag-green">Activo</span></td></tr>
-                    <tr><td className="dtbl-link">Torre Glòries</td><td>Barcelona</td><td><span className="tag tag-blue">Oficinas</span></td><td>18.500</td><td style={{ color: 'var(--green)' }}>100%</td><td>28,0</td><td><span className="tag tag-green">Activo</span></td></tr>
-                    <tr><td className="dtbl-link">Park Logístico Getafe</td><td>Madrid</td><td><span className="tag tag-teal">Logístico</span></td><td>24.000</td><td style={{ color: 'var(--green)' }}>96%</td><td>6,8</td><td><span className="tag tag-green">Activo</span></td></tr>
+                    {activosFiltrados.length === 0 ? (
+                      <tr><td colSpan={7} style={{ textAlign:'center', padding:24, color:'var(--text4)', fontSize:12 }}>{loadingPort ? 'Cargando…' : 'Sin activos en este portfolio.'}</td></tr>
+                    ) : activosFiltrados.map(a => {
+                      const sba = Number(a.sba) || Number(a.m2_totales) || 0
+                      const disp = Number(a.m2_disponibles) || 0
+                      const ocu = sba > 0 ? Math.round(((sba - disp) / sba) * 1000) / 10 : null
+                      return (
+                        <tr key={a.id} onClick={() => navigate('ficha-activo', { ref: a.ref })} style={{ cursor:'pointer' }}>
+                          <td style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--accent)' }}>{a.ref}</td>
+                          <td className="dtbl-link">{a.nombre || '—'}</td>
+                          <td>{a.ciudad || '—'}</td>
+                          <td><span className="tag tag-blue">{a.uso || '—'}</span></td>
+                          <td>{sba ? sba.toLocaleString('es-ES') : '—'}</td>
+                          <td style={{ color: disp > 0 ? 'var(--amber)' : 'var(--green)' }}>{disp ? `${disp.toLocaleString('es-ES')} (${ocu ? (100 - ocu) : 0}%)` : '0'}</td>
+                          <td><span className={`tag ${a.estado === 'archivado' ? 'tag-gray' : 'tag-green'}`}>{a.estado || 'Activo'}</span></td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -711,11 +803,27 @@ export default function PortfolioFicha() {
           <div className="tab-content active" style={{ overflowY: 'auto' }}>
             <div className="port-body">
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Ofertas activas (5)</div>
+                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Ofertas del portfolio ({ofertasFiltradas.length})</div>
                 <table className="dtbl">
-                  <thead><tr><th>Ref.</th><th>Activo</th><th>M²</th><th>Renta</th><th>Estado</th></tr></thead>
+                  <thead><tr><th>Ref.</th><th>Activo</th><th>Tipo</th><th>M²</th><th>Renta €/m²</th><th>Disponibilidad</th><th>Estado</th></tr></thead>
                   <tbody>
-                    <tr onClick={() => navigate('ficha-oferta')}><td><span className="asset-link" style={{fontFamily:'var(--mono)'}}>OLB001</span></td><td>P.E Avalon</td><td>698</td><td>10,5–14,5 €/m²</td><td><span className="tag tag-blue">En curso</span></td></tr>
+                    {ofertasFiltradas.length === 0 ? (
+                      <tr><td colSpan={7} style={{ textAlign:'center', padding:24, color:'var(--text4)', fontSize:12 }}>{loadingPort ? 'Cargando…' : 'Sin ofertas en este portfolio.'}</td></tr>
+                    ) : ofertasFiltradas.map(o => {
+                      const a = activosFiltrados.find(x => x.id === o.activo_id)
+                      const tagClass = o.estado === 'Retirada' ? 'tag-gray' : (o.estado || '').includes('Ocupada') ? 'tag-amber' : 'tag-blue'
+                      return (
+                        <tr key={o.id} onClick={() => navigate('ficha-oferta', { id: o.ref })} style={{ cursor:'pointer' }}>
+                          <td><span className="asset-link" style={{fontFamily:'var(--mono)'}}>{o.ref}</span></td>
+                          <td>{a?.nombre || '—'}</td>
+                          <td style={{ fontSize:11 }}>{o.tipo_operacion || '—'}</td>
+                          <td>{o.superficie_disponible ? Number(o.superficie_disponible).toLocaleString('es-ES') : '—'}</td>
+                          <td>{o.renta_m2 != null ? Number(o.renta_m2).toLocaleString('es-ES') : '—'}</td>
+                          <td style={{ fontSize:10, color:'var(--text3)' }}>{o.fecha_disponibilidad ? new Date(o.fecha_disponibilidad).toLocaleDateString('es-ES') : '—'}</td>
+                          <td><span className={`tag ${tagClass}`}>{o.estado || '—'}</span></td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -742,9 +850,9 @@ export default function PortfolioFicha() {
             <div className="port-body">
               <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
                 {[
-                  { lbl: 'Activas', val: MOCK_OPORTUNIDADES.length, color: 'var(--accent)' },
-                  { lbl: 'M² en pipeline', val: MOCK_OPORTUNIDADES.reduce((s,o)=>s+o.sup,0).toLocaleString('es-ES'), color: 'var(--text1)' },
-                  { lbl: 'Renta potencial', val: '~480 k€/año', color: 'var(--green)' },
+                  { lbl: 'Total',  val: oportunidades.length,         color: 'var(--text1)' },
+                  { lbl: 'Activas', val: oportunidadesActivas.length, color: 'var(--accent)' },
+                  { lbl: 'Cerradas', val: oportunidades.filter(o => o.estado === 'cerrada').length, color: 'var(--green)' },
                 ].map(k => (
                   <div key={k.lbl} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 12px', textAlign: 'center' }}>
                     <div style={{ fontSize: 9, color: 'var(--text4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>{k.lbl}</div>
@@ -753,23 +861,21 @@ export default function PortfolioFicha() {
                 ))}
               </div>
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Oportunidades activas ({MOCK_OPORTUNIDADES.length})</div>
+                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Oportunidades vinculadas a la cuenta ({oportunidades.length})</div>
                 <table className="dtbl">
                   <thead>
-                    <tr><th>Ref.</th><th>Activo</th><th>Empresa</th><th>M²</th><th>Renta</th><th>Estado</th><th>Resp.</th><th>Línea</th><th>Fecha</th></tr>
+                    <tr><th>Dynamics ID</th><th>Nombre</th><th>Tipo</th><th>Estado</th><th>Fecha</th></tr>
                   </thead>
                   <tbody>
-                    {MOCK_OPORTUNIDADES.map(o => (
-                      <tr key={o.id} style={{ cursor: 'pointer' }}>
-                        <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>{o.id}</span></td>
-                        <td style={{ fontSize: 11, fontWeight: 500, color: 'var(--accent)' }}>{o.activo}</td>
-                        <td style={{ fontSize: 11 }}>{o.empresa}</td>
-                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{o.sup.toLocaleString('es-ES')} m²</td>
-                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{o.renta}</td>
-                        <td><span className="tag tag-blue" style={{ fontSize: 9 }}>{o.estado}</span></td>
-                        <td style={{ fontSize: 10, color: 'var(--text3)' }}>{o.responsable}</td>
-                        <td style={{ fontSize: 10, color: 'var(--text3)' }}>{o.linea}</td>
-                        <td style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--text3)' }}>{o.fecha.split('-').reverse().join('/')}</td>
+                    {oportunidades.length === 0 ? (
+                      <tr><td colSpan={5} style={{ textAlign:'center', padding:24, color:'var(--text4)', fontSize:12 }}>{loadingPort ? 'Cargando…' : (propietario?.dynamics_account_id ? 'Sin oportunidades para esta cuenta.' : 'Este portfolio no tiene cuenta Dynamics vinculada.')}</td></tr>
+                    ) : oportunidades.map(o => (
+                      <tr key={o.dynamics_id} style={{ cursor: 'pointer' }}>
+                        <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>{o.dynamics_id}</span></td>
+                        <td style={{ fontSize: 11, fontWeight: 500 }}>{o.nombre || '—'}</td>
+                        <td><span className="tag tag-blue" style={{ fontSize: 9 }}>{o.tipo || '—'}</span></td>
+                        <td><span className="tag tag-gray" style={{ fontSize: 9 }}>{o.estado || '—'}</span></td>
+                        <td style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--text3)' }}>{o.fecha_creacion ? new Date(o.fecha_creacion).toLocaleDateString('es-ES') : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -779,50 +885,53 @@ export default function PortfolioFicha() {
           </div>
         )}
 
-        {/* Transacción / Instrucción */}
-        {activeTab === 'pt-transaccion' && (
-          <div className="tab-content active" style={{ overflowY: 'auto' }}>
-            <div className="port-body">
-              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-                {[
-                  { lbl: 'Total operaciones', val: MOCK_TRANSACCIONES.length, color: 'var(--text1)' },
-                  { lbl: 'Firmadas', val: MOCK_TRANSACCIONES.filter(t=>t.estado==='Firmado').length, color: 'var(--green)' },
-                  { lbl: 'Fees totales', val: '3,15 M€', color: 'var(--accent)' },
-                  { lbl: 'En instrucción', val: MOCK_TRANSACCIONES.filter(t=>t.estado==='Instrucción').length, color: 'var(--amber)' },
-                ].map(k => (
-                  <div key={k.lbl} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 12px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 9, color: 'var(--text4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>{k.lbl}</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--mono)', color: k.color }}>{k.val}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Transacciones / Instrucciones ({MOCK_TRANSACCIONES.length})</div>
-                <table className="dtbl">
-                  <thead>
-                    <tr><th>Ref.</th><th>Tipo</th><th>Activo</th><th>Empresa</th><th>M²</th><th>Renta / Precio</th><th>Fee</th><th>Estado</th><th>Línea</th><th>Fecha</th></tr>
-                  </thead>
-                  <tbody>
-                    {MOCK_TRANSACCIONES.map(t => (
-                      <tr key={t.id} style={{ cursor: 'pointer' }}>
-                        <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>{t.id}</span></td>
-                        <td><span className={`tag ${t.tipo === 'Venta' ? 'tag-purple' : 'tag-blue'}`} style={{ fontSize: 9 }}>{t.tipo}</span></td>
-                        <td style={{ fontSize: 11, fontWeight: 500, color: 'var(--accent)' }}>{t.activo}</td>
-                        <td style={{ fontSize: 11 }}>{t.empresa}</td>
-                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{t.sup.toLocaleString('es-ES')} m²</td>
-                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{t.renta || '—'}</td>
-                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--green)' }}>{t.fee}</td>
-                        <td><span className={`tag ${t.estado === 'Firmado' ? 'tag-green' : 'tag-amber'}`} style={{ fontSize: 9 }}>{t.estado}</span></td>
-                        <td style={{ fontSize: 10, color: 'var(--text3)' }}>{t.linea}</td>
-                        <td style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--text3)' }}>{t.fecha.split('-').reverse().join('/')}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        {/* Mandatos del portfolio */}
+        {activeTab === 'pt-transaccion' && (() => {
+          const totalFee = mandatos.reduce((s, m) => s + (Number(m.fee_eur_fijo) || 0), 0)
+          return (
+            <div className="tab-content active" style={{ overflowY: 'auto' }}>
+              <div className="port-body">
+                <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                  {[
+                    { lbl: 'Total mandatos', val: mandatos.length,                                              color: 'var(--text1)' },
+                    { lbl: 'En curso',       val: mandatos.filter(m => m.estado === 'en_curso').length,         color: 'var(--green)' },
+                    { lbl: 'Cerrados',       val: mandatos.filter(m => m.estado === 'cerrado').length,          color: 'var(--text3)' },
+                    { lbl: 'Fees totales',   val: `${(totalFee/1000).toLocaleString('es-ES', { maximumFractionDigits:0 })} k€`, color: 'var(--accent)' },
+                  ].map(k => (
+                    <div key={k.lbl} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 12px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 9, color: 'var(--text4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>{k.lbl}</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--mono)', color: k.color }}>{k.val}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
+                  <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Mandatos vinculados ({mandatos.length})</div>
+                  <table className="dtbl">
+                    <thead>
+                      <tr><th>Ref.</th><th>Título</th><th>Tipo</th><th>Firma</th><th>Vencimiento</th><th>Fee €</th><th>Fee %</th><th>Estado</th></tr>
+                    </thead>
+                    <tbody>
+                      {mandatos.length === 0 ? (
+                        <tr><td colSpan={8} style={{ textAlign:'center', padding:24, color:'var(--text4)', fontSize:12 }}>{loadingPort ? 'Cargando…' : (propietario?.dynamics_account_id ? 'Sin mandatos para esta cuenta.' : 'Este portfolio no tiene cuenta Dynamics vinculada.')}</td></tr>
+                      ) : mandatos.map(m => (
+                        <tr key={m.id} onClick={() => navigate('ficha-mandato', { id: m.ref })} style={{ cursor: 'pointer' }}>
+                          <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>{m.ref}</span></td>
+                          <td style={{ fontSize: 11, fontWeight: 500 }}>{m.titulo || '—'}</td>
+                          <td><span className="tag tag-blue" style={{ fontSize: 9 }}>{m.tipo || '—'}</span></td>
+                          <td style={{ fontSize: 10, fontFamily: 'var(--mono)' }}>{m.fecha_firma ? new Date(m.fecha_firma).toLocaleDateString('es-ES') : '—'}</td>
+                          <td style={{ fontSize: 10, fontFamily: 'var(--mono)' }}>{m.fecha_vencimiento ? new Date(m.fecha_vencimiento).toLocaleDateString('es-ES') : '—'}</td>
+                          <td style={{ fontSize: 11, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--green)' }}>{m.fee_eur_fijo ? Number(m.fee_eur_fijo).toLocaleString('es-ES') : '—'}</td>
+                          <td style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{m.fee_porcentaje != null ? `${m.fee_porcentaje}%` : '—'}</td>
+                          <td><span className={`tag ${m.estado === 'en_curso' ? 'tag-green' : m.estado === 'cancelado' ? 'tag-red' : 'tag-gray'}`} style={{ fontSize: 9 }}>{m.estado || '—'}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* Financiero */}
         {activeTab === 'pt-financiero' && (
