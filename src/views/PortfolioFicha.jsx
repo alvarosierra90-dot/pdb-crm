@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
+import PortfolioMap from '../components/PortfolioMap'
 import { exportPDF, exportPPT } from '../utils/exportReport'
 
 function ExportMenu({ getConfig }) {
@@ -343,7 +344,7 @@ export default function PortfolioFicha() {
 
       const { data: acts } = await supabase
         .from('activos')
-        .select('id, ref, nombre, ciudad, zona, uso, sba, m2_totales, m2_disponibles, estado, dynamics_account_id')
+        .select('id, ref, nombre, ciudad, zona, uso, sba, m2_totales, m2_disponibles, estado, dynamics_account_id, coordenadas')
         .eq('portfolio_id', prop.id)
       const actList = acts || []
       setActivos(actList)
@@ -526,6 +527,15 @@ export default function PortfolioFicha() {
         {activeTab === 'pt-overview' && (
           <div className="tab-content active" style={{ overflowY: 'auto' }}>
             <div className="port-body">
+
+              {/* Mapa de ubicaciones del portfolio */}
+              <div style={{ marginBottom: 12 }}>
+                <PortfolioMap
+                  activos={activosFiltrados}
+                  height={380}
+                  onMarkerClick={(a) => navigate('ficha-activo', { ref: a.ref })}
+                />
+              </div>
 
               {/* Gráfico de absorción */}
               <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
