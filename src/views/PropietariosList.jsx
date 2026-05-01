@@ -5,6 +5,7 @@ import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilte
 import { exportPDF, exportPPT } from '../utils/exportReport'
 import { supabase } from '../lib/supabase'
 import SeleccionarActivoModal from '../components/SeleccionarActivoModal'
+import DesactivarPropietarioModal from '../components/DesactivarPropietarioModal'
 
 function ExportMenu({ getConfig }) {
   const [open, setOpen] = useState(false)
@@ -89,6 +90,9 @@ export default function PropietariosList() {
   const [vis, setVis] = useVisibleCols('propietarios', COLS, DEFAULT_VIS)
   const [dbRows, setDbRows] = useState([])
   const [showNuevo, setShowNuevo] = useState(false)
+  const [vista, setVista] = useState('activos')      // 'activos' | 'desactivados'
+  const [desactivarTarget, setDesactivarTarget] = useState(null) // { id, nombre, modo }
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     supabase.from('propietarios').select('*').order('created_at', { ascending: false })
@@ -96,7 +100,10 @@ export default function PropietariosList() {
         if (data?.length) {
           setDbRows(data.map(p => ({
             id:            p.id,
-            propietario:   p.propietario,
+            estado:        p.estado || 'Activo',
+            fechaBaja:     p.fecha_desactivacion || null,
+            motivoBaja:    p.motivo_desactivacion || null,
+            propietario:   p.propietario || p.nombre,
             activo:        p.activo || '—',
             zona:          p.zona || '—',
             subzona:       p.subzona || '—',
@@ -120,9 +127,10 @@ export default function PropietariosList() {
           })))
         }
       })
-  }, [])
+  }, [reloadKey])
 
   const allRows = [...dbRows, ...PROPIETARIOS.filter(m => !dbRows.some(d => d.id === m.id))]
+    .map(r => ({ ...r, estado: r.estado || 'Activo' }))
 
   const advCount = Object.values(af).filter(Boolean).length
 
@@ -135,8 +143,13 @@ export default function PropietariosList() {
     if (af.estado_activo&& p.estado_activo !== af.estado_activo) return false
     if (af.area         && p.area !== af.area) return false
     if (af.responsable  && p.responsable !== af.responsable) return false
+    if (vista === 'activos'      && p.estado !== 'Activo') return false
+    if (vista === 'desactivados' && p.estado === 'Activo') return false
     return true
   })
+
+  const countActivos      = allRows.filter(r => r.estado === 'Activo').length
+  const countDesactivados = allRows.filter(r => r.estado !== 'Activo').length
 
   const { result, sorts, filters, setSort, setFilter, clearFilter, clearAll, activeCount } = useTableFilter(preFiltered, COLS)
   const visibleCols = COLS.filter(c => vis.has(c.id))
@@ -167,11 +180,39 @@ export default function PropietariosList() {
     perfil:        <td key="perfil"><span className={`tag ${PERFIL_TAG[p.perfil]||'tag-gray'}`} style={{fontSize:9}}>{p.perfil}</span></td>,
     responsable:   <td key="responsable" style={{fontSize:11}}>{p.responsable}</td>,
     ultima_act:    <td key="ultima_act" style={{fontSize:11,color:'var(--text3)'}}>{p.ultima_act}</td>,
-    _act:          <td key="_act"><div className="ra-cell"><button className="ra p" onClick={e=>{e.stopPropagation();navigate('ficha-propietario')}}>Ver</button></div></td>,
+    _act:          <td key="_act"><div className="ra-cell" style={{ display:'flex', gap:4 }}>
+      <button className="ra p" onClick={e=>{e.stopPropagation();navigate('ficha-propietario',{ id: p.id })}}>Ver</button>
+      {p._real && p.estado === 'Activo' && (
+        <button className="ra" onClick={e=>{e.stopPropagation(); setDesactivarTarget({ id:p.id, nombre:p.propietario, modo:'desactivar' }) }} style={{ color:'var(--amber)' }}>Desactivar</button>
+      )}
+      {p._real && p.estado !== 'Activo' && (
+        <button className="ra" onClick={e=>{e.stopPropagation(); setDesactivarTarget({ id:p.id, nombre:p.propietario, modo:'reactivar' }) }} style={{ color:'var(--green)' }}>Reactivar</button>
+      )}
+    </div></td>,
   })
 
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
+      <div style={{ display:'flex', gap:0, padding:'8px 16px 0', borderBottom:'1px solid var(--border)', background:'var(--surface)' }}>
+        {[
+          { v:'activos',      label:`Activos (${countActivos})`,         color:'var(--green)' },
+          { v:'desactivados', label:`Desactivados (${countDesactivados})`, color:'var(--text4)' },
+        ].map(t => {
+          const active = vista === t.v
+          return (
+            <button
+              key={t.v}
+              onClick={() => setVista(t.v)}
+              style={{
+                padding:'8px 16px', fontSize:12, fontWeight: active ? 700 : 500,
+                background:'none', border:'none', borderBottom: active ? `2px solid ${t.color}` : '2px solid transparent',
+                color: active ? t.color : 'var(--text3)',
+                cursor:'pointer', fontFamily:'inherit', marginBottom:-1,
+              }}
+            >{t.label}</button>
+          )
+        })}
+      </div>
       <div className="kpi-strip" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
         <div className="ks"><div className="ks-lbl">Total activos</div><div className="ks-val">{allRows.length}</div></div>
         <div className="ks"><div className="ks-lbl">Propietarios únicos</div><div className="ks-val" style={{color:'var(--accent)'}}>{nPropietarios}</div></div>
@@ -266,6 +307,15 @@ export default function PropietariosList() {
       </div>
 
       {showNuevo && <SeleccionarActivoModal tipo="propietario" onClose={() => setShowNuevo(false)} />}
+      {desactivarTarget && (
+        <DesactivarPropietarioModal
+          propietarioId={desactivarTarget.id}
+          propietarioNombre={desactivarTarget.nombre}
+          modo={desactivarTarget.modo}
+          onClose={() => setDesactivarTarget(null)}
+          onSuccess={() => { setDesactivarTarget(null); setReloadKey(k => k + 1) }}
+        />
+      )}
     </div>
   )
 }

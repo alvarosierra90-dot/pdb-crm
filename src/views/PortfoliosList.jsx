@@ -22,6 +22,9 @@ function mapRow(r) {
   const letra  = nombre.charAt(0).toUpperCase()
   return {
     id: r.id,
+    estado:      r.estado || 'Activo',
+    fechaBaja:   r.fecha_desactivacion || null,
+    motivoBaja:  r.motivo_desactivacion || null,
     nombre,
     ticker:      r.ticker      || '',
     tipo:        r.tipo        || '',
@@ -46,6 +49,7 @@ export default function PortfoliosList() {
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ tipo: '' })
   const [vis, setVis] = useVisibleCols('portfolios', COLS)
+  const [vista, setVista] = useState('activos') // 'activos' | 'desactivados'
 
   useEffect(() => {
     supabase.from('propietarios').select('*').order('nombre')
@@ -62,8 +66,13 @@ export default function PortfoliosList() {
     const q = query.toLowerCase()
     if (q && !p.nombre.toLowerCase().includes(q) && !p.ticker.toLowerCase().includes(q)) return false
     if (af.tipo && p.tipo !== af.tipo) return false
+    if (vista === 'activos'      && p.estado !== 'Activo') return false
+    if (vista === 'desactivados' && p.estado === 'Activo') return false
     return true
   })
+
+  const countActivos      = portfolios.filter(p => p.estado === 'Activo').length
+  const countDesactivados = portfolios.filter(p => p.estado !== 'Activo').length
 
   const { result, sorts, filters, setSort, setFilter, clearFilter, clearAll, activeCount } = useTableFilter(preFiltered, COLS)
 
@@ -88,6 +97,26 @@ export default function PortfoliosList() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      <div style={{ display:'flex', gap:0, padding:'8px 16px 0', borderBottom:'1px solid var(--border)', background:'var(--surface)' }}>
+        {[
+          { v:'activos',      label:`Activos (${countActivos})`,         color:'var(--green)' },
+          { v:'desactivados', label:`Desactivados (${countDesactivados})`, color:'var(--text4)' },
+        ].map(t => {
+          const active = vista === t.v
+          return (
+            <button
+              key={t.v}
+              onClick={() => setVista(t.v)}
+              style={{
+                padding:'8px 16px', fontSize:12, fontWeight: active ? 700 : 500,
+                background:'none', border:'none', borderBottom: active ? `2px solid ${t.color}` : '2px solid transparent',
+                color: active ? t.color : 'var(--text3)',
+                cursor:'pointer', fontFamily:'inherit', marginBottom:-1,
+              }}
+            >{t.label}</button>
+          )
+        })}
+      </div>
       <div className="list-toolbar">
         <div className="search-wrap">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4" /><path d="M11 11l3 3" /></svg>
