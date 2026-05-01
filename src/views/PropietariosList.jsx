@@ -4,6 +4,7 @@ import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import { exportPDF, exportPPT } from '../utils/exportReport'
 import { supabase } from '../lib/supabase'
+import SeleccionarActivoModal from '../components/SeleccionarActivoModal'
 
 function ExportMenu({ getConfig }) {
   const [open, setOpen] = useState(false)
@@ -87,6 +88,7 @@ export default function PropietariosList() {
   const [af, setAf] = useState({ propietario:'', perfil:'', tipologia:'', estado_activo:'', area:'', responsable:'' })
   const [vis, setVis] = useVisibleCols('propietarios', COLS, DEFAULT_VIS)
   const [dbRows, setDbRows] = useState([])
+  const [showNuevo, setShowNuevo] = useState(false)
 
   useEffect(() => {
     supabase.from('propietarios').select('*').order('created_at', { ascending: false })
@@ -204,7 +206,7 @@ export default function PropietariosList() {
               rows: result.map(p=>[p.id, p.propietario, p.activo, p.zona, p.superficie.toLocaleString('es-ES'), `${p.cap_rate}%`, p.perfil, p.estado_activo]),
             }],
           })} />
-          <button className="tbtn prim" onClick={()=>navigate('ficha-propietario')}>+ Nuevo propietario</button>
+          <button className="tbtn prim" onClick={()=>setShowNuevo(true)}>+ Nuevo propietario</button>
         </div>
       </div>
 
@@ -262,6 +264,8 @@ export default function PropietariosList() {
           </tbody>
         </table>
       </div>
+
+      {showNuevo && <SeleccionarActivoModal tipo="propietario" onClose={() => setShowNuevo(false)} />}
     </div>
   )
 }

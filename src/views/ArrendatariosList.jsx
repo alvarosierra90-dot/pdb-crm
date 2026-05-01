@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import SeleccionarActivoModal from '../components/SeleccionarActivoModal'
 
 // Datos mock que siempre aparecen (arrendatarios demostración)
 const MOCK_ARRENDATARIOS = [
@@ -108,6 +109,7 @@ export default function ArrendatariosList() {
   const [vis, setVis] = useVisibleCols('arrendatarios', COLS, DEFAULT_VIS)
   const [dbRows, setDbRows] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showNuevo, setShowNuevo] = useState(false)
 
   useEffect(() => {
     supabase.from('arrendatarios').select('*').order('created_at', { ascending: false })
@@ -217,7 +219,7 @@ export default function ArrendatariosList() {
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
           <ColumnEditor cols={COLS} vis={vis} setVis={setVis}/>
           <button className="tbtn">⬇ Exportar</button>
-          <button className="tbtn prim" onClick={()=>navigate('ficha-arrendatario')}>+ Nuevo arrendatario</button>
+          <button className="tbtn prim" onClick={()=>setShowNuevo(true)}>+ Nuevo arrendatario</button>
         </div>
       </div>
 
@@ -279,6 +281,8 @@ export default function ArrendatariosList() {
           </table>
         )}
       </div>
+
+      {showNuevo && <SeleccionarActivoModal tipo="arrendatario" onClose={() => setShowNuevo(false)} />}
     </div>
   )
 }

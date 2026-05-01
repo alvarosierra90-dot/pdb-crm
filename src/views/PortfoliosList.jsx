@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import SeleccionarActivoModal from '../components/SeleccionarActivoModal'
 
 const COLS = [
   { id: 'nombre',    label: 'Propietario / Portfolio', required: true, type:'text',   getValue: r => r.nombre },
@@ -46,6 +47,7 @@ export default function PortfoliosList() {
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ tipo: '' })
   const [vis, setVis] = useVisibleCols('portfolios', COLS)
+  const [showNuevo, setShowNuevo] = useState(false)
 
   useEffect(() => {
     supabase.from('propietarios').select('*').order('nombre')
@@ -100,7 +102,7 @@ export default function PortfoliosList() {
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
           <ColumnEditor cols={COLS} vis={vis} setVis={setVis} />
           <button className="tbtn">⬇ Exportar</button>
-          <button className="tbtn prim">+ Nuevo propietario</button>
+          <button className="tbtn prim" onClick={() => setShowNuevo(true)}>+ Nuevo propietario</button>
         </div>
       </div>
 
@@ -127,6 +129,8 @@ export default function PortfoliosList() {
           </tbody>
         </table>
       </div>
+
+      {showNuevo && <SeleccionarActivoModal tipo="propietario" onClose={() => setShowNuevo(false)} />}
     </div>
   )
 }
