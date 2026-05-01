@@ -38,10 +38,13 @@ function ExportMenu({ getConfig }) {
   )
 }
 
-const TABS = ['pt-overview','pt-activos','pt-ofertas','pt-actividad','pt-oportunidades','pt-transaccion','pt-financiero']
+// Tabs sintetizados: solo los que tienen datos reales detrás. Antes existían
+// 'pt-actividad' y 'pt-financiero' con contenido mock — quitados.
+const TABS = ['pt-overview','pt-activos','pt-ofertas','pt-oportunidades','pt-transaccion']
 // Las etiquetas con conteo se generan en runtime — ver tabLabel(idx, counts)
 
-const USOS_FILTRO = ['Todo','Oficinas','Logístico','Retail','Residencial','Suelo','Centros comerciales','Hoteles']
+// USOS_FILTRO eliminado — los filtros se calculan ahora dinámicamente
+// de los activos reales del portfolio (uso y ciudad).
 
 /* ── Datos absorción ── */
 /* ── Absorción (m² take-up) ── */
@@ -321,6 +324,7 @@ export default function PortfolioFicha() {
   const { navigate, params } = useNav()
   const [activeTab, setActiveTab] = useState('pt-overview')
   const [fUso,    setFUso]    = useState('Todo')
+  const [fCiudad, setFCiudad] = useState('Todo')
   const [fAnio,   setFAnio]   = useState('')
   const [fPeriodo,setFPeriodo]= useState('')
 
@@ -386,9 +390,14 @@ export default function PortfolioFicha() {
     return () => { cancel = true }
   }, [params?.id])
 
-  // Conteos derivados (filtran por uso si está activo)
-  const filterUso = (a) => fUso === 'Todo' || (a.uso || '').toLowerCase().includes(fUso.toLowerCase())
-  const activosFiltrados = activos.filter(filterUso)
+  // Listas únicas para los dropdowns de filtro (derivadas de los activos reales).
+  const usosOpts = Array.from(new Set(activos.map(a => a.uso).filter(Boolean))).sort()
+  const ciudadesOpts = Array.from(new Set(activos.map(a => a.ciudad).filter(Boolean))).sort()
+
+  // Conteos derivados (filtran por uso + ciudad si están activos)
+  const filterUso    = (a) => fUso    === 'Todo' || (a.uso    || '') === fUso
+  const filterCiudad = (a) => fCiudad === 'Todo' || (a.ciudad || '') === fCiudad
+  const activosFiltrados = activos.filter(a => filterUso(a) && filterCiudad(a))
   const ofertasFiltradas = ofertas.filter(o => activosFiltrados.some(a => a.id === o.activo_id))
   const totalSba = activosFiltrados.reduce((s, a) => s + (Number(a.sba) || Number(a.m2_totales) || 0), 0)
   const totalDisp = activosFiltrados.reduce((s, a) => s + (Number(a.m2_disponibles) || 0), 0)
@@ -396,6 +405,38 @@ export default function PortfolioFicha() {
   const dispPct = totalSba > 0 ? Math.round((totalDisp / totalSba) * 1000) / 10 : 0
   const ofertasActivas = ofertasFiltradas.filter(o => o.estado !== 'Retirada' && o.estado !== 'Ocupada total').length
   const oportunidadesActivas = oportunidades.filter(o => o.estado !== 'cerrada' && o.estado !== 'perdida')
+
+  // KPIs comerciales del portfolio (cabecera): facturación total y mandatos vivos.
+  const mandatosEnCurso = mandatos.filter(m => m.estado === 'en_curso')
+  const facturacionTotal = mandatos.reduce((s, m) => s + (Number(m.fee_eur_fijo) || 0), 0)
+  const facturacionEnCurso = mandatosEnCurso.reduce((s, m) => s + (Number(m.fee_eur_fijo) || 0), 0)
+
+  // Distribución por uso para la barra del header (real vs % hardcoded antes).
+  const usoBreakdown = (() => {
+    const totals = {}
+    activosFiltrados.forEach(a => {
+      const u = a.uso || 'Sin uso'
+      const m2 = Number(a.sba) || Number(a.m2_totales) || 0
+      totals[u] = (totals[u] || 0) + m2
+    })
+    const total = Object.values(totals).reduce((s, v) => s + v, 0)
+    if (total === 0) return []
+    const palette = { Oficinas:'#3b82f6', 'Logístico':'#16a34a', Logistico:'#16a34a', 'Industrial':'#16a34a', Retail:'#ec4899', Residencial:'#8b5cf6', Hoteles:'#f59e0b', Suelo:'#ef4444', 'Centros comerciales':'#0891b2', 'Data Center':'#9333ea', Mixto:'#9333ea' }
+    return Object.entries(totals)
+      .sort((a,b) => b[1] - a[1])
+      .map(([uso, m2]) => ({
+        uso,
+        m2,
+        pct: m2 / total,
+        color: palette[uso] || '#94a3b8',
+      }))
+  })()
+  const fmtEur = (n) => {
+    if (!n) return '0 €'
+    if (n >= 1_000_000) return `${(n/1_000_000).toLocaleString('es-ES', { maximumFractionDigits:1 })} M€`
+    if (n >= 1_000)     return `${(n/1_000).toLocaleString('es-ES', { maximumFractionDigits:0 })} k€`
+    return `${n.toLocaleString('es-ES')} €`
+  }
 
   /* ── Datos absorción según filtros ── */
   const absData = (() => {
@@ -445,52 +486,103 @@ export default function PortfolioFicha() {
                     <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 4 }}>📅 Último contacto: {propietario.ultimo_contacto}</div>
                   )}
                 </div>
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink: 0, marginLeft: 16 }}>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 9, color: 'var(--text4)', textTransform: 'uppercase' }}>Cotización</div>
-                    <div style={{ fontSize: 22, fontWeight: 700 }}>11,24 €</div>
-                    <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>↑ +1,8%</div>
+                <div style={{ display:'flex', alignItems:'stretch', gap:10, flexShrink: 0, marginLeft: 16 }}>
+                  <div style={{
+                    background:'linear-gradient(135deg, #16a34a, #15803d)',
+                    color:'#fff', borderRadius:10, padding:'12px 18px', minWidth:170,
+                    boxShadow:'0 2px 6px rgba(22,163,74,.25)',
+                    display:'flex', flexDirection:'column', justifyContent:'center',
+                  }}>
+                    <div style={{ fontSize:9, fontWeight:700, opacity:.85, textTransform:'uppercase', letterSpacing:'.05em' }}>💰 Facturación Savills</div>
+                    <div style={{ fontSize:22, fontWeight:800, lineHeight:1.1, marginTop:4 }}>{fmtEur(facturacionTotal)}</div>
+                    <div style={{ fontSize:10, opacity:.85, marginTop:2 }}>{fmtEur(facturacionEnCurso)} en curso · {mandatos.length} mandatos</div>
                   </div>
-                  <ExportMenu getConfig={getReportConfig} />
+                  <div style={{
+                    background:'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                    color:'#fff', borderRadius:10, padding:'12px 18px', minWidth:150,
+                    boxShadow:'0 2px 6px rgba(37,99,235,.25)',
+                    display:'flex', flexDirection:'column', justifyContent:'center',
+                  }}>
+                    <div style={{ fontSize:9, fontWeight:700, opacity:.85, textTransform:'uppercase', letterSpacing:'.05em' }}>📜 Proyectos en curso</div>
+                    <div style={{ fontSize:22, fontWeight:800, lineHeight:1.1, marginTop:4 }}>{mandatosEnCurso.length}</div>
+                    <div style={{ fontSize:10, opacity:.85, marginTop:2 }}>{oportunidadesActivas.length} oportunidades activas</div>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'flex-end' }}>
+                    <ExportMenu getConfig={getReportConfig} />
+                  </div>
                 </div>
               </div>
-              <div className="uso-bar">
-                <div style={{ flex: .55, background: '#3b82f6', borderRadius: '3px 0 0 3px' }} />
-                <div style={{ flex: .10, background: '#f59e0b' }} />
-                <div style={{ flex: .20, background: '#ec4899' }} />
-                <div style={{ flex: .05, background: '#8b5cf6' }} />
-                <div style={{ flex: .05, background: '#f97316' }} />
-                <div style={{ flex: .05, background: '#94a3b8', borderRadius: '0 3px 3px 0' }} />
-              </div>
-              <div className="uso-leg">
-                {[['#3b82f6','Oficinas: 55%'],['#f59e0b','Logístico: 10%'],['#ec4899','Retail: 20%'],['#8b5cf6','Residencial: 5%'],['#f97316','Hoteles: 5%']].map(([c,l]) => (
-                  <div key={l} className="ul-item"><div className="ul-dot" style={{ background: c }} />{l}</div>
-                ))}
-              </div>
+              {usoBreakdown.length > 0 ? (
+                <>
+                  <div className="uso-bar">
+                    {usoBreakdown.map((u, i) => (
+                      <div
+                        key={u.uso}
+                        title={`${u.uso}: ${u.m2.toLocaleString('es-ES')} m² (${(u.pct*100).toFixed(1)}%)`}
+                        style={{
+                          flex: u.pct,
+                          background: u.color,
+                          borderRadius:
+                            i === 0 && i === usoBreakdown.length - 1 ? '3px' :
+                            i === 0 ? '3px 0 0 3px' :
+                            i === usoBreakdown.length - 1 ? '0 3px 3px 0' : 0,
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="uso-leg">
+                    {usoBreakdown.map(u => (
+                      <div key={u.uso} className="ul-item">
+                        <div className="ul-dot" style={{ background: u.color }} />
+                        {u.uso}: {(u.pct * 100).toFixed(1)}%
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div style={{ marginTop:8, fontSize:10, color:'var(--text4)' }}>Sin distribución por uso (los activos del portfolio no tienen m² asignados).</div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Filtros */}
+        {/* Filtros — desplegables porque los portfolios reales pueden cubrir
+            decenas de ciudades y muchos usos distintos en varios países. */}
         <div className="filtros-wrap">
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div>
-              <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 5 }}>Uso principal</div>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                {USOS_FILTRO.map(f => (
-                  <span key={f} className={`fchip ${fUso===f ? 'active' : ''}`} onClick={()=>setFUso(f)}
-                    style={{cursor:'pointer'}}>{f}</span>
-                ))}
-              </div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 5 }}>Uso principal</div>
+              <select
+                value={fUso}
+                onChange={e => setFUso(e.target.value)}
+                style={{ padding:'6px 10px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background:'var(--surface)', fontFamily:'inherit', minWidth:180 }}
+              >
+                <option value="Todo">Todos los usos ({usosOpts.length})</option>
+                {usosOpts.map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
             </div>
             <div>
-              <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 5 }}>Ciudad</div>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                {['Todo','Madrid','Barcelona','Valencia'].map((f, i) => (
-                  <span key={f} className={`fchip ${i === 0 ? 'active' : ''}`}>{f}</span>
-                ))}
-              </div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 5 }}>Ciudad</div>
+              <select
+                value={fCiudad}
+                onChange={e => setFCiudad(e.target.value)}
+                style={{ padding:'6px 10px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background:'var(--surface)', fontFamily:'inherit', minWidth:180 }}
+              >
+                <option value="Todo">Todas las ciudades ({ciudadesOpts.length})</option>
+                {ciudadesOpts.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
+            {(fUso !== 'Todo' || fCiudad !== 'Todo') && (
+              <button
+                onClick={() => { setFUso('Todo'); setFCiudad('Todo') }}
+                style={{ padding:'6px 12px', fontSize:11, border:'1px solid var(--border)', borderRadius:5, background:'#fff', cursor:'pointer', color:'var(--text3)', fontFamily:'inherit', fontWeight:600 }}
+              >
+                ✕ Limpiar filtros
+              </button>
+            )}
+            <span style={{ marginLeft:'auto', fontSize:11, color:'var(--text4)' }}>
+              Mostrando <strong style={{ color:'var(--text)' }}>{activosFiltrados.length}</strong> de {activos.length} activos
+            </span>
           </div>
         </div>
 
@@ -509,10 +601,8 @@ export default function PortfolioFicha() {
             'Overview',
             `Activos (${activosFiltrados.length})`,
             `Ofertas (${ofertasActivas})`,
-            'Actividad comercial',
             `Oportunidades (${oportunidadesActivas.length})`,
             `Mandatos (${mandatos.length})`,
-            'Financiero',
           ]
           return (
             <div className="tabs">
@@ -537,140 +627,66 @@ export default function PortfolioFicha() {
                 />
               </div>
 
-              {/* Gráfico de absorción */}
-              <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:12}}>
-                <div style={{padding:'10px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:700,color:'var(--text1)'}}>{absLabel}</div>
-                    <div style={{fontSize:9,color:'var(--text4)',marginTop:1}}>m² absorbidos en el portfolio · Savills</div>
-                  </div>
-                  {/* Filtros temporales del gráfico */}
-                  <div style={{display:'flex',alignItems:'center',gap:6}}>
-                    <span style={{fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>Año</span>
-                    <select value={fAnio} onChange={e=>{setFAnio(e.target.value)}} className="fsel" style={{fontSize:10}}>
-                      <option value="">Todos</option>
-                      {Object.keys(ABS_Q).reverse().map(y=><option key={y}>{y}</option>)}
-                    </select>
-                    <span style={{fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>Período</span>
-                    <select value={fPeriodo} onChange={e=>setFPeriodo(e.target.value)} className="fsel" style={{fontSize:10}}>
-                      <option value="">Anual</option>
-                      <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
-                    </select>
-                  </div>
-                </div>
-                <div style={{padding:'16px 20px 12px'}}>
-                  {/* Leyenda */}
-                  <div style={{display:'flex',gap:14,marginBottom:10}}>
-                    <div style={{display:'flex',alignItems:'center',gap:5}}>
-                      <div style={{width:10,height:10,borderRadius:2,background:'var(--accent)'}}/>
-                      <span style={{fontSize:9,color:'var(--text3)',fontWeight:600}}>Absorción m²</span>
+              {/* Distribución por ciudad y por uso (datos reales) */}
+              <div className="port-grid-2" style={{ marginBottom: 12 }}>
+                {(() => {
+                  const porCiudad = {}
+                  activosFiltrados.forEach(a => {
+                    const c = a.ciudad || '—'
+                    if (!porCiudad[c]) porCiudad[c] = { cnt:0, m2:0, disp:0 }
+                    porCiudad[c].cnt++
+                    porCiudad[c].m2   += Number(a.sba) || Number(a.m2_totales) || 0
+                    porCiudad[c].disp += Number(a.m2_disponibles) || 0
+                  })
+                  const filas = Object.entries(porCiudad).sort((a,b) => b[1].m2 - a[1].m2)
+                  const totM2 = filas.reduce((s, [, v]) => s + v.m2, 0)
+                  const totDisp = filas.reduce((s, [, v]) => s + v.disp, 0)
+                  return (
+                    <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r2)', overflow:'hidden' }}>
+                      <div style={{ padding:'9px 14px', borderBottom:'1px solid var(--border)', fontSize:11, fontWeight:700 }}>📍 Por ciudad</div>
+                      <table className="dtbl">
+                        <thead><tr><th>Ciudad</th><th>Nº</th><th>M² totales</th><th>Disponible</th></tr></thead>
+                        <tbody>
+                          {filas.length === 0 ? (
+                            <tr><td colSpan={4} style={{ textAlign:'center', padding:18, color:'var(--text4)' }}>Sin activos.</td></tr>
+                          ) : filas.map(([c, v]) => (
+                            <tr key={c}>
+                              <td>{c}</td>
+                              <td>{v.cnt}</td>
+                              <td style={{ fontFamily:'var(--mono)' }}>{v.m2 ? v.m2.toLocaleString('es-ES') : '—'}</td>
+                              <td style={{ color: v.disp > 0 ? 'var(--amber)' : 'var(--text4)', fontFamily:'var(--mono)' }}>{v.disp ? v.disp.toLocaleString('es-ES') : '0'}</td>
+                            </tr>
+                          ))}
+                          {filas.length > 0 && (
+                            <tr style={{ fontWeight:700, background:'var(--gray-lt)' }}>
+                              <td>TOTAL</td>
+                              <td>{activosFiltrados.length}</td>
+                              <td style={{ fontFamily:'var(--mono)' }}>{totM2.toLocaleString('es-ES')}</td>
+                              <td style={{ color:'var(--amber)', fontFamily:'var(--mono)' }}>{totDisp.toLocaleString('es-ES')}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
                     </div>
-                    <div style={{display:'flex',alignItems:'center',gap:5}}>
-                      <div style={{width:10,height:10,borderRadius:2,background:'var(--amber)'}}/>
-                      <span style={{fontSize:9,color:'var(--text3)',fontWeight:600}}>Disponibilidad %</span>
-                    </div>
-                  </div>
-                  {/* Chart grouped */}
-                  <div style={{display:'flex',alignItems:'flex-end',gap:6,height:120}}>
-                    {absData.filter((_,i)=>!(dispData[i]?.v===0&&!dispData[i]?.ytd&&absData[i]?.v===0)).map((d,i)=>{
-                      const dd = dispData[i] || {v:0}
-                      const hAbs  = Math.max(Math.round((d.v/absMax)*90), d.v>0?4:0)
-                      const hDisp = Math.max(Math.round((dd.v/dispMax)*90), dd.v>0?4:0)
-                      const isYtd = d.ytd
-                      const label = d.y || d.q
-                      if(d.v===0 && dd.v===0 && !isYtd) return null
-                      return (
-                        <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
-                          {/* values above */}
-                          <div style={{display:'flex',gap:2,marginBottom:2,flexDirection:'column',alignItems:'center'}}>
-                            <span style={{fontSize:8,fontWeight:700,color:isYtd?'var(--accent)':'var(--text3)',whiteSpace:'nowrap'}}>
-                              {d.v>0?`${(d.v/1000).toFixed(1)}k`:'—'}
-                            </span>
-                            <span style={{fontSize:8,fontWeight:700,color:isYtd?'var(--amber)':'var(--text3)',whiteSpace:'nowrap'}}>
-                              {dd.v>0?`${dd.v.toFixed(1)}%`:'—'}
-                            </span>
-                          </div>
-                          {/* grouped bars */}
-                          <div style={{display:'flex',alignItems:'flex-end',gap:2,width:'100%',justifyContent:'center'}}>
-                            <div style={{flex:1,background:isYtd?'var(--accent)':'var(--border2)',borderRadius:'3px 3px 0 0',height:hAbs,minHeight:d.v>0?3:0,transition:'.3s'}}/>
-                            <div style={{flex:1,background:isYtd?'var(--amber)':'color-mix(in srgb,var(--amber) 40%,var(--border2))',borderRadius:'3px 3px 0 0',height:hDisp,minHeight:dd.v>0?3:0,transition:'.3s'}}/>
-                          </div>
-                          <span style={{fontSize:9,color:isYtd?'var(--accent)':'var(--text4)',fontWeight:isYtd?700:400,marginTop:3}}>
-                            {label}{isYtd&&fPeriodo?'':isYtd?' YTD':''}
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  {/* Totales */}
-                  <div style={{display:'flex',gap:16,marginTop:10,paddingTop:8,borderTop:'1px solid var(--border)',flexWrap:'wrap'}}>
-                    <div style={{display:'flex',alignItems:'baseline',gap:5}}>
-                      <span style={{fontSize:18,fontWeight:800,color:'var(--text1)',fontFamily:'var(--mono)'}}>
-                        {fAnio ? (ABS_Q[fAnio]||[]).reduce((s,d)=>s+d.v,0).toLocaleString('es-ES')
-                          : ABS_ANUAL.reduce((s,d)=>s+d.v,0).toLocaleString('es-ES')}
-                      </span>
-                      <span style={{fontSize:10,color:'var(--text3)'}}>m² {fAnio||'acumulados'}</span>
-                    </div>
-                    <div style={{display:'flex',alignItems:'baseline',gap:5}}>
-                      <span style={{fontSize:18,fontWeight:800,color:'var(--accent)',fontFamily:'var(--mono)'}}>52.000</span>
-                      <span style={{fontSize:10,color:'var(--text3)'}}>m² YTD 2026</span>
-                    </div>
-                    <div style={{display:'flex',alignItems:'baseline',gap:5}}>
-                      <span style={{fontSize:18,fontWeight:800,color:'var(--green)',fontFamily:'var(--mono)'}}>+16%</span>
-                      <span style={{fontSize:10,color:'var(--text3)'}}>vs. año anterior</span>
-                    </div>
-                    <div style={{display:'flex',alignItems:'baseline',gap:5,borderLeft:'1px solid var(--border)',paddingLeft:16}}>
-                      <span style={{fontSize:18,fontWeight:800,color:'var(--amber)',fontFamily:'var(--mono)'}}>
-                        {(()=>{
-                          const last = dispData.filter(d=>d.v>0)
-                          return last.length ? `${last[last.length-1].v.toFixed(1)}%` : '—'
-                        })()}
-                      </span>
-                      <span style={{fontSize:10,color:'var(--text3)'}}>disponibilidad actual</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                  )
+                })()}
 
-              {/* Tablas overview */}
-              <div className="port-grid-2">
-                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-                  <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Portfolio total · Por ciudad</div>
+                <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r2)', overflow:'hidden' }}>
+                  <div style={{ padding:'9px 14px', borderBottom:'1px solid var(--border)', fontSize:11, fontWeight:700 }}>🏷 Por uso</div>
                   <table className="dtbl">
-                    <thead><tr><th>Ciudad</th><th>Nº Activos</th><th>M² Totales</th><th>Disponible</th></tr></thead>
+                    <thead><tr><th>Uso</th><th>% Portfolio</th><th>M²</th></tr></thead>
                     <tbody>
-                      <tr><td>Madrid</td><td>32</td><td>1.050.000</td><td className="d-up">96.000</td></tr>
-                      <tr><td>Barcelona</td><td>19</td><td>630.000</td><td className="d-up">54.000</td></tr>
-                      <tr><td>Valencia</td><td>6</td><td>210.000</td><td className="d-up">18.000</td></tr>
-                      <tr style={{ fontWeight: 700 }}><td>TOTAL</td><td>64</td><td>2.100.000</td><td style={{ color: 'var(--amber)' }}>180.000</td></tr>
+                      {usoBreakdown.length === 0 ? (
+                        <tr><td colSpan={3} style={{ textAlign:'center', padding:18, color:'var(--text4)' }}>Sin datos.</td></tr>
+                      ) : usoBreakdown.map(u => (
+                        <tr key={u.uso}>
+                          <td><span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><span style={{ width:8, height:8, borderRadius:'50%', background:u.color }}/>{u.uso}</span></td>
+                          <td>{(u.pct*100).toFixed(1)}%</td>
+                          <td style={{ fontFamily:'var(--mono)' }}>{u.m2.toLocaleString('es-ES')}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
-                </div>
-                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-                  <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Portfolio · Por uso principal</div>
-                  <table className="dtbl">
-                    <thead><tr><th>Uso</th><th>% Portfolio</th><th>M² estimados</th></tr></thead>
-                    <tbody>
-                      <tr><td><span className="tag tag-blue">Oficinas</span></td><td>55%</td><td>1.155.000</td></tr>
-                      <tr><td><span className="tag tag-teal">Logístico</span></td><td>10%</td><td>210.000</td></tr>
-                      <tr><td><span className="tag tag-purple">Retail</span></td><td>20%</td><td>420.000</td></tr>
-                      <tr><td><span className="tag tag-amber">Hoteles</span></td><td>5%</td><td>105.000</td></tr>
-                      <tr><td><span className="tag tag-gray">Residencial</span></td><td>5%</td><td>105.000</td></tr>
-                      <tr><td><span className="tag tag-gray">Otros</span></td><td>5%</td><td>105.000</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div className="port-grid-2" style={{marginTop:12}}>
-                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-                  <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Facturación Savills · KPIs</div>
-                  <div style={{ padding: '12px 14px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                      <div className="kf"><div className="kf-lbl">Facturación histórica</div><div className="kf-val">20 M€</div></div>
-                      <div className="kf"><div className="kf-lbl">Facturación 2026</div><div className="kf-val">2,65 M€</div></div>
-                      <div className="kf"><div className="kf-lbl">Pipeline activo</div><div className="kf-val amber">1,50 M€</div></div>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -841,19 +857,6 @@ export default function PortfolioFicha() {
           </div>
         )}
 
-        {/* Actividad */}
-        {activeTab === 'pt-actividad' && (
-          <div className="tab-content active" style={{ overflowY: 'auto' }}>
-            <div className="port-body">
-              <div className="info-block">
-                <div className="ib-title">ACTIVIDAD COMERCIAL RECIENTE</div>
-                <div className="ir"><span className="ir-k">12/03/2026</span><span className="ir-v">Llamada con Asset Manager — interés mandato</span></div>
-                <div className="ir"><span className="ir-k">01/03/2025</span><span className="ir-v">Visita Oracle a P.E Avalon — fase finalista</span></div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Oportunidades */}
         {activeTab === 'pt-oportunidades' && (
           <div className="tab-content active" style={{ overflowY: 'auto' }}>
@@ -943,10 +946,6 @@ export default function PortfolioFicha() {
           )
         })()}
 
-        {/* Financiero */}
-        {activeTab === 'pt-financiero' && (
-          <FinancieroTab/>
-        )}
       </div>
 
       {/* Right panel */}
