@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
+import DesactivarPropietarioModal from '../components/DesactivarPropietarioModal'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { exportPDF, exportPPT } from '../utils/exportReport'
 import { supabase } from '../lib/supabase'
@@ -68,6 +69,21 @@ export default function FichaPropietario() {
   const [log]  = useState(LOG_INIT)
   const [showTarea, setShowTarea] = useState(false)
   const [saveErr, setSaveErr] = useState('')
+  const [showDesactivar, setShowDesactivar] = useState(false)
+  const [desactivarMode, setDesactivarMode] = useState('desactivar')
+  const [propietarioReal, setPropietarioReal] = useState(null) // { id, nombre, estado }
+  const [reloadKey, setReloadKey] = useState(0)
+
+  useEffect(() => {
+    if (!params?.id) { setPropietarioReal(null); return }
+    let cancel = false
+    supabase.from('propietarios')
+      .select('id, nombre, estado, fecha_desactivacion, motivo_desactivacion')
+      .eq('id', params.id)
+      .maybeSingle()
+      .then(({ data }) => { if (!cancel) setPropietarioReal(data || null) })
+    return () => { cancel = true }
+  }, [params?.id, reloadKey])
   const [usos, setUsos] = useState(['Oficinas','Logístico / Industrial'])
   const toggleUso = (u) => setUsos(prev => prev.includes(u) ? prev.filter(x=>x!==u) : [...prev,u])
 
@@ -216,7 +232,15 @@ export default function FichaPropietario() {
           <>
             <button className="ab-btn save">💾 Guardar</button>
             <button className="ab-btn">Nuevo</button>
-            <button className="ab-btn" style={{color:'var(--amber)'}}>Desactivar</button>
+            {propietarioReal?.estado === 'Activo' && (
+              <button className="ab-btn" style={{color:'var(--amber)'}} onClick={() => { setDesactivarMode('desactivar'); setShowDesactivar(true) }}>⏸ Desactivar</button>
+            )}
+            {propietarioReal && propietarioReal.estado !== 'Activo' && (
+              <button className="ab-btn" style={{color:'var(--green)'}} onClick={() => { setDesactivarMode('reactivar'); setShowDesactivar(true) }}>🔄 Reactivar</button>
+            )}
+            {!propietarioReal && (
+              <button className="ab-btn" disabled style={{color:'var(--text4)', opacity:0.5}} title="Abre este propietario desde la lista para poder desactivarlo">⏸ Desactivar</button>
+            )}
             <div className="ab-sep"/>
             <button className="ab-btn blue" onClick={()=>navigate('ficha-activo')}>🏢 Ver activo</button>
             <button className="ab-btn blue" onClick={()=>navigate('ficha-arrendatario')}>🔑 Ver arrendatarios</button>
@@ -836,6 +860,15 @@ export default function FichaPropietario() {
         </div>
       </div>
       {showTarea && <AsignarTareaModal refTipo="Propietario" refNombre="Merlín Properties SOCIMI" onClose={() => setShowTarea(false)} />}
+      {showDesactivar && propietarioReal && (
+        <DesactivarPropietarioModal
+          propietarioId={propietarioReal.id}
+          propietarioNombre={propietarioReal.nombre}
+          modo={desactivarMode}
+          onClose={() => setShowDesactivar(false)}
+          onSuccess={() => { setShowDesactivar(false); setReloadKey(k => k + 1) }}
+        />
+      )}
     </div>
   )
 }
