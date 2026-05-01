@@ -486,28 +486,19 @@ export default function PortfolioFicha() {
                     <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 4 }}>📅 Último contacto: {propietario.ultimo_contacto}</div>
                   )}
                 </div>
-                <div style={{ display:'flex', alignItems:'stretch', gap:10, flexShrink: 0, marginLeft: 16 }}>
-                  <div style={{
-                    background:'linear-gradient(135deg, #16a34a, #15803d)',
-                    color:'#fff', borderRadius:10, padding:'12px 18px', minWidth:170,
-                    boxShadow:'0 2px 6px rgba(22,163,74,.25)',
-                    display:'flex', flexDirection:'column', justifyContent:'center',
-                  }}>
-                    <div style={{ fontSize:9, fontWeight:700, opacity:.85, textTransform:'uppercase', letterSpacing:'.05em' }}>💰 Facturación Savills</div>
-                    <div style={{ fontSize:22, fontWeight:800, lineHeight:1.1, marginTop:4 }}>{fmtEur(facturacionTotal)}</div>
-                    <div style={{ fontSize:10, opacity:.85, marginTop:2 }}>{fmtEur(facturacionEnCurso)} en curso · {mandatos.length} mandatos</div>
+                <div style={{ display:'flex', alignItems:'stretch', gap:24, flexShrink: 0, marginLeft: 24 }}>
+                  <div style={{ display:'flex', flexDirection:'column', justifyContent:'center', textAlign:'right' }}>
+                    <div style={{ fontSize:10, fontWeight:600, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.06em' }}>Facturación Savills</div>
+                    <div style={{ fontSize:22, fontWeight:700, lineHeight:1.1, marginTop:2, color:'var(--text)' }}>{fmtEur(facturacionTotal)}</div>
+                    <div style={{ fontSize:10, color:'var(--text4)', marginTop:3 }}>{fmtEur(facturacionEnCurso)} en curso · {mandatos.length} mandatos</div>
                   </div>
-                  <div style={{
-                    background:'linear-gradient(135deg, #2563eb, #1d4ed8)',
-                    color:'#fff', borderRadius:10, padding:'12px 18px', minWidth:150,
-                    boxShadow:'0 2px 6px rgba(37,99,235,.25)',
-                    display:'flex', flexDirection:'column', justifyContent:'center',
-                  }}>
-                    <div style={{ fontSize:9, fontWeight:700, opacity:.85, textTransform:'uppercase', letterSpacing:'.05em' }}>📜 Proyectos en curso</div>
-                    <div style={{ fontSize:22, fontWeight:800, lineHeight:1.1, marginTop:4 }}>{mandatosEnCurso.length}</div>
-                    <div style={{ fontSize:10, opacity:.85, marginTop:2 }}>{oportunidadesActivas.length} oportunidades activas</div>
+                  <div style={{ width:1, background:'var(--border)' }} />
+                  <div style={{ display:'flex', flexDirection:'column', justifyContent:'center', textAlign:'right' }}>
+                    <div style={{ fontSize:10, fontWeight:600, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.06em' }}>Proyectos en curso</div>
+                    <div style={{ fontSize:22, fontWeight:700, lineHeight:1.1, marginTop:2, color:'var(--text)' }}>{mandatosEnCurso.length}</div>
+                    <div style={{ fontSize:10, color:'var(--text4)', marginTop:3 }}>{oportunidadesActivas.length} oportunidades activas</div>
                   </div>
-                  <div style={{ display:'flex', alignItems:'flex-end' }}>
+                  <div style={{ display:'flex', alignItems:'center' }}>
                     <ExportMenu getConfig={getReportConfig} />
                   </div>
                 </div>
