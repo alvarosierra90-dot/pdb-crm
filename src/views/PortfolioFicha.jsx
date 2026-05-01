@@ -627,152 +627,115 @@ export default function PortfolioFicha() {
                 />
               </div>
 
-              {/* Distribución por ciudad y por uso (datos reales) */}
-              <div className="port-grid-2" style={{ marginBottom: 12 }}>
-                {(() => {
-                  const porCiudad = {}
-                  activosFiltrados.forEach(a => {
-                    const c = a.ciudad || '—'
-                    if (!porCiudad[c]) porCiudad[c] = { cnt:0, m2:0, disp:0 }
-                    porCiudad[c].cnt++
-                    porCiudad[c].m2   += Number(a.sba) || Number(a.m2_totales) || 0
-                    porCiudad[c].disp += Number(a.m2_disponibles) || 0
-                  })
-                  const filas = Object.entries(porCiudad).sort((a,b) => b[1].m2 - a[1].m2)
-                  const totM2 = filas.reduce((s, [, v]) => s + v.m2, 0)
-                  const totDisp = filas.reduce((s, [, v]) => s + v.disp, 0)
-                  return (
-                    <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r2)', overflow:'hidden' }}>
-                      <div style={{ padding:'9px 14px', borderBottom:'1px solid var(--border)', fontSize:11, fontWeight:700 }}>📍 Por ciudad</div>
-                      <table className="dtbl">
-                        <thead><tr><th>Ciudad</th><th>Nº</th><th>M² totales</th><th>Disponible</th></tr></thead>
-                        <tbody>
-                          {filas.length === 0 ? (
-                            <tr><td colSpan={4} style={{ textAlign:'center', padding:18, color:'var(--text4)' }}>Sin activos.</td></tr>
-                          ) : filas.map(([c, v]) => (
-                            <tr key={c}>
-                              <td>{c}</td>
-                              <td>{v.cnt}</td>
-                              <td style={{ fontFamily:'var(--mono)' }}>{v.m2 ? v.m2.toLocaleString('es-ES') : '—'}</td>
-                              <td style={{ color: v.disp > 0 ? 'var(--amber)' : 'var(--text4)', fontFamily:'var(--mono)' }}>{v.disp ? v.disp.toLocaleString('es-ES') : '0'}</td>
-                            </tr>
-                          ))}
-                          {filas.length > 0 && (
-                            <tr style={{ fontWeight:700, background:'var(--gray-lt)' }}>
-                              <td>TOTAL</td>
-                              <td>{activosFiltrados.length}</td>
-                              <td style={{ fontFamily:'var(--mono)' }}>{totM2.toLocaleString('es-ES')}</td>
-                              <td style={{ color:'var(--amber)', fontFamily:'var(--mono)' }}>{totDisp.toLocaleString('es-ES')}</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+              {/* Distribución — sin cuadros, listas con barras y tipografía clara */}
+              {(() => {
+                const porCiudad = {}
+                activosFiltrados.forEach(a => {
+                  const c = a.ciudad || '—'
+                  if (!porCiudad[c]) porCiudad[c] = { cnt:0, m2:0 }
+                  porCiudad[c].cnt++
+                  porCiudad[c].m2 += Number(a.sba) || Number(a.m2_totales) || 0
+                })
+                const ciudades = Object.entries(porCiudad).sort((a,b) => b[1].m2 - a[1].m2)
+                const maxCiudad = Math.max(1, ...ciudades.map(([, v]) => v.m2))
+                const totalM2 = ciudades.reduce((s, [, v]) => s + v.m2, 0)
+
+                return (
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:48, padding:'12px 4px 28px' }}>
+                    {/* Por ciudad */}
+                    <div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:14 }}>Por ciudad</div>
+                      {ciudades.length === 0 ? (
+                        <div style={{ fontSize:13, color:'var(--text4)' }}>Sin datos.</div>
+                      ) : ciudades.map(([c, v]) => {
+                        const pct = v.m2 / maxCiudad
+                        const portPct = totalM2 > 0 ? (v.m2 / totalM2 * 100).toFixed(1) : '0.0'
+                        return (
+                          <div key={c} style={{ marginBottom:14 }}>
+                            <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:4 }}>
+                              <span style={{ fontSize:14, fontWeight:600 }}>{c}</span>
+                              <span style={{ fontSize:13, color:'var(--text3)', fontFamily:'var(--mono)' }}>{v.m2.toLocaleString('es-ES')} m² <span style={{ fontSize:11, color:'var(--text4)' }}>· {v.cnt}</span></span>
+                            </div>
+                            <div style={{ height:4, background:'var(--gray-lt)', borderRadius:4, overflow:'hidden' }}>
+                              <div style={{ width:`${pct*100}%`, height:'100%', background:'var(--accent)', borderRadius:4 }} />
+                            </div>
+                            <div style={{ fontSize:10, color:'var(--text4)', marginTop:3 }}>{portPct}% del portfolio</div>
+                          </div>
+                        )
+                      })}
                     </div>
-                  )
-                })()}
 
-                <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r2)', overflow:'hidden' }}>
-                  <div style={{ padding:'9px 14px', borderBottom:'1px solid var(--border)', fontSize:11, fontWeight:700 }}>🏷 Por uso</div>
-                  <table className="dtbl">
-                    <thead><tr><th>Uso</th><th>% Portfolio</th><th>M²</th></tr></thead>
-                    <tbody>
+                    {/* Por uso */}
+                    <div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:14 }}>Por uso</div>
                       {usoBreakdown.length === 0 ? (
-                        <tr><td colSpan={3} style={{ textAlign:'center', padding:18, color:'var(--text4)' }}>Sin datos.</td></tr>
+                        <div style={{ fontSize:13, color:'var(--text4)' }}>Sin datos.</div>
                       ) : usoBreakdown.map(u => (
-                        <tr key={u.uso}>
-                          <td><span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><span style={{ width:8, height:8, borderRadius:'50%', background:u.color }}/>{u.uso}</span></td>
-                          <td>{(u.pct*100).toFixed(1)}%</td>
-                          <td style={{ fontFamily:'var(--mono)' }}>{u.m2.toLocaleString('es-ES')}</td>
-                        </tr>
+                        <div key={u.uso} style={{ marginBottom:14 }}>
+                          <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:4 }}>
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:8, fontSize:14, fontWeight:600 }}>
+                              <span style={{ width:10, height:10, borderRadius:'50%', background:u.color, flexShrink:0 }} />
+                              {u.uso}
+                            </span>
+                            <span style={{ fontSize:13, color:'var(--text3)', fontFamily:'var(--mono)' }}>{u.m2.toLocaleString('es-ES')} m²</span>
+                          </div>
+                          <div style={{ height:4, background:'var(--gray-lt)', borderRadius:4, overflow:'hidden' }}>
+                            <div style={{ width:`${u.pct*100}%`, height:'100%', background:u.color, borderRadius:4 }} />
+                          </div>
+                          <div style={{ fontSize:10, color:'var(--text4)', marginTop:3 }}>{(u.pct*100).toFixed(1)}% del portfolio</div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Resumen Oportunidades — top 5 reales */}
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden', marginTop: 12 }}>
-                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: 11, fontWeight: 600 }}>Oportunidades activas</div>
-                  <button onClick={() => setActiveTab('pt-oportunidades')} style={{ fontSize: 10, padding: '2px 10px', borderRadius: 4, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', color: 'var(--accent)', fontFamily: 'inherit', fontWeight: 600 }}>Ver todas →</button>
-                </div>
-                <table className="dtbl">
-                  <thead><tr><th>Ref.</th><th>Nombre</th><th>Tipo</th><th>Estado</th><th>Fecha</th></tr></thead>
-                  <tbody>
-                    {oportunidadesActivas.length === 0 ? (
-                      <tr><td colSpan={5} style={{ textAlign:'center', padding:18, color:'var(--text4)', fontSize:11 }}>{loadingPort ? 'Cargando…' : 'Sin oportunidades activas.'}</td></tr>
-                    ) : oportunidadesActivas.slice(0, 5).map(o => (
-                      <tr key={o.dynamics_id} onClick={() => setActiveTab('pt-oportunidades')} style={{ cursor: 'pointer' }}>
-                        <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)' }}>{o.dynamics_id}</span></td>
-                        <td style={{ fontSize: 11 }}>{o.nombre || '—'}</td>
-                        <td><span className="tag tag-blue" style={{ fontSize: 9 }}>{o.tipo || '—'}</span></td>
-                        <td><span className="tag tag-gray" style={{ fontSize: 9 }}>{o.estado || '—'}</span></td>
-                        <td style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--text3)' }}>{o.fecha_creacion ? new Date(o.fecha_creacion).toLocaleDateString('es-ES') : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Resumen Mandatos — top 4 reales */}
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden', marginTop: 12 }}>
-                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: 11, fontWeight: 600 }}>Mandatos recientes</div>
-                  <button onClick={() => setActiveTab('pt-transaccion')} style={{ fontSize: 10, padding: '2px 10px', borderRadius: 4, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', color: 'var(--accent)', fontFamily: 'inherit', fontWeight: 600 }}>Ver todos →</button>
-                </div>
-                <table className="dtbl">
-                  <thead><tr><th>Ref.</th><th>Título</th><th>Tipo</th><th>Vencimiento</th><th>Fee</th><th>Estado</th></tr></thead>
-                  <tbody>
-                    {mandatos.length === 0 ? (
-                      <tr><td colSpan={6} style={{ textAlign:'center', padding:18, color:'var(--text4)', fontSize:11 }}>{loadingPort ? 'Cargando…' : 'Sin mandatos.'}</td></tr>
-                    ) : mandatos.slice(0, 4).map(m => (
-                      <tr key={m.id} onClick={() => navigate('ficha-mandato', { id: m.ref })} style={{ cursor: 'pointer' }}>
-                        <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)' }}>{m.ref}</span></td>
-                        <td style={{ fontSize: 11 }}>{m.titulo || '—'}</td>
-                        <td><span className="tag tag-blue" style={{ fontSize: 9 }}>{m.tipo || '—'}</span></td>
-                        <td style={{ fontSize: 10, fontFamily: 'var(--mono)' }}>{m.fecha_vencimiento ? new Date(m.fecha_vencimiento).toLocaleDateString('es-ES') : '—'}</td>
-                        <td style={{ fontSize: 11, fontFamily: 'var(--mono)', fontWeight: 600 }}>{m.fee_eur_fijo ? `${Number(m.fee_eur_fijo).toLocaleString('es-ES')} €` : '—'}</td>
-                        <td><span className={`tag ${m.estado === 'en_curso' ? 'tag-green' : m.estado === 'cancelado' ? 'tag-red' : 'tag-gray'}`} style={{ fontSize: 9 }}>{m.estado || '—'}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Facturación por Línea de Negocio — datos desde Transacciones/Instrucción */}
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden', marginTop: 12 }}>
-                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: 11, fontWeight: 600 }}>Facturación por Línea de Negocio</div>
-                  <span style={{ fontSize: 9, color: 'var(--text4)' }}>Origen: Transacciones / Instrucción</span>
-                </div>
-                <div style={{ padding: '12px 14px' }}>
-                  {[
-                    { linea: 'Leasing Oficinas',         fees: 10_600_000, ops: 14, color: 'var(--accent)' },
-                    { linea: 'Capital Markets',          fees:  5_700_000, ops:  6, color: 'var(--purple)' },
-                    { linea: 'Retail',                   fees:  1_800_000, ops:  3, color: 'var(--red)' },
-                    { linea: 'Industrial / Logística',   fees:    980_000, ops:  2, color: 'var(--amber)' },
-                    { linea: 'Valoraciones',             fees:    560_000, ops:  4, color: 'var(--teal)' },
-                    { linea: 'Property Management',      fees:    360_000, ops:  1, color: 'var(--green)' },
-                  ].map(r => {
-                    const maxFees = 10_600_000
-                    const pct = Math.round(r.fees / maxFees * 100)
-                    return (
-                      <div key={r.linea} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                        <div style={{ width: 110, fontSize: 10, color: 'var(--text2)', flexShrink: 0 }}>{r.linea}</div>
-                        <div style={{ flex: 1, height: 7, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: r.color, borderRadius: 4, transition: '.3s' }}/>
-                        </div>
-                        <div style={{ width: 70, fontSize: 10, fontWeight: 700, color: r.color, textAlign: 'right', fontFamily: 'var(--mono)', flexShrink: 0 }}>
-                          {(r.fees / 1_000_000).toFixed(2)} M€
-                        </div>
-                        <div style={{ width: 28, fontSize: 9, color: 'var(--text4)', textAlign: 'right', flexShrink: 0 }}>{r.ops} ops</div>
-                      </div>
-                    )
-                  })}
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700 }}>TOTAL ACUMULADO</span>
-                    <span style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--mono)', color: 'var(--text1)' }}>20,00 M€</span>
+                    </div>
                   </div>
+                )
+              })()}
+
+              {/* Listas planas — top oportunidades + top mandatos, sin boxes */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:48, padding:'4px 4px 24px' }}>
+                <div>
+                  <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:10 }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.08em' }}>Oportunidades activas</span>
+                    <button onClick={() => setActiveTab('pt-oportunidades')} style={{ fontSize:11, color:'var(--accent)', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>Ver todas →</button>
+                  </div>
+                  {oportunidadesActivas.length === 0 ? (
+                    <div style={{ fontSize:13, color:'var(--text4)' }}>{loadingPort ? 'Cargando…' : 'Sin oportunidades activas.'}</div>
+                  ) : oportunidadesActivas.slice(0, 5).map(o => (
+                    <div
+                      key={o.dynamics_id}
+                      onClick={() => setActiveTab('pt-oportunidades')}
+                      style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--gray-lt)', cursor:'pointer' }}
+                    >
+                      <div>
+                        <div style={{ fontSize:14, fontWeight:600, color:'var(--text)' }}>{o.nombre || '—'}</div>
+                        <div style={{ fontSize:11, color:'var(--text4)', marginTop:2 }}>{o.tipo || '—'} · {o.estado || '—'}</div>
+                      </div>
+                      <div style={{ fontSize:11, color:'var(--text4)', fontFamily:'var(--mono)', flexShrink:0 }}>{o.fecha_creacion ? new Date(o.fecha_creacion).toLocaleDateString('es-ES') : ''}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:10 }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.08em' }}>Mandatos recientes</span>
+                    <button onClick={() => setActiveTab('pt-transaccion')} style={{ fontSize:11, color:'var(--accent)', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>Ver todos →</button>
+                  </div>
+                  {mandatos.length === 0 ? (
+                    <div style={{ fontSize:13, color:'var(--text4)' }}>{loadingPort ? 'Cargando…' : 'Sin mandatos.'}</div>
+                  ) : mandatos.slice(0, 5).map(m => (
+                    <div
+                      key={m.id}
+                      onClick={() => navigate('ficha-mandato', { id: m.ref })}
+                      style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--gray-lt)', cursor:'pointer' }}
+                    >
+                      <div>
+                        <div style={{ fontSize:14, fontWeight:600, color:'var(--text)' }}>{m.titulo || m.ref}</div>
+                        <div style={{ fontSize:11, color:'var(--text4)', marginTop:2 }}>{m.tipo || '—'} · {m.estado || '—'}{m.fecha_vencimiento ? ` · vence ${new Date(m.fecha_vencimiento).toLocaleDateString('es-ES')}` : ''}</div>
+                      </div>
+                      <div style={{ fontSize:13, fontFamily:'var(--mono)', fontWeight:700, color: m.fee_eur_fijo ? 'var(--green)' : 'var(--text4)', flexShrink:0 }}>
+                        {m.fee_eur_fijo ? fmtEur(Number(m.fee_eur_fijo)) : '—'}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
