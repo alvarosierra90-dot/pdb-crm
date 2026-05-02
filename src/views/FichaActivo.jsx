@@ -1440,9 +1440,35 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
 
       {/* ══ ARRENDATARIOS ══ */}
       {view==='arr' && (()=>{
-        const tenantSet = [...new Set([...extraTenants, ...(edif.arr||[]).flatMap(r=>r.units.filter(u=>u.type==='ten'||u.type==='rt'||u.type==='pk').map(u=>u.n))])]
+        // tenantSet = lista deduplicada de chips {key, ref, name}.
+        //   key = ref si lo hay, sino name → identifica el chip de forma estable.
+        //   ref = id del registro arrendatario (ARR-...). Permite distinguir
+        //         varios 'Desconocido' o sobrevivir a renames sin romper match.
+        // extraTenants admite tanto strings (legacy) como {ref, name}.
+        const _seen = new Set()
+        const tenantSet = []
+        const _push = (entry) => {
+          if (!entry || _seen.has(entry.key)) return
+          _seen.add(entry.key); tenantSet.push(entry)
+        }
+        for (const e of (extraTenants || [])) {
+          if (typeof e === 'string') _push({ key: e, ref: null, name: e })
+          else if (e && e.name)      _push({ key: e.ref || e.name, ref: e.ref || null, name: e.name })
+        }
+        for (const r of (edif.arr || [])) {
+          for (const u of (r.units || [])) {
+            if (u.type==='ten' || u.type==='rt' || u.type==='pk') {
+              _push({ key: u.arr_ref || u.n, ref: u.arr_ref || null, name: u.n })
+            }
+          }
+        }
         const ARR_COLORS = ['#1e40af','#0f766e','#7c3aed','#b45309','#be185d','#065f46']
-        const tenantColor = (n) => ARR_COLORS[tenantSet.indexOf(n)%ARR_COLORS.length]
+        const tenantIndexByKey = Object.fromEntries(tenantSet.map((t,i) => [t.key, i]))
+        const tenantColor = (n) => {
+          // n puede ser nombre legacy (sin ref). Buscar primer chip cuyo name coincide.
+          const i = tenantSet.findIndex(t => t.name === n)
+          return ARR_COLORS[(i >= 0 ? i : 0) % ARR_COLORS.length]
+        }
         const TYPE_COLORS = {
           ten: {bg:'#dbeafe',bd:'#93c5fd',col:'#1e40af'},
           vac: {bg:'#fff8ec',bd:'#fcd34d',col:'#d97706'},
@@ -1463,21 +1489,28 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
               <div style={{maxHeight:200,overflowY:'auto',paddingRight:2}}>
                 {tenantSet.length===0 ? (
                   <div style={{fontSize:10,color:'var(--muted)',lineHeight:1.5,padding:'4px 0'}}>Aún no hay arrendatarios</div>
-                ) : tenantSet.map((n,i)=>{
+                ) : tenantSet.map((t,i)=>{
                   const col = ARR_COLORS[i%ARR_COLORS.length]
+                  const dragKey = 'ten:'+t.key
+                  // Disambiguación visual cuando hay varios chips con el mismo
+                  // nombre (típicamente 'Desconocido'): mostrar el ref.
+                  const dupName = tenantSet.filter(x => x.name === t.name).length > 1
                   return (
-                    <div key={n} draggable className="sp-chip"
-                      onDragStart={()=>setDragging('ten:'+n)}
+                    <div key={t.key} draggable className="sp-chip"
+                      onDragStart={()=>setDragging(dragKey)}
                       onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
                       style={{
                         border:`1px solid ${col}88`,background:col+'18',
-                        opacity:dragging&&dragging!=='ten:'+n?.4:1,
-                        boxShadow:dragging==='ten:'+n?`0 2px 8px ${col}44`:'none',
+                        opacity:dragging&&dragging!==dragKey?.4:1,
+                        boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
                       }}
                     >
                       <span className="sp-chip-handle">⋮⋮</span>
                       <span className="sp-chip-dot" style={{background:col}}/>
-                      <span className="sp-chip-label" style={{color:col,fontWeight:600}}>{n}</span>
+                      <span className="sp-chip-label" style={{color:col,fontWeight:600}}>
+                        {t.name}
+                        {dupName && t.ref && <span style={{ marginLeft:4, fontSize:8, color:col, opacity:0.7, fontWeight:500 }}>· {t.ref.slice(-6)}</span>}
+                      </span>
                     </div>
                   )
                 })}
@@ -1538,6 +1571,10 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                         setDropWarning(floor.id); setTimeout(()=>setDropWarning(null),3000); setDragging(null); return
                       }
                       const targets = selectedFloors.length > 1 ? selectedFloors : [floor.id]
+                      // Resolver key del tenant arrastrado a {ref,name} via tenantSet.
+                      // Si no se encuentra (caso raro), tratamos la key como nombre.
+                      const dragKey = dragging.startsWith('ten:') ? dragging.slice(4) : null
+                      const dropTenant = dragKey ? (tenantSet.find(t => t.key === dragKey) || { ref:null, name: dragKey }) : null
                       updBuilding(b=>{
                         let arr=[...(b.arr||[])]
                         targets.forEach(fId=>{
@@ -1545,7 +1582,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                           if(!f) return
                           if(dragging.startsWith('ofr:') && f.principal.length===0) return
                           const newUnit = dragging.startsWith('ten:')
-                            ? {type:'ten',n:dragging.slice(4)}
+                            ? {type:'ten', arr_ref: dropTenant.ref, n: dropTenant.name}
                             : {type:'vac',oferta:dragging.slice(4),renta:0}
                           const idx=arr.findIndex(r=>r.p===fId)
                           if(idx>=0){
@@ -4173,7 +4210,7 @@ export default function FichaActivo() {
                 }}
                 activoPropietario={activo?.propietario || ''}
                 extraOwners={propietariosReg.map(p=>p.propietario)}
-                extraTenants={arrendatariosReg.map(a=>a.tenant)}
+                extraTenants={arrendatariosReg.map(a=>({ ref: a.ref, name: a.tenant }))}
                 onAddOwner={handleAddOwner}
                 onAddTenant={handleAddTenant}
                 onRemoveTenant={({ unit, doRemove }) => {

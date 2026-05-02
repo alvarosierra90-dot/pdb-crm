@@ -28,19 +28,41 @@ function sectorToLinea(sector) {
   return 'Oficinas'
 }
 
-// Recorre el stacking_data del activo y devuelve { sup, count } de las
-// unidades `type:'ten'` cuyo nombre coincide con tenantName.
-// Match exacto por nombre — única fuente de identificación que existe hoy
-// en el stacking jsonb (los units no tienen arr_id estable).
-function findStackingTenant(stackingData, tenantName) {
-  const out = { sup: 0, count: 0 }
-  if (!stackingData || !tenantName) return out
-  for (const edif of stackingData) {
-    for (const planta of (edif.arr || [])) {
-      for (const u of (planta.units || [])) {
-        if (u.type === 'ten' && u.n === tenantName) {
-          out.sup += Number(u.sup) || 0
-          out.count += 1
+// Resuelve la ocupación de un arrendatario en el stacking_data del activo.
+// Prioridad de matching:
+//   1) arr_ref del unit === arrendatario.ref (id estable, sobrevive a renames
+//      y resuelve la ambigüedad entre múltiples 'Desconocido')
+//   2) Fallback por nombre (legacy: units viejas sin arr_ref)
+// Devuelve { sup, count, byRef } — byRef=true si encontró match estable.
+function findStackingTenant(stackingData, arrRef, tenantName) {
+  const out = { sup: 0, count: 0, byRef: false }
+  if (!stackingData) return out
+
+  // Pase 1: match por arr_ref si lo tenemos
+  if (arrRef) {
+    for (const edif of stackingData) {
+      for (const planta of (edif.arr || [])) {
+        for (const u of (planta.units || [])) {
+          if (u.type === 'ten' && u.arr_ref === arrRef) {
+            out.sup += Number(u.sup) || 0
+            out.count += 1
+            out.byRef = true
+          }
+        }
+      }
+    }
+    if (out.count > 0) return out
+  }
+
+  // Pase 2: fallback por nombre (solo unidades legacy sin arr_ref)
+  if (tenantName) {
+    for (const edif of stackingData) {
+      for (const planta of (edif.arr || [])) {
+        for (const u of (planta.units || [])) {
+          if (u.type === 'ten' && !u.arr_ref && u.n === tenantName) {
+            out.sup += Number(u.sup) || 0
+            out.count += 1
+          }
         }
       }
     }
@@ -176,20 +198,23 @@ export default function VencimientosView() {
       const manByActivoId  = Object.fromEntries((manRes.data || []).map(m => [m.activo_id, m.mandatos]))
 
       const dbEntries = (arrRes.data || []).flatMap(r => {
-        const stack = findStackingTenant(stackingByRef[r.activo_ref], r.nombre)
+        const stack = findStackingTenant(stackingByRef[r.activo_ref], r.ref, r.nombre)
         // 'Desconocido' es un placeholder colectivo: pueden coexistir varios
-        // en el mismo activo y el match por nombre los agregaría todos. Por
-        // eso para Desconocido no sumamos del stacking (m² ambiguo) — usamos
-        // el dato libre de la fila — y solo marcamos asignado si hay al menos
-        // una unidad Desconocido en stacking.
+        // en el mismo activo. Si el match es por arr_ref (id estable), no hay
+        // ambigüedad — la suma del stacking es fiable. Solo es ambiguo cuando
+        // caemos al fallback por nombre con varios 'Desconocido' en stacking.
         const isDesconocido = !!r.tenant_desconocido || r.nombre === 'Desconocido'
+        const matchSinRef = stack.count > 0 && !stack.byRef
+        const ambiguo     = isDesconocido && matchSinRef
         return mapDbToVencimientos(r, {
           uso:                  usoByRef[r.activo_ref],
           mandato:              manByActivoId[idByRef[r.activo_ref]],
-          stackingSup:          isDesconocido ? null : (stack.sup > 0 ? stack.sup : null),
+          // Para Desconocido sin arr_ref no usamos la suma (puede agregar
+          // unidades de otros Desconocido). Con arr_ref sí confiamos.
+          stackingSup:          (ambiguo ? null : (stack.sup > 0 ? stack.sup : null)),
           asignadoEnStacking:   stack.count > 0,
           desconocido:          isDesconocido,
-          ambiguoMatch:         isDesconocido && stack.count > 0,
+          ambiguoMatch:         ambiguo,
         })
       })
 

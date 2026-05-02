@@ -434,9 +434,11 @@ export default function FichaArrendatario() {
             ...b,
             arr: (b.arr||[]).map(r => {
               if (r.p !== params.fromFloorId) return r
-              // Remove any remaining offer units on this floor, then add the tenant
+              // Remove any remaining offer units on this floor, then add the tenant.
+              // arr_ref es el id estable del arrendatario — sobrevive a renames y
+              // resuelve la ambigüedad entre múltiples 'Desconocido'.
               const withoutOffers = r.units.filter(u => !(u.type === 'vac' && u.oferta))
-              return { ...r, units: [...withoutOffers, { type:'ten', n:tenantName, sup, brk:null, brkColor: form.color || '#3b82f6' }] }
+              return { ...r, units: [...withoutOffers, { type:'ten', arr_ref: extRow.ref, n:tenantName, sup, brk:null, brkColor: form.color || '#3b82f6' }] }
             })
           }))
           await supabase.from('activos').update({ stacking_data: updatedStacking }).eq('ref', params.fromActivoRef)
