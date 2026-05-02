@@ -28,11 +28,32 @@ function sectorToLinea(sector) {
   return 'Oficinas'
 }
 
+// Suma m² de un arrendatario (por nombre) recorriendo el stacking_data del
+// activo. Match exacto por unit.n con type='ten'. Si no hay match, devuelve 0
+// y el arrendatario se considera "huérfano" (existe en tabla, no en stacking).
+function sumStackingByTenant(stackingData, tenantName) {
+  if (!stackingData || !tenantName) return 0
+  let total = 0
+  for (const edif of stackingData) {
+    for (const planta of (edif.arr || [])) {
+      for (const u of (planta.units || [])) {
+        if (u.type === 'ten' && u.n === tenantName) total += Number(u.sup) || 0
+      }
+    }
+  }
+  return total
+}
+
 function mapDbToVencimientos(r, extras = {}) {
   const entries = []
   const activo = r.activo_ref || '—'
   const arrendatario = r.nombre || '—'
-  const sup = Number(r.m2) || 0
+  // m² REAL = los que el arrendatario tiene asignados en el stacking del activo,
+  // no los del campo libre de la tabla. Si no está asignado, su superficie es 0
+  // y aparece como "huérfano" — la fila existe pero contablemente no ocupa nada.
+  // Memoria: project_propietario_arrendatario_stacking.md
+  const sup = extras.stackingSup ?? Number(r.m2) ?? 0
+  const sinAsignar = !extras.asignadoEnStacking
   const linea = sectorToLinea(extras.uso)
   const mandato = extras.mandato || null
   const mesesRecordatorio = 3
@@ -45,6 +66,8 @@ function mapDbToVencimientos(r, extras = {}) {
     _estadoArr: r.estado_arr || 'Vigente',
     _mandatoRef: mandato?.ref || null,
     _mandatoTipo: mandato?.tipo || null,
+    _sinAsignar: sinAsignar,
+    _supLibre: Number(r.m2) || 0,
   }
 
   if (r.break_option) {
@@ -110,6 +133,7 @@ export default function VencimientosView() {
   const [fLinea,  setFLinea]  = useState('')
   const [fTipo,   setFTipo]   = useState('')
   const [fMandato, setFMandato] = useState('') // '' | 'con' | 'sin'
+  const [fAsig, setFAsig]       = useState('') // '' | 'asignado' | 'huerfano'
   const [allVencimientos, setAllVencimientos] = useState(MOCK_VENCIMIENTOS)
   const [loadingDB, setLoadingDB] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
@@ -133,7 +157,7 @@ export default function VencimientosView() {
         .or('break_option.not.is.null,vencimiento.not.is.null')
         .or('estado_arr.is.null,estado_arr.neq.Finalizado')
         .order('vencimiento', { nullsFirst: false }),
-      supabase.from('activos').select('id,ref,uso'),
+      supabase.from('activos').select('id,ref,uso,stacking_data'),
       supabase.from('mandato_activos')
         .select('activo_id, mandatos:mandato_id!inner(id,ref,estado,tipo,fecha_vencimiento)')
         .eq('mandatos.estado', 'en_curso')
@@ -142,12 +166,18 @@ export default function VencimientosView() {
       if (cancel) return
       const usoByRef       = Object.fromEntries((actRes.data || []).map(a => [a.ref, a.uso]))
       const idByRef        = Object.fromEntries((actRes.data || []).map(a => [a.ref, a.id]))
+      const stackingByRef  = Object.fromEntries((actRes.data || []).map(a => [a.ref, a.stacking_data || []]))
       const manByActivoId  = Object.fromEntries((manRes.data || []).map(m => [m.activo_id, m.mandatos]))
 
-      const dbEntries = (arrRes.data || []).flatMap(r => mapDbToVencimientos(r, {
-        uso:     usoByRef[r.activo_ref],
-        mandato: manByActivoId[idByRef[r.activo_ref]],
-      }))
+      const dbEntries = (arrRes.data || []).flatMap(r => {
+        const sumaStacking = sumStackingByTenant(stackingByRef[r.activo_ref], r.nombre)
+        return mapDbToVencimientos(r, {
+          uso:                  usoByRef[r.activo_ref],
+          mandato:              manByActivoId[idByRef[r.activo_ref]],
+          stackingSup:          sumaStacking > 0 ? sumaStacking : null,
+          asignadoEnStacking:   sumaStacking > 0,
+        })
+      })
 
       if (dbEntries.length > 0) setAllVencimientos(dbEntries)
       setLoadingDB(false)
@@ -164,6 +194,8 @@ export default function VencimientosView() {
     if (fTipo    && v.tipo !== fTipo)          return false
     if (fMandato === 'con' && !v._mandatoRef)  return false
     if (fMandato === 'sin' && v._mandatoRef)   return false
+    if (fAsig === 'asignado' && v._sinAsignar) return false
+    if (fAsig === 'huerfano' && !v._sinAsignar) return false
     return true
   }).sort((a, b) => a.fecha.localeCompare(b.fecha))
 
@@ -289,7 +321,8 @@ export default function VencimientosView() {
           {lbl:'Período', val:fPeriod,  set:setFPeriod,  opts:[['',''],['Q1','Q1'],['Q2','Q2'],['Q3','Q3'],['Q4','Q4']]},
           {lbl:'Línea',   val:fLinea,   set:setFLinea,   opts:[['',''], ...LINEAS.map(l=>[l,l])]},
           {lbl:'Tipo',    val:fTipo,    set:setFTipo,    opts:[['',''],['Break','Break'],['Fin contrato','Fin contrato']]},
-          {lbl:'Mandato', val:fMandato, set:setFMandato, opts:[['','Todos'],['con','Bajo mandato vivo'],['sin','Sin mandato']]},
+          {lbl:'Mandato',  val:fMandato, set:setFMandato, opts:[['','Todos'],['con','Bajo mandato vivo'],['sin','Sin mandato']]},
+          {lbl:'Stacking', val:fAsig,    set:setFAsig,    opts:[['','Todos'],['asignado','Asignado al stacking'],['huerfano','⚠ Sin asignar (huérfano)']]},
         ].map(({lbl,val,set,opts})=>(
           <div key={lbl} style={{display:'flex',alignItems:'center',gap:5}}>
             <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>{lbl}</span>
@@ -298,8 +331,8 @@ export default function VencimientosView() {
             </select>
           </div>
         ))}
-        {(fAnio||fPeriod||fLinea||fTipo||fMandato) && (
-          <button onClick={()=>{setFAnio('');setFPeriod('');setFLinea('');setFTipo('');setFMandato('')}}
+        {(fAnio||fPeriod||fLinea||fTipo||fMandato||fAsig) && (
+          <button onClick={()=>{setFAnio('');setFPeriod('');setFLinea('');setFTipo('');setFMandato('');setFAsig('')}}
             style={{fontSize:10,padding:'2px 8px',borderRadius:4,border:'1px solid var(--border)',background:'none',cursor:'pointer',color:'var(--accent)',fontFamily:'inherit',fontWeight:600}}>
             ✕ Limpiar
           </button>
@@ -328,8 +361,22 @@ export default function VencimientosView() {
                         {v._real && <span title="Dato real" style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:'var(--green)'}}/>}
                       </td>
                       <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{v.activo}</td>
-                      <td style={{fontSize:11}}>{v.arrendatario}</td>
-                      <td className="mono" style={{fontSize:11}}>{Number(v.sup||0).toLocaleString('es-ES')} m²</td>
+                      <td style={{fontSize:11}}>
+                        {v.arrendatario}
+                        {v._sinAsignar && (
+                          <span
+                            title="Existe en la tabla de arrendatarios pero NO está arrastrado al stacking del activo. Su superficie es contablemente 0 hasta que se asigne."
+                            style={{ marginLeft:6, fontSize:8, fontWeight:700, padding:'1px 6px', borderRadius:8, background:'#fef3c7', color:'#92400e', border:'1px solid #fde68a' }}
+                          >
+                            ⚠ HUÉRFANO
+                          </span>
+                        )}
+                      </td>
+                      <td className="mono" style={{fontSize:11}}>
+                        {v._sinAsignar
+                          ? <span style={{ color:'var(--text4)' }} title={`Tabla: ${Number(v._supLibre||0).toLocaleString('es-ES')} m² · Stacking: 0`}>0 m²</span>
+                          : <>{Number(v.sup||0).toLocaleString('es-ES')} m²</>}
+                      </td>
                       <td><span className="tag tag-blue" style={{fontSize:9}}>{v.linea}</span></td>
                       <td style={{fontSize:11,fontFamily:'var(--mono)',fontWeight:600}}>{fmtFecha(v.fecha)}</td>
                       <td><span className={`tag ${TIPOS_TAG[v.tipo]||'tag-gray'}`} style={{fontSize:9}}>{v.tipo}</span></td>
