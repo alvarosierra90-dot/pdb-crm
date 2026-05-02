@@ -28,52 +28,41 @@ function sectorToLinea(sector) {
   return 'Oficinas'
 }
 
-function mapDbToVencimientos(r) {
+function mapDbToVencimientos(r, extras = {}) {
   const entries = []
   const activo = r.activo_ref || '—'
   const arrendatario = r.nombre || '—'
   const sup = Number(r.m2) || 0
-  const linea = sectorToLinea(null)
+  const linea = sectorToLinea(extras.uso)
+  const mandato = extras.mandato || null
   const mesesRecordatorio = 3
+
+  const baseExtras = {
+    _real: true,
+    _arrendatarioRef: r.ref,
+    _activoRef: r.activo_ref,
+    _tenantName: r.nombre,
+    _estadoArr: r.estado_arr || 'Vigente',
+    _mandatoRef: mandato?.ref || null,
+    _mandatoTipo: mandato?.tipo || null,
+  }
 
   if (r.break_option) {
     entries.push({
-      id: `DB-${r.ref}-BRK`,
-      activo,
-      arrendatario,
-      sup,
-      linea,
-      fecha: r.break_option,
-      tipo: 'Break',
-      origen: 'interna',
-      oportunidad: null,
-      instruccion: null,
-      _real: true,
-      _arrendatarioRef: r.ref,
-      _activoRef: r.activo_ref,
-      _tenantName: r.nombre,
-      _estadoArr: r.estado_arr || 'Vigente',
+      id: `DB-${r.ref}-BRK`, activo, arrendatario, sup, linea,
+      fecha: r.break_option, tipo: 'Break', origen: 'interna',
+      oportunidad: null, instruccion: null,
+      ...baseExtras,
       _mesesRecordatorio: mesesRecordatorio,
       _recordatorioFecha: calcRecordatorioISO(r.break_option, mesesRecordatorio),
     })
   }
   if (r.vencimiento) {
     entries.push({
-      id: `DB-${r.ref}-FIN`,
-      activo,
-      arrendatario,
-      sup,
-      linea,
-      fecha: r.vencimiento,
-      tipo: 'Fin contrato',
-      origen: 'interna',
-      oportunidad: null,
-      instruccion: null,
-      _real: true,
-      _arrendatarioRef: r.ref,
-      _activoRef: r.activo_ref,
-      _tenantName: r.nombre,
-      _estadoArr: r.estado_arr || 'Vigente',
+      id: `DB-${r.ref}-FIN`, activo, arrendatario, sup, linea,
+      fecha: r.vencimiento, tipo: 'Fin contrato', origen: 'interna',
+      oportunidad: null, instruccion: null,
+      ...baseExtras,
     })
   }
   return entries
@@ -120,6 +109,7 @@ export default function VencimientosView() {
   const [fPeriod, setFPeriod] = useState('')
   const [fLinea,  setFLinea]  = useState('')
   const [fTipo,   setFTipo]   = useState('')
+  const [fMandato, setFMandato] = useState('') // '' | 'con' | 'sin'
   const [allVencimientos, setAllVencimientos] = useState(MOCK_VENCIMIENTOS)
   const [loadingDB, setLoadingDB] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
@@ -131,32 +121,49 @@ export default function VencimientosView() {
   useEffect(() => {
     let cancel = false
     setLoadingDB(true)
-    // Excluimos los arrendatarios cuyo contrato ya ha terminado
-    // (estado_arr = 'Finalizado'). Los renovados (Renovado) sí aparecen
-    // porque tienen una nueva fecha futura que sigue siendo deal-flow.
-    supabase.from('arrendatarios')
-      .select('ref,nombre,activo_ref,break_option,vencimiento,m2,estado_arr')
-      .or('break_option.not.is.null,vencimiento.not.is.null')
-      .or('estado_arr.is.null,estado_arr.neq.Finalizado')
-      .order('vencimiento', { nullsFirst: false })
-      .then(({ data }) => {
-        if (cancel) return
-        if (data?.length > 0) {
-          const dbEntries = data.flatMap(mapDbToVencimientos)
-          setAllVencimientos(dbEntries)
-        }
-        setLoadingDB(false)
-      })
+    // 3 queries en paralelo:
+    //  - arrendatarios con break/vencimiento (excl. Finalizado)
+    //  - catálogo activos para mapear ref→uso (línea de negocio) y ref→id
+    //  - mandatos sell-side vivos (alquiler/venta en_curso) para marcar
+    //    qué vencimientos cuelgan de un activo bajo mandato → deal-flow
+    //    caliente vs frío.
+    Promise.all([
+      supabase.from('arrendatarios')
+        .select('ref,nombre,activo_ref,break_option,vencimiento,m2,estado_arr')
+        .or('break_option.not.is.null,vencimiento.not.is.null')
+        .or('estado_arr.is.null,estado_arr.neq.Finalizado')
+        .order('vencimiento', { nullsFirst: false }),
+      supabase.from('activos').select('id,ref,uso'),
+      supabase.from('mandato_activos')
+        .select('activo_id, mandatos:mandato_id!inner(id,ref,estado,tipo,fecha_vencimiento)')
+        .eq('mandatos.estado', 'en_curso')
+        .in('mandatos.tipo', ['alquiler', 'venta']),
+    ]).then(([arrRes, actRes, manRes]) => {
+      if (cancel) return
+      const usoByRef       = Object.fromEntries((actRes.data || []).map(a => [a.ref, a.uso]))
+      const idByRef        = Object.fromEntries((actRes.data || []).map(a => [a.ref, a.id]))
+      const manByActivoId  = Object.fromEntries((manRes.data || []).map(m => [m.activo_id, m.mandatos]))
+
+      const dbEntries = (arrRes.data || []).flatMap(r => mapDbToVencimientos(r, {
+        uso:     usoByRef[r.activo_ref],
+        mandato: manByActivoId[idByRef[r.activo_ref]],
+      }))
+
+      if (dbEntries.length > 0) setAllVencimientos(dbEntries)
+      setLoadingDB(false)
+    })
     return () => { cancel = true }
   }, [reloadKey])
 
   const filtered = allVencimientos.filter(v => {
     const [y, m] = v.fecha.split('-')
     const q = m <= '03' ? 'Q1' : m <= '06' ? 'Q2' : m <= '09' ? 'Q3' : 'Q4'
-    if (fAnio   && y !== fAnio)         return false
-    if (fPeriod && q !== fPeriod)       return false
-    if (fLinea  && v.linea !== fLinea)  return false
-    if (fTipo   && v.tipo !== fTipo)    return false
+    if (fAnio    && y !== fAnio)               return false
+    if (fPeriod  && q !== fPeriod)             return false
+    if (fLinea   && v.linea !== fLinea)        return false
+    if (fTipo    && v.tipo !== fTipo)          return false
+    if (fMandato === 'con' && !v._mandatoRef)  return false
+    if (fMandato === 'sin' && v._mandatoRef)   return false
     return true
   }).sort((a, b) => a.fecha.localeCompare(b.fecha))
 
@@ -278,20 +285,21 @@ export default function VencimientosView() {
       {/* Filtros */}
       <div style={{padding:'8px 16px',background:'var(--surface)',borderBottom:'1px solid var(--border)',display:'flex',gap:10,alignItems:'center',flexShrink:0}}>
         {[
-          {lbl:'Año',     val:fAnio,   set:setFAnio,   opts:['','2025','2026','2027','2028','2029','2030']},
-          {lbl:'Período', val:fPeriod, set:setFPeriod, opts:['','Q1','Q2','Q3','Q4']},
-          {lbl:'Línea',   val:fLinea,  set:setFLinea,  opts:['',...LINEAS]},
-          {lbl:'Tipo',    val:fTipo,   set:setFTipo,   opts:['','Break','Fin contrato']},
+          {lbl:'Año',     val:fAnio,    set:setFAnio,    opts:[['',''],['2025','2025'],['2026','2026'],['2027','2027'],['2028','2028'],['2029','2029'],['2030','2030']]},
+          {lbl:'Período', val:fPeriod,  set:setFPeriod,  opts:[['',''],['Q1','Q1'],['Q2','Q2'],['Q3','Q3'],['Q4','Q4']]},
+          {lbl:'Línea',   val:fLinea,   set:setFLinea,   opts:[['',''], ...LINEAS.map(l=>[l,l])]},
+          {lbl:'Tipo',    val:fTipo,    set:setFTipo,    opts:[['',''],['Break','Break'],['Fin contrato','Fin contrato']]},
+          {lbl:'Mandato', val:fMandato, set:setFMandato, opts:[['','Todos'],['con','Bajo mandato vivo'],['sin','Sin mandato']]},
         ].map(({lbl,val,set,opts})=>(
           <div key={lbl} style={{display:'flex',alignItems:'center',gap:5}}>
             <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>{lbl}</span>
             <select className="fsel" style={{fontSize:10}} value={val} onChange={e=>set(e.target.value)}>
-              {opts.map(o=><option key={o} value={o}>{o||'Todos'}</option>)}
+              {opts.map(([v,l])=><option key={v} value={v}>{l||'Todos'}</option>)}
             </select>
           </div>
         ))}
-        {(fAnio||fPeriod||fLinea||fTipo) && (
-          <button onClick={()=>{setFAnio('');setFPeriod('');setFLinea('');setFTipo('')}}
+        {(fAnio||fPeriod||fLinea||fTipo||fMandato) && (
+          <button onClick={()=>{setFAnio('');setFPeriod('');setFLinea('');setFTipo('');setFMandato('')}}
             style={{fontSize:10,padding:'2px 8px',borderRadius:4,border:'1px solid var(--border)',background:'none',cursor:'pointer',color:'var(--accent)',fontFamily:'inherit',fontWeight:600}}>
             ✕ Limpiar
           </button>
@@ -303,14 +311,14 @@ export default function VencimientosView() {
         <table className="main-tbl">
           <thead>
             <tr>
-              {['','Activo','Arrendatario','Superficie','Línea','Fecha vencim.','Tipo','Estado','Recordatorio','Alerta','Acciones'].map(h=>(
+              {['','Activo','Arrendatario','Superficie','Línea','Fecha vencim.','Tipo','Estado','Mandato','Recordatorio','Alerta','Acciones'].map(h=>(
                 <th key={h}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0
-              ? <tr><td colSpan={11} style={{textAlign:'center',padding:32,color:'var(--text4)',fontSize:12}}>No hay vencimientos para los filtros aplicados</td></tr>
+              ? <tr><td colSpan={12} style={{textAlign:'center',padding:32,color:'var(--text4)',fontSize:12}}>No hay vencimientos para los filtros aplicados</td></tr>
               : filtered.map(v => {
                   const dias = diasRestantes(v.fecha)
                   const recActivo = isRecordatorioActivo(v)
@@ -330,6 +338,17 @@ export default function VencimientosView() {
                           const c = ESTADO_ARR_TAG[v._estadoArr] || { bg:'#f1f5f9', color:'#475569', border:'#cbd5e1' }
                           return <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:9, background:c.bg, color:c.color, border:`1px solid ${c.border}` }}>{v._estadoArr}</span>
                         })() : <span style={{ fontSize:9, color:'var(--text4)' }}>—</span>}
+                      </td>
+                      <td>
+                        {v._mandatoRef ? (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate('ficha-mandato', { id: v._mandatoRef }) }}
+                            style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:9, background:'#f3e8ff', color:'#7c3aed', border:'1px solid #d8b4fe', cursor:'pointer', fontFamily:'inherit' }}
+                            title={`Mandato ${v._mandatoTipo} vivo · click para abrir`}
+                          >
+                            📜 {v._mandatoRef}
+                          </button>
+                        ) : <span style={{ fontSize:9, color:'var(--text4)' }}>—</span>}
                       </td>
                       <td style={{fontSize:10,color:recActivo?'var(--red)':'var(--text3)'}}>
                         {v._recordatorioFecha
