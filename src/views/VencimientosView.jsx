@@ -28,20 +28,24 @@ function sectorToLinea(sector) {
   return 'Oficinas'
 }
 
-// Suma m² de un arrendatario (por nombre) recorriendo el stacking_data del
-// activo. Match exacto por unit.n con type='ten'. Si no hay match, devuelve 0
-// y el arrendatario se considera "huérfano" (existe en tabla, no en stacking).
-function sumStackingByTenant(stackingData, tenantName) {
-  if (!stackingData || !tenantName) return 0
-  let total = 0
+// Recorre el stacking_data del activo y devuelve { sup, count } de las
+// unidades `type:'ten'` cuyo nombre coincide con tenantName.
+// Match exacto por nombre — única fuente de identificación que existe hoy
+// en el stacking jsonb (los units no tienen arr_id estable).
+function findStackingTenant(stackingData, tenantName) {
+  const out = { sup: 0, count: 0 }
+  if (!stackingData || !tenantName) return out
   for (const edif of stackingData) {
     for (const planta of (edif.arr || [])) {
       for (const u of (planta.units || [])) {
-        if (u.type === 'ten' && u.n === tenantName) total += Number(u.sup) || 0
+        if (u.type === 'ten' && u.n === tenantName) {
+          out.sup += Number(u.sup) || 0
+          out.count += 1
+        }
       }
     }
   }
-  return total
+  return out
 }
 
 function mapDbToVencimientos(r, extras = {}) {
@@ -68,6 +72,8 @@ function mapDbToVencimientos(r, extras = {}) {
     _mandatoTipo: mandato?.tipo || null,
     _sinAsignar: sinAsignar,
     _supLibre: Number(r.m2) || 0,
+    _desconocido: !!extras.desconocido,
+    _ambiguoMatch: !!extras.ambiguoMatch,
   }
 
   if (r.break_option) {
@@ -153,7 +159,7 @@ export default function VencimientosView() {
     //    caliente vs frío.
     Promise.all([
       supabase.from('arrendatarios')
-        .select('ref,nombre,activo_ref,break_option,vencimiento,m2,estado_arr')
+        .select('ref,nombre,activo_ref,break_option,vencimiento,m2,estado_arr,tenant_desconocido')
         .or('break_option.not.is.null,vencimiento.not.is.null')
         .or('estado_arr.is.null,estado_arr.neq.Finalizado')
         .order('vencimiento', { nullsFirst: false }),
@@ -170,12 +176,20 @@ export default function VencimientosView() {
       const manByActivoId  = Object.fromEntries((manRes.data || []).map(m => [m.activo_id, m.mandatos]))
 
       const dbEntries = (arrRes.data || []).flatMap(r => {
-        const sumaStacking = sumStackingByTenant(stackingByRef[r.activo_ref], r.nombre)
+        const stack = findStackingTenant(stackingByRef[r.activo_ref], r.nombre)
+        // 'Desconocido' es un placeholder colectivo: pueden coexistir varios
+        // en el mismo activo y el match por nombre los agregaría todos. Por
+        // eso para Desconocido no sumamos del stacking (m² ambiguo) — usamos
+        // el dato libre de la fila — y solo marcamos asignado si hay al menos
+        // una unidad Desconocido en stacking.
+        const isDesconocido = !!r.tenant_desconocido || r.nombre === 'Desconocido'
         return mapDbToVencimientos(r, {
           uso:                  usoByRef[r.activo_ref],
           mandato:              manByActivoId[idByRef[r.activo_ref]],
-          stackingSup:          sumaStacking > 0 ? sumaStacking : null,
-          asignadoEnStacking:   sumaStacking > 0,
+          stackingSup:          isDesconocido ? null : (stack.sup > 0 ? stack.sup : null),
+          asignadoEnStacking:   stack.count > 0,
+          desconocido:          isDesconocido,
+          ambiguoMatch:         isDesconocido && stack.count > 0,
         })
       })
 
@@ -362,8 +376,10 @@ export default function VencimientosView() {
                       </td>
                       <td style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>{v.activo}</td>
                       <td style={{fontSize:11}}>
-                        {v.arrendatario}
-                        {v._sinAsignar && (
+                        {v._desconocido
+                          ? <span style={{ fontStyle:'italic', color:'var(--text3)' }}>Desconocido</span>
+                          : v.arrendatario}
+                        {v._sinAsignar && !v._desconocido && (
                           <span
                             title="Existe en la tabla de arrendatarios pero NO está arrastrado al stacking del activo. Su superficie es contablemente 0 hasta que se asigne."
                             style={{ marginLeft:6, fontSize:8, fontWeight:700, padding:'1px 6px', borderRadius:8, background:'#fef3c7', color:'#92400e', border:'1px solid #fde68a' }}
@@ -371,11 +387,27 @@ export default function VencimientosView() {
                             ⚠ HUÉRFANO
                           </span>
                         )}
+                        {v._sinAsignar && v._desconocido && (
+                          <span
+                            title="Tenant marcado como Desconocido y no hay ninguna unidad 'Desconocido' en el stacking del activo. Hay que arrastrarlo a una planta o disambiguar el nombre."
+                            style={{ marginLeft:6, fontSize:8, fontWeight:700, padding:'1px 6px', borderRadius:8, background:'#fef3c7', color:'#92400e', border:'1px solid #fde68a' }}
+                          >
+                            ⚠ SIN STACKING
+                          </span>
+                        )}
+                        {v._ambiguoMatch && (
+                          <span
+                            title="Hay varias unidades 'Desconocido' en el stacking del activo. El match por nombre es ambiguo — la m² mostrada viene del registro libre, no del stacking."
+                            style={{ marginLeft:6, fontSize:8, fontWeight:700, padding:'1px 6px', borderRadius:8, background:'#eff6ff', color:'#1e40af', border:'1px solid #bfdbfe' }}
+                          >
+                            🆔 AMBIGUO
+                          </span>
+                        )}
                       </td>
                       <td className="mono" style={{fontSize:11}}>
-                        {v._sinAsignar
+                        {v._sinAsignar && !v._desconocido
                           ? <span style={{ color:'var(--text4)' }} title={`Tabla: ${Number(v._supLibre||0).toLocaleString('es-ES')} m² · Stacking: 0`}>0 m²</span>
-                          : <>{Number(v.sup||0).toLocaleString('es-ES')} m²</>}
+                          : <>{Number(v.sup||0).toLocaleString('es-ES')} m²{v._desconocido && <span style={{ marginLeft:3, fontSize:9, color:'var(--text4)' }} title="Para tenants Desconocido la m² viene del registro libre, no del stacking">*</span>}</>}
                       </td>
                       <td><span className="tag tag-blue" style={{fontSize:9}}>{v.linea}</span></td>
                       <td style={{fontSize:11,fontFamily:'var(--mono)',fontWeight:600}}>{fmtFecha(v.fecha)}</td>
