@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
+import ActividadesPanel from '../components/ActividadesPanel'
 
 const MAN_TABS = [
   ['man-info',     'Información'],
@@ -1167,7 +1168,14 @@ export default function FichaMandatoSupabase({ refOrId }) {
             )
           })()}
           {tab === 'man-docs' && <StubTab label="Documentos del mandato" />}
-          {tab === 'man-act'  && <StubTab label="Actividades asociadas" />}
+          {tab === 'man-act'  && (
+            <div className="tab-content active">
+              <ActividadesPanel
+                filter={{ column:'mandato_id', value: mandato.id }}
+                title="Actividades vinculadas al mandato"
+              />
+            </div>
+          )}
           {tab === 'man-conf' && <StubTab label="Confidencialidad" />}
 
         </div>
