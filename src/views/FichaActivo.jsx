@@ -1265,20 +1265,29 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
       {/* ══ PROPIETARIOS ══ */}
       {view==='prop' && (()=>{
         const PROP_COLORS = ['#3b82f6','#8b5cf6','#14b8a6','#f97316','#ec4899','#22c55e']
-        const ownerSet = [...new Set([...extraOwners, ...(edif.prop||[]).flatMap(r=>r.units.map(u=>u.n))])]
-        const ownerColor = (n) => PROP_COLORS[ownerSet.indexOf(n)%PROP_COLORS.length]
-        // Helper: upsert a prop row on drop
-        const dropProp = (floorId, floorSup, ownerName) => {
-          updBuilding(b=>{
-            const exists = (b.prop||[]).find(r=>r.p===floorId)
-            if(exists){
-              const avail = exists.sup - exists.units.reduce((s,u)=>s+u.sup,0)
-              if(avail<=0) return b
-              return {...b, prop: b.prop.map(r=>r.p===floorId?{...r,units:[...r.units,{n:ownerName,sup:avail}]}:r)}
-            } else {
-              return {...b, prop: [...(b.prop||[]), {p:floorId, sup:floorSup, units:[{n:ownerName,sup:floorSup}]}]}
-            }
-          })
+        // ownerSet = lista deduplicada de chips {key, id, name}.
+        //   key = id (propietarios.id, ej. 'PRO-...') si lo hay, sino name.
+        //   Permite resolver renames y disambiguar varios propietarios con el
+        //   mismo nombre (poco común pero posible en estructuras complejas).
+        // extraOwners admite tanto strings (legacy) como {id, name}.
+        const _seen = new Set()
+        const ownerSet = []
+        const _push = (entry) => {
+          if (!entry || _seen.has(entry.key)) return
+          _seen.add(entry.key); ownerSet.push(entry)
+        }
+        for (const e of (extraOwners || [])) {
+          if (typeof e === 'string') _push({ key: e, id: null, name: e })
+          else if (e && e.name)      _push({ key: e.id || e.name, id: e.id || null, name: e.name })
+        }
+        for (const r of (edif.prop || [])) {
+          for (const u of (r.units || [])) {
+            _push({ key: u.prop_id || u.n, id: u.prop_id || null, name: u.n })
+          }
+        }
+        const ownerColor = (n) => {
+          const i = ownerSet.findIndex(o => o.name === n)
+          return PROP_COLORS[(i >= 0 ? i : 0) % PROP_COLORS.length]
         }
         return (
           <div className="sp-body">
@@ -1289,23 +1298,34 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
               <div style={{maxHeight:320,overflowY:'auto',paddingRight:2}}>
                 {ownerSet.length===0 ? (
                   <div style={{fontSize:10,color:'var(--muted)',lineHeight:1.5,padding:'4px 0'}}>Aún no hay propietarios</div>
-                ) : ownerSet.map((n,i)=>{
+                ) : ownerSet.map((o,i)=>{
                   const col = PROP_COLORS[i%PROP_COLORS.length]
+                  const dragKey = o.key
+                  const dupName = ownerSet.filter(x => x.name === o.name).length > 1
+                  // Suma m² del propietario usando prop_id si está disponible,
+                  // fallback por nombre para units legacy.
+                  const m2 = (edif.prop||[]).flatMap(r => r.units || []).reduce((s,u) => {
+                    const match = o.id ? u.prop_id === o.id : (!u.prop_id && u.n === o.name)
+                    return s + (match ? (Number(u.sup)||0) : 0)
+                  }, 0)
                   return (
-                    <div key={n} draggable className="sp-chip"
-                      onDragStart={()=>setDragging(n)}
+                    <div key={o.key} draggable className="sp-chip"
+                      onDragStart={()=>setDragging(dragKey)}
                       onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
                       style={{
-                        border:`1px solid ${dragging===n?col:col+'88'}`,background:col+'18',
-                        opacity:dragging&&dragging!==n?.4:1,
-                        boxShadow:dragging===n?`0 2px 8px ${col}44`:'none',
+                        border:`1px solid ${dragging===dragKey?col:col+'88'}`,background:col+'18',
+                        opacity:dragging&&dragging!==dragKey?.4:1,
+                        boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
                       }}
                     >
                       <span className="sp-chip-handle">⋮⋮</span>
                       <span className="sp-chip-dot" style={{background:col}}/>
                       <div className="sp-chip-detail">
-                        <span className="sp-chip-label" style={{color:col}}>{n}</span>
-                        <div className="sp-chip-meta">{(edif.prop||[]).find(r=>r.units.some(u=>u.n===n))?.units.filter(u=>u.n===n).reduce((s,u)=>s+u.sup,0)?.toLocaleString('es-ES')} m²</div>
+                        <span className="sp-chip-label" style={{color:col}}>
+                          {o.name}
+                          {dupName && o.id && <span style={{ marginLeft:4, fontSize:8, color:col, opacity:0.7, fontWeight:500 }}>· {o.id.slice(-6)}</span>}
+                        </span>
+                        <div className="sp-chip-meta">{m2 ? m2.toLocaleString('es-ES') : 0} m²</div>
                       </div>
                     </div>
                   )
@@ -1338,7 +1358,8 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     onDragLeave={()=>setDragTarget(null)}
                     onDrop={e=>{
                       e.preventDefault();setDragTarget(null)
-                      if(!dragging||!ownerSet.includes(dragging)) return
+                      const dropOwner = ownerSet.find(o => o.key === dragging)
+                      if(!dragging || !dropOwner) return
                       const targets = selectedFloors.length > 1 ? selectedFloors : [floor.id]
                       updBuilding(b=>{
                         let prop=[...(b.prop||[])]
@@ -1346,11 +1367,12 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                           const f=edif.floors.find(fl=>fl.id===fId)
                           const fSup=f?.sup??floor.sup
                           const idx=prop.findIndex(r=>r.p===fId)
+                          const newUnit = { prop_id: dropOwner.id, n: dropOwner.name }
                           if(idx>=0){
                             const avail=prop[idx].sup-prop[idx].units.reduce((s,u)=>s+u.sup,0)
-                            if(avail>0) prop[idx]={...prop[idx],units:[...prop[idx].units,{n:dragging,sup:avail}]}
+                            if(avail>0) prop[idx]={...prop[idx],units:[...prop[idx].units,{ ...newUnit, sup: avail }]}
                           } else {
-                            prop=[...prop,{p:fId,sup:fSup,units:[{n:dragging,sup:fSup}]}]
+                            prop=[...prop,{p:fId,sup:fSup,units:[{ ...newUnit, sup: fSup }]}]
                           }
                         })
                         return {...b,prop}
@@ -4209,7 +4231,7 @@ export default function FichaActivo() {
                   }, 1500)
                 }}
                 activoPropietario={activo?.propietario || ''}
-                extraOwners={propietariosReg.map(p=>p.propietario)}
+                extraOwners={propietariosReg.map(p=>({ id: p.id, name: p.propietario }))}
                 extraTenants={arrendatariosReg.map(a=>({ ref: a.ref, name: a.tenant }))}
                 onAddOwner={handleAddOwner}
                 onAddTenant={handleAddTenant}
