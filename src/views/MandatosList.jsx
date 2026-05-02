@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import BannerInfo from '../components/BannerInfo'
 
 // Mandatos viven en Supabase (migración 020 los migró todos).
 // Aquí queda solo el mapeo display + computados (días restantes, estado UI).
@@ -186,6 +187,11 @@ export default function MandatosList() {
 
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
+      <BannerInfo
+        variant="info"
+        title="Los mandatos no se crean desde aquí"
+        hint="Se firman desde una Propuesta ganada, una Demanda o una Oferta existentes"
+      />
       <div className="kpi-strip" style={{gridTemplateColumns:'repeat(6,1fr)'}}>
         <div className="ks"><div className="ks-lbl">Total mandatos</div><div className="ks-val">{total}</div></div>
         <div className="ks"><div className="ks-lbl">Activos</div><div className="ks-val green">{activosCount}</div></div>
@@ -215,7 +221,6 @@ export default function MandatosList() {
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
           <ColumnEditor cols={COLS} vis={vis} setVis={setVis}/>
           <button className="tbtn">⬇ Exportar</button>
-          <button className="tbtn prim" onClick={()=>navigate('ficha-mandato',{nuevo:true})}>+ Nuevo Mandato</button>
         </div>
       </div>
 
