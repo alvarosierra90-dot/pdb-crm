@@ -25,3 +25,6 @@ dist-ssr
 
 .vercel
 .claude/settings.local.json
+
+# Build artifacts del generador de PPTX (regenerables con node scripts/build-pptx.mjs)
+.cache-pptx/

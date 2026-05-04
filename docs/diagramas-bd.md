@@ -123,13 +123,13 @@ erDiagram
 
   arrendatarios ||--o{ vencimientos       : "tiene"
 
-  actividades }o--o| leads
-  actividades }o--o| ofertas
-  actividades }o--o| demandas
-  actividades }o--o| mandatos
-  actividades }o--o| negociaciones
-  actividades }o--o| activos
-  actividades }o--o| dynamics_opportunities
+  actividades }o--o| leads               : "se vincula"
+  actividades }o--o| ofertas              : "se vincula"
+  actividades }o--o| demandas             : "se vincula"
+  actividades }o--o| mandatos             : "se vincula"
+  actividades }o--o| negociaciones        : "se vincula"
+  actividades }o--o| activos              : "se vincula"
+  actividades }o--o| dynamics_opportunities : "se vincula"
 ```
 
 ### 2.1 Reglas estructurales
@@ -192,7 +192,7 @@ flowchart LR
   oferta_lead[Lead tipo<br/>oferta]
   demanda_lead[Lead tipo<br/>demanda]
   generic_lead[Lead tipo<br/>generico]
-  ins[(INSERT leads<br/>estado='nuevo'<br/>via=null<br/>equipo_trabajo=[])]
+  ins[(INSERT leads<br/>estado=nuevo<br/>via=null<br/>equipo_trabajo vacío)]
 
   SRC --> cap --> classify
   classify -->|propietario quiere comercializar| oferta_lead --> ins
@@ -1002,7 +1002,7 @@ flowchart LR
     s2[Recomendación]
     s3[Captura manual broker]
   end
-  ins[INSERT leads<br/>tipo=oferta o demanda o generico<br/>estado=nuevo<br/>via=null<br/>equipo_trabajo=arr]
+  ins[INSERT leads<br/>tipo=oferta · demanda · generico<br/>estado=nuevo<br/>via=null<br/>equipo_trabajo vacío]
   cua[En cualificación<br/>actividades · llamadas]
   modal[TransformarLeadModal]
 
