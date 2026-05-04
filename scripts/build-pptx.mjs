@@ -37,6 +37,12 @@ async function ensureDir(p) {
 }
 
 // ─── Render Mermaid → PNG vía Kroki ────────────────────────────────
+// Pedimos PNG a Kroki. Para mejor calidad usamos un theme con fonts
+// más grandes y guardamos el PNG ya escalado. Kroki PNG output es a
+// la resolución natural que Mermaid renderiza — para diagramas anchos
+// y bajitos el PNG es 1500x150, lo cual al escalar a la slide se ve
+// pequeño pero legible. La presentación visual mejora ampliando el
+// área de la slide para el diagrama (no tanto la resolución).
 async function renderMermaid(src) {
   const hash = crypto.createHash('sha1').update(src).digest('hex').slice(0, 12)
   const cached = path.join(CACHE_DIR, `${hash}.png`)
@@ -57,6 +63,14 @@ async function renderMermaid(src) {
   const buf = Buffer.from(await resp.arrayBuffer())
   await fs.writeFile(cached, buf)
   return buf
+}
+
+// Devuelve {width, height} de un PNG leyendo el header (8 bytes magic + 8 IHDR + 4 width + 4 height)
+function pngDims(buf) {
+  if (!buf || buf.length < 24) return null
+  const w = buf.readUInt32BE(16)
+  const h = buf.readUInt32BE(20)
+  return { w, h }
 }
 
 // ─── Parser muy simple del markdown ────────────────────────────────
@@ -191,29 +205,78 @@ function addSectionDivider(pptx, title) {
   s.addShape(pptx.ShapeType.line, { x: 0.6, y: 4.4, w: 5, h: 0, line: { color: PALETTE.accent, width: 4 } })
 }
 
-function addContentSlide(pptx, { title, body, png, isModule }) {
+function addDiagramSlide(pptx, { title, png, isModule, caption }) {
   const s = pptx.addSlide({ masterName: 'BASE' })
-  // Header
+  if (isModule) {
+    s.addText('Módulo', { x: 0.4, y: 0.08, w: 4, h: 0.22, fontSize: 9, bold: true, color: PALETTE.accent, fontFace: 'Calibri' })
+  }
   s.addText(title, {
+    x: 0.4, y: 0.25, w: 12.5, h: 0.45, fontSize: 20, bold: true, color: PALETTE.text, fontFace: 'Calibri',
+  })
+  s.addShape(pptx.ShapeType.line, { x: 0.4, y: 0.72, w: 12.5, h: 0, line: { color: PALETTE.border, width: 0.75 } })
+
+  // Área del diagrama: ~el resto de la slide. Si hay caption, dejamos sitio
+  // para 1-2 líneas debajo. Calcula h y ajusta el rect interno preservando
+  // el aspect ratio del PNG (Kroki devuelve aspect variable).
+  const captionH   = caption ? 0.45 : 0
+  const areaX      = 0.4
+  const areaY      = 0.85
+  const areaW      = 12.5
+  const areaH      = 6.55 - captionH
+
+  const dims = pngDims(png) || { w: areaW * 100, h: areaH * 100 }
+  const aspect = dims.w / dims.h
+  const areaAspect = areaW / areaH
+  let drawW, drawH, drawX, drawY
+  if (aspect >= areaAspect) {
+    // El diagrama es más ancho que el área → fit width
+    drawW = areaW
+    drawH = areaW / aspect
+    drawX = areaX
+    drawY = areaY + (areaH - drawH) / 2
+  } else {
+    // Más alto → fit height
+    drawH = areaH
+    drawW = areaH * aspect
+    drawX = areaX + (areaW - drawW) / 2
+    drawY = areaY
+  }
+
+  // Para diagramas muy estrechos (aspect > 5) ampliamos un poco más para
+  // que el texto del diagrama no quede minúsculo. Topamos al ancho del área.
+  if (aspect > 5 && drawW < areaW) {
+    const factor = Math.min(1.5, areaW / drawW)
+    drawW *= factor
+    drawH *= factor
+    drawX = areaX + (areaW - drawW) / 2
+    drawY = areaY + (areaH - drawH) / 2
+  }
+
+  s.addImage({
+    data: 'data:image/png;base64,' + png.toString('base64'),
+    x: drawX, y: drawY, w: drawW, h: drawH,
+  })
+
+  if (caption) {
+    s.addText(caption, {
+      x: 0.4, y: 0.85 + areaH + 0.05, w: 12.5, h: captionH, fontSize: 10, color: PALETTE.text2, fontFace: 'Calibri', italic: true, valign: 'top',
+    })
+  }
+}
+
+function addTextSlide(pptx, { title, body, isModule, suffix }) {
+  const s = pptx.addSlide({ masterName: 'BASE' })
+  if (isModule) {
+    s.addText('Módulo', { x: 0.4, y: 0.08, w: 4, h: 0.22, fontSize: 9, bold: true, color: PALETTE.accent, fontFace: 'Calibri' })
+  }
+  s.addText(title + (suffix ? ' · ' + suffix : ''), {
     x: 0.4, y: 0.25, w: 12.5, h: 0.5, fontSize: 22, bold: true, color: PALETTE.text, fontFace: 'Calibri',
   })
-  if (isModule) {
-    s.addText('Módulo', { x: 0.4, y: 0.05, w: 4, h: 0.22, fontSize: 9, bold: true, color: PALETTE.accent, fontFace: 'Calibri' })
-  }
   s.addShape(pptx.ShapeType.line, { x: 0.4, y: 0.78, w: 12.5, h: 0, line: { color: PALETTE.border, width: 0.75 } })
-
-  if (png) {
-    // Diagrama centrado, texto debajo
-    s.addImage({ data: 'data:image/png;base64,' + png.toString('base64'), x: 0.5, y: 0.95, w: 12.3, h: 4.6, sizing: { type: 'contain', w: 12.3, h: 4.6 } })
-    if (body) {
-      s.addText(body, { x: 0.5, y: 5.7, w: 12.3, h: 1.3, fontSize: 11, color: PALETTE.text2, fontFace: 'Calibri', valign: 'top' })
-    }
-  } else if (body) {
-    // Solo texto
-    s.addText(body, { x: 0.5, y: 1.0, w: 12.3, h: 6.0, fontSize: 14, color: PALETTE.text, fontFace: 'Calibri', valign: 'top' })
-  } else {
-    s.addText('(sin contenido)', { x: 0.5, y: 1.0, w: 12.3, h: 5.5, fontSize: 14, color: PALETTE.text2, italic: true, fontFace: 'Calibri' })
-  }
+  s.addText(body || '(sin contenido)', {
+    x: 0.5, y: 1.0, w: 12.3, h: 6.0, fontSize: 14, color: PALETTE.text, fontFace: 'Calibri', valign: 'top',
+    paraSpaceAfter: 6,
+  })
 }
 
 function addCodeSlide(pptx, { title, code, caption }) {
@@ -290,33 +353,39 @@ async function main() {
       addSectionDivider(pptx, title)
     }
 
-    const bodyText = summarizeBody(s.body, 1100)
+    const bodyText = summarizeBody(s.body, 1800)
+    const codeBlocks = s.body.filter(b => b.type === 'code')
 
     if (s.mermaids.length === 0) {
       if (bodyText) {
-        // Si el body tiene un bloque de código grande, hacer slide de código
-        const codeBlocks = s.body.filter(b => b.type === 'code')
-        if (codeBlocks.length === 1 && codeBlocks[0].text.length > 200 && bodyText.length > 200) {
-          // text slide + code slide
-          addContentSlide(pptx, { title, body: bodyText.replace(codeBlocks[0].text, '').trim(), png: null, isModule })
-          addCodeSlide(pptx, { title: title + ' (cont.)', code: codeBlocks[0].text })
+        if (codeBlocks.length === 1 && codeBlocks[0].text.length > 200 && bodyText.length > 400) {
+          addTextSlide(pptx, { title, body: bodyText.replace(codeBlocks[0].text, '').trim(), isModule })
+          addCodeSlide(pptx, { title, code: codeBlocks[0].text })
         } else {
-          addContentSlide(pptx, { title, body: bodyText, png: null, isModule })
+          addTextSlide(pptx, { title, body: bodyText, isModule })
         }
-      } else if (s.level === 2) {
-        // Ya añadimos el divider, no hace falta más
       }
+      // si el level 2 no tiene body, ya tiene divider
     } else {
-      // 1 slide por diagrama (usualmente solo hay 1 por sección)
+      // Para cada Mermaid: 1 slide solo con el diagrama, ocupando casi toda
+      // la slide. Si la sección tiene texto sustancial, primero un slide de
+      // texto con el contexto, luego el diagrama. Caption corta debajo.
+      const hasSubstantialText = bodyText && bodyText.length > 200
+      if (hasSubstantialText) {
+        addTextSlide(pptx, { title, body: bodyText, isModule, suffix: 'contexto' })
+      }
+      // Caption corta = primera frase del body (o nada)
+      const shortCaption = bodyText
+        ? (bodyText.split(/\.\s+|\n/)[0] || '').slice(0, 220) + (bodyText.length > 220 ? '…' : '')
+        : null
+
       s.mermaids.forEach((src, idx) => {
         const png = pngFor(src)
         const slideTitle = s.mermaids.length > 1 ? `${title} (${idx+1}/${s.mermaids.length})` : title
         if (png) {
-          addContentSlide(pptx, { title: slideTitle, body: idx === 0 ? bodyText : null, png, isModule })
+          addDiagramSlide(pptx, { title: slideTitle, png, isModule, caption: idx === 0 && !hasSubstantialText ? shortCaption : null })
         } else {
-          // Fallback: mostrar el código Mermaid
-          addCodeSlide(pptx, { title: slideTitle, code: src, caption: '⚠ Diagrama no renderizado — ver mermaid.live con este código' })
-          if (idx === 0 && bodyText) addContentSlide(pptx, { title: slideTitle + ' · notas', body: bodyText, png: null, isModule })
+          addCodeSlide(pptx, { title: slideTitle, code: src, caption: '⚠ Diagrama no renderizado — pega el código en mermaid.live' })
         }
       })
     }
