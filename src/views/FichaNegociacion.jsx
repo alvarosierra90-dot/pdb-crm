@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
+import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 
 // ─── CONTRACT DRAFTS ─────────────────────────────────────────────────────────
 const CONTRACTS_INIT = [
@@ -171,8 +172,8 @@ function UploadPanel({ onUpload, onClose, nextVersion }) {
   )
 }
 
-const TABS = ['neg-chat','neg-condiciones','neg-docs','neg-historial','neg-colab']
-const TAB_LABELS = ['Negociación','Condiciones acordadas','Documentos contractuales','Historial completo','Equipos colaboradores']
+const TABS = ['neg-chat','neg-condiciones','neg-docs','neg-historial','neg-colab','neg-conf']
+const TAB_LABELS = ['Negociación','Condiciones acordadas','Documentos contractuales','Historial completo','Equipos colaboradores','Confidencialidad']
 
 const COLAB_INIT_NEG = [
   { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable negociación', initials:'AS', bg:'#dbeafe', color:'#1e40af', principal:true },
@@ -183,6 +184,10 @@ export default function FichaNegociacion() {
   const [activeTab, setActiveTab] = useState('neg-chat')
   const [colabTeams, setColabTeams] = useState(COLAB_INIT_NEG)
   const [addingTeam, setAddingTeam] = useState(false)
+  const [negConfidential, setNegConfidential] = useState(false)
+  const [negAuthUsers, setNegAuthUsers] = useState([
+    { name:'Sierra Álvaro', team:'Leasing Oficinas MAD', role:'Principal', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
+  ])
   const [newTeam, setNewTeam] = useState('')
   const [showTarea, setShowTarea] = useState(false)
   const [contracts, setContracts] = useState(CONTRACTS_INIT)
@@ -586,6 +591,26 @@ export default function FichaNegociacion() {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* TAB: CONFIDENCIALIDAD — formato canónico Oferta */}
+          {activeTab === 'neg-conf' && (
+            <ConfidencialidadPanel
+              entityLabel="negociación"
+              confidential={negConfidential}
+              onToggle={setNegConfidential}
+              hiddenFields={['Cuenta','Contraparte','Condiciones acordadas','Documentos contractuales','Term sheet']}
+              visibleFields={['Activo vinculado','Estado de la negociación','Equipo','Fecha de inicio','Información básica']}
+              authorizedUsers={negAuthUsers}
+              onAddUser={(newUser) => {
+                const [name, team] = [newUser.split('·')[0].trim(), newUser.split('·')[1]?.trim() || '']
+                const ini = name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+                const today = new Date().toLocaleDateString('es-ES')
+                setNegAuthUsers(prev => [...prev, { name, team, role:'Autorizado', initials:ini, bg:'#f0fdf4', color:'#166534', granted:today }])
+              }}
+              onRemoveUser={(idx) => setNegAuthUsers(prev => prev.filter((_,j) => j !== idx))}
+              responsable="Sierra Álvaro"
+            />
           )}
 
         </div>

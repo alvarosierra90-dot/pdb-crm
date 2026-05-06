@@ -4,14 +4,16 @@ import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
 import MarcarPropuestaGanadaModal from '../components/MarcarPropuestaGanadaModal'
+import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 
-// Mismas pestañas que la mock (FichaPropuesta TABS / TAB_LABELS)
+// Pestañas (incluye Confidencialidad universal)
 const PRY_TABS = [
   ['datos',        'Datos del proyecto'],
   ['equipos',      'Equipos y participantes'],
   ['trazabilidad', 'Trazabilidad'],
   ['docs',         'Documentación'],
   ['resumen',      'Resumen'],
+  ['conf',         'Confidencialidad'],
 ]
 
 const TIPOS = ['Pitch','Valoración','Propuesta de servicios','Mandato comercial','Consultoría','Urbanismo','Proyecto de arquitectura / workplace']
@@ -68,6 +70,10 @@ export default function FichaPropuestaSupabase({ refOrId }) {
   const [tab, setTab] = useState('datos')
   const [propuesta, setPropuesta] = useState(null)
   const [cuenta, setCuenta] = useState(null)
+  const [pryConfidential, setPryConfidential] = useState(false)
+  const [pryAuthUsers, setPryAuthUsers] = useState([
+    { name: CURRENT_USER.nombre, team: CURRENT_USER.equipo || 'Equipo PDB', role:'Principal', initials:(CURRENT_USER.nombre||'').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(), bg:'#dbeafe', color:'#1e40af', owner:true },
+  ])
   const [oportunidad, setOportunidad] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -450,6 +456,24 @@ export default function FichaPropuestaSupabase({ refOrId }) {
           {tab === 'trazabilidad' && <div className="tab-content active"><StubTab label="Trazabilidad" /></div>}
           {tab === 'docs'         && <div className="tab-content active"><StubTab label="Documentación" /></div>}
           {tab === 'resumen'      && <div className="tab-content active"><StubTab label="Resumen" /></div>}
+          {tab === 'conf' && (
+            <ConfidencialidadPanel
+              entityLabel="propuesta"
+              confidential={pryConfidential}
+              onToggle={setPryConfidential}
+              hiddenFields={['Cuenta','Datos económicos / Fees','Estrategia comercial','Documentación adjunta','Equipo participante']}
+              visibleFields={['Tipo de propuesta','Estado','Equipo','Fecha de creación','Información básica']}
+              authorizedUsers={pryAuthUsers}
+              onAddUser={(newUser) => {
+                const [name, team] = [newUser.split('·')[0].trim(), newUser.split('·')[1]?.trim() || '']
+                const ini = name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+                const today = new Date().toLocaleDateString('es-ES')
+                setPryAuthUsers(prev => [...prev, { name, team, role:'Autorizado', initials:ini, bg:'#f0fdf4', color:'#166534', granted:today }])
+              }}
+              onRemoveUser={(idx) => setPryAuthUsers(prev => prev.filter((_,j) => j !== idx))}
+              responsable={CURRENT_USER.nombre}
+            />
+          )}
 
         </div>
       </div>
