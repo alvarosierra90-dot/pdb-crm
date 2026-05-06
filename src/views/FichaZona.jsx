@@ -498,7 +498,7 @@ export default function FichaZona() {
                         </td>
                         <td className="mono">{a.renta} €/m²</td>
                         <td className="mono">{a.valor}</td>
-                        <td><span className={`tag ${a.estado==='Activo'?'tag-green':a.estado==='En comercialización'?'tag-amber':'tag-gray'}`}>{a.estado}</span></td>
+                        <td><span className={`tag ${a.estado==='Activo en mercado'?'tag-green':a.estado==='En comercialización'?'tag-amber':'tag-gray'}`}>{a.estado}</span></td>
                         <td>{a.dias>0?<span style={{color:a.dias>90?'var(--red)':a.dias>60?'var(--amber)':'var(--text3)',fontWeight:600}}>{a.dias}d</span>:'—'}</td>
                         <td style={{fontWeight:600,color:'var(--accent)'}}>{a.ofertas}</td>
                         <td>

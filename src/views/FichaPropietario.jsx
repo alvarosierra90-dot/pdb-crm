@@ -402,7 +402,7 @@ export default function FichaPropietario() {
                   <div style={{padding:'10px 14px'}}>
                     <div className="kf-grid">
                       <KF label="ID" value={form.id} mono/>
-                      <KF label="Razón social" value={form.propietario} set={(v)=>set('propietario',v)}/>
+                      <KF label="Cuenta" value={form.propietario} set={(v)=>set('propietario',v)}/>
                       <KF label="CIF / NIF" value={form.cif} set={(v)=>set('cif',v)} mono/>
                       <KF label="Tipo entidad" value={form.tipo_entidad} set={(v)=>set('tipo_entidad',v)}/>
                       <KF label="País" value={form.pais} set={(v)=>set('pais',v)}/>

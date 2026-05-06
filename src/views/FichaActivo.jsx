@@ -419,7 +419,7 @@ const NEW_FORM_INIT = {
 }
 
 const TABS = ['at-info','at-stacking','at-caract','at-prop','at-ofertas','at-fotos','at-docs','at-adicional','at-360','at-followup']
-const TAB_LABELS = ['Información general','Stacking Plan','Características','Propietarios y arrendatarios','Ofertas','Multimedia','Documentos','Información adicional','Vista 360°','Follow-up']
+const TAB_LABELS = ['Información general','Stacking Plan','Características','Propietarios y arrendatarios','Ofertas','Multimedia','Documentos','Información adicional','Vista 360','Follow-up']
 
 /* ── PLAZAS DE APARCAMIENTO ── */
 const UBICACIONES  = ['Interior','Exterior']
@@ -4979,7 +4979,7 @@ export default function FichaActivo() {
             </div></div>
           )}
 
-          {/* ── TAB: Vista 360° — Actividad transversal + Seguimiento ── */}
+          {/* ── TAB: Vista 360 — Actividad transversal + Seguimiento ── */}
           {activeTab==='at-360' && (
             <div className="tab-content active"><div className="info-pad">
 

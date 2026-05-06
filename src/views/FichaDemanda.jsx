@@ -10,7 +10,7 @@ const DEM_USERS_INIT = [
 
 const DEM_TABS = [
   ['dem-info','Información Demanda'],['dem-req','Requisitos'],['dem-zona','Zona búsqueda'],
-  ['dem-seg','Seguimiento comercial'],['dem-360','Ciclo 360°'],['dem-act','Actividades'],
+  ['dem-seg','Seguimiento comercial'],['dem-360','Vista 360'],['dem-act','Actividades'],
   ['dem-partes','Partes involucradas'],['dem-docs','Documentos'],['dem-neg','Negociaciones en curso'],['dem-followup','Follow-up'],
   ['dem-conf','Confidencialidad'],
 ]
@@ -857,7 +857,7 @@ function FichaDemandaMock() {
             </div></div>
           )}
 
-          {/* ── TAB: Ciclo 360° ── */}
+          {/* ── TAB: Vista 360 ── */}
           {activeTab==='dem-360' && (
             <div className="tab-content active"><div className="info-pad">
               <div style={{marginBottom:16,fontSize:12,color:'var(--text3)'}}>Ciclo completo de esta demanda desde su entrada hasta la instrucción de facturación.</div>

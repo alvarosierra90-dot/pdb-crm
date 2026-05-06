@@ -11,7 +11,7 @@ const DEM_TABS = [
   ['dem-req',      'Requisitos'],
   ['dem-zona',     'Zona búsqueda'],
   ['dem-seg',      'Seguimiento comercial'],
-  ['dem-360',      'Ciclo 360°'],
+  ['dem-360',      'Vista 360'],
   ['dem-act',      'Actividades'],
   ['dem-partes',   'Partes involucradas'],
   ['dem-docs',     'Documentos'],
@@ -40,11 +40,11 @@ const MOTIVOS_DESCARTE_DEMANDA = [
   'Renegocia en su actual ubicación',
   'Firma en otra ubicación',
   'Operación cerrada con otra consultora',
-  'Cliente cancela el proyecto',
+  'Cuenta cancela el proyecto',
   'Aplaza decisión sin fecha',
   'Sin presupuesto / proyecto inviable',
   'Cambio de estrategia interna',
-  'Sin respuesta del cliente',
+  'Sin respuesta de la Cuenta',
   'Spam / no cualificada',
   'Otro motivo',
 ]
@@ -781,7 +781,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
           )}
 
           {tab === 'dem-seg'      && <div className="tab-content active"><StubTab label="Seguimiento comercial" /></div>}
-          {tab === 'dem-360'      && <div className="tab-content active"><StubTab label="Ciclo 360°" /></div>}
+          {tab === 'dem-360'      && <div className="tab-content active"><StubTab label="Vista 360" /></div>}
           {tab === 'dem-act'      && <div className="tab-content active"><StubTab label="Actividades" /></div>}
           {tab === 'dem-partes'   && <div className="tab-content active"><StubTab label="Partes involucradas" /></div>}
           {tab === 'dem-docs'     && <div className="tab-content active"><StubTab label="Documentos" /></div>}

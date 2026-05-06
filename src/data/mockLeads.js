@@ -51,7 +51,7 @@ export const MOTIVOS_LEAD_NULO = [
   'Superficie solicitada no disponible',
   'Activo no comercializable',
   'Servicio no aplicable',
-  'Cliente no responde',
+  'Cuenta no responde',
   'Contacto duplicado',
   'Información incompleta',
   'Lead irrelevante',

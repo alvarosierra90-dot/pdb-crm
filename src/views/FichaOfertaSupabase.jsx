@@ -38,8 +38,8 @@ const ESTADO_OFERTA = [
 const ESTADOS_CIERRE_OFERTA = ['Ocupada total','Retirada']
 
 const MOTIVOS_DESCARTE_OFERTA = [
-  'Arrendado / vendido a otro cliente',
-  'Retirada por la propiedad',
+  'Arrendado / vendido a otra Cuenta',
+  'Retirada por el propietario',
   'Mandato finalizado / no renovado',
   'Cambio de precio o condiciones',
   'Activo en obras / no comercializable',
@@ -516,7 +516,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
                   ? <input style={inpFull} value={form.titulo_web} onChange={e => setF('titulo_web', e.target.value)} placeholder="Cómo aparece en savills.es" />
                   : (oferta.titulo_web || <span style={{ color:'var(--text4)' }}>—</span>)}</span></div>
                 <div className="ir" style={{ alignItems:'flex-start' }}><span className="ir-k">Descripción web</span><span className="ir-v" style={{ flex:1 }}>{editing
-                  ? <textarea style={ta} value={form.descripcion_web} onChange={e => setF('descripcion_web', e.target.value)} placeholder="Texto comercial visible al cliente final..." />
+                  ? <textarea style={ta} value={form.descripcion_web} onChange={e => setF('descripcion_web', e.target.value)} placeholder="Texto comercial visible a la Cuenta..." />
                   : (oferta.descripcion_web || <span style={{ color:'var(--text4)' }}>—</span>)}</span></div>
                 <div className="ir"><span className="ir-k">Publicar en Savills</span><span className="ir-v">{oferta.publicado_savills ? 'Sí' : 'No'}</span></div>
                 <div className="ir"><span className="ir-k">Publicar en Idealista</span><span className="ir-v">{oferta.publicado_idealista ? 'Sí' : 'No'}</span></div>

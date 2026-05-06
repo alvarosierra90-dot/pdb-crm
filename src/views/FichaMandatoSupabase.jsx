@@ -44,9 +44,9 @@ const EXCL_OPTS = [
 
 // Motivos por los que se cancela un mandato (antes del vencimiento)
 const MOTIVOS_CANCELACION = [
-  'Cliente cancela el encargo',
+  'Cuenta cancela el encargo',
   'Pérdida de competitividad de Savills',
-  'Cambio de estrategia del cliente',
+  'Cambio de estrategia de la Cuenta',
   'Activo vendido / alquilado fuera de Savills',
   'Conflicto de interés',
   'Problema de compliance / KYC',

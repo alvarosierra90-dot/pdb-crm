@@ -261,7 +261,7 @@ export default function FichaArrendatario() {
   function validate() {
     const errs = []
     if (!form.tenant_desconocido && !form.tenant.trim())
-      errs.push('Nombre del tenant (o marca "Tenant desconocido")')
+      errs.push('Cuenta del arrendatario (o marca "Arrendatario desconocido")')
     if (!form.anyo_firma || !/^\d{4}$/.test(form.anyo_firma.trim()))
       errs.push('Año de firma (4 dígitos)')
     if (!form.trimestre)
@@ -591,7 +591,7 @@ export default function FichaArrendatario() {
                   <span className={`tag ${form.estado==='Activo'?'tag-green':form.estado==='Próximo a vencimiento'?'tag-red':form.estado==='En negociación'?'tag-purple':'tag-gray'}`}>{form.estado}</span>
                   {isNew && <span style={{background:'#dbeafe',color:'#1e40af',border:'1px solid #bfdbfe',padding:'0 6px',borderRadius:3,fontSize:9,fontWeight:700}}>DESDE OFERTA</span>}
                 </div>
-                <div className="ah-name">{form.tenant_desconocido ? 'Tenant desconocido' : (form.tenant || <span style={{color:'var(--text4)',fontStyle:'italic'}}>Sin nombre</span>)} {form.activo ? `— ${form.activo}` : ''}</div>
+                <div className="ah-name">{form.tenant_desconocido ? 'Arrendatario desconocido' : (form.tenant || <span style={{color:'var(--text4)',fontStyle:'italic'}}>Sin nombre</span>)} {form.activo ? `— ${form.activo}` : ''}</div>
                 <div className="ah-addr">📍 {form.zona} · {form.subzona} · Inicio: {form.fecha_inicio} · Break: {form.break_option} · Fin: {form.fecha_fin}</div>
                 <div className="ah-tags">
                   <span className="tag tag-teal">{form.sector}</span>
@@ -658,12 +658,12 @@ export default function FichaArrendatario() {
                         </label>
                         <label style={{display:'flex',alignItems:'center',gap:5,fontSize:11,cursor:'pointer'}}>
                           <input type="checkbox" checked={form.tenant_desconocido} onChange={e=>set('tenant_desconocido',e.target.checked)} style={{accentColor:'var(--accent)'}}/>
-                          Tenant desconocido
+                          Arrendatario desconocido
                         </label>
                       </div>
-                      <FField label="Tenant (Cuenta)" invalid={invalidFields.has('tenant')}><input className="of-inp" value={form.tenant} onChange={e=>set('tenant',e.target.value)}/></FField>
-                      <FField label="Tenant mayoritario"><input className="of-inp" value={form.tenant_mayoritario} onChange={e=>set('tenant_mayoritario',e.target.value)}/></FField>
-                      <FField label="Propiedad (Cuenta)"><input className="of-inp" value={form.propietario} onChange={e=>set('propietario',e.target.value)}/></FField>
+                      <FField label="Arrendatario (Cuenta)" invalid={invalidFields.has('tenant')}><input className="of-inp" value={form.tenant} onChange={e=>set('tenant',e.target.value)}/></FField>
+                      <FField label="Arrendatario mayoritario"><input className="of-inp" value={form.tenant_mayoritario} onChange={e=>set('tenant_mayoritario',e.target.value)}/></FField>
+                      <FField label="Propietario (Cuenta)"><input className="of-inp" value={form.propietario} onChange={e=>set('propietario',e.target.value)}/></FField>
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
                         <FField label="Año firma" invalid={invalidFields.has('anyo_firma')}><input className="of-inp" value={form.anyo_firma} onChange={e=>set('anyo_firma',e.target.value)}/></FField>
                         <FField label="Trimestre" invalid={invalidFields.has('trimestre')}>

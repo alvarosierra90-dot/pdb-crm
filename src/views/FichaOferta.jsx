@@ -1847,7 +1847,7 @@ function FichaOfertaMock() {
                       <div className="va-meta-card">
                         <div className="va-meta-head accent-green"><span className="dot"/>Visible siempre</div>
                         <div className="va-kv-list">
-                          {['Cliente / Cuenta','Tipo de operación','Estado de la oferta','Equipo responsable','Información básica'].map(item=>(
+                          {['Cuenta','Tipo de operación','Estado de la oferta','Equipo','Información básica'].map(item=>(
                             <div key={item} className="ir"><span className="ir-k" style={{display:'flex',alignItems:'center',gap:6}}><span style={{color:'var(--green)',fontWeight:700}}>✓</span> {item}</span><span className="ir-v"><span style={{color:'var(--green)',fontSize:10,fontWeight:600}}>Visible</span></span></div>
                           ))}
                         </div>

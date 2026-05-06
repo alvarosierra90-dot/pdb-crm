@@ -133,7 +133,7 @@ export default function ActivosList() {
     uso:     <td key="uso"><span className={`tag ${a.uso === 'Oficinas' ? 'tag-blue' : a.uso === 'Logístico' ? 'tag-teal' : a.uso === 'Data Center' ? 'tag-blue' : a.uso === 'Residencial' ? 'tag-amber' : 'tag-purple'}`}>{a.uso}</span></td>,
     occ:     <td key="occ"><div className="occ-cell" title="KPI derivado de las Ofertas vinculadas a este Activo"><div className="occ-bar"><div className="occ-bar-fill" style={{ width: `${a.occ}%`, background: occColor(a.occ) }} /></div><span style={{ fontSize: 11, color: occColor(a.occ) }}>{a.occ}%</span></div></td>,
     valor:   <td key="valor" className="mono">{a.valor}</td>,
-    estado:  <td key="estado"><span className={`tag ${a.estado === 'Totalmente ocupado' ? 'tag-green' : a.estado === 'Activo' ? 'tag-green' : a.estado === 'Parcialmente disponible' ? 'tag-amber' : a.estado === 'En comercialización' ? 'tag-amber' : a.estado === 'Vacío al completo' ? 'tag-red' : 'tag-gray'}`}>{a.estado}</span></td>,
+    estado:  <td key="estado"><span className={`tag ${a.estado === 'Totalmente ocupado' ? 'tag-green' : a.estado === 'Activo en mercado' ? 'tag-green' : a.estado === 'Parcialmente disponible' ? 'tag-amber' : a.estado === 'En comercialización' ? 'tag-amber' : a.estado === 'Vacío al completo' ? 'tag-red' : 'tag-gray'}`}>{a.estado}</span></td>,
     dias:    <td key="dias" title="KPI derivado de las Ofertas vinculadas a este Activo">{a.dias > 0 ? <span style={{ color: a.dias > 90 ? 'var(--red)' : a.dias > 60 ? 'var(--amber)' : 'var(--text3)', fontWeight: 600 }}>{a.dias}d</span> : '—'}</td>,
     propietario:    <td key="propietario" style={{ fontSize: 11 }}>{a.propietario}</td>,
     uso_secundario: <td key="uso_secundario">{a.uso_secundario ? <span className="tag tag-gray" style={{fontSize:9}}>{a.uso_secundario}</span> : <span style={{color:'var(--text4)'}}>—</span>}</td>,
@@ -336,7 +336,7 @@ export default function ActivosList() {
                       </div>
                       <div>
                         <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em' }}>Estado</div>
-                        <span className={`tag ${a.estado === 'Totalmente ocupado' ? 'tag-green' : a.estado === 'Activo' ? 'tag-green' : a.estado === 'Parcialmente disponible' ? 'tag-amber' : a.estado === 'En comercialización' ? 'tag-amber' : a.estado === 'Vacío al completo' ? 'tag-red' : 'tag-gray'}`} style={{ fontSize:9, marginTop:2 }}>{a.estado}</span>
+                        <span className={`tag ${a.estado === 'Totalmente ocupado' ? 'tag-green' : a.estado === 'Activo en mercado' ? 'tag-green' : a.estado === 'Parcialmente disponible' ? 'tag-amber' : a.estado === 'En comercialización' ? 'tag-amber' : a.estado === 'Vacío al completo' ? 'tag-red' : 'tag-gray'}`} style={{ fontSize:9, marginTop:2 }}>{a.estado}</span>
                       </div>
                     </div>
 
