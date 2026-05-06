@@ -8,7 +8,7 @@ import {
   Building2, Factory, ShoppingBag, Server, Home, Hotel, Square,
   Mail, Phone, Users, FileText, Pencil, CheckSquare,
   MapPin, Search, Upload, Image as ImageIcon, AlertTriangle, ArrowDown, BarChart3, Wallet, ClipboardList,
-  Inbox
+  Inbox, Clock, FileSpreadsheet
 } from 'lucide-react'
 
 const USO_PREFIX_FA    = { 'Oficinas':'OF', 'Logístico':'LG', 'Retail':'RT', 'Data Center':'DC', 'Residencial':'RS', 'Hoteles':'HT', 'Suelo':'SU' }
@@ -418,8 +418,14 @@ const NEW_FORM_INIT = {
   ref_catastral:'', clasificacion:'', uso_pgou:'', calificacion_urb:'', edificabilidad:'', sup_parcela:'',
 }
 
-const TABS = ['at-info','at-stacking','at-caract','at-prop','at-ofertas','at-fotos','at-docs','at-adicional','at-360','at-followup']
-const TAB_LABELS = ['Información general','Stacking Plan','Características','Propietarios y arrendatarios','Ofertas','Multimedia','Documentos','Información adicional','Vista 360','Follow-up']
+// Tab structure consolidada (mayo 2026):
+// - "Información adicional" disuelta dentro de Información general.
+// - "Follow-up" eliminada → audit badge en el header.
+// - Multimedia + Documentos fusionados en una pestaña.
+// - Confidencialidad añadida (formato canónico Oferta).
+// - Características pasa al puesto 2 (antes que Stacking, regla de spec).
+const TABS = ['at-info','at-caract','at-stacking','at-prop','at-ofertas','at-mediadocs','at-360','at-conf']
+const TAB_LABELS = ['Información general','Características','Stacking Plan','Propietarios y arrendatarios','Ofertas','Multimedia & Documentos','Vista 360','Confidencialidad']
 
 /* ── PLAZAS DE APARCAMIENTO ── */
 const UBICACIONES  = ['Interior','Exterior']
@@ -4163,6 +4169,20 @@ export default function FichaActivo() {
                 </div>
               )}
             </div>
+
+            {/* Audit + export — bajo los KPIs, ancho completo. Solo en activos existentes. */}
+            {!isNew && !loadingActivo && (
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:10, paddingTop:10, borderTop:'1px solid var(--border)' }}>
+                <div style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, color:'var(--text3)' }}>
+                  <Clock size={12} strokeWidth={1.75} />
+                  <span>Última modificación · {activo?.updated_by || 'Álvaro Sierra'} · {activo?.updated_at ? new Date(activo.updated_at).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES')}</span>
+                </div>
+                <div style={{ display:'flex', gap:6 }}>
+                  <button className="tbtn" onClick={() => window.alert('Generando Rent-roll XLSX…')}><FileSpreadsheet size={13} strokeWidth={1.75} /> Rent-roll XLSX</button>
+                  <button className="tbtn" onClick={() => window.alert('Generando Ficha PDF…')}><FileText size={13} strokeWidth={1.75} /> Ficha PDF</button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ── TABS ── */}
@@ -4749,11 +4769,11 @@ export default function FichaActivo() {
             </div>
           )}
 
-          {/* ── TAB: Multimedia ── */}
-          {activeTab==='at-fotos' && <TabMultimedia/>}
+          {/* ── TAB: Multimedia & Documentos — bloque Multimedia ── */}
+          {activeTab==='at-mediadocs' && <TabMultimedia/>}
 
-          {/* ── TAB: Documentos ── */}
-          {activeTab==='at-docs' && (
+          {/* ── TAB: Multimedia & Documentos — bloque Documentos (mismo activeTab) ── */}
+          {activeTab==='at-mediadocs' && (
             <div className="tab-content active"><div className="info-pad">
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
                 <div style={{fontSize:14,fontWeight:600}}>Documentos</div>
@@ -5051,6 +5071,17 @@ export default function FichaActivo() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div></div>
+          )}
+
+          {/* ── TAB: Confidencialidad — formato canónico Oferta ── */}
+          {activeTab==='at-conf' && (
+            <div className="tab-content active"><div className="info-pad">
+              <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Confidencialidad del activo</div>
+              <div style={{fontSize:11,color:'var(--text4)',marginBottom:14}}>Estructura idéntica a la del módulo Oferta. Pendiente: traer el componente compartido cuando se extraiga de FichaOferta.</div>
+              <div style={{padding:24,background:'var(--surface)',border:'1px dashed var(--border)',borderRadius:8,textAlign:'center',color:'var(--text4)',fontSize:12}}>
+                Componente Confidencialidad compartido — disponible cuando se extraiga del módulo Oferta como pieza reusable.
               </div>
             </div></div>
           )}
