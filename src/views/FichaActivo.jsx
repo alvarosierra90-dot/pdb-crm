@@ -424,8 +424,10 @@ const NEW_FORM_INIT = {
 // - Multimedia + Documentos fusionados en una pestaña.
 // - Confidencialidad añadida (formato canónico Oferta).
 // - Características pasa al puesto 2 (antes que Stacking, regla de spec).
-const TABS = ['at-info','at-caract','at-stacking','at-prop','at-ofertas','at-mediadocs','at-360','at-conf']
-const TAB_LABELS = ['Información general','Características','Stacking Plan','Propietarios y arrendatarios','Ofertas','Multimedia & Documentos','Vista 360','Confidencialidad']
+// - Ofertas eliminada como pestaña: las ofertas vinculadas viven en Vista 360
+//   junto al resto de actividad comercial histórica.
+const TABS = ['at-info','at-caract','at-stacking','at-prop','at-mediadocs','at-360','at-conf']
+const TAB_LABELS = ['Información general','Características','Stacking Plan','Propietarios y arrendatarios','Multimedia & Documentos','Vista 360','Confidencialidad']
 
 /* ── PLAZAS DE APARCAMIENTO ── */
 const UBICACIONES  = ['Interior','Exterior']
@@ -4978,71 +4980,197 @@ export default function FichaActivo() {
             </div></div>
           )}
 
-          {/* ── TAB: Vista 360 — Actividad transversal + Seguimiento ── */}
+          {/* ── TAB: Vista 360 — Histórico comercial completo del activo ── */}
           {activeTab==='at-360' && (
             <div className="tab-content active"><div className="info-pad">
 
-              {/* KPI strip */}
-              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:14}}>
+              {/* KPI strip — 6 categorías de actividad */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:8,marginBottom:14}}>
                 {[
-                  {lbl:'Total actividades', val:FOLLOWUP_ACTS.length,                                                          color:'var(--text1)'},
-                  {lbl:'Reuniones / Visitas',val:FOLLOWUP_ACTS.filter(a=>a.tipo==='Reunión'||a.tipo==='Visita').length,         color:'var(--purple)'},
-                  {lbl:'Emails / Llamadas', val:FOLLOWUP_ACTS.filter(a=>a.tipo==='Email'||a.tipo==='Llamada').length,           color:'var(--accent)'},
-                  {lbl:'Pendientes',        val:FOLLOWUP_ACTS.filter(a=>a.estado==='Abierto'||a.estado==='En curso').length,    color:'var(--red)'},
+                  {lbl:'Ofertas',                val:8,  color:'var(--green)'},
+                  {lbl:'Cuentas presentadas',    val:12, color:'var(--accent)'},
+                  {lbl:'Demandas',               val:4,  color:'var(--purple)'},
+                  {lbl:'Transacciones',          val:2,  color:'var(--text1)'},
+                  {lbl:'Mandatos',               val:3,  color:'var(--amber)'},
+                  {lbl:'Propuestas / Proyectos', val:2,  color:'var(--teal)'},
                 ].map(k=>(
-                  <div key={k.lbl} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'8px 12px',textAlign:'center'}}>
-                    <div style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3}}>{k.lbl}</div>
-                    <div style={{fontSize:18,fontWeight:800,fontFamily:'var(--mono)',color:k.color}}>{k.val}</div>
+                  <div key={k.lbl} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'8px 10px',textAlign:'center'}}>
+                    <div style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3,lineHeight:1.2}}>{k.lbl}</div>
+                    <div style={{fontSize:20,fontWeight:800,fontFamily:'var(--mono)',color:k.color,lineHeight:1}}>{k.val}</div>
                   </div>
                 ))}
               </div>
 
-              {/* Timeline de actividad */}
-              <div style={{fontSize:11,fontWeight:600,marginBottom:8}}>Actividad transversal · Timeline</div>
-              <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:16}}>
+              {/* Timeline cronológico */}
+              <div style={{fontSize:11,fontWeight:600,marginBottom:8,color:'var(--text2)'}}>Timeline cronológico</div>
+              <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:18}}>
                 {[
-                  {av:'AI',bg:'var(--purple-lt)',color:'var(--purple)',name:'IA',msg:'10.142 m² disponibles. 2 break options próximas.',badge:{bg:'var(--purple-lt)',color:'var(--purple)',bc:'var(--purple-bd)',lbl:'IA'},time:'Hoy · Automático'},
-                  {av:'AS',bg:'#dbeafe',color:'#1e40af',name:'Álvaro Sierra',msg:'registró visita con Oracle',badge:{bg:'var(--accent-lt)',color:'var(--accent)',bc:'var(--accent-bd)',lbl:'VISITA'},time:'Ayer, 16:30'},
-                  {av:'MR',bg:'#fce7f3',color:'#9d174d',name:'María Ruiz',msg:'envió Deal Room a Celonis',badge:{bg:'var(--green-lt)',color:'var(--green)',bc:'var(--green-bd)',lbl:'OFERTA'},time:'23/03/2026'},
-                  {av:'JL',bg:'#dcfce7',color:'#166534',name:'Jorge López',msg:'subió Valoración Q1 2026',badge:{bg:'var(--gray-lt)',color:'var(--text2)',bc:'var(--gray-bd)',lbl:'DOC'},time:'20/03/2026'},
+                  {av:'AS',bg:'#dbeafe',color:'#1e40af',name:'Álvaro Sierra',msg:'firmó contrato con Oracle Spain (P5 · 13.486 m²)',badge:{bg:'var(--green-lt)',color:'var(--green)',bc:'var(--green-bd)',lbl:'TRANSACCIÓN'},time:'04/04/2026'},
+                  {av:'AS',bg:'#dbeafe',color:'#1e40af',name:'Álvaro Sierra',msg:'registró visita con Oracle Spain',badge:{bg:'var(--accent-lt)',color:'var(--accent)',bc:'var(--accent-bd)',lbl:'VISITA'},time:'15/02/2026'},
+                  {av:'MR',bg:'#fce7f3',color:'#9d174d',name:'María Ruiz',msg:'presentó P.E Avalon a Generali RE',badge:{bg:'var(--purple-lt)',color:'var(--purple)',bc:'var(--purple-bd)',lbl:'PRESENTACIÓN'},time:'20/01/2026'},
+                  {av:'JL',bg:'#dcfce7',color:'#166534',name:'Jorge López',name2:'creó',msg:'OLB001 — P1-P6 oferta de alquiler',badge:{bg:'var(--green-lt)',color:'var(--green)',bc:'var(--green-bd)',lbl:'OFERTA'},time:'10/12/2025'},
+                  {av:'AS',bg:'#dbeafe',color:'#1e40af',name:'Álvaro Sierra',msg:'firmó mandato de leasing exclusiva con Barings RE',badge:{bg:'#fef3c7',color:'#92400e',bc:'#fde68a',lbl:'MANDATO'},time:'01/10/2025'},
                 ].map((item,i,arr)=>(
-                  <div key={i} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'12px 16px',borderBottom:i<arr.length-1?'1px solid var(--border)':'none'}}>
-                    <div style={{width:30,height:30,borderRadius:'50%',background:item.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:item.color,flexShrink:0}}>{item.av}</div>
+                  <div key={i} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'10px 14px',borderBottom:i<arr.length-1?'1px solid var(--border)':'none'}}>
+                    <div style={{width:28,height:28,borderRadius:'50%',background:item.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:item.color,flexShrink:0}}>{item.av}</div>
                     <div style={{flex:1}}>
-                      <div style={{fontSize:12,color:'var(--text2)'}}><strong>{item.name}</strong> {item.msg} <span style={{background:item.badge.bg,color:item.badge.color,border:`1px solid ${item.badge.bc}`,padding:'1px 6px',borderRadius:10,fontSize:9,fontWeight:700}}>{item.badge.lbl}</span></div>
-                      <div style={{fontSize:10,color:'var(--text4)',marginTop:3}}>{item.time}</div>
+                      <div style={{fontSize:12,color:'var(--text2)'}}><strong>{item.name}</strong> {item.msg} <span style={{background:item.badge.bg,color:item.badge.color,border:`1px solid ${item.badge.bc}`,padding:'1px 7px',borderRadius:10,fontSize:9,fontWeight:700,marginLeft:4}}>{item.badge.lbl}</span></div>
+                      <div style={{fontSize:10,color:'var(--text4)',marginTop:2}}>{item.time}</div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Seguimiento comercial (solo lectura) */}
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-                <div style={{fontSize:11,fontWeight:600}}>Seguimiento comercial del activo <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:4}}>· Sincronizado desde Ofertas y Demandas</span></div>
-              </div>
-              <div className="info-block" style={{padding:0,overflow:'hidden'}}>
-                <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                  <thead>
-                    <tr>{['','ID','Tipo','Descripción','Fecha','Responsable','Estado'].map(h=>(
-                      <th key={h} style={{padding:'6px 12px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
-                    ))}</tr>
-                  </thead>
-                  <tbody>
-                    {FOLLOWUP_ACTS.map(a=>(
-                      <tr key={a.id} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-actividad')}>
-                        <td style={{padding:'7px 10px',width:30}}>
-                          <div style={{width:26,height:26,borderRadius:'50%',background:a.bg,color:a.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700}}>{a.initials}</div>
-                        </td>
-                        <td style={{padding:'7px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{a.id}</span></td>
-                        <td style={{padding:'7px 12px'}}><span className={`tag ${TIPO_TAG_ACT[a.tipo]||'tag-gray'}`}><TipoIcoAct tipo={a.tipo} /> {a.tipo}</span></td>
-                        <td style={{padding:'7px 12px',fontWeight:500,maxWidth:320}}>{a.asunto}</td>
-                        <td style={{padding:'7px 12px',color:'var(--text3)',whiteSpace:'nowrap'}}>{a.fecha}</td>
-                        <td style={{padding:'7px 12px',fontSize:10,color:'var(--text3)'}}>{a.user}</td>
-                        <td style={{padding:'7px 12px'}}><span className={`tag ${ACT_EST_ACT[a.estado]||'tag-gray'}`}>{a.estado}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              {/* 6 secciones en grid 2 columnas (regla 50%) */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+
+                {/* Ofertas vinculadas */}
+                <div className="va-card" style={{margin:0}}>
+                  <div className="va-card-header"><h3>Ofertas vinculadas <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>8 históricas · 2 activas</span></h3></div>
+                  <div style={{padding:'4px 0 14px'}}>
+                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                      <thead>
+                        <tr>{['Ref','Espacio','Renta','Estado'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          {ref:'OLB001',sp:'P1–P6 · Edif. A',renta:'10,5 €/m²',estado:'En comercialización',col:'tag-green'},
+                          {ref:'OLB002',sp:'P2 · Edif. A',renta:'13,0 €/m²',estado:'En negociación',col:'tag-amber'},
+                          {ref:'OLB-H001',sp:'P5 · Edif. A',renta:'12,8 €/m²',estado:'Cerrada',col:'tag-gray'},
+                          {ref:'OLB-H002',sp:'PB · Edif. C',renta:'11,5 €/m²',estado:'Desactivada',col:'tag-gray'},
+                        ].map(o=>(
+                          <tr key={o.ref} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-oferta')}>
+                            <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{o.ref}</span></td>
+                            <td style={{padding:'6px 12px',fontSize:10,color:'var(--text3)'}}>{o.sp}</td>
+                            <td style={{padding:'6px 12px',fontFamily:'var(--mono)',fontSize:10}}>{o.renta}</td>
+                            <td style={{padding:'6px 12px'}}><span className={`tag ${o.col}`} style={{fontSize:9}}>{o.estado}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Cuentas presentadas */}
+                <div className="va-card" style={{margin:0}}>
+                  <div className="va-card-header"><h3>Cuentas presentadas <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>12 cuentas</span></h3></div>
+                  <div style={{padding:'4px 0 14px'}}>
+                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                      <thead><tr>{['Cuenta','Última','Estado'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
+                      <tbody>
+                        {[
+                          {c:'Oracle Spain SL',d:'15/02/2026',e:'Finalista',col:'tag-green'},
+                          {c:'Generali RE',d:'20/01/2026',e:'Firmado',col:'tag-blue'},
+                          {c:'Empresa XYZ',d:'12/02/2026',e:'En curso',col:'tag-amber'},
+                          {c:'Celonis Spain',d:'23/03/2026',e:'En curso',col:'tag-amber'},
+                          {c:'BBVA SA',d:'05/01/2026',e:'Descartada',col:'tag-gray'},
+                        ].map(c=>(
+                          <tr key={c.c} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('cuentas')}>
+                            <td style={{padding:'6px 12px',fontWeight:500}}>{c.c}</td>
+                            <td style={{padding:'6px 12px',fontSize:10,color:'var(--text3)'}}>{c.d}</td>
+                            <td style={{padding:'6px 12px'}}><span className={`tag ${c.col}`} style={{fontSize:9}}>{c.e}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Demandas vinculadas */}
+                <div className="va-card" style={{margin:0}}>
+                  <div className="va-card-header"><h3>Demandas vinculadas <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>4 activas con este activo en alternativas</span></h3></div>
+                  <div style={{padding:'4px 0 14px'}}>
+                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                      <thead><tr>{['Ref','Cuenta','Sup','Estado'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
+                      <tbody>
+                        {[
+                          {r:'D251035690',c:'Corp. Financiera Azuaga',s:'1.500 m²',e:'Finalista',col:'tag-green'},
+                          {r:'D250098712',c:'Pharma Group Spain',s:'900 m²',e:'En curso',col:'tag-amber'},
+                          {r:'D249871234',c:'CLIMAX SPORT',s:'2.100 m²',e:'En curso',col:'tag-amber'},
+                          {r:'D248554431',c:'Medicina Responsable SL',s:'600 m²',e:'Standby',col:'tag-gray'},
+                        ].map(d=>(
+                          <tr key={d.r} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-demanda')}>
+                            <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{d.r}</span></td>
+                            <td style={{padding:'6px 12px',fontSize:10}}>{d.c}</td>
+                            <td style={{padding:'6px 12px',fontFamily:'var(--mono)',fontSize:10}}>{d.s}</td>
+                            <td style={{padding:'6px 12px'}}><span className={`tag ${d.col}`} style={{fontSize:9}}>{d.e}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Transacciones */}
+                <div className="va-card" style={{margin:0}}>
+                  <div className="va-card-header"><h3>Transacciones <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>2 deals firmados</span></h3></div>
+                  <div style={{padding:'4px 0 14px'}}>
+                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                      <thead><tr>{['Ref','Cuenta','Renta cierre','Fecha'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
+                      <tbody>
+                        {[
+                          {r:'NEG-0044',c:'Oracle Spain SL',rc:'12,5 €/m²',d:'04/04/2026'},
+                          {r:'NEG-0019',c:'Generali RE',rc:'13,0 €/m²',d:'15/11/2025'},
+                        ].map(t=>(
+                          <tr key={t.r} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-negociacion')}>
+                            <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{t.r}</span></td>
+                            <td style={{padding:'6px 12px',fontSize:10}}>{t.c}</td>
+                            <td style={{padding:'6px 12px',fontFamily:'var(--mono)',fontSize:10,color:'var(--green)',fontWeight:600}}>{t.rc}</td>
+                            <td style={{padding:'6px 12px',fontSize:10,color:'var(--text3)'}}>{t.d}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Mandatos */}
+                <div className="va-card" style={{margin:0}}>
+                  <div className="va-card-header"><h3>Mandatos <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>3 históricos · 1 vigente</span></h3></div>
+                  <div style={{padding:'4px 0 14px'}}>
+                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                      <thead><tr>{['Ref','Tipo','Vigencia','Estado'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
+                      <tbody>
+                        {[
+                          {r:'MAN-2501',t:'Oferta alquiler',v:'01/10/25 – 30/09/26',e:'En curso',col:'tag-green'},
+                          {r:'MAN-2410',t:'Oferta alquiler',v:'01/10/24 – 30/09/25',e:'Vencido',col:'tag-gray'},
+                          {r:'MAN-2305',t:'Oferta venta',v:'15/05/23 – 15/11/23',e:'Cancelado',col:'tag-gray'},
+                        ].map(m=>(
+                          <tr key={m.r} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-mandato')}>
+                            <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{m.r}</span></td>
+                            <td style={{padding:'6px 12px',fontSize:10}}>{m.t}</td>
+                            <td style={{padding:'6px 12px',fontSize:10,color:'var(--text3)',fontFamily:'var(--mono)'}}>{m.v}</td>
+                            <td style={{padding:'6px 12px'}}><span className={`tag ${m.col}`} style={{fontSize:9}}>{m.e}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Propuestas / Proyectos */}
+                <div className="va-card" style={{margin:0}}>
+                  <div className="va-card-header"><h3>Propuestas / Proyectos <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>2 históricos</span></h3></div>
+                  <div style={{padding:'4px 0 14px'}}>
+                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                      <thead><tr>{['Ref','Tipo','Cuenta','Estado'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
+                      <tbody>
+                        {[
+                          {r:'PRO-2501',t:'Propuesta',c:'Barings RE',e:'Ganado',col:'tag-green'},
+                          {r:'PRY-2403',t:'Proyecto',c:'Barings RE',e:'Entregado',col:'tag-blue'},
+                        ].map(p=>(
+                          <tr key={p.r} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-propuesta')}>
+                            <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{p.r}</span></td>
+                            <td style={{padding:'6px 12px',fontSize:10}}>{p.t}</td>
+                            <td style={{padding:'6px 12px',fontSize:10}}>{p.c}</td>
+                            <td style={{padding:'6px 12px'}}><span className={`tag ${p.col}`} style={{fontSize:9}}>{p.e}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
               </div>
             </div></div>
           )}
