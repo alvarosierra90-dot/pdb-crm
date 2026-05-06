@@ -277,7 +277,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
                   <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{oferta.ref}</span>
                 </div>
                 <div className="ah-name">{tituloHeader}</div>
-                <div className="ah-addr" style={{display:'inline-flex',alignItems:'center',gap:4}}><MapPin size={12} strokeWidth={1.75} /> {dirHeader} · Creada: {fmtDate(oferta.created_at)} · {CURRENT_USER.nombre}</div>
+                <div className="ah-addr">{dirHeader} · Creada: {fmtDate(oferta.created_at)} · {CURRENT_USER.nombre}</div>
                 <div className="ah-tags">
                   <span className="tag tag-green">● {oferta.estado || 'En curso'}</span>
                   <span className={`tag ${oferta.tipo_mercado === 'off_market' ? 'tag-amber' : 'tag-blue'}`}>

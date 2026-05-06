@@ -2694,7 +2694,7 @@ function AddressField({ value, ciudad, onSave }) {
             style={{padding:'5px 8px 5px 24px',border:'1px solid var(--accent-bd)',borderRadius:5,fontSize:12,fontFamily:'inherit',background:'var(--accent-lt)',color:'var(--text1)',width:'100%',boxSizing:'border-box'}}
             autoFocus/>
         </div>
-        {draft.ciudad && <span style={{fontSize:10,color:'var(--text3)',display:'inline-flex',alignItems:'center',gap:3}}><MapPin size={10} strokeWidth={1.75}/> {draft.ciudad} · {draft.pais}</span>}
+        {draft.ciudad && <span style={{fontSize:10,color:'var(--text3)'}}>{draft.ciudad} · {draft.pais}</span>}
         <div style={{display:'flex',gap:4}}>
           <button onClick={()=>{ onSave(draft); setEditing(false); acRef.current=null }}
             style={{display:'flex',alignItems:'center',gap:3,padding:'2px 8px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:4,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
