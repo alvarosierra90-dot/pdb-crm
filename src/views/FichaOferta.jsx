@@ -9,8 +9,8 @@ import FichaOfertaSupabase from './FichaOfertaSupabase'
 // igualdad visual y funcional total entre Activo y Oferta (regla del usuario).
 import { StackingPlan } from './FichaActivo'
 
-const TABS = ['of-info','of-stacking','of-espacios','of-condiciones','of-caract','of-docs','of-web','of-seg','of-ficha','of-conf']
-const TAB_LABELS = ['Información oferta','Stacking plan','Espacios comerciales','Condiciones','Características','Documentos','Contenido web','Seguimiento comercial','Crear ficha','Confidencialidad']
+const TABS = ['of-info','of-stacking','of-espacios','of-condiciones','of-caract','of-docs','of-web','of-seg','of-conf']
+const TAB_LABELS = ['Información oferta','Stacking plan','Espacios comerciales','Condiciones','Características','Documentos','Contenido web','Seguimiento comercial','Confidencialidad']
 
 const ASSET = {
   nombre: 'Albatros — C. Anabel Segura 9-11, Alcobendas',
@@ -652,8 +652,7 @@ function FichaOfertaMock() {
           <button className="ab-btn" style={{color:'var(--red)',borderColor:'var(--red)'}} onClick={()=>{ setDbForm(p=>({...p,closing_rent:oferta?.renta_m2?String(oferta.renta_m2):''})); setShowDarBaja(true) }}>🔒 Dar de baja</button>
         )}
         <div className="ab-sep" />
-        <button className="ab-btn">📄 Crear ficha</button>
-        <button className="ab-btn">🔄 Recalcular</button>
+        <button className="ab-btn">Recalcular</button>
         <div className="ab-sep" />
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
         {!isMock && oferta?.ref && oferta?.estado !== 'En negociación' && (
@@ -1792,26 +1791,6 @@ function FichaOfertaMock() {
                           </tr>
                         ))}</tbody>
                       </table>
-                    </div>
-                  </div>
-                </div></div>
-              )}
-
-              {/* Crear ficha */}
-              {activeTab==='of-ficha' && (
-                <div className="tab-content active"><div className="info-pad">
-                  <div className="va-card">
-                    <div className="va-card-header">
-                      <h3><span className="ico">◇</span> Crear ficha comercial</h3>
-                      <span className="hint">Genera y comparte el dossier de la oferta</span>
-                    </div>
-                    <div style={{padding:'4px 20px 18px'}}>
-                      <div style={{ fontSize:12, color:'var(--text3)', marginBottom:14, lineHeight:1.5 }}>Genera la ficha comercial de esta oferta en diferentes formatos. Los datos se sincronizan automáticamente con el activo, las condiciones y los espacios comercializables.</div>
-                      <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                        <button className="ab-btn blue">📄 Generar PDF</button>
-                        <button className="ab-btn">📊 Generar PPT</button>
-                        <button className="ab-btn">🔗 Generar link</button>
-                      </div>
                     </div>
                   </div>
                 </div></div>
