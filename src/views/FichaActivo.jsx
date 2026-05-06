@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, Fragment } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import BajaArrendatarioModal from '../components/BajaArrendatarioModal'
+import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
 import { supabase } from '../lib/supabase'
 import {
@@ -3763,6 +3764,11 @@ export default function FichaActivo() {
   const [caracTab, setCaracTab]         = useState('ct-transporte')
   const [docCat,   setDocCat]           = useState('todos')
   const [showTarea, setShowTarea]       = useState(false)
+  const [confidential, setConfidential] = useState(false)
+  const [authorizedUsers, setAuthorizedUsers] = useState([
+    { name:'Sierra Álvaro',     team:'Leasing Oficinas MAD', role:'Principal',    initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
+    { name:'GOMEZ Ignacio',     team:'Leasing Oficinas MAD', role:'Autorizado',   initials:'GI', bg:'#f0fdf4', color:'#166534', granted:'12/03/2026' },
+  ])
   const [showSubstConfirm, setShowSubstConfirm] = useState(false)
   const [propietariosReg, setPropietariosReg] = useState(
     params?.newOwnerData ? [params.newOwnerData] : []
@@ -5203,15 +5209,28 @@ export default function FichaActivo() {
             </div></div>
           )}
 
-          {/* ── TAB: Confidencialidad — formato canónico Oferta ── */}
+          {/* ── TAB: Confidencialidad — componente reusable canónico ── */}
           {activeTab==='at-conf' && (
-            <div className="tab-content active"><div className="info-pad">
-              <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Confidencialidad del activo</div>
-              <div style={{fontSize:11,color:'var(--text4)',marginBottom:14}}>Estructura idéntica a la del módulo Oferta. Pendiente: traer el componente compartido cuando se extraiga de FichaOferta.</div>
-              <div style={{padding:24,background:'var(--surface)',border:'1px dashed var(--border)',borderRadius:8,textAlign:'center',color:'var(--text4)',fontSize:12}}>
-                Componente Confidencialidad compartido — disponible cuando se extraiga del módulo Oferta como pieza reusable.
-              </div>
-            </div></div>
+            <ConfidencialidadPanel
+              entityLabel="activo"
+              confidential={confidential}
+              onToggle={setConfidential}
+              hiddenFields={['Dirección y ubicación','Datos urbanísticos','Stacking plan','Arrendatarios','Documentación','Valoraciones']}
+              visibleFields={['Cuenta-propietario','Tipo de activo','Estado de mercado','Equipo','Zona y ciudad']}
+              authorizedUsers={authorizedUsers}
+              onAddUser={(newUser) => {
+                const [name, team] = [newUser.split('·')[0].trim(), newUser.split('·')[1]?.trim() || '']
+                const ini = name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+                const today = new Date().toLocaleDateString('es-ES')
+                setAuthorizedUsers(prev => [...prev, { name, team, role:'Autorizado', initials:ini, bg:'#f0fdf4', color:'#166534', granted:today }])
+              }}
+              onRemoveUser={(idx) => setAuthorizedUsers(prev => prev.filter((_,j) => j !== idx))}
+              responsable="Sierra Álvaro"
+              traza={[
+                { color:'var(--green)',  msg:'Sierra Álvaro creó la ficha del activo', date:'01/02/2024 · 09:00' },
+                { color:'var(--accent)', msg:'GOMEZ Ignacio recibió acceso',           date:'12/03/2026 · 14:22' },
+              ]}
+            />
           )}
 
         </div>{/* /ficha-main */}
