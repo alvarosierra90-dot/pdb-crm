@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
 import FirmarMandatoModal from '../components/FirmarMandatoModal'
+import { Inbox, Building2, MapPin, Wallet, FileText, Globe } from 'lucide-react'
 
 // Mismas pestañas que la mock (FichaOferta TABS / TAB_LABELS)
 const OF_TABS = [
@@ -58,7 +59,7 @@ function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateStrin
 function StubTab({ label }) {
   return (
     <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
-      <div style={{ fontSize:32, marginBottom:8 }}>📋</div>
+      <Inbox size={32} strokeWidth={1.5} style={{ marginBottom:8, color:'var(--text4)' }} />
       <div style={{ fontWeight:600, color:'var(--text2)', marginBottom:4 }}>{label}</div>
       <div>Sección disponible cuando completes la información básica y guardes la oferta.</div>
     </div>
@@ -269,14 +270,14 @@ export default function FichaOfertaSupabase({ refOrId }) {
           {/* Header */}
           <div className="ah">
             <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
-              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#15803d,#22c55e)' }}>🏢</div>
+              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#15803d,#22c55e)', display:'flex', alignItems:'center', justifyContent:'center' }}><Building2 size={20} strokeWidth={1.75} color="#fff" /></div>
               <div style={{ flex:1 }}>
                 <div className="ah-ref">
                   <span style={{ background:'#dcfce7', color:'#15803d', border:'1px solid #86efac', padding:'0 5px', borderRadius:3, fontSize:9, fontWeight:700 }}>OFERTA</span>
                   <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{oferta.ref}</span>
                 </div>
                 <div className="ah-name">{tituloHeader}</div>
-                <div className="ah-addr">📍 {dirHeader} · Creada: {fmtDate(oferta.created_at)} · {CURRENT_USER.nombre}</div>
+                <div className="ah-addr" style={{display:'inline-flex',alignItems:'center',gap:4}}><MapPin size={12} strokeWidth={1.75} /> {dirHeader} · Creada: {fmtDate(oferta.created_at)} · {CURRENT_USER.nombre}</div>
                 <div className="ah-tags">
                   <span className="tag tag-green">● {oferta.estado || 'En curso'}</span>
                   <span className={`tag ${oferta.tipo_mercado === 'off_market' ? 'tag-amber' : 'tag-blue'}`}>
@@ -483,7 +484,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
                 </div>
 
                 <div>
-                  <div className="of-section">💰 RENTA / PRECIO</div>
+                  <div className="of-section" style={{display:'inline-flex',alignItems:'center',gap:6}}><Wallet size={14} strokeWidth={1.75} /> RENTA / PRECIO</div>
                   <div className="info-block">
                     <div className="ir"><span className="ir-k">Renta €/m² /mes</span><span className="ir-v">{editing
                       ? <input type="number" style={inp} value={form.renta_m2} onChange={e => setF('renta_m2', e.target.value)} placeholder="—" />
@@ -495,7 +496,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
                     <div className="ir"><span className="ir-k">Renta anual</span><span className="ir-v">{oferta.renta_anual ? `${Number(oferta.renta_anual).toLocaleString('es-ES')} €` : <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
                   </div>
 
-                  <div className="of-section">📝 DESCRIPTIVO</div>
+                  <div className="of-section" style={{display:'inline-flex',alignItems:'center',gap:6}}><FileText size={14} strokeWidth={1.75} /> DESCRIPTIVO</div>
                   <div className="info-block">
                     {editing
                       ? <textarea style={ta} value={form.descriptivo} onChange={e => setF('descriptivo', e.target.value)} placeholder="Descripción comercial completa..." />
@@ -509,7 +510,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
           {/* TAB: Contenido web */}
           {tab === 'of-web' && (
             <div className="tab-content active"><div className="info-pad">
-              <div className="of-section">🌐 PUBLICACIÓN WEB</div>
+              <div className="of-section" style={{display:'inline-flex',alignItems:'center',gap:6}}><Globe size={14} strokeWidth={1.75} /> PUBLICACIÓN WEB</div>
               <div className="info-block">
                 <div className="ir"><span className="ir-k">Título web</span><span className="ir-v" style={{ flex:1 }}>{editing
                   ? <input style={inpFull} value={form.titulo_web} onChange={e => setF('titulo_web', e.target.value)} placeholder="Cómo aparece en savills.es" />

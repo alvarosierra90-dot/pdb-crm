@@ -4,6 +4,12 @@ import AsignarTareaModal from '../components/AsignarTareaModal'
 import BajaArrendatarioModal from '../components/BajaArrendatarioModal'
 import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
 import { supabase } from '../lib/supabase'
+import {
+  Building2, Factory, ShoppingBag, Server, Home, Hotel, Square,
+  Mail, Phone, Users, FileText, Pencil, CheckSquare,
+  MapPin, Search, Upload, Image as ImageIcon, AlertTriangle, ArrowDown, BarChart3, Wallet, ClipboardList,
+  Inbox
+} from 'lucide-react'
 
 const USO_PREFIX_FA    = { 'Oficinas':'OF', 'Logístico':'LG', 'Retail':'RT', 'Data Center':'DC', 'Residencial':'RS', 'Hoteles':'HT', 'Suelo':'SU' }
 const CIUDAD_PREFIX_FA = { 'Madrid':'MAD', 'Barcelona':'BCN', 'Valencia':'VLC', 'Sevilla':'SEV', 'Bilbao':'BIL', 'Guadalajara':'GUA' }
@@ -14,7 +20,11 @@ function genRefFA(ciudad, uso) {
   return `${cp}-${up}-${num}`
 }
 const CUENTAS_FA = ['Colonial SOCIMI','Merlin Properties','GMP','Barings Real Estate','Allianz Real Estate','Prologis','CBRE Investment Management','Grosvenor','IBA Capital','Neinor Homes','Axa IM Real Assets','Blackstone','Brookfield']
-const USO_ICO    = { 'Oficinas':'🏢', 'Logístico':'🏭', 'Retail':'🛍', 'Data Center':'🖥', 'Residencial':'🏘', 'Hoteles':'🏨', 'Suelo':'🟫' }
+const USO_ICO    = { 'Oficinas': Building2, 'Logístico': Factory, 'Retail': ShoppingBag, 'Data Center': Server, 'Residencial': Home, 'Hoteles': Hotel, 'Suelo': Square }
+function UsoIco({ uso, size = 14 }) {
+  const Ico = USO_ICO[uso] || Building2
+  return <Ico size={size} strokeWidth={1.75} />
+}
 
 /* ── ZONAS por USO y CIUDAD (área → zona → subzona) ── */
 const ZONES = {
@@ -1136,7 +1146,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     <div style={{display:'flex',gap:2,minHeight:barH}}>
                       {floor.principal.length===0 ? (
                         <div className="sp-block-empty" style={{background:isSel?'var(--pdb-blue-50)':isTgt?'var(--pdb-blue-50)':undefined,borderColor:isSel||isTgt?'var(--pdb-blue)':undefined,color:isSel||isTgt?'var(--pdb-blue)':undefined,fontWeight:isTgt||isSel?600:undefined}}>
-                          {isTgt?'⬇ Soltar uso aquí':isSel?'✓ Seleccionada — arrastra un uso':'Clic para seleccionar · arrastra un uso'}
+                          {isTgt?<><ArrowDown size={11} strokeWidth={2}/> Soltar uso aquí</>:isSel?'✓ Seleccionada — arrastra un uso':'Clic para seleccionar · arrastra un uso'}
                         </div>
                       ) : (
                         <>
@@ -1403,7 +1413,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                       <div style={{display:'flex',gap:2,minHeight:barH}}>
                         {isEmpty ? (
                           <div className="sp-block-empty" style={{borderColor:isTgt?'var(--pdb-blue)':undefined,color:isTgt?'var(--pdb-blue)':undefined}}>
-                            {isTgt?'⬇ Soltar propietario':'Sin propietario asignado — arrastra aquí'}
+                            {isTgt?<><ArrowDown size={11} strokeWidth={2}/> Soltar propietario</>:'Sin propietario asignado — arrastra aquí'}
                           </div>
                         ) : (
                           <>
@@ -1633,7 +1643,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     <div className="sp-row-blocks" style={{flexDirection:'column',gap:3,padding:'6px 0',alignItems:'stretch'}}>
                       {dropWarning===floor.id && (
                         <div style={{display:'flex',alignItems:'center',gap:5,padding:'4px 8px',background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:4,fontSize:10,color:'#dc2626',fontWeight:600}}>
-                          ⚠ Asigna primero un uso principal en esta planta
+                          <span style={{display:'inline-flex',alignItems:'center',gap:4}}><AlertTriangle size={11} strokeWidth={1.75}/> Asigna primero un uso principal en esta planta</span>
                         </div>
                       )}
                       {/* Referencia uso principal (gris tenue) */}
@@ -1649,7 +1659,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                       <div style={{display:'flex',gap:2,minHeight:barH}}>
                         {isEmpty ? (
                           <div className="sp-block-empty" style={{borderColor:isTgt?'var(--pdb-blue)':undefined,color:isTgt?'var(--pdb-blue)':undefined}}>
-                            {isTgt?'⬇ Soltar aquí':'Sin asignación — arrastra desde el panel lateral'}
+                            {isTgt?<><ArrowDown size={11} strokeWidth={2}/> Soltar aquí</>:'Sin asignación — arrastra desde el panel lateral'}
                           </div>
                         ) : (
                           <>
@@ -1838,7 +1848,7 @@ function AssetManagerSearch({ value, onChange }) {
         <span style={{fontSize:12,color:'var(--text2)',flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
           {value || <span style={{color:'var(--text4)'}}>—</span>}
         </span>
-        <button onClick={()=>setOpen(o=>!o)} style={{background:'none',border:'1px solid var(--border)',borderRadius:4,padding:'1px 6px',cursor:'pointer',fontSize:11,color:'var(--text3)',flexShrink:0}}>🔍</button>
+        <button onClick={()=>setOpen(o=>!o)} style={{background:'none',border:'1px solid var(--border)',borderRadius:4,padding:'2px 6px',cursor:'pointer',color:'var(--text3)',flexShrink:0,display:'inline-flex',alignItems:'center'}}><Search size={12} strokeWidth={1.75}/></button>
         {value && <button onClick={()=>onChange('')} style={{background:'none',border:'none',cursor:'pointer',fontSize:12,color:'var(--text4)',padding:'0 2px',flexShrink:0}}>×</button>}
       </div>
       {open && (
@@ -1902,7 +1912,7 @@ function TabMultimedia() {
 
   const addMedia = () => {
     const id = Math.max(0,...media.map(m=>m.id))+1
-    setMedia(prev => [...prev, { id, tipo:newTipo, subtipo:newSub, desc:newDesc||`${newSub} ${id}`, principal:false, src:newTipo==='Plano'?'📐':'🖼', date:'14/04/2026' }])
+    setMedia(prev => [...prev, { id, tipo:newTipo, subtipo:newSub, desc:newDesc||`${newSub} ${id}`, principal:false, src:'', date:'14/04/2026' }])
     setUpload(false); setNewDesc('')
   }
 
@@ -1929,7 +1939,7 @@ function TabMultimedia() {
           <div style={{textAlign:'center',marginBottom:14}}>
             <div onDragOver={e=>{e.preventDefault();setDragging(true)}} onDragLeave={()=>setDragging(false)} onDrop={e=>{e.preventDefault();setDragging(false)}}
               style={{padding:'24px 0',background:dragging?'rgba(37,99,235,.08)':'transparent',borderRadius:6,transition:'background .15s'}}>
-              <div style={{fontSize:28,marginBottom:6}}>⬆</div>
+              <Upload size={28} strokeWidth={1.5} style={{marginBottom:6,color:'var(--text4)'}}/>
               <div style={{fontSize:12,color:'var(--text3)'}}>Arrastra archivos JPEG aquí o <span style={{color:'var(--accent)',cursor:'pointer',fontWeight:600}}>haz clic para cargar</span></div>
               <div style={{fontSize:10,color:'var(--text4)',marginTop:4}}>Solo se admiten archivos .jpg / .jpeg</div>
             </div>
@@ -2009,7 +2019,7 @@ function TabMultimedia() {
                 {lightbox.src?.startsWith('http') && (
                   <a href={lightbox.src} download={`${lightbox.desc||'imagen'}.jpg`} target="_blank" rel="noreferrer"
                     style={{padding:'6px 14px',background:'#16a34a',color:'#fff',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:4}}>
-                    ⬇ Descargar JPG
+                    <ArrowDown size={12} strokeWidth={1.75}/> Descargar JPG
                   </a>
                 )}
                 <button onClick={()=>setLightbox(null)} style={{padding:'6px 14px',background:'var(--surface)',color:'var(--text2)',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>Cerrar</button>
@@ -2465,7 +2475,7 @@ function MapaCarrusel({ activo, direccion, onAddressChange }) {
           </>
         ) : (
           <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, color:'var(--text4)' }}>
-            <div style={{ fontSize:40 }}>🖼</div>
+            <ImageIcon size={40} strokeWidth={1.25} style={{color:'var(--text4)'}}/>
             <div style={{ fontSize:11 }}>Sin imágenes · añade en Multimedia</div>
           </div>
         )}
@@ -2684,7 +2694,7 @@ function AddressField({ value, ciudad, onSave }) {
             style={{padding:'5px 8px 5px 24px',border:'1px solid var(--accent-bd)',borderRadius:5,fontSize:12,fontFamily:'inherit',background:'var(--accent-lt)',color:'var(--text1)',width:'100%',boxSizing:'border-box'}}
             autoFocus/>
         </div>
-        {draft.ciudad && <span style={{fontSize:10,color:'var(--text3)'}}>📍 {draft.ciudad} · {draft.pais}</span>}
+        {draft.ciudad && <span style={{fontSize:10,color:'var(--text3)',display:'inline-flex',alignItems:'center',gap:3}}><MapPin size={10} strokeWidth={1.75}/> {draft.ciudad} · {draft.pais}</span>}
         <div style={{display:'flex',gap:4}}>
           <button onClick={()=>{ onSave(draft); setEditing(false); acRef.current=null }}
             style={{display:'flex',alignItems:'center',gap:3,padding:'2px 8px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:4,fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
@@ -2878,7 +2888,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
               <span style={{fontSize:11,color:'#15803d',fontWeight:600,flex:1}}>✓ Guardado correctamente</span>
             ) : saveErr ? (
               <>
-                <span style={{fontSize:11,color:'var(--red)',fontWeight:600,flex:1}}>⚠ {saveErr}</span>
+                <span style={{fontSize:11,color:'var(--red)',fontWeight:600,flex:1,display:'inline-flex',alignItems:'center',gap:4}}><AlertTriangle size={12} strokeWidth={1.75}/> {saveErr}</span>
                 <button onClick={()=>setSaveErr('')}
                   style={{padding:'3px 8px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)'}}>
                   Cerrar
@@ -3308,7 +3318,11 @@ function RightPanel({ navigate, nEdificios, nPropietarios, plazas, esg, activo }
 
 /* ══ Actividades follow-up ══ */
 const TIPO_TAG_ACT = { Email:'tag-blue', Llamada:'tag-green', Reunión:'tag-purple', Tarea:'tag-gray', Visita:'tag-teal', Nota:'tag-gray' }
-const TIPO_ICO_ACT = { Email:'📧', Llamada:'📞', Reunión:'🤝', Tarea:'✅', Visita:'🏢', Nota:'📝' }
+const TIPO_ICO_ACT = { Email: Mail, Llamada: Phone, Reunión: Users, Tarea: CheckSquare, Visita: Building2, Nota: Pencil }
+function TipoIcoAct({ tipo, size = 11 }) {
+  const Ico = TIPO_ICO_ACT[tipo] || Inbox
+  return <Ico size={size} strokeWidth={1.75} />
+}
 const ACT_EST_ACT  = { Abierto:'tag-amber', Finalizado:'tag-gray', 'En curso':'tag-blue', Realizada:'tag-green' }
 const FOLLOWUP_ACTS = [
   { id:'ACT-AV-01', tipo:'Reunión',  asunto:'Reunión propietario Barings — revisión estado comercialización Q1',   fecha:'15/01/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
@@ -3523,7 +3537,7 @@ function CuentaSearch({value, onChange}){
         <input value={value} onChange={e=>{onChange(e.target.value);setOpen(true)}} onFocus={()=>setOpen(true)}
           placeholder="Buscar cuenta…"
           style={{flex:1,padding:'5px 9px',border:'none',background:'none',fontSize:12,fontFamily:'inherit',outline:'none'}}/>
-        <span style={{padding:'0 10px',fontSize:14,color:'var(--accent)',userSelect:'none'}}>🔍</span>
+        <span style={{padding:'0 10px',color:'var(--accent)',userSelect:'none',display:'inline-flex',alignItems:'center'}}><Search size={14} strokeWidth={1.75}/></span>
       </div>
       {open && filtered.length>0 && (
         <div style={{position:'absolute',top:'100%',left:0,right:0,marginTop:2,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:5,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:2100,maxHeight:220,overflowY:'auto'}}>
@@ -4060,7 +4074,7 @@ export default function FichaActivo() {
           {/* ── HEADER ── */}
           <div className="ah">
             <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-              <div className="ah-ico">{isNew ? (USO_ICO[newForm.uso] || '🏢') : '🏢'}</div>
+              <div className="ah-ico" style={{display:'flex',alignItems:'center',justifyContent:'center'}}><UsoIco uso={isNew ? newForm.uso : 'Oficinas'} size={20} /></div>
               <div style={{flex:1}}>
                 {isNew ? (
                   /* ── NUEVO ACTIVO: cabecera ── */
@@ -4248,7 +4262,8 @@ export default function FichaActivo() {
           {activeTab==='at-caract' && (()=>{
             const usoActivo = activo?.uso || ''
             const usoLabel = usoActivo || 'Uso principal'
-            const usoIco = USO_ICO[usoActivo] || '🏢'
+            const usoIco = <UsoIco uso={usoActivo} />
+            const usoIcoLg = <UsoIco uso={usoActivo} size={16} />
             const selSt = {padding:'5px 9px',fontSize:11,border:'1px solid var(--border)',borderRadius:5,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}
             const inpSt = {padding:'5px 9px',fontSize:11,border:'1px solid var(--border)',borderRadius:5,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',flex:1}
             const addRowBtn = (onClick, show) => (
@@ -4296,7 +4311,7 @@ export default function FichaActivo() {
               <div className="info-pad">
                 <div style={{fontSize:14,fontWeight:600,marginBottom:14}}>Características técnicas</div>
                 <div className="carac-tabs">
-                  {[['ct-transporte','Transporte'],['ct-normativa','Normativa / ESG'],['ct-generales','Características generales'],[`ct-uso`,`${usoIco} ${usoLabel}`],['ct-plazas','Plazas']].map(([k,l])=>(
+                  {[['ct-transporte','Transporte'],['ct-normativa','Normativa / ESG'],['ct-generales','Características generales'],['ct-uso',<><UsoIco uso={usoActivo} /> {usoLabel}</>],['ct-plazas','Plazas']].map(([k,l])=>(
                     <div key={k} className={`ct ${caracTab===k?'active':''}`} onClick={()=>setCaracTab(k)}>{l}</div>
                   ))}
                 </div>
@@ -4448,7 +4463,7 @@ export default function FichaActivo() {
                   return (
                     <div className="info-block">
                       <div className="ib-title" style={{display:'flex',alignItems:'center',gap:8}}>
-                        <span>{usoIco} CARACTERÍSTICAS TÉCNICAS</span>
+                        <span style={{display:'inline-flex',alignItems:'center',gap:6}}>{usoIcoLg} CARACTERÍSTICAS TÉCNICAS</span>
                         <span style={{fontSize:9,fontWeight:400,color:'var(--text4)',textTransform:'none',letterSpacing:0}}>— uso: {usoActivo || 'no definido'} · heredado de Información general</span>
                       </div>
                       {usoFields.length === 0 ? (
@@ -5020,7 +5035,7 @@ export default function FichaActivo() {
                           <div style={{width:26,height:26,borderRadius:'50%',background:a.bg,color:a.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700}}>{a.initials}</div>
                         </td>
                         <td style={{padding:'7px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{a.id}</span></td>
-                        <td style={{padding:'7px 12px'}}><span className={`tag ${TIPO_TAG_ACT[a.tipo]||'tag-gray'}`}>{TIPO_ICO_ACT[a.tipo]} {a.tipo}</span></td>
+                        <td style={{padding:'7px 12px'}}><span className={`tag ${TIPO_TAG_ACT[a.tipo]||'tag-gray'}`}><TipoIcoAct tipo={a.tipo} /> {a.tipo}</span></td>
                         <td style={{padding:'7px 12px',fontWeight:500,maxWidth:320}}>{a.asunto}</td>
                         <td style={{padding:'7px 12px',color:'var(--text3)',whiteSpace:'nowrap'}}>{a.fecha}</td>
                         <td style={{padding:'7px 12px',fontSize:10,color:'var(--text3)'}}>{a.user}</td>
