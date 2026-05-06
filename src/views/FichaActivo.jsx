@@ -3082,7 +3082,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
 }
 
 /* ── Panel derecho ── */
-function RightPanel({ navigate, nEdificios, nPropietarios, plazas, esg, activo }) {
+function RightPanel({ navigate, nEdificios, nPropietarios, plazas, esg, activo, arrendatariosReg = [] }) {
   const [chatOpen, setChatOpen] = useState(false)
   const [chatMsg,  setChatMsg]  = useState('')
   const [chatLog,  setChatLog]  = useState([
@@ -3158,12 +3158,12 @@ function RightPanel({ navigate, nEdificios, nPropietarios, plazas, esg, activo }
         )
       })()}
 
-      {/* 3. Ubicación / datos de zona */}
+      {/* 3. Ubicación / datos de zona — desde activos.* */}
       <div className="va-side-card">
         <div className="va-side-title">Ubicación · zona</div>
         <div className="va-kpi-grid">
-          <div className="va-kpi"><div className="k">Renta zona</div><div className="v">10,5<span className="unit"> €/m²</span></div></div>
-          <div className="va-kpi warn"><div className="k">Disponibilidad</div><div className="v">11,4<span className="unit">%</span></div></div>
+          <div className="va-kpi"><div className="k">Renta zona</div><div className="v">{activo?.renta_zona != null ? <>{activo.renta_zona}<span className="unit"> €/m²</span></> : '—'}</div></div>
+          <div className="va-kpi warn"><div className="k">Disponibilidad</div><div className="v">{activo?.occupancy_rate != null ? <>{(100 - activo.occupancy_rate).toFixed(1)}<span className="unit">%</span></> : '—'}</div></div>
         </div>
       </div>
 
@@ -3193,37 +3193,60 @@ function RightPanel({ navigate, nEdificios, nPropietarios, plazas, esg, activo }
         </div>
       </div>
 
-      {/* 4. KPIs Financieros */}
+      {/* 4. KPIs Financieros — desde activos.* */}
       <div className="va-side-card">
         <div className="va-side-title">KPIs Financieros</div>
         <div className="va-fin-grid">
-          <div className="va-fin-item warn"><div className="k">Ocupación</div><div className="v">78,4%</div></div>
-          <div className="va-fin-item ok"><div className="k">Ingresos brutos</div><div className="v">3,2 M€</div></div>
-          <div className="va-fin-item"><div className="k">WAULT</div><div className="v">2,8 años</div></div>
-          <div className="va-fin-item ok"><div className="k">Yield</div><div className="v">5,2%</div></div>
-          <div className="va-fin-item hero"><div className="k">Precio Adquisición</div><div className="v">130 M€</div></div>
+          <div className="va-fin-item warn"><div className="k">Ocupación</div><div className="v">{activo?.occupancy_rate != null ? `${activo.occupancy_rate}%` : '—'}</div></div>
+          <div className="va-fin-item ok"><div className="k">Ingresos brutos</div><div className="v">{activo?.ingresos_brutos || '—'}</div></div>
+          <div className="va-fin-item"><div className="k">WAULT</div><div className="v">{activo?.wault ? `${activo.wault} años` : '—'}</div></div>
+          <div className="va-fin-item ok"><div className="k">Yield</div><div className="v">{activo?.yield_pct ? `${activo.yield_pct}%` : '—'}</div></div>
+          <div className="va-fin-item hero"><div className="k">Precio Adquisición</div><div className="v">{activo?.precio_compra || '—'}</div></div>
         </div>
       </div>
 
-      {/* 5. Vencimientos contractuales */}
-      <div className="va-side-card">
-        <div className="va-side-title">Vencimientos contractuales</div>
-        {[
-          {color:'var(--pdb-red)',    label:'Celonis — Break option', sub:'Oct 2025 · 2.702 m²',  urgency:'Vencido',  urgBg:'#FEE2E2', urgColor:'#991B1B'},
-          {color:'var(--pdb-orange)', label:'Oracle — Contrato',      sub:'Mar 2026 · 13.486 m²', urgency:'Próximo',  urgBg:'#FEF3C7', urgColor:'#92400E'},
-          {color:'var(--pdb-orange)', label:'Empresa XYZ — Break',    sub:'Dic 2026 · 1.000 m²',  urgency:'6 meses',  urgBg:'#FEF3C7', urgColor:'#92400E'},
-          {color:'var(--va-muted2)',  label:'Repsol — Break option',  sub:'Jun 2027 · 1.967 m²',  urgency:'',         urgBg:'', urgColor:''},
-        ].map((v,i)=>(
-          <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8,padding:'7px 0',borderBottom:i<3?'1px dashed var(--va-line2)':'none'}}>
-            <div style={{width:8,height:8,borderRadius:'50%',background:v.color,flexShrink:0,marginTop:4}}/>
-            <div style={{flex:1}}>
-              <div style={{fontSize:12,fontWeight:500,color:'var(--ink)'}}>{v.label}</div>
-              <div style={{fontSize:11,color:'var(--va-muted)'}}>{v.sub}</div>
-            </div>
-            {v.urgency && <span style={{fontSize:10,fontWeight:600,color:v.urgColor,background:v.urgBg,padding:'2px 8px',borderRadius:999,whiteSpace:'nowrap'}}>{v.urgency}</span>}
+      {/* 5. Vencimientos contractuales — derivados de arrendatariosReg */}
+      {(() => {
+        const today = new Date()
+        const parseDDMMYYYY = (s) => { if(!s) return null; const [d,m,y]=s.split('/'); return d&&m&&y ? new Date(+y, +m-1, +d) : null }
+        const venc = arrendatariosReg
+          .map(a => {
+            const breakDate = parseDDMMYYYY(a.break_option)
+            const finDate   = parseDDMMYYYY(a.fecha_fin)
+            const next = breakDate || finDate
+            if (!next) return null
+            const days = Math.round((next - today) / (1000*60*60*24))
+            const tipo = breakDate ? 'Break option' : 'Contrato'
+            const meses = next.toLocaleDateString('es-ES', { month:'short', year:'numeric' })
+            const sup = a.superficie ? `${Number(a.superficie).toLocaleString('es-ES')} m²` : '—'
+            return { name: a.tenant, tipo, label: `${a.tenant} — ${tipo}`, sub: `${meses} · ${sup}`, days }
+          })
+          .filter(Boolean)
+          .sort((a,b) => a.days - b.days)
+          .slice(0,4)
+        if (venc.length === 0) return null
+        return (
+          <div className="va-side-card">
+            <div className="va-side-title">Vencimientos contractuales</div>
+            {venc.map((v,i,arr)=>{
+              let urgency = '', urgBg = '', urgColor = '', dotColor = 'var(--va-muted2)'
+              if (v.days < 0)        { urgency = 'Vencido';   urgBg = '#FEE2E2'; urgColor = '#991B1B'; dotColor = 'var(--pdb-red)' }
+              else if (v.days <= 90) { urgency = 'Próximo';   urgBg = '#FEF3C7'; urgColor = '#92400E'; dotColor = 'var(--pdb-orange)' }
+              else if (v.days <= 365){ urgency = `${Math.round(v.days/30)} meses`; urgBg = '#FEF3C7'; urgColor = '#92400E'; dotColor = 'var(--pdb-orange)' }
+              return (
+                <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8,padding:'7px 0',borderBottom:i<arr.length-1?'1px dashed var(--va-line2)':'none'}}>
+                  <div style={{width:8,height:8,borderRadius:'50%',background:dotColor,flexShrink:0,marginTop:4}}/>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12,fontWeight:500,color:'var(--ink)'}}>{v.label}</div>
+                    <div style={{fontSize:11,color:'var(--va-muted)'}}>{v.sub}</div>
+                  </div>
+                  {urgency && <span style={{fontSize:10,fontWeight:600,color:urgColor,background:urgBg,padding:'2px 8px',borderRadius:999,whiteSpace:'nowrap'}}>{urgency}</span>}
+                </div>
+              )
+            })}
           </div>
-        ))}
-      </div>
+        )
+      })()}
 
       {/* 6. Propuestas / Proyectos en curso */}
       <div className="va-side-card">
@@ -5329,7 +5352,7 @@ export default function FichaActivo() {
 
         </div>{/* /ficha-main */}
 
-        <RightPanel navigate={navigate} nEdificios={liveEdifCount ?? activo?.n_edificios ?? 1} nPropietarios={liveOwnerCount} plazas={plazas} esg={esg} activo={activo}/>
+        <RightPanel navigate={navigate} nEdificios={liveEdifCount ?? activo?.n_edificios ?? 1} nPropietarios={liveOwnerCount} plazas={plazas} esg={esg} activo={activo} arrendatariosReg={arrendatariosReg}/>
 
       </div>{/* /ficha-wrap */}
       {showTarea && <AsignarTareaModal refTipo="Activo" refNombre="P.E Avalon" onClose={() => setShowTarea(false)} />}
