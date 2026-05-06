@@ -3868,6 +3868,82 @@ export default function FichaActivo() {
       })
   }, [params?.ref])
 
+  // ── Vista 360: carga el histórico comercial del activo ──────────────────
+  // Solo se dispara cuando el usuario abre la pestaña Vista 360 y hay un
+  // activo cargado. Lanza queries en paralelo para llenar las 6 secciones.
+  const [vista360, setVista360] = useState({
+    loading: false, loaded: false,
+    ofertas: [], cuentas: [], demandas: [], transacciones: [], mandatos: [], propuestas: [],
+  })
+  useEffect(() => {
+    if (activeTab !== 'at-360') return
+    if (!activo?.id) return
+    if (vista360.loaded) return
+    let cancelled = false
+    setVista360(s => ({ ...s, loading: true }))
+    ;(async () => {
+      const aid = activo.id
+      const [ofertasRes, altsRes, transRes, mandActsRes] = await Promise.all([
+        supabase.from('ofertas')
+          .select('id,ref,estado,renta_m2,superficie_disponible,tipo_operacion,created_at')
+          .eq('activo_id', aid).order('created_at', { ascending: false }),
+        supabase.from('oferta_demanda')
+          .select('demanda_id,estado_alternativa,created_at,demandas(id,ref,nombre,dynamics_account_id,sup_min,sup_max,estado)')
+          .eq('activo_id', aid).order('created_at', { ascending: false }),
+        supabase.from('negociaciones')
+          .select('id,ref,estado,renta_cierre,fecha_cierre,contraparte_empresa,created_at')
+          .eq('activo_id', aid).eq('estado', 'Firmado').order('fecha_cierre', { ascending: false }),
+        supabase.from('mandato_activos')
+          .select('mandatos(id,ref,tipo,estado,fecha_inicio,fecha_fin,propuesta_id)')
+          .eq('activo_id', aid),
+      ])
+
+      // Demandas distinct (a partir de oferta_demanda)
+      const alts = altsRes.data || []
+      const seenDem = new Set()
+      const demandas = []
+      const accountIds = new Set()
+      for (const a of alts) {
+        const d = a.demandas
+        if (!d || seenDem.has(d.id)) continue
+        seenDem.add(d.id)
+        demandas.push({ ...d, estado_alternativa: a.estado_alternativa })
+        if (d.dynamics_account_id) accountIds.add(d.dynamics_account_id)
+      }
+
+      // Cuentas presentadas (master Dynamics)
+      let cuentas = []
+      if (accountIds.size > 0) {
+        const { data } = await supabase.from('dynamics_accounts')
+          .select('dynamics_id,nombre').in('dynamics_id', [...accountIds])
+        cuentas = data || []
+      }
+
+      // Mandatos (extraer de la tabla puente)
+      const mandatos = (mandActsRes.data || []).map(m => m.mandatos).filter(Boolean)
+
+      // Propuestas (vía mandatos.propuesta_id)
+      const propuestaIds = [...new Set(mandatos.map(m => m.propuesta_id).filter(Boolean))]
+      let propuestas = []
+      if (propuestaIds.length > 0) {
+        const { data } = await supabase.from('propuestas')
+          .select('id,ref,nombre,tipo,estado,fees,fecha_resolucion').in('id', propuestaIds)
+        propuestas = data || []
+      }
+
+      if (cancelled) return
+      setVista360({
+        loading: false, loaded: true,
+        ofertas: ofertasRes.data || [],
+        cuentas, demandas,
+        transacciones: transRes.data || [],
+        mandatos,
+        propuestas,
+      })
+    })()
+    return () => { cancelled = true }
+  }, [activeTab, activo?.id, vista360.loaded])
+
   // Load propietariosReg and arrendatariosReg from Supabase for existing activos
   useEffect(() => {
     const ref = params?.ref
@@ -4990,15 +5066,22 @@ export default function FichaActivo() {
           {activeTab==='at-360' && (
             <div className="tab-content active"><div className="info-pad">
 
+              {/* Loading state */}
+              {vista360.loading && (
+                <div style={{padding:'10px 14px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',color:'var(--accent)',fontSize:11,marginBottom:12}}>
+                  Cargando histórico comercial del activo…
+                </div>
+              )}
+
               {/* KPI strip — 6 categorías de actividad */}
               <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:8,marginBottom:14}}>
                 {[
-                  {lbl:'Ofertas',                val:8,  color:'var(--green)'},
-                  {lbl:'Cuentas presentadas',    val:12, color:'var(--accent)'},
-                  {lbl:'Demandas',               val:4,  color:'var(--purple)'},
-                  {lbl:'Transacciones',          val:2,  color:'var(--text1)'},
-                  {lbl:'Mandatos',               val:3,  color:'var(--amber)'},
-                  {lbl:'Propuestas / Proyectos', val:2,  color:'var(--teal)'},
+                  {lbl:'Ofertas',                val:vista360.ofertas.length,       color:'var(--green)'},
+                  {lbl:'Cuentas presentadas',    val:vista360.cuentas.length,       color:'var(--accent)'},
+                  {lbl:'Demandas',               val:vista360.demandas.length,      color:'var(--purple)'},
+                  {lbl:'Transacciones',          val:vista360.transacciones.length, color:'var(--text1)'},
+                  {lbl:'Mandatos',               val:vista360.mandatos.length,      color:'var(--amber)'},
+                  {lbl:'Propuestas / Proyectos', val:vista360.propuestas.length,    color:'var(--teal)'},
                 ].map(k=>(
                   <div key={k.lbl} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'8px 10px',textAlign:'center'}}>
                     <div style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3,lineHeight:1.2}}>{k.lbl}</div>
@@ -5030,28 +5113,40 @@ export default function FichaActivo() {
               {/* 6 secciones en grid 2 columnas (regla 50%) */}
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
 
+                {(() => {
+                  // helpers locales para mapear estado → clase de tag
+                  const tagOferta = (e) => e==='Cerrada' ? 'tag-gray' : e==='Desactivada' ? 'tag-gray' : e==='En negociación' ? 'tag-amber' : 'tag-green'
+                  const tagDem    = (e) => e==='Finalista' ? 'tag-green' : e==='Cancelada' || e==='Standby' ? 'tag-gray' : 'tag-amber'
+                  const tagMand   = (e) => e==='en_curso' || e==='En curso' ? 'tag-green' : 'tag-gray'
+                  const tagProp   = (e) => e==='ganada' ? 'tag-green' : e==='perdida' ? 'tag-red' : e==='presentada' ? 'tag-blue' : 'tag-gray'
+                  const fmtDate   = (iso) => iso ? new Date(iso).toLocaleDateString('es-ES') : '—'
+                  const fmtRange  = (a, b) => `${fmtDate(a)} – ${fmtDate(b)}`
+                  const empty     = (msg) => <tr><td colSpan={6} style={{padding:'14px',color:'var(--text4)',fontSize:11,textAlign:'center'}}>{msg}</td></tr>
+                  return null
+                })()}
+
                 {/* Ofertas vinculadas */}
                 <div className="va-card" style={{margin:0}}>
-                  <div className="va-card-header"><h3>Ofertas vinculadas <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>8 históricas · 2 activas</span></h3></div>
+                  <div className="va-card-header"><h3>Ofertas vinculadas <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>{vista360.ofertas.length} {vista360.ofertas.length===1?'oferta':'ofertas'}</span></h3></div>
                   <div style={{padding:'4px 0 14px'}}>
                     <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
                       <thead>
-                        <tr>{['Ref','Espacio','Renta','Estado'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr>
+                        <tr>{['Ref','Operación','Renta','Estado'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr>
                       </thead>
                       <tbody>
-                        {[
-                          {ref:'OLB001',sp:'P1–P6 · Edif. A',renta:'10,5 €/m²',estado:'En comercialización',col:'tag-green'},
-                          {ref:'OLB002',sp:'P2 · Edif. A',renta:'13,0 €/m²',estado:'En negociación',col:'tag-amber'},
-                          {ref:'OLB-H001',sp:'P5 · Edif. A',renta:'12,8 €/m²',estado:'Cerrada',col:'tag-gray'},
-                          {ref:'OLB-H002',sp:'PB · Edif. C',renta:'11,5 €/m²',estado:'Desactivada',col:'tag-gray'},
-                        ].map(o=>(
-                          <tr key={o.ref} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-oferta')}>
-                            <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{o.ref}</span></td>
-                            <td style={{padding:'6px 12px',fontSize:10,color:'var(--text3)'}}>{o.sp}</td>
-                            <td style={{padding:'6px 12px',fontFamily:'var(--mono)',fontSize:10}}>{o.renta}</td>
-                            <td style={{padding:'6px 12px'}}><span className={`tag ${o.col}`} style={{fontSize:9}}>{o.estado}</span></td>
-                          </tr>
-                        ))}
+                        {vista360.ofertas.length === 0 && !vista360.loading
+                          ? <tr><td colSpan={4} style={{padding:'14px',color:'var(--text4)',fontSize:11,textAlign:'center'}}>Sin ofertas vinculadas</td></tr>
+                          : vista360.ofertas.map(o=>{
+                            const col = o.estado==='Cerrada' || o.estado==='Desactivada' ? 'tag-gray' : o.estado==='En negociación' ? 'tag-amber' : 'tag-green'
+                            return (
+                              <tr key={o.id} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-oferta',{ofertaRef:o.ref})}>
+                                <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{o.ref}</span></td>
+                                <td style={{padding:'6px 12px',fontSize:10,color:'var(--text3)'}}>{o.tipo_operacion || '—'}</td>
+                                <td style={{padding:'6px 12px',fontFamily:'var(--mono)',fontSize:10}}>{o.renta_m2 ? `${o.renta_m2} €/m²` : '—'}</td>
+                                <td style={{padding:'6px 12px'}}><span className={`tag ${col}`} style={{fontSize:9}}>{o.estado || '—'}</span></td>
+                              </tr>
+                            )
+                          })}
                       </tbody>
                     </table>
                   </div>
@@ -5059,24 +5154,19 @@ export default function FichaActivo() {
 
                 {/* Cuentas presentadas */}
                 <div className="va-card" style={{margin:0}}>
-                  <div className="va-card-header"><h3>Cuentas presentadas <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>12 cuentas</span></h3></div>
+                  <div className="va-card-header"><h3>Cuentas presentadas <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>{vista360.cuentas.length} {vista360.cuentas.length===1?'cuenta':'cuentas'}</span></h3></div>
                   <div style={{padding:'4px 0 14px'}}>
                     <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                      <thead><tr>{['Cuenta','Última','Estado'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
+                      <thead><tr>{['Cuenta','Dynamics ID'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
                       <tbody>
-                        {[
-                          {c:'Oracle Spain SL',d:'15/02/2026',e:'Finalista',col:'tag-green'},
-                          {c:'Generali RE',d:'20/01/2026',e:'Firmado',col:'tag-blue'},
-                          {c:'Empresa XYZ',d:'12/02/2026',e:'En curso',col:'tag-amber'},
-                          {c:'Celonis Spain',d:'23/03/2026',e:'En curso',col:'tag-amber'},
-                          {c:'BBVA SA',d:'05/01/2026',e:'Descartada',col:'tag-gray'},
-                        ].map(c=>(
-                          <tr key={c.c} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('cuentas')}>
-                            <td style={{padding:'6px 12px',fontWeight:500}}>{c.c}</td>
-                            <td style={{padding:'6px 12px',fontSize:10,color:'var(--text3)'}}>{c.d}</td>
-                            <td style={{padding:'6px 12px'}}><span className={`tag ${c.col}`} style={{fontSize:9}}>{c.e}</span></td>
-                          </tr>
-                        ))}
+                        {vista360.cuentas.length === 0 && !vista360.loading
+                          ? <tr><td colSpan={2} style={{padding:'14px',color:'var(--text4)',fontSize:11,textAlign:'center'}}>Sin cuentas presentadas</td></tr>
+                          : vista360.cuentas.map(c => (
+                            <tr key={c.dynamics_id} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('cuentas')}>
+                              <td style={{padding:'6px 12px',fontWeight:500}}>{c.nombre}</td>
+                              <td style={{padding:'6px 12px',fontSize:10,color:'var(--text3)',fontFamily:'var(--mono)'}}>{c.dynamics_id}</td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                   </div>
@@ -5084,24 +5174,24 @@ export default function FichaActivo() {
 
                 {/* Demandas vinculadas */}
                 <div className="va-card" style={{margin:0}}>
-                  <div className="va-card-header"><h3>Demandas vinculadas <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>4 activas con este activo en alternativas</span></h3></div>
+                  <div className="va-card-header"><h3>Demandas vinculadas <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>{vista360.demandas.length} {vista360.demandas.length===1?'demanda':'demandas'}</span></h3></div>
                   <div style={{padding:'4px 0 14px'}}>
                     <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                      <thead><tr>{['Ref','Cuenta','Sup','Estado'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
+                      <thead><tr>{['Ref','Sup','Estado alt.'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
                       <tbody>
-                        {[
-                          {r:'D251035690',c:'Corp. Financiera Azuaga',s:'1.500 m²',e:'Finalista',col:'tag-green'},
-                          {r:'D250098712',c:'Pharma Group Spain',s:'900 m²',e:'En curso',col:'tag-amber'},
-                          {r:'D249871234',c:'CLIMAX SPORT',s:'2.100 m²',e:'En curso',col:'tag-amber'},
-                          {r:'D248554431',c:'Medicina Responsable SL',s:'600 m²',e:'Standby',col:'tag-gray'},
-                        ].map(d=>(
-                          <tr key={d.r} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-demanda')}>
-                            <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{d.r}</span></td>
-                            <td style={{padding:'6px 12px',fontSize:10}}>{d.c}</td>
-                            <td style={{padding:'6px 12px',fontFamily:'var(--mono)',fontSize:10}}>{d.s}</td>
-                            <td style={{padding:'6px 12px'}}><span className={`tag ${d.col}`} style={{fontSize:9}}>{d.e}</span></td>
-                          </tr>
-                        ))}
+                        {vista360.demandas.length === 0 && !vista360.loading
+                          ? <tr><td colSpan={3} style={{padding:'14px',color:'var(--text4)',fontSize:11,textAlign:'center'}}>Sin demandas con este activo en alternativas</td></tr>
+                          : vista360.demandas.map(d => {
+                            const col = d.estado_alternativa==='ganada' ? 'tag-green' : d.estado_alternativa==='perdida' || d.estado_alternativa==='descartada' ? 'tag-gray' : 'tag-amber'
+                            const sup = d.sup_min && d.sup_max ? `${d.sup_min}–${d.sup_max} m²` : d.sup_max ? `${d.sup_max} m²` : '—'
+                            return (
+                              <tr key={d.id} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-demanda',{id:d.id})}>
+                                <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{d.ref}</span></td>
+                                <td style={{padding:'6px 12px',fontFamily:'var(--mono)',fontSize:10}}>{sup}</td>
+                                <td style={{padding:'6px 12px'}}><span className={`tag ${col}`} style={{fontSize:9}}>{d.estado_alternativa || '—'}</span></td>
+                              </tr>
+                            )
+                          })}
                       </tbody>
                     </table>
                   </div>
@@ -5109,22 +5199,21 @@ export default function FichaActivo() {
 
                 {/* Transacciones */}
                 <div className="va-card" style={{margin:0}}>
-                  <div className="va-card-header"><h3>Transacciones <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>2 deals firmados</span></h3></div>
+                  <div className="va-card-header"><h3>Transacciones <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>{vista360.transacciones.length} {vista360.transacciones.length===1?'deal firmado':'deals firmados'}</span></h3></div>
                   <div style={{padding:'4px 0 14px'}}>
                     <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                      <thead><tr>{['Ref','Cuenta','Renta cierre','Fecha'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
+                      <thead><tr>{['Ref','Contraparte','Renta cierre','Fecha'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
                       <tbody>
-                        {[
-                          {r:'NEG-0044',c:'Oracle Spain SL',rc:'12,5 €/m²',d:'04/04/2026'},
-                          {r:'NEG-0019',c:'Generali RE',rc:'13,0 €/m²',d:'15/11/2025'},
-                        ].map(t=>(
-                          <tr key={t.r} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-negociacion')}>
-                            <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{t.r}</span></td>
-                            <td style={{padding:'6px 12px',fontSize:10}}>{t.c}</td>
-                            <td style={{padding:'6px 12px',fontFamily:'var(--mono)',fontSize:10,color:'var(--green)',fontWeight:600}}>{t.rc}</td>
-                            <td style={{padding:'6px 12px',fontSize:10,color:'var(--text3)'}}>{t.d}</td>
-                          </tr>
-                        ))}
+                        {vista360.transacciones.length === 0 && !vista360.loading
+                          ? <tr><td colSpan={4} style={{padding:'14px',color:'var(--text4)',fontSize:11,textAlign:'center'}}>Sin transacciones cerradas</td></tr>
+                          : vista360.transacciones.map(t => (
+                            <tr key={t.id} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-negociacion',{id:t.id})}>
+                              <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{t.ref}</span></td>
+                              <td style={{padding:'6px 12px',fontSize:10}}>{t.contraparte_empresa || '—'}</td>
+                              <td style={{padding:'6px 12px',fontFamily:'var(--mono)',fontSize:10,color:'var(--green)',fontWeight:600}}>{t.renta_cierre ? `${t.renta_cierre} €/m²` : '—'}</td>
+                              <td style={{padding:'6px 12px',fontSize:10,color:'var(--text3)'}}>{t.fecha_cierre ? new Date(t.fecha_cierre).toLocaleDateString('es-ES') : '—'}</td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                   </div>
@@ -5132,23 +5221,26 @@ export default function FichaActivo() {
 
                 {/* Mandatos */}
                 <div className="va-card" style={{margin:0}}>
-                  <div className="va-card-header"><h3>Mandatos <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>3 históricos · 1 vigente</span></h3></div>
+                  <div className="va-card-header"><h3>Mandatos <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>{vista360.mandatos.length} {vista360.mandatos.length===1?'mandato':'mandatos'}</span></h3></div>
                   <div style={{padding:'4px 0 14px'}}>
                     <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
                       <thead><tr>{['Ref','Tipo','Vigencia','Estado'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
                       <tbody>
-                        {[
-                          {r:'MAN-2501',t:'Oferta alquiler',v:'01/10/25 – 30/09/26',e:'En curso',col:'tag-green'},
-                          {r:'MAN-2410',t:'Oferta alquiler',v:'01/10/24 – 30/09/25',e:'Vencido',col:'tag-gray'},
-                          {r:'MAN-2305',t:'Oferta venta',v:'15/05/23 – 15/11/23',e:'Cancelado',col:'tag-gray'},
-                        ].map(m=>(
-                          <tr key={m.r} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-mandato')}>
-                            <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{m.r}</span></td>
-                            <td style={{padding:'6px 12px',fontSize:10}}>{m.t}</td>
-                            <td style={{padding:'6px 12px',fontSize:10,color:'var(--text3)',fontFamily:'var(--mono)'}}>{m.v}</td>
-                            <td style={{padding:'6px 12px'}}><span className={`tag ${m.col}`} style={{fontSize:9}}>{m.e}</span></td>
-                          </tr>
-                        ))}
+                        {vista360.mandatos.length === 0 && !vista360.loading
+                          ? <tr><td colSpan={4} style={{padding:'14px',color:'var(--text4)',fontSize:11,textAlign:'center'}}>Sin mandatos vinculados</td></tr>
+                          : vista360.mandatos.map(m => {
+                            const col = m.estado==='en_curso' || m.estado==='En curso' ? 'tag-green' : 'tag-gray'
+                            const fi = m.fecha_inicio ? new Date(m.fecha_inicio).toLocaleDateString('es-ES') : '—'
+                            const ff = m.fecha_fin    ? new Date(m.fecha_fin).toLocaleDateString('es-ES')    : '—'
+                            return (
+                              <tr key={m.id} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-mandato',{id:m.id})}>
+                                <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{m.ref}</span></td>
+                                <td style={{padding:'6px 12px',fontSize:10}}>{m.tipo || '—'}</td>
+                                <td style={{padding:'6px 12px',fontSize:10,color:'var(--text3)',fontFamily:'var(--mono)'}}>{fi} – {ff}</td>
+                                <td style={{padding:'6px 12px'}}><span className={`tag ${col}`} style={{fontSize:9}}>{m.estado || '—'}</span></td>
+                              </tr>
+                            )
+                          })}
                       </tbody>
                     </table>
                   </div>
@@ -5156,22 +5248,24 @@ export default function FichaActivo() {
 
                 {/* Propuestas / Proyectos */}
                 <div className="va-card" style={{margin:0}}>
-                  <div className="va-card-header"><h3>Propuestas / Proyectos <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>2 históricos</span></h3></div>
+                  <div className="va-card-header"><h3>Propuestas / Proyectos <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>{vista360.propuestas.length} {vista360.propuestas.length===1?'registro':'registros'}</span></h3></div>
                   <div style={{padding:'4px 0 14px'}}>
                     <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                      <thead><tr>{['Ref','Tipo','Cuenta','Estado'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
+                      <thead><tr>{['Ref','Tipo','Fees','Estado'].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
                       <tbody>
-                        {[
-                          {r:'PRO-2501',t:'Propuesta',c:'Barings RE',e:'Ganado',col:'tag-green'},
-                          {r:'PRY-2403',t:'Proyecto',c:'Barings RE',e:'Entregado',col:'tag-blue'},
-                        ].map(p=>(
-                          <tr key={p.r} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-propuesta')}>
-                            <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{p.r}</span></td>
-                            <td style={{padding:'6px 12px',fontSize:10}}>{p.t}</td>
-                            <td style={{padding:'6px 12px',fontSize:10}}>{p.c}</td>
-                            <td style={{padding:'6px 12px'}}><span className={`tag ${p.col}`} style={{fontSize:9}}>{p.e}</span></td>
-                          </tr>
-                        ))}
+                        {vista360.propuestas.length === 0 && !vista360.loading
+                          ? <tr><td colSpan={4} style={{padding:'14px',color:'var(--text4)',fontSize:11,textAlign:'center'}}>Sin propuestas/proyectos vinculados</td></tr>
+                          : vista360.propuestas.map(p => {
+                            const col = p.estado==='ganada' ? 'tag-green' : p.estado==='perdida' || p.estado==='cancelada' ? 'tag-gray' : 'tag-blue'
+                            return (
+                              <tr key={p.id} style={{borderTop:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>navigate('ficha-propuesta',{id:p.id})}>
+                                <td style={{padding:'6px 12px'}}><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{p.ref}</span></td>
+                                <td style={{padding:'6px 12px',fontSize:10}}>{p.tipo || '—'}</td>
+                                <td style={{padding:'6px 12px',fontFamily:'var(--mono)',fontSize:10}}>{p.fees ? `${p.fees.toLocaleString('es-ES')} €` : '—'}</td>
+                                <td style={{padding:'6px 12px'}}><span className={`tag ${col}`} style={{fontSize:9}}>{p.estado || '—'}</span></td>
+                              </tr>
+                            )
+                          })}
                       </tbody>
                     </table>
                   </div>
