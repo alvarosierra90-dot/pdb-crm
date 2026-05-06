@@ -4262,8 +4262,8 @@ export default function FichaActivo() {
                   <span>Última modificación · {activo?.updated_by || 'Álvaro Sierra'} · {activo?.updated_at ? new Date(activo.updated_at).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES')}</span>
                 </div>
                 <div style={{ display:'flex', gap:6 }}>
-                  <button className="tbtn" onClick={() => window.alert('Generando Rent-roll XLSX…')}><FileSpreadsheet size={13} strokeWidth={1.75} /> Rent-roll XLSX</button>
-                  <button className="tbtn" onClick={() => window.alert('Generando Ficha PDF…')}><FileText size={13} strokeWidth={1.75} /> Ficha PDF</button>
+                  <button className="tbtn" onClick={() => exportRentRoll(displayNombre ?? activo?.nombre ?? 'Activo')}><FileSpreadsheet size={13} strokeWidth={1.75} /> Rent-roll XLSX</button>
+                  <button className="tbtn" onClick={() => exportFichaActivo(navigate)}><FileText size={13} strokeWidth={1.75} /> Ficha PDF</button>
                 </div>
               </div>
             )}
