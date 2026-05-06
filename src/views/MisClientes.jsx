@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import { Mail, Phone, Users, FileText, CheckSquare, Inbox, Settings } from 'lucide-react'
 
 const CUENTAS_DISPONIBLES = [
   'Grupo Empresarial Altamira SL','Nexo Digital Media SL','Centro Médico Integra SL',
@@ -52,7 +53,11 @@ const TRANS_CLIENTES = [
 ]
 
 const TIPO_TAG = { Email:'tag-blue', Llamada:'tag-green', 'Reunión':'tag-purple', Nota:'tag-amber', Tarea:'tag-gray' }
-const TIPO_ICO = { Email:'📧', Llamada:'📞', 'Reunión':'🤝', Nota:'📝', Tarea:'✅' }
+const TIPO_ICO = { Email: Mail, Llamada: Phone, 'Reunión': Users, Nota: FileText, Tarea: CheckSquare }
+function TipoIco({ tipo, size = 11 }) {
+  const Ico = TIPO_ICO[tipo] || Inbox
+  return <Ico size={size} strokeWidth={1.75} />
+}
 const EST_TAG  = { 'Abierto':'tag-amber', 'Finalizado':'tag-gray', 'En Curso':'tag-green', 'En negociación':'tag-amber', 'Pendiente respuesta':'tag-amber', 'Acuerdo alcanzado':'tag-green' }
 const REF_TAG  = { Demanda:'tag-blue', Negociación:'tag-purple', Oferta:'tag-green', Cuenta:'tag-gray', Activo:'tag-teal' }
 
@@ -94,7 +99,7 @@ export default function MisClientes() {
             </span>
           ))}
         </div>
-        <button className="tbtn prim" onClick={()=>setShowGestionar(v=>!v)}>⚙ Gestionar mis clientes</button>
+        <button className="tbtn prim" onClick={()=>setShowGestionar(v=>!v)}><Settings size={14} strokeWidth={1.75} /> Gestionar mis cuentas</button>
       </div>
 
       {/* Panel gestión clientes */}
@@ -166,7 +171,7 @@ export default function MisClientes() {
                   <tr key={a.id} onClick={()=>navigate('ficha-actividad')} style={{cursor:'pointer'}}>
                     <td><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:10}}>{a.id}</span></td>
                     <td><span style={{fontSize:11,fontWeight:600,color:'var(--accent)',cursor:'pointer'}}>{a.cuenta}</span></td>
-                    <td><span className={`tag ${TIPO_TAG[a.tipo]||'tag-gray'}`}>{TIPO_ICO[a.tipo]||'📋'} {a.tipo}</span></td>
+                    <td><span className={`tag ${TIPO_TAG[a.tipo]||'tag-gray'}`}><TipoIco tipo={a.tipo} /> {a.tipo}</span></td>
                     <td style={{fontSize:11,fontWeight:500,maxWidth:220,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.as}</td>
                     <td>
                       <div style={{display:'flex',flexDirection:'column',gap:2}}>

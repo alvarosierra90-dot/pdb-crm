@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import { Download, SlidersHorizontal } from 'lucide-react'
 
 // Las demandas viven en Supabase (migración 016 las migró todas).
 // Aquí solo queda el mapeo visual de estados.
@@ -170,12 +171,12 @@ export default function DemandaList() {
           <input className="search-inp" placeholder="Buscar demandas..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
         <button className="tbtn" onClick={() => setShowAdv(v => !v)} style={showAdv || advCount > 0 ? { borderColor: 'var(--accent)', color: 'var(--accent)', background: 'var(--accent-lt)' } : {}}>
-          ⚙ Filtros{advCount > 0 && <span style={{ marginLeft: 4, fontSize: 9, background: 'var(--accent)', color: '#fff', borderRadius: 9, padding: '0 5px' }}>{advCount}</span>}
+          <SlidersHorizontal size={14} strokeWidth={1.75} /> Filtros{advCount > 0 && <span style={{ marginLeft: 4, fontSize: 9, background: 'var(--accent)', color: '#fff', borderRadius: 9, padding: '0 5px' }}>{advCount}</span>}
         </button>
         <FilterBadge count={activeCount} onClear={clearAll} />
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
           <ColumnEditor cols={COLS} vis={vis} setVis={setVis} />
-          <button className="tbtn">⬇ Exportar</button>
+          <button className="tbtn"><Download size={14} strokeWidth={1.75} /> Exportar</button>
           <button className="tbtn prim" onClick={() => navigate('ficha-demanda')}>+ Nueva Demanda</button>
         </div>
       </div>

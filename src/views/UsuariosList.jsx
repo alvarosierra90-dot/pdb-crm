@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import { exportPDF, exportPPT } from '../utils/exportReport'
+import { Download, SlidersHorizontal, FileText, Presentation, ChevronUp, ChevronDown } from 'lucide-react'
 
 function ExportMenu({ getConfig }) {
   const [open, setOpen] = useState(false)
@@ -15,7 +16,7 @@ function ExportMenu({ getConfig }) {
   return (
     <div ref={ref} style={{position:'relative',display:'inline-block'}}>
       <button onClick={() => setOpen(o => !o)} style={{padding:'7px 16px',background:'var(--accent)',border:'none',borderRadius:6,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:700,color:'#fff',display:'flex',alignItems:'center',gap:6,boxShadow:'0 1px 4px rgba(59,130,246,.3)'}}>
-        ⬇ Exportar <span style={{fontSize:8}}>{open?'▲':'▼'}</span>
+        <Download size={14} strokeWidth={1.75} /> Exportar {open ? <ChevronUp size={12} strokeWidth={1.75} /> : <ChevronDown size={12} strokeWidth={1.75} />}
       </button>
       {open && (
         <div style={{position:'absolute',right:0,top:'110%',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:999,minWidth:130,overflow:'hidden'}}>
@@ -23,13 +24,13 @@ function ExportMenu({ getConfig }) {
             style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8,borderBottom:'1px solid var(--border)'}}
             onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
             onMouseLeave={e=>e.currentTarget.style.background=''}>
-            📄 PDF
+            <FileText size={13} strokeWidth={1.75} /> PDF
           </div>
           <div onClick={() => { setOpen(false); exportPPT(getConfig()) }}
             style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8}}
             onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
             onMouseLeave={e=>e.currentTarget.style.background=''}>
-            📊 PowerPoint
+            <Presentation size={13} strokeWidth={1.75} /> PowerPoint
           </div>
         </div>
       )}
@@ -123,7 +124,7 @@ export default function UsuariosList() {
           <input className="search-inp" placeholder="Buscar usuario o equipo..." value={query} onChange={e=>setQuery(e.target.value)}/>
         </div>
         <button className="tbtn" onClick={()=>setShowAdv(v=>!v)} style={showAdv||advCount>0?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--accent-lt)'}:{}}>
-          ⚙ Filtros{advCount>0&&<span style={{marginLeft:4,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{advCount}</span>}
+          <SlidersHorizontal size={14} strokeWidth={1.75} /> Filtros{advCount>0&&<span style={{marginLeft:4,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{advCount}</span>}
         </button>
         <FilterBadge activeCount={activeCount} onClear={clearAll}/>
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>

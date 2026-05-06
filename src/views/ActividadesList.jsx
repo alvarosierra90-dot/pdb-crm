@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import { Mail, Phone, Users, FileText, CheckSquare, MessageCircle, Inbox, Download, SlidersHorizontal, Plus } from 'lucide-react'
 
 const ACTS = [
   {id:'ACT-2501',u:'Sierra Alvaro',team:'Leasing Oficinas MAD',rT:'Demanda',ref:'Corporacion Financiera Azuaga SL',as:'Propuesta arrendamiento Albatros — Edif. D',tipo:'Email',f:'20/10/2025',h:'13:40',est:'Abierto',mod:'Sierra Alvaro'},
@@ -17,7 +18,11 @@ const ACTS = [
 ]
 
 const TIPO_TAG = { Email:'tag-blue', Llamada:'tag-green', 'Reunión':'tag-purple', Nota:'tag-amber', Tarea:'tag-gray', WhatsApp:'tag-teal' }
-const TIPO_ICO = { Email:'📧', Llamada:'📞', 'Reunión':'🤝', Nota:'📝', Tarea:'✅', WhatsApp:'💬' }
+const TIPO_ICO = { Email: Mail, Llamada: Phone, 'Reunión': Users, Nota: FileText, Tarea: CheckSquare, WhatsApp: MessageCircle }
+function TipoIco({ tipo, size = 11 }) {
+  const Ico = TIPO_ICO[tipo] || Inbox
+  return <Ico size={size} strokeWidth={1.75} />
+}
 const REF_TAG  = { Demanda:'tag-blue', Activo:'tag-teal', Oferta:'tag-green', Cuenta:'tag-gray', 'Negociación':'tag-purple', Interno:'tag-amber' }
 const EST_TAG  = { Abierto:'tag-amber', Finalizado:'tag-gray' }
 
@@ -83,7 +88,7 @@ export default function ActividadesList() {
       </div>
     </td>,
     as:    <td key="as" style={{fontSize:11,fontWeight:500,maxWidth:220,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.as}</td>,
-    tipo:  <td key="tipo"><span className={`tag ${TIPO_TAG[a.tipo]||'tag-gray'}`}>{TIPO_ICO[a.tipo]||'📋'} {a.tipo}</span></td>,
+    tipo:  <td key="tipo"><span className={`tag ${TIPO_TAG[a.tipo]||'tag-gray'}`}><TipoIco tipo={a.tipo} /> {a.tipo}</span></td>,
     fecha: <td key="fecha" style={{fontSize:11}}>{a.f} <span style={{color:'var(--text4)'}}>{a.h}</span></td>,
     est:   <td key="est"><span className={`tag ${EST_TAG[a.est]||'tag-gray'}`}>{a.est}</span></td>,
     mod:   <td key="mod" style={{fontSize:11,color:'var(--text3)'}}>{a.mod}</td>,
@@ -109,13 +114,13 @@ export default function ActividadesList() {
           <input className="search-inp" placeholder="Buscar actividades..." value={query} onChange={e=>setQuery(e.target.value)}/>
         </div>
         <button className="tbtn" onClick={()=>setShowAdv(v=>!v)} style={showAdv||advCount>0?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--accent-lt)'}:{}}>
-          ⚙ Filtros{advCount>0&&<span style={{marginLeft:4,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{advCount}</span>}
+          <SlidersHorizontal size={14} strokeWidth={1.75} /> Filtros{advCount>0&&<span style={{marginLeft:4,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{advCount}</span>}
         </button>
         <FilterBadge activeCount={activeCount} onClear={clearAll}/>
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
           <ColumnEditor cols={COLS} vis={vis} setVis={setVis}/>
-          <button className="tbtn">⬇ Exportar</button>
-          <button className="tbtn prim" onClick={()=>navigate('ficha-actividad')}>+ Nueva</button>
+          <button className="tbtn"><Download size={14} strokeWidth={1.75} /> Exportar</button>
+          <button className="tbtn prim" onClick={()=>navigate('ficha-actividad')}><Plus size={14} strokeWidth={2} /> Nueva</button>
         </div>
       </div>
 

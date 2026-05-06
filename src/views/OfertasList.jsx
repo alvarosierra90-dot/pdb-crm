@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { OFERTAS as MOCK_OFERTAS } from '../data/mockData'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import { Download, SlidersHorizontal, AlertTriangle } from 'lucide-react'
 
 const estadoTag = { 'En revisión': 'tag-amber', 'Negociando': 'tag-purple', 'Pre-acuerdo': 'tag-green', 'En curso': 'tag-blue', 'Disponible': 'tag-green', 'En negociación': 'tag-amber', 'Cerrada': 'tag-gray', 'Finalista': 'tag-green' }
 
@@ -61,7 +62,7 @@ export default function OfertasList() {
           return {
             id:         o.id,
             ref:        o.ref || o.id,
-            activo:     act?.nombre || o.activo_ref || (o.activo_ref ? o.activo_ref : '⚠ Pendiente Activo'),
+            activo:     act?.nombre || o.activo_ref || (o.activo_ref ? o.activo_ref : 'Pendiente Activo'),
             activo_dir: act?.direccion || '',
             activo_ref: o.activo_ref || '',
             sin_activo: !o.activo_ref,
@@ -165,11 +166,11 @@ export default function OfertasList() {
           <input className="search-inp" placeholder="Buscar ofertas..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
         <button className="tbtn" onClick={() => setShowAdv(v => !v)} style={showAdv || advCount > 0 ? { borderColor: 'var(--accent)', color: 'var(--accent)', background: 'var(--accent-lt)' } : {}}>
-          ⚙ Filtros{advCount > 0 && <span style={{ marginLeft: 4, fontSize: 9, background: 'var(--accent)', color: '#fff', borderRadius: 9, padding: '0 5px' }}>{advCount}</span>}
+          <SlidersHorizontal size={14} strokeWidth={1.75} /> Filtros{advCount > 0 && <span style={{ marginLeft: 4, fontSize: 9, background: 'var(--accent)', color: '#fff', borderRadius: 9, padding: '0 5px' }}>{advCount}</span>}
         </button>
         <FilterBadge count={activeCount} onClear={clearAll} />
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-          <button className="tbtn">⬇ Exportar</button>
+          <button className="tbtn"><Download size={14} strokeWidth={1.75} /> Exportar</button>
           <button className="tbtn prim" onClick={handleNuevaOferta} disabled={creando}>{creando ? 'Creando...' : '+ Nueva Oferta'}</button>
         </div>
       </div>

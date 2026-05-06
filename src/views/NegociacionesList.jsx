@@ -3,21 +3,23 @@ import { useNav } from '../context/NavigationContext'
 import { NEGOCIACIONES } from '../data/mockData'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import { ArrowLeftRight, Hourglass, Check, FileSignature, X, Download, SlidersHorizontal } from 'lucide-react'
 
 const ESTADOS = [
-  { key: 'En negociación',    label: '↔ En negociación',    color: '#d97706', bg: '#fffbeb', border: '#fde68a', dot: '#f59e0b' },
-  { key: 'Pendiente respuesta', label: '⏳ Pdte. respuesta', color: '#9d174d', bg: '#fdf2f8', border: '#fbcfe8', dot: '#ec4899' },
-  { key: 'Acuerdo alcanzado', label: '✓ Acuerdo',           color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', dot: '#22c55e' },
-  { key: 'Firmado',           label: '📝 Firmado',           color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', dot: '#3b82f6' },
-  { key: 'Rechazado',         label: '✕ Rechazado',          color: '#b91c1c', bg: '#fef2f2', border: '#fecaca', dot: '#ef4444' },
+  { key: 'En negociación',     label: 'En negociación',     icon: ArrowLeftRight, color: '#d97706', bg: '#fffbeb', border: '#fde68a', dot: '#f59e0b' },
+  { key: 'Pendiente respuesta',label: 'Pdte. respuesta',    icon: Hourglass,       color: '#9d174d', bg: '#fdf2f8', border: '#fbcfe8', dot: '#ec4899' },
+  { key: 'Acuerdo alcanzado',  label: 'Acuerdo',            icon: Check,           color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', dot: '#22c55e' },
+  { key: 'Firmado',            label: 'Firmado',            icon: FileSignature,   color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', dot: '#3b82f6' },
+  { key: 'Rechazado',          label: 'Rechazado',          icon: X,               color: '#b91c1c', bg: '#fef2f2', border: '#fecaca', dot: '#ef4444' },
 ]
 
 function EstadoTag({ estado }) {
   const s = ESTADOS.find(e => e.key === estado)
   if (!s) return <span className="tag tag-gray">{estado}</span>
+  const Ico = s.icon
   return (
     <span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:10,fontWeight:600,color:s.color,background:s.bg,border:`1px solid ${s.border}`,borderRadius:4,padding:'2px 7px'}}>
-      {s.label}
+      <Ico size={11} strokeWidth={1.75} /> {s.label}
     </span>
   )
 }
@@ -161,7 +163,7 @@ export default function NegociacionesList() {
           <input className="search-inp" placeholder="Buscar negociaciones..." value={query} onChange={e=>setQuery(e.target.value)}/>
         </div>
         <button className="tbtn" onClick={()=>setShowAdv(v=>!v)} style={showAdv||advCount>0?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--accent-lt)'}:{}}>
-          ⚙ Filtros{advCount>0&&<span style={{marginLeft:4,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{advCount}</span>}
+          <SlidersHorizontal size={14} strokeWidth={1.75} /> Filtros{advCount>0&&<span style={{marginLeft:4,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{advCount}</span>}
         </button>
         <FilterBadge count={activeCount} onClear={clearAll}/>
 
@@ -187,7 +189,7 @@ export default function NegociacionesList() {
 
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
           {viewMode === 'tabla' && <ColumnEditor cols={COLS} vis={vis} setVis={setVis}/>}
-          <button className="tbtn">⬇ Exportar</button>
+          <button className="tbtn"><Download size={14} strokeWidth={1.75} /> Exportar</button>
           <button className="tbtn prim">+ Nueva negociación</button>
         </div>
       </div>

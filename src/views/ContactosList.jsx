@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import BannerInfo from '../components/BannerInfo'
+import { ExternalLink } from 'lucide-react'
 
 const MOCK_CONTACTOS = [
   { id:'CON-001', titulo:'Mr.', nombre:'James',       apellido:'Richardson',  cuenta:'Oracle Spain SL',                cargo:'Director Real Estate',    anio_rel:2019, cat_alumni:'—',   of_alumni:'—',  div_alumni:'—',  linkedin:'linkedin.com/in/jrichardson', ciudad:'Madrid',    pais:'España',  no_email:false, no_llamada:false, ap_ant:'—',     email:'j.richardson@oracle.com',     dir_email:'Calle Basauri 17, Madrid' },
@@ -115,7 +116,7 @@ export default function ContactosList() {
                   <td style={{ fontSize:10, color:'var(--text3)' }}>{r.of_alumni}</td>
                   <td style={{ fontSize:10, color:'var(--text3)' }}>{r.div_alumni}</td>
                   <td style={{ fontSize:10, color:'var(--accent)' }}>
-                    {r.linkedin !== '—' ? <a href={`https://${r.linkedin}`} target="_blank" rel="noopener noreferrer" style={{ color:'var(--accent)' }}>🔗 LinkedIn</a> : '—'}
+                    {r.linkedin !== '—' ? <a href={`https://${r.linkedin}`} target="_blank" rel="noopener noreferrer" style={{ color:'var(--accent)', display:'inline-flex', alignItems:'center', gap:4 }}>LinkedIn <ExternalLink size={11} strokeWidth={1.75} /></a> : '—'}
                   </td>
                   <td style={{ fontSize:11 }}>{r.ciudad}</td>
                   <td style={{ fontSize:11 }}>{r.pais}</td>

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import SeleccionarActivoModal from '../components/SeleccionarActivoModal'
+import { Download, SlidersHorizontal, AlertTriangle } from 'lucide-react'
 
 // Datos mock que siempre aparecen (arrendatarios demostración)
 const MOCK_ARRENDATARIOS = [
@@ -69,7 +70,7 @@ function BreakPill({ fecha }) {
   const dias = diasHastaFecha(fecha)
   if (dias === null) return <span style={{color:'var(--text4)'}}>—</span>
   if (dias < 0)    return <span style={{fontSize:10,fontWeight:700,color:'var(--red)',background:'var(--red-lt)',border:'1px solid var(--red-bd)',padding:'1px 7px',borderRadius:9}}>Vencida {Math.abs(dias)}d</span>
-  if (dias <= 90)  return <span style={{fontSize:10,fontWeight:700,color:'var(--red)',background:'var(--red-lt)',border:'1px solid var(--red-bd)',padding:'1px 7px',borderRadius:9}}>⚠ {dias}d</span>
+  if (dias <= 90)  return <span style={{fontSize:10,fontWeight:700,color:'var(--red)',background:'var(--red-lt)',border:'1px solid var(--red-bd)',padding:'1px 7px',borderRadius:9,display:'inline-flex',alignItems:'center',gap:3}}><AlertTriangle size={10} strokeWidth={2} /> {dias}d</span>
   if (dias <= 180) return <span style={{fontSize:10,fontWeight:700,color:'var(--amber)',background:'var(--amber-lt)',border:'1px solid var(--amber-bd)',padding:'1px 7px',borderRadius:9}}>⏳ {dias}d</span>
   return <span style={{fontSize:11,color:'var(--text3)'}}>{fecha}</span>
 }
@@ -191,7 +192,7 @@ export default function ArrendatariosList() {
 
       {nAlertas > 0 && (
         <div style={{padding:'8px 16px',background:'#fff7ed',borderBottom:'1px solid #fed7aa',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
-          <span style={{fontSize:14}}>⚠️</span>
+          <AlertTriangle size={16} strokeWidth={1.75} style={{color:'#c2410c',flexShrink:0}} />
           <span style={{fontSize:11,fontWeight:600,color:'#c2410c'}}>
             {nAlertas} arrendatario{nAlertas>1?'s':''} próximo{nAlertas>1?'s':''} a vencimiento — revisa break options y activa equipo comercial
           </span>
@@ -213,12 +214,12 @@ export default function ArrendatariosList() {
           <input className="search-inp" placeholder="Buscar arrendatario, activo..." value={query} onChange={e=>setQuery(e.target.value)}/>
         </div>
         <button className="tbtn" onClick={()=>setShowAdv(v=>!v)} style={showAdv||advCount>0?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--accent-lt)'}:{}}>
-          ⚙ Filtros{advCount>0&&<span style={{marginLeft:4,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{advCount}</span>}
+          <SlidersHorizontal size={14} strokeWidth={1.75} /> Filtros{advCount>0&&<span style={{marginLeft:4,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{advCount}</span>}
         </button>
         <FilterBadge count={activeCount} onClear={clearAll}/>
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
           <ColumnEditor cols={COLS} vis={vis} setVis={setVis}/>
-          <button className="tbtn">⬇ Exportar</button>
+          <button className="tbtn"><Download size={14} strokeWidth={1.75} /> Exportar</button>
           <button className="tbtn prim" onClick={()=>setShowNuevo(true)}>+ Nuevo arrendatario</button>
         </div>
       </div>

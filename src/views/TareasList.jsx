@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import { useTasks } from '../context/TasksContext'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import { ArrowUp, ArrowRight, ArrowDown, Check, Download, SlidersHorizontal, Plus } from 'lucide-react'
 
 const TARS = [
   {id:'TAR-001',as:'Llamar a propietario — Activo Avalon',tipo:'Gestión de producto',resp:'Sierra Alvaro',asig:'Manager',team:'Leasing Oficinas MAD',rT:'Activo',ref:'P.E Avalon',est:'En curso',prio:'Alta',ini:'01/04/2026',lim:'07/04/2026',upd:'05/04/2026'},
@@ -18,9 +19,10 @@ const REF_TAG  = { Activo:'tag-teal', Demanda:'tag-blue', 'Negociación':'tag-pu
 const EST_TAG  = { Pendiente:'tag-amber', 'En curso':'tag-blue', Finalizada:'tag-green' }
 
 function PrioBadge({ prio }) {
-  if (prio === 'Alta')  return <span style={{background:'var(--red-lt)',color:'var(--red)',border:'1px solid var(--red-bd)',padding:'1px 7px',borderRadius:9,fontSize:10,fontWeight:600}}>⬆ Alta</span>
-  if (prio === 'Media') return <span style={{background:'var(--amber-lt)',color:'var(--amber)',border:'1px solid var(--amber-bd)',padding:'1px 7px',borderRadius:9,fontSize:10,fontWeight:600}}>→ Media</span>
-  return <span style={{background:'var(--gray-lt)',color:'var(--text3)',border:'1px solid var(--gray-bd)',padding:'1px 7px',borderRadius:9,fontSize:10,fontWeight:600}}>⬇ Baja</span>
+  const base = { padding:'1px 7px', borderRadius:9, fontSize:10, fontWeight:600, display:'inline-flex', alignItems:'center', gap:3 }
+  if (prio === 'Alta')  return <span style={{...base, background:'var(--red-lt)',color:'var(--red)',border:'1px solid var(--red-bd)'}}><ArrowUp size={10} strokeWidth={2.25} /> Alta</span>
+  if (prio === 'Media') return <span style={{...base, background:'var(--amber-lt)',color:'var(--amber)',border:'1px solid var(--amber-bd)'}}><ArrowRight size={10} strokeWidth={2.25} /> Media</span>
+  return <span style={{...base, background:'var(--gray-lt)',color:'var(--text3)',border:'1px solid var(--gray-bd)'}}><ArrowDown size={10} strokeWidth={2.25} /> Baja</span>
 }
 
 function avatarIni(s){ return (s||'').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase() }
@@ -98,7 +100,7 @@ export default function TareasList() {
     _act: <td key="_act">
       <div style={{display:'flex',gap:3}}>
         <button className="tbtn" style={{fontSize:10,padding:'3px 8px'}} onClick={e=>{e.stopPropagation();navigate('ficha-tarea')}}>Ver</button>
-        <button className="tbtn" style={{fontSize:10,padding:'3px 6px'}} onClick={e=>e.stopPropagation()}>✅</button>
+        <button className="tbtn" style={{fontSize:10,padding:'3px 6px'}} onClick={e=>e.stopPropagation()}><Check size={12} strokeWidth={2} /></button>
       </div>
     </td>,
   })
@@ -121,12 +123,12 @@ export default function TareasList() {
           <input className="search-inp" placeholder="Buscar tareas..." value={query} onChange={e=>setQuery(e.target.value)}/>
         </div>
         <button className="tbtn" onClick={()=>setShowAdv(v=>!v)} style={showAdv||advCount>0?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--accent-lt)'}:{}}>
-          ⚙ Filtros{advCount>0&&<span style={{marginLeft:4,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{advCount}</span>}
+          <SlidersHorizontal size={14} strokeWidth={1.75} /> Filtros{advCount>0&&<span style={{marginLeft:4,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{advCount}</span>}
         </button>
         <FilterBadge activeCount={activeCount} onClear={clearAll}/>
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
           <ColumnEditor cols={COLS} vis={vis} setVis={setVis}/>
-          <button className="tbtn">⬇ Exportar</button>
+          <button className="tbtn"><Download size={14} strokeWidth={1.75} /> Exportar</button>
           <button className="tbtn prim" onClick={()=>navigate('ficha-tarea')}>+ Nueva Tarea</button>
         </div>
       </div>

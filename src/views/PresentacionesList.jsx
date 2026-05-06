@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import { Download, SlidersHorizontal } from 'lucide-react'
 
 export const PRESENTACIONES = [
   { id:'PRE-2501', demanda:'DEM-0091', activo:'P.E Avalon',                  cuenta:'Oracle Spain SL',            contacto:'James Richardson',      fecha_envio:'01/04/2026', visitado:true,  fecha_visita:'08/04/2026', responsable:'Sierra Alvaro',  estado:'Visitado',       linea:'Oficinas',  superficie:'46.956 m²', zona:'M-30',       notas:'Reunión muy positiva. Esperando feedback formal.' },
@@ -135,12 +136,12 @@ export default function PresentacionesList() {
           <input className="search-inp" placeholder="Buscar activo, cuenta, contacto..." value={query} onChange={e=>setQuery(e.target.value)}/>
         </div>
         <button className="tbtn" onClick={()=>setShowAdv(v=>!v)} style={showAdv||advCount>0?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--accent-lt)'}:{}}>
-          ⚙ Filtros{advCount>0&&<span style={{marginLeft:4,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{advCount}</span>}
+          <SlidersHorizontal size={14} strokeWidth={1.75} /> Filtros{advCount>0&&<span style={{marginLeft:4,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{advCount}</span>}
         </button>
         <FilterBadge count={activeCount} onClear={clearAll}/>
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
           <ColumnEditor cols={COLS} vis={vis} setVis={setVis}/>
-          <button className="tbtn">⬇ Exportar</button>
+          <button className="tbtn"><Download size={14} strokeWidth={1.75} /> Exportar</button>
           <button className="tbtn prim" onClick={()=>navigate('ficha-presentacion')}>+ Nueva presentación</button>
         </div>
       </div>

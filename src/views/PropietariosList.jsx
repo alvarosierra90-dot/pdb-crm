@@ -6,6 +6,7 @@ import { exportPDF, exportPPT } from '../utils/exportReport'
 import { supabase } from '../lib/supabase'
 import SeleccionarActivoModal from '../components/SeleccionarActivoModal'
 import DesactivarPropietarioModal from '../components/DesactivarPropietarioModal'
+import { Download, SlidersHorizontal, FileText, Presentation, ChevronUp, ChevronDown } from 'lucide-react'
 
 function ExportMenu({ getConfig }) {
   const [open, setOpen] = useState(false)
@@ -19,7 +20,7 @@ function ExportMenu({ getConfig }) {
     <div ref={ref} style={{position:'relative',display:'inline-block'}}>
       <button className="tbtn" onClick={() => setOpen(o => !o)}
         style={{display:'flex',alignItems:'center',gap:5}}>
-        ⬇ Exportar <span style={{fontSize:8}}>{open?'▲':'▼'}</span>
+        <Download size={14} strokeWidth={1.75} /> Exportar {open ? <ChevronUp size={12} strokeWidth={1.75} /> : <ChevronDown size={12} strokeWidth={1.75} />}
       </button>
       {open && (
         <div style={{position:'absolute',right:0,top:'110%',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:999,minWidth:130,overflow:'hidden'}}>
@@ -27,13 +28,13 @@ function ExportMenu({ getConfig }) {
             style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8,borderBottom:'1px solid var(--border)'}}
             onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
             onMouseLeave={e=>e.currentTarget.style.background=''}>
-            📄 PDF
+            <FileText size={13} strokeWidth={1.75} /> PDF
           </div>
           <div onClick={() => { setOpen(false); exportPPT(getConfig()) }}
             style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8}}
             onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
             onMouseLeave={e=>e.currentTarget.style.background=''}>
-            📊 PowerPoint
+            <Presentation size={13} strokeWidth={1.75} /> PowerPoint
           </div>
         </div>
       )}
@@ -227,7 +228,7 @@ export default function PropietariosList() {
           <input className="search-inp" placeholder="Buscar propietario, activo..." value={query} onChange={e=>setQuery(e.target.value)}/>
         </div>
         <button className="tbtn" onClick={()=>setShowAdv(v=>!v)} style={showAdv||advCount>0?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--accent-lt)'}:{}}>
-          ⚙ Filtros{advCount>0&&<span style={{marginLeft:4,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{advCount}</span>}
+          <SlidersHorizontal size={14} strokeWidth={1.75} /> Filtros{advCount>0&&<span style={{marginLeft:4,fontSize:9,background:'var(--accent)',color:'#fff',borderRadius:9,padding:'0 5px'}}>{advCount}</span>}
         </button>
         <FilterBadge count={activeCount} onClear={clearAll}/>
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
