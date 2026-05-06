@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import BajaArrendatarioModal from '../components/BajaArrendatarioModal'
+import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import { StackingPlan } from './FichaActivo'
 import { supabase } from '../lib/supabase'
 
@@ -49,8 +50,8 @@ function diasHasta(fechaStr) {
   return Math.ceil((new Date(y,m-1,d) - new Date())/(1000*60*60*24))
 }
 
-const TABS = ['datos','stacking','condiciones','alertas','historial']
-const TAB_LABELS = ['Datos del arrendatario','Stacking plan','Condiciones económicas','Alertas y break option','Historial']
+const TABS = ['datos','stacking','condiciones','alertas','historial','conf']
+const TAB_LABELS = ['Datos del arrendatario','Stacking plan','Condiciones económicas','Alertas y break option','Historial','Confidencialidad']
 
 const TIPO_TAG_ARR = { Email:'tag-blue', Llamada:'tag-green', Reunión:'tag-purple', Tarea:'tag-gray', Nota:'tag-gray', Alerta:'tag-red', Modificación:'tag-amber' }
 const TIPO_ICO_ARR = { Email:'📧', Llamada:'📞', Reunión:'🤝', Tarea:'✅', Nota:'📝', Alerta:'🔔', Modificación:'✏️' }
@@ -72,6 +73,10 @@ export default function FichaArrendatario() {
   const [tab, setTab] = useState('datos')
   const [showTarea, setShowTarea] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [arrConfidential, setArrConfidential] = useState(false)
+  const [arrAuthUsers, setArrAuthUsers] = useState([
+    { name:'Sierra Álvaro', team:'Leasing Oficinas MAD', role:'Principal', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
+  ])
   const [saveErr, setSaveErr] = useState('')
   const [saveOk, setSaveOk] = useState(false)
   const [validationErrors, setValidationErrors] = useState([])
@@ -1035,6 +1040,26 @@ export default function FichaArrendatario() {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* TAB: CONFIDENCIALIDAD — formato canónico Oferta */}
+          {tab==='conf' && (
+            <ConfidencialidadPanel
+              entityLabel="arrendatario"
+              confidential={arrConfidential}
+              onToggle={setArrConfidential}
+              hiddenFields={['Cuenta','Condiciones económicas','Renta cierre','Documentación','Stacking']}
+              visibleFields={['Activo vinculado','Estado del contrato','Equipo','Año de firma','Información básica']}
+              authorizedUsers={arrAuthUsers}
+              onAddUser={(newUser) => {
+                const [name, team] = [newUser.split('·')[0].trim(), newUser.split('·')[1]?.trim() || '']
+                const ini = name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+                const today = new Date().toLocaleDateString('es-ES')
+                setArrAuthUsers(prev => [...prev, { name, team, role:'Autorizado', initials:ini, bg:'#f0fdf4', color:'#166534', granted:today }])
+              }}
+              onRemoveUser={(idx) => setArrAuthUsers(prev => prev.filter((_,j) => j !== idx))}
+              responsable="Sierra Álvaro"
+            />
           )}
         </div>
 

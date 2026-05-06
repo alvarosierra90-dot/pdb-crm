@@ -4,6 +4,7 @@ import DesactivarPropietarioModal from '../components/DesactivarPropietarioModal
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { exportPDF, exportPPT } from '../utils/exportReport'
 import { supabase } from '../lib/supabase'
+import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 
 function ExportMenu({ getConfig }) {
   const [open, setOpen] = useState(false)
@@ -39,8 +40,8 @@ function ExportMenu({ getConfig }) {
   )
 }
 
-const TABS = ['datos','condiciones','historico','analisis']
-const TAB_LABELS = ['Datos del propietario','Condiciones de inversión','Histórico propietarios','Análisis']
+const TABS = ['datos','condiciones','historico','analisis','conf']
+const TAB_LABELS = ['Datos del propietario','Condiciones de inversión','Histórico propietarios','Análisis','Confidencialidad']
 
 const USOS_PROPIETARIO = [
   'Oficinas','Logístico / Industrial','Retail','Centros comerciales',
@@ -67,6 +68,10 @@ export default function FichaPropietario() {
   const [tab, setTab] = useState('datos')
   const [hist] = useState(HIST_INIT)
   const [log]  = useState(LOG_INIT)
+  const [propConfidential, setPropConfidential] = useState(false)
+  const [propAuthUsers, setPropAuthUsers] = useState([
+    { name:'Sierra Álvaro', team:'Leasing Oficinas MAD', role:'Principal', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
+  ])
   const [showTarea, setShowTarea] = useState(false)
   const [saveErr, setSaveErr] = useState('')
   const [showDesactivar, setShowDesactivar] = useState(false)
@@ -797,6 +802,26 @@ export default function FichaPropietario() {
 
               </div>
             </div>
+          )}
+
+          {/* TAB: CONFIDENCIALIDAD — formato canónico Oferta */}
+          {tab==='conf' && (
+            <ConfidencialidadPanel
+              entityLabel="propietario"
+              confidential={propConfidential}
+              onToggle={setPropConfidential}
+              hiddenFields={['Cuenta','Datos de contacto','Condiciones de inversión','Activos del portfolio','Documentación']}
+              visibleFields={['Tipo de entidad','Estado','Equipo','País','Información básica']}
+              authorizedUsers={propAuthUsers}
+              onAddUser={(newUser) => {
+                const [name, team] = [newUser.split('·')[0].trim(), newUser.split('·')[1]?.trim() || '']
+                const ini = name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+                const today = new Date().toLocaleDateString('es-ES')
+                setPropAuthUsers(prev => [...prev, { name, team, role:'Autorizado', initials:ini, bg:'#f0fdf4', color:'#166534', granted:today }])
+              }}
+              onRemoveUser={(idx) => setPropAuthUsers(prev => prev.filter((_,j) => j !== idx))}
+              responsable="Sierra Álvaro"
+            />
           )}
 
         </div>
