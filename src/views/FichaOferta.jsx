@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { OFERTAS as MOCK_OFERTAS, ACTIVOS as MOCK_ACTIVOS } from '../data/mockData'
 import { isSupabaseRef } from '../components/FichaPendienteSupabase'
 import FichaOfertaSupabase from './FichaOfertaSupabase'
+import { FileText, Presentation, Link2, Clock } from 'lucide-react'
 // IMPORTANTE: Importar el StackingPlan exacto de FichaActivo para garantizar
 // igualdad visual y funcional total entre Activo y Oferta (regla del usuario).
 import { StackingPlan } from './FichaActivo'
@@ -716,6 +717,19 @@ function FichaOfertaMock() {
                     </div>
                   ))
                 })()}
+              </div>
+            </div>
+
+            {/* Audit + Crear ficha (PDF / PPT / Link) — bajo los KPIs */}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:10, paddingTop:10, borderTop:'1px solid var(--border)' }}>
+              <div style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, color:'var(--text3)' }}>
+                <Clock size={12} strokeWidth={1.75} />
+                <span>Última modificación · Sierra Álvaro · {new Date().toLocaleDateString('es-ES')}</span>
+              </div>
+              <div style={{ display:'flex', gap:6 }}>
+                <button className="tbtn" onClick={() => window.alert('Generando ficha PDF…')}><FileText size={13} strokeWidth={1.75} /> Ficha PDF</button>
+                <button className="tbtn" onClick={() => window.alert('Generando ficha PPT…')}><Presentation size={13} strokeWidth={1.75} /> Ficha PPT</button>
+                <button className="tbtn" onClick={() => window.alert('Link público generado y copiado al portapapeles')}><Link2 size={13} strokeWidth={1.75} /> Link público</button>
               </div>
             </div>
           </div>
