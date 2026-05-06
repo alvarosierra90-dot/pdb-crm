@@ -4137,7 +4137,7 @@ export default function FichaActivo() {
                       </div>
                     ) : (
                       <div className="ah-name" style={{cursor:'text',display:'flex',alignItems:'center',gap:6}} onClick={() => { setEditNombreVal(displayNombre ?? activo?.nombre ?? ''); setEditingNombre(true) }}>
-                        📍 {displayDireccion ?? activo?.direccion ?? '—'}
+                        {displayDireccion ?? activo?.direccion ?? '—'}
                       </div>
                     )}
                     <div className="ah-addr">
