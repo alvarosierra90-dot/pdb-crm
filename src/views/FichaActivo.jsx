@@ -427,8 +427,10 @@ const NEW_FORM_INIT = {
 // - Características pasa al puesto 2 (antes que Stacking, regla de spec).
 // - Ofertas eliminada como pestaña: las ofertas vinculadas viven en Vista 360
 //   junto al resto de actividad comercial histórica.
-const TABS = ['at-info','at-caract','at-stacking','at-prop','at-mediadocs','at-360','at-conf']
-const TAB_LABELS = ['Información general','Características','Stacking Plan','Propietarios y arrendatarios','Multimedia & Documentos','Vista 360','Confidencialidad']
+// - Principales competidores: lista curada por el usuario, alimenta los
+//   Informes de gestión (otros activos considerados como competidores).
+const TABS = ['at-info','at-comp','at-caract','at-stacking','at-prop','at-mediadocs','at-360','at-conf']
+const TAB_LABELS = ['Información general','Principales competidores','Características','Stacking Plan','Propietarios y arrendatarios','Multimedia & Documentos','Vista 360','Confidencialidad']
 
 /* ── PLAZAS DE APARCAMIENTO ── */
 const UBICACIONES  = ['Interior','Exterior']
@@ -3792,6 +3794,17 @@ export default function FichaActivo() {
     { name:'Sierra Álvaro',     team:'Leasing Oficinas MAD', role:'Principal',    initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
     { name:'GOMEZ Ignacio',     team:'Leasing Oficinas MAD', role:'Autorizado',   initials:'GI', bg:'#f0fdf4', color:'#166534', granted:'12/03/2026' },
   ])
+
+  // ── Principales competidores ───────────────────────────────────────────
+  // Activos que el usuario considera competidores directos. Persisten en la
+  // tabla activo_competidores (migración 027). Alimenta los Informes de
+  // gestión: por cada competidor mostraremos sus ofertas y transacciones.
+  const [competidores, setCompetidores] = useState([])  // [{id, competidor_id, competidor:{ref,nombre,zona,sba,occupancy_rate}, motivo, n_ofertas, n_transacciones}]
+  const [compLoading, setCompLoading] = useState(false)
+  const [compSearch, setCompSearch] = useState('')
+  const [compResults, setCompResults] = useState([])
+  const [compMotivo, setCompMotivo] = useState('')
+  const [compError, setCompError] = useState(null)
   const [showSubstConfirm, setShowSubstConfirm] = useState(false)
   const [propietariosReg, setPropietariosReg] = useState(
     params?.newOwnerData ? [params.newOwnerData] : []
@@ -3966,6 +3979,85 @@ export default function FichaActivo() {
     })()
     return () => { cancelled = true }
   }, [activeTab, activo?.id, vista360.loaded])
+
+  // ── Carga de competidores cuando se abre la pestaña ─────────────────────
+  const reloadCompetidores = async () => {
+    if (!activo?.id) return
+    setCompLoading(true); setCompError(null)
+    try {
+      const { data: rows = [], error } = await supabase
+        .from('activo_competidores')
+        .select('id, competidor_id, motivo, created_at, competidor:activos!competidor_id(id,ref,nombre,zona,subzona,ciudad,uso,sba,occupancy_rate)')
+        .eq('activo_id', activo.id)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+
+      // Para cada competidor: contar ofertas y transacciones (deals firmados últimos 12m)
+      const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 12)
+      const enriched = await Promise.all((rows || []).map(async r => {
+        const cid = r.competidor?.id
+        if (!cid) return { ...r, n_ofertas: 0, n_transacciones: 0 }
+        const [ofRes, txRes] = await Promise.all([
+          supabase.from('ofertas').select('id', { count:'exact', head:true }).eq('activo_id', cid),
+          supabase.from('negociaciones').select('id', { count:'exact', head:true })
+            .eq('activo_id', cid).eq('estado', 'Firmado').gte('fecha_cierre', cutoff.toISOString().slice(0,10)),
+        ])
+        return { ...r, n_ofertas: ofRes.count || 0, n_transacciones: txRes.count || 0 }
+      }))
+      setCompetidores(enriched)
+    } catch (e) {
+      // La tabla puede no existir aún (migración 027 no aplicada).
+      setCompError(e.message || 'No se pudo cargar competidores')
+      setCompetidores([])
+    } finally {
+      setCompLoading(false)
+    }
+  }
+  useEffect(() => {
+    if (activeTab !== 'at-comp') return
+    if (!activo?.id) return
+    reloadCompetidores()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, activo?.id])
+
+  // Búsqueda de activos para añadir como competidor (autocomplete)
+  useEffect(() => {
+    if (activeTab !== 'at-comp') return
+    if (!compSearch || compSearch.length < 2) { setCompResults([]); return }
+    let cancel = false
+    const t = setTimeout(async () => {
+      const { data = [] } = await supabase.from('activos')
+        .select('id,ref,nombre,zona,ciudad,uso,sba')
+        .or(`nombre.ilike.%${compSearch}%,ref.ilike.%${compSearch}%`)
+        .neq('id', activo?.id || '')
+        .limit(8)
+      if (!cancel) {
+        const usados = new Set(competidores.map(c => c.competidor_id))
+        setCompResults((data || []).filter(a => !usados.has(a.id)))
+      }
+    }, 200)
+    return () => { cancel = true; clearTimeout(t) }
+  }, [compSearch, activeTab, activo?.id, competidores])
+
+  const addCompetidor = async (competidor) => {
+    if (!activo?.id || !competidor?.id) return
+    setCompError(null)
+    const { error } = await supabase.from('activo_competidores').insert({
+      activo_id: activo.id,
+      competidor_id: competidor.id,
+      motivo: compMotivo.trim() || null,
+      created_by: 'Sierra Álvaro',
+    })
+    if (error) { setCompError(error.message); return }
+    setCompSearch(''); setCompMotivo(''); setCompResults([])
+    reloadCompetidores()
+  }
+  const removeCompetidor = async (rowId) => {
+    setCompError(null)
+    const { error } = await supabase.from('activo_competidores').delete().eq('id', rowId)
+    if (error) { setCompError(error.message); return }
+    reloadCompetidores()
+  }
 
   // Load propietariosReg and arrendatariosReg from Supabase for existing activos
   useEffect(() => {
@@ -4363,6 +4455,94 @@ export default function FichaActivo() {
               />
             </div>
           </div>
+
+          {/* ── TAB: Principales competidores ── */}
+          {activeTab==='at-comp' && (
+            <div className="tab-content active"><div className="info-pad">
+
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14,gap:14}}>
+                <div>
+                  <div style={{fontSize:14,fontWeight:600}}>Principales competidores</div>
+                  <div style={{fontSize:11,color:'var(--text4)',marginTop:2}}>Activos que compiten directamente con éste. Los Informes de gestión usarán esta lista para mostrar sus ofertas y transacciones recientes.</div>
+                </div>
+                <span style={{fontSize:11,color:'var(--text3)'}}>{competidores.length} {competidores.length===1?'competidor':'competidores'}</span>
+              </div>
+
+              {/* Buscador para añadir */}
+              <div style={{background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r2)',padding:14,marginBottom:14}}>
+                <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Añadir competidor</div>
+                <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+                  <div style={{flex:1,position:'relative'}}>
+                    <input className="of-inp" style={{width:'100%',boxSizing:'border-box'}}
+                      placeholder="Buscar activo por nombre o ref…"
+                      value={compSearch} onChange={e=>setCompSearch(e.target.value)} />
+                    {compResults.length > 0 && (
+                      <div style={{position:'absolute',top:'100%',left:0,right:0,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',marginTop:4,maxHeight:240,overflowY:'auto',zIndex:10,boxShadow:'0 4px 12px rgba(0,0,0,0.06)'}}>
+                        {compResults.map(r => (
+                          <div key={r.id} onClick={()=>addCompetidor(r)} style={{padding:'8px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:11}}
+                            onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
+                            onMouseLeave={e=>e.currentTarget.style.background=''}>
+                            <div style={{fontWeight:600}}>{r.nombre || '—'} <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text4)',marginLeft:4}}>· {r.ref}</span></div>
+                            <div style={{fontSize:10,color:'var(--text3)'}}>{[r.zona, r.ciudad, r.uso].filter(Boolean).join(' · ')} · {r.sba ? Number(r.sba).toLocaleString('es-ES')+' m²' : '—'}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <input className="of-inp" style={{width:220}}
+                    placeholder='Motivo (ej. "Misma zona / renta")'
+                    value={compMotivo} onChange={e=>setCompMotivo(e.target.value)} />
+                </div>
+                <div style={{fontSize:10,color:'var(--text4)',marginTop:6}}>Escribe al menos 2 caracteres y haz click en un resultado para añadir.</div>
+              </div>
+
+              {/* Estados */}
+              {compLoading && <div style={{padding:'10px 14px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',color:'var(--accent)',fontSize:11,marginBottom:10}}>Cargando competidores…</div>}
+              {compError && <div style={{padding:'10px 14px',background:'var(--red-lt)',border:'1px solid var(--red-bd)',borderRadius:'var(--r)',color:'var(--red)',fontSize:11,marginBottom:10}}>Error: {compError} <span style={{color:'var(--text3)',marginLeft:6}}>· Si dice que la tabla no existe, aplica la migración 027.</span></div>}
+
+              {/* Lista */}
+              {!compLoading && competidores.length === 0 && !compError && (
+                <div style={{padding:32,textAlign:'center',color:'var(--text4)',fontSize:12,background:'var(--surface)',border:'1px dashed var(--border)',borderRadius:'var(--r2)'}}>
+                  Aún no has añadido competidores para este activo.
+                </div>
+              )}
+
+              {competidores.length > 0 && (
+                <div className="va-card" style={{margin:0}}>
+                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                    <thead>
+                      <tr>{['Activo','Zona · Ciudad','SBA','Ocup.','Ofertas','Transac. 12m','Motivo',''].map(h => (
+                        <th key={h} style={{textAlign:'left',padding:'8px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)'}}>{h}</th>
+                      ))}</tr>
+                    </thead>
+                    <tbody>
+                      {competidores.map(c => {
+                        const a = c.competidor || {}
+                        return (
+                          <tr key={c.id} style={{borderBottom:'1px solid var(--border)'}}>
+                            <td style={{padding:'8px 12px'}}>
+                              <span className="asset-link" onClick={()=>navigate('ficha-activo',{ref:a.ref})} style={{fontWeight:600,cursor:'pointer'}}>{a.nombre || '—'}</span>
+                              <div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text4)'}}>{a.ref || '—'}</div>
+                            </td>
+                            <td style={{padding:'8px 12px',fontSize:10,color:'var(--text3)'}}>{[a.zona, a.ciudad].filter(Boolean).join(' · ') || '—'}</td>
+                            <td style={{padding:'8px 12px',fontFamily:'var(--mono)',fontSize:10}}>{a.sba ? Number(a.sba).toLocaleString('es-ES') : '—'}</td>
+                            <td style={{padding:'8px 12px',fontSize:10}}>{a.occupancy_rate != null ? `${a.occupancy_rate}%` : '—'}</td>
+                            <td style={{padding:'8px 12px',fontSize:10,fontWeight:600,color:c.n_ofertas > 0 ? 'var(--accent)' : 'var(--text4)'}}>{c.n_ofertas}</td>
+                            <td style={{padding:'8px 12px',fontSize:10,fontWeight:600,color:c.n_transacciones > 0 ? 'var(--green)' : 'var(--text4)'}}>{c.n_transacciones}</td>
+                            <td style={{padding:'8px 12px',fontSize:10,color:'var(--text3)',maxWidth:160}}>{c.motivo || '—'}</td>
+                            <td style={{padding:'8px 12px'}}>
+                              <button onClick={()=>removeCompetidor(c.id)} style={{background:'none',border:'none',color:'var(--red)',cursor:'pointer',fontSize:10,fontFamily:'inherit'}}>Quitar</button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+            </div></div>
+          )}
 
           {/* ── TAB: Características ── */}
           {activeTab==='at-caract' && (()=>{
