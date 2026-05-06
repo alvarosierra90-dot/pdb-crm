@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
 import FirmarMandatoModal from '../components/FirmarMandatoModal'
+import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 
 const DEM_TABS = [
   ['dem-info',     'Información Demanda'],
@@ -99,6 +100,10 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [tab, setTab] = useState('dem-info')
   const [demanda, setDemanda] = useState(null)
   const [cuenta, setCuenta]   = useState(null)
+  const [demandaConfidential, setDemandaConfidential] = useState(false)
+  const [demandaAuthUsers, setDemandaAuthUsers] = useState([
+    { name: CURRENT_USER.nombre, team: CURRENT_USER.equipo || 'Equipo PDB', role:'Principal', initials:(CURRENT_USER.nombre||'').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(), bg:'#dbeafe', color:'#1e40af', owner:true },
+  ])
   const [contactosCuenta, setContactosCuenta] = useState([])
   const [otrosContactosFull, setOtrosContactosFull] = useState([])
   const [loading, setLoading] = useState(true)
@@ -787,7 +792,24 @@ export default function FichaDemandaSupabase({ refOrId }) {
           {tab === 'dem-docs'     && <div className="tab-content active"><StubTab label="Documentos" /></div>}
           {tab === 'dem-neg'      && <div className="tab-content active"><StubTab label="Negociaciones en curso" /></div>}
           {tab === 'dem-followup' && <div className="tab-content active"><StubTab label="Follow-up" /></div>}
-          {tab === 'dem-conf'     && <div className="tab-content active"><StubTab label="Confidencialidad" /></div>}
+          {tab === 'dem-conf'     && (
+            <ConfidencialidadPanel
+              entityLabel="demanda"
+              confidential={demandaConfidential}
+              onToggle={setDemandaConfidential}
+              hiddenFields={['Cuenta','Requisitos de búsqueda','Condiciones económicas','Documentación adjunta','Zona de búsqueda']}
+              visibleFields={['Tipo de uso / línea','Estado de la demanda','Equipo','Fecha de creación','Información básica']}
+              authorizedUsers={demandaAuthUsers}
+              onAddUser={(newUser) => {
+                const [name, team] = [newUser.split('·')[0].trim(), newUser.split('·')[1]?.trim() || '']
+                const ini = name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+                const today = new Date().toLocaleDateString('es-ES')
+                setDemandaAuthUsers(prev => [...prev, { name, team, role:'Autorizado', initials:ini, bg:'#f0fdf4', color:'#166534', granted:today }])
+              }}
+              onRemoveUser={(idx) => setDemandaAuthUsers(prev => prev.filter((_,j) => j !== idx))}
+              responsable={CURRENT_USER.nombre}
+            />
+          )}
 
         </div>
       </div>

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { CURRENT_USER } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
 import ActividadesPanel from '../components/ActividadesPanel'
+import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 
 const MAN_TABS = [
   ['man-info',     'Información'],
@@ -95,6 +96,10 @@ export default function FichaMandatoSupabase({ refOrId }) {
   const [tab, setTab] = useState('man-info')
   const [mandato, setMandato] = useState(null)
   const [cuenta, setCuenta]   = useState(null)
+  const [mandatoConfidential, setMandatoConfidential] = useState(false)
+  const [mandatoAuthUsers, setMandatoAuthUsers] = useState([
+    { name: CURRENT_USER.nombre, team: CURRENT_USER.equipo || 'Equipo PDB', role:'Principal', initials:(CURRENT_USER.nombre||'').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(), bg:'#dbeafe', color:'#1e40af', owner:true },
+  ])
   const [oportunidad, setOportunidad] = useState(null)
   const [activosLinked, setActivosLinked] = useState([]) // [{ link_id, sba_asignada, activo:{id,ref,nombre,...} }]
   const [activosCatalog, setActivosCatalog] = useState([]) // todos los activos para selector
@@ -1176,7 +1181,24 @@ export default function FichaMandatoSupabase({ refOrId }) {
               />
             </div>
           )}
-          {tab === 'man-conf' && <StubTab label="Confidencialidad" />}
+          {tab === 'man-conf' && (
+            <ConfidencialidadPanel
+              entityLabel="mandato"
+              confidential={mandatoConfidential}
+              onToggle={setMandatoConfidential}
+              hiddenFields={['Cuenta','Activos vinculados','Fees y honorarios','Condiciones económicas','Documentación']}
+              visibleFields={['Tipo de mandato','Estado del mandato','Equipo','Fecha de inicio','Información básica']}
+              authorizedUsers={mandatoAuthUsers}
+              onAddUser={(newUser) => {
+                const [name, team] = [newUser.split('·')[0].trim(), newUser.split('·')[1]?.trim() || '']
+                const ini = name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+                const today = new Date().toLocaleDateString('es-ES')
+                setMandatoAuthUsers(prev => [...prev, { name, team, role:'Autorizado', initials:ini, bg:'#f0fdf4', color:'#166534', granted:today }])
+              }}
+              onRemoveUser={(idx) => setMandatoAuthUsers(prev => prev.filter((_,j) => j !== idx))}
+              responsable={CURRENT_USER.nombre}
+            />
+          )}
 
         </div>
       </div>
