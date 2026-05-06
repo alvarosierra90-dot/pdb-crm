@@ -4,9 +4,11 @@ import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
 import FirmarMandatoModal from '../components/FirmarMandatoModal'
-import { Inbox, Building2, MapPin, Wallet, FileText, Globe } from 'lucide-react'
+import { Inbox, Building2, MapPin, Wallet, FileText, Globe, Presentation, Clock } from 'lucide-react'
 
-// Mismas pestañas que la mock (FichaOferta TABS / TAB_LABELS)
+// Pestañas de la ficha de oferta. "Crear ficha" eliminada (botones PPT/PDF
+// se exponen en el header). Equipo de trabajo se mantiene por ahora como
+// pestaña; en una iteración posterior se integrará en Información general.
 const OF_TABS = [
   ['of-info',        'Información oferta'],
   ['of-equipo',      'Equipo de trabajo'],
@@ -17,7 +19,6 @@ const OF_TABS = [
   ['of-docs',        'Documentos'],
   ['of-web',         'Contenido web'],
   ['of-seg',         'Seguimiento comercial'],
-  ['of-ficha',       'Crear ficha'],
   ['of-conf',        'Confidencialidad'],
 ]
 
@@ -301,6 +302,18 @@ export default function FichaOfertaSupabase({ refOrId }) {
                 ))}
               </div>
             </div>
+
+            {/* Audit + export — debajo de los KPIs, ancho completo */}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:10, paddingTop:10, borderTop:'1px solid var(--border)' }}>
+              <div style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, color:'var(--text3)' }}>
+                <Clock size={12} strokeWidth={1.75} />
+                <span>Última modificación · {oferta.updated_by || CURRENT_USER.nombre} · {fmtDate(oferta.updated_at || oferta.created_at)}</span>
+              </div>
+              <div style={{ display:'flex', gap:6 }}>
+                <button className="tbtn"><FileText size={13} strokeWidth={1.75} /> Ficha PDF</button>
+                <button className="tbtn"><Presentation size={13} strokeWidth={1.75} /> Ficha PPT</button>
+              </div>
+            </div>
           </div>
 
           <div className="tabs">
@@ -551,7 +564,6 @@ export default function FichaOfertaSupabase({ refOrId }) {
           {tab === 'of-caract'   && <div className="tab-content active"><StubTab label="Características" /></div>}
           {tab === 'of-docs'     && <div className="tab-content active"><StubTab label="Documentos" /></div>}
           {tab === 'of-seg'      && <div className="tab-content active"><StubTab label="Seguimiento comercial" /></div>}
-          {tab === 'of-ficha'    && <div className="tab-content active"><StubTab label="Crear ficha comercial" /></div>}
           {tab === 'of-conf'     && <div className="tab-content active"><StubTab label="Confidencialidad" /></div>}
 
         </div>

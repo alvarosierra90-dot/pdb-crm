@@ -805,8 +805,7 @@ function FichaOfertaMock() {
                               {['Demanda entrante','Prospección directa','Referencia interna','Portal web','Red de colaboradores','Otra consultora'].map(o => <option key={o}>{o}</option>)}
                             </select>
                           </span></div>
-                          <div className="ir"><span className="ir-k">Mandato asociado</span><span className="ir-v"><input className="of-inp" placeholder="🔍 Buscar mandato..." style={{minWidth:160}}/></span></div>
-                          <div className="ir"><span className="ir-k">KYC</span><span className="ir-v"><input className="of-inp" placeholder="🔍 Buscar registro KYC..." style={{minWidth:160}}/></span></div>
+                          <div className="ir"><span className="ir-k">Mandato asociado</span><span className="ir-v"><input className="of-inp" placeholder="Buscar mandato..." style={{minWidth:160}}/></span></div>
                         </div>
                       </div>
 
