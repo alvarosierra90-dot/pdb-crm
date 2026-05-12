@@ -149,6 +149,8 @@ export default function FichaLead() {
   const startEdit = () => {
     setForm({
       nombre:               lead.nombre               || '',
+      contacto_nombre:      lead.contacto_nombre      || '',
+      contacto_apellidos:   lead.contacto_apellidos   || '',
       prioridad:            lead.prioridad            || '',
       equipo:               lead.equipo               || '',
       responsable:          lead.responsable          || '',
@@ -175,6 +177,8 @@ export default function FichaLead() {
     setSaving(true)
     const payload = {
       nombre:              form.nombre.trim(),
+      contacto_nombre:     form.contacto_nombre?.trim() || null,
+      contacto_apellidos:  form.contacto_apellidos?.trim() || null,
       prioridad:           form.prioridad || null,
       equipo:              form.equipo || null,
       responsable:         form.responsable || null,
@@ -321,6 +325,88 @@ export default function FichaLead() {
 
             {tab === 'ld-info' && (
               <>
+                {/* ─── Contacto del lead — campos obligatorios para capturar
+                       al contacto antes de cualificar/vincular a Dynamics ─── */}
+                {(() => {
+                  // Campos obligatorios; el label se marca en rojo cuando falta valor.
+                  const fNombre   = lead.contacto_nombre    || ''
+                  const fApell    = lead.contacto_apellidos || ''
+                  const fTel      = lead.telefono           || ''
+                  const fEmail    = lead.email              || ''
+                  const reqStyle = (val) => ({
+                    fontSize:10, fontWeight:700, textTransform:'uppercase',
+                    letterSpacing:'.04em', marginBottom:4, display:'block',
+                    color: val ? 'var(--text4)' : 'var(--red, #dc2626)',
+                  })
+                  return (
+                    <div className="va-card">
+                      <div className="va-card-header">
+                        <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Contacto del lead</h3>
+                        <span className="hint">Obligatorio · sin vinculación Dynamics aún</span>
+                      </div>
+                      <div style={{padding:'4px 20px 16px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
+                        <div>
+                          <label style={reqStyle(editing ? form.contacto_nombre : fNombre)}>Nombre *</label>
+                          {editing
+                            ? <input style={inlineInp} value={form.contacto_nombre || ''} onChange={e => setF('contacto_nombre', e.target.value)} placeholder="Nombre del contacto" />
+                            : <div style={{fontSize:12, fontWeight:600, color: fNombre ? 'var(--text)' : 'var(--text4)', fontStyle: fNombre ? 'normal' : 'italic'}}>{fNombre || 'por completar'}</div>}
+                        </div>
+                        <div>
+                          <label style={reqStyle(editing ? form.contacto_apellidos : fApell)}>Apellidos *</label>
+                          {editing
+                            ? <input style={inlineInp} value={form.contacto_apellidos || ''} onChange={e => setF('contacto_apellidos', e.target.value)} placeholder="Apellidos del contacto" />
+                            : <div style={{fontSize:12, fontWeight:600, color: fApell ? 'var(--text)' : 'var(--text4)', fontStyle: fApell ? 'normal' : 'italic'}}>{fApell || 'por completar'}</div>}
+                        </div>
+                        <div>
+                          <label style={reqStyle(editing ? form.telefono : fTel)}>Teléfono *</label>
+                          {editing
+                            ? <input style={inlineInp} value={form.telefono || ''} onChange={e => setF('telefono', e.target.value)} placeholder="+34 ..." />
+                            : <div style={{fontSize:12, color: fTel ? 'var(--text)' : 'var(--text4)', fontStyle: fTel ? 'normal' : 'italic'}}>{fTel || 'por completar'}</div>}
+                        </div>
+                        <div>
+                          <label style={reqStyle(editing ? form.email : fEmail)}>Email *</label>
+                          {editing
+                            ? <input style={inlineInp} value={form.email || ''} onChange={e => setF('email', e.target.value)} placeholder="contacto@..." />
+                            : <div style={{fontSize:12, color: fEmail ? 'var(--text)' : 'var(--text4)', fontStyle: fEmail ? 'normal' : 'italic'}}>{fEmail || 'por completar'}</div>}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* ─── Cuenta Dynamics | Contacto Dynamics — vinculación opcional
+                       hasta cualificación. Es obligatoria sólo al transformar. ─── */}
+                <div className="va-two-col">
+                  <div className="va-meta-card">
+                    <div className="va-meta-head"><span className="dot"/>Cuenta (Dynamics)</div>
+                    <div style={{padding:'12px 14px'}}>
+                      {cuentaNombre ? (
+                        <div onClick={() => navigate('cuentas')} style={{ background:'#dbeafe', border:'1px solid #93c5fd', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#1e40af', cursor:'pointer' }}>
+                          🏢 {cuentaNombre}
+                        </div>
+                      ) : (
+                        <div style={{ background:'var(--surface-2)', border:'1px dashed var(--border)', borderRadius:'var(--r)', padding:'10px 12px', fontSize:11, color:'var(--text4)', textAlign:'center', fontStyle:'italic' }}>
+                          Se vinculará al cualificar
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="va-meta-card">
+                    <div className="va-meta-head accent-green"><span className="dot"/>Contacto (Dynamics)</div>
+                    <div style={{padding:'12px 14px'}}>
+                      {contactoNombre ? (
+                        <div style={{ background:'#f0fdf4', border:'1px solid #86efac', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#15803d' }}>
+                          👤 {contactoNombre}
+                        </div>
+                      ) : (
+                        <div style={{ background:'var(--surface-2)', border:'1px dashed var(--border)', borderRadius:'var(--r)', padding:'10px 12px', fontSize:11, color:'var(--text4)', textAlign:'center', fontStyle:'italic' }}>
+                          Se vinculará al cualificar
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="va-two-col">
                   <div className="va-meta-card">
                     <div className="va-meta-head"><span className="dot"/>Datos del lead</div>
@@ -449,49 +535,6 @@ export default function FichaLead() {
                       <div className="ir"><span className="ir-k">Equipo por defecto</span><span className="ir-v">{lead.equipo || '—'}</span></div>
                       <div className="ir"><span className="ir-k">Responsable inicial</span><span className="ir-v">{lead.responsable || '—'}</span></div>
                       <div className="ir"><span className="ir-k">Tipo sugerido</span><span className="ir-v"><TipoTag tipo={lead.tipo}/></span></div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ─── Vinculación obligatoria (ancho completo) ─── */}
-                <div className="va-card">
-                  <div className="va-card-header">
-                    <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Vinculación obligatoria</h3>
-                    <span className="hint">Para transformar el lead</span>
-                  </div>
-                  <div style={{padding:'4px 20px 16px',fontSize:12,color:'var(--text3)',lineHeight:1.55}}>
-                    Para transformar este lead en oportunidad es <strong>obligatorio</strong> vincularlo al menos a una Cuenta o un Contacto de Dynamics. Sin vinculación no se puede crear oportunidad.
-                  </div>
-                </div>
-
-                {/* ─── Cuenta Dynamics | Contacto Dynamics ─── */}
-                <div className="va-two-col">
-                  <div className="va-meta-card">
-                    <div className="va-meta-head"><span className="dot"/>Cuenta (Dynamics)</div>
-                    <div style={{padding:'12px 14px'}}>
-                      {cuentaNombre ? (
-                        <div onClick={() => navigate('cuentas')} style={{ background:'#dbeafe', border:'1px solid #93c5fd', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#1e40af', cursor:'pointer' }}>
-                          🏢 {cuentaNombre}
-                        </div>
-                      ) : (
-                        <div style={{ background:'var(--surface-2)', border:'1px dashed var(--border)', borderRadius:'var(--r)', padding:'10px 12px', fontSize:11, color:'var(--text4)', textAlign:'center' }}>
-                          Sin cuenta vinculada
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-green"><span className="dot"/>Contacto (Dynamics)</div>
-                    <div style={{padding:'12px 14px'}}>
-                      {contactoNombre ? (
-                        <div style={{ background:'#f0fdf4', border:'1px solid #86efac', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#15803d' }}>
-                          👤 {contactoNombre}
-                        </div>
-                      ) : (
-                        <div style={{ background:'var(--surface-2)', border:'1px dashed var(--border)', borderRadius:'var(--r)', padding:'10px 12px', fontSize:11, color:'var(--text4)', textAlign:'center' }}>
-                          Sin contacto vinculado
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
