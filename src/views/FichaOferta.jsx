@@ -947,11 +947,19 @@ function FichaOfertaMock() {
                       {/* Buscador / chip del activo seleccionado */}
                       <div style={{ padding:'4px 18px 0' }}>
                         {activoSeleccionado ? (
-                          <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)', marginBottom:8 }}>
+                          <div
+                            onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref })}
+                            title={`Abrir ficha de ${activoSeleccionado.nombre}`}
+                            style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)', marginBottom:8, cursor:'pointer' }}
+                          >
                             <span>🏢</span>
-                            <span style={{ fontWeight:600, color:'var(--accent)' }}>{activoSeleccionado.nombre}</span>
-                            <button onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref })} style={{ fontSize:10, fontWeight:700, color:'var(--accent)', background:'none', border:'none', cursor:'pointer', padding:'0 2px' }} title="Abrir ficha del activo">↗</button>
-                            <button onClick={() => setActivoSeleccionado(null)} style={{ fontSize:11, color:'var(--text4)', background:'none', border:'none', cursor:'pointer', padding:'0 2px' }} title="Quitar">✕</button>
+                            <span style={{ fontWeight:600, color:'var(--accent)', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{activoSeleccionado.nombre}</span>
+                            <span style={{ fontSize:10, fontWeight:700, color:'var(--accent)', padding:'0 2px' }}>↗</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setActivoSeleccionado(null) }}
+                              style={{ fontSize:11, color:'var(--text4)', background:'none', border:'none', cursor:'pointer', padding:'0 2px' }}
+                              title="Quitar"
+                            >✕</button>
                           </div>
                         ) : (
                           <div style={{ position:'relative', maxWidth:340, marginBottom:8 }}>
