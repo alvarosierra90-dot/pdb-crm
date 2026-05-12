@@ -4193,30 +4193,35 @@ export default function FichaActivo() {
   // Enriquece una lista de competidores con KPIs reales del activo:
   // n_arrendatarios (rows), n_propietarios (rows), n_ofertas, n_transacciones
   // (12m), n_edificios y plazas (desde stacking_data).
+  // Usa allSettled para que un fallo aislado no rompa toda la pestaña.
   const enrichWithKpis = async (rows) => {
     const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 12)
+    const cutoffISO = cutoff.toISOString().slice(0,10)
     return Promise.all((rows || []).map(async r => {
       const a = r.competidor || r
       const cid = a?.id
       const cref = a?.ref
-      if (!cid) return { ...r, n_ofertas:0, n_transacciones:0, n_arrendatarios:0, n_propietarios:0, n_edificios:1, plazas:0 }
-      const [ofRes, txRes, arrRes, propRes] = await Promise.all([
-        supabase.from('ofertas').select('id', { count:'exact', head:true }).eq('activo_id', cid),
-        supabase.from('negociaciones').select('id', { count:'exact', head:true })
-          .eq('activo_id', cid).eq('estado', 'Firmado').gte('fecha_cierre', cutoff.toISOString().slice(0,10)),
-        supabase.from('arrendatarios').select('id', { count:'exact', head:true }).eq('activo_ref', cref),
-        supabase.from('propietarios').select('id', { count:'exact', head:true }).eq('activo_ref', cref),
+      const stk = Array.isArray(a?.stacking_data) ? a.stacking_data : []
+      const nEdif = stk.length || a?.n_edificios || 1
+      if (!cid) return { ...r, n_ofertas:0, n_transacciones:0, n_arrendatarios:0, n_propietarios:0, n_edificios:nEdif, plazas:0 }
+      const safeCount = async (promise) => {
+        try { const res = await promise; return res?.count || 0 } catch { return 0 }
+      }
+      const [nOf, nTx, nArr, nProp] = await Promise.all([
+        safeCount(supabase.from('ofertas').select('id', { count:'exact', head:true }).eq('activo_id', cid)),
+        safeCount(supabase.from('negociaciones').select('id', { count:'exact', head:true })
+          .eq('activo_id', cid).in('estado', ['Firmado','Cerrada','Cerrado']).gte('cierre_estimado', cutoffISO)),
+        safeCount(supabase.from('arrendatarios').select('id', { count:'exact', head:true }).eq('activo_ref', cref)),
+        safeCount(supabase.from('propietarios').select('id', { count:'exact', head:true }).eq('activo_ref', cref)),
       ])
-      const stk = Array.isArray(a.stacking_data) ? a.stacking_data : []
-      const nEdif = stk.length || a.n_edificios || 1
       return {
         ...r,
-        n_ofertas: ofRes.count || 0,
-        n_transacciones: txRes.count || 0,
-        n_arrendatarios: arrRes.count || 0,
-        n_propietarios: propRes.count || 0,
+        n_ofertas: nOf,
+        n_transacciones: nTx,
+        n_arrendatarios: nArr,
+        n_propietarios: nProp,
         n_edificios: nEdif,
-        plazas: 0, // columna 'plazas' no existe en activos; se deriva en el futuro del stacking
+        plazas: 0,
       }
     }))
   }
