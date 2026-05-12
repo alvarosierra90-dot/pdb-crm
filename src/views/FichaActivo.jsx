@@ -3031,7 +3031,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
               </InlineField>
               <div className="ir">
                 <span className="ir-k">Superficie neta (m²)</span>
-                <span className="ir-v" style={{color:'var(--pdb-blue)',fontWeight:600}}>
+                <span className="ir-v" style={{flex:1,color:'var(--pdb-blue)'}}>
                   {(info.sba && info.ratio_perdida) ? Math.round(Number(info.sba)*(1-Number(info.ratio_perdida)/100)).toLocaleString('es-ES') : '—'}
                 </span>
               </div>
@@ -3046,9 +3046,9 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
               </InlineField>
               <div className="ir">
                 <span className="ir-k">Nº edificios</span>
-                <span className="ir-v" style={{display:'flex',alignItems:'center',gap:6}}>
+                <span className="ir-v" style={{flex:1,display:'flex',alignItems:'center',justifyContent:'flex-end',gap:6}}>
                   <span>{nEdificios ?? 1}</span>
-                  <span style={{fontSize:11,color:'var(--pdb-blue)',cursor:'pointer'}}>ver stacking plan</span>
+                  <span style={{fontSize:11,color:'var(--pdb-blue)',cursor:'pointer',fontWeight:500}}>ver stacking plan</span>
                 </span>
               </div>
             </div>
