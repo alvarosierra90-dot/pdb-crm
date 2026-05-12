@@ -1250,37 +1250,22 @@ function FichaOfertaMock() {
                       </div>
                     </div>
 
-                    {/* ── VINCULACIÓN (mandato / colaborador) ── */}
-                    {tipoComercializacion !== 'Sin mandato' && (
+                    {/* ── VINCULACIÓN · Mandato Savills (solo si aplica) ── */}
+                    {tipoComercializacion === 'Mandato Savills' && (
                       <div className="va-card">
                         <div className="va-card-header">
                           <h3><span className="ico" style={{color:'var(--accent)'}}>◆</span> Vinculación</h3>
-                          <span className="hint">{tipoComercializacion === 'Mandato Savills' ? 'Mandato asociado' : 'Consultora colaboradora'}</span>
+                          <span className="hint">Mandato Savills</span>
                         </div>
                         <div style={{ padding:'8px 18px 14px' }}>
-                          {tipoComercializacion === 'Mandato Savills' ? (
-                            mandatoAsociado ? (
-                              <div style={{ padding:'8px 12px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
-                                <div style={{ fontSize:12, fontWeight:600, color:'var(--accent)' }}>{mandatoAsociado.titulo || mandatoAsociado.ref}</div>
-                                <div style={{ fontSize:10, color:'var(--text3)', marginTop:3, fontFamily:'var(--mono)' }}>Ref: {mandatoAsociado.ref || '—'}</div>
-                              </div>
-                            ) : (
-                              <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin mandato seleccionado — añádelo en Comercialización.</div>
-                            )
-                          ) : tipoComercializacion === 'Colaboradores' ? (
-                            colaboradorAsociado ? (
-                              <div style={{ padding:'8px 12px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
-                                <div style={{ fontSize:12, fontWeight:600, color:'var(--accent)' }}>{colaboradorAsociado.nombre}</div>
-                                {(colaboradorAsociado.tipo || colaboradorAsociado.sector) && (
-                                  <div style={{ fontSize:10, color:'var(--text3)', marginTop:3 }}>
-                                    {[colaboradorAsociado.tipo, colaboradorAsociado.sector].filter(Boolean).join(' · ')}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin colaborador seleccionado — añádelo en Comercialización.</div>
-                            )
-                          ) : null}
+                          {mandatoAsociado ? (
+                            <div style={{ padding:'8px 12px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
+                              <div style={{ fontSize:12, fontWeight:600, color:'var(--accent)' }}>{mandatoAsociado.titulo || mandatoAsociado.ref}</div>
+                              <div style={{ fontSize:10, color:'var(--text3)', marginTop:3, fontFamily:'var(--mono)' }}>Ref: {mandatoAsociado.ref || '—'}</div>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin mandato seleccionado — añádelo en Comercialización.</div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -2468,17 +2453,93 @@ function FichaOfertaMock() {
                 <div className="ai-cta">✎ Preguntar a la IA</div>
               </div>
             </div>
+            {/* ── Propietario (heredado del activo) ── */}
             <div className="rp-sec">
-              <div className="rp-lbl">Propietario / Mandante</div>
-              <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:8 }}>
-                <div style={{ width:26, height:26, borderRadius:'50%', background:'#fef3c7', border:'1px solid #fde68a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, color:'#92400e' }}>BB</div>
-                <div><div style={{ fontSize:11, fontWeight:600, color:'var(--accent)' }}>Baena Borja</div><div style={{ fontSize:10, color:'var(--text3)' }}>FREO Investments Spain SL</div></div>
-              </div>
-              <div style={{ background:'var(--gray-lt)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:8, fontSize:11 }}>
-                <div>📞 +34 910 888 998 · 📱 629 846 923</div>
-                <div style={{ color:'var(--accent)' }}>✉ b.baena@freogroup.com</div>
-              </div>
+              <div className="rp-lbl">Propietario</div>
+              {activoSeleccionado?.propietario ? (
+                <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+                  <div style={{ width:26, height:26, borderRadius:'50%', background:'#fef3c7', border:'1px solid #fde68a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, color:'#92400e' }}>
+                    {activoSeleccionado.propietario.split(' ').filter(Boolean).slice(0,2).map(s=>s[0]?.toUpperCase()||'').join('') || '—'}
+                  </div>
+                  <div>
+                    <div style={{ fontSize:11, fontWeight:600, color:'var(--accent)' }}>{activoSeleccionado.propietario}</div>
+                    <div style={{ fontSize:10, color:'var(--text3)' }}>Heredado del activo</div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize:10, color:'var(--text4)', fontStyle:'italic' }}>Sin propietario en el activo.</div>
+              )}
             </div>
+
+            {/* ── Colaboradores (sólo si aplica) ── */}
+            {tipoComercializacion === 'Colaboradores' && (
+              <div className="rp-sec">
+                <div className="rp-lbl">Colaboradores</div>
+                {colaboradorAsociado ? (
+                  <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                    <div style={{ fontSize:11, fontWeight:600, color:'var(--accent)' }}>{colaboradorAsociado.nombre}</div>
+                    {(colaboradorAsociado.tipo || colaboradorAsociado.sector) && (
+                      <div style={{ fontSize:10, color:'var(--text3)' }}>
+                        {[colaboradorAsociado.tipo, colaboradorAsociado.sector].filter(Boolean).join(' · ')}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ fontSize:10, color:'var(--text4)', fontStyle:'italic' }}>Sin colaborador asociado.</div>
+                )}
+              </div>
+            )}
+
+            {/* ── Superficie mínima alquilable ── */}
+            <div className="rp-sec">
+              <div className="rp-lbl">Superficie mínima alquilable</div>
+              {(()=>{
+                const supMins = ofertasDesglose
+                  .filter(o => o.divisible && o.supMin > 0)
+                  .map(o => o.supMin)
+                if (supMins.length === 0) {
+                  return <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>No divisible o sin sup. mínima definida.</div>
+                }
+                const minSup = Math.min(...supMins)
+                return (
+                  <div>
+                    <div style={{ fontSize:20, fontWeight:700, color:'var(--accent)', fontFamily:'var(--mono)' }}>
+                      {minSup.toLocaleString('es-ES')} <span style={{ fontSize:11, color:'var(--text3)', fontWeight:500 }}>m²</span>
+                    </div>
+                    <div style={{ fontSize:10, color:'var(--text3)', marginTop:2 }}>Mínimo divisible en el desglose</div>
+                  </div>
+                )
+              })()}
+            </div>
+
+            {/* ── Vista 360 (resumen de seguimiento) ── */}
+            <div className="rp-sec">
+              <div className="rp-lbl">Vista 360</div>
+              {(()=>{
+                const total = SEG_ACTS.length
+                const pendientes = SEG_ACTS.filter(a => a.estado==='Abierto' || a.estado==='En curso').length
+                const ultima = SEG_ACTS[SEG_ACTS.length - 1]
+                return (
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+                      <div><div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase' }}>Actividades</div><div style={{ fontSize:16, fontWeight:700 }}>{total}</div></div>
+                      <div><div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase' }}>Pendientes</div><div style={{ fontSize:16, fontWeight:700, color:pendientes>0?'var(--red)':'var(--text1)' }}>{pendientes}</div></div>
+                    </div>
+                    {ultima && (
+                      <div style={{ background:'var(--gray-lt)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:8 }}>
+                        <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>Última actividad</div>
+                        <div style={{ fontSize:11, fontWeight:600, marginBottom:2, lineHeight:1.3 }}>{ultima.asunto}</div>
+                        <div style={{ fontSize:10, color:'var(--text3)' }}>{ultima.tipo} · {ultima.fecha}</div>
+                      </div>
+                    )}
+                    <div onClick={() => setActiveTab('of-seg')} style={{ fontSize:10, color:'var(--accent)', cursor:'pointer', textAlign:'right', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>
+                      Ver actividad completa →
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+
             <div className="rp-sec">
               <div className="rp-lbl">Publicación portales</div>
               {[['🌐 Web Savills','Publicado',true],['🏠 Idealista','No publicado',false],['🏢 Mis Oficinas','No publicado',false]].map(([lbl,status,pub],i) => (
