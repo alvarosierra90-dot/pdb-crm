@@ -173,6 +173,14 @@ export default function Topbar() {
       bc: <><span className="bc-title">Inteligencia Comercial</span></>,
       right: <><ExportBtn /></>
     },
+    leads: {
+      bc: <><span className="bc-title">Leads</span></>,
+      right: <><ExportBtn /></>
+    },
+    'ficha-lead': {
+      bc: <><span className="bc-link" onClick={() => navigate('leads')}>Leads</span><Sep /><span className="bc-cur">Ficha lead</span></>,
+      right: <><ExportBtn /></>
+    },
   }
 
   const cfg = configs[view] || configs.activos

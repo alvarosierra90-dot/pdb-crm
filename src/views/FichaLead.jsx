@@ -30,9 +30,6 @@ const inlineTa = { ...inlineInp, padding:'6px 8px', resize:'vertical', minHeight
 
 const TABS = [
   ['ld-info',    'Información'],
-  ['ld-origen',  'Origen y captura'],
-  ['ld-vinc',    'Vinculaciones'],
-  ['ld-act',     'Actividades'],
   ['ld-traz',    'Trazabilidad'],
 ]
 
@@ -411,11 +408,8 @@ export default function FichaLead() {
                     </div>
                   </div>
                 )}
-              </>
-            )}
 
-            {tab === 'ld-origen' && (
-              <>
+                {/* ─── Canal y origen | Captura automática ─── */}
                 <div className="va-two-col">
                   <div className="va-meta-card">
                     <div className="va-meta-head"><span className="dot"/>Canal y origen</div>
@@ -456,19 +450,7 @@ export default function FichaLead() {
                   </div>
                 </div>
 
-                <div className="va-card">
-                  <div className="va-card-header">
-                    <h3><span className="ico" style={{color:'var(--amber)'}}>●</span> Captura automática</h3>
-                  </div>
-                  <div style={{padding:'4px 20px 16px',fontSize:12,color:'var(--text3)',lineHeight:1.55}}>
-                    Estos datos se han registrado automáticamente al entrar el lead. Permiten medir qué canales y campañas generan leads útiles vs nulos.
-                  </div>
-                </div>
-              </>
-            )}
-
-            {tab === 'ld-vinc' && (
-              <>
+                {/* ─── Vinculación obligatoria (ancho completo) ─── */}
                 <div className="va-card">
                   <div className="va-card-header">
                     <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Vinculación obligatoria</h3>
@@ -479,6 +461,7 @@ export default function FichaLead() {
                   </div>
                 </div>
 
+                {/* ─── Cuenta Dynamics | Contacto Dynamics ─── */}
                 <div className="va-two-col">
                   <div className="va-meta-card">
                     <div className="va-meta-head"><span className="dot"/>Cuenta (Dynamics)</div>
@@ -510,6 +493,7 @@ export default function FichaLead() {
                   </div>
                 </div>
 
+                {/* ─── Registros generados al transformar (ancho completo) ─── */}
                 {oportunidadId && (
                   <div className="va-card">
                     <div className="va-card-header">
@@ -537,19 +521,18 @@ export default function FichaLead() {
                     </div>
                   </div>
                 )}
-              </>
-            )}
 
-            {tab === 'ld-act' && (
-              <div className="va-card">
-                <div className="va-card-header">
-                  <h3><span className="ico">◈</span> Actividades del lead</h3>
-                  <button className="ab-btn blue">+ Nueva actividad</button>
+                {/* ─── Actividades (ancho completo) ─── */}
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico">◈</span> Actividades del lead</h3>
+                    <button className="ab-btn blue">+ Nueva actividad</button>
+                  </div>
+                  <div style={{padding:'12px 20px',fontSize:11,color:'var(--text4)'}}>
+                    Próximamente: actividades del lead vinculadas vía tabla `actividades`.
+                  </div>
                 </div>
-                <div style={{padding:'12px 20px',fontSize:11,color:'var(--text4)'}}>
-                  Próximamente: actividades del lead vinculadas vía tabla `actividades`.
-                </div>
-              </div>
+              </>
             )}
 
             {tab === 'ld-traz' && (
