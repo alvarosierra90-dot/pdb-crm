@@ -12,7 +12,7 @@ import {
   Mail, Phone, Users, FileText, Pencil, CheckSquare,
   MapPin, Search, Upload, Image as ImageIcon, AlertTriangle, ArrowDown, BarChart3, Wallet, ClipboardList,
   Inbox, Clock, FileSpreadsheet, StickyNote, Link2, X as XClose, Download,
-  Folder, Wrench, Target, Compass
+  Folder, Wrench, Target, Compass, Presentation
 } from 'lucide-react'
 
 const USO_PREFIX_FA    = { 'Oficinas':'OF', 'Logístico':'LG', 'Retail':'RT', 'Data Center':'DC', 'Residencial':'RS', 'Hoteles':'HT', 'Suelo':'SU' }
