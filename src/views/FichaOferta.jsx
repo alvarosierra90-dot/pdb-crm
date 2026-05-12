@@ -422,19 +422,34 @@ function FichaOfertaMock() {
   useEffect(() => {
     if (tipoComercializacion !== 'Mandato Savills') return
     if (mandatosDB.length > 0) return
+    // 1) Query base — no usa joins para evitar errores si la relación falla
     supabase.from('mandatos')
-      .select('id, ref, titulo, tipo, estado, mandato_activos ( activos ( nombre, direccion, ciudad ) )')
+      .select('id, ref, titulo, tipo, estado')
       .order('created_at', { ascending: false })
-      .limit(200)
-      .then(({ data }) => {
-        if (!data) return
+      .limit(300)
+      .then(async ({ data, error }) => {
+        if (error) { console.error('Error cargando mandatos:', error); return }
+        if (!data || data.length === 0) return
+        // 2) Intentar enriquecer con activos (no crítico si falla)
+        let activosByMandato = {}
+        try {
+          const { data: rels } = await supabase
+            .from('mandato_activos')
+            .select('mandato_id, activos ( nombre, direccion, ciudad )')
+          if (rels) {
+            rels.forEach(r => {
+              if (!activosByMandato[r.mandato_id]) activosByMandato[r.mandato_id] = []
+              if (r.activos) activosByMandato[r.mandato_id].push(r.activos)
+            })
+          }
+        } catch (e) { console.warn('No se pudieron cargar relaciones mandato_activos:', e) }
         const mapped = data.map(m => ({
           id: m.id,
           ref: m.ref,
           titulo: m.titulo || m.ref,
           tipo: m.tipo,
           estado: m.estado,
-          activos: (m.mandato_activos || []).map(ma => ma.activos).filter(Boolean),
+          activos: activosByMandato[m.id] || [],
         }))
         setMandatosDB(mapped)
       })
@@ -914,17 +929,17 @@ function FichaOfertaMock() {
                           </div>
                         )}
                       </div>
-                      {/* Datos heredados — layout compacto en grid 2 columnas con label estrecho */}
-                      <div style={{ padding:'4px 18px 14px', display:'grid', gridTemplateColumns:'1fr 1fr', columnGap:18, rowGap:6 }}>
+                      {/* Datos heredados — fila Dirección a ancho completo, resto en 2 col compactas */}
+                      <div style={{ padding:'4px 18px 14px', display:'grid', gridTemplateColumns:'1fr 1fr', columnGap:18, rowGap:4 }}>
                         {[
-                          { k:'Uso principal',           v: activoSeleccionado?.uso },
-                          { k:'Estado construcción',     v: activoSeleccionado?.estado_construccion },
-                          { k:'Dirección',               v: activoSeleccionado?.direccion },
-                          { k:'Zona / Subzona',          v: activoSeleccionado?.zona ? `${activoSeleccionado.zona}${activoSeleccionado?.subzona ? ' · ' + activoSeleccionado.subzona : ''}` : null },
-                        ].map(({k,v}) => (
-                          <div key={k} style={{ display:'flex', alignItems:'baseline', gap:6, minWidth:0, borderBottom:'1px solid var(--va-line2)', padding:'5px 0' }}>
-                            <span style={{ fontSize:11, color:'var(--text3)', fontWeight:500, whiteSpace:'nowrap' }}>{k}</span>
-                            <span style={{ fontSize:13, fontWeight:600, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          { k:'Uso principal',       v: activoSeleccionado?.uso,                   full:false },
+                          { k:'Estado construcción', v: activoSeleccionado?.estado_construccion,   full:false },
+                          { k:'Dirección',           v: activoSeleccionado?.direccion,             full:true  },
+                          { k:'Zona / Subzona',      v: activoSeleccionado?.zona ? `${activoSeleccionado.zona}${activoSeleccionado?.subzona ? ' · ' + activoSeleccionado.subzona : ''}` : null, full:true },
+                        ].map(({k,v,full}) => (
+                          <div key={k} style={{ display:'flex', alignItems:'baseline', gap:8, minWidth:0, borderBottom:'1px solid var(--va-line2)', padding:'5px 0', gridColumn: full ? '1 / -1' : 'auto' }}>
+                            <span style={{ fontSize:11, color:'var(--text3)', fontWeight:500, whiteSpace:'nowrap', flexShrink:0 }}>{k}</span>
+                            <span style={{ fontSize:13, fontWeight:600, color:'var(--text)', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                               {v || <span style={{ color:'var(--text4)', fontWeight:500 }}>—</span>}
                             </span>
                           </div>
@@ -953,86 +968,83 @@ function FichaOfertaMock() {
                               {['Demanda entrante','Prospección directa','Referencia interna','Portal web','Red de colaboradores','Otra consultora'].map(o => <option key={o}>{o}</option>)}
                             </select>
                           </span></div>
-                          {/* Mandato asociado — solo aparece y es obligatorio si Mandato Savills */}
-                          {tipoComercializacion === 'Mandato Savills' && (
-                            <div className="ir">
-                              <span className="ir-k" style={{ color: mandatoAsociado ? 'var(--text3)' : 'var(--red,#dc2626)' }}>
+                        </div>
+                        {/* Mandato asociado — bloque dedicado a ancho completo (sólo si Mandato Savills) */}
+                        {tipoComercializacion === 'Mandato Savills' && (
+                          <div style={{ padding:'4px 14px 12px', borderTop:'1px dashed var(--va-line2)', marginTop:4 }}>
+                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                              <span style={{ fontSize:11, fontWeight:600, color: mandatoAsociado ? 'var(--text3)' : 'var(--red,#dc2626)' }}>
                                 Mandato asociado *
                               </span>
-                              <span className="ir-v" style={{ minWidth:'60%' }}>
-                                {mandatoAsociado ? (
-                                  <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
-                                    <span style={{ fontWeight:600, color:'var(--accent)' }}>{mandatoAsociado.titulo || mandatoAsociado.ref}</span>
-                                    <button onClick={() => setMandatoAsociado(null)} style={{ fontSize:11, color:'var(--text4)', background:'none', border:'none', cursor:'pointer', padding:'0 2px' }} title="Quitar">✕</button>
-                                  </div>
-                                ) : (
-                                  <div style={{ position:'relative', display:'inline-block', minWidth:220 }}>
-                                    <input
-                                      className="of-inp"
-                                      placeholder="🔍 Buscar mandato..."
-                                      value={mandatoBuscador}
-                                      onChange={e => { setMandatoBuscador(e.target.value); setShowMandatoDropdown(true) }}
-                                      onFocus={() => setShowMandatoDropdown(true)}
-                                      onBlur={() => setTimeout(() => setShowMandatoDropdown(false), 150)}
-                                    />
-                                    {showMandatoDropdown && (
-                                      <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 4px 12px rgba(0,0,0,.12)', zIndex:200, maxHeight:240, overflowY:'auto', textAlign:'left' }}>
-                                        {mandatosDB
-                                          .filter(m => !mandatoBuscador
-                                            || (m.titulo||'').toLowerCase().includes(mandatoBuscador.toLowerCase())
-                                            || (m.ref||'').toLowerCase().includes(mandatoBuscador.toLowerCase())
-                                            || (m.activos||[]).some(a => (a.nombre||'').toLowerCase().includes(mandatoBuscador.toLowerCase()))
-                                          )
-                                          .slice(0,10)
-                                          .map(m => {
-                                            const firstActivo = m.activos?.[0]
-                                            return (
-                                              <div key={m.id} onMouseDown={() => {
-                                                setMandatoAsociado(m)
-                                                setMandatoBuscador('')
-                                                setShowMandatoDropdown(false)
-                                              }} style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
-                                                <div style={{ display:'flex', justifyContent:'space-between', gap:8 }}>
-                                                  <span style={{ fontWeight:600 }}>{m.titulo || m.ref}</span>
-                                                  {m.tipo && <span style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase' }}>{m.tipo}</span>}
-                                                </div>
-                                                <div style={{ color:'var(--text4)', fontSize:10, marginTop:2 }}>
-                                                  {m.ref}{firstActivo?.direccion ? ` · ${firstActivo.direccion}` : firstActivo?.nombre ? ` · ${firstActivo.nombre}` : ''}
-                                                </div>
-                                              </div>
-                                            )
-                                          })}
-                                        {mandatosDB.length === 0 && (
-                                          <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Cargando mandatos…</div>
-                                        )}
-                                        {mandatosDB.length > 0 && mandatosDB.filter(m => !mandatoBuscador
-                                          || (m.titulo||'').toLowerCase().includes(mandatoBuscador.toLowerCase())
-                                          || (m.ref||'').toLowerCase().includes(mandatoBuscador.toLowerCase())
-                                          || (m.activos||[]).some(a => (a.nombre||'').toLowerCase().includes(mandatoBuscador.toLowerCase()))
-                                        ).length === 0 && (
-                                          <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Sin resultados</div>
-                                        )}
-                                      </div>
-                                    )}
+                              {!mandatoAsociado && (
+                                <span style={{ fontSize:9, color:'var(--text4)' }}>{mandatosDB.length} mandatos disponibles</span>
+                              )}
+                            </div>
+                            {mandatoAsociado ? (
+                              <div>
+                                <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'5px 10px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
+                                  <span style={{ fontWeight:600, color:'var(--accent)', fontSize:12 }}>{mandatoAsociado.titulo || mandatoAsociado.ref}</span>
+                                  {mandatoAsociado.tipo && <span style={{ fontSize:9, color:'var(--accent)', opacity:0.7, textTransform:'uppercase' }}>· {mandatoAsociado.tipo}</span>}
+                                  <button onClick={() => setMandatoAsociado(null)} style={{ fontSize:11, color:'var(--text4)', background:'none', border:'none', cursor:'pointer', padding:'0 2px' }} title="Quitar">✕</button>
+                                </div>
+                                {(() => {
+                                  const a = mandatoAsociado.activos?.[0]
+                                  if (!a) return null
+                                  return (
+                                    <div style={{ marginTop:6, fontSize:11, color:'var(--text3)', display:'flex', gap:6, alignItems:'baseline' }}>
+                                      <span style={{ fontSize:10, color:'var(--text4)' }}>Dirección:</span>
+                                      <span style={{ fontWeight:500 }}>{a.direccion || a.nombre || '—'}</span>
+                                    </div>
+                                  )
+                                })()}
+                              </div>
+                            ) : (
+                              <div style={{ position:'relative', width:'100%' }}>
+                                <input
+                                  className="of-inp"
+                                  placeholder="🔍 Buscar mandato por título, ref o activo..."
+                                  value={mandatoBuscador}
+                                  onChange={e => { setMandatoBuscador(e.target.value); setShowMandatoDropdown(true) }}
+                                  onFocus={() => setShowMandatoDropdown(true)}
+                                  onBlur={() => setTimeout(() => setShowMandatoDropdown(false), 200)}
+                                  style={{ width:'100%' }}
+                                />
+                                {showMandatoDropdown && (
+                                  <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 4px 12px rgba(0,0,0,.12)', zIndex:200, maxHeight:240, overflowY:'auto', textAlign:'left', marginTop:2 }}>
+                                    {(()=>{
+                                      const term = mandatoBuscador.toLowerCase()
+                                      const filtered = mandatosDB.filter(m => !term
+                                        || (m.titulo||'').toLowerCase().includes(term)
+                                        || (m.ref||'').toLowerCase().includes(term)
+                                        || (m.activos||[]).some(a => (a.nombre||'').toLowerCase().includes(term))
+                                      )
+                                      if (mandatosDB.length === 0) return <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Cargando mandatos…</div>
+                                      if (filtered.length === 0) return <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Sin resultados</div>
+                                      return filtered.slice(0,12).map(m => {
+                                        const firstActivo = m.activos?.[0]
+                                        return (
+                                          <div key={m.id} onMouseDown={() => {
+                                            setMandatoAsociado(m)
+                                            setMandatoBuscador('')
+                                            setShowMandatoDropdown(false)
+                                          }} style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
+                                            <div style={{ display:'flex', justifyContent:'space-between', gap:8, alignItems:'baseline' }}>
+                                              <span style={{ fontWeight:600 }}>{m.titulo || m.ref}</span>
+                                              {m.tipo && <span style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase' }}>{m.tipo}</span>}
+                                            </div>
+                                            <div style={{ color:'var(--text4)', fontSize:10, marginTop:2 }}>
+                                              {m.ref}{firstActivo?.direccion ? ` · ${firstActivo.direccion}` : firstActivo?.nombre ? ` · ${firstActivo.nombre}` : ''}
+                                            </div>
+                                          </div>
+                                        )
+                                      })
+                                    })()}
                                   </div>
                                 )}
-                              </span>
-                            </div>
-                          )}
-                          {/* Confirmación de mandato seleccionado: muestra dirección */}
-                          {tipoComercializacion === 'Mandato Savills' && mandatoAsociado && (() => {
-                            const a = mandatoAsociado.activos?.[0]
-                            if (!a) return null
-                            return (
-                              <div className="ir">
-                                <span className="ir-k" style={{ fontSize:10, fontStyle:'italic' }}>Dirección del mandato</span>
-                                <span className="ir-v" style={{ fontSize:11, fontStyle:'italic', color:'var(--text3)', fontWeight:500 }}>
-                                  {a.direccion || a.nombre || '—'}
-                                </span>
                               </div>
-                            )
-                          })()}
-                        </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="va-meta-card">
