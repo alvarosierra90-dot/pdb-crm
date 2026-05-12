@@ -235,45 +235,76 @@ function FichaPropuestaMock() {
             <div className="tab-content active">
               <div className="info-pad">
 
-                {/* ── IDENTIFICACIÓN ── */}
-                <div className="va-card">
-                  <div className="va-card-header">
-                    <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Identificación</h3>
+                {/* ─── FILA 1: Identificación | Datos económicos ─── */}
+                <div className="va-two-col">
+                  <div className="va-card" style={{ marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Identificación</h3>
+                    </div>
+                    <div className="va-kv-list" style={{paddingBottom:14}}>
+                      <div className="ir"><span className="ir-k">ID</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{form.id}</span></div>
+                      <div className="ir"><span className="ir-k">Nombre del proyecto</span><span className="ir-v" style={{fontWeight:600}}><input className="kf-inp" value={form.nombre} onChange={e=>set('nombre',e.target.value)} style={{width:'100%'}}/></span></div>
+                      <div className="ir"><span className="ir-k">Tipo de proyecto</span><span className="ir-v">
+                        <select className="kf-sel" value={form.tipo} onChange={e=>set('tipo',e.target.value)} style={{minWidth:160}}>
+                          {TIPOS.map(o=><option key={o}>{o}</option>)}
+                        </select>
+                      </span></div>
+                      <div className="ir"><span className="ir-k">Línea de negocio</span><span className="ir-v">
+                        <select className="kf-sel" value={form.linea} onChange={e=>set('linea',e.target.value)} style={{minWidth:160}}>
+                          {LINEAS.map(o=><option key={o}>{o}</option>)}
+                        </select>
+                      </span></div>
+                      <div className="ir"><span className="ir-k">Estado</span><span className="ir-v">
+                        <select className="kf-sel" value={form.estado} onChange={e=>set('estado',e.target.value)} style={{color:ESTADO_COLOR[form.estado],fontWeight:700,minWidth:140}}>
+                          {ESTADOS.map(o=><option key={o}>{o}</option>)}
+                        </select>
+                      </span></div>
+                      <div className="ir"><span className="ir-k">Creado por</span><span className="ir-v"><input className="kf-inp" value={form.creado_por} onChange={e=>set('creado_por',e.target.value)} style={{width:'100%'}}/></span></div>
+                      <div className="ir"><span className="ir-k">Fecha creación</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{form.fecha_creacion}</span></div>
+                      <div className="ir"><span className="ir-k">Última modificación</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{form.fecha_mod}</span></div>
+                    </div>
                   </div>
-                  <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:14}}>
-                    <div className="ir"><span className="ir-k">ID</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{form.id}</span></div>
-                    <div className="ir"><span className="ir-k">Nombre del proyecto</span><span className="ir-v" style={{fontWeight:600}}><input className="kf-inp" value={form.nombre} onChange={e=>set('nombre',e.target.value)} style={{width:'100%'}}/></span></div>
-                    <div className="ir"><span className="ir-k">Tipo de proyecto</span><span className="ir-v">
-                      <select className="kf-sel" value={form.tipo} onChange={e=>set('tipo',e.target.value)} style={{minWidth:160}}>
-                        {TIPOS.map(o=><option key={o}>{o}</option>)}
-                      </select>
-                    </span></div>
-                    <div className="ir"><span className="ir-k">Línea de negocio</span><span className="ir-v">
-                      <select className="kf-sel" value={form.linea} onChange={e=>set('linea',e.target.value)} style={{minWidth:160}}>
-                        {LINEAS.map(o=><option key={o}>{o}</option>)}
-                      </select>
-                    </span></div>
-                    <div className="ir"><span className="ir-k">Estado</span><span className="ir-v">
-                      <select className="kf-sel" value={form.estado} onChange={e=>set('estado',e.target.value)} style={{color:ESTADO_COLOR[form.estado],fontWeight:700,minWidth:140}}>
-                        {ESTADOS.map(o=><option key={o}>{o}</option>)}
-                      </select>
-                    </span></div>
-                    <div className="ir"><span className="ir-k">Creado por</span><span className="ir-v"><input className="kf-inp" value={form.creado_por} onChange={e=>set('creado_por',e.target.value)} style={{width:'100%'}}/></span></div>
-                    <div className="ir"><span className="ir-k">Fecha creación</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{form.fecha_creacion}</span></div>
-                    <div className="ir"><span className="ir-k">Última modificación</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{form.fecha_mod}</span></div>
+
+                  <div className="va-meta-card" style={{ marginBottom:0 }}>
+                    <div className="va-meta-head accent-green"><span className="dot"/>Datos económicos</div>
+                    <div className="va-kv-list">
+                      <div className="ir"><span className="ir-k">Fees potenciales (€)</span><span className="ir-v"><input className="kf-inp" value={form.fees} onChange={e=>set('fees',e.target.value)} style={{fontFamily:'var(--mono)',fontWeight:700,fontSize:13,width:140,textAlign:'right'}}/></span></div>
+                      <div className="ir"><span className="ir-k">Fecha estimada cierre</span><span className="ir-v"><input className="kf-inp" value={form.fecha_cierre} onChange={e=>set('fecha_cierre',e.target.value)} placeholder="DD/MM/AAAA" style={{fontFamily:'var(--mono)',width:140,textAlign:'right'}}/></span></div>
+                      <div className="ir"><span className="ir-k">Probabilidad de éxito</span><span className="ir-v" style={{display:'flex',alignItems:'center',gap:8,minWidth:200}}>
+                        <input type="range" min={0} max={100} step={5} value={form.probabilidad} onChange={e=>set('probabilidad',e.target.value)} style={{flex:1,accentColor:'var(--accent)'}}/>
+                        <span style={{fontFamily:'var(--mono)',fontWeight:700,fontSize:13,color:'var(--accent)',minWidth:42,textAlign:'right'}}>{form.probabilidad}%</span>
+                      </span></div>
+                      <div className="ir"><span className="ir-k">Fees brutos</span><span className="ir-v" style={{fontFamily:'var(--mono)',fontWeight:700}}>{parseInt(form.fees.replace(/[^0-9]/g,'')||0).toLocaleString('es-ES')} €</span></div>
+                      <div className="ir"><span className="ir-k">Fees ajustados (× prob.)</span><span className="ir-v" style={{fontFamily:'var(--mono)',color:'var(--green)',fontWeight:700}}>{Math.round(feesAdj).toLocaleString('es-ES')} €</span></div>
+                    </div>
                   </div>
                 </div>
 
-                {/* ── DESCRIPCIÓN ── */}
-                <div className="va-card">
-                  <div className="va-card-header">
-                    <h3><span className="ico">▭</span> Descripción y notas</h3>
+                {/* ─── FILA 2: Descripción y notas | Acciones rápidas ─── */}
+                <div className="va-two-col">
+                  <div className="va-card" style={{ marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico">▭</span> Descripción y notas</h3>
+                    </div>
+                    <div style={{padding:'4px 20px 16px'}}>
+                      <div className="rp-lbl">Descripción del proyecto</div>
+                      <textarea className="kf-inp" value={form.descripcion} onChange={e=>set('descripcion',e.target.value)} rows={4} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
+                      <div className="rp-lbl" style={{marginTop:14}}>Notas internas</div>
+                      <textarea className="kf-inp" value={form.notas_internas} onChange={e=>set('notas_internas',e.target.value)} rows={3} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
+                    </div>
                   </div>
-                  <div style={{padding:'4px 20px 16px'}}>
-                    <div className="rp-lbl">Descripción del proyecto</div>
-                    <textarea className="kf-inp" value={form.descripcion} onChange={e=>set('descripcion',e.target.value)} rows={4} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
-                    <div className="rp-lbl" style={{marginTop:14}}>Notas internas</div>
-                    <textarea className="kf-inp" value={form.notas_internas} onChange={e=>set('notas_internas',e.target.value)} rows={3} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
+                  <div className="va-meta-card" style={{ marginBottom:0 }}>
+                    <div className="va-meta-head accent-purple"><span className="dot"/>Acciones rápidas</div>
+                    <div style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:8}}>
+                      <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-actividad')}>📝 Crear actividad vinculada</button>
+                      <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-oferta')}>📧 Emitir oferta</button>
+                      <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>
+                      {form.estado==='Adjudicado'&&!form.convertido_mandato&&(
+                        <button style={{background:'var(--green)',color:'#fff',border:'none',borderRadius:5,padding:'7px 14px',cursor:'pointer',fontWeight:700,fontSize:11,fontFamily:'inherit',textAlign:'left'}} onClick={convertirMandato}>
+                          🏆 Convertir en mandato →
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -365,36 +396,6 @@ function FichaPropuestaMock() {
                           </div>
                         ))}
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ── DATOS ECONÓMICOS ── */}
-                <div className="va-two-col">
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-green"><span className="dot"/>Datos económicos</div>
-                    <div className="va-kv-list">
-                      <div className="ir"><span className="ir-k">Fees potenciales (€)</span><span className="ir-v"><input className="kf-inp" value={form.fees} onChange={e=>set('fees',e.target.value)} style={{fontFamily:'var(--mono)',fontWeight:700,fontSize:13,width:140,textAlign:'right'}}/></span></div>
-                      <div className="ir"><span className="ir-k">Fecha estimada cierre</span><span className="ir-v"><input className="kf-inp" value={form.fecha_cierre} onChange={e=>set('fecha_cierre',e.target.value)} placeholder="DD/MM/AAAA" style={{fontFamily:'var(--mono)',width:140,textAlign:'right'}}/></span></div>
-                      <div className="ir"><span className="ir-k">Probabilidad de éxito</span><span className="ir-v" style={{display:'flex',alignItems:'center',gap:8,minWidth:200}}>
-                        <input type="range" min={0} max={100} step={5} value={form.probabilidad} onChange={e=>set('probabilidad',e.target.value)} style={{flex:1,accentColor:'var(--accent)'}}/>
-                        <span style={{fontFamily:'var(--mono)',fontWeight:700,fontSize:13,color:'var(--accent)',minWidth:42,textAlign:'right'}}>{form.probabilidad}%</span>
-                      </span></div>
-                      <div className="ir"><span className="ir-k">Fees brutos</span><span className="ir-v" style={{fontFamily:'var(--mono)',fontWeight:700}}>{parseInt(form.fees.replace(/[^0-9]/g,'')||0).toLocaleString('es-ES')} €</span></div>
-                      <div className="ir"><span className="ir-k">Fees ajustados (× prob.)</span><span className="ir-v" style={{fontFamily:'var(--mono)',color:'var(--green)',fontWeight:700}}>{Math.round(feesAdj).toLocaleString('es-ES')} €</span></div>
-                    </div>
-                  </div>
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-purple"><span className="dot"/>Acciones rápidas</div>
-                    <div style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:8}}>
-                      <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-actividad')}>📝 Crear actividad vinculada</button>
-                      <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-oferta')}>📧 Emitir oferta</button>
-                      <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>
-                      {form.estado==='Adjudicado'&&!form.convertido_mandato&&(
-                        <button style={{background:'var(--green)',color:'#fff',border:'none',borderRadius:5,padding:'7px 14px',cursor:'pointer',fontWeight:700,fontSize:11,fontFamily:'inherit',textAlign:'left'}} onClick={convertirMandato}>
-                          🏆 Convertir en mandato →
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -674,6 +675,134 @@ function FichaPropuestaMock() {
             </div>
           )}
 
+        </div>
+
+        {/* ─── Right sidebar: KPIs + IA · resumen vivo ─── */}
+        <div className="ficha-right">
+          {/* KPI principal · Probabilidad con barra */}
+          <div className="rp-sec">
+            <div className="rp-lbl">Probabilidad de éxito</div>
+            <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:6 }}>
+              <span style={{ fontSize:24, fontWeight:700, color:'var(--accent)', fontFamily:'var(--mono)' }}>{form.probabilidad}%</span>
+              <span style={{ fontSize:11, color:'var(--text3)' }}>de éxito</span>
+            </div>
+            <div style={{ background:'var(--gray-lt)', borderRadius:6, height:8, overflow:'hidden' }}>
+              <div style={{ background:'var(--accent)', height:'100%', width:`${form.probabilidad}%`, transition:'width .25s ease' }}/>
+            </div>
+          </div>
+
+          {/* Fees */}
+          <div className="rp-sec">
+            <div className="rp-lbl">Fees</div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+              <div>
+                <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>Brutos</div>
+                <div style={{ fontSize:14, fontWeight:700, fontFamily:'var(--mono)' }}>{parseInt(form.fees.replace(/[^0-9]/g,'')||0).toLocaleString('es-ES')} €</div>
+              </div>
+              <div>
+                <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>Ajustados</div>
+                <div style={{ fontSize:14, fontWeight:700, fontFamily:'var(--mono)', color:'var(--green)' }}>{Math.round(feesAdj).toLocaleString('es-ES')} €</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Cierre estimado + días restantes */}
+          <div className="rp-sec">
+            <div className="rp-lbl">Cierre estimado</div>
+            <div style={{ fontSize:14, fontWeight:700, fontFamily:'var(--mono)', marginBottom:4 }}>{form.fecha_cierre || '—'}</div>
+            {(() => {
+              if (!form.fecha_cierre) return null
+              const m = form.fecha_cierre.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+              if (!m) return null
+              const [, d, mo, y] = m
+              const target = new Date(Number(y), Number(mo) - 1, Number(d))
+              const diff = Math.ceil((target - new Date()) / (1000 * 60 * 60 * 24))
+              const color = diff < 0 ? 'var(--red)' : diff < 30 ? 'var(--amber)' : 'var(--green)'
+              const label = diff < 0 ? `Hace ${-diff} días` : diff === 0 ? 'Hoy' : `En ${diff} días`
+              return <div style={{ fontSize:11, color, fontWeight:600 }}>{label}</div>
+            })()}
+          </div>
+
+          {/* Vinculaciones */}
+          <div className="rp-sec">
+            <div className="rp-lbl">Vinculaciones</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
+                <span style={{ color:'var(--text3)' }}>🏢 Cuenta</span>
+                <span style={{ fontWeight:600, color: form.empresa ? 'var(--accent)' : 'var(--text4)', fontStyle: form.empresa ? 'normal' : 'italic' }}>{form.empresa || 'por completar'}</span>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
+                <span style={{ color:'var(--text3)' }}>⚡ Oportunidad</span>
+                <span style={{ fontWeight:600, fontFamily:'var(--mono)', color: form.oportunidad ? 'var(--text1)' : 'var(--text4)', fontStyle: form.oportunidad ? 'normal' : 'italic' }}>{form.oportunidad || 'por completar'}</span>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
+                <span style={{ color:'var(--text3)' }}>🏛 Activos</span>
+                <span style={{ fontWeight:600, color: activos.length>0 ? 'var(--teal)' : 'var(--text4)' }}>{activos.length}</span>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
+                <span style={{ color:'var(--text3)' }}>📧 Ofertas</span>
+                <span style={{ fontWeight:600, color: ofertas.length>0 ? 'var(--amber)' : 'var(--text4)' }}>{ofertas.length}</span>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
+                <span style={{ color:'var(--text3)' }}>🔍 Demanda</span>
+                <span style={{ fontWeight:600, fontFamily:'var(--mono)', color: form.demanda ? 'var(--purple)' : 'var(--text4)', fontStyle: form.demanda ? 'normal' : 'italic' }}>{form.demanda || '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Equipos */}
+          <div className="rp-sec">
+            <div className="rp-lbl">Equipos participantes ({equipos.length})</div>
+            {equipos.length === 0 ? (
+              <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin equipos asignados</div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {equipos.slice(0,4).map((eq,i) => (
+                  <div key={i} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ width:22, height:22, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>
+                      {eq.usuario.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:11, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{eq.usuario}</div>
+                      <div style={{ fontSize:9, color:'var(--text4)' }}>{eq.rol}</div>
+                    </div>
+                  </div>
+                ))}
+                {equipos.length > 4 && <div style={{ fontSize:10, color:'var(--text3)' }}>+ {equipos.length - 4} más</div>}
+              </div>
+            )}
+          </div>
+
+          {/* Asistente IA */}
+          <div className="rp-sec">
+            <div className="rp-lbl">Asistente IA</div>
+            <div className="ai-box">
+              <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Insight propuesta</span><span className="ai-badge">Tiempo real</span></div>
+              <div className="ai-text">
+                {(() => {
+                  const p = parseInt(form.probabilidad) || 0
+                  const fees = Math.round(feesAdj)
+                  if (p >= 70) return `Probabilidad ${p}% — alta. Fees ajustados ${fees.toLocaleString('es-ES')} €. Confirma equipo y fecha de envío.`
+                  if (p >= 40) return `Probabilidad ${p}% — media. Considera reforzar el pitch antes de ${form.fecha_cierre || 'cierre'}.`
+                  return `Probabilidad ${p}% — baja. Revisa si compensa el esfuerzo o si conviene un enfoque distinto.`
+                })()}
+              </div>
+              <div className="ai-cta">✎ Preguntar a la IA</div>
+            </div>
+          </div>
+
+          {/* Estado */}
+          <div className="rp-sec">
+            <div className="rp-lbl">Estado del proyecto</div>
+            <div style={{ padding:'8px 12px', borderRadius:6, background:ESTADO_COLOR[form.estado]+'22', border:`1px solid ${ESTADO_COLOR[form.estado]}55`, fontSize:12, fontWeight:700, color:ESTADO_COLOR[form.estado] }}>
+              {form.estado}
+            </div>
+            {form.convertido_mandato && (
+              <div style={{ marginTop:8, padding:'6px 10px', background:'#dcfce7', border:'1px solid #86efac', borderRadius:5, fontSize:10, color:'#15803d', fontWeight:600 }}>
+                ✅ Mandato {form.mandato_ref}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       {showTarea && <AsignarTareaModal refTipo="Propuesta" refNombre="PRY-2501 · Pitch BBVA Torre Norte" onClose={() => setShowTarea(false)} />}
