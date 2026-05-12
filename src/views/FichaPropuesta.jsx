@@ -345,39 +345,71 @@ function FichaPropuestaMock() {
                       <span className="hint" style={{ color:'var(--red, #dc2626)', fontWeight:600 }}>Una Propuesta SIEMPRE cuelga de Oportunidad</span>
                     </div>
                     <div style={{padding:'4px 20px 16px'}}>
-                      {/* Oportunidad */}
+                      {/* Helper styles — cards uniformes tipo Equipos y participantes */}
+                      {(() => null)()}
+
+                      {/* ─── OPORTUNIDAD ─── */}
                       <div style={{ marginBottom:12 }}>
-                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5, display:'flex', alignItems:'center', gap:6 }}>
-                          <span>Oportunidad</span>
-                          <span style={{ color:'var(--red, #dc2626)', fontWeight:700 }}>*</span>
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>
+                          Oportunidad <span style={{ color:'var(--red, #dc2626)', fontWeight:700 }}>*</span>
                         </div>
-                        <input className="kf-inp" value={form.oportunidad} onChange={e=>set('oportunidad',e.target.value)} style={{width:'100%',fontWeight:600}} placeholder="Ej: OP-2026-0078"/>
-                        {form.oportunidad_nombre && <div style={{fontSize:10, color:'var(--text3)', marginTop:3}}>{form.oportunidad_nombre}</div>}
-                        <div style={{ fontSize:10, color:'var(--red, #dc2626)', fontWeight:600, marginTop:4 }}>
-                          Una Propuesta SIEMPRE cuelga de una Oportunidad existente en Dynamics. Sin Oportunidad no puede guardarse.
-                        </div>
+                        {form.oportunidad ? (
+                          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>OP</div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)' }}>{form.oportunidad}</div>
+                              {form.oportunidad_nombre && <div style={{ fontSize:10, color:'var(--text3)' }}>{form.oportunidad_nombre}</div>}
+                            </div>
+                            <span className="tag tag-blue" style={{ fontSize:9 }}>Dynamics</span>
+                            <button onClick={() => set('oportunidad','')} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
+                          </div>
+                        ) : (
+                          <>
+                            <input className="kf-inp" value={form.oportunidad} onChange={e=>set('oportunidad',e.target.value)} style={{ width:'100%', fontWeight:600 }} placeholder="Ej: OP-2026-0078"/>
+                            <div style={{ fontSize:10, color:'var(--red, #dc2626)', fontWeight:600, marginTop:4 }}>
+                              Una Propuesta SIEMPRE cuelga de una Oportunidad existente en Dynamics. Sin Oportunidad no puede guardarse.
+                            </div>
+                          </>
+                        )}
                       </div>
 
-                      {/* Empresa / Cuenta */}
+                      {/* ─── EMPRESA (CUENTA) ─── */}
                       <div style={{ marginBottom:12 }}>
-                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                          <span>Empresa (Cuenta) <span style={{color:'var(--red, #dc2626)',fontWeight:700}}>*</span></span>
-                          {form.oportunidad && <span style={{fontSize:9,fontWeight:600,color:'var(--text3)',textTransform:'none',letterSpacing:'normal'}}>🔒 heredada de Oportunidad</span>}
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>
+                          Empresa (Cuenta) <span style={{ color:'var(--red, #dc2626)', fontWeight:700 }}>*</span>
                         </div>
-                        <input className="kf-inp" value={form.empresa} onChange={e=>!form.oportunidad && set('empresa',e.target.value)} disabled={!!form.oportunidad} style={{width:'100%',fontWeight:600,background:form.oportunidad?'var(--gray-lt)':undefined,cursor:form.oportunidad?'not-allowed':undefined}} placeholder="Buscar cuenta en Dynamics..."/>
-                        <div style={{fontSize:9,color:'var(--text4)',marginTop:3}}>{form.oportunidad ? 'Cuenta heredada automáticamente desde la Oportunidad' : 'Vinculado a Dynamics CRM'}</div>
+                        {form.empresa ? (
+                          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>🏢</div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontSize:12, fontWeight:600 }}>{form.empresa}</div>
+                              <div style={{ fontSize:10, color:'var(--text3)' }}>{form.oportunidad ? 'Heredada de Oportunidad' : 'Cuenta Dynamics'}</div>
+                            </div>
+                            <span className="tag tag-blue" style={{ fontSize:9 }}>{form.oportunidad ? '🔒 Heredada' : 'Dynamics'}</span>
+                            {!form.oportunidad && <button onClick={() => set('empresa','')} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>}
+                          </div>
+                        ) : (
+                          <input className="kf-inp" value={form.empresa} onChange={e=>!form.oportunidad && set('empresa',e.target.value)} disabled={!!form.oportunidad} style={{ width:'100%', fontWeight:600, background:form.oportunidad?'var(--gray-lt)':undefined, cursor:form.oportunidad?'not-allowed':undefined }} placeholder="Buscar cuenta en Dynamics..."/>
+                        )}
                       </div>
 
-                      {/* Demanda — lupa sobre demandas */}
-                      <KF label={<span style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em' }}>Demanda</span>}>
+                      {/* ─── DEMANDA ─── */}
+                      <div style={{ marginBottom:12 }}>
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Demanda</div>
                         {form.demanda ? (
-                          <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 10px',border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--surface)',width:'100%'}}>
-                            <span onClick={()=>navigate('ficha-demanda')} style={{fontFamily:'var(--mono)',fontWeight:600,color:'var(--accent)',flex:1,cursor:'pointer',textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>{form.demanda} ↗</span>
-                            <button onClick={()=>set('demanda','')} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}}>✕</button>
+                          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>🔍</div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)' }}>{form.demanda}</div>
+                              <div style={{ fontSize:10, color:'var(--text3)' }}>Demanda vinculada</div>
+                            </div>
+                            <button className="ra p" style={{ fontSize:9, padding:'2px 6px' }} onClick={() => navigate('ficha-demanda')}>Ver</button>
+                            <button onClick={() => set('demanda','')} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
                           </div>
                         ) : (
                           <div style={{position:'relative'}}>
-                            <input className="kf-inp" value={demandaSearch} onChange={e=>{ setDemandaSearch(e.target.value); setShowDemandaDD(true) }}
+                            <input className="kf-inp" value={demandaSearch}
+                              onChange={e=>{ setDemandaSearch(e.target.value); setShowDemandaDD(true) }}
                               onFocus={()=>setShowDemandaDD(true)}
                               onBlur={()=>setTimeout(()=>setShowDemandaDD(false), 200)}
                               placeholder="🔍 Buscar demanda..." style={{ fontStyle: demandaSearch ? 'normal' : 'italic', width:'100%' }}/>
@@ -396,29 +428,32 @@ function FichaPropuestaMock() {
                             )}
                           </div>
                         )}
-                      </KF>
+                      </div>
 
-                      {/* Activos vinculados — lupa + cards con dirección/uso/SBA */}
-                      <div style={{marginTop:14}}>
+                      {/* ─── ACTIVOS VINCULADOS ─── */}
+                      <div style={{ marginBottom:12 }}>
                         <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:6 }}>Activos vinculados</div>
-                        {activos.map((a,i) => (
-                          <div key={i} style={{ padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', marginBottom:6 }}>
-                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:6 }}>
+                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                          {activos.map((a,i) => (
+                            <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                              <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>🏛</div>
                               <div style={{ flex:1, minWidth:0 }}>
-                                <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', display:'flex', alignItems:'center', gap:6 }}>
-                                  🏛 <span onClick={() => navigate('ficha-activo', a.ref ? { ref:a.ref } : undefined)} style={{ cursor:'pointer', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{a.nombre}</span>
+                                <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>
+                                  <span onClick={() => navigate('ficha-activo', a.ref ? { ref:a.ref } : undefined)} style={{ cursor:'pointer', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{a.nombre}</span>
                                 </div>
-                                {a.direccion && <div style={{ fontSize:10, color:'var(--text3)', marginTop:3 }}>📍 {a.direccion}{a.ciudad && a.direccion?.indexOf(a.ciudad) === -1 ? `, ${a.ciudad}` : ''}</div>}
-                                <div style={{ display:'flex', gap:12, marginTop:4, fontSize:10 }}>
-                                  {a.uso && <div><span style={{ color:'var(--text4)' }}>Uso · </span><span style={{ color:'var(--text)', fontWeight:500 }}>{a.uso}</span></div>}
-                                  {a.sba != null && <div><span style={{ color:'var(--text4)' }}>SBA · </span><span style={{ fontFamily:'var(--mono)', fontWeight:600 }}>{Number(a.sba).toLocaleString('es-ES')} m²</span></div>}
+                                <div style={{ fontSize:10, color:'var(--text3)' }}>
+                                  {[
+                                    a.direccion && (a.ciudad && a.direccion.indexOf(a.ciudad) === -1 ? `${a.direccion}, ${a.ciudad}` : a.direccion),
+                                    a.uso,
+                                    a.sba != null ? `${Number(a.sba).toLocaleString('es-ES')} m²` : null,
+                                  ].filter(Boolean).join(' · ')}
                                 </div>
                               </div>
-                              <button onClick={() => setActivos(v => v.filter((_,idx) => idx !== i))} style={{ background:'none', border:'none', color:'var(--text4)', cursor:'pointer', fontSize:12, padding:'0 4px' }} title="Quitar">✕</button>
+                              <button onClick={() => setActivos(v => v.filter((_,idx) => idx !== i))} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
                             </div>
-                          </div>
-                        ))}
-                        <div style={{position:'relative', marginTop:4}}>
+                          ))}
+                        </div>
+                        <div style={{position:'relative', marginTop:6}}>
                           <input className="kf-inp" value={newActivo}
                             onChange={e=>{ setNewActivo(e.target.value); setShowActivoDD(true) }}
                             onFocus={()=>setShowActivoDD(true)}
@@ -444,18 +479,25 @@ function FichaPropuestaMock() {
                         </div>
                       </div>
 
-                      {/* Ofertas vinculadas — lupa sobre ofertas (solo ref) */}
-                      <div style={{marginTop:14}}>
+                      {/* ─── OFERTAS VINCULADAS ─── */}
+                      <div>
                         <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:6 }}>Ofertas vinculadas</div>
-                        {ofertas.length===0 && <div style={{fontSize:10,color:'var(--text4)',padding:'4px 0',fontStyle:'italic'}}>—</div>}
-                        {ofertas.map((o,i)=>(
-                          <div key={i} style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
-                            <span style={{fontSize:11,color:'var(--text)',fontWeight:500,flex:1,padding:'4px 8px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:4,fontFamily:'var(--mono)'}}>📧 {o}</span>
-                            <button className="ra p" style={{fontSize:9,padding:'2px 5px'}} onClick={()=>navigate('ficha-oferta', { ofertaRef:o })}>Ver</button>
-                            <button className="ra" style={{color:'var(--text4)',fontSize:10}} onClick={()=>setOfertas(v=>v.filter((_,idx)=>idx!==i))}>✕</button>
-                          </div>
-                        ))}
-                        <div style={{position:'relative'}}>
+                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                          {ofertas.length === 0 && <div style={{fontSize:10,color:'var(--text4)',padding:'4px 0',fontStyle:'italic'}}>—</div>}
+                          {ofertas.map((o,i) => (
+                            <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                              <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>📧</div>
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <div style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)' }}>
+                                  <span onClick={() => navigate('ficha-oferta', { ofertaRef:o })} style={{ cursor:'pointer', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{o}</span>
+                                </div>
+                                <div style={{ fontSize:10, color:'var(--text3)' }}>Oferta vinculada</div>
+                              </div>
+                              <button onClick={() => setOfertas(v => v.filter((_,idx) => idx !== i))} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{position:'relative', marginTop:6}}>
                           <input className="kf-inp" value={newOferta}
                             onChange={e=>{ setNewOferta(e.target.value); setShowOfertaDD(true) }}
                             onFocus={()=>setShowOfertaDD(true)}
