@@ -321,9 +321,193 @@ function FinancieroTab() {
   )
 }
 
+// ── Listado de activos para Overview (debajo del mapa, numerado igual)
+// con encabezados clicables (ordenación) y filtros por columna.
+function OverviewActivosList({ activos = [], onClickActivo }) {
+  const [sortKey, setSortKey] = useState('idx')
+  const [sortDir, setSortDir] = useState('asc')
+  const [filters, setFilters] = useState({ direccion:'', provincia:'', uso:'', sba:'' })
+
+  const toggleSort = (k) => {
+    if (sortKey === k) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(k); setSortDir('asc') }
+  }
+
+  const indexed = activos.map((a, i) => ({ ...a, _idx: i + 1 }))
+  const filtered = indexed.filter(a => {
+    if (filters.direccion && !(a.direccion || '').toLowerCase().includes(filters.direccion.toLowerCase())) return false
+    if (filters.provincia && !((a.provincia || a.ciudad || '')).toLowerCase().includes(filters.provincia.toLowerCase())) return false
+    if (filters.uso       && !(a.uso || '').toLowerCase().includes(filters.uso.toLowerCase())) return false
+    if (filters.sba) {
+      const sba = Number(a.sba) || Number(a.m2_totales) || 0
+      const n = Number(filters.sba)
+      if (!isNaN(n) && sba < n) return false
+    }
+    return true
+  })
+  const sorted = [...filtered].sort((a, b) => {
+    const va = sortKey === 'idx' ? a._idx
+      : sortKey === 'sba' ? (Number(a.sba) || Number(a.m2_totales) || 0)
+      : (a[sortKey] || '').toString().toLowerCase()
+    const vb = sortKey === 'idx' ? b._idx
+      : sortKey === 'sba' ? (Number(b.sba) || Number(b.m2_totales) || 0)
+      : (b[sortKey] || '').toString().toLowerCase()
+    if (va < vb) return sortDir === 'asc' ? -1 : 1
+    if (va > vb) return sortDir === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const SortHd = ({ k, label, w }) => (
+    <th onClick={() => toggleSort(k)} style={{ textAlign:'left', padding:'7px 12px', fontSize:10, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', cursor:'pointer', userSelect:'none', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap', width:w }}>
+      {label} <span style={{ fontSize:8, opacity:0.5 }}>{sortKey === k ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}</span>
+    </th>
+  )
+
+  return (
+    <div style={{ marginTop:16, marginBottom:24 }}>
+      <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:8 }}>
+        <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.08em' }}>Listado de edificios ({sorted.length} de {activos.length})</span>
+      </div>
+      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r2)', overflow:'hidden' }}>
+        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+          <thead>
+            <tr style={{ background:'var(--gray-lt)' }}>
+              <SortHd k="idx"       label="#"             w="48" />
+              <SortHd k="direccion" label="Dirección"     />
+              <SortHd k="provincia" label="Provincia"     />
+              <SortHd k="uso"       label="Uso principal" />
+              <SortHd k="sba"       label="SBA (m²)"      w="120" />
+            </tr>
+            <tr style={{ background:'var(--surface)', borderBottom:'1px solid var(--border)' }}>
+              <td style={{ padding:'5px 12px' }}></td>
+              <td style={{ padding:'5px 12px' }}><input value={filters.direccion} onChange={e => setFilters(f => ({ ...f, direccion:e.target.value }))} placeholder="Filtrar..." style={inpStyle} /></td>
+              <td style={{ padding:'5px 12px' }}><input value={filters.provincia} onChange={e => setFilters(f => ({ ...f, provincia:e.target.value }))} placeholder="Filtrar..." style={inpStyle} /></td>
+              <td style={{ padding:'5px 12px' }}><input value={filters.uso}       onChange={e => setFilters(f => ({ ...f, uso:e.target.value }))}       placeholder="Filtrar..." style={inpStyle} /></td>
+              <td style={{ padding:'5px 12px' }}><input value={filters.sba}       onChange={e => setFilters(f => ({ ...f, sba:e.target.value }))}       placeholder="≥ m²"        style={{ ...inpStyle, fontFamily:'var(--mono)', textAlign:'right' }} /></td>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.length === 0 ? (
+              <tr><td colSpan={5} style={{ padding:24, color:'var(--text4)', fontSize:11, textAlign:'center' }}>Sin resultados</td></tr>
+            ) : sorted.map(a => (
+              <tr key={a.id || a._idx} onClick={() => onClickActivo?.(a)} style={{ borderTop:'1px solid var(--border)', cursor:'pointer' }}>
+                <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontSize:11, fontWeight:700, color:'var(--accent)' }}>#{a._idx}</td>
+                <td style={{ padding:'7px 12px' }}>{a.direccion || a.nombre || '—'}</td>
+                <td style={{ padding:'7px 12px' }}>{a.provincia || a.ciudad || '—'}</td>
+                <td style={{ padding:'7px 12px' }}><span className="tag tag-blue" style={{ fontSize:9 }}>{a.uso || '—'}</span></td>
+                <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }}>{((Number(a.sba) || Number(a.m2_totales) || 0)).toLocaleString('es-ES')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+const inpStyle = { width:'100%', padding:'4px 6px', fontSize:10, border:'1px solid var(--border)', borderRadius:4, fontFamily:'inherit', background:'var(--surface)', boxSizing:'border-box' }
+
+// Botón "Expandir" — gris oscuro con letras blancas
+function ExpandBtn({ onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      padding:'4px 10px', background:'var(--text2,#334155)', color:'#fff',
+      border:'none', borderRadius:4, fontSize:10, fontWeight:600, cursor:'pointer',
+      fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap:4,
+    }}>⛶ Expandir</button>
+  )
+}
+
+// Modal de expansión — vista grande con filtros multi-columna
+function ExpandModal({ open, onClose, title, items = [], columns = [], onRowClick }) {
+  const [filters, setFilters] = useState({})
+  const [sortKey, setSortKey] = useState(null)
+  const [sortDir, setSortDir] = useState('asc')
+  if (!open) return null
+
+  const toggleSort = (k) => {
+    if (sortKey === k) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(k); setSortDir('asc') }
+  }
+
+  const filtered = items.filter(it => {
+    return columns.every(c => {
+      const f = (filters[c.key] || '').toString().trim()
+      if (!f) return true
+      const val = (c.accessor ? c.accessor(it) : it[c.key] || '').toString().toLowerCase()
+      if (c.type === 'number') {
+        const n = Number(f)
+        const v = Number(c.accessor ? c.accessor(it) : it[c.key]) || 0
+        return isNaN(n) || v >= n
+      }
+      return val.includes(f.toLowerCase())
+    })
+  })
+  const sorted = sortKey
+    ? [...filtered].sort((a, b) => {
+        const col = columns.find(c => c.key === sortKey)
+        const va = col?.accessor ? col.accessor(a) : a[sortKey]
+        const vb = col?.accessor ? col.accessor(b) : b[sortKey]
+        const isNum = col?.type === 'number'
+        const xa = isNum ? (Number(va) || 0) : (va || '').toString().toLowerCase()
+        const xb = isNum ? (Number(vb) || 0) : (vb || '').toString().toLowerCase()
+        if (xa < xb) return sortDir === 'asc' ? -1 : 1
+        if (xa > xb) return sortDir === 'asc' ? 1 : -1
+        return 0
+      })
+    : filtered
+
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.48)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center', padding:30 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, width:'95vw', maxWidth:1400, height:'85vh', display:'flex', flexDirection:'column', boxShadow:'0 20px 60px rgba(0,0,0,.25)' }}>
+        <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div>
+            <div style={{ fontSize:15, fontWeight:700 }}>{title}</div>
+            <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>{sorted.length} de {items.length}</div>
+          </div>
+          <button onClick={onClose} style={{ background:'none', border:'none', fontSize:20, cursor:'pointer', color:'var(--text3)', lineHeight:1 }}>×</button>
+        </div>
+        <div style={{ flex:1, overflowY:'auto', padding:'12px 20px 20px' }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+            <thead>
+              <tr style={{ background:'var(--gray-lt)' }}>
+                {columns.map(c => (
+                  <th key={c.key} onClick={() => toggleSort(c.key)} style={{ textAlign:'left', padding:'8px 12px', fontSize:10, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', cursor:'pointer', userSelect:'none', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' }}>
+                    {c.label} <span style={{ fontSize:8, opacity:0.5 }}>{sortKey === c.key ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  </th>
+                ))}
+              </tr>
+              <tr style={{ background:'var(--surface)', borderBottom:'1px solid var(--border)' }}>
+                {columns.map(c => (
+                  <td key={c.key} style={{ padding:'5px 12px' }}>
+                    <input value={filters[c.key] || ''} onChange={e => setFilters(f => ({ ...f, [c.key]:e.target.value }))} placeholder={c.type === 'number' ? '≥ valor' : 'Filtrar...'} style={inpStyle} />
+                  </td>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.length === 0
+                ? <tr><td colSpan={columns.length} style={{ padding:30, color:'var(--text4)', textAlign:'center' }}>Sin resultados</td></tr>
+                : sorted.map((it, i) => (
+                  <tr key={it.id || it.ref || i} onClick={() => onRowClick?.(it)} style={{ borderTop:'1px solid var(--border)', cursor: onRowClick ? 'pointer' : 'default' }}>
+                    {columns.map(c => (
+                      <td key={c.key} style={{ padding:'8px 12px', ...(c.cellStyle || {}) }}>
+                        {c.render ? c.render(it) : (c.accessor ? c.accessor(it) : it[c.key]) ?? '—'}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function PortfolioFicha() {
   const { navigate, params } = useNav()
   const [activeTab, setActiveTab] = useState('pt-overview')
+  const [expanded, setExpanded] = useState(null) // 'activos' | 'ofertas' | 'oportunidades' | 'mandatos' | null
   const [fUso,    setFUso]    = useState('Todo')
   const [fCiudad, setFCiudad] = useState('Todo')
   const [fAnio,   setFAnio]   = useState('')
@@ -670,54 +854,12 @@ export default function PortfolioFicha() {
                 )
               })()}
 
-              {/* Listas planas — top oportunidades + top mandatos, sin boxes */}
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:48, padding:'4px 4px 24px' }}>
-                <div>
-                  <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:10 }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.08em' }}>Oportunidades activas</span>
-                    <button onClick={() => setActiveTab('pt-oportunidades')} style={{ fontSize:11, color:'var(--accent)', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>Ver todas →</button>
-                  </div>
-                  {oportunidadesActivas.length === 0 ? (
-                    <div style={{ fontSize:13, color:'var(--text4)' }}>{loadingPort ? 'Cargando…' : 'Sin oportunidades activas.'}</div>
-                  ) : oportunidadesActivas.slice(0, 5).map(o => (
-                    <div
-                      key={o.dynamics_id}
-                      onClick={() => setActiveTab('pt-oportunidades')}
-                      style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--gray-lt)', cursor:'pointer' }}
-                    >
-                      <div>
-                        <div style={{ fontSize:14, fontWeight:600, color:'var(--text)' }}>{o.nombre || '—'}</div>
-                        <div style={{ fontSize:11, color:'var(--text4)', marginTop:2 }}>{o.tipo || '—'} · {o.estado || '—'}</div>
-                      </div>
-                      <div style={{ fontSize:11, color:'var(--text4)', fontFamily:'var(--mono)', flexShrink:0 }}>{o.fecha_creacion ? new Date(o.fecha_creacion).toLocaleDateString('es-ES') : ''}</div>
-                    </div>
-                  ))}
-                </div>
-
-                <div>
-                  <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:10 }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.08em' }}>Mandatos recientes</span>
-                    <button onClick={() => setActiveTab('pt-transaccion')} style={{ fontSize:11, color:'var(--accent)', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>Ver todos →</button>
-                  </div>
-                  {mandatos.length === 0 ? (
-                    <div style={{ fontSize:13, color:'var(--text4)' }}>{loadingPort ? 'Cargando…' : 'Sin mandatos.'}</div>
-                  ) : mandatos.slice(0, 5).map(m => (
-                    <div
-                      key={m.id}
-                      onClick={() => navigate('ficha-mandato', { id: m.ref })}
-                      style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--gray-lt)', cursor:'pointer' }}
-                    >
-                      <div>
-                        <div style={{ fontSize:14, fontWeight:600, color:'var(--text)' }}>{m.titulo || m.ref}</div>
-                        <div style={{ fontSize:11, color:'var(--text4)', marginTop:2 }}>{m.tipo || '—'} · {m.estado || '—'}{m.fecha_vencimiento ? ` · vence ${new Date(m.fecha_vencimiento).toLocaleDateString('es-ES')}` : ''}</div>
-                      </div>
-                      <div style={{ fontSize:13, fontFamily:'var(--mono)', fontWeight:700, color: m.fee_eur_fijo ? 'var(--green)' : 'var(--text4)', flexShrink:0 }}>
-                        {m.fee_eur_fijo ? fmtEur(Number(m.fee_eur_fijo)) : '—'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* Listado de edificios numerado (igual numeración que el mapa)
+                  con ordenación por click en encabezados de columna */}
+              <OverviewActivosList
+                activos={activosFiltrados}
+                onClickActivo={(a) => navigate('ficha-activo', { ref: a.ref })}
+              />
             </div>
           </div>
         )}
@@ -778,7 +920,10 @@ export default function PortfolioFicha() {
 
                   {/* Activos vinculados */}
                   <div className="va-card" style={{ margin:0 }}>
-                    <div className="va-card-header"><h3>Activos vinculados <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>{activosFiltrados.length}</span></h3></div>
+                    <div className="va-card-header">
+                      <h3>Activos vinculados <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>{activosFiltrados.length}</span></h3>
+                      <ExpandBtn onClick={() => setExpanded('activos')} />
+                    </div>
                     <div style={{ padding:'4px 0 14px' }}>
                       <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
                         <thead><tr>{['Ref','Activo','Ciudad','Uso','SBA m²'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 12px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
@@ -802,7 +947,10 @@ export default function PortfolioFicha() {
 
                   {/* Ofertas asociadas */}
                   <div className="va-card" style={{ margin:0 }}>
-                    <div className="va-card-header"><h3>Ofertas asociadas <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>{ofertasFiltradas.length}</span></h3></div>
+                    <div className="va-card-header">
+                      <h3>Ofertas asociadas <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>{ofertasFiltradas.length}</span></h3>
+                      <ExpandBtn onClick={() => setExpanded('ofertas')} />
+                    </div>
                     <div style={{ padding:'4px 0 14px' }}>
                       <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
                         <thead><tr>{['Ref','Activo','Renta','Estado'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 12px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
@@ -829,7 +977,10 @@ export default function PortfolioFicha() {
 
                   {/* Oportunidades */}
                   <div className="va-card" style={{ margin:0 }}>
-                    <div className="va-card-header"><h3>Oportunidades <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>{oportunidades.length}</span></h3></div>
+                    <div className="va-card-header">
+                      <h3>Oportunidades <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>{oportunidades.length}</span></h3>
+                      <ExpandBtn onClick={() => setExpanded('oportunidades')} />
+                    </div>
                     <div style={{ padding:'4px 0 14px' }}>
                       <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
                         <thead><tr>{['ID','Nombre','Tipo','Estado'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 12px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
@@ -851,7 +1002,10 @@ export default function PortfolioFicha() {
 
                   {/* Mandatos */}
                   <div className="va-card" style={{ margin:0 }}>
-                    <div className="va-card-header"><h3>Mandatos vinculados <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>{mandatos.length}</span></h3></div>
+                    <div className="va-card-header">
+                      <h3>Mandatos vinculados <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>{mandatos.length}</span></h3>
+                      <ExpandBtn onClick={() => setExpanded('mandatos')} />
+                    </div>
                     <div style={{ padding:'4px 0 14px' }}>
                       <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
                         <thead><tr>{['Ref','Título','Tipo','Fee €','Estado'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 12px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
@@ -1320,6 +1474,68 @@ export default function PortfolioFicha() {
           <button className="acc-btn" onClick={doExport}>⬇ Exportar informe completo</button>
         </div>
       </div>
+
+      {/* ─── Modal Expandir — configuración por sección ─── */}
+      <ExpandModal
+        open={expanded === 'activos'}
+        onClose={() => setExpanded(null)}
+        title={`Activos vinculados al portfolio (${activosFiltrados.length})`}
+        items={activosFiltrados}
+        onRowClick={(a) => navigate('ficha-activo', { ref: a.ref })}
+        columns={[
+          { key:'ref',       label:'Ref',           render:a => <span style={{ fontFamily:'var(--mono)', color:'var(--accent)' }}>{a.ref}</span> },
+          { key:'nombre',    label:'Activo',        render:a => <span style={{ fontWeight:600 }}>{a.nombre || '—'}</span> },
+          { key:'direccion', label:'Dirección' },
+          { key:'provincia', label:'Provincia',     accessor:a => a.provincia || a.ciudad },
+          { key:'uso',       label:'Uso principal', render:a => <span className="tag tag-blue" style={{ fontSize:9 }}>{a.uso || '—'}</span> },
+          { key:'sba',       label:'SBA (m²)',      type:'number', accessor:a => Number(a.sba) || Number(a.m2_totales) || 0, render:a => ((Number(a.sba) || Number(a.m2_totales) || 0)).toLocaleString('es-ES'), cellStyle:{ fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 } },
+          { key:'estado',    label:'Estado',        render:a => <span className={`tag ${a.estado === 'archivado' ? 'tag-gray' : 'tag-green'}`} style={{ fontSize:9 }}>{a.estado || 'Activo'}</span> },
+        ]}
+      />
+      <ExpandModal
+        open={expanded === 'ofertas'}
+        onClose={() => setExpanded(null)}
+        title={`Ofertas del portfolio (${ofertasFiltradas.length})`}
+        items={ofertasFiltradas}
+        onRowClick={(o) => navigate('ficha-oferta', { id: o.ref })}
+        columns={[
+          { key:'ref',            label:'Ref',           render:o => <span style={{ fontFamily:'var(--mono)', color:'var(--accent)' }}>{o.ref}</span> },
+          { key:'activo',         label:'Activo',        accessor:o => activosFiltrados.find(a => a.id === o.activo_id)?.nombre || '—' },
+          { key:'tipo_operacion', label:'Tipo' },
+          { key:'superficie_disponible', label:'m²', type:'number', accessor:o => Number(o.superficie_disponible) || 0, render:o => o.superficie_disponible ? Number(o.superficie_disponible).toLocaleString('es-ES') : '—', cellStyle:{ fontFamily:'var(--mono)', textAlign:'right' } },
+          { key:'renta_m2',       label:'Renta €/m²',    type:'number', accessor:o => Number(o.renta_m2) || 0, render:o => o.renta_m2 != null ? Number(o.renta_m2).toLocaleString('es-ES') : '—', cellStyle:{ fontFamily:'var(--mono)', textAlign:'right' } },
+          { key:'estado',         label:'Estado',        render:o => { const c = o.estado === 'Retirada' ? 'tag-gray' : (o.estado || '').includes('Ocupada') ? 'tag-amber' : 'tag-green'; return <span className={`tag ${c}`} style={{ fontSize:9 }}>{o.estado || '—'}</span> } },
+        ]}
+      />
+      <ExpandModal
+        open={expanded === 'oportunidades'}
+        onClose={() => setExpanded(null)}
+        title={`Oportunidades (${oportunidades.length})`}
+        items={oportunidades}
+        columns={[
+          { key:'dynamics_id', label:'Dynamics ID',  render:o => <span style={{ fontFamily:'var(--mono)', color:'var(--accent)' }}>{o.dynamics_id}</span> },
+          { key:'nombre',      label:'Nombre',       render:o => <span style={{ fontWeight:500 }}>{o.nombre || '—'}</span> },
+          { key:'tipo',        label:'Tipo',         render:o => <span className="tag tag-blue" style={{ fontSize:9 }}>{o.tipo || '—'}</span> },
+          { key:'estado',      label:'Estado',       render:o => <span className="tag tag-gray" style={{ fontSize:9 }}>{o.estado || '—'}</span> },
+          { key:'fecha_creacion', label:'Fecha',     accessor:o => o.fecha_creacion ? new Date(o.fecha_creacion).toLocaleDateString('es-ES') : '—' },
+        ]}
+      />
+      <ExpandModal
+        open={expanded === 'mandatos'}
+        onClose={() => setExpanded(null)}
+        title={`Mandatos vinculados (${mandatos.length})`}
+        items={mandatos}
+        onRowClick={(m) => navigate('ficha-mandato', { id: m.ref })}
+        columns={[
+          { key:'ref',          label:'Ref',         render:m => <span style={{ fontFamily:'var(--mono)', color:'var(--accent)' }}>{m.ref}</span> },
+          { key:'titulo',       label:'Título' },
+          { key:'tipo',         label:'Tipo',        render:m => <span className="tag tag-blue" style={{ fontSize:9 }}>{m.tipo || '—'}</span> },
+          { key:'fecha_firma',  label:'Firma',       accessor:m => m.fecha_firma ? new Date(m.fecha_firma).toLocaleDateString('es-ES') : '—' },
+          { key:'fecha_vencimiento', label:'Vencimiento', accessor:m => m.fecha_vencimiento ? new Date(m.fecha_vencimiento).toLocaleDateString('es-ES') : '—' },
+          { key:'fee_eur_fijo', label:'Fee €',       type:'number', accessor:m => Number(m.fee_eur_fijo) || 0, render:m => m.fee_eur_fijo ? Number(m.fee_eur_fijo).toLocaleString('es-ES') : '—', cellStyle:{ fontFamily:'var(--mono)', textAlign:'right', fontWeight:700, color:'var(--green)' } },
+          { key:'estado',       label:'Estado',      render:m => <span className={`tag ${m.estado === 'en_curso' ? 'tag-green' : m.estado === 'cancelado' ? 'tag-red' : 'tag-gray'}`} style={{ fontSize:9 }}>{m.estado || '—'}</span> },
+        ]}
+      />
     </div>
   )
 }
