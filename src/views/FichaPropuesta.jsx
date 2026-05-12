@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { isSupabaseRef } from '../components/FichaPendienteSupabase'
 import FichaPropuestaSupabase from './FichaPropuestaSupabase'
+import { supabase } from '../lib/supabase'
 
 const TABS = ['datos','vista360','docs','resumen']
 const TAB_LABELS = ['Datos del proyecto','Vista 360','Documentación','Resumen']
@@ -93,6 +94,59 @@ function FichaPropuestaMock() {
   const [ofertas, setOfertas] = useState([])
   const [newActivo, setNewActivo] = useState('')
   const [newOferta, setNewOferta] = useState('')
+
+  // ── Lupa Activos: búsqueda en tabla activos ──
+  const [showActivoDD,    setShowActivoDD]    = useState(false)
+  const [activoResults,   setActivoResults]   = useState([])
+  useEffect(() => {
+    if (!newActivo || newActivo.length < 2) { setActivoResults([]); return }
+    let cancel = false
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from('activos')
+        .select('ref, nombre, ciudad, zona, uso')
+        .ilike('nombre', `%${newActivo}%`)
+        .order('nombre')
+        .limit(10)
+      if (!cancel) setActivoResults(data || [])
+    }, 200)
+    return () => { cancel = true; clearTimeout(t) }
+  }, [newActivo])
+
+  // ── Lupa Ofertas: búsqueda en tabla ofertas ──
+  const [showOfertaDD,    setShowOfertaDD]    = useState(false)
+  const [ofertaResults,   setOfertaResults]   = useState([])
+  useEffect(() => {
+    if (!newOferta || newOferta.length < 2) { setOfertaResults([]); return }
+    let cancel = false
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from('ofertas')
+        .select('ref, nombre, activo_ref')
+        .or(`ref.ilike.%${newOferta}%,nombre.ilike.%${newOferta}%`)
+        .limit(10)
+      if (!cancel) setOfertaResults(data || [])
+    }, 200)
+    return () => { cancel = true; clearTimeout(t) }
+  }, [newOferta])
+
+  // ── Lupa Demanda: búsqueda en tabla demandas ──
+  const [demandaSearch,   setDemandaSearch]   = useState('')
+  const [showDemandaDD,   setShowDemandaDD]   = useState(false)
+  const [demandaResults,  setDemandaResults]  = useState([])
+  useEffect(() => {
+    if (!demandaSearch || demandaSearch.length < 2) { setDemandaResults([]); return }
+    let cancel = false
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from('demandas')
+        .select('ref, nombre')
+        .or(`ref.ilike.%${demandaSearch}%,nombre.ilike.%${demandaSearch}%`)
+        .limit(10)
+      if (!cancel) setDemandaResults(data || [])
+    }, 200)
+    return () => { cancel = true; clearTimeout(t) }
+  }, [demandaSearch])
 
   const [equipos, setEquipos]             = useState(EQUIPOS_INIT)
   const [trazabilidad, setTrazabilidad]   = useState(TRAZABILIDAD_INIT)
@@ -279,17 +333,139 @@ function FichaPropuestaMock() {
                   </div>
                 </div>
 
-                {/* ─── FILA 2: Descripción y notas | Equipos y participantes ─── */}
-                <div className="va-two-col">
-                  <div className="va-card" style={{ marginBottom:0 }}>
+                {/* ─── FILA 2: Vinculaciones | Equipos y participantes ─── */}
+                <div className="va-two-col" style={{ overflow:'visible' }}>
+                  <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
                     <div className="va-card-header">
-                      <h3><span className="ico">▭</span> Descripción y notas</h3>
+                      <h3><span className="ico">◇</span> Vinculaciones</h3>
+                      <span className="hint" style={{ color:'var(--red, #dc2626)', fontWeight:600 }}>Una Propuesta SIEMPRE cuelga de Oportunidad</span>
                     </div>
                     <div style={{padding:'4px 20px 16px'}}>
-                      <div className="rp-lbl">Descripción del proyecto</div>
-                      <textarea className="kf-inp" value={form.descripcion} onChange={e=>set('descripcion',e.target.value)} rows={4} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
-                      <div className="rp-lbl" style={{marginTop:14}}>Notas internas</div>
-                      <textarea className="kf-inp" value={form.notas_internas} onChange={e=>set('notas_internas',e.target.value)} rows={3} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
+                      <div style={{marginBottom:4,fontSize:10,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}>Obligatorios</div>
+
+                      {/* Oportunidad — FK obligatorio · sin caja amarilla */}
+                      <div style={{ marginBottom:10 }}>
+                        <div className="rp-lbl" style={{ display:'flex', alignItems:'center', gap:6 }}>
+                          <span>Oportunidad</span>
+                          <span style={{ color:'var(--red, #dc2626)', fontWeight:700 }}>*</span>
+                        </div>
+                        <input className="kf-inp" value={form.oportunidad} onChange={e=>set('oportunidad',e.target.value)} style={{width:'100%',marginTop:4,fontWeight:600}} placeholder="Ej: OP-2026-0078"/>
+                        {form.oportunidad_nombre && <div style={{fontSize:10, color:'var(--text3)', marginTop:3}}>{form.oportunidad_nombre}</div>}
+                        <div style={{ fontSize:10, color:'var(--red, #dc2626)', fontWeight:600, marginTop:4 }}>
+                          Una Propuesta SIEMPRE cuelga de una Oportunidad existente en Dynamics. Sin Oportunidad no puede guardarse.
+                        </div>
+                      </div>
+
+                      {/* Empresa / Cuenta — sin caja azul */}
+                      <div style={{ marginBottom:12 }}>
+                        <div className="rp-lbl" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                          <span>Empresa / Cuenta <span style={{color:'var(--red, #dc2626)',fontWeight:700}}>*</span></span>
+                          {form.oportunidad && <span style={{fontSize:9,fontWeight:600,color:'var(--text3)'}}>🔒 heredada de Oportunidad</span>}
+                        </div>
+                        <input className="kf-inp" value={form.empresa} onChange={e=>!form.oportunidad && set('empresa',e.target.value)} disabled={!!form.oportunidad} style={{width:'100%',marginTop:4,fontWeight:600,background:form.oportunidad?'var(--gray-lt)':undefined,cursor:form.oportunidad?'not-allowed':undefined}} placeholder="Buscar cuenta en Dynamics..."/>
+                        <div style={{fontSize:9,color:'var(--text4)',marginTop:3}}>{form.oportunidad ? 'Cuenta heredada automáticamente desde la Oportunidad' : 'Campo obligatorio — vinculado a Dynamics CRM'}</div>
+                      </div>
+
+                      <div style={{fontSize:10,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginTop:12,marginBottom:4}}>Opcional</div>
+
+                      {/* Demanda — lupa sobre demandas */}
+                      <KF label="Demanda (si aplica)">
+                        {form.demanda ? (
+                          <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 10px',border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--surface)',width:'100%'}}>
+                            <span onClick={()=>navigate('ficha-demanda')} style={{fontFamily:'var(--mono)',fontWeight:600,color:'var(--accent)',flex:1,cursor:'pointer',textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>{form.demanda} ↗</span>
+                            <button onClick={()=>set('demanda','')} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}}>✕</button>
+                          </div>
+                        ) : (
+                          <div style={{position:'relative'}}>
+                            <input className="kf-inp" value={demandaSearch} onChange={e=>{ setDemandaSearch(e.target.value); setShowDemandaDD(true) }}
+                              onFocus={()=>setShowDemandaDD(true)}
+                              onBlur={()=>setTimeout(()=>setShowDemandaDD(false), 200)}
+                              placeholder="🔍 Buscar demanda..." style={{ fontStyle: demandaSearch ? 'normal' : 'italic', width:'100%' }}/>
+                            {showDemandaDD && demandaSearch.length >= 2 && (
+                              <div style={{position:'absolute',top:'100%',left:0,right:0,minWidth:280,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',boxShadow:'0 8px 24px rgba(0,0,0,.18)',zIndex:9999,maxHeight:220,overflowY:'auto',marginTop:2}}>
+                                {demandaResults.length === 0 ? (
+                                  <div style={{padding:'10px 12px',color:'var(--text4)',fontSize:11}}>Sin resultados</div>
+                                ) : demandaResults.map(d => (
+                                  <div key={d.ref} onMouseDown={() => { set('demanda', d.ref); setDemandaSearch(''); setShowDemandaDD(false) }}
+                                    style={{padding:'7px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:11}}>
+                                    <div style={{fontWeight:600, fontFamily:'var(--mono)'}}>{d.ref}</div>
+                                    {d.nombre && <div style={{color:'var(--text4)',fontSize:10,marginTop:2}}>{d.nombre}</div>}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </KF>
+
+                      {/* Activos vinculados — lupa sobre activos */}
+                      <div style={{marginTop:8}}>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Activos vinculados</div>
+                        {activos.map((a,i)=>(
+                          <div key={i} style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
+                            <span style={{fontSize:11,color:'var(--text)',fontWeight:500,flex:1,padding:'4px 8px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:4}}>🏛 {a}</span>
+                            <button className="ra p" style={{fontSize:9,padding:'2px 5px'}} onClick={()=>navigate('ficha-activo')}>Ver</button>
+                            <button className="ra" style={{color:'var(--text4)',fontSize:10}} onClick={()=>setActivos(v=>v.filter((_,idx)=>idx!==i))}>✕</button>
+                          </div>
+                        ))}
+                        <div style={{position:'relative'}}>
+                          <input className="kf-inp" value={newActivo}
+                            onChange={e=>{ setNewActivo(e.target.value); setShowActivoDD(true) }}
+                            onFocus={()=>setShowActivoDD(true)}
+                            onBlur={()=>setTimeout(()=>setShowActivoDD(false), 200)}
+                            placeholder="🔍 Buscar activo existente..." style={{ fontSize:11, fontStyle: newActivo ? 'normal' : 'italic', width:'100%' }}/>
+                          {showActivoDD && newActivo.length >= 2 && (
+                            <div style={{position:'absolute',top:'100%',left:0,right:0,minWidth:280,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',boxShadow:'0 8px 24px rgba(0,0,0,.18)',zIndex:9999,maxHeight:220,overflowY:'auto',marginTop:2}}>
+                              {activoResults.length === 0 ? (
+                                <div style={{padding:'10px 12px',color:'var(--text4)',fontSize:11}}>Sin resultados</div>
+                              ) : activoResults.map(a => (
+                                <div key={a.ref} onMouseDown={() => {
+                                  if (!activos.includes(a.nombre)) setActivos(v => [...v, a.nombre])
+                                  setNewActivo(''); setShowActivoDD(false)
+                                }} style={{padding:'7px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:11}}>
+                                  <div style={{fontWeight:600}}>{a.nombre}</div>
+                                  <div style={{color:'var(--text4)',fontSize:10,marginTop:2}}>{[a.ref, a.uso, a.zona].filter(Boolean).join(' · ')}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Ofertas vinculadas — lupa sobre ofertas */}
+                      <div style={{marginTop:12}}>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Ofertas vinculadas</div>
+                        {ofertas.length===0 && <div style={{fontSize:10,color:'var(--text4)',padding:'4px 0',fontStyle:'italic'}}>Sin ofertas — opcional</div>}
+                        {ofertas.map((o,i)=>(
+                          <div key={i} style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
+                            <span style={{fontSize:11,color:'var(--text)',fontWeight:500,flex:1,padding:'4px 8px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:4,fontFamily:'var(--mono)'}}>📧 {o}</span>
+                            <button className="ra p" style={{fontSize:9,padding:'2px 5px'}} onClick={()=>navigate('ficha-oferta')}>Ver</button>
+                            <button className="ra" style={{color:'var(--text4)',fontSize:10}} onClick={()=>setOfertas(v=>v.filter((_,idx)=>idx!==i))}>✕</button>
+                          </div>
+                        ))}
+                        <div style={{position:'relative'}}>
+                          <input className="kf-inp" value={newOferta}
+                            onChange={e=>{ setNewOferta(e.target.value); setShowOfertaDD(true) }}
+                            onFocus={()=>setShowOfertaDD(true)}
+                            onBlur={()=>setTimeout(()=>setShowOfertaDD(false), 200)}
+                            placeholder="🔍 Buscar oferta existente..." style={{ fontSize:11, fontFamily:'var(--mono)', fontStyle: newOferta ? 'normal' : 'italic', width:'100%' }}/>
+                          {showOfertaDD && newOferta.length >= 2 && (
+                            <div style={{position:'absolute',top:'100%',left:0,right:0,minWidth:280,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',boxShadow:'0 8px 24px rgba(0,0,0,.18)',zIndex:9999,maxHeight:220,overflowY:'auto',marginTop:2}}>
+                              {ofertaResults.length === 0 ? (
+                                <div style={{padding:'10px 12px',color:'var(--text4)',fontSize:11}}>Sin resultados</div>
+                              ) : ofertaResults.map(o => (
+                                <div key={o.ref} onMouseDown={() => {
+                                  if (!ofertas.includes(o.ref)) setOfertas(v => [...v, o.ref])
+                                  setNewOferta(''); setShowOfertaDD(false)
+                                }} style={{padding:'7px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:11}}>
+                                  <div style={{fontWeight:600, fontFamily:'var(--mono)'}}>{o.ref}</div>
+                                  {o.nombre && <div style={{color:'var(--text4)',fontSize:10,marginTop:2}}>{o.nombre}</div>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
@@ -349,76 +525,16 @@ function FichaPropuestaMock() {
                   </div>
                 </div>
 
-                {/* ── VINCULACIONES ── */}
+                {/* ─── FILA 3: Descripción y notas (full width) ─── */}
                 <div className="va-card">
                   <div className="va-card-header">
-                    <h3><span className="ico" style={{color:'var(--pdb-purple)'}}>●</span> Vinculaciones</h3>
-                    <span className="hint">Oportunidad y Cuenta obligatorias</span>
+                    <h3><span className="ico">▭</span> Descripción y notas</h3>
                   </div>
                   <div style={{padding:'4px 20px 16px'}}>
-                    <div style={{marginBottom:4,fontSize:10,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}>Obligatorios</div>
-
-                    {/* Oportunidad — FK obligatorio · Dynamics */}
-                    <div style={{marginBottom:10,padding:'8px 10px',border:'2px solid #fde68a',borderRadius:6,background:'#fef3c7'}}>
-                      <div className="rp-lbl" style={{color:'#7c2d12',display:'flex',alignItems:'center',gap:6}}>
-                        <span style={{width:14,height:14,borderRadius:3,background:'#0078d4',color:'#fff',fontSize:9,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>D</span>
-                        Oportunidad ★
-                      </div>
-                      <input className="kf-inp" value={form.oportunidad} onChange={e=>set('oportunidad',e.target.value)} style={{width:'100%',marginTop:4,fontWeight:600}} placeholder="Ej: OP-2026-0078"/>
-                      {form.oportunidad_nombre && <div style={{fontSize:10,color:'#7c2d12',marginTop:3}}>{form.oportunidad_nombre}</div>}
-                      <div style={{fontSize:9,color:'#92400e',marginTop:3}}>Una Propuesta SIEMPRE cuelga de una Oportunidad existente en Dynamics. Sin Oportunidad no puede guardarse.</div>
-                    </div>
-
-                    <div style={{marginBottom:12,padding:'8px 10px',border:'2px solid var(--accent-bd)',borderRadius:6,background:'var(--accent-lt)'}}>
-                      <div className="rp-lbl" style={{color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                        <span>Empresa / Cuenta ★</span>
-                        {form.oportunidad && <span style={{fontSize:9,fontWeight:700,color:'#15803d',background:'#dcfce7',padding:'2px 7px',borderRadius:6}}>🔒 heredada de Oportunidad</span>}
-                      </div>
-                      <input className="kf-inp" value={form.empresa} onChange={e=>!form.oportunidad && set('empresa',e.target.value)} disabled={!!form.oportunidad} style={{width:'100%',marginTop:4,fontWeight:600,background:form.oportunidad?'var(--gray-lt)':undefined,cursor:form.oportunidad?'not-allowed':undefined}} placeholder="Buscar cuenta en Dynamics..."/>
-                      <div style={{fontSize:9,color:'var(--text4)',marginTop:3}}>{form.oportunidad ? 'Cuenta heredada automáticamente desde la Oportunidad seleccionada · No editable manualmente' : 'Campo obligatorio — vinculado a Dynamics CRM'}</div>
-                    </div>
-
-                    <div style={{marginBottom:4,fontSize:10,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginTop:12}}>Opcional</div>
-                    <KF label="Demanda (si aplica)">
-                      <div style={{display:'flex',gap:4,alignItems:'center'}}>
-                        <input className="kf-inp" value={form.demanda} onChange={e=>set('demanda',e.target.value)} style={{flex:1}} placeholder="Ej: DEM-0078"/>
-                        {form.demanda && <button className="ra p" style={{fontSize:9,padding:'2px 6px'}} onClick={()=>navigate('ficha-demanda')}>Ver</button>}
-                      </div>
-                    </KF>
-
-                    {/* Activos múltiples */}
-                    <div style={{marginTop:8}}>
-                      <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Activos vinculados</div>
-                      {activos.map((a,i)=>(
-                        <div key={i} style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
-                          <span style={{fontSize:10,color:'var(--teal)',fontWeight:600,flex:1,padding:'3px 8px',background:'var(--teal-lt)',border:'1px solid var(--teal-bd)',borderRadius:4}}>🏛 {a}</span>
-                          <button className="ra p" style={{fontSize:9,padding:'2px 5px'}} onClick={()=>navigate('ficha-activo')}>Ver</button>
-                          <button className="ra" style={{color:'var(--red)',fontSize:10}} onClick={()=>setActivos(v=>v.filter((_,idx)=>idx!==i))}>✕</button>
-                        </div>
-                      ))}
-                      <div style={{display:'flex',gap:4,marginTop:4}}>
-                        <input className="kf-inp" value={newActivo} onChange={e=>setNewActivo(e.target.value)} placeholder="Ref. o nombre del activo..." style={{flex:1,fontSize:11}}/>
-                        <button className="ra p" style={{fontSize:10,padding:'3px 8px'}} onClick={()=>{if(newActivo.trim()){setActivos(v=>[...v,newActivo.trim()]);setNewActivo('')}}}>+ Añadir</button>
-                      </div>
-                    </div>
-
-                    {/* Ofertas múltiples */}
-                    <div style={{marginTop:12}}>
-                      <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Ofertas vinculadas</div>
-                      {ofertas.length===0 && <div style={{fontSize:10,color:'var(--text4)',padding:'4px 0'}}>Sin ofertas — opcional</div>}
-                      {ofertas.map((o,i)=>(
-                        <div key={i} style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
-                          <span style={{fontSize:10,color:'var(--amber)',fontWeight:600,flex:1,padding:'3px 8px',background:'var(--amber-lt)',border:'1px solid var(--amber-bd)',borderRadius:4,fontFamily:'var(--mono)'}}>📧 {o}</span>
-                          <button className="ra p" style={{fontSize:9,padding:'2px 5px'}} onClick={()=>navigate('ficha-oferta')}>Ver</button>
-                          <button className="ra" style={{color:'var(--red)',fontSize:10}} onClick={()=>setOfertas(v=>v.filter((_,idx)=>idx!==i))}>✕</button>
-                        </div>
-                      ))}
-                      <div style={{display:'flex',gap:4,marginTop:4}}>
-                        <input className="kf-inp" value={newOferta} onChange={e=>setNewOferta(e.target.value)} placeholder="Ej: OLB001" style={{flex:1,fontSize:11,fontFamily:'var(--mono)'}}/>
-                        <button className="ra p" style={{fontSize:10,padding:'3px 8px'}} onClick={()=>{if(newOferta.trim()){setOfertas(v=>[...v,newOferta.trim()]);setNewOferta('')}}}>+ Añadir</button>
-                      </div>
-                    </div>
-
+                    <div className="rp-lbl">Descripción del proyecto</div>
+                    <textarea className="kf-inp" value={form.descripcion} onChange={e=>set('descripcion',e.target.value)} rows={3} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
+                    <div className="rp-lbl" style={{marginTop:14}}>Notas internas</div>
+                    <textarea className="kf-inp" value={form.notas_internas} onChange={e=>set('notas_internas',e.target.value)} rows={2} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
                   </div>
                 </div>
 
