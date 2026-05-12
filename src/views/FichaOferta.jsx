@@ -150,7 +150,8 @@ function FichaOfertaMock() {
   const [saveErr, setSaveErr]   = useState('')
 
   // Tab 1
-  const [tipoComercializacion, setTipoComercializacion] = useState('Mandato Savills')
+  // Comercialización: 3 opciones canónicas. Migramos valores legacy en el load.
+  const [tipoComercializacion, setTipoComercializacion] = useState('Mandatos hábiles')
   const [tipologia, setTipologia] = useState('')
   const [estadoEspacio, setEstadoEspacio] = useState('')
   const [tipoOperacion, setTipoOperacion] = useState('Alquiler')
@@ -178,11 +179,17 @@ function FichaOfertaMock() {
   const [precioMax,         setPrecioMax]         = useState('')
   const [precioVentaTotal,  setPrecioVentaTotal]  = useState('')
 
-  // ── Mandato asociado (solo si Mandato Savills) ──
+  // ── Mandato asociado (solo si Mandatos hábiles) ──
   const [mandatoAsociado,    setMandatoAsociado]    = useState(null)   // { id, ref, titulo, activos:[{nombre,direccion}] }
   const [mandatoBuscador,    setMandatoBuscador]    = useState('')
   const [showMandatoDropdown,setShowMandatoDropdown]= useState(false)
   const [mandatosDB,         setMandatosDB]         = useState([])
+
+  // ── Colaborador asociado (solo si Colaboradores) ──
+  const [colaboradorAsociado,    setColaboradorAsociado]    = useState(null) // { dynamics_id, nombre, tipo, sector }
+  const [colaboradorBuscador,    setColaboradorBuscador]    = useState('')
+  const [showColaboradorDropdown,setShowColaboradorDropdown]= useState(false)
+  const [colaboradoresResults,   setColaboradoresResults]   = useState([])
 
   const [gastosComunes, setGastosComunes] = useState(3.01)
   const [ibi, setIbi] = useState('')
@@ -418,9 +425,9 @@ function FichaOfertaMock() {
       .then(({ data }) => { if (data) setActivosDB(data) })
   }, [])
 
-  // ── Load mandatos para el buscador (solo cuando Mandato Savills) ──
+  // ── Load mandatos para el buscador (solo cuando Mandatos hábiles) ──
   useEffect(() => {
-    if (tipoComercializacion !== 'Mandato Savills') return
+    if (tipoComercializacion !== 'Mandatos hábiles') return
     if (mandatosDB.length > 0) return
     // 1) Query base — no usa joins para evitar errores si la relación falla
     supabase.from('mandatos')
@@ -455,6 +462,27 @@ function FichaOfertaMock() {
       })
   }, [tipoComercializacion])
 
+  // ── Búsqueda de cuentas para Colaboradores (debounce sobre dynamics_accounts) ──
+  useEffect(() => {
+    if (tipoComercializacion !== 'Colaboradores') return
+    if (!colaboradorBuscador || colaboradorBuscador.length < 2) {
+      setColaboradoresResults([])
+      return
+    }
+    let cancel = false
+    const t = setTimeout(async () => {
+      const { data, error } = await supabase
+        .from('dynamics_accounts')
+        .select('dynamics_id, nombre, tipo, sector')
+        .ilike('nombre', `%${colaboradorBuscador}%`)
+        .order('nombre')
+        .limit(10)
+      if (error) { console.error('Error buscando colaboradores:', error); return }
+      if (!cancel) setColaboradoresResults(data || [])
+    }, 200)
+    return () => { cancel = true; clearTimeout(t) }
+  }, [colaboradorBuscador, tipoComercializacion])
+
   // ── When returning from FichaArrendatario, add tenant to left panel ──
   useEffect(() => {
     if (!params?.newTenantName) return
@@ -478,7 +506,10 @@ function FichaOfertaMock() {
           if (mock) {
             setIsMock(true)
             setOferta({ ref: mock.ref, id: null })
-            if (mock.tipo_comercializacion) setTipoComercializacion(mock.tipo_comercializacion)
+            if (mock.tipo_comercializacion) {
+              const legacyMap = { 'Mandato Savills': 'Mandatos hábiles', 'Otras consultoras': 'Colaboradores' }
+              setTipoComercializacion(legacyMap[mock.tipo_comercializacion] || mock.tipo_comercializacion)
+            }
             if (mock.tipologia)             setTipologia(mock.tipologia)
             if (mock.estado_espacio)        setEstadoEspacio(mock.estado_espacio)
             if (mock.tipo_operacion)        setTipoOperacion(mock.tipo_operacion)
@@ -513,7 +544,11 @@ function FichaOfertaMock() {
           return
         }
         setOferta(data)
-        if (data.tipo_comercializacion) setTipoComercializacion(data.tipo_comercializacion)
+        if (data.tipo_comercializacion) {
+          // Normalizar valores legacy a los nuevos canónicos
+          const legacyMap = { 'Mandato Savills': 'Mandatos hábiles', 'Otras consultoras': 'Colaboradores' }
+          setTipoComercializacion(legacyMap[data.tipo_comercializacion] || data.tipo_comercializacion)
+        }
         if (data.tipologia)             setTipologia(data.tipologia)
         if (data.estado_espacio)        setEstadoEspacio(data.estado_espacio)
         if (data.tipo_operacion)        setTipoOperacion(data.tipo_operacion)
@@ -521,7 +556,19 @@ function FichaOfertaMock() {
         if (data.modalidad_visita)      setModalidadVisita(data.modalidad_visita)
         if (data.confidencial != null)  setConfidential(data.confidencial)
         if (data.equipo?.length)        setEquipoMembers(data.equipo)
-        if (data.colaboradores?.length) setColaboradores(data.colaboradores)
+        if (data.colaboradores?.length) {
+          setColaboradores(data.colaboradores)
+          // El primer colaborador se considera el principal (asociado)
+          const first = data.colaboradores[0]
+          if (first && (first.dynamics_id || first.nombre || first.empresa)) {
+            setColaboradorAsociado({
+              dynamics_id: first.dynamics_id || null,
+              nombre: first.nombre || first.empresa || '',
+              tipo: first.tipo || null,
+              sector: first.sector || null,
+            })
+          }
+        }
 
         const ofertaId = data.id  // UUID — used for sub-table joins
 
@@ -641,7 +688,11 @@ function FichaOfertaMock() {
         modalidad_visita: modalidadVisita  || null,
         confidencial:     confidential,
         equipo:           equipoMembers,
-        colaboradores,
+        // Si hay colaborador asociado vía lupa, sustituye el array (modelo nuevo).
+        // Si no, conserva el array legacy.
+        colaboradores: colaboradorAsociado
+          ? [{ dynamics_id: colaboradorAsociado.dynamics_id, nombre: colaboradorAsociado.nombre, tipo: colaboradorAsociado.tipo, sector: colaboradorAsociado.sector }]
+          : colaboradores,
         gastos_medios:    gastosMedios,
         ibi_medio:        ibiMedio,
       }).eq('ref', oferta.ref)).catch(() => {})
@@ -954,7 +1005,7 @@ function FichaOfertaMock() {
                         <div className="va-kv-list">
                           <div className="ir"><span className="ir-k">Tipología comerc. *</span><span className="ir-v">
                             <select className="of-sel" value={tipoComercializacion} onChange={e => setTipoComercializacion(e.target.value)} style={{minWidth:160}}>
-                              <option>Mandato Savills</option><option>Sin mandato</option><option>Otras consultoras</option>
+                              <option>Mandatos hábiles</option><option>Sin mandato</option><option>Colaboradores</option>
                             </select>
                           </span></div>
                           <div className="ir"><span className="ir-k">Tipo de operación *</span><span className="ir-v">
@@ -969,8 +1020,8 @@ function FichaOfertaMock() {
                             </select>
                           </span></div>
                         </div>
-                        {/* Mandato asociado — bloque dedicado a ancho completo (sólo si Mandato Savills) */}
-                        {tipoComercializacion === 'Mandato Savills' && (
+                        {/* Mandato asociado — bloque dedicado a ancho completo (sólo si Mandatos hábiles) */}
+                        {tipoComercializacion === 'Mandatos hábiles' && (
                           <div style={{ padding:'4px 14px 12px', borderTop:'1px dashed var(--va-line2)', marginTop:4 }}>
                             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
                               <span style={{ fontSize:11, fontWeight:600, color: mandatoAsociado ? 'var(--text3)' : 'var(--red,#dc2626)' }}>
@@ -1199,6 +1250,41 @@ function FichaOfertaMock() {
                       </div>
                     </div>
 
+                    {/* ── VINCULACIÓN (mandato / colaborador) ── */}
+                    {tipoComercializacion !== 'Sin mandato' && (
+                      <div className="va-card">
+                        <div className="va-card-header">
+                          <h3><span className="ico" style={{color:'var(--accent)'}}>◆</span> Vinculación</h3>
+                          <span className="hint">{tipoComercializacion === 'Mandatos hábiles' ? 'Mandato asociado' : 'Consultora colaboradora'}</span>
+                        </div>
+                        <div style={{ padding:'8px 18px 14px' }}>
+                          {tipoComercializacion === 'Mandatos hábiles' ? (
+                            mandatoAsociado ? (
+                              <div style={{ padding:'8px 12px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
+                                <div style={{ fontSize:12, fontWeight:600, color:'var(--accent)' }}>{mandatoAsociado.titulo || mandatoAsociado.ref}</div>
+                                <div style={{ fontSize:10, color:'var(--text3)', marginTop:3, fontFamily:'var(--mono)' }}>Ref: {mandatoAsociado.ref || '—'}</div>
+                              </div>
+                            ) : (
+                              <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin mandato seleccionado — añádelo en Comercialización.</div>
+                            )
+                          ) : tipoComercializacion === 'Colaboradores' ? (
+                            colaboradorAsociado ? (
+                              <div style={{ padding:'8px 12px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
+                                <div style={{ fontSize:12, fontWeight:600, color:'var(--accent)' }}>{colaboradorAsociado.nombre}</div>
+                                {(colaboradorAsociado.tipo || colaboradorAsociado.sector) && (
+                                  <div style={{ fontSize:10, color:'var(--text3)', marginTop:3 }}>
+                                    {[colaboradorAsociado.tipo, colaboradorAsociado.sector].filter(Boolean).join(' · ')}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin colaborador seleccionado — añádelo en Comercialización.</div>
+                            )
+                          ) : null}
+                        </div>
+                      </div>
+                    )}
+
                     {/* ── PROPIETARIO ── */}
                     <div className="va-card">
                       <div className="va-card-header">
@@ -1226,47 +1312,60 @@ function FichaOfertaMock() {
                     <div className="va-card">
                       <div className="va-card-header">
                         <h3><span className="ico">◈</span> Colaboradores</h3>
-                        {tipoComercializacion==='Otras consultoras' && <button className="ab-btn blue" onClick={() => setAddingColab(true)}>+ Añadir consultora</button>}
+                        <span className="hint">{tipoComercializacion==='Colaboradores' ? 'Consultora asociada' : 'Inactivo'}</span>
                       </div>
-                      <div style={{padding:'4px 20px 16px'}}>
-                        {tipoComercializacion!=='Otras consultoras' ? (
-                          <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Selecciona "Otras consultoras" en Comercialización para activar.</div>
-                        ) : (
-                          <>
-                            {colaboradores.length===0 && !addingColab && (
-                              <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin colaboradores añadidos.</div>
-                            )}
-                            <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                              {colaboradores.map((c,i) => (
-                                <div key={i} style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'8px 12px',border:'1px solid var(--border)', borderRadius:'var(--r)', fontSize:12 }}>
-                                  <div>
-                                    <div style={{ fontWeight:600 }}>{c.empresa}</div>
-                                    {c.contacto && <div style={{ color:'var(--accent)', fontSize:11 }}>{c.contacto}</div>}
-                                  </div>
-                                  <button onClick={() => setColaboradores(prev => prev.filter((_,j)=>j!==i))} style={{ fontSize:11, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }}>✕ Quitar</button>
+                      <div style={{padding:'8px 18px 14px'}}>
+                        {tipoComercializacion!=='Colaboradores' ? (
+                          <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>
+                            Selecciona <strong>“Colaboradores”</strong> en Comercialización para vincular una consultora.
+                          </div>
+                        ) : colaboradorAsociado ? (
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'8px 12px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
+                            <div>
+                              <div style={{ fontWeight:600, fontSize:13, color:'var(--accent)' }}>{colaboradorAsociado.nombre}</div>
+                              {(colaboradorAsociado.sector || colaboradorAsociado.tipo) && (
+                                <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>
+                                  {[colaboradorAsociado.tipo, colaboradorAsociado.sector].filter(Boolean).join(' · ')}
                                 </div>
-                              ))}
+                              )}
                             </div>
-                            {addingColab && (
-                              <div style={{ border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', borderRadius:'var(--r)', padding:12, marginTop:10 }}>
-                                <div style={{ marginBottom:8 }}>
-                                  <FieldLbl>Empresa</FieldLbl>
-                                  <select className="fsel" style={{ width:'100%' }} value={newColabEmpresa} onChange={e => setNewColabEmpresa(e.target.value)}>
-                                    <option value="">Buscar...</option>
-                                    {['CBRE','JLL','Cushman & Wakefield','Colliers','Knight Frank','BNP Paribas RE'].map(e => <option key={e}>{e}</option>)}
-                                  </select>
-                                </div>
-                                <div style={{ marginBottom:10 }}>
-                                  <FieldLbl>Contacto</FieldLbl>
-                                  <input className="of-inp" placeholder="Buscar..." value={newColabContacto} onChange={e => setNewColabContacto(e.target.value)} />
-                                </div>
-                                <div style={{ display:'flex', gap:6 }}>
-                                  <button className="ab-btn save" onClick={() => { if(!newColabEmpresa)return; setColaboradores(prev=>[...prev,{empresa:newColabEmpresa,contacto:newColabContacto}]); setAddingColab(false); setNewColabEmpresa(''); setNewColabContacto('') }}>Añadir</button>
-                                  <button className="ab-btn" onClick={() => { setAddingColab(false); setNewColabEmpresa(''); setNewColabContacto('') }}>Cancelar</button>
-                                </div>
+                            <button onClick={() => setColaboradorAsociado(null)} style={{ fontSize:11, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }}>✕ Quitar</button>
+                          </div>
+                        ) : (
+                          <div style={{ position:'relative' }}>
+                            <input
+                              className="of-inp"
+                              placeholder="🔍 Buscar consultora colaboradora..."
+                              value={colaboradorBuscador}
+                              onChange={e => { setColaboradorBuscador(e.target.value); setShowColaboradorDropdown(true) }}
+                              onFocus={() => setShowColaboradorDropdown(true)}
+                              onBlur={() => setTimeout(() => setShowColaboradorDropdown(false), 200)}
+                              style={{ width:'100%' }}
+                            />
+                            {showColaboradorDropdown && colaboradorBuscador.length >= 2 && (
+                              <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 4px 12px rgba(0,0,0,.12)', zIndex:200, maxHeight:240, overflowY:'auto', textAlign:'left', marginTop:2 }}>
+                                {colaboradoresResults.length === 0 ? (
+                                  <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Sin resultados</div>
+                                ) : (
+                                  colaboradoresResults.map(a => (
+                                    <div key={a.dynamics_id} onMouseDown={() => {
+                                      setColaboradorAsociado(a)
+                                      setColaboradorBuscador('')
+                                      setShowColaboradorDropdown(false)
+                                    }} style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
+                                      <div style={{ fontWeight:600 }}>{a.nombre}</div>
+                                      <div style={{ color:'var(--text4)', fontSize:10, marginTop:2 }}>
+                                        {[a.tipo, a.sector].filter(Boolean).join(' · ') || a.dynamics_id}
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
                               </div>
                             )}
-                          </>
+                            {colaboradorBuscador.length > 0 && colaboradorBuscador.length < 2 && (
+                              <div style={{ fontSize:10, color:'var(--text4)', marginTop:4 }}>Escribe al menos 2 caracteres para buscar.</div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
