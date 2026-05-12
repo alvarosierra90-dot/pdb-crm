@@ -267,6 +267,9 @@ function FichaOfertaMock() {
   const [nextOfertaId, setNextOfertaId] = useState(2)
   const [editNombreId, setEditNombreId] = useState(null)
   const [editNombreVal, setEditNombreVal] = useState('')
+  // Ids de filas recién agregadas no guardadas. Bloquea "+ Agregar" hasta que se pulse "Guardar".
+  const [pendingNewIds, setPendingNewIds] = useState([])
+  const [savingDesglose, setSavingDesglose] = useState(false)
 
   // Características (filtro comercial sobre el activo)
   const [caracteristicas, setCaracteristicas] = useState(null) // null = no importadas aún
@@ -295,9 +298,41 @@ function FichaOfertaMock() {
   const [showImportMedia, setShowImportMedia] = useState(false)
 
   function addOferta() {
+    if (pendingNewIds.length > 0) return  // hay una fila pendiente — bloquear hasta que se guarde
     const id = nextOfertaId
     setOfertasDesglose(prev => [...prev, { id, nombre:`Oferta ${id}`, divisible:divisibleGlobal, supMin:null, cargasM2:parseFloat(gastosComunes)||0, ibiM2:parseFloat(ibi)||0, fechaDisp:fechaDispGlobal||'' }])
     setNextOfertaId(id + 1)
+    setPendingNewIds(prev => [...prev, id])
+  }
+
+  async function guardarDesglose() {
+    const ofertaId = oferta?.id
+    if (!ofertaId) {
+      // Sin oferta persistida aún — limpiar pending para desbloquear UI
+      setPendingNewIds([])
+      return
+    }
+    setSavingDesglose(true)
+    try {
+      await supabase.from('desglose_ofertas').delete().eq('oferta_id', ofertaId)
+      if (ofertasDesglose.length > 0) {
+        await supabase.from('desglose_ofertas').insert(
+          ofertasDesglose.map((d, i) => ({
+            oferta_id: ofertaId,
+            nombre: d.nombre,
+            divisible: d.divisible,
+            sup_min: d.supMin || null,
+            cargas_m2: d.cargasM2 || 0,
+            ibi_m2: d.ibiM2 || 0,
+            fecha_disp: d.fechaDisp || null,
+            orden: i,
+          }))
+        )
+      }
+      setPendingNewIds([])
+    } finally {
+      setSavingDesglose(false)
+    }
   }
 
   function getEscenarios() {
@@ -422,6 +457,7 @@ function FichaOfertaMock() {
             if (d?.length > 0) {
               setOfertasDesglose(d.map(x => ({ id: x.id, nombre: x.nombre, divisible: x.divisible, supMin: x.sup_min||null, cargasM2: x.cargas_m2||0, ibiM2: x.ibi_m2||0, fechaDisp: x.fecha_disp||'' })))
               setNextOfertaId(d.length + 1)
+              setPendingNewIds([])
             }
           })
 
@@ -564,6 +600,7 @@ function FichaOfertaMock() {
         }
       }
 
+      setPendingNewIds([])
       setSaveOk(true); setTimeout(() => setSaveOk(false), 3000)
     } catch (e) {
       setSaveErr(e.message || 'Error inesperado al guardar')
@@ -1156,8 +1193,29 @@ function FichaOfertaMock() {
                         {/* Desglose de ofertas */}
                         <div className="info-block" style={{ padding:0, overflow:'hidden' }}>
                           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderBottom:'1px solid var(--border)', background:'var(--gray-lt)' }}>
-                            <div style={{ fontSize:11, fontWeight:700 }}>Desglose de ofertas</div>
-                            <button className="ab-btn blue" style={{ fontSize:10, padding:'3px 10px' }} onClick={addOferta}>+ Agregar</button>
+                            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                              <div style={{ fontSize:11, fontWeight:700 }}>Desglose de ofertas</div>
+                              {pendingNewIds.length > 0 && (
+                                <span style={{ fontSize:9, color:'var(--orange,#c97a00)', fontWeight:600, background:'rgba(201,122,0,0.08)', padding:'2px 6px', borderRadius:8 }}>Sin guardar</span>
+                              )}
+                            </div>
+                            <div style={{ display:'flex', gap:6 }}>
+                              {pendingNewIds.length > 0 && (
+                                <button
+                                  className="ab-btn green"
+                                  style={{ fontSize:10, padding:'3px 10px' }}
+                                  disabled={savingDesglose}
+                                  onClick={guardarDesglose}
+                                >{savingDesglose ? 'Guardando…' : 'Guardar'}</button>
+                              )}
+                              <button
+                                className="ab-btn blue"
+                                style={{ fontSize:10, padding:'3px 10px', opacity: pendingNewIds.length > 0 ? 0.45 : 1, cursor: pendingNewIds.length > 0 ? 'not-allowed' : 'pointer' }}
+                                onClick={addOferta}
+                                disabled={pendingNewIds.length > 0}
+                                title={pendingNewIds.length > 0 ? 'Guarda la oferta pendiente antes de agregar otra' : ''}
+                              >+ Agregar</button>
+                            </div>
                           </div>
                           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
                             <thead><tr>
@@ -1221,7 +1279,7 @@ function FichaOfertaMock() {
                                     <td style={{ padding:'7px 12px' }}>
                                       <div style={{ display:'flex', gap:4 }}>
                                         <button className="ra p" onClick={() => { setEditNombreId(o.id); setEditNombreVal(o.nombre) }}>✎</button>
-                                        <button className="ra" onClick={() => setOfertasDesglose(prev=>prev.filter(x=>x.id!==o.id))} style={{ color:'var(--red)' }}>✕</button>
+                                        <button className="ra" onClick={() => { setOfertasDesglose(prev=>prev.filter(x=>x.id!==o.id)); setPendingNewIds(prev => prev.filter(x => x !== o.id)) }} style={{ color:'var(--red)' }}>✕</button>
                                       </div>
                                     </td>
                                   </tr>

@@ -1630,6 +1630,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                             if (dragging) return
                             spNavigate('ficha-oferta', {
                               ofertaRef: ofr.ref || ofr.id || ofr.nombre,
+                              tab: 'of-espacios',
                               fromActivoRef: activoRef,
                               fromActivoNombre: activoNombre,
                               fromActivoTab: 'at-stacking',
@@ -4304,6 +4305,79 @@ export default function FichaActivo() {
     const newMotivos = has ? c.motivos.filter(m => m !== motivo) : [...(c.motivos || []), motivo]
     updateMotivos(rowId, newMotivos)
   }
+  // Export PPT: una slide por competidor con todos los KPIs, motivos y tags.
+  const exportCompetidoresPPT = async () => {
+    if (!competidores.length) { alert('No hay competidores guardados para exportar.'); return }
+    const pptxgen = (await import('pptxgenjs')).default
+    const pptx = new pptxgen()
+    pptx.layout = 'LAYOUT_WIDE' // 13.33 x 7.5 inches
+    const activoNombre = displayNombre ?? activo?.nombre ?? 'Activo'
+
+    // Slide portada
+    const cover = pptx.addSlide()
+    cover.background = { color: 'F8FAFC' }
+    cover.addText('Principales competidores', { x:0.5, y:1.2, w:12, h:0.8, fontSize:32, bold:true, color:'0F172A', fontFace:'Arial' })
+    cover.addText(activoNombre, { x:0.5, y:2.0, w:12, h:0.6, fontSize:20, color:'2563EB', fontFace:'Arial' })
+    cover.addText(`${competidores.length} competidor${competidores.length===1?'':'es'} · Generado ${new Date().toLocaleDateString('es-ES')}`, { x:0.5, y:2.8, w:12, h:0.4, fontSize:13, color:'64748B', fontFace:'Arial' })
+    cover.addText('Análisis comparativo · benchmarking', { x:0.5, y:6.6, w:12, h:0.4, fontSize:11, color:'94A3B8', italic:true, fontFace:'Arial' })
+
+    // Una slide por competidor
+    competidores.forEach((c, idx) => {
+      const a = c.competidor || {}
+      const slide = pptx.addSlide()
+      slide.background = { color: 'FFFFFF' }
+
+      // Header con número
+      slide.addShape('rect', { x:0, y:0, w:13.33, h:0.7, fill:{color:'2563EB'} })
+      slide.addText(`${idx+1} / ${competidores.length}`, { x:0.4, y:0.15, w:1, h:0.4, fontSize:11, bold:true, color:'FFFFFF', fontFace:'Arial' })
+      slide.addText(a.nombre || '—', { x:1.4, y:0.1, w:11.5, h:0.5, fontSize:20, bold:true, color:'FFFFFF', fontFace:'Arial' })
+
+      // Subtítulo (zona / ciudad / ref)
+      slide.addText(`${[a.zona, a.subzona, a.ciudad].filter(Boolean).join(' · ') || '—'}  ·  Ref: ${a.ref || '—'}`, { x:0.5, y:0.9, w:12.3, h:0.35, fontSize:12, color:'64748B', fontFace:'Arial' })
+
+      // KPIs en 6 cajas (estilo header del activo)
+      const kpis = [
+        { lbl:'SBA',           val: a.sba ? Number(a.sba).toLocaleString('es-ES') + ' m²' : '—' },
+        { lbl:'Edificios',     val: String(c.n_edificios || 1) },
+        { lbl:'Ocupación',     val: a.occupancy_rate != null ? `${a.occupancy_rate}%` : '—' },
+        { lbl:'Arrendatarios', val: String(c.n_arrendatarios || 0) },
+        { lbl:'Propietarios',  val: String(c.n_propietarios || 0) },
+        { lbl:'Renta zona',    val: a.renta_zona != null ? `${a.renta_zona} €/m²` : '—' },
+      ]
+      kpis.forEach((k, i) => {
+        const col = i % 3
+        const row = Math.floor(i / 3)
+        const x = 0.5 + col * 4.25
+        const y = 1.5 + row * 1.0
+        slide.addShape('rect', { x, y, w:4.05, h:0.85, fill:{color:'F8FAFC'}, line:{color:'E2E8F0', width:0.5} })
+        slide.addText(k.lbl, { x:x+0.15, y:y+0.1, w:3.8, h:0.25, fontSize:9, bold:true, color:'94A3B8', fontFace:'Arial' })
+        slide.addText(k.val, { x:x+0.15, y:y+0.35, w:3.8, h:0.45, fontSize:18, bold:true, color:'0F172A', fontFace:'Arial' })
+      })
+
+      // Tags de similitud
+      const sim = computeSimilarity(a)
+      slide.addText('Tags de similitud', { x:0.5, y:3.7, w:12.3, h:0.3, fontSize:11, bold:true, color:'475569', fontFace:'Arial' })
+      const tagsText = sim.tags.length ? sim.tags.map(t => `• ${t}`).join('   ') : 'Sin tags automáticos'
+      slide.addText(tagsText, { x:0.5, y:4.05, w:12.3, h:0.4, fontSize:11, color:'15803D', fontFace:'Arial' })
+
+      // Motivos seleccionados
+      const motivos = c.motivos || []
+      slide.addText('Motivos de comparación', { x:0.5, y:4.6, w:12.3, h:0.3, fontSize:11, bold:true, color:'475569', fontFace:'Arial' })
+      const motivosText = motivos.length ? motivos.map(m => `• ${m}`).join('   ') : 'Sin motivos asignados'
+      slide.addText(motivosText, { x:0.5, y:4.95, w:12.3, h:0.5, fontSize:11, color:'2563EB', fontFace:'Arial' })
+
+      // Métricas comerciales
+      slide.addText('Actividad comercial', { x:0.5, y:5.6, w:12.3, h:0.3, fontSize:11, bold:true, color:'475569', fontFace:'Arial' })
+      slide.addText(`Ofertas vinculadas: ${c.n_ofertas || 0}  ·  Transacciones (últimos 12m): ${c.n_transacciones || 0}`, { x:0.5, y:5.95, w:12.3, h:0.4, fontSize:11, color:'0F172A', fontFace:'Arial' })
+
+      // Footer
+      slide.addText(`Comparativa generada desde ${activoNombre}`, { x:0.5, y:7.0, w:12.3, h:0.3, fontSize:9, color:'94A3B8', italic:true, fontFace:'Arial' })
+    })
+
+    const filename = `Competidores_${activoNombre.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.pptx`
+    await pptx.writeFile({ fileName: filename })
+  }
+
   const reorderCompetidor = async (rowId, dir) => {
     const idx = competidores.findIndex(c => c.id === rowId)
     if (idx < 0) return
@@ -4750,7 +4824,12 @@ export default function FichaActivo() {
                   <div style={{fontSize:14,fontWeight:600}}>Principales competidores</div>
                   <div style={{fontSize:11,color:'var(--text4)',marginTop:2,lineHeight:1.5}}>Sistema de benchmarking entre activos. Compara con activos similares de la PDB y clasifica por motivos. Alimenta los Informes de gestión.</div>
                 </div>
-                <span style={{fontSize:11,color:'var(--text3)'}}>{competidores.length} {competidores.length===1?'competidor manual':'competidores manuales'}</span>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <span style={{fontSize:11,color:'var(--text3)'}}>{competidores.length} {competidores.length===1?'competidor manual':'competidores manuales'}</span>
+                  <button onClick={exportCompetidoresPPT} disabled={competidores.length === 0} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'7px 14px',background:competidores.length === 0 ? 'var(--gray-lt)' : 'var(--accent)',color:competidores.length === 0 ? 'var(--text4)' : '#fff',border:'none',borderRadius:6,fontSize:11,fontWeight:600,cursor:competidores.length === 0 ? 'not-allowed' : 'pointer',fontFamily:'inherit'}}>
+                    <Presentation size={13} strokeWidth={1.75}/> Exportar PPT
+                  </button>
+                </div>
               </div>
 
               {/* Buscador para añadir manualmente */}
