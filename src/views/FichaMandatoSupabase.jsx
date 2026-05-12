@@ -7,10 +7,11 @@ import ActividadesPanel from '../components/ActividadesPanel'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 
 // Mismo formato que Propuestas y Proyectos: una sola pestaña principal
-// que agrupa todos los bloques. Vista 360 sustituye a Actividades.
+// que agrupa todos los bloques. Fees y honorarios pasa a estar dentro
+// de Información del mandato (encima de Equipo de trabajo).
+// Vista 360 sustituye a Actividades.
 const MAN_TABS = [
   ['man-info', 'Información del mandato'],
-  ['man-fees', 'Fees y honorarios'],
   ['man-docs', 'Documentos'],
   ['man-act',  'Vista 360'],
   ['man-conf', 'Confidencialidad'],
@@ -110,6 +111,10 @@ export default function FichaMandatoSupabase({ refOrId }) {
   const [saveError, setSaveError] = useState(null)
   const [showCierreVencido, setShowCierreVencido] = useState(false)
   const [cerrandoVencido, setCerrandoVencido] = useState(false)
+
+  // ── Form inline para añadir miembros al equipo (estilo Propuestas) ──
+  const [showAddEq, setShowAddEq]     = useState(false)
+  const [newEqDraft, setNewEqDraft]   = useState({ equipo:'', usuario:'', rol:'Soporte' })
   const [ofertasMandato, setOfertasMandato] = useState([])
   const [showCancelar, setShowCancelar] = useState(false)
   const [cancelando, setCancelando] = useState(false)
@@ -741,15 +746,189 @@ export default function FichaMandatoSupabase({ refOrId }) {
                     </div>
                   </div>
 
-                  {/* Equipo de trabajo */}
-                  <div style={{ marginBottom:0, minWidth:0 }}>
-                    <EquipoTrabajoCard
-                      equipo={equipo}
-                      canManage={canManage}
-                      onAdd={handlers.addMiembro}
-                      onRemove={handlers.removeMiembro}
-                      onUpdateRol={handlers.updateMiembroRol}
-                    />
+                  {/* Columna derecha: Fees y honorarios (arriba) + Equipo de trabajo (abajo) */}
+                  <div style={{ display:'flex', flexDirection:'column', gap:14, minWidth:0 }}>
+                    {/* ─── FEES Y HONORARIOS ─── (movido desde la pestaña independiente) */}
+                    {(() => {
+                      const reparto      = form.fee_reparto
+                      const totalFeeEur  = Number(form.fee_eur_fijo) || 0
+                      const sumPct       = reparto.reduce((s, r) => s + (Number(r.porcentaje) || 0), 0)
+                      const restante     = 100 - sumPct
+                      const sumOk        = sumPct === 100
+                      const sinTotal     = totalFeeEur <= 0
+                      const updateRow = (idx, key, val) => setF('fee_reparto', reparto.map((r,i) => i === idx ? { ...r, [key]: val } : r))
+                      const addRow = () => setF('fee_reparto', [...reparto, { nombre:'', tipo:'interno', porcentaje:'' }])
+                      const removeRow = idx => setF('fee_reparto', reparto.filter((_,i) => i !== idx))
+                      const fmtEur = n => n ? n.toLocaleString('es-ES', { maximumFractionDigits:2 }) : '0'
+                      const totalEurDistribuido = (sumPct / 100) * totalFeeEur
+                      return (
+                        <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
+                          <div className="va-card-header">
+                            <h3><span className="ico" style={{ color:'var(--green)' }}>●</span> Fees y honorarios</h3>
+                            {totalFeeEur > 0 && <span className="hint" style={{ fontFamily:'var(--mono)', fontWeight:700, color:'var(--green)' }}>{fmtEur(totalFeeEur)} €</span>}
+                          </div>
+                          <div style={{ padding:'4px 18px 16px' }}>
+                            {/* Importe total + KPIs secundarios */}
+                            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:12 }}>
+                              <div>
+                                <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>Total fee (€)</div>
+                                <input type="number" step="100" value={form.fee_eur_fijo} onChange={e => setF('fee_eur_fijo', e.target.value)} placeholder="0"
+                                  style={{ width:'100%', padding:'6px 8px', fontSize:13, fontWeight:700, border:'1px solid var(--border)', borderRadius:5, fontFamily:'var(--mono)', textAlign:'right', color:'var(--green)' }} />
+                              </div>
+                              <div>
+                                <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>% s/ operación</div>
+                                <input type="number" step="0.1" value={form.fee_porcentaje} onChange={e => setF('fee_porcentaje', e.target.value)} placeholder="—"
+                                  style={{ width:'100%', padding:'6px 8px', fontSize:13, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', textAlign:'right' }} />
+                              </div>
+                              <div>
+                                <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>Mín. garantizado</div>
+                                <input type="number" value={form.fee_min_garantizado} onChange={e => setF('fee_min_garantizado', e.target.value)} placeholder="—"
+                                  style={{ width:'100%', padding:'6px 8px', fontSize:13, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', textAlign:'right' }} />
+                              </div>
+                            </div>
+
+                            {/* Reparto */}
+                            <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:6, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                              <span>Reparto del fee</span>
+                              {reparto.length > 0 && (
+                                <span style={{ fontSize:10, fontWeight:700, textTransform:'none', color: sumOk ? 'var(--green)' : (sumPct > 100 ? 'var(--red)' : 'var(--amber)') }}>
+                                  {sumPct}% {sumOk ? '✓' : sumPct > 100 ? `· excede ${sumPct-100}%` : `· falta ${restante}%`}
+                                </span>
+                              )}
+                            </div>
+                            {sinTotal && reparto.length > 0 && (
+                              <div style={{ padding:'6px 10px', background:'var(--amber-lt)', border:'1px solid var(--amber-bd)', borderRadius:4, fontSize:10, color:'var(--amber)', marginBottom:6 }}>
+                                Introduce primero el importe total para calcular los € de cada línea.
+                              </div>
+                            )}
+                            {reparto.length === 0 ? (
+                              <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', padding:'6px 0' }}>Sin reparto · 100% para el responsable del mandato.</div>
+                            ) : (
+                              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                                {reparto.map((r, idx) => {
+                                  const pct = Number(r.porcentaje) || 0
+                                  const eur = (pct / 100) * totalFeeEur
+                                  const isInterno = (r.tipo || 'interno') === 'interno'
+                                  const miembrosDisp = isInterno ? (MIEMBROS_POR_EQUIPO[r.equipo] || []) : []
+                                  return (
+                                    <div key={idx} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                                      <select style={{ ...sel, width:90, fontSize:10 }} value={r.tipo || 'interno'}
+                                        onChange={e => {
+                                          const next = e.target.value
+                                          setF('fee_reparto', reparto.map((row,i) => i === idx ? { ...row, tipo:next, ...(next === 'interno' ? { agencia_id:'', contacto:'', nombre:'' } : { equipo:'', miembro:'' }) } : row))
+                                        }}>
+                                        <option value="interno">Interno</option>
+                                        <option value="externo">Externo</option>
+                                      </select>
+                                      {isInterno ? (
+                                        <>
+                                          <select style={{ ...sel, flex:1, fontSize:10, minWidth:0 }} value={r.equipo || ''}
+                                            onChange={e => setF('fee_reparto', reparto.map((row,i) => i === idx ? { ...row, equipo:e.target.value, miembro:'' } : row))}>
+                                            <option value="">Equipo...</option>
+                                            {EQUIPOS_SAVILLS.map(eq => <option key={eq} value={eq}>{eq}</option>)}
+                                          </select>
+                                          <select style={{ ...sel, flex:1, fontSize:10, minWidth:0 }} value={r.miembro || ''}
+                                            onChange={e => updateRow(idx, 'miembro', e.target.value)} disabled={!r.equipo}>
+                                            <option value="">Miembro...</option>
+                                            {miembrosDisp.map(m => <option key={m} value={m}>{m}</option>)}
+                                          </select>
+                                        </>
+                                      ) : (
+                                        <select style={{ ...sel, flex:2, fontSize:10, minWidth:0 }} value={r.agencia_id || ''}
+                                          onChange={e => {
+                                            const cu = cuentasCatalog.find(c => c.dynamics_id === e.target.value)
+                                            setF('fee_reparto', reparto.map((row,i) => i === idx ? { ...row, agencia_id:e.target.value, nombre: cu?.nombre || '' } : row))
+                                          }}>
+                                          <option value="">Agencia externa...</option>
+                                          {cuentasCatalog.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>)}
+                                        </select>
+                                      )}
+                                      <input type="number" step="0.5" min="0" max="100" value={r.porcentaje ?? ''}
+                                        onChange={e => updateRow(idx, 'porcentaje', e.target.value)} placeholder="0"
+                                        style={{ width:50, padding:'4px 6px', fontSize:11, fontWeight:600, border:'1px solid var(--border)', borderRadius:4, fontFamily:'var(--mono)', textAlign:'right' }} />
+                                      <span style={{ fontSize:10, fontWeight:700, color:'var(--text3)' }}>%</span>
+                                      <span style={{ minWidth:70, textAlign:'right', fontFamily:'var(--mono)', fontSize:11, fontWeight:600, color: sinTotal ? 'var(--text4)' : 'var(--text)' }}>
+                                        {sinTotal ? '—' : `${fmtEur(eur)} €`}
+                                      </span>
+                                      <button onClick={() => removeRow(idx)} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:12, padding:'2px 4px' }}>✕</button>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+                            <button onClick={addRow} style={{ marginTop:8, padding:'5px 10px', fontSize:10, fontWeight:600, border:'1px dashed var(--accent)', color:'var(--accent)', background:'var(--accent-lt)', borderRadius:5, cursor:'pointer', fontFamily:'inherit' }}>
+                              + Añadir colaborador
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    {/* ─── EQUIPO DE TRABAJO — formato Propuestas (inline) ─── */}
+                    <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
+                      <div className="va-card-header">
+                        <h3><span className="ico">◆</span> Equipo de trabajo</h3>
+                        {canManage && (
+                          <button className="ab-btn" style={{ fontSize:10, padding:'3px 10px' }} onClick={() => setShowAddEq(v => !v)}>+ Añadir</button>
+                        )}
+                      </div>
+                      <div style={{ padding:'4px 20px 16px' }}>
+                        {showAddEq && canManage && (
+                          <div style={{ marginBottom:10, padding:10, border:'1px solid var(--border)', borderRadius:6, background:'var(--surface-2)', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, alignItems:'end' }}>
+                            <div>
+                              <div className="rp-lbl">Equipo</div>
+                              <select className="fsel" value={newEqDraft.equipo} onChange={e => setNewEqDraft(p => ({ ...p, equipo:e.target.value, usuario:'' }))} style={{ width:'100%' }}>
+                                <option value="">Seleccionar...</option>
+                                {EQUIPOS_SAVILLS.filter(eq => !equipo.find(m => m.equipo === eq && m.nombre)).map(eq => <option key={eq}>{eq}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <div className="rp-lbl">Miembro</div>
+                              <select className="fsel" value={newEqDraft.usuario} onChange={e => setNewEqDraft(p => ({ ...p, usuario:e.target.value }))} disabled={!newEqDraft.equipo} style={{ width:'100%' }}>
+                                <option value="">Seleccionar...</option>
+                                {(MIEMBROS_POR_EQUIPO[newEqDraft.equipo] || []).map(u => <option key={u}>{u}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <div className="rp-lbl">Rol</div>
+                              <select className="fsel" value={newEqDraft.rol} onChange={e => setNewEqDraft(p => ({ ...p, rol:e.target.value }))} style={{ width:'100%' }}>
+                                {['Principal','Soporte','Colaborador'].map(r => <option key={r}>{r}</option>)}
+                              </select>
+                            </div>
+                            <div style={{ gridColumn:'1 / -1', display:'flex', gap:6, justifyContent:'flex-end' }}>
+                              <button className="ab-btn save" disabled={!newEqDraft.equipo || !newEqDraft.usuario}
+                                onClick={() => {
+                                  handlers.addMiembro(newEqDraft.usuario, newEqDraft.equipo, newEqDraft.rol)
+                                  setShowAddEq(false)
+                                  setNewEqDraft({ equipo:'', usuario:'', rol:'Soporte' })
+                                }}>Añadir</button>
+                              <button className="ab-btn" onClick={() => setShowAddEq(false)}>Cancelar</button>
+                            </div>
+                          </div>
+                        )}
+                        {equipo.length === 0 ? (
+                          <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', padding:'8px 0' }}>Sin equipo asignado.</div>
+                        ) : (
+                          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                            {equipo.map((m,i) => (
+                              <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                                <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>
+                                  {(m.nombre || '').split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
+                                </div>
+                                <div style={{ flex:1, minWidth:0 }}>
+                                  <div style={{ fontSize:12, fontWeight:600 }}>{m.nombre}</div>
+                                  <div style={{ fontSize:10, color:'var(--text3)' }}>{m.equipo}</div>
+                                </div>
+                                <span className="tag tag-blue" style={{ fontSize:9 }}>{m.rol}</span>
+                                {canManage && (
+                                  <button onClick={() => handlers.removeMiembro(i)} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -937,8 +1116,8 @@ export default function FichaMandatoSupabase({ refOrId }) {
             )
           })()}
 
-          {/* TAB Fees */}
-          {tab === 'man-fees' && (() => {
+          {/* TAB Fees · ELIMINADO — el contenido vive ahora dentro de man-info */}
+          {false && tab === 'man-fees' && (() => {
             const reparto      = form.fee_reparto
             const totalFeeEur  = Number(form.fee_eur_fijo) || 0
             const sumPct       = reparto.reduce((s, r) => s + (Number(r.porcentaje) || 0), 0)

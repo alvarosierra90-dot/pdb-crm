@@ -108,9 +108,15 @@ export default function MarcarPropuestaGanadaModal({ propuesta, oportunidad, cue
       if (e1) throw new Error(`Instrucción: ${e1.message}`)
 
       // 2) Crear Mandato en PDB con FKs a Oportunidad + Cuenta + Instrucción + Propuesta
+      // SINCRONIZACIÓN AUTOMÁTICA desde la Propuesta (cada paso está conectado):
+      //   · Oportunidad y Cuenta (Dynamics FKs)
+      //   · Equipo de trabajo
+      //   · Fee total + reparto + % + mínimo garantizado
+      //   · Activos vinculados (via mandato_activos al final)
       const ref = await nextMandatoRef()
       const titulo = propuesta.nombre || cuenta?.nombre || `Mandato ${ref}`
       const equipoHeredado = Array.isArray(propuesta.equipo_trabajo) ? propuesta.equipo_trabajo : []
+      const repartoHeredado = Array.isArray(propuesta.fee_reparto) ? propuesta.fee_reparto : []
 
       const { data: mand, error: e2 } = await supabase.from('mandatos').insert({
         ref,
@@ -126,12 +132,35 @@ export default function MarcarPropuestaGanadaModal({ propuesta, oportunidad, cue
         exclusividad_modo:       'exclusiva',
         fecha_firma:             form.fecha_firma,
         fecha_vencimiento:       form.fecha_vencimiento || null,
-        fee_eur_fijo:            feeMandato || null,
+        // Fees: hereda total (override en formulario), %, mínimo y reparto
+        fee_eur_fijo:            feeMandato || propuesta.fee_eur_fijo || null,
+        fee_porcentaje:          propuesta.fee_porcentaje      || null,
+        fee_min_garantizado:     propuesta.fee_min_garantizado || null,
+        fee_reparto:             repartoHeredado,
         responsable:             propuesta.responsable || CURRENT_USER.nombre,
         equipo:                  propuesta.equipo || null,
         equipo_trabajo:          equipoHeredado,
       }).select('id, ref').single()
       if (e2) throw new Error(`Mandato: ${e2.message}`)
+
+      // 2.b) Propagar activos vinculados (propuesta.activos → mandato_activos)
+      const propuestaActivos = Array.isArray(propuesta.activos) ? propuesta.activos : []
+      if (propuestaActivos.length > 0) {
+        // Resolver ref → activo_id para cada item de la lista
+        const refs = propuestaActivos.map(a => a?.ref).filter(Boolean)
+        if (refs.length > 0) {
+          const { data: rows = [] } = await supabase
+            .from('activos').select('id, ref').in('ref', refs)
+          const byRef = Object.fromEntries((rows || []).map(r => [r.ref, r.id]))
+          const inserts = propuestaActivos
+            .map(a => byRef[a?.ref])
+            .filter(Boolean)
+            .map(activo_id => ({ mandato_id: mand.id, activo_id, sba_asignada: null }))
+          if (inserts.length > 0) {
+            await supabase.from('mandato_activos').insert(inserts)
+          }
+        }
+      }
 
       // 3) Cerrar la propuesta como ganada
       const { error: e3 } = await supabase.from('propuestas').update({
