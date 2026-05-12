@@ -124,7 +124,16 @@ export default function FichaOferta() {
 
 function FichaOfertaMock() {
   const { navigate, params } = useNav()
-  const [activeTab, setActiveTab] = useState('of-info')
+  const [activeTab, setActiveTab] = useState(() => {
+    const t = params?.tab
+    return (t && TABS.includes(t)) ? t : 'of-info'
+  })
+  // Sincronizar si el params.tab cambia tras montar (p. ej. navegación interna)
+  useEffect(() => {
+    const t = params?.tab
+    if (t && TABS.includes(t) && t !== activeTab) setActiveTab(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params?.tab])
   const [confidential, setConfidential] = useState(false)
   const [authorizedUsers, setAuthorizedUsers] = useState(USERS_INIT)
   const [addingUser, setAddingUser] = useState(false)

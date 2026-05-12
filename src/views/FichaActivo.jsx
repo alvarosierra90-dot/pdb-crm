@@ -4809,7 +4809,22 @@ export default function FichaActivo() {
                 onRemoveTenant={({ unit, doRemove }) => {
                   setBajaArr({ unit, doRemove })
                 }}
-                extraOfertas={params?.ofertasFromOferta || []}
+                extraOfertas={(() => {
+                  // Fuente persistente: ofertas en DB ligadas a este activo.
+                  // Cualquier oferta creada y vinculada permanece en el panel
+                  // izquierdo aunque ya esté asignada a una planta.
+                  const fromDB = (ofertas || []).map(o => ({
+                    id: o.id,
+                    ref: o.ref,
+                    nombre: o.nombre || o.ref,
+                  }))
+                  // Mezcla con ofertas pasadas vía navegación (cuando se vuelve
+                  // recién creadas) deduplicando por ref/nombre.
+                  const extras = (params?.ofertasFromOferta || []).filter(p =>
+                    !fromDB.some(d => (p.ref && d.ref === p.ref) || d.nombre === p.nombre)
+                  )
+                  return [...fromDB, ...extras]
+                })()}
                 initView={params?.newOwnerData ? 'prop' : params?.newTenantData ? 'arr' : (params?.stackingView || 'principal')}
               />
             </div>
