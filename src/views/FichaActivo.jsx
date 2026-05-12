@@ -1353,9 +1353,15 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                       onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
                       onClick={(e) => {
                         // Click sin drag → navega a la ficha del propietario.
-                        // Si era un drag, el browser no dispara onClick.
+                        // Pasamos m2 (suma real del stacking) para que la ficha
+                        // muestre la superficie asignada, no el SBA total mock.
                         if (dragging) return
-                        spNavigate('ficha-propietario', { ownerData: { id: o.id, propietario: o.name } })
+                        spNavigate('ficha-propietario', {
+                          id: o.id,
+                          ownerData: { id: o.id, propietario: o.name, superficie: m2 },
+                          ownerSuperficie: m2,
+                          fromOwnerStacking: true,
+                        })
                       }}
                       title={`Ver ficha de ${o.name}`}
                       style={{
@@ -4178,6 +4184,22 @@ export default function FichaActivo() {
             const extras = prev.filter(p => !dbIds.has(p.id))
             return [...mapped, ...extras]
           })
+        } else if (activo?.propietario) {
+          // No hay fila en propietarios pero el activo tiene propietario legacy
+          // (campo de la tabla activos). Sembramos una entrada sintética para
+          // que aparezca como chip en el panel lateral del stacking.
+          setPropietariosReg(prev => {
+            if (prev.some(p => p.propietario === activo.propietario)) return prev
+            return [...prev, {
+              id: `LEGACY-${activo.ref}`,
+              propietario: activo.propietario,
+              activo_ref: activo.ref,
+              sba: activo.sba,
+              zona: activo.zona,
+              uso: activo.uso,
+              _legacy: true,
+            }]
+          })
         }
       })
     supabase.from('arrendatarios').select('*').eq('activo_ref', ref).order('created_at', { ascending: false })
@@ -4202,7 +4224,9 @@ export default function FichaActivo() {
           })
         }
       })
-  }, [params?.ref])
+    // Depende también de activo?.propietario para que la siembra legacy
+    // se ejecute después de que el activo se cargue desde Supabase.
+  }, [params?.ref, activo?.propietario, activo?.ref])
 
   // Load ofertas from Supabase for this activo
   useEffect(() => {
@@ -5764,24 +5788,41 @@ export default function FichaActivo() {
       )}
       {showSubstConfirm && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
-          <div style={{background:'var(--surface)',borderRadius:'var(--r2)',width:'100%',maxWidth:440,boxShadow:'0 20px 60px rgba(0,0,0,.3)',overflow:'hidden'}}>
+          <div style={{background:'var(--surface)',borderRadius:'var(--r2)',width:'100%',maxWidth:520,boxShadow:'0 20px 60px rgba(0,0,0,.3)',overflow:'hidden'}}>
             <div style={{padding:'16px 20px',borderBottom:'1px solid var(--border)'}}>
-              <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>Cambio de propietario</div>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>Añadir propietario al activo</div>
               <div style={{fontSize:12,color:'var(--text3)',lineHeight:1.6}}>
-                ¿Deseas sustituir el propietario actual?
-                {(propietariosReg[0]?.propietario || activo?.propietario) && (
-                  <span style={{display:'block',marginTop:6,padding:'6px 10px',background:'var(--gray-lt)',borderRadius:5,fontWeight:600,color:'var(--text2)'}}>
-                    Propietario actual: {propietariosReg[0]?.propietario || activo?.propietario}
-                  </span>
-                )}
-                <span style={{display:'block',marginTop:8,color:'var(--text4)',fontSize:11}}>
-                  El propietario anterior pasará al historial con fecha de salida de hoy.
-                </span>
+                Este activo ya tiene {propietariosReg.length > 1 ? `${propietariosReg.length} propietarios asignados` : 'un propietario asignado'}:
+                <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:4}}>
+                  {(propietariosReg.length > 0 ? propietariosReg : (activo?.propietario ? [{ propietario: activo.propietario }] : [])).map((p,i) => (
+                    <span key={i} style={{padding:'6px 10px',background:'var(--gray-lt)',borderRadius:5,fontWeight:600,color:'var(--text2)',fontSize:12}}>{p.propietario}</span>
+                  ))}
+                </div>
+                <div style={{marginTop:12,fontSize:12,color:'var(--text2)',fontWeight:600}}>¿Qué quieres hacer?</div>
               </div>
             </div>
-            <div style={{display:'flex',gap:8,justifyContent:'flex-end',padding:'12px 20px'}}>
+            <div style={{padding:'14px 20px',display:'flex',flexDirection:'column',gap:10}}>
+              {/* Opción A: propietario adicional (co-propiedad) */}
+              <button
+                onClick={()=>{ setShowSubstConfirm(false); setShowAltaPropietario(true) }}
+                style={{textAlign:'left',padding:'12px 14px',border:'1px solid var(--border)',borderRadius:6,background:'var(--surface)',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',gap:3}}
+                onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'}
+                onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+                <span style={{fontSize:12,fontWeight:700,color:'var(--text)'}}>Propietario adicional (co-propiedad)</span>
+                <span style={{fontSize:11,color:'var(--text3)',lineHeight:1.4}}>El propietario actual sigue activo. El nuevo se añade y comparte el activo según la superficie que asignes en el stacking.</span>
+              </button>
+              {/* Opción B: sustitución (el anterior va al histórico) */}
+              <button
+                onClick={()=>{ setShowSubstConfirm(false); navigateToFichaProp(true) }}
+                style={{textAlign:'left',padding:'12px 14px',border:'1px solid var(--border)',borderRadius:6,background:'var(--surface)',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',gap:3}}
+                onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'}
+                onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+                <span style={{fontSize:12,fontWeight:700,color:'var(--text)'}}>Sustituir propietario actual</span>
+                <span style={{fontSize:11,color:'var(--text3)',lineHeight:1.4}}>El propietario anterior pasa al histórico con fecha de salida de hoy. El nuevo lo reemplaza por completo en el stacking.</span>
+              </button>
+            </div>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end',padding:'10px 20px 14px',borderTop:'1px solid var(--border)'}}>
               <button onClick={()=>setShowSubstConfirm(false)} style={{padding:'7px 16px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>Cancelar</button>
-              <button onClick={()=>{setShowSubstConfirm(false);navigateToFichaProp(true)}} style={{padding:'7px 20px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Continuar →</button>
             </div>
           </div>
         </div>

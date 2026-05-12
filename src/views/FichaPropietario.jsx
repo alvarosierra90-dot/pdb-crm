@@ -96,9 +96,10 @@ export default function FichaPropietario() {
   const toggleUso = (u) => setUsos(prev => prev.includes(u) ? prev.filter(x=>x!==u) : [...prev,u])
 
   const [form, setForm] = useState({
-    // Identificación
-    id: fromActivo ? `PRO-${Date.now()}` : 'PRO-2501',
-    propietario: fromActivo ? '' : 'Merlín Properties SOCIMI',
+    // Identificación. Si vienes del chip del stacking, ownerData trae al
+    // menos id + propietario; rellenamos la identificación con eso.
+    id: params?.ownerData?.id || (fromActivo ? `PRO-${Date.now()}` : 'PRO-2501'),
+    propietario: params?.ownerData?.propietario || (fromActivo ? '' : 'Merlín Properties SOCIMI'),
     cif: 'A-86305997',
     tipo_entidad: 'SOCIMI',
     pais: 'España',
@@ -116,7 +117,16 @@ export default function FichaPropietario() {
     activo: fromActivo ? (params?.fromActivoNombre || '') : 'P.E Avalon',
     zona: fromActivo ? (params?.fromActivoZona || '') : 'M-30',
     subzona: '',
-    superficie: fromActivo ? String(params?.fromActivoSba || '') : '46956',
+    // Superficie: si vienes desde el chip del stacking, mostramos la
+    // superficie REAL asignada (suma de m² en plantas). Si vienes desde
+    // 'Nuevo propietario' del activo, mostramos el SBA total como placeholder.
+    superficie: params?.ownerSuperficie != null
+      ? String(params.ownerSuperficie)
+      : params?.ownerData?.superficie != null
+        ? String(params.ownerData.superficie)
+        : fromActivo
+          ? String(params?.fromActivoSba || '')
+          : '46956',
     uso: fromActivo ? (params?.fromActivoUso || '') : 'Oficinas',
     area: '',
     tipologia: 'Asset deal',
