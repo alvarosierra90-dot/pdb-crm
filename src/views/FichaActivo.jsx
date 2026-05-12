@@ -817,10 +817,11 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   }
 
   const createBuilding = () => {
-    const sobre=parseInt(newBldg.sobre)||0, bajo=parseInt(newBldg.bajo)||0
+    // 'sobre' incluye PB. Si el usuario indica 5 → PB + 4 plantas (5 total).
+    const sobre=Math.max(1, parseInt(newBldg.sobre)||1), bajo=parseInt(newBldg.bajo)||0
     const sup=parseFloat(newBldg.sup)||1500
     const floors=[]
-    for(let i=sobre;i>=1;i--) floors.push({id:`P${i}`,sup,principal:[],adicional:[]})
+    for(let i=sobre-1;i>=1;i--) floors.push({id:`P${i}`,sup,principal:[],adicional:[]})
     floors.push({id:'PB',sup,principal:[],adicional:[]})
     for(let i=1;i<=bajo;i++) floors.push({id:`S${i}`,sup,principal:[],adicional:[]})
     const newId=String.fromCharCode(65+buildings.length)
@@ -861,11 +862,13 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   /* ── Setup vacío ── */
   const createFirstBuilding = () => {
     const label = setupForm.label.trim() || defaultLabelRef.current || 'Edificio A'
+    // 'sobre' incluye la planta baja. Si el usuario indica 5, el edificio
+    // tiene 5 plantas sobre rasante = PB + 4 plantas superiores.
     const sobre = Math.max(1, parseInt(setupForm.sobre) || 1)
     const bajo  = Math.max(0, parseInt(setupForm.bajo)  || 0)
     const sup   = Math.max(100, parseFloat(setupForm.sup) || 1000)
     const floors = []
-    for (let i = sobre; i >= 1; i--) floors.push({ id: `P${i}`, sup, principal: [], adicional: [] })
+    for (let i = sobre - 1; i >= 1; i--) floors.push({ id: `P${i}`, sup, principal: [], adicional: [] })
     floors.push({ id: 'PB', sup, principal: [], adicional: [] })
     for (let i = 1; i <= bajo; i++) floors.push({ id: `S${i}`, sup, principal: [], adicional: [] })
     const id = 'A'
