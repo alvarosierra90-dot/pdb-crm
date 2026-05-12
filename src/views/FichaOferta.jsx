@@ -261,12 +261,12 @@ function FichaOfertaMock() {
   // tipo correspondiente con datos del activo vinculado prerrellenados.
   const handleStackingAddOwner = () => {
     if (!activoSeleccionado?.ref) return
+    // Solo info ESTRUCTURAL del activo. Resto queda 'por completar'.
     navigate('ficha-propietario', {
-      fromActivoRef: activoSeleccionado.ref,
-      fromActivoNombre: activoSeleccionado.nombre || '',
-      fromActivoZona: activoSeleccionado.zona || '',
-      fromActivoSba: activoSeleccionado.sba || 0,
-      fromOfertaRef: oferta?.ref,
+      fromActivoRef:        activoSeleccionado.ref,
+      fromActivoNombre:     activoSeleccionado.nombre    || '',
+      fromActivoDireccion:  activoSeleccionado.direccion || '',
+      fromOfertaRef:        oferta?.ref,
     })
   }
   const handleStackingAddTenant = () => {

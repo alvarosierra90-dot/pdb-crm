@@ -95,75 +95,92 @@ export default function FichaPropietario() {
   const [usos, setUsos] = useState(['Oficinas','Logístico / Industrial'])
   const toggleUso = (u) => setUsos(prev => prev.includes(u) ? prev.filter(x=>x!==u) : [...prev,u])
 
+  // Cuando fromActivo === true (alta desde stacking de un activo / oferta),
+  // solo heredamos la info ESTRUCTURAL del activo. Todo lo demás queda vacío
+  // con placeholder 'por completar'.
   const [form, setForm] = useState({
-    // Identificación. Si vienes del chip del stacking, ownerData trae al
-    // menos id + propietario; rellenamos la identificación con eso.
+    // Identificación
     id: params?.ownerData?.id || (fromActivo ? `PRO-${Date.now()}` : 'PRO-2501'),
     propietario: params?.ownerData?.propietario || (fromActivo ? '' : 'Merlín Properties SOCIMI'),
-    cif: 'A-86305997',
-    tipo_entidad: 'SOCIMI',
-    pais: 'España',
-    ciudad_sede: fromActivo ? '' : 'Madrid',
-    estado: 'Activo',
-    perfil: 'Core',
+    cif:           fromActivo ? '' : 'A-86305997',
+    tipo_entidad:  fromActivo ? '' : 'SOCIMI',
+    pais:          fromActivo ? '' : 'España',
+    ciudad_sede:   fromActivo ? '' : 'Madrid',
+    estado:        fromActivo ? '' : 'Activo',
+    perfil:        fromActivo ? '' : 'Core',
     asset_manager: fromActivo ? '' : 'Merlín Properties SOCIMI',
-    responsable: '',
-    email: fromActivo ? '' : 'ir@merlin-properties.com',
-    telefono: fromActivo ? '' : '+34 91 769 99 00',
+    responsable:   '',
+    email:         fromActivo ? '' : 'ir@merlin-properties.com',
+    telefono:      fromActivo ? '' : '+34 91 769 99 00',
     contacto_principal: fromActivo ? '' : 'Ismael Clemente (CEO)',
     observaciones: '',
 
-    // Activo vinculado
-    activo: fromActivo ? (params?.fromActivoNombre || '') : 'P.E Avalon',
-    zona: fromActivo ? (params?.fromActivoZona || '') : 'M-30',
-    subzona: '',
-    // Superficie: si vienes desde el chip del stacking, mostramos la
-    // superficie REAL asignada (suma de m² en plantas). Si vienes desde
-    // 'Nuevo propietario' del activo, mostramos el SBA total como placeholder.
+    // Activo vinculado — único bloque que se autocompleta
+    activo:           fromActivo ? (params?.fromActivoNombre    || '') : 'P.E Avalon',
+    activo_direccion: fromActivo ? (params?.fromActivoDireccion || '') : 'Calle Albasanz 16, 28037 Madrid',
+    zona:             fromActivo ? '' : 'M-30',
+    subzona:          '',
     superficie: params?.ownerSuperficie != null
       ? String(params.ownerSuperficie)
       : params?.ownerData?.superficie != null
         ? String(params.ownerData.superficie)
-        : fromActivo
-          ? String(params?.fromActivoSba || '')
-          : '46956',
-    uso: fromActivo ? (params?.fromActivoUso || '') : 'Oficinas',
-    area: '',
-    tipologia: 'Asset deal',
-    anyo_compra: fromActivo ? '' : '2018',
-    trimestre: fromActivo ? 'Q1' : 'Q3',
+        : fromActivo ? '' : '46956',
+    uso:           fromActivo ? '' : 'Oficinas',
+    area:          '',
+    tipologia:     fromActivo ? '' : 'Asset deal',
+    anyo_compra:   fromActivo ? '' : '2018',
+    trimestre:     fromActivo ? '' : 'Q3',
     precio_compra: '',
-    estado_activo: 'Ocupado',
-    regimen: 'Propiedad 100%',
+    estado_activo: fromActivo ? '' : 'Ocupado',
+    regimen:       fromActivo ? '' : 'Propiedad 100%',
     valoracion_actual: '',
     plusvalia_latente: '',
 
-    // Condiciones inversión
-    cap_rate: '5.1',
-    yield: '5.4',
-    tir_objetivo: '7.0',
-    horizonte_inv: '7',
-    estrategia: 'Hold',
-    cap_rate_compra: '7.2',
-    precio_m2_compra: '2769',
-    precio_m2_actual: '3088',
-    revalorizacion: '+11.5%',
-    nota_estrategia: 'Activo estabilizado con potencial de rotación de arrendatarios. Estrategia de captura de rentas y eventual desinversión en ciclo alcista.',
+    // Condiciones inversión — sin defaults ficticios cuando fromActivo
+    cap_rate:           fromActivo ? '' : '5.1',
+    yield:              fromActivo ? '' : '5.4',
+    tir_objetivo:       fromActivo ? '' : '7.0',
+    horizonte_inv:      fromActivo ? '' : '7',
+    estrategia:         fromActivo ? '' : 'Hold',
+    cap_rate_compra:    fromActivo ? '' : '7.2',
+    precio_m2_compra:   fromActivo ? '' : '2769',
+    precio_m2_actual:   fromActivo ? '' : '3088',
+    revalorizacion:     fromActivo ? '' : '+11.5%',
+    nota_estrategia:    fromActivo ? '' : 'Activo estabilizado con potencial de rotación de arrendatarios. Estrategia de captura de rentas y eventual desinversión en ciclo alcista.',
 
-    // Financiación
-    ltv: '45',
-    financiacion: '60',
-    banco: 'CaixaBank / BBVA (sindicado)',
-    tipo_deuda: 'Préstamo hipotecario',
-    vencimiento_deuda: '2028',
-    tipo_interes: 'EURIBOR + 175pb',
-    cobertura: 'IRS al 70%',
-    loan_amount: '58.5 M€',
-    dscr: '2.1x',
-    nota_financiacion: 'Deuda sindicada refinanciada en 2023. Covenant DSCR mínimo 1.5x cumplido holgadamente.',
+    // Financiación — sin defaults ficticios cuando fromActivo
+    ltv:               fromActivo ? '' : '45',
+    financiacion:      fromActivo ? '' : '60',
+    banco:             fromActivo ? '' : 'CaixaBank / BBVA (sindicado)',
+    tipo_deuda:        fromActivo ? '' : 'Préstamo hipotecario',
+    vencimiento_deuda: fromActivo ? '' : '2028',
+    tipo_interes:      fromActivo ? '' : 'EURIBOR + 175pb',
+    cobertura:         fromActivo ? '' : 'IRS al 70%',
+    loan_amount:       fromActivo ? '' : '58.5 M€',
+    dscr:              fromActivo ? '' : '2.1x',
+    nota_financiacion: fromActivo ? '' : 'Deuda sindicada refinanciada en 2023. Covenant DSCR mínimo 1.5x cumplido holgadamente.',
   })
 
   const set = (k,v) => setForm(p=>({...p,[k]:v}))
+
+  // ── Lupa: Propietario (cuenta) sobre dynamics_accounts ──
+  const [propSearch,  setPropSearch]  = useState('')
+  const [showPropDD,  setShowPropDD]  = useState(false)
+  const [propResults, setPropResults] = useState([])
+  useEffect(() => {
+    if (!propSearch || propSearch.length < 2) { setPropResults([]); return }
+    let cancel = false
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from('dynamics_accounts')
+        .select('dynamics_id, nombre, tipo, sector')
+        .ilike('nombre', `%${propSearch}%`)
+        .order('nombre')
+        .limit(10)
+      if (!cancel) setPropResults(data || [])
+    }, 200)
+    return () => { cancel = true; clearTimeout(t) }
+  }, [propSearch])
 
   const plusvaliaNum = form.valoracion_actual && form.precio_compra
     ? (() => {
@@ -420,12 +437,44 @@ export default function FichaPropietario() {
               <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,alignItems:'start'}}>
 
                 {/* Col 1: Propietario */}
-                <div className="va-meta-card">
+                <div className="va-meta-card" style={{ overflow:'visible' }}>
                   <div className="va-meta-head"><span className="dot"/>Propietario</div>
                   <div style={{padding:'10px 14px'}}>
                     <div className="kf-grid">
                       <KF label="ID" value={form.id} mono/>
-                      <KF label="Cuenta" value={form.propietario} set={(v)=>set('propietario',v)}/>
+                      <KF label="Propietario (cuenta)">
+                        {form.propietario ? (
+                          <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',background:'var(--accent-lt)',width:'100%'}}>
+                            <span style={{fontWeight:600,color:'var(--accent)',fontSize:12,flex:1}}>{form.propietario}</span>
+                            <button onClick={()=>set('propietario','')} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}}>✕</button>
+                          </div>
+                        ) : (
+                          <div style={{position:'relative'}}>
+                            <input
+                              className="kf-inp"
+                              placeholder="🔍 Buscar cuenta..."
+                              value={propSearch}
+                              onChange={e => { setPropSearch(e.target.value); setShowPropDD(true) }}
+                              onFocus={() => setShowPropDD(true)}
+                              onBlur={() => setTimeout(() => setShowPropDD(false), 200)}
+                              style={{ fontStyle: propSearch ? 'normal' : 'italic', width:'100%' }}
+                            />
+                            {showPropDD && propSearch.length >= 2 && (
+                              <div style={{position:'absolute',top:'100%',left:0,right:0,minWidth:280,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',boxShadow:'0 8px 24px rgba(0,0,0,.18)',zIndex:9999,maxHeight:240,overflowY:'auto',marginTop:2}}>
+                                {propResults.length === 0 ? (
+                                  <div style={{padding:'10px 12px',color:'var(--text4)',fontSize:11}}>Sin resultados</div>
+                                ) : propResults.map(a => (
+                                  <div key={a.dynamics_id} onMouseDown={() => { set('propietario', a.nombre); setPropSearch(''); setShowPropDD(false) }}
+                                    style={{padding:'7px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:11}}>
+                                    <div style={{fontWeight:600}}>{a.nombre}</div>
+                                    <div style={{color:'var(--text4)',fontSize:10,marginTop:2}}>{[a.tipo, a.sector].filter(Boolean).join(' · ') || a.dynamics_id}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </KF>
                       <KF label="CIF / NIF" value={form.cif} set={(v)=>set('cif',v)} mono/>
                       <KF label="Tipo entidad" value={form.tipo_entidad} set={(v)=>set('tipo_entidad',v)}/>
                       <KF label="País" value={form.pais} set={(v)=>set('pais',v)}/>
@@ -490,7 +539,14 @@ export default function FichaPropietario() {
                   <div style={{padding:'10px 14px'}}>
                     <div className="kf-grid">
                       <KF label="Activo">
-                        <span className="asset-link" style={{cursor:'pointer'}} onClick={()=>navigate('ficha-activo')}>{form.activo}</span>
+                        {form.activo
+                          ? <span className="asset-link" style={{cursor:'pointer'}} onClick={()=>navigate('ficha-activo', params?.fromActivoRef ? { ref: params.fromActivoRef } : undefined)}>{form.activo} ↗</span>
+                          : <span style={{fontStyle:'italic', color:'var(--text4)'}}>por completar</span>}
+                      </KF>
+                      <KF label="Dirección">
+                        {form.activo_direccion
+                          ? <span style={{ color:'var(--text2)' }}>{form.activo_direccion}</span>
+                          : <span style={{fontStyle:'italic', color:'var(--text4)'}}>por completar</span>}
                       </KF>
                       <KF label="Zona" value={form.zona} set={(v)=>set('zona',v)}/>
                       <KF label="Sub-zona" value={form.subzona} set={(v)=>set('subzona',v)}/>
@@ -925,20 +981,25 @@ function KpiMini({label,value,color}) {
   )
 }
 
-function KF({label,value,set,mono,suffix,extra,children}) {
+function KF({label,value,set,mono,suffix,extra,children,placeholder='por completar'}) {
   if (children) return (
     <div className="kf">
       <div className="rp-lbl">{label}</div>
       {children}
     </div>
   )
+  const empty = !value
   return (
     <div className="kf">
       <div className="rp-lbl">{label}</div>
       {set
-        ? <input className="kf-inp" value={value||''} onChange={e=>set(e.target.value)}
-            style={mono?{fontFamily:'var(--mono)'}:{}}/>
-        : <div className="kf-val" style={mono?{fontFamily:'var(--mono)'}:{}}>{value||'—'}{suffix&&<span style={{fontSize:10,marginLeft:3,color:'var(--text4)'}}>{suffix}</span>}{extra}</div>
+        ? <input className="kf-inp" placeholder={placeholder} value={value||''} onChange={e=>set(e.target.value)}
+            style={{ ...(mono?{fontFamily:'var(--mono)'}:{}), ...(empty?{fontStyle:'italic'}:{}) }}/>
+        : <div className="kf-val" style={{ ...(mono?{fontFamily:'var(--mono)'}:{}), ...(empty?{fontStyle:'italic',color:'var(--text4)'}:{}) }}>
+            {value || placeholder}
+            {value && suffix && <span style={{fontSize:10,marginLeft:3,color:'var(--text4)'}}>{suffix}</span>}
+            {extra}
+          </div>
       }
     </div>
   )
