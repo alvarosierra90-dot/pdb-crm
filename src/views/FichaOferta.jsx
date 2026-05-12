@@ -302,9 +302,43 @@ function FichaOfertaMock() {
   const [stackingExtraTenants, setStackingExtraTenants] = useState([])
 
   // Multimedia de la oferta (subconjunto del activo — borrar aquí no afecta al activo)
-  const [imagenesOferta, setImagenesOferta] = useState([])  // { id, src, desc, subtipo, tipo }
+  // Los items sincronizados llevan { synced:true, included:bool, principal:bool }
+  // para que el usuario pueda toggle qué imágenes aparecen en microsite/exportaciones.
+  const [imagenesOferta, setImagenesOferta] = useState([])  // { id, src, desc, subtipo, tipo, synced?, included?, principal? }
   const [planosOferta, setPlanosOferta] = useState([])
   const [showImportMedia, setShowImportMedia] = useState(false)
+  const [lastSyncAt, setLastSyncAt] = useState(null)
+
+  function syncImagenesFromActivo() {
+    const sourceMedia = activoSeleccionado?.media || MOCK_MEDIA_ACTIVO
+    if (!sourceMedia || sourceMedia.length === 0) {
+      alert('El activo vinculado no tiene imágenes disponibles para sincronizar.')
+      return
+    }
+    setImagenesOferta(prev => {
+      // Merge: mantén included previo si ya existía; nuevas entran included:true
+      const merged = sourceMedia.map(m => {
+        const existing = prev.find(p => p.id === m.id)
+        return {
+          ...m,
+          synced: true,
+          included: existing ? !!existing.included : true,
+          principal: m.principal ?? false,
+        }
+      })
+      // Si ninguna está marcada como principal, marcar la primera Fotografía
+      if (!merged.some(x => x.principal)) {
+        const firstPhoto = merged.find(x => x.tipo === 'Fotografía')
+        if (firstPhoto) firstPhoto.principal = true
+      }
+      return merged
+    })
+    setLastSyncAt(new Date())
+  }
+
+  function toggleImagenIncluded(id) {
+    setImagenesOferta(prev => prev.map(i => i.id === id ? { ...i, included: !i.included } : i))
+  }
 
   function addOferta() {
     if (pendingNewIds.length > 0) return  // hay una fila pendiente — bloquear hasta que se guarde
@@ -923,10 +957,97 @@ function FichaOfertaMock() {
                     <div className="va-card">
                       <div className="va-card-header">
                         <h3><span className="ico">◇</span> Imágenes</h3>
-                        <span className="hint">Vinculadas al activo</span>
+                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                          {lastSyncAt && (
+                            <span style={{ fontSize:9, color:'var(--text4)' }}>
+                              Sincronizado · {lastSyncAt.toLocaleString('es-ES', { dateStyle:'short', timeStyle:'short' })}
+                            </span>
+                          )}
+                          <button
+                            className="ab-btn blue"
+                            style={{ fontSize:10, padding:'4px 10px' }}
+                            disabled={!activoSeleccionado}
+                            onClick={syncImagenesFromActivo}
+                            title={!activoSeleccionado ? 'Vincula un activo primero' : ''}
+                          >
+                            ↻ {imagenesOferta.length === 0 ? 'Sincronizar con imágenes del activo' : 'Re-sincronizar'}
+                          </button>
+                        </div>
                       </div>
-                      <div style={{padding:'4px 20px 16px'}}>
-                        <div className="img-strip"><div className="img-thumb principal">🏢</div><div className="img-thumb">🏙</div><div className="img-thumb">🖼</div></div>
+                      <div style={{ padding:'4px 20px 16px' }}>
+                        {imagenesOferta.length === 0 ? (
+                          <div style={{ padding:'24px 16px', textAlign:'center', border:'2px dashed var(--border)', borderRadius:'var(--r2)', color:'var(--text4)', fontSize:11 }}>
+                            {activoSeleccionado
+                              ? 'Sin imágenes. Pulsa "Sincronizar con imágenes del activo" para importar las fotos del activo vinculado.'
+                              : 'Vincula un activo primero para poder sincronizar sus imágenes.'}
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8, fontSize:10 }}>
+                              <span style={{ color:'var(--text3)' }}>
+                                <strong style={{ color:'var(--text2)' }}>{imagenesOferta.filter(i => i.included).length}</strong> de {imagenesOferta.length} incluidas en la oferta
+                              </span>
+                              <span style={{ display:'flex', gap:10 }}>
+                                <button onClick={() => setImagenesOferta(prev => prev.map(i => ({ ...i, included:true })))}
+                                  style={{ fontSize:10, background:'none', border:'none', color:'var(--accent)', cursor:'pointer', padding:0, fontFamily:'inherit' }}>
+                                  Seleccionar todas
+                                </button>
+                                <button onClick={() => setImagenesOferta(prev => prev.map(i => ({ ...i, included:false })))}
+                                  style={{ fontSize:10, background:'none', border:'none', color:'var(--text4)', cursor:'pointer', padding:0, fontFamily:'inherit' }}>
+                                  Ninguna
+                                </button>
+                              </span>
+                            </div>
+                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(150px, 1fr))', gap:10 }}>
+                              {imagenesOferta.map(m => {
+                                const catColor = m.tipo === 'Plano'
+                                  ? { bg:'#fef3c7', text:'#92400e' }
+                                  : { bg:'#dbeafe', text:'#1e40af' }
+                                return (
+                                  <div key={m.id} style={{
+                                    position:'relative',
+                                    borderRadius:'var(--r)',
+                                    overflow:'hidden',
+                                    border:`1px solid ${m.included ? 'var(--accent-bd)' : 'var(--border)'}`,
+                                    background:'var(--surface)',
+                                    opacity: m.included ? 1 : 0.55,
+                                    transition:'opacity 0.15s ease, border-color 0.15s ease',
+                                  }}>
+                                    <div style={{ position:'relative' }}>
+                                      <img src={m.src} alt={m.desc} style={{ width:'100%', height:100, objectFit:'cover', display:'block' }} />
+                                      <label style={{ position:'absolute', top:6, left:6, background:'rgba(255,255,255,0.92)', borderRadius:4, padding:'2px 4px', display:'flex', alignItems:'center', gap:3, cursor:'pointer' }}>
+                                        <input
+                                          type="checkbox"
+                                          checked={!!m.included}
+                                          onChange={() => toggleImagenIncluded(m.id)}
+                                          style={{ accentColor:'var(--accent)', cursor:'pointer', width:13, height:13, margin:0 }}
+                                        />
+                                      </label>
+                                      {m.principal && (
+                                        <span style={{ position:'absolute', top:6, right:6, fontSize:8, fontWeight:700, background:'var(--accent)', color:'#fff', padding:'2px 6px', borderRadius:8, letterSpacing:0.3 }}>
+                                          ★ PRINCIPAL
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div style={{ padding:'6px 8px' }}>
+                                      <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:3, flexWrap:'wrap' }}>
+                                        <span style={{ fontSize:8, fontWeight:700, background:catColor.bg, color:catColor.text, padding:'1px 5px', borderRadius:6, whiteSpace:'nowrap' }}>
+                                          {m.subtipo || m.tipo}
+                                        </span>
+                                        {m.synced && (
+                                          <span style={{ fontSize:8, color:'var(--green)', fontWeight:600, display:'inline-flex', alignItems:'center', gap:2, whiteSpace:'nowrap' }} title="Sincronizada desde el activo">
+                                            ↻ Del activo
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div style={{ fontSize:10, color:'var(--text2)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.desc}</div>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
 
