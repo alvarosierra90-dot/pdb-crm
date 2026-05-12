@@ -321,45 +321,132 @@ function FinancieroTab() {
   )
 }
 
+// ── Filtro tipo Excel: popover con ordenación + lista de valores únicos
+// con checkboxes. Devuelve un Set de valores seleccionados (null = todos).
+function ExcelFilter({ values = [], selected, onChange, sortDir, onSort, isNumber, align = 'left' }) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const ref = useRef(null)
+
+  // Cerrar al hacer click fuera
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [open])
+
+  const unique = [...new Set(values.map(v => (v == null || v === '') ? '(Vacío)' : String(v)))].sort((a, b) => {
+    if (a === '(Vacío)') return 1
+    if (b === '(Vacío)') return -1
+    if (isNumber) return (Number(a) || 0) - (Number(b) || 0)
+    return a.localeCompare(b)
+  })
+  const visible = unique.filter(v => !search || v.toLowerCase().includes(search.toLowerCase()))
+  const allChecked = !selected || selected.size === 0 || selected.size === unique.length
+  const toggleAll = () => onChange(allChecked ? new Set() : new Set(unique))
+  const toggle = (v) => {
+    const ns = new Set(selected || unique)
+    if (ns.has(v)) ns.delete(v); else ns.add(v)
+    onChange(ns)
+  }
+  const active = selected && selected.size > 0 && selected.size < unique.length
+
+  return (
+    <span ref={ref} style={{ position:'relative', display:'inline-block', marginLeft:4 }}>
+      <button onClick={() => setOpen(o => !o)} title="Filtrar / ordenar"
+        style={{ background:active ? 'var(--accent)' : 'transparent', color:active ? '#fff' : 'var(--text3)', border:'none', borderRadius:3, width:18, height:18, fontSize:10, cursor:'pointer', padding:0, fontFamily:'inherit', lineHeight:1, display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
+        ▼
+      </button>
+      {open && (
+        <div style={{ position:'absolute', top:'calc(100% + 4px)', [align==='right'?'right':'left']:0, zIndex:3000, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6, boxShadow:'0 10px 28px rgba(0,0,0,.18)', width:220, padding:6 }}
+          onClick={e => e.stopPropagation()}>
+          <button onClick={() => { onSort('asc'); setOpen(false) }}
+            style={{ width:'100%', textAlign:'left', padding:'7px 10px', background:'none', border:'none', cursor:'pointer', fontSize:11, fontFamily:'inherit', borderRadius:4, color: sortDir === 'asc' ? 'var(--accent)' : 'var(--text)' }}>
+            {isNumber ? '↑ Menor a mayor' : '↑ Ordenar A → Z'} {sortDir === 'asc' && '✓'}
+          </button>
+          <button onClick={() => { onSort('desc'); setOpen(false) }}
+            style={{ width:'100%', textAlign:'left', padding:'7px 10px', background:'none', border:'none', cursor:'pointer', fontSize:11, fontFamily:'inherit', borderRadius:4, color: sortDir === 'desc' ? 'var(--accent)' : 'var(--text)' }}>
+            {isNumber ? '↓ Mayor a menor' : '↓ Ordenar Z → A'} {sortDir === 'desc' && '✓'}
+          </button>
+          <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0' }}/>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar…"
+            style={{ width:'100%', padding:'5px 8px', fontSize:11, border:'1px solid var(--border)', borderRadius:4, fontFamily:'inherit', boxSizing:'border-box', marginBottom:4 }} />
+          <label style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 4px', fontSize:11, cursor:'pointer', fontWeight:600 }}>
+            <input type="checkbox" checked={allChecked} onChange={toggleAll}/>
+            (Seleccionar todo)
+          </label>
+          <div style={{ maxHeight:180, overflowY:'auto', borderTop:'1px solid var(--border)', paddingTop:4 }}>
+            {visible.map(v => (
+              <label key={v} style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 4px', fontSize:11, cursor:'pointer' }}>
+                <input type="checkbox" checked={!selected || selected.has(v)} onChange={() => toggle(v)} />
+                <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>{v}</span>
+              </label>
+            ))}
+            {visible.length === 0 && <div style={{ padding:6, fontSize:10, color:'var(--text4)' }}>Sin coincidencias</div>}
+          </div>
+          <div style={{ display:'flex', justifyContent:'flex-end', gap:6, marginTop:6 }}>
+            <button onClick={() => onChange(new Set())} style={{ fontSize:10, background:'none', border:'1px solid var(--border)', padding:'4px 8px', borderRadius:4, cursor:'pointer', fontFamily:'inherit' }}>Limpiar</button>
+            <button onClick={() => setOpen(false)} style={{ fontSize:10, background:'var(--accent)', color:'#fff', border:'none', padding:'4px 10px', borderRadius:4, cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>Aceptar</button>
+          </div>
+        </div>
+      )}
+    </span>
+  )
+}
+
 // ── Listado de activos para Overview (debajo del mapa, numerado igual)
-// con encabezados clicables (ordenación) y filtros por columna.
+// con encabezados con filtro Excel (ordenar + checkboxes).
 function OverviewActivosList({ activos = [], onClickActivo }) {
   const [sortKey, setSortKey] = useState('idx')
   const [sortDir, setSortDir] = useState('asc')
-  const [filters, setFilters] = useState({ direccion:'', provincia:'', uso:'', sba:'' })
+  // Filtros tipo Excel: por columna, un Set con los valores aceptados.
+  // null o vacío = todos.
+  const [filters, setFilters] = useState({})
 
-  const toggleSort = (k) => {
-    if (sortKey === k) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    else { setSortKey(k); setSortDir('asc') }
+  const setColFilter = (col, set) => setFilters(f => ({ ...f, [col]: set }))
+  const onSort = (col, dir) => { setSortKey(col); setSortDir(dir) }
+
+  const accessors = {
+    direccion: a => a.direccion || a.nombre || '',
+    provincia: a => a.provincia || a.ciudad || '',
+    uso:       a => a.uso || '',
+    sba:       a => Number(a.sba) || Number(a.m2_totales) || 0,
   }
-
   const indexed = activos.map((a, i) => ({ ...a, _idx: i + 1 }))
-  const filtered = indexed.filter(a => {
-    if (filters.direccion && !(a.direccion || '').toLowerCase().includes(filters.direccion.toLowerCase())) return false
-    if (filters.provincia && !((a.provincia || a.ciudad || '')).toLowerCase().includes(filters.provincia.toLowerCase())) return false
-    if (filters.uso       && !(a.uso || '').toLowerCase().includes(filters.uso.toLowerCase())) return false
-    if (filters.sba) {
-      const sba = Number(a.sba) || Number(a.m2_totales) || 0
-      const n = Number(filters.sba)
-      if (!isNaN(n) && sba < n) return false
-    }
-    return true
-  })
+  const passes = (a, col) => {
+    const sel = filters[col]
+    if (!sel || sel.size === 0) return true
+    const v = accessors[col](a)
+    const s = (v == null || v === '') ? '(Vacío)' : String(v)
+    return sel.has(s)
+  }
+  const filtered = indexed.filter(a => ['direccion','provincia','uso','sba'].every(c => passes(a, c)))
   const sorted = [...filtered].sort((a, b) => {
-    const va = sortKey === 'idx' ? a._idx
-      : sortKey === 'sba' ? (Number(a.sba) || Number(a.m2_totales) || 0)
-      : (a[sortKey] || '').toString().toLowerCase()
-    const vb = sortKey === 'idx' ? b._idx
-      : sortKey === 'sba' ? (Number(b.sba) || Number(b.m2_totales) || 0)
-      : (b[sortKey] || '').toString().toLowerCase()
-    if (va < vb) return sortDir === 'asc' ? -1 : 1
-    if (va > vb) return sortDir === 'asc' ? 1 : -1
+    const isNum = sortKey === 'sba' || sortKey === 'idx'
+    const va = sortKey === 'idx' ? a._idx : accessors[sortKey]?.(a)
+    const vb = sortKey === 'idx' ? b._idx : accessors[sortKey]?.(b)
+    const xa = isNum ? Number(va) : (va || '').toString().toLowerCase()
+    const xb = isNum ? Number(vb) : (vb || '').toString().toLowerCase()
+    if (xa < xb) return sortDir === 'asc' ? -1 : 1
+    if (xa > xb) return sortDir === 'asc' ? 1 : -1
     return 0
   })
 
-  const SortHd = ({ k, label, w }) => (
-    <th onClick={() => toggleSort(k)} style={{ textAlign:'left', padding:'7px 12px', fontSize:10, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', cursor:'pointer', userSelect:'none', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap', width:w }}>
-      {label} <span style={{ fontSize:8, opacity:0.5 }}>{sortKey === k ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}</span>
+  const Hd = ({ col, label, w, isNumber, align }) => (
+    <th style={{ textAlign:align||'left', padding:'7px 12px', fontSize:10, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap', width:w, background:'var(--gray-lt)' }}>
+      <span style={{ display:'inline-flex', alignItems:'center', gap:2 }}>
+        {label}
+        <ExcelFilter
+          values={indexed.map(accessors[col])}
+          selected={filters[col]}
+          onChange={(s) => setColFilter(col, s)}
+          sortDir={sortKey === col ? sortDir : null}
+          onSort={(dir) => onSort(col, dir)}
+          isNumber={isNumber}
+          align={align === 'right' ? 'right' : 'left'}
+        />
+      </span>
     </th>
   )
 
@@ -368,22 +455,15 @@ function OverviewActivosList({ activos = [], onClickActivo }) {
       <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:8 }}>
         <span style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.08em' }}>Listado de edificios ({sorted.length} de {activos.length})</span>
       </div>
-      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r2)', overflow:'hidden' }}>
+      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r2)', overflow:'visible' }}>
         <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
           <thead>
-            <tr style={{ background:'var(--gray-lt)' }}>
-              <SortHd k="idx"       label="#"             w="48" />
-              <SortHd k="direccion" label="Dirección"     />
-              <SortHd k="provincia" label="Provincia"     />
-              <SortHd k="uso"       label="Uso principal" />
-              <SortHd k="sba"       label="SBA (m²)"      w="120" />
-            </tr>
-            <tr style={{ background:'var(--surface)', borderBottom:'1px solid var(--border)' }}>
-              <td style={{ padding:'5px 12px' }}></td>
-              <td style={{ padding:'5px 12px' }}><input value={filters.direccion} onChange={e => setFilters(f => ({ ...f, direccion:e.target.value }))} placeholder="Filtrar..." style={inpStyle} /></td>
-              <td style={{ padding:'5px 12px' }}><input value={filters.provincia} onChange={e => setFilters(f => ({ ...f, provincia:e.target.value }))} placeholder="Filtrar..." style={inpStyle} /></td>
-              <td style={{ padding:'5px 12px' }}><input value={filters.uso}       onChange={e => setFilters(f => ({ ...f, uso:e.target.value }))}       placeholder="Filtrar..." style={inpStyle} /></td>
-              <td style={{ padding:'5px 12px' }}><input value={filters.sba}       onChange={e => setFilters(f => ({ ...f, sba:e.target.value }))}       placeholder="≥ m²"        style={{ ...inpStyle, fontFamily:'var(--mono)', textAlign:'right' }} /></td>
+            <tr>
+              <th style={{ textAlign:'left', padding:'7px 12px', fontSize:10, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap', width:48, background:'var(--gray-lt)' }}>#</th>
+              <Hd col="direccion" label="Dirección"     />
+              <Hd col="provincia" label="Provincia"     />
+              <Hd col="uso"       label="Uso principal" />
+              <Hd col="sba"       label="SBA (m²)"      w={120} isNumber align="right" />
             </tr>
           </thead>
           <tbody>
@@ -417,37 +497,28 @@ function ExpandBtn({ onClick }) {
   )
 }
 
-// Modal de expansión — vista grande con filtros multi-columna
+// Modal de expansión — vista grande con filtros Excel multi-columna
 function ExpandModal({ open, onClose, title, items = [], columns = [], onRowClick }) {
-  const [filters, setFilters] = useState({})
+  const [filters, setFilters] = useState({}) // { col: Set<string> }
   const [sortKey, setSortKey] = useState(null)
   const [sortDir, setSortDir] = useState('asc')
   if (!open) return null
 
-  const toggleSort = (k) => {
-    if (sortKey === k) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    else { setSortKey(k); setSortDir('asc') }
-  }
+  const getRaw = (c, it) => c.accessor ? c.accessor(it) : it[c.key]
+  const toStr = (v) => (v == null || v === '') ? '(Vacío)' : String(v)
 
-  const filtered = items.filter(it => {
-    return columns.every(c => {
-      const f = (filters[c.key] || '').toString().trim()
-      if (!f) return true
-      const val = (c.accessor ? c.accessor(it) : it[c.key] || '').toString().toLowerCase()
-      if (c.type === 'number') {
-        const n = Number(f)
-        const v = Number(c.accessor ? c.accessor(it) : it[c.key]) || 0
-        return isNaN(n) || v >= n
-      }
-      return val.includes(f.toLowerCase())
-    })
-  })
+  const filtered = items.filter(it => columns.every(c => {
+    const sel = filters[c.key]
+    if (!sel || sel.size === 0) return true
+    return sel.has(toStr(getRaw(c, it)))
+  }))
   const sorted = sortKey
     ? [...filtered].sort((a, b) => {
         const col = columns.find(c => c.key === sortKey)
-        const va = col?.accessor ? col.accessor(a) : a[sortKey]
-        const vb = col?.accessor ? col.accessor(b) : b[sortKey]
-        const isNum = col?.type === 'number'
+        if (!col) return 0
+        const va = getRaw(col, a)
+        const vb = getRaw(col, b)
+        const isNum = col.type === 'number'
         const xa = isNum ? (Number(va) || 0) : (va || '').toString().toLowerCase()
         const xb = isNum ? (Number(vb) || 0) : (vb || '').toString().toLowerCase()
         if (xa < xb) return sortDir === 'asc' ? -1 : 1
@@ -462,25 +533,29 @@ function ExpandModal({ open, onClose, title, items = [], columns = [], onRowClic
         <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <div>
             <div style={{ fontSize:15, fontWeight:700 }}>{title}</div>
-            <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>{sorted.length} de {items.length}</div>
+            <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>{sorted.length} de {items.length} · filtros Excel-style en cada columna</div>
           </div>
           <button onClick={onClose} style={{ background:'none', border:'none', fontSize:20, cursor:'pointer', color:'var(--text3)', lineHeight:1 }}>×</button>
         </div>
-        <div style={{ flex:1, overflowY:'auto', padding:'12px 20px 20px' }}>
+        <div style={{ flex:1, overflow:'auto', padding:'12px 20px 20px' }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
             <thead>
               <tr style={{ background:'var(--gray-lt)' }}>
-                {columns.map(c => (
-                  <th key={c.key} onClick={() => toggleSort(c.key)} style={{ textAlign:'left', padding:'8px 12px', fontSize:10, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', cursor:'pointer', userSelect:'none', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' }}>
-                    {c.label} <span style={{ fontSize:8, opacity:0.5 }}>{sortKey === c.key ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}</span>
+                {columns.map((c, idx) => (
+                  <th key={c.key} style={{ textAlign:c.cellStyle?.textAlign || 'left', padding:'8px 12px', fontSize:10, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', userSelect:'none', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' }}>
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:2 }}>
+                      {c.label}
+                      <ExcelFilter
+                        values={items.map(it => getRaw(c, it))}
+                        selected={filters[c.key]}
+                        onChange={(s) => setFilters(f => ({ ...f, [c.key]:s }))}
+                        sortDir={sortKey === c.key ? sortDir : null}
+                        onSort={(dir) => { setSortKey(c.key); setSortDir(dir) }}
+                        isNumber={c.type === 'number'}
+                        align={idx >= columns.length - 1 ? 'right' : 'left'}
+                      />
+                    </span>
                   </th>
-                ))}
-              </tr>
-              <tr style={{ background:'var(--surface)', borderBottom:'1px solid var(--border)' }}>
-                {columns.map(c => (
-                  <td key={c.key} style={{ padding:'5px 12px' }}>
-                    <input value={filters[c.key] || ''} onChange={e => setFilters(f => ({ ...f, [c.key]:e.target.value }))} placeholder={c.type === 'number' ? '≥ valor' : 'Filtrar...'} style={inpStyle} />
-                  </td>
                 ))}
               </tr>
             </thead>
@@ -997,6 +1072,17 @@ export default function PortfolioFicha() {
                             ))}
                         </tbody>
                       </table>
+                    </div>
+                  </div>
+
+                  {/* Instrucciones — a la derecha de Oportunidades (orden visual) */}
+                  <div className="va-card" style={{ margin:0 }}>
+                    <div className="va-card-header">
+                      <h3>Instrucciones <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>0</span></h3>
+                      <ExpandBtn onClick={() => setExpanded('instrucciones')} />
+                    </div>
+                    <div style={{ padding:'16px', textAlign:'center', color:'var(--text4)', fontSize:11, fontStyle:'italic' }}>
+                      Instrucciones (dynamics_instructions) vinculadas a la cuenta del portfolio aparecerán aquí.
                     </div>
                   </div>
 
