@@ -410,7 +410,7 @@ function FichaPropuestaMock() {
                                 </div>
                                 {a.direccion && <div style={{ fontSize:10, color:'var(--text3)', marginTop:3 }}>📍 {a.direccion}{a.ciudad && a.direccion?.indexOf(a.ciudad) === -1 ? `, ${a.ciudad}` : ''}</div>}
                                 <div style={{ display:'flex', gap:12, marginTop:4, fontSize:10 }}>
-                                  {a.uso && <div><span style={{ color:'var(--text4)' }}>Uso · </span><span style={{ color:'var(--text), fontWeight:500' }}>{a.uso}</span></div>}
+                                  {a.uso && <div><span style={{ color:'var(--text4)' }}>Uso · </span><span style={{ color:'var(--text)', fontWeight:500 }}>{a.uso}</span></div>}
                                   {a.sba != null && <div><span style={{ color:'var(--text4)' }}>SBA · </span><span style={{ fontFamily:'var(--mono)', fontWeight:600 }}>{Number(a.sba).toLocaleString('es-ES')} m²</span></div>}
                                 </div>
                               </div>
@@ -676,7 +676,7 @@ function FichaPropuestaMock() {
                       {label:'Línea de negocio', val:form.linea},
                       {label:'Estado', val:form.estado, color:ESTADO_COLOR[form.estado]},
                       {label:'Empresa', val:form.empresa},
-                      {label:'Activos', val:activos.length>0?activos.join(', '):'—'},
+                      {label:'Activos', val:activos.length>0?activos.map(a=>a.nombre).join(', '):'—'},
                       {label:'Demanda', val:form.demanda||'—', mono:true},
                       {label:'Ofertas', val:ofertas.length>0?ofertas.join(', '):'—', mono:true},
                       {label:'Creado por', val:form.creado_por},
@@ -792,8 +792,8 @@ function FichaPropuestaMock() {
                 ) : (
                   <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
                     {activos.map((a,i) => (
-                      <div key={i} onClick={() => navigate('ficha-activo')} style={{ fontSize:11, color:'var(--text)', cursor:'pointer' }}>
-                        🏛 <span style={{ textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{a}</span>
+                      <div key={i} onClick={() => navigate('ficha-activo', a.ref ? { ref:a.ref } : undefined)} style={{ fontSize:11, color:'var(--text)', cursor:'pointer' }}>
+                        🏛 <span style={{ textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{a.nombre}</span>
                       </div>
                     ))}
                   </div>
