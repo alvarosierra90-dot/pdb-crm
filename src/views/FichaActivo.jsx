@@ -3,6 +3,8 @@ import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import BajaArrendatarioModal from '../components/BajaArrendatarioModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
+import AltaPropietarioModal from '../components/AltaPropietarioModal'
+import AltaArrendatarioModal from '../components/AltaArrendatarioModal'
 import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
 import { supabase } from '../lib/supabase'
 import {
@@ -3853,6 +3855,7 @@ export default function FichaActivo() {
   const [ofertas, setOfertas] = useState([])
   const [loadingOfertas, setLoadingOfertas] = useState(false)
   const [bajaArr, setBajaArr] = useState(null) // { unit, doRemove, activo }
+  const [showAltaPropietario, setShowAltaPropietario] = useState(false)
 
   const navigateToFichaProp = (substituteOwner = false) => {
     const previousOwner = propietariosReg[0]?.propietario || activo?.propietario || null
@@ -3868,22 +3871,65 @@ export default function FichaActivo() {
   }
 
   const handleAddOwner = () => {
+    // Si ya hay propietario en este activo, pide confirmación (sustitución).
+    // Si no, abre el modal de alta rápida (lupa cuenta + campos mínimos).
     const hasOwner = propietariosReg.length > 0 || activo?.propietario
     if (hasOwner) {
       setShowSubstConfirm(true)
     } else {
-      navigateToFichaProp(false)
+      setShowAltaPropietario(true)
     }
   }
 
+  // Callback del modal AltaPropietarioModal: registra el propietario en local
+  // state (propietariosReg) para que aparezca en el panel lateral del stacking
+  // y se pueda arrastrar a las plantas. La superficie se completa al hacer drop.
+  const handlePropietarioCreado = (propietario) => {
+    setPropietariosReg(prev => [...prev, {
+      id: propietario.id,
+      propietario: propietario.propietario,
+      dynamics_id: propietario.dynamics_id,
+      desconocido: propietario.desconocido,
+      anyo_firma: propietario.anyo_firma,
+      trimestre: propietario.trimestre,
+      perfil_inversor: propietario.perfil_inversor,
+      estrategia: propietario.estrategia,
+      horizonte_inv: propietario.horizonte_inv,
+      cap_rate: propietario.cap_rate,
+      notas: propietario.notas,
+      activo_ref: propietario.activo_ref,
+    }])
+    setShowAltaPropietario(false)
+  }
+
+  const [showAltaArrendatario, setShowAltaArrendatario] = useState(false)
+
   const handleAddTenant = () => {
-    navigate('ficha-arrendatario', {
-      fromActivoRef: activo?.ref || params?.ref,
-      fromActivoNombre: activo?.nombre || '',
-      fromActivoZona: activo?.zona || '',
-      fromActivoSba: activo?.sba || 0,
-      fromActivoPropietario: propietariosReg[0]?.propietario || activo?.propietario || '',
-    })
+    // Abre modal de alta rápida (lupa cuenta + obligatorios). La superficie
+    // se asigna luego arrastrando en el stacking.
+    setShowAltaArrendatario(true)
+  }
+
+  const handleArrendatarioCreado = (arr) => {
+    setArrendatariosReg(prev => [...prev, {
+      id: arr.id,
+      ref: arr.id,
+      tenant: arr.tenant,
+      nombre: arr.tenant,
+      dynamics_id: arr.dynamics_id,
+      tenant_desconocido: arr.tenant_desconocido,
+      anyo_firma: arr.anyo_firma,
+      trimestre: arr.trimestre,
+      fecha_inicio: arr.fecha_inicio,
+      recordatorio: arr.recordatorio,
+      renta_m2: arr.renta_m2,
+      renta_mensual: arr.renta_mensual,
+      break_option: arr.break_option,
+      fecha_fin: arr.fecha_fin,
+      notas: arr.notas,
+      activo_ref: arr.activo_ref,
+    }])
+    setShowAltaArrendatario(false)
   }
 
   const [plazas, setPlazas]             = useState([])
@@ -5654,6 +5700,24 @@ export default function FichaActivo() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal: alta rápida de propietario desde stacking (con lupa cuenta) */}
+      {showAltaPropietario && (
+        <AltaPropietarioModal
+          activoRef={activo?.ref}
+          onClose={() => setShowAltaPropietario(false)}
+          onSave={handlePropietarioCreado}
+        />
+      )}
+
+      {/* Modal: alta rápida de arrendatario desde stacking (con lupa cuenta) */}
+      {showAltaArrendatario && (
+        <AltaArrendatarioModal
+          activoRef={activo?.ref}
+          onClose={() => setShowAltaArrendatario(false)}
+          onSave={handleArrendatarioCreado}
+        />
       )}
 
       {showTarea && <AsignarTareaModal refTipo="Activo" refNombre="P.E Avalon" onClose={() => setShowTarea(false)} />}
