@@ -3882,6 +3882,16 @@ export default function FichaActivo() {
   const [compResults, setCompResults]   = useState([])
   const [compError, setCompError]       = useState(null)
   const [editMotivosFor, setEditMotivosFor] = useState(null) // id de competidor con el picker abierto
+  // Motivos editables por sugerencia ANTES de añadir. Empieza con los auto-detectados.
+  // Mapa { sugerencia_activo_id: motivos[] }
+  const [sugMotivos, setSugMotivos] = useState({})
+  const getSugMotivos = (sug) => sugMotivos[sug.competidor?.id] !== undefined ? sugMotivos[sug.competidor.id] : sug.motivos
+  const toggleSugMotivo = (sug, m) => {
+    const current = getSugMotivos(sug)
+    const has = current.includes(m)
+    const next = has ? current.filter(x => x !== m) : [...current, m]
+    setSugMotivos(prev => ({ ...prev, [sug.competidor.id]: next }))
+  }
 
   // Catálogo canónico de motivos (consistente con migración 028).
   const MOTIVO_CATALOG = [
@@ -4905,18 +4915,23 @@ export default function FichaActivo() {
                             </div>
 
                             <div>
-                              <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:5}}>Motivos detectados</div>
+                              <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:5}}>Motivos (toggle antes de añadir)</div>
                               <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                                {c.motivos.length > 0
-                                  ? c.motivos.map(m => <span key={m} style={{fontSize:10,padding:'3px 8px',borderRadius:10,background:'var(--gray-lt)',color:'var(--text2)',fontWeight:600,border:'1px solid var(--border)'}}>{m}</span>)
-                                  : <span style={{fontSize:10,color:'var(--text4)',fontStyle:'italic'}}>Sin coincidencias detectadas</span>}
+                                {MOTIVO_CATALOG.map(m => {
+                                  const sel = getSugMotivos(c).includes(m)
+                                  const auto = c.motivos.includes(m) // auto-detectado
+                                  return (
+                                    <span key={m} onClick={()=>toggleSugMotivo(c, m)} style={{fontSize:10,padding:'3px 8px',borderRadius:10,cursor:'pointer',background:sel?'var(--accent)':auto?'#fef3c7':'var(--surface)',color:sel?'#fff':auto?'#92400e':'var(--text3)',fontWeight:sel||auto?700:500,border:`1px solid ${sel?'var(--accent)':auto?'#fde68a':'var(--border)'}`,userSelect:'none'}}>{m}</span>
+                                  )
+                                })}
                               </div>
+                              <div style={{fontSize:9,color:'var(--text4)',marginTop:6,fontStyle:'italic'}}>Amarillo = detectado automáticamente · Azul = seleccionado por ti</div>
                             </div>
                           </div>
 
                           <div style={{padding:'8px 14px',borderTop:'1px solid var(--border)',background:'var(--gray-lt)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                            <span style={{fontSize:10,color:'var(--text4)'}}>Score: {c.score}/6</span>
-                            <button onClick={()=>addCompetidor(a, c.motivos)} style={{background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,padding:'4px 12px',cursor:'pointer',fontSize:11,fontFamily:'inherit',fontWeight:700}}>+ Añadir</button>
+                            <span style={{fontSize:10,color:'var(--text4)'}}>{getSugMotivos(c).length} motivo{getSugMotivos(c).length===1?'':'s'} · Score auto: {c.score}/6</span>
+                            <button onClick={()=>addCompetidor(a, getSugMotivos(c))} style={{background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,padding:'4px 12px',cursor:'pointer',fontSize:11,fontFamily:'inherit',fontWeight:700}}>+ Añadir</button>
                           </div>
                         </div>
                       )
