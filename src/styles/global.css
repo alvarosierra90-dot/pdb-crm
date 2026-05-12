@@ -1324,7 +1324,11 @@ tr:hover .ra-cell { opacity: 1; }
   font-weight: 700;
 }
 
-.sp-body { display: grid; grid-template-columns: 200px 1fr; gap: 20px; }
+.sp-body { display: grid; grid-template-columns: 220px 1fr; gap: 20px; align-items: start; }
+
+/* Sidebar sticky: queda visible aunque hagas scroll en plantas. Soluciona el
+   problema de 'no puedo arrastrar un uso de abajo a una planta de arriba'. */
+.sp-sidebar { position: sticky; top: 12px; align-self: start; max-height: calc(100vh - 100px); overflow-y: auto; padding-right: 4px; }
 
 .sp-section-label {
   font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
@@ -1332,11 +1336,13 @@ tr:hover .ra-cell { opacity: 1; }
 }
 .sp-sidebar .sp-section-label + .sp-section-label { margin-top: 16px; }
 
+/* Chips más compactos: cabe ~25% más usos sin scroll. */
 .sp-chip {
   background: var(--surface, #fff); border: 1px solid var(--line, #e5e7eb);
-  border-radius: var(--radius, 10px); padding: 8px 10px; margin-bottom: 6px;
-  display: flex; align-items: center; gap: 8px; cursor: grab;
+  border-radius: 6px; padding: 5px 8px; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 6px; cursor: grab;
   transition: box-shadow 120ms ease, transform 120ms ease; user-select: none;
+  font-size: 11px;
 }
 .sp-chip:hover { box-shadow: 0 1px 4px rgba(11,18,32,.08); transform: translateY(-1px); }
 .sp-chip:active { cursor: grabbing; }

@@ -1351,18 +1351,26 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     <div key={o.key} draggable className="sp-chip"
                       onDragStart={()=>setDragging(dragKey)}
                       onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                      onClick={(e) => {
+                        // Click sin drag → navega a la ficha del propietario.
+                        // Si era un drag, el browser no dispara onClick.
+                        if (dragging) return
+                        spNavigate('ficha-propietario', { ownerData: { id: o.id, propietario: o.name } })
+                      }}
+                      title={`Ver ficha de ${o.name}`}
                       style={{
                         border:`1px solid ${dragging===dragKey?col:col+'88'}`,background:col+'18',
                         opacity:dragging&&dragging!==dragKey?.4:1,
                         boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
+                        cursor: 'pointer',
                       }}
                     >
                       <span className="sp-chip-handle">⋮⋮</span>
                       <span className="sp-chip-dot" style={{background:col}}/>
                       <div className="sp-chip-detail">
-                        <span className="sp-chip-label" style={{color:col}}>
+                        <span className="sp-chip-label" style={{color:col,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>
                           {o.name}
-                          {dupName && o.id && <span style={{ marginLeft:4, fontSize:8, color:col, opacity:0.7, fontWeight:500 }}>· {o.id.slice(-6)}</span>}
+                          {dupName && o.id && <span style={{ marginLeft:4, fontSize:8, color:col, opacity:0.7, fontWeight:500, textDecoration:'none' }}>· {o.id.slice(-6)}</span>}
                         </span>
                         <div className="sp-chip-meta">{m2 ? m2.toLocaleString('es-ES') : 0} m²</div>
                       </div>
@@ -1563,17 +1571,23 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     <div key={t.key} draggable className="sp-chip"
                       onDragStart={()=>setDragging(dragKey)}
                       onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                      onClick={(e) => {
+                        if (dragging) return
+                        spNavigate('ficha-arrendatario', { tenantName: t.name, tenantRef: t.ref })
+                      }}
+                      title={`Ver ficha de ${t.name}`}
                       style={{
                         border:`1px solid ${col}88`,background:col+'18',
                         opacity:dragging&&dragging!==dragKey?.4:1,
                         boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
+                        cursor: 'pointer',
                       }}
                     >
                       <span className="sp-chip-handle">⋮⋮</span>
                       <span className="sp-chip-dot" style={{background:col}}/>
-                      <span className="sp-chip-label" style={{color:col,fontWeight:600}}>
+                      <span className="sp-chip-label" style={{color:col,fontWeight:600,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>
                         {t.name}
-                        {dupName && t.ref && <span style={{ marginLeft:4, fontSize:8, color:col, opacity:0.7, fontWeight:500 }}>· {t.ref.slice(-6)}</span>}
+                        {dupName && t.ref && <span style={{ marginLeft:4, fontSize:8, color:col, opacity:0.7, fontWeight:500, textDecoration:'none' }}>· {t.ref.slice(-6)}</span>}
                       </span>
                     </div>
                   )
@@ -1591,12 +1605,17 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                       return (
                         <div key={ofr.id} draggable
                           className="sp-offer-card"
-                          style={{borderLeftColor:col,opacity:dragging&&dragging!==dragKey?0.4:1}}
+                          style={{borderLeftColor:col,opacity:dragging&&dragging!==dragKey?0.4:1,cursor:'pointer'}}
                           onDragStart={()=>setDragging(dragKey)}
                           onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                          onClick={(e) => {
+                            if (dragging) return
+                            spNavigate('ficha-oferta', { ofertaRef: ofr.ref || ofr.id || ofr.nombre })
+                          }}
+                          title={`Ver ficha de ${ofr.nombre}`}
                         >
-                          <div className="sp-offer-name" style={{color:col}}>{ofr.nombre}</div>
-                          <div className="sp-offer-meta">Arrastra para asignar plantas</div>
+                          <div className="sp-offer-name" style={{color:col,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>{ofr.nombre}</div>
+                          <div className="sp-offer-meta">Click para ver · arrastra para asignar plantas</div>
                         </div>
                       )
                     })
@@ -4491,8 +4510,8 @@ export default function FichaActivo() {
 
           {/* ── TAB: Stacking Plan — always mounted to preserve state ── */}
           <div className="tab-content active" style={activeTab !== 'at-stacking' ? {display:'none'} : undefined}>
-            <div className="info-pad">
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+            <div className="info-pad" style={{paddingTop:24}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:22}}>
                 <div>
                   <div style={{fontSize:14,fontWeight:600}}>Stacking Plan</div>
                   <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Distribución de usos, propietarios y arrendatarios por planta y edificio</div>
