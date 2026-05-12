@@ -88,41 +88,44 @@ export default function FichaArrendatario() {
   const fromDarBaja = !!params?.arrRef
   const isNew = (fromOferta || fromActivo) && !fromDarBaja
 
+  // Form 100% vacío — nada de defaults ficticios. El usuario rellena todo.
+  // Solo dejamos `color` con un valor visual base (no es un campo de negocio).
   const EMPTY_FORM = {
     activo: '',
+    activo_direccion: '',
     persona_fisica: false,
     tenant_desconocido: false,
     tenant: '',
     tenant_mayoritario: '',
     propietario: '',
-    anyo_firma: String(new Date().getFullYear()),
-    trimestre: 'Q1',
+    anyo_firma: '',
+    trimestre: '',
     superficie: '',
     asking_rent: '',
     closing_rent: '',
     renta_mensual: '',
     meses_carencia: '',
-    plazas_int: '0',
-    plazas_ext: '0',
-    precio_int: '0',
-    precio_ext: '0',
-    agente_activo: 'Sierra Alvaro',
+    plazas_int: '',
+    plazas_ext: '',
+    precio_int: '',
+    precio_ext: '',
+    agente_activo: '',
     agente_pasivo: '',
     aportacion_obras_m2: '',
     aportacion_total: '',
-    tipo_contrato: 'Alquiler comercial',
+    tipo_contrato: '',
     anios_obligado: '',
     anios_obligado_2: '',
     fecha_inicio: '',
     break_option: '',
     fecha_fin: '',
     fecha_salida: '',
-    meses_recordatorio: '3',
+    meses_recordatorio: '',
     color: '#3b82f6',
-    estado: 'Activo',
-    responsable: 'Sierra Alvaro',
-    sector: 'Tecnología',
-    area: 'Periferia',
+    estado: '',
+    responsable: '',
+    sector: '',
+    area: '',
     zona: '',
     subzona: '',
   }
@@ -130,22 +133,23 @@ export default function FichaArrendatario() {
   // Datos del arrendatario — inicializa desde params si viene de oferta/activo, sino mock
   const [form, setForm] = useState(() => {
     if (params?.fromOfertaRef) {
+      // Generado desde stacking de una oferta. Sólo se hereda info
+      // ESTRUCTURAL del activo (nombre, dirección, propietario). El resto
+      // queda pendiente de cumplimentar manualmente.
       return {
         ...EMPTY_FORM,
-        activo:          params.fromActivoNombre || '',
-        tenant:          params.prefilledTenant  || '',
-        tenant_mayoritario: params.prefilledTenant || '',
-        superficie:      params.prefilledSup     || '',
-        closing_rent:    params.prefilledRenta   || '',
+        activo:           params.fromActivoNombre     || '',
+        activo_direccion: params.fromActivoDireccion  || '',
+        propietario:      params.fromActivoPropietario|| '',
       }
     }
     if (params?.fromActivoRef && !params?.fromOfertaRef) {
       return {
         ...EMPTY_FORM,
-        activo:    params.fromActivoNombre || '',
-        propietario: params.fromActivoPropietario || '',
-        zona:      params.fromActivoZona   || '',
-        superficie: params.fromActivoSba ? String(params.fromActivoSba) : '',
+        activo:           params.fromActivoNombre     || '',
+        activo_direccion: params.fromActivoDireccion  || '',
+        propietario:      params.fromActivoPropietario|| '',
+        zona:             params.fromActivoZona       || '',
       }
     }
     // Mock data for existing tenant view
@@ -214,6 +218,46 @@ export default function FichaArrendatario() {
     }
     return next
   })
+
+  // ── Lupa de cuentas (Arrendatario + Arrendatario mayoritario) ──
+  const [tenantSearch,    setTenantSearch]    = useState('')
+  const [showTenantDD,    setShowTenantDD]    = useState(false)
+  const [tenantResults,   setTenantResults]   = useState([])
+  const [mayorSearch,     setMayorSearch]     = useState('')
+  const [showMayorDD,     setShowMayorDD]     = useState(false)
+  const [mayorResults,    setMayorResults]    = useState([])
+
+  // Debounce búsqueda sobre dynamics_accounts para tenant
+  useEffect(() => {
+    if (!tenantSearch || tenantSearch.length < 2) { setTenantResults([]); return }
+    let cancel = false
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from('dynamics_accounts')
+        .select('dynamics_id, nombre, tipo, sector')
+        .ilike('nombre', `%${tenantSearch}%`)
+        .order('nombre')
+        .limit(10)
+      if (!cancel) setTenantResults(data || [])
+    }, 200)
+    return () => { cancel = true; clearTimeout(t) }
+  }, [tenantSearch])
+
+  // Debounce búsqueda sobre dynamics_accounts para arrendatario mayoritario
+  useEffect(() => {
+    if (!mayorSearch || mayorSearch.length < 2) { setMayorResults([]); return }
+    let cancel = false
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from('dynamics_accounts')
+        .select('dynamics_id, nombre, tipo, sector')
+        .ilike('nombre', `%${mayorSearch}%`)
+        .order('nombre')
+        .limit(10)
+      if (!cancel) setMayorResults(data || [])
+    }, 200)
+    return () => { cancel = true; clearTimeout(t) }
+  }, [mayorSearch])
 
   // Stacking plan compartido — capa 'arr' por defecto
   const [stackingActivo, setStackingActivo] = useState(null) // { id, ref, nombre, stacking_data, ... }
@@ -650,11 +694,22 @@ export default function FichaArrendatario() {
 
                 {/* Columna izquierda — Inquilino */}
                 <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
-                  <div className="va-meta-card">
+                  <div className="va-meta-card" style={{ overflow:'visible' }}>
                     <div className="va-meta-head"><span className="dot"/>Inquilino</div>
                     <div style={{padding:'10px 14px'}}>
+                      {/* Activo + dirección heredados (lo único que se autocompleta) */}
                       <FField label="Activo">
-                        <div style={{padding:'6px 9px',border:'1px solid var(--border2)',borderRadius:'var(--r)',fontSize:12,color:'var(--accent)',cursor:'pointer'}} onClick={()=>navigate('ficha-activo')}>{form.activo} ↗</div>
+                        {form.activo
+                          ? <div style={{padding:'6px 9px',border:'1px solid var(--border2)',borderRadius:'var(--r)',fontSize:12,color:'var(--accent)',cursor:'pointer'}}
+                              onClick={() => navigate('ficha-activo', params?.fromActivoRef ? { ref: params.fromActivoRef } : undefined)}>
+                              {form.activo} ↗
+                            </div>
+                          : <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontStyle:'italic',color:'var(--text4)'}}>por completar</div>}
+                      </FField>
+                      <FField label="Dirección">
+                        {form.activo_direccion
+                          ? <div style={{padding:'6px 9px',border:'1px solid var(--border2)',borderRadius:'var(--r)',fontSize:12,color:'var(--text2)'}}>{form.activo_direccion}</div>
+                          : <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontStyle:'italic',color:'var(--text4)'}}>por completar</div>}
                       </FField>
                       <div style={{display:'flex',gap:12,marginBottom:8}}>
                         <label style={{display:'flex',alignItems:'center',gap:5,fontSize:11,cursor:'pointer'}}>
@@ -666,29 +721,108 @@ export default function FichaArrendatario() {
                           Arrendatario desconocido
                         </label>
                       </div>
-                      <FField label="Arrendatario (Cuenta)" invalid={invalidFields.has('tenant')}><input className="of-inp" value={form.tenant} onChange={e=>set('tenant',e.target.value)}/></FField>
-                      <FField label="Arrendatario mayoritario"><input className="of-inp" value={form.tenant_mayoritario} onChange={e=>set('tenant_mayoritario',e.target.value)}/></FField>
-                      <FField label="Propietario (Cuenta)"><input className="of-inp" value={form.propietario} onChange={e=>set('propietario',e.target.value)}/></FField>
+
+                      {/* Arrendatario (cuenta) — buscador lupa sobre dynamics_accounts */}
+                      <FField label="Arrendatario (cuenta)" req invalid={invalidFields.has('tenant')}>
+                        {form.tenant ? (
+                          <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',background:'var(--accent-lt)',width:'100%'}}>
+                            <span style={{fontWeight:600,color:'var(--accent)',fontSize:12,flex:1}}>{form.tenant}</span>
+                            <button onClick={() => set('tenant','')} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}}>✕</button>
+                          </div>
+                        ) : (
+                          <div style={{position:'relative'}}>
+                            <input
+                              className="of-inp"
+                              placeholder="🔍 Buscar cuenta..."
+                              value={tenantSearch}
+                              onChange={e => { setTenantSearch(e.target.value); setShowTenantDD(true) }}
+                              onFocus={() => setShowTenantDD(true)}
+                              onBlur={() => setTimeout(() => setShowTenantDD(false), 200)}
+                              style={{ fontStyle: tenantSearch ? 'normal' : 'italic' }}
+                            />
+                            {showTenantDD && tenantSearch.length >= 2 && (
+                              <div style={{position:'absolute',top:'100%',left:0,right:0,minWidth:300,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',boxShadow:'0 8px 24px rgba(0,0,0,.18)',zIndex:9999,maxHeight:240,overflowY:'auto',marginTop:2}}>
+                                {tenantResults.length === 0 ? (
+                                  <div style={{padding:'10px 12px',color:'var(--text4)',fontSize:11}}>Sin resultados</div>
+                                ) : tenantResults.map(a => (
+                                  <div key={a.dynamics_id} onMouseDown={() => { set('tenant', a.nombre); setTenantSearch(''); setShowTenantDD(false) }}
+                                    style={{padding:'7px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:11}}>
+                                    <div style={{fontWeight:600}}>{a.nombre}</div>
+                                    <div style={{color:'var(--text4)',fontSize:10,marginTop:2}}>{[a.tipo, a.sector].filter(Boolean).join(' · ') || a.dynamics_id}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </FField>
+
+                      {/* Arrendatario mayoritario (cuenta) — buscador lupa */}
+                      <FField label="Arrendatario mayoritario (cuenta)">
+                        {form.tenant_mayoritario ? (
+                          <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',background:'var(--accent-lt)',width:'100%'}}>
+                            <span style={{fontWeight:600,color:'var(--accent)',fontSize:12,flex:1}}>{form.tenant_mayoritario}</span>
+                            <button onClick={() => set('tenant_mayoritario','')} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}}>✕</button>
+                          </div>
+                        ) : (
+                          <div style={{position:'relative'}}>
+                            <input
+                              className="of-inp"
+                              placeholder="🔍 Buscar cuenta..."
+                              value={mayorSearch}
+                              onChange={e => { setMayorSearch(e.target.value); setShowMayorDD(true) }}
+                              onFocus={() => setShowMayorDD(true)}
+                              onBlur={() => setTimeout(() => setShowMayorDD(false), 200)}
+                              style={{ fontStyle: mayorSearch ? 'normal' : 'italic' }}
+                            />
+                            {showMayorDD && mayorSearch.length >= 2 && (
+                              <div style={{position:'absolute',top:'100%',left:0,right:0,minWidth:300,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',boxShadow:'0 8px 24px rgba(0,0,0,.18)',zIndex:9999,maxHeight:240,overflowY:'auto',marginTop:2}}>
+                                {mayorResults.length === 0 ? (
+                                  <div style={{padding:'10px 12px',color:'var(--text4)',fontSize:11}}>Sin resultados</div>
+                                ) : mayorResults.map(a => (
+                                  <div key={a.dynamics_id} onMouseDown={() => { set('tenant_mayoritario', a.nombre); setMayorSearch(''); setShowMayorDD(false) }}
+                                    style={{padding:'7px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:11}}>
+                                    <div style={{fontWeight:600}}>{a.nombre}</div>
+                                    <div style={{color:'var(--text4)',fontSize:10,marginTop:2}}>{[a.tipo, a.sector].filter(Boolean).join(' · ') || a.dynamics_id}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </FField>
+
+                      {/* Propietario (cuenta) — auto-link desde el activo, read-only */}
+                      <FField label="Propietario (cuenta)">
+                        {form.propietario
+                          ? <div style={{padding:'6px 9px',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',fontSize:12,color:'var(--accent)',fontWeight:600,background:'var(--accent-lt)'}}>{form.propietario}</div>
+                          : <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontStyle:'italic',color:'var(--text4)'}}>por completar</div>}
+                      </FField>
+
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                        <FField label="Año firma" invalid={invalidFields.has('anyo_firma')}><input className="of-inp" value={form.anyo_firma} onChange={e=>set('anyo_firma',e.target.value)}/></FField>
+                        <FField label="Año firma" invalid={invalidFields.has('anyo_firma')}><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.anyo_firma ? 'normal' : 'italic' }} value={form.anyo_firma} onChange={e=>set('anyo_firma',e.target.value)}/></FField>
                         <FField label="Trimestre" invalid={invalidFields.has('trimestre')}>
-                          <select className="of-sel" value={form.trimestre} onChange={e=>set('trimestre',e.target.value)}>
+                          <select className="of-sel" value={form.trimestre} onChange={e=>set('trimestre',e.target.value)} style={{ color: form.trimestre ? 'var(--text)' : 'var(--text4)', fontStyle: form.trimestre ? 'normal' : 'italic' }}>
+                            <option value="">por completar</option>
                             <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
                           </select>
                         </FField>
                       </div>
                       <FField label="Sector actividad">
-                        <select className="of-sel" value={form.sector} onChange={e=>set('sector',e.target.value)}>
+                        <select className="of-sel" value={form.sector} onChange={e=>set('sector',e.target.value)} style={{ color: form.sector ? 'var(--text)' : 'var(--text4)', fontStyle: form.sector ? 'normal' : 'italic' }}>
+                          <option value="">por completar</option>
                           <option>Tecnología</option><option>Logística</option><option>Sanidad</option><option>Comunicación / Media</option><option>Finanzas / Inversión</option><option>Consultoría</option><option>Retail / Distribución</option><option>Hostelería</option>
                         </select>
                       </FField>
                       <FField label="Área">
-                        <select className="of-sel" value={form.area} onChange={e=>set('area',e.target.value)}>
+                        <select className="of-sel" value={form.area} onChange={e=>set('area',e.target.value)} style={{ color: form.area ? 'var(--text)' : 'var(--text4)', fontStyle: form.area ? 'normal' : 'italic' }}>
+                          <option value="">por completar</option>
                           <option>CBD</option><option>Centro</option><option>Descentralizado</option><option>Periferia</option><option>Corredor de Carretera</option>
                         </select>
                       </FField>
                       <FField label="Estado contrato">
-                        <select className="of-sel" value={form.estado} onChange={e=>set('estado',e.target.value)}>
+                        <select className="of-sel" value={form.estado} onChange={e=>set('estado',e.target.value)} style={{ color: form.estado ? 'var(--text)' : 'var(--text4)', fontStyle: form.estado ? 'normal' : 'italic' }}>
+                          <option value="">por completar</option>
                           <option>Activo</option><option>Próximo a vencimiento</option><option>En negociación</option><option>Renovado</option><option>Finalizado</option>
                         </select>
                       </FField>
@@ -707,22 +841,22 @@ export default function FichaArrendatario() {
                   <div className="va-meta-card">
                     <div className="va-meta-head accent-green"><span className="dot"/>Condiciones económicas</div>
                     <div style={{padding:'10px 14px'}}>
-                      <FField label="Superficie total ocupada (m²)" req><input className="of-inp" value={form.superficie} onChange={e=>set('superficie',e.target.value)}/></FField>
-                      <FField label="Asking rent (€/m²/mes)"><input className="of-inp" value={form.asking_rent} onChange={e=>set('asking_rent',e.target.value)}/></FField>
-                      <FField label="Closing rent (€/m²/mes)" req invalid={invalidFields.has('closing_rent')}><input className="of-inp" value={form.closing_rent} onChange={e=>set('closing_rent',e.target.value)}/></FField>
+                      <FField label="Superficie total ocupada (m²)" req invalid={invalidFields.has('superficie')}><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.superficie ? 'normal' : 'italic' }} value={form.superficie} onChange={e=>set('superficie',e.target.value)}/></FField>
+                      <FField label="Asking rent (€/m²/mes)"><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.asking_rent ? 'normal' : 'italic' }} value={form.asking_rent} onChange={e=>set('asking_rent',e.target.value)}/></FField>
+                      <FField label="Closing rent (€/m²/mes)" req invalid={invalidFields.has('closing_rent')}><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.closing_rent ? 'normal' : 'italic' }} value={form.closing_rent} onChange={e=>set('closing_rent',e.target.value)}/></FField>
                       <FField label="Renta mensual (€)">
-                        <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontWeight:700,color:'var(--accent)',background:'var(--gray-lt)'}}>{rentaMensual} €</div>
+                        <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontWeight:700,color: rentaMensual ? 'var(--accent)' : 'var(--text4)', fontStyle: rentaMensual ? 'normal' : 'italic',background:'var(--gray-lt)'}}>{rentaMensual ? `${rentaMensual} €` : 'por completar'}</div>
                       </FField>
-                      <FField label="Nº meses carencia"><input className="of-inp" value={form.meses_carencia} onChange={e=>set('meses_carencia',e.target.value)}/></FField>
+                      <FField label="Nº meses carencia"><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.meses_carencia ? 'normal' : 'italic' }} value={form.meses_carencia} onChange={e=>set('meses_carencia',e.target.value)}/></FField>
                     </div>
                   </div>
                   <div className="va-meta-card">
                     <div className="va-meta-head accent-purple"><span className="dot"/>Aparcamiento</div>
                     <div style={{padding:'10px 14px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                      <FField label="Plazas interior"><input className="of-inp" value={form.plazas_int} onChange={e=>set('plazas_int',e.target.value)}/></FField>
-                      <FField label="Precio/plaza int. (€)"><input className="of-inp" value={form.precio_int} onChange={e=>set('precio_int',e.target.value)}/></FField>
-                      <FField label="Plazas exterior"><input className="of-inp" value={form.plazas_ext} onChange={e=>set('plazas_ext',e.target.value)}/></FField>
-                      <FField label="Precio/plaza ext. (€)"><input className="of-inp" value={form.precio_ext} onChange={e=>set('precio_ext',e.target.value)}/></FField>
+                      <FField label="Plazas interior"><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.plazas_int ? 'normal' : 'italic' }} value={form.plazas_int} onChange={e=>set('plazas_int',e.target.value)}/></FField>
+                      <FField label="Precio/plaza int. (€)"><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.precio_int ? 'normal' : 'italic' }} value={form.precio_int} onChange={e=>set('precio_int',e.target.value)}/></FField>
+                      <FField label="Plazas exterior"><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.plazas_ext ? 'normal' : 'italic' }} value={form.plazas_ext} onChange={e=>set('plazas_ext',e.target.value)}/></FField>
+                      <FField label="Precio/plaza ext. (€)"><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.precio_ext ? 'normal' : 'italic' }} value={form.precio_ext} onChange={e=>set('precio_ext',e.target.value)}/></FField>
                     </div>
                   </div>
                   <div className="va-meta-card">

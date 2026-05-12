@@ -1476,14 +1476,15 @@ function FichaOfertaMock() {
                           await supabase.from('activos').update({ stacking_data: updatedBlds }).eq('ref', activoSeleccionado.ref)
                           setActivoSeleccionado(prev => prev ? { ...prev, stacking_data: updatedBlds } : prev)
                         }
+                        // Solo pasamos info estructural del activo. Tenant/sup/renta NO
+                        // se pre-rellenan: el usuario debe completarlos manualmente.
                         navigate('ficha-arrendatario', {
-                          fromOfertaRef:    oferta?.ref,
-                          fromActivoRef:    activoSeleccionado?.ref,
-                          fromActivoNombre: activoSeleccionado?.nombre || '',
-                          prefilledTenant:  unit.oferta || '',
-                          prefilledSup:     String(unit.sup || ''),
-                          prefilledRenta:   String(unit.renta || ''),
-                          fromFloorId:      floorId,
+                          fromOfertaRef:        oferta?.ref,
+                          fromActivoRef:        activoSeleccionado?.ref,
+                          fromActivoNombre:     activoSeleccionado?.nombre || '',
+                          fromActivoDireccion:  activoSeleccionado?.direccion || '',
+                          fromActivoPropietario:activoSeleccionado?.propietario || '',
+                          fromFloorId:          floorId,
                         })
                       }}
                       onBuildingsChange={(blds) => {
