@@ -612,6 +612,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   const [editPA, setEditPA]             = useState(null)  // {layer:'prop'|'arr', rowP, idx}
   const [editPASup, setEditPASup]       = useState('')
   const [editPARenta, setEditPARenta]   = useState('')
+  const [editPATotal, setEditPATotal]   = useState('')
   const [editFloorSup, setEditFloorSup]       = useState(null) // floorId — editable only from principal view
   const [editFloorSupVal, setEditFloorSupVal] = useState('')
   const [hoveredIns, setHoveredIns]           = useState(null)
@@ -735,16 +736,17 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
     const val = parseFloat(editPASup)
     if(isNaN(val)||val<=0) return
     const renta = parseFloat(editPARenta)
+    const total = parseFloat(editPATotal)
     updBuilding(b=>({...b, [editPA.layer]: b[editPA.layer].map(row=>{
       if(row.p!==editPA.rowP) return row
       const units=[...row.units]
       const upd = {...units[editPA.idx], sup:val}
       if(!isNaN(renta) && renta>=0) upd.renta = renta
+      if(!isNaN(total) && total>=0) upd.precio_total = total
       units[editPA.idx] = upd
       return {...row, units}
     })}))
-    setEditPA(null)
-    setEditPA(null); setEditPASup('')
+    setEditPA(null); setEditPASup(''); setEditPARenta(''); setEditPATotal('')
   }
 
   const saveFloorSup = () => {
@@ -1758,7 +1760,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                               return (
                                 <div key={i}
                                   title={`${label} · ${u.sup.toLocaleString('es-ES')} m²${u.brk?` · break ${u.brk}`:''}`}
-                                  onClick={e=>{e.stopPropagation();if(isEd)setEditPA(null);else{setEditPA({layer:'arr',rowP:floor.id,idx:i});setEditPASup(String(u.sup));setEditPARenta(String(u.renta??''))}}}
+                                  onClick={e=>{e.stopPropagation();if(isEd)setEditPA(null);else{setEditPA({layer:'arr',rowP:floor.id,idx:i});setEditPASup(String(u.sup));setEditPARenta(String(u.renta??''));setEditPATotal(String(u.precio_total??''))}}}
                                   className="sp-block"
                                   style={{width:wpct,background:bg,border:`1px solid ${bd}`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible',flexDirection:'column',minHeight:barH,justifyContent:'center'}}
                                 >
@@ -1770,15 +1772,31 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                                           style={{width:56,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
                                         <span style={{fontSize:8,color:col}}>m²</span>
                                       </div>
-                                      {u.type==='vac'&&u.oferta&&(
-                                        <div style={{display:'flex',gap:2,alignItems:'center'}}>
-                                          <input type="number" step="0.01" value={editPARenta} onChange={e=>setEditPARenta(e.target.value)}
-                                            onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
-                                            placeholder="€/m²"
-                                            style={{width:56,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
-                                          <span style={{fontSize:8,color:col}}>€/m²</span>
-                                        </div>
-                                      )}
+                                      {u.type==='vac'&&u.oferta&&(()=>{
+                                        const ofMeta = extraOfertas.find(o => o.nombre === u.oferta)
+                                        const isVenta = ofMeta?.tipoOperacion === 'Venta'
+                                        const unitLabel = isVenta ? '€/m²' : '€/m²/mes'
+                                        return (
+                                          <>
+                                            <div style={{display:'flex',gap:2,alignItems:'center'}}>
+                                              <input type="number" step="0.01" value={editPARenta} onChange={e=>setEditPARenta(e.target.value)}
+                                                onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
+                                                placeholder={unitLabel}
+                                                style={{width:60,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                              <span style={{fontSize:8,color:col}}>{unitLabel}</span>
+                                            </div>
+                                            {isVenta && (
+                                              <div style={{display:'flex',gap:2,alignItems:'center'}}>
+                                                <input type="number" step="1" value={editPATotal} onChange={e=>setEditPATotal(e.target.value)}
+                                                  onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
+                                                  placeholder="Total €"
+                                                  style={{width:72,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                                <span style={{fontSize:8,color:col}}>€ total</span>
+                                              </div>
+                                            )}
+                                          </>
+                                        )
+                                      })()}
                                       <button onClick={savePASup} style={{padding:'2px 4px',background:col,color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓ Guardar</button>
                                     </div>
                                   ) : (
@@ -1787,7 +1805,17 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                                         style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
                                       <div className="sp-block-content">
                                         <span className="sp-block-name" style={{color:col}}>{label}</span>
-                                        <span className="sp-block-meta" style={{color:col}}>{u.sup.toLocaleString('es-ES')} m²{u.renta>0?` · ${u.renta}€/m²`:''}</span>
+                                        <span className="sp-block-meta" style={{color:col}}>{(()=>{
+                                          const ofMeta = u.type==='vac' ? extraOfertas.find(o => o.nombre === u.oferta) : null
+                                          const isVenta = ofMeta?.tipoOperacion === 'Venta'
+                                          const sup = u.sup.toLocaleString('es-ES') + ' m²'
+                                          if (u.renta>0) {
+                                            const unit = isVenta ? '€/m²' : '€/m²/mes'
+                                            const tot = isVenta && u.precio_total>0 ? ` · ${Number(u.precio_total).toLocaleString('es-ES')} €` : ''
+                                            return `${sup} · ${u.renta}${unit}${tot}`
+                                          }
+                                          return sup
+                                        })()}</span>
                                       </div>
                                       {u.type==='vac' && <span className="sp-block-badge" style={{color:col}}>OFERTA</span>}
                                       {u.type==='ten' && <span className="sp-block-badge" style={{color:col}}>ARREND.</span>}
@@ -1829,9 +1857,17 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     </div>
                     <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
                       <thead><tr>
-                        {['Planta','Oferta','Superficie','Renta €/m²/mes','Renta mensual'].map(h=>
-                          <th key={h} style={{padding:'5px 10px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
-                        )}
+                        {(()=>{
+                          // Detección por mayoría: si la oferta vinculada es Venta, ajustamos los títulos
+                          const tipos = assigned.map(a => extraOfertas.find(o=>o.nombre===a.oferta)?.tipoOperacion).filter(Boolean)
+                          const isVenta = tipos.length>0 && tipos.every(t => t==='Venta')
+                          const headers = isVenta
+                            ? ['Planta','Oferta','Superficie','Precio €/m²','Precio total']
+                            : ['Planta','Oferta','Superficie','Renta €/m²/mes','Renta mensual']
+                          return headers.map(h =>
+                            <th key={h} style={{padding:'5px 10px',fontSize:9,fontWeight:600,color:'var(--text4)',textAlign:'left',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',textTransform:'uppercase'}}>{h}</th>
+                          )
+                        })()}
                       </tr></thead>
                       <tbody>
                         {assigned.map((a,i)=>(
@@ -4817,6 +4853,7 @@ export default function FichaActivo() {
                     id: o.id,
                     ref: o.ref,
                     nombre: o.nombre || o.ref,
+                    tipoOperacion: o.tipo_operacion || 'Alquiler',
                   }))
                   // Mezcla con ofertas pasadas vía navegación (cuando se vuelve
                   // recién creadas) deduplicando por ref/nombre.

@@ -157,8 +157,33 @@ function FichaOfertaMock() {
   const [origenOferta, setOrigenOferta] = useState('')
   const [modalidadVisita, setModalidadVisita] = useState('')
   const [comentarios, setComentarios] = useState('')
-  const [condContractuales, setCondContractuales] = useState('Tipo arrendamiento: Alquiler comercial.\nRégimen fiscal: I.V.A.\nFianza legal: 2 meses sin IVA.\nIndexación anual: Sí (IPC).\nPago honorarios: a la firma.')
-  const [incentivosCapex, setIncentivosCapex]     = useState('Meses de carencia: —\nAportación obras: —\nEstado oferta: Disponible.')
+  const [condContractuales, setCondContractuales] = useState('')
+  const [incentivosCapex, setIncentivosCapex]     = useState('')
+
+  // ── Condiciones contractuales · campos estructurados ──
+  const [tipoArrendamiento, setTipoArrendamiento] = useState('Alquiler comercial')
+  const [regimenFiscal,     setRegimenFiscal]     = useState('IVA')
+  const [fianzaMeses,       setFianzaMeses]       = useState(2)
+  const [avalBancario,      setAvalBancario]      = useState('')
+  const [indexacionAnual,   setIndexacionAnual]   = useState('IPC')
+  const [pagoHonorarios,    setPagoHonorarios]    = useState('A la firma')
+
+  // ── Incentivos y CAPEX · campos estructurados ──
+  const [mesesCarencia,     setMesesCarencia]     = useState('')
+  const [aportacionObras,   setAportacionObras]   = useState('')
+  const [otrosIncentivos,   setOtrosIncentivos]   = useState('')
+
+  // ── Precio de venta (cuando tipoOperacion ≠ Alquiler) ──
+  const [precioMin,         setPrecioMin]         = useState('')
+  const [precioMax,         setPrecioMax]         = useState('')
+  const [precioVentaTotal,  setPrecioVentaTotal]  = useState('')
+
+  // ── Mandato asociado (solo si Mandato Savills) ──
+  const [mandatoAsociado,    setMandatoAsociado]    = useState(null)   // { id, ref, titulo, activos:[{nombre,direccion}] }
+  const [mandatoBuscador,    setMandatoBuscador]    = useState('')
+  const [showMandatoDropdown,setShowMandatoDropdown]= useState(false)
+  const [mandatosDB,         setMandatosDB]         = useState([])
+
   const [gastosComunes, setGastosComunes] = useState(3.01)
   const [ibi, setIbi] = useState('')
   const [gastosIncluidos, setGastosIncluidos] = useState(false)
@@ -392,6 +417,28 @@ function FichaOfertaMock() {
     supabase.from('activos').select('ref,nombre,uso,estado_construccion,direccion,zona,subzona,ciudad,propietario').order('nombre')
       .then(({ data }) => { if (data) setActivosDB(data) })
   }, [])
+
+  // ── Load mandatos para el buscador (solo cuando Mandato Savills) ──
+  useEffect(() => {
+    if (tipoComercializacion !== 'Mandato Savills') return
+    if (mandatosDB.length > 0) return
+    supabase.from('mandatos')
+      .select('id, ref, titulo, tipo, estado, mandato_activos ( activos ( nombre, direccion, ciudad ) )')
+      .order('created_at', { ascending: false })
+      .limit(200)
+      .then(({ data }) => {
+        if (!data) return
+        const mapped = data.map(m => ({
+          id: m.id,
+          ref: m.ref,
+          titulo: m.titulo || m.ref,
+          tipo: m.tipo,
+          estado: m.estado,
+          activos: (m.mandato_activos || []).map(ma => ma.activos).filter(Boolean),
+        }))
+        setMandatosDB(mapped)
+      })
+  }, [tipoComercializacion])
 
   // ── When returning from FichaArrendatario, add tenant to left panel ──
   useEffect(() => {
@@ -831,49 +878,57 @@ function FichaOfertaMock() {
                         <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Activo vinculado</h3>
                         {activoSeleccionado && <span className="hint">Datos heredados del activo</span>}
                       </div>
-                      <div className="va-kv-list" style={{paddingBottom:14}}>
-                        <div className="ir">
-                          <span className="ir-k">Activo / Asset *</span>
-                          <span className="ir-v" style={{minWidth:'60%'}}>
-                            {activoSeleccionado ? (
-                              <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
-                                <span>🏢</span>
-                                <span style={{ fontWeight:600, color:'var(--accent)' }}>{activoSeleccionado.nombre}</span>
-                                <button onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref })} style={{ fontSize:10, fontWeight:700, color:'var(--accent)', background:'none', border:'none', cursor:'pointer', padding:'0 2px' }}>↗</button>
-                                <button onClick={() => setActivoSeleccionado(null)} style={{ fontSize:11, color:'var(--text4)', background:'none', border:'none', cursor:'pointer', padding:'0 2px' }}>✕</button>
-                              </div>
-                            ) : (
-                              <div style={{ position:'relative', display:'inline-block', minWidth:280 }}>
-                                <input className="of-inp" placeholder="🔍 Buscar activo por nombre..." value={activoBuscador}
-                                  onChange={e => { setActivoBuscador(e.target.value); setShowActivoDropdown(true) }}
-                                  onFocus={() => setShowActivoDropdown(true)}
-                                  onBlur={() => setTimeout(() => setShowActivoDropdown(false), 150)} />
-                                {showActivoDropdown && (
-                                  <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 4px 12px rgba(0,0,0,.12)', zIndex:200, maxHeight:200, overflowY:'auto', textAlign:'left' }}>
-                                    {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).slice(0,8).map(a => (
-                                      <div key={a.ref} onMouseDown={() => {
-                                        setActivoBuscador(''); setShowActivoDropdown(false)
-                                        setLoadingActivo(true)
-                                        supabase.from('activos').select('*').eq('ref', a.ref).single()
-                                          .then(({ data: full }) => { setActivoSeleccionado(full || a); setLoadingActivo(false) })
-                                      }} style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
-                                        <div style={{ fontWeight:600 }}>{a.nombre}</div>
-                                        <div style={{ color:'var(--text4)', fontSize:10 }}>{a.ref} · {a.uso}</div>
-                                      </div>
-                                    ))}
-                                    {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).length === 0 && (
-                                      <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Sin resultados</div>
-                                    )}
+                      {/* Buscador / chip del activo seleccionado */}
+                      <div style={{ padding:'4px 18px 0' }}>
+                        {activoSeleccionado ? (
+                          <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)', marginBottom:8 }}>
+                            <span>🏢</span>
+                            <span style={{ fontWeight:600, color:'var(--accent)' }}>{activoSeleccionado.nombre}</span>
+                            <button onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref })} style={{ fontSize:10, fontWeight:700, color:'var(--accent)', background:'none', border:'none', cursor:'pointer', padding:'0 2px' }} title="Abrir ficha del activo">↗</button>
+                            <button onClick={() => setActivoSeleccionado(null)} style={{ fontSize:11, color:'var(--text4)', background:'none', border:'none', cursor:'pointer', padding:'0 2px' }} title="Quitar">✕</button>
+                          </div>
+                        ) : (
+                          <div style={{ position:'relative', maxWidth:340, marginBottom:8 }}>
+                            <input className="of-inp" placeholder="🔍 Buscar activo por nombre..." value={activoBuscador}
+                              onChange={e => { setActivoBuscador(e.target.value); setShowActivoDropdown(true) }}
+                              onFocus={() => setShowActivoDropdown(true)}
+                              onBlur={() => setTimeout(() => setShowActivoDropdown(false), 150)} />
+                            {showActivoDropdown && (
+                              <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 4px 12px rgba(0,0,0,.12)', zIndex:200, maxHeight:200, overflowY:'auto', textAlign:'left' }}>
+                                {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).slice(0,8).map(a => (
+                                  <div key={a.ref} onMouseDown={() => {
+                                    setActivoBuscador(''); setShowActivoDropdown(false)
+                                    setLoadingActivo(true)
+                                    supabase.from('activos').select('*').eq('ref', a.ref).single()
+                                      .then(({ data: full }) => { setActivoSeleccionado(full || a); setLoadingActivo(false) })
+                                  }} style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
+                                    <div style={{ fontWeight:600 }}>{a.nombre}</div>
+                                    <div style={{ color:'var(--text4)', fontSize:10 }}>{a.ref} · {a.uso}</div>
                                   </div>
+                                ))}
+                                {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).length === 0 && (
+                                  <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Sin resultados</div>
                                 )}
                               </div>
                             )}
-                          </span>
-                        </div>
-                        <div className="ir"><span className="ir-k">Uso principal</span><span className="ir-v">{activoSeleccionado?.uso || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
-                        <div className="ir"><span className="ir-k">Estado de construcción</span><span className="ir-v">{activoSeleccionado?.estado_construccion || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
-                        <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v">{activoSeleccionado?.direccion || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
-                        <div className="ir"><span className="ir-k">Zona / Subzona</span><span className="ir-v">{activoSeleccionado?.zona || '—'}{activoSeleccionado?.subzona ? ` · ${activoSeleccionado.subzona}` : ''}</span></div>
+                          </div>
+                        )}
+                      </div>
+                      {/* Datos heredados — layout compacto en grid 2 columnas con label estrecho */}
+                      <div style={{ padding:'4px 18px 14px', display:'grid', gridTemplateColumns:'1fr 1fr', columnGap:18, rowGap:6 }}>
+                        {[
+                          { k:'Uso principal',           v: activoSeleccionado?.uso },
+                          { k:'Estado construcción',     v: activoSeleccionado?.estado_construccion },
+                          { k:'Dirección',               v: activoSeleccionado?.direccion },
+                          { k:'Zona / Subzona',          v: activoSeleccionado?.zona ? `${activoSeleccionado.zona}${activoSeleccionado?.subzona ? ' · ' + activoSeleccionado.subzona : ''}` : null },
+                        ].map(({k,v}) => (
+                          <div key={k} style={{ display:'flex', alignItems:'baseline', gap:6, minWidth:0, borderBottom:'1px solid var(--va-line2)', padding:'5px 0' }}>
+                            <span style={{ fontSize:11, color:'var(--text3)', fontWeight:500, whiteSpace:'nowrap' }}>{k}</span>
+                            <span style={{ fontSize:13, fontWeight:600, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                              {v || <span style={{ color:'var(--text4)', fontWeight:500 }}>—</span>}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
@@ -898,7 +953,85 @@ function FichaOfertaMock() {
                               {['Demanda entrante','Prospección directa','Referencia interna','Portal web','Red de colaboradores','Otra consultora'].map(o => <option key={o}>{o}</option>)}
                             </select>
                           </span></div>
-                          <div className="ir"><span className="ir-k">Mandato asociado</span><span className="ir-v"><input className="of-inp" placeholder="Buscar mandato..." style={{minWidth:160}}/></span></div>
+                          {/* Mandato asociado — solo aparece y es obligatorio si Mandato Savills */}
+                          {tipoComercializacion === 'Mandato Savills' && (
+                            <div className="ir">
+                              <span className="ir-k" style={{ color: mandatoAsociado ? 'var(--text3)' : 'var(--red,#dc2626)' }}>
+                                Mandato asociado *
+                              </span>
+                              <span className="ir-v" style={{ minWidth:'60%' }}>
+                                {mandatoAsociado ? (
+                                  <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
+                                    <span style={{ fontWeight:600, color:'var(--accent)' }}>{mandatoAsociado.titulo || mandatoAsociado.ref}</span>
+                                    <button onClick={() => setMandatoAsociado(null)} style={{ fontSize:11, color:'var(--text4)', background:'none', border:'none', cursor:'pointer', padding:'0 2px' }} title="Quitar">✕</button>
+                                  </div>
+                                ) : (
+                                  <div style={{ position:'relative', display:'inline-block', minWidth:220 }}>
+                                    <input
+                                      className="of-inp"
+                                      placeholder="🔍 Buscar mandato..."
+                                      value={mandatoBuscador}
+                                      onChange={e => { setMandatoBuscador(e.target.value); setShowMandatoDropdown(true) }}
+                                      onFocus={() => setShowMandatoDropdown(true)}
+                                      onBlur={() => setTimeout(() => setShowMandatoDropdown(false), 150)}
+                                    />
+                                    {showMandatoDropdown && (
+                                      <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 4px 12px rgba(0,0,0,.12)', zIndex:200, maxHeight:240, overflowY:'auto', textAlign:'left' }}>
+                                        {mandatosDB
+                                          .filter(m => !mandatoBuscador
+                                            || (m.titulo||'').toLowerCase().includes(mandatoBuscador.toLowerCase())
+                                            || (m.ref||'').toLowerCase().includes(mandatoBuscador.toLowerCase())
+                                            || (m.activos||[]).some(a => (a.nombre||'').toLowerCase().includes(mandatoBuscador.toLowerCase()))
+                                          )
+                                          .slice(0,10)
+                                          .map(m => {
+                                            const firstActivo = m.activos?.[0]
+                                            return (
+                                              <div key={m.id} onMouseDown={() => {
+                                                setMandatoAsociado(m)
+                                                setMandatoBuscador('')
+                                                setShowMandatoDropdown(false)
+                                              }} style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
+                                                <div style={{ display:'flex', justifyContent:'space-between', gap:8 }}>
+                                                  <span style={{ fontWeight:600 }}>{m.titulo || m.ref}</span>
+                                                  {m.tipo && <span style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase' }}>{m.tipo}</span>}
+                                                </div>
+                                                <div style={{ color:'var(--text4)', fontSize:10, marginTop:2 }}>
+                                                  {m.ref}{firstActivo?.direccion ? ` · ${firstActivo.direccion}` : firstActivo?.nombre ? ` · ${firstActivo.nombre}` : ''}
+                                                </div>
+                                              </div>
+                                            )
+                                          })}
+                                        {mandatosDB.length === 0 && (
+                                          <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Cargando mandatos…</div>
+                                        )}
+                                        {mandatosDB.length > 0 && mandatosDB.filter(m => !mandatoBuscador
+                                          || (m.titulo||'').toLowerCase().includes(mandatoBuscador.toLowerCase())
+                                          || (m.ref||'').toLowerCase().includes(mandatoBuscador.toLowerCase())
+                                          || (m.activos||[]).some(a => (a.nombre||'').toLowerCase().includes(mandatoBuscador.toLowerCase()))
+                                        ).length === 0 && (
+                                          <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Sin resultados</div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </span>
+                            </div>
+                          )}
+                          {/* Confirmación de mandato seleccionado: muestra dirección */}
+                          {tipoComercializacion === 'Mandato Savills' && mandatoAsociado && (() => {
+                            const a = mandatoAsociado.activos?.[0]
+                            if (!a) return null
+                            return (
+                              <div className="ir">
+                                <span className="ir-k" style={{ fontSize:10, fontStyle:'italic' }}>Dirección del mandato</span>
+                                <span className="ir-v" style={{ fontSize:11, fontStyle:'italic', color:'var(--text3)', fontWeight:500 }}>
+                                  {a.direccion || a.nombre || '—'}
+                                </span>
+                              </div>
+                            )
+                          })()}
                         </div>
                       </div>
 
@@ -928,25 +1061,28 @@ function FichaOfertaMock() {
                     <div className="va-card">
                       <div className="va-card-header">
                         <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Localización</h3>
-                        <span className="hint">Georreferenciado desde el activo</span>
+                        <span className="hint">Heredada del activo · sin edición manual</span>
                       </div>
-                      <div style={{padding:'4px 20px 16px'}}>
-                        <div style={{ borderRadius:'var(--r2)', overflow:'hidden', border:'1px solid var(--border)', height:240, marginBottom:10 }}>
-                          {activoSeleccionado?.direccion ? (
-                            <iframe title="Mapa oferta" width="100%" height="100%" style={{ border:0 }} loading="lazy"
-                              src={`https://maps.google.com/maps?q=${encodeURIComponent(activoSeleccionado.direccion)}&z=15&output=embed`} />
-                          ) : (
-                            <div style={{ width:'100%', height:'100%', background:'var(--gray-lt)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, color:'var(--text4)' }}>
-                              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                              <div style={{ fontSize:11 }}>Selecciona un activo para ver el mapa</div>
+                      <div style={{ padding:'4px 18px 16px' }}>
+                        {activoSeleccionado?.direccion ? (
+                          <>
+                            <div style={{ borderRadius:'var(--r2)', overflow:'hidden', border:'1px solid var(--border)', height:260, marginBottom:8 }}>
+                              <iframe title="Mapa oferta" width="100%" height="100%" style={{ border:0 }} loading="lazy"
+                                src={`https://maps.google.com/maps?q=${encodeURIComponent(activoSeleccionado.direccion)}&z=15&output=embed`} />
                             </div>
-                          )}
-                        </div>
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 40px'}}>
-                          <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v">{activoSeleccionado?.direccion || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
-                          <div className="ir"><span className="ir-k">Ciudad</span><span className="ir-v">{activoSeleccionado?.ciudad || <span style={{color:'var(--text4)'}}>—</span>}</span></div>
-                          <div className="ir"><span className="ir-k">Zona / Subzona</span><span className="ir-v">{activoSeleccionado?.zona || '—'}{activoSeleccionado?.subzona ? ` · ${activoSeleccionado.subzona}` : ''}</span></div>
-                        </div>
+                            <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:11, color:'var(--text2)' }}>
+                              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                              <span style={{ fontWeight:600 }}>{activoSeleccionado.direccion}</span>
+                              {activoSeleccionado.ciudad && <span style={{ color:'var(--text4)' }}>· {activoSeleccionado.ciudad}</span>}
+                              {activoSeleccionado.zona && <span style={{ color:'var(--text4)' }}>· {activoSeleccionado.zona}{activoSeleccionado.subzona ? ` / ${activoSeleccionado.subzona}` : ''}</span>}
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ borderRadius:'var(--r2)', overflow:'hidden', border:'1px solid var(--border)', height:200, background:'var(--gray-lt)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, color:'var(--text4)' }}>
+                            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                            <div style={{ fontSize:11 }}>Selecciona un activo para ver el mapa</div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1435,33 +1571,39 @@ function FichaOfertaMock() {
                               <div style={{ fontWeight:600, marginBottom:4 }}>Sin espacios asignados</div>
                               <div style={{ fontSize:11 }}>Ve a la pestaña <strong>Stacking plan</strong> y arrastra la oferta sobre las plantas disponibles.</div>
                             </div>
-                          ) : (
-                            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
-                              <thead><tr>
-                                {['Edificio','Planta','Sup. (m²)','Renta €/m²/mes','Renta mensual','Área'].map(h =>
-                                  <th key={h} style={{ padding:'6px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap' }}>{h}</th>
-                                )}
-                              </tr></thead>
-                              <tbody>
-                                {espaciosComercializables.map((e,i) => (
-                                  <tr key={i} style={{ borderBottom:'1px solid var(--border)' }}>
-                                    <td style={{ padding:'7px 12px', fontSize:10 }}>{e.edificio}</td>
-                                    <td style={{ padding:'7px 12px' }}><span className="tag tag-gray" style={{ fontSize:9 }}>{e.planta}</span></td>
-                                    <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600 }}>{(e.sup||0).toLocaleString()}</td>
-                                    <td style={{ padding:'7px 12px', fontFamily:'var(--mono)' }}>{e.renta > 0 ? `${e.renta.toFixed(2)} €` : '—'}</td>
-                                    <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600, color:'var(--green)' }}>{e.renta > 0 ? `${(e.renta*e.sup).toLocaleString(undefined,{maximumFractionDigits:0})} €` : '—'}</td>
-                                    <td style={{ padding:'7px 12px', fontSize:10 }}>{e.ofertaNombre}</td>
+                          ) : (() => {
+                            const ventaMode = tipoOperacion === 'Venta'
+                            const headers = ventaMode
+                              ? ['Edificio','Planta','Sup. (m²)','Precio €/m²','Precio total','Área']
+                              : ['Edificio','Planta','Sup. (m²)','Renta €/m²/mes','Renta mensual','Área']
+                            return (
+                              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                                <thead><tr>
+                                  {headers.map(h =>
+                                    <th key={h} style={{ padding:'6px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap' }}>{h}</th>
+                                  )}
+                                </tr></thead>
+                                <tbody>
+                                  {espaciosComercializables.map((e,i) => (
+                                    <tr key={i} style={{ borderBottom:'1px solid var(--border)' }}>
+                                      <td style={{ padding:'7px 12px', fontSize:10 }}>{e.edificio}</td>
+                                      <td style={{ padding:'7px 12px' }}><span className="tag tag-gray" style={{ fontSize:9 }}>{e.planta}</span></td>
+                                      <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600 }}>{(e.sup||0).toLocaleString()}</td>
+                                      <td style={{ padding:'7px 12px', fontFamily:'var(--mono)' }}>{e.renta > 0 ? `${e.renta.toFixed(2)} €` : '—'}</td>
+                                      <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600, color:'var(--green)' }}>{e.renta > 0 ? `${(e.renta*e.sup).toLocaleString(undefined,{maximumFractionDigits:0})} €` : '—'}</td>
+                                      <td style={{ padding:'7px 12px', fontSize:10 }}>{e.ofertaNombre}</td>
+                                    </tr>
+                                  ))}
+                                  <tr style={{ background:'var(--gray-lt)', borderTop:'2px solid var(--border)' }}>
+                                    <td colSpan={2} style={{ padding:'7px 12px', fontSize:10, fontWeight:700, color:'var(--text3)' }}>TOTAL</td>
+                                    <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:800 }}>{supTotal.toLocaleString()}</td>
+                                    <td /><td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:800, color:'var(--green)' }}>{espaciosComercializables.reduce((s,e)=>s+(e.renta||0)*e.sup,0).toLocaleString(undefined,{maximumFractionDigits:0})} €</td>
+                                    <td />
                                   </tr>
-                                ))}
-                                <tr style={{ background:'var(--gray-lt)', borderTop:'2px solid var(--border)' }}>
-                                  <td colSpan={2} style={{ padding:'7px 12px', fontSize:10, fontWeight:700, color:'var(--text3)' }}>TOTAL</td>
-                                  <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:800 }}>{supTotal.toLocaleString()}</td>
-                                  <td /><td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:800, color:'var(--green)' }}>{espaciosComercializables.reduce((s,e)=>s+(e.renta||0)*e.sup,0).toLocaleString(undefined,{maximumFractionDigits:0})} €</td>
-                                  <td />
-                                </tr>
-                              </tbody>
-                            </table>
-                          )}
+                                </tbody>
+                              </table>
+                            )
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -1559,12 +1701,16 @@ function FichaOfertaMock() {
               {activeTab==='of-condiciones' && (
                 <div className="tab-content active"><div className="info-pad">
                   {(()=>{
+                    const isVenta   = tipoOperacion === 'Venta'
+                    const isAlquiler = tipoOperacion === 'Alquiler' || tipoOperacion === 'Alquiler / Venta'
+                    // Mismas fórmulas — etiqueta dinámica según operación
                     const rentaSpaces = espaciosComercializables.filter(e=>e.renta>0)
-                    const rentaMax = rentaSpaces.length>0 ? Math.max(...rentaSpaces.map(e=>e.renta)) : null
-                    const rentaMin = rentaSpaces.length>0 ? Math.min(...rentaSpaces.map(e=>e.renta)) : null
-                    const supConRenta = rentaSpaces.reduce((s,e)=>s+e.sup,0)
-                    const rentaMedia = supConRenta>0 ? rentaSpaces.reduce((s,e)=>s+e.renta*e.sup,0)/supConRenta : null
-                    const rentaMensual = espaciosComercializables.reduce((s,e)=>s+(e.renta||0)*e.sup,0)
+                    const valMax = rentaSpaces.length>0 ? Math.max(...rentaSpaces.map(e=>e.renta)) : null
+                    const valMin = rentaSpaces.length>0 ? Math.min(...rentaSpaces.map(e=>e.renta)) : null
+                    const supConVal = rentaSpaces.reduce((s,e)=>s+e.sup,0)
+                    const valMedia = supConVal>0 ? rentaSpaces.reduce((s,e)=>s+e.renta*e.sup,0)/supConVal : null
+                    const totalAlquiler = espaciosComercializables.reduce((s,e)=>s+(e.renta||0)*e.sup,0)
+                    const totalVenta    = espaciosComercializables.reduce((s,e)=>s+(e.renta||0)*e.sup,0)
                     const withGastos = ofertasDesglose.filter(o=>o.cargasM2>0)
                     const gastosMax = withGastos.length>0 ? Math.max(...withGastos.map(o=>o.cargasM2)) : null
                     const gastosMin = withGastos.length>0 ? Math.min(...withGastos.map(o=>o.cargasM2)) : null
@@ -1579,71 +1725,138 @@ function FichaOfertaMock() {
                     const withIbi = ofertasDesglose.filter(o=>o.ibiM2>0)
                     const ibiMax = withIbi.length>0?Math.max(...withIbi.map(o=>o.ibiM2)):null
                     const ibiMin = withIbi.length>0?Math.min(...withIbi.map(o=>o.ibiM2)):null
+                    const unitMes = '€/m²/mes'
+                    const unitVenta = '€/m²'
                     return (
-                    <>
-                      {/* ── 2 COL: CONTRACTUALES + INCENTIVOS Y CAPEX (texto libre) ── */}
-                      <div className="va-two-col">
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, alignItems:'start' }}>
+                      {/* ── COLUMNA IZQUIERDA · Renta/Precio + Gastos+IBI ── */}
+                      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                        {/* ── ECONÓMICAS · RENTA o PRECIO ── */}
+                        <div className="va-card">
+                          <div className="va-card-header">
+                            <h3><span className="ico" style={{color:'var(--green)'}}>●</span> {isVenta ? 'Precio de venta' : 'Renta'}</h3>
+                            <span className="hint">{isVenta ? 'Importes en €/m²' : 'Calculada desde el Stacking Plan'}</span>
+                          </div>
+                          {isVenta ? (
+                            <div style={{ padding:'8px 18px 16px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 24px', rowGap:8 }}>
+                              <div>
+                                <FieldLbl>Precio mínimo (€/m²)</FieldLbl>
+                                <input type="number" className="of-inp" value={precioMin} onChange={e=>setPrecioMin(e.target.value)} placeholder="0" />
+                              </div>
+                              <div>
+                                <FieldLbl>Precio máximo (€/m²)</FieldLbl>
+                                <input type="number" className="of-inp" value={precioMax} onChange={e=>setPrecioMax(e.target.value)} placeholder="0" />
+                              </div>
+                              <div style={{ gridColumn:'1 / -1' }}>
+                                <FieldLbl>Precio total (€)  <span style={{fontSize:9,color:'var(--text4)',fontWeight:500}}>opcional</span></FieldLbl>
+                                <input type="number" className="of-inp" value={precioVentaTotal} onChange={e=>setPrecioVentaTotal(e.target.value)} placeholder="0" />
+                              </div>
+                              <div className="ir" style={{ gridColumn:'1 / -1', borderTop:'1px solid var(--va-line2)', paddingTop:8 }}>
+                                <span className="ir-k">Precio medio asignado</span>
+                                <span className="ir-v" style={{ fontFamily:'var(--mono)', color:'var(--green)', fontWeight:700 }}>{valMedia!=null?`${valMedia.toFixed(2)} ${unitVenta}`:'—'}</span>
+                              </div>
+                              {totalVenta > 0 && (
+                                <div className="ir" style={{ gridColumn:'1 / -1' }}>
+                                  <span className="ir-k">Total proyectado (sup × precio €/m²)</span>
+                                  <span className="ir-v" style={{ fontFamily:'var(--mono)', fontWeight:700 }}>{totalVenta.toLocaleString(undefined,{maximumFractionDigits:0})} €</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="va-kv-list" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 24px', paddingBottom:16 }}>
+                              <div className="ir"><span className="ir-k">Renta media ({unitMes})</span><span className="ir-v" style={{ fontFamily:'var(--mono)', color:'var(--green)', fontWeight:700, fontSize:14 }}>{valMedia!=null?`${valMedia.toFixed(2)} €`:'—'}</span></div>
+                              <div className="ir"><span className="ir-k">Renta mín. / máx. ({unitMes})</span><span className="ir-v" style={{ fontFamily:'var(--mono)' }}>{valMin!=null?`${valMin.toFixed(2)} — ${valMax.toFixed(2)} €`:'—'}</span></div>
+                              <div className="ir" style={{ gridColumn:'1 / -1' }}><span className="ir-k">Renta mensual total</span><span className="ir-v" style={{ fontFamily:'var(--mono)', color:'var(--green)', fontWeight:700 }}>{totalAlquiler>0?`${totalAlquiler.toLocaleString(undefined,{maximumFractionDigits:0})} €`:'—'}</span></div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* ── ECONÓMICAS · GASTOS / IBI ── */}
+                        <div className="va-card">
+                          <div className="va-card-header">
+                            <h3><span className="ico">◇</span> Gastos e IBI</h3>
+                            <span className="hint">{isVenta ? 'IBI anual · gastos opcionales' : 'Desde el desglose de ofertas'}</span>
+                          </div>
+                          <div className="va-kv-list" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 24px', paddingBottom:14 }}>
+                            <div className="ir"><span className="ir-k">Gastos medios ({isVenta ? unitVenta : unitMes})</span><span className="ir-v" style={{ fontFamily:'var(--mono)' }}>{gastosMedia!=null?`${gastosMedia.toFixed(2)} €`:'—'}</span></div>
+                            <div className="ir"><span className="ir-k">Gastos mín. / máx.</span><span className="ir-v" style={{ fontFamily:'var(--mono)' }}>{gastosMin!=null?`${gastosMin.toFixed(2)} — ${gastosMax.toFixed(2)} €`:'—'}</span></div>
+                            <div className="ir" style={{ gridColumn:'1 / -1' }}><span className="ir-k">{isVenta ? 'IBI anual mín. / máx. (€)' : `IBI mín. / máx. (${unitMes})`}</span><span className="ir-v" style={{ fontFamily:'var(--mono)' }}>{ibiMin!=null?`${ibiMin.toFixed(2)} — ${ibiMax.toFixed(2)} €`:'—'}</span></div>
+                          </div>
+                          {!isVenta && (
+                            <div style={{ padding:'0 18px 16px' }}>
+                              <label style={{ display:'flex', alignItems:'flex-start', gap:8, padding:'9px 12px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', cursor:'pointer' }}>
+                                <input type="checkbox" checked={gastosIncluidos} onChange={e => setGastosIncluidos(e.target.checked)} style={{ accentColor:'var(--accent)', marginTop:1 }} />
+                                <div>
+                                  <div style={{ fontSize:12, fontWeight:600 }}>Gastos incluidos en renta</div>
+                                  <div style={{ fontSize:10, color:'var(--text4)', marginTop:2 }}>{gastosIncluidos ? 'Los importes son informativos (ya incluidos en la renta)' : 'Los importes son adicionales a la renta'}</div>
+                                </div>
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* ── COLUMNA DERECHA · Condiciones contractuales + Incentivos ── */}
+                      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                        {/* Condiciones contractuales · estructurado */}
                         <div className="va-meta-card">
                           <div className="va-meta-head"><span className="dot"/>Condiciones contractuales</div>
-                          <div style={{padding:'10px 14px'}}>
-                            <textarea
-                              className="of-textarea"
-                              value={condContractuales}
-                              onChange={e => setCondContractuales(e.target.value)}
-                              placeholder="Describe libremente las condiciones contractuales: tipo de arrendamiento, régimen fiscal, fianza, indexación, pago de honorarios, cláusulas particulares..."
-                              style={{ width:'100%', minHeight:140, resize:'vertical', fontSize:12, lineHeight:1.55 }}
-                            />
+                          <div style={{ padding:'10px 14px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px 14px' }}>
+                            <div>
+                              <FieldLbl>Tipo de arrendamiento</FieldLbl>
+                              <select className="of-sel" value={tipoArrendamiento} onChange={e=>setTipoArrendamiento(e.target.value)} style={{ width:'100%' }}>
+                                {['Alquiler comercial','Uso distinto de vivienda','Vivienda habitual','Temporada','Industria','Otro'].map(o => <option key={o}>{o}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <FieldLbl>Régimen fiscal</FieldLbl>
+                              <select className="of-sel" value={regimenFiscal} onChange={e=>setRegimenFiscal(e.target.value)} style={{ width:'100%' }}>
+                                {['IVA','Exento de IVA','Sujeto y exento','ITP','Otro'].map(o => <option key={o}>{o}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <FieldLbl>Fianza legal (meses)</FieldLbl>
+                              <input type="number" min="0" step="1" className="of-inp" value={fianzaMeses} onChange={e=>setFianzaMeses(e.target.value)} placeholder="0" />
+                            </div>
+                            <div>
+                              <FieldLbl>Aval bancario (meses o €)</FieldLbl>
+                              <input className="of-inp" value={avalBancario} onChange={e=>setAvalBancario(e.target.value)} placeholder="Ej. 6 meses · 100.000 €" />
+                            </div>
+                            <div>
+                              <FieldLbl>Indexación anual</FieldLbl>
+                              <select className="of-sel" value={indexacionAnual} onChange={e=>setIndexacionAnual(e.target.value)} style={{ width:'100%' }}>
+                                {['IPC','Fijo','Escalonado','Otro','Sin indexación'].map(o => <option key={o}>{o}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <FieldLbl>Pago de honorarios a la firma</FieldLbl>
+                              <input className="of-inp" value={pagoHonorarios} onChange={e=>setPagoHonorarios(e.target.value)} placeholder="Ej. A la firma · 1 mensualidad" />
+                            </div>
                           </div>
                         </div>
+
+                        {/* Incentivos y CAPEX · estructurado */}
                         <div className="va-meta-card">
                           <div className="va-meta-head accent-purple"><span className="dot"/>Incentivos y CAPEX</div>
-                          <div style={{padding:'10px 14px'}}>
-                            <textarea
-                              className="of-textarea"
-                              value={incentivosCapex}
-                              onChange={e => setIncentivosCapex(e.target.value)}
-                              placeholder="Describe libremente los incentivos: meses de carencia, aportación a obras, mejoras pactadas, estado de la oferta, observaciones..."
-                              style={{ width:'100%', minHeight:140, resize:'vertical', fontSize:12, lineHeight:1.55 }}
-                            />
+                          <div style={{ padding:'10px 14px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px 14px' }}>
+                            <div>
+                              <FieldLbl>Meses de carencia</FieldLbl>
+                              <input type="number" min="0" step="1" className="of-inp" value={mesesCarencia} onChange={e=>setMesesCarencia(e.target.value)} placeholder="0" />
+                            </div>
+                            <div>
+                              <FieldLbl>Aportación obras / CAPEX (€)</FieldLbl>
+                              <input type="number" min="0" step="1000" className="of-inp" value={aportacionObras} onChange={e=>setAportacionObras(e.target.value)} placeholder="0" />
+                            </div>
+                            <div style={{ gridColumn:'1 / -1' }}>
+                              <FieldLbl>Otros incentivos</FieldLbl>
+                              <textarea className="of-textarea" value={otrosIncentivos} onChange={e=>setOtrosIncentivos(e.target.value)}
+                                placeholder="Mejoras pactadas, mobiliario incluido, escalado de rentas, otras condiciones negociables..."
+                                style={{ width:'100%', minHeight:64, resize:'vertical', fontSize:12, lineHeight:1.5 }} />
+                            </div>
                           </div>
                         </div>
                       </div>
-
-                      {/* ── ECONÓMICAS · RENTA ── */}
-                      <div className="va-card">
-                        <div className="va-card-header">
-                          <h3><span className="ico" style={{color:'var(--green)'}}>●</span> Renta</h3>
-                          <span className="hint">Calculada desde el Stacking Plan</span>
-                        </div>
-                        <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:16}}>
-                          <div className="ir"><span className="ir-k">Renta media (€/m²/mes)</span><span className="ir-v" style={{fontFamily:'var(--mono)',color:'var(--green)',fontWeight:700,fontSize:14}}>{rentaMedia!=null?`${rentaMedia.toFixed(2)} €`:'—'}</span></div>
-                          <div className="ir"><span className="ir-k">Renta mín. / máx.</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{rentaMin!=null?`${rentaMin.toFixed(2)} — ${rentaMax.toFixed(2)} €/m²`:'—'}</span></div>
-                          <div className="ir"><span className="ir-k">Renta mensual total</span><span className="ir-v" style={{fontFamily:'var(--mono)',color:'var(--green)',fontWeight:700}}>{rentaMensual>0?`${rentaMensual.toLocaleString(undefined,{maximumFractionDigits:0})} €`:'—'}</span></div>
-                        </div>
-                      </div>
-
-                      {/* ── ECONÓMICAS · GASTOS ── */}
-                      <div className="va-card">
-                        <div className="va-card-header">
-                          <h3><span className="ico">◇</span> Gastos e IBI</h3>
-                          <span className="hint">Desde el desglose de ofertas</span>
-                        </div>
-                        <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:14}}>
-                          <div className="ir"><span className="ir-k">Gastos medios (€/m²/mes)</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{gastosMedia!=null?`${gastosMedia.toFixed(2)} €`:'—'}</span></div>
-                          <div className="ir"><span className="ir-k">Gastos mín. / máx.</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{gastosMin!=null?`${gastosMin.toFixed(2)} — ${gastosMax.toFixed(2)} €/m²`:'—'}</span></div>
-                          <div className="ir"><span className="ir-k">IBI mín. / máx.</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{ibiMin!=null?`${ibiMin.toFixed(2)} — ${ibiMax.toFixed(2)} €/m²`:'—'}</span></div>
-                        </div>
-                        <div style={{padding:'0 20px 16px'}}>
-                          <label style={{ display:'flex', alignItems:'flex-start', gap:8, padding:'10px 12px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', cursor:'pointer' }}>
-                            <input type="checkbox" checked={gastosIncluidos} onChange={e => setGastosIncluidos(e.target.checked)} style={{ accentColor:'var(--accent)', marginTop:1 }} />
-                            <div>
-                              <div style={{ fontSize:12, fontWeight:600 }}>Gastos incluidos en renta</div>
-                              <div style={{ fontSize:10, color:'var(--text4)', marginTop:2 }}>{gastosIncluidos ? 'Los importes son informativos (ya incluidos en la renta)' : 'Los importes son adicionales a la renta'}</div>
-                            </div>
-                          </label>
-                        </div>
-                      </div>
-                    </>
+                    </div>
                     )
                   })()}
                 </div></div>
