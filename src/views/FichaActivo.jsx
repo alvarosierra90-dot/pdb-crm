@@ -3868,16 +3868,58 @@ export default function FichaActivo() {
     { name:'GOMEZ Ignacio',     team:'Leasing Oficinas MAD', role:'Autorizado',   initials:'GI', bg:'#f0fdf4', color:'#166534', granted:'12/03/2026' },
   ])
 
-  // ── Principales competidores ───────────────────────────────────────────
-  // Activos que el usuario considera competidores directos. Persisten en la
-  // tabla activo_competidores (migración 027). Alimenta los Informes de
-  // gestión: por cada competidor mostraremos sus ofertas y transacciones.
-  const [competidores, setCompetidores] = useState([])  // [{id, competidor_id, competidor:{ref,nombre,zona,sba,occupancy_rate}, motivo, n_ofertas, n_transacciones}]
-  const [compLoading, setCompLoading] = useState(false)
-  const [compSearch, setCompSearch] = useState('')
-  const [compResults, setCompResults] = useState([])
-  const [compMotivo, setCompMotivo] = useState('')
-  const [compError, setCompError] = useState(null)
+  // ── Principales competidores — benchmarking ─────────────────────────────
+  // Sistema de comparables: lista guardada + sugerencias automáticas por
+  // similitud (zona, uso, superficie, renta). Persiste en activo_competidores
+  // (migración 027+028). Motivos como array (multi-select).
+  const [competidores, setCompetidores] = useState([])   // guardados en BD
+  const [sugerencias, setSugerencias]   = useState([])   // auto, no guardados
+  const [compLoading, setCompLoading]   = useState(false)
+  const [compSearch, setCompSearch]     = useState('')
+  const [compResults, setCompResults]   = useState([])
+  const [compError, setCompError]       = useState(null)
+  const [editMotivosFor, setEditMotivosFor] = useState(null) // id de competidor con el picker abierto
+
+  // Catálogo canónico de motivos (consistente con migración 028).
+  const MOTIVO_CATALOG = [
+    'Zona',
+    'Tipología',
+    'Volumen / superficie',
+    'Rango de renta',
+    'Calidad del activo',
+    'Amenities',
+    'Transporte y accesibilidad',
+    'Estado del edificio',
+    'Perfil de tenant',
+    'Competidor prácticamente idéntico',
+  ]
+
+  // Compara dos activos y devuelve { motivos: [...], score: 0..10, tags: [...] }
+  // Usado por las sugerencias automáticas y para los tags visuales.
+  const computeSimilarity = (other) => {
+    if (!activo || !other) return { motivos: [], score: 0, tags: [] }
+    const motivos = []
+    const tags = []
+    if (activo.zona && other.zona && activo.zona === other.zona) { motivos.push('Zona'); tags.push('Misma zona') }
+    if (activo.uso && other.uso && activo.uso === other.uso) { motivos.push('Tipología'); tags.push('Similar por tipología') }
+    if (activo.sba && other.sba) {
+      const ratio = other.sba / activo.sba
+      if (ratio >= 0.7 && ratio <= 1.3) { motivos.push('Volumen / superficie'); tags.push('Similar por volumen') }
+    }
+    if (activo.renta_zona && other.renta_zona) {
+      const diff = Math.abs(other.renta_zona - activo.renta_zona) / activo.renta_zona
+      if (diff <= 0.15) { motivos.push('Rango de renta'); tags.push('Similar por renta') }
+    }
+    if (activo.leed && other.leed) { motivos.push('Calidad del activo'); tags.push('Similar calidad') }
+    if (activo.ciudad && other.ciudad && activo.ciudad === other.ciudad) {
+      // Misma ciudad refuerza zona implícitamente — añade tag pero no motivo extra
+      if (!tags.includes('Misma zona')) tags.push('Misma ciudad')
+    }
+    const score = motivos.length
+    if (score >= 4) tags.push('Competidor directo')
+    if (score >= 6) tags.push('Activo prácticamente idéntico')
+    return { motivos, score, tags }
+  }
   const [showSubstConfirm, setShowSubstConfirm] = useState(false)
   const [propietariosReg, setPropietariosReg] = useState(
     params?.newOwnerData ? [params.newOwnerData] : []
@@ -4098,6 +4140,37 @@ export default function FichaActivo() {
     return () => { cancelled = true }
   }, [activeTab, activo?.id, vista360.loaded])
 
+  // Enriquece una lista de competidores con KPIs reales del activo:
+  // n_arrendatarios (rows), n_propietarios (rows), n_ofertas, n_transacciones
+  // (12m), n_edificios y plazas (desde stacking_data).
+  const enrichWithKpis = async (rows) => {
+    const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 12)
+    return Promise.all((rows || []).map(async r => {
+      const a = r.competidor || r
+      const cid = a?.id
+      const cref = a?.ref
+      if (!cid) return { ...r, n_ofertas:0, n_transacciones:0, n_arrendatarios:0, n_propietarios:0, n_edificios:1, plazas:0 }
+      const [ofRes, txRes, arrRes, propRes] = await Promise.all([
+        supabase.from('ofertas').select('id', { count:'exact', head:true }).eq('activo_id', cid),
+        supabase.from('negociaciones').select('id', { count:'exact', head:true })
+          .eq('activo_id', cid).eq('estado', 'Firmado').gte('fecha_cierre', cutoff.toISOString().slice(0,10)),
+        supabase.from('arrendatarios').select('id', { count:'exact', head:true }).eq('activo_ref', cref),
+        supabase.from('propietarios').select('id', { count:'exact', head:true }).eq('activo_ref', cref),
+      ])
+      const stk = Array.isArray(a.stacking_data) ? a.stacking_data : []
+      const nEdif = stk.length || a.n_edificios || 1
+      return {
+        ...r,
+        n_ofertas: ofRes.count || 0,
+        n_transacciones: txRes.count || 0,
+        n_arrendatarios: arrRes.count || 0,
+        n_propietarios: propRes.count || 0,
+        n_edificios: nEdif,
+        plazas: a.plazas || 0,
+      }
+    }))
+  }
+
   // ── Carga de competidores cuando se abre la pestaña ─────────────────────
   const reloadCompetidores = async () => {
     if (!activo?.id) return
@@ -4105,32 +4178,52 @@ export default function FichaActivo() {
     try {
       const { data: rows = [], error } = await supabase
         .from('activo_competidores')
-        .select('id, competidor_id, motivo, created_at, competidor:activos!competidor_id(id,ref,nombre,zona,subzona,ciudad,uso,sba,occupancy_rate)')
+        .select('id, competidor_id, motivo, motivos, orden, created_at, competidor:activos!competidor_id(id,ref,nombre,zona,subzona,ciudad,uso,sba,occupancy_rate,renta_zona,leed,n_edificios,plazas,stacking_data)')
         .eq('activo_id', activo.id)
-        .order('created_at', { ascending: false })
+        .order('orden', { ascending: true })
       if (error) throw error
-
-      // Para cada competidor: contar ofertas y transacciones (deals firmados últimos 12m)
-      const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 12)
-      const enriched = await Promise.all((rows || []).map(async r => {
-        const cid = r.competidor?.id
-        if (!cid) return { ...r, n_ofertas: 0, n_transacciones: 0 }
-        const [ofRes, txRes] = await Promise.all([
-          supabase.from('ofertas').select('id', { count:'exact', head:true }).eq('activo_id', cid),
-          supabase.from('negociaciones').select('id', { count:'exact', head:true })
-            .eq('activo_id', cid).eq('estado', 'Firmado').gte('fecha_cierre', cutoff.toISOString().slice(0,10)),
-        ])
-        return { ...r, n_ofertas: ofRes.count || 0, n_transacciones: txRes.count || 0 }
-      }))
-      setCompetidores(enriched)
+      const enriched = await enrichWithKpis(rows)
+      // Normalizar motivos: BD puede traer null. Usamos array vacío.
+      setCompetidores(enriched.map(r => ({ ...r, motivos: Array.isArray(r.motivos) ? r.motivos : (r.motivo ? [r.motivo] : []) })))
     } catch (e) {
-      // La tabla puede no existir aún (migración 027 no aplicada).
       setCompError(e.message || 'No se pudo cargar competidores')
       setCompetidores([])
     } finally {
       setCompLoading(false)
     }
   }
+
+  // ── Sugerencias automáticas por similitud ───────────────────────────────
+  // Query: activos con misma zona, misma ciudad o mismo uso (top 12),
+  // excluyendo el propio activo y los ya añadidos como competidor manual.
+  const reloadSugerencias = async () => {
+    if (!activo?.id) return
+    try {
+      const usados = new Set(competidores.map(c => c.competidor_id))
+      const conds = []
+      if (activo.zona)   conds.push(`zona.eq.${activo.zona}`)
+      if (activo.ciudad) conds.push(`ciudad.eq.${activo.ciudad}`)
+      if (activo.uso)    conds.push(`uso.eq.${activo.uso}`)
+      const orClause = conds.length ? conds.join(',') : null
+      let query = supabase.from('activos')
+        .select('id,ref,nombre,zona,subzona,ciudad,uso,sba,occupancy_rate,renta_zona,leed,n_edificios,plazas,stacking_data')
+        .neq('id', activo.id).limit(12)
+      if (orClause) query = query.or(orClause)
+      const { data = [] } = await query
+      const filtradas = (data || []).filter(a => !usados.has(a.id))
+      // Calcular score por similitud y ordenar
+      const conScore = filtradas.map(a => ({ competidor: a, ...computeSimilarity(a) }))
+        .filter(s => s.score > 0)
+        .sort((x,y) => y.score - x.score)
+        .slice(0, 6)
+      const enriched = await enrichWithKpis(conScore)
+      setSugerencias(enriched)
+    } catch (e) {
+      // No bloqueamos la pestaña si falla
+      setSugerencias([])
+    }
+  }
+
   useEffect(() => {
     if (activeTab !== 'at-comp') return
     if (!activo?.id) return
@@ -4138,7 +4231,16 @@ export default function FichaActivo() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, activo?.id])
 
-  // Búsqueda de activos para añadir como competidor (autocomplete)
+  // Las sugerencias se recargan cuando cambia la lista de manuales (para
+  // no proponer un activo ya añadido) o cuando se abre la pestaña.
+  useEffect(() => {
+    if (activeTab !== 'at-comp') return
+    if (!activo?.id) return
+    reloadSugerencias()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, activo?.id, competidores.length])
+
+  // Búsqueda de activos para añadir manualmente (autocomplete)
   useEffect(() => {
     if (activeTab !== 'at-comp') return
     if (!compSearch || compSearch.length < 2) { setCompResults([]); return }
@@ -4157,17 +4259,18 @@ export default function FichaActivo() {
     return () => { cancel = true; clearTimeout(t) }
   }, [compSearch, activeTab, activo?.id, competidores])
 
-  const addCompetidor = async (competidor) => {
+  const addCompetidor = async (competidor, motivos = []) => {
     if (!activo?.id || !competidor?.id) return
     setCompError(null)
     const { error } = await supabase.from('activo_competidores').insert({
       activo_id: activo.id,
       competidor_id: competidor.id,
-      motivo: compMotivo.trim() || null,
+      motivos: motivos,
+      orden: competidores.length,
       created_by: 'Sierra Álvaro',
     })
     if (error) { setCompError(error.message); return }
-    setCompSearch(''); setCompMotivo(''); setCompResults([])
+    setCompSearch(''); setCompResults([])
     reloadCompetidores()
   }
   const removeCompetidor = async (rowId) => {
@@ -4175,6 +4278,31 @@ export default function FichaActivo() {
     const { error } = await supabase.from('activo_competidores').delete().eq('id', rowId)
     if (error) { setCompError(error.message); return }
     reloadCompetidores()
+  }
+  const updateMotivos = async (rowId, newMotivos) => {
+    setCompetidores(prev => prev.map(c => c.id === rowId ? { ...c, motivos: newMotivos } : c))
+    const { error } = await supabase.from('activo_competidores').update({ motivos: newMotivos }).eq('id', rowId)
+    if (error) setCompError(error.message)
+  }
+  const toggleMotivo = (rowId, motivo) => {
+    const c = competidores.find(x => x.id === rowId)
+    if (!c) return
+    const has = (c.motivos || []).includes(motivo)
+    const newMotivos = has ? c.motivos.filter(m => m !== motivo) : [...(c.motivos || []), motivo]
+    updateMotivos(rowId, newMotivos)
+  }
+  const reorderCompetidor = async (rowId, dir) => {
+    const idx = competidores.findIndex(c => c.id === rowId)
+    if (idx < 0) return
+    const newIdx = dir === 'up' ? idx - 1 : idx + 1
+    if (newIdx < 0 || newIdx >= competidores.length) return
+    const reordered = [...competidores]
+    ;[reordered[idx], reordered[newIdx]] = [reordered[newIdx], reordered[idx]]
+    setCompetidores(reordered)
+    // Persistir orden en BD
+    await Promise.all(reordered.map((c,i) =>
+      supabase.from('activo_competidores').update({ orden: i }).eq('id', c.id)
+    ))
   }
 
   // Load propietariosReg and arrendatariosReg from Supabase for existing activos
@@ -4600,30 +4728,29 @@ export default function FichaActivo() {
             </div>
           </div>
 
-          {/* ── TAB: Principales competidores ── */}
+          {/* ── TAB: Principales competidores — benchmarking ── */}
           {activeTab==='at-comp' && (
             <div className="tab-content active"><div className="info-pad">
 
               <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14,gap:14}}>
                 <div>
                   <div style={{fontSize:14,fontWeight:600}}>Principales competidores</div>
-                  <div style={{fontSize:11,color:'var(--text4)',marginTop:2}}>Activos que compiten directamente con éste. Los Informes de gestión usarán esta lista para mostrar sus ofertas y transacciones recientes.</div>
+                  <div style={{fontSize:11,color:'var(--text4)',marginTop:2,lineHeight:1.5}}>Sistema de benchmarking entre activos. Compara con activos similares de la PDB y clasifica por motivos. Alimenta los Informes de gestión.</div>
                 </div>
-                <span style={{fontSize:11,color:'var(--text3)'}}>{competidores.length} {competidores.length===1?'competidor':'competidores'}</span>
+                <span style={{fontSize:11,color:'var(--text3)'}}>{competidores.length} {competidores.length===1?'competidor manual':'competidores manuales'}</span>
               </div>
 
-              {/* Buscador para añadir */}
-              <div style={{background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r2)',padding:14,marginBottom:14}}>
-                <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Añadir competidor</div>
-                <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+              {/* Buscador para añadir manualmente */}
+              <div style={{background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r2)',padding:12,marginBottom:14}}>
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
                   <div style={{flex:1,position:'relative'}}>
                     <input className="of-inp" style={{width:'100%',boxSizing:'border-box'}}
-                      placeholder="Buscar activo por nombre o ref…"
+                      placeholder="Buscar activo por nombre o ref para añadirlo manualmente…"
                       value={compSearch} onChange={e=>setCompSearch(e.target.value)} />
                     {compResults.length > 0 && (
                       <div style={{position:'absolute',top:'100%',left:0,right:0,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',marginTop:4,maxHeight:240,overflowY:'auto',zIndex:10,boxShadow:'0 4px 12px rgba(0,0,0,0.06)'}}>
                         {compResults.map(r => (
-                          <div key={r.id} onClick={()=>addCompetidor(r)} style={{padding:'8px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:11}}
+                          <div key={r.id} onClick={()=>addCompetidor(r, [])} style={{padding:'8px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:11}}
                             onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
                             onMouseLeave={e=>e.currentTarget.style.background=''}>
                             <div style={{fontWeight:600}}>{r.nombre || '—'} <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text4)',marginLeft:4}}>· {r.ref}</span></div>
@@ -4633,55 +4760,172 @@ export default function FichaActivo() {
                       </div>
                     )}
                   </div>
-                  <input className="of-inp" style={{width:220}}
-                    placeholder='Motivo (ej. "Misma zona / renta")'
-                    value={compMotivo} onChange={e=>setCompMotivo(e.target.value)} />
                 </div>
-                <div style={{fontSize:10,color:'var(--text4)',marginTop:6}}>Escribe al menos 2 caracteres y haz click en un resultado para añadir.</div>
               </div>
 
-              {/* Estados */}
+              {/* Errores */}
+              {compError && <div style={{padding:'10px 14px',background:'var(--red-lt)',border:'1px solid var(--red-bd)',borderRadius:'var(--r)',color:'var(--red)',fontSize:11,marginBottom:10}}>Error: {compError} <span style={{color:'var(--text3)',marginLeft:6}}>· Si la tabla no existe, aplica las migraciones 027 y 028.</span></div>}
               {compLoading && <div style={{padding:'10px 14px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',color:'var(--accent)',fontSize:11,marginBottom:10}}>Cargando competidores…</div>}
-              {compError && <div style={{padding:'10px 14px',background:'var(--red-lt)',border:'1px solid var(--red-bd)',borderRadius:'var(--r)',color:'var(--red)',fontSize:11,marginBottom:10}}>Error: {compError} <span style={{color:'var(--text3)',marginLeft:6}}>· Si dice que la tabla no existe, aplica la migración 027.</span></div>}
 
-              {/* Lista */}
-              {!compLoading && competidores.length === 0 && !compError && (
-                <div style={{padding:32,textAlign:'center',color:'var(--text4)',fontSize:12,background:'var(--surface)',border:'1px dashed var(--border)',borderRadius:'var(--r2)'}}>
-                  Aún no has añadido competidores para este activo.
-                </div>
+              {/* SECCIÓN 1: Mis competidores (manuales, guardados) */}
+              {competidores.length > 0 && (
+                <>
+                  <div style={{fontSize:12,fontWeight:700,color:'var(--text2)',marginBottom:8,textTransform:'uppercase',letterSpacing:'.04em'}}>Mis competidores ({competidores.length})</div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(360px,1fr))',gap:14,marginBottom:24}}>
+                    {competidores.map((c, idx) => {
+                      const a = c.competidor || {}
+                      const sim = computeSimilarity(a)
+                      const motivos = c.motivos || []
+                      const showPicker = editMotivosFor === c.id
+                      return (
+                        <div key={c.id} style={{background:'#fff',border:'1px solid var(--border)',borderRadius:10,overflow:'hidden',display:'flex',flexDirection:'column'}}>
+                          {/* Imagen / placeholder */}
+                          <div style={{height:120,background:'linear-gradient(135deg,#dbeafe,#bfdbfe)',position:'relative',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
+                            onClick={()=>navigate('ficha-activo',{ref:a.ref})}>
+                            <Building2 size={36} strokeWidth={1.5} color="#1e40af" style={{opacity:0.5}}/>
+                            {/* Tags arriba a la derecha */}
+                            <div style={{position:'absolute',top:8,right:8,display:'flex',flexWrap:'wrap',gap:4,justifyContent:'flex-end',maxWidth:'70%'}}>
+                              {sim.tags.slice(0,3).map(tag => (
+                                <span key={tag} style={{fontSize:9,fontWeight:700,padding:'3px 7px',borderRadius:10,background:tag.includes('directo')||tag.includes('idéntico')?'var(--green-lt)':'rgba(255,255,255,0.95)',color:tag.includes('directo')||tag.includes('idéntico')?'var(--green)':'var(--text2)',border:`1px solid ${tag.includes('directo')||tag.includes('idéntico')?'var(--green-bd)':'var(--border)'}`,whiteSpace:'nowrap'}}>{tag}</span>
+                              ))}
+                            </div>
+                            {/* Botones reorder */}
+                            <div style={{position:'absolute',top:8,left:8,display:'flex',flexDirection:'column',gap:2}}>
+                              {idx > 0 && <button onClick={(e)=>{e.stopPropagation();reorderCompetidor(c.id,'up')}} style={{width:22,height:22,border:'none',background:'rgba(255,255,255,0.9)',borderRadius:4,cursor:'pointer',fontSize:11,fontFamily:'inherit',color:'var(--text2)'}} title="Subir">↑</button>}
+                              {idx < competidores.length - 1 && <button onClick={(e)=>{e.stopPropagation();reorderCompetidor(c.id,'down')}} style={{width:22,height:22,border:'none',background:'rgba(255,255,255,0.9)',borderRadius:4,cursor:'pointer',fontSize:11,fontFamily:'inherit',color:'var(--text2)'}} title="Bajar">↓</button>}
+                            </div>
+                          </div>
+
+                          {/* Body */}
+                          <div style={{padding:'12px 14px',flex:1,display:'flex',flexDirection:'column',gap:10}}>
+                            <div style={{cursor:'pointer'}} onClick={()=>navigate('ficha-activo',{ref:a.ref})}>
+                              <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:2}}>{a.nombre || '—'}</div>
+                              <div style={{fontSize:10,color:'var(--text3)'}}>{[a.zona, a.subzona, a.ciudad].filter(Boolean).join(' · ') || '—'} · <span style={{fontFamily:'var(--mono)'}}>{a.ref}</span></div>
+                            </div>
+
+                            {/* KPIs (mismos que header del activo) */}
+                            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:1,background:'var(--border)',border:'1px solid var(--border)',borderRadius:6,overflow:'hidden'}}>
+                              {[
+                                ['SBA',          a.sba ? Number(a.sba).toLocaleString('es-ES') : '—', 'var(--text1)'],
+                                ['Edificios',    String(c.n_edificios || 1), 'var(--text1)'],
+                                ['Plazas',       c.plazas ? Number(c.plazas).toLocaleString('es-ES') : '—', 'var(--text1)'],
+                                ['Arrendatarios',String(c.n_arrendatarios || 0), c.n_arrendatarios > 0 ? 'var(--accent)' : 'var(--text4)'],
+                                ['Propietarios', String(c.n_propietarios  || 0), c.n_propietarios  > 0 ? 'var(--accent)' : 'var(--text4)'],
+                                ['Ocupación',    a.occupancy_rate != null ? `${a.occupancy_rate}%` : '—', a.occupancy_rate >= 90 ? 'var(--green)' : a.occupancy_rate >= 75 ? 'var(--amber)' : 'var(--red)'],
+                              ].map(([lbl,val,col]) => (
+                                <div key={lbl} style={{background:'#fff',padding:'6px 8px',textAlign:'center'}}>
+                                  <div style={{fontSize:8,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}>{lbl}</div>
+                                  <div style={{fontSize:13,fontWeight:700,fontFamily:'var(--mono)',color:col,lineHeight:1.1,marginTop:2}}>{val}</div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Motivos seleccionados */}
+                            <div>
+                              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:5}}>
+                                <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Motivos</span>
+                                <button onClick={()=>setEditMotivosFor(showPicker ? null : c.id)} style={{background:'none',border:'none',color:'var(--accent)',cursor:'pointer',fontSize:10,fontFamily:'inherit',fontWeight:600,padding:0}}>{showPicker ? 'Cerrar' : 'Editar'}</button>
+                              </div>
+                              {motivos.length === 0 && !showPicker && <div style={{fontSize:11,color:'var(--text4)',fontStyle:'italic'}}>Sin motivos · click en Editar</div>}
+                              {motivos.length > 0 && !showPicker && (
+                                <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                                  {motivos.map(m => <span key={m} style={{fontSize:10,padding:'3px 8px',borderRadius:10,background:'var(--accent-lt)',color:'var(--accent)',fontWeight:600,border:'1px solid var(--accent-bd)'}}>{m}</span>)}
+                                </div>
+                              )}
+                              {showPicker && (
+                                <div style={{display:'flex',flexWrap:'wrap',gap:4,padding:'8px',background:'var(--gray-lt)',borderRadius:5}}>
+                                  {MOTIVO_CATALOG.map(m => {
+                                    const sel = motivos.includes(m)
+                                    return (
+                                      <span key={m} onClick={()=>toggleMotivo(c.id, m)} style={{fontSize:10,padding:'4px 9px',borderRadius:10,cursor:'pointer',background:sel?'var(--accent)':'var(--surface)',color:sel?'#fff':'var(--text2)',fontWeight:sel?700:500,border:`1px solid ${sel?'var(--accent)':'var(--border)'}`,userSelect:'none'}}>{m}</span>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Footer */}
+                          <div style={{padding:'8px 14px',borderTop:'1px solid var(--border)',background:'var(--gray-lt)',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:10,color:'var(--text4)'}}>
+                            <span>{c.n_ofertas} ofertas · {c.n_transacciones} transac. 12m</span>
+                            <button onClick={()=>removeCompetidor(c.id)} style={{background:'none',border:'none',color:'var(--red)',cursor:'pointer',fontSize:10,fontFamily:'inherit',fontWeight:600}}>Quitar</button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
               )}
 
-              {competidores.length > 0 && (
-                <div className="va-card" style={{margin:0}}>
-                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                    <thead>
-                      <tr>{['Activo','Zona · Ciudad','SBA','Ocup.','Ofertas','Transac. 12m','Motivo',''].map(h => (
-                        <th key={h} style={{textAlign:'left',padding:'8px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)'}}>{h}</th>
-                      ))}</tr>
-                    </thead>
-                    <tbody>
-                      {competidores.map(c => {
-                        const a = c.competidor || {}
-                        return (
-                          <tr key={c.id} style={{borderBottom:'1px solid var(--border)'}}>
-                            <td style={{padding:'8px 12px'}}>
-                              <span className="asset-link" onClick={()=>navigate('ficha-activo',{ref:a.ref})} style={{fontWeight:600,cursor:'pointer'}}>{a.nombre || '—'}</span>
-                              <div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text4)'}}>{a.ref || '—'}</div>
-                            </td>
-                            <td style={{padding:'8px 12px',fontSize:10,color:'var(--text3)'}}>{[a.zona, a.ciudad].filter(Boolean).join(' · ') || '—'}</td>
-                            <td style={{padding:'8px 12px',fontFamily:'var(--mono)',fontSize:10}}>{a.sba ? Number(a.sba).toLocaleString('es-ES') : '—'}</td>
-                            <td style={{padding:'8px 12px',fontSize:10}}>{a.occupancy_rate != null ? `${a.occupancy_rate}%` : '—'}</td>
-                            <td style={{padding:'8px 12px',fontSize:10,fontWeight:600,color:c.n_ofertas > 0 ? 'var(--accent)' : 'var(--text4)'}}>{c.n_ofertas}</td>
-                            <td style={{padding:'8px 12px',fontSize:10,fontWeight:600,color:c.n_transacciones > 0 ? 'var(--green)' : 'var(--text4)'}}>{c.n_transacciones}</td>
-                            <td style={{padding:'8px 12px',fontSize:10,color:'var(--text3)',maxWidth:160}}>{c.motivo || '—'}</td>
-                            <td style={{padding:'8px 12px'}}>
-                              <button onClick={()=>removeCompetidor(c.id)} style={{background:'none',border:'none',color:'var(--red)',cursor:'pointer',fontSize:10,fontFamily:'inherit'}}>Quitar</button>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
+              {/* SECCIÓN 2: Sugerencias automáticas */}
+              {sugerencias.length > 0 && (
+                <>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                    <div style={{fontSize:12,fontWeight:700,color:'var(--text2)',textTransform:'uppercase',letterSpacing:'.04em'}}>Sugerencias automáticas ({sugerencias.length})</div>
+                    <span style={{fontSize:10,color:'var(--text4)'}}>Comparables potenciales detectados por similitud · click ⊕ para añadir</span>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(360px,1fr))',gap:14}}>
+                    {sugerencias.map(c => {
+                      const a = c.competidor || c
+                      return (
+                        <div key={a.id} style={{background:'#fff',border:'1px dashed var(--border2)',borderRadius:10,overflow:'hidden',display:'flex',flexDirection:'column',opacity:0.95}}>
+                          <div style={{height:120,background:'linear-gradient(135deg,#f3f4f6,#e5e7eb)',position:'relative',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
+                            onClick={()=>navigate('ficha-activo',{ref:a.ref})}>
+                            <Building2 size={36} strokeWidth={1.5} color="#6b7280" style={{opacity:0.5}}/>
+                            <div style={{position:'absolute',top:8,right:8,display:'flex',flexWrap:'wrap',gap:4,justifyContent:'flex-end',maxWidth:'70%'}}>
+                              {c.tags.slice(0,3).map(tag => (
+                                <span key={tag} style={{fontSize:9,fontWeight:700,padding:'3px 7px',borderRadius:10,background:'rgba(255,255,255,0.95)',color:'var(--text2)',border:'1px solid var(--border)',whiteSpace:'nowrap'}}>{tag}</span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div style={{padding:'12px 14px',flex:1,display:'flex',flexDirection:'column',gap:10}}>
+                            <div style={{cursor:'pointer'}} onClick={()=>navigate('ficha-activo',{ref:a.ref})}>
+                              <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:2}}>{a.nombre || '—'}</div>
+                              <div style={{fontSize:10,color:'var(--text3)'}}>{[a.zona, a.subzona, a.ciudad].filter(Boolean).join(' · ') || '—'} · <span style={{fontFamily:'var(--mono)'}}>{a.ref}</span></div>
+                            </div>
+
+                            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:1,background:'var(--border)',border:'1px solid var(--border)',borderRadius:6,overflow:'hidden'}}>
+                              {[
+                                ['SBA',          a.sba ? Number(a.sba).toLocaleString('es-ES') : '—', 'var(--text1)'],
+                                ['Edificios',    String(c.n_edificios || 1), 'var(--text1)'],
+                                ['Plazas',       c.plazas ? Number(c.plazas).toLocaleString('es-ES') : '—', 'var(--text1)'],
+                                ['Arrendatarios',String(c.n_arrendatarios || 0), c.n_arrendatarios > 0 ? 'var(--accent)' : 'var(--text4)'],
+                                ['Propietarios', String(c.n_propietarios  || 0), c.n_propietarios  > 0 ? 'var(--accent)' : 'var(--text4)'],
+                                ['Ocupación',    a.occupancy_rate != null ? `${a.occupancy_rate}%` : '—', a.occupancy_rate >= 90 ? 'var(--green)' : a.occupancy_rate >= 75 ? 'var(--amber)' : 'var(--red)'],
+                              ].map(([lbl,val,col]) => (
+                                <div key={lbl} style={{background:'#fff',padding:'6px 8px',textAlign:'center'}}>
+                                  <div style={{fontSize:8,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}>{lbl}</div>
+                                  <div style={{fontSize:13,fontWeight:700,fontFamily:'var(--mono)',color:col,lineHeight:1.1,marginTop:2}}>{val}</div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div>
+                              <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:5}}>Motivos detectados</div>
+                              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                                {c.motivos.length > 0
+                                  ? c.motivos.map(m => <span key={m} style={{fontSize:10,padding:'3px 8px',borderRadius:10,background:'var(--gray-lt)',color:'var(--text2)',fontWeight:600,border:'1px solid var(--border)'}}>{m}</span>)
+                                  : <span style={{fontSize:10,color:'var(--text4)',fontStyle:'italic'}}>Sin coincidencias detectadas</span>}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{padding:'8px 14px',borderTop:'1px solid var(--border)',background:'var(--gray-lt)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                            <span style={{fontSize:10,color:'var(--text4)'}}>Score: {c.score}/6</span>
+                            <button onClick={()=>addCompetidor(a, c.motivos)} style={{background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,padding:'4px 12px',cursor:'pointer',fontSize:11,fontFamily:'inherit',fontWeight:700}}>+ Añadir</button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+
+              {/* Estado vacío total */}
+              {!compLoading && competidores.length === 0 && sugerencias.length === 0 && !compError && (
+                <div style={{padding:32,textAlign:'center',color:'var(--text4)',fontSize:12,background:'var(--surface)',border:'1px dashed var(--border)',borderRadius:'var(--r2)'}}>
+                  No hay activos similares en la PDB. Añade un competidor manualmente con el buscador.
                 </div>
               )}
 
