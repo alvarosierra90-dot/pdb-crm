@@ -6,16 +6,14 @@ import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../component
 import ActividadesPanel from '../components/ActividadesPanel'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 
+// Mismo formato que Propuestas y Proyectos: una sola pestaña principal
+// que agrupa todos los bloques. Vista 360 sustituye a Actividades.
 const MAN_TABS = [
-  ['man-info',     'Información'],
-  ['man-equipo',   'Equipo de trabajo'],
-  ['man-activos',  'Activos vinculados'],
-  ['man-vigencia', 'Vigencia y alertas'],
-  ['man-excl',     'Exclusividad'],
-  ['man-fees',     'Fees y honorarios'],
-  ['man-docs',     'Documentos'],
-  ['man-act',      'Actividades'],
-  ['man-conf',     'Confidencialidad'],
+  ['man-info', 'Información del mandato'],
+  ['man-fees', 'Fees y honorarios'],
+  ['man-docs', 'Documentos'],
+  ['man-act',  'Vista 360'],
+  ['man-conf', 'Confidencialidad'],
 ]
 
 const TIPO_OPTS = [
@@ -650,23 +648,121 @@ export default function FichaMandatoSupabase({ refOrId }) {
             ))}
           </div>
 
-          {/* TAB Información */}
-          {tab === 'man-info' && (
-            <div className="tab-content active"><div className="info-pad">
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
-                <div>
-                  <div className="va-meta-card" style={{ marginBottom:14 }}>
-                    <div className="va-meta-head"><span className="dot"/>Oportunidad vinculada</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div className="ir">
-                        <span className="ir-k" style={{ display:'flex', alignItems:'center', gap:6 }}>
-                          <span style={{ width:14, height:14, borderRadius:3, background:'#0078d4', color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>D</span>
-                          Oportunidad
-                        </span>
-                        <span className="ir-v" style={{ fontSize:11 }}>
-                          {oportunidad
-                            ? <span style={{ fontWeight:600 }}>{oportunidad.nombre} <span className="tag tag-blue" style={{ marginLeft:6, fontSize:9 }}>{oportunidad.tipo}</span></span>
-                            : <span style={{ color:'var(--text4)' }}>—</span>}
+          {/* TAB Información del mandato — agrupa todos los bloques */}
+          {tab === 'man-info' && (() => {
+            const equipo = Array.isArray(mandato.equipo_trabajo) ? mandato.equipo_trabajo : []
+            const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
+            const canManage = userIsPrincipal || equipo.length === 0
+            const handlers = makeEquipoHandlers({
+              supabase, table:'mandatos', idValue:mandato.id, equipo,
+              onAfter: () => load(),
+              onError: (msg) => setSaveError(msg),
+            })
+            return (
+              <div className="tab-content active"><div className="info-pad">
+
+                {/* ─── FILA 1: Vinculaciones (izquierda) | Equipo de trabajo (derecha) ─── */}
+                <div className="va-two-col" style={{ overflow:'visible' }}>
+                  <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico">◇</span> Vinculaciones</h3>
+                    </div>
+                    <div style={{ padding:'4px 20px 16px' }}>
+
+                      {/* Oportunidad */}
+                      <div style={{ marginBottom:12 }}>
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Oportunidad</div>
+                        {oportunidad ? (
+                          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>OP</div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontSize:12, fontWeight:600 }}>{oportunidad.nombre || '—'}</div>
+                              {oportunidad.tipo && <div style={{ fontSize:10, color:'var(--text3)' }}>{oportunidad.tipo}</div>}
+                            </div>
+                            <span className="tag tag-blue" style={{ fontSize:9 }}>Dynamics</span>
+                          </div>
+                        ) : (
+                          <div style={{ padding:'8px 10px', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'var(--gray-lt)', fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin oportunidad vinculada</div>
+                        )}
+                      </div>
+
+                      {/* Cuenta */}
+                      <div style={{ marginBottom:12 }}>
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Cuenta (heredada de Dynamics)</div>
+                        {cuenta ? (
+                          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>🏢</div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontSize:12, fontWeight:600 }}>{cuenta.nombre || '—'}</div>
+                              <div style={{ fontSize:10, color:'var(--text3)' }}>{[cuenta.tipo, cuenta.sector, cuenta.ciudad].filter(Boolean).join(' · ') || '—'}</div>
+                            </div>
+                            <span className="tag tag-blue" style={{ fontSize:9 }}>Dynamics</span>
+                          </div>
+                        ) : (
+                          <div style={{ padding:'8px 10px', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'var(--gray-lt)', fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin cuenta</div>
+                        )}
+                      </div>
+
+                      {/* Activos vinculados */}
+                      <div style={{ marginBottom:8 }}>
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:6, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                          <span>Activos vinculados ({activosLinked.length})</span>
+                          {(form.tipo === 'alquiler' || form.tipo === 'venta') && activosLinked.length === 0 && (
+                            <span style={{ color:'#dc2626', fontSize:9, fontWeight:700, textTransform:'none' }}>* Tipo {TIPO_LABEL[form.tipo]} requiere al menos 1 activo</span>
+                          )}
+                        </div>
+                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                          {activosLinked.length === 0 && (
+                            <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', padding:'6px 0' }}>Sin activos vinculados</div>
+                          )}
+                          {activosLinked.map(l => l.activos && (
+                            <div key={l.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                              <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>🏛</div>
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <div style={{ fontSize:12, fontWeight:600 }}>{l.activos.nombre}</div>
+                                <div style={{ fontSize:10, color:'var(--text3)' }}>
+                                  {[l.activos.ciudad, l.activos.uso, l.activos.sba ? `${Number(l.activos.sba).toLocaleString('es-ES')} m²` : null].filter(Boolean).join(' · ')}
+                                </div>
+                              </div>
+                              <input type="number" style={{ ...inp, width:80, fontSize:10 }} defaultValue={l.sba_asignada ?? ''}
+                                onBlur={e => updateSbaAsignada(l.id, e.target.value)} placeholder="SBA asig." title="SBA asignada" />
+                              <button onClick={() => removeActivo(l.id)} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
+                            </div>
+                          ))}
+                        </div>
+                        <select style={{ ...sel, width:'100%', marginTop:6 }} value="" onChange={e => { if (e.target.value) addActivo(e.target.value) }}>
+                          <option value="">+ Añadir activo al mandato…</option>
+                          {activosDisponibles.map(a => (
+                            <option key={a.id} value={a.id}>{a.nombre} — {a.ciudad || ''} · {a.ref}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  {/* Equipo de trabajo */}
+                  <div style={{ marginBottom:0, minWidth:0 }}>
+                    <EquipoTrabajoCard
+                      equipo={equipo}
+                      canManage={canManage}
+                      onAdd={handlers.addMiembro}
+                      onRemove={handlers.removeMiembro}
+                      onUpdateRol={handlers.updateMiembroRol}
+                    />
+                  </div>
+                </div>
+
+                {/* ─── FILA 2: Mandato (datos) | Vigencia y alertas ─── */}
+                <div className="va-two-col">
+                  <div className="va-meta-card" style={{ marginBottom:0 }}>
+                    <div className="va-meta-head"><span className="dot"/>Mandato</div>
+                    <div className="va-kv-list">
+                      <div className="ir"><span className="ir-k">Tipo</span>
+                        <span className="ir-v">
+                          <select style={sel} value={form.tipo} onChange={e => setF('tipo', e.target.value)}>
+                            {TIPO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                          </select>
                         </span>
                       </div>
                       <div className="ir"><span className="ir-k">Vía</span>
@@ -676,33 +772,6 @@ export default function FichaMandatoSupabase({ refOrId }) {
                           </select>
                         </span>
                       </div>
-                      <div className="ir"><span className="ir-k">Tipo de mandato</span>
-                        <span className="ir-v">
-                          <select style={sel} value={form.tipo} onChange={e => setF('tipo', e.target.value)}>
-                            {TIPO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                          </select>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-green"><span className="dot"/>Cuenta · heredada de Dynamics</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div style={{ fontSize:13, fontWeight:600, color:'var(--accent)', marginBottom:6 }}>{cuenta?.nombre || '—'} ↗</div>
-                      <div className="ir"><span className="ir-k">Tipo</span><span className="ir-v">{cuenta?.tipo || '—'}</span></div>
-                      <div className="ir"><span className="ir-k">Sector</span><span className="ir-v">{cuenta?.sector || '—'}</span></div>
-                      <div className="ir"><span className="ir-k">Teléfono</span><span className="ir-v">{cuenta?.telefono || '—'}</span></div>
-                      <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v" style={{ fontSize:10 }}>{cuenta?.direccion || '—'}</span></div>
-                      <div className="ir"><span className="ir-k">Ciudad</span><span className="ir-v">{cuenta?.ciudad || '—'}</span></div>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="va-meta-card" style={{ marginBottom:14 }}>
-                    <div className="va-meta-head accent-purple"><span className="dot"/>Estado del mandato</div>
-                    <div style={{ padding:'10px 14px' }}>
                       <div className="ir"><span className="ir-k">Estado</span>
                         <span className="ir-v">
                           <select style={sel} value={form.estado} onChange={e => setF('estado', e.target.value)}>
@@ -774,163 +843,99 @@ export default function FichaMandatoSupabase({ refOrId }) {
                       <div className="ir"><span className="ir-k">Responsable</span>
                         <span className="ir-v"><input style={{ ...inp, width:160 }} value={form.responsable} onChange={e => setF('responsable', e.target.value)} placeholder="Nombre" /></span>
                       </div>
-                      <div className="ir"><span className="ir-k">Equipo</span>
+                      <div className="ir"><span className="ir-k">Equipo legacy</span>
                         <span className="ir-v"><input style={{ ...inp, width:200 }} value={form.equipo} onChange={e => setF('equipo', e.target.value)} placeholder="Equipo asignado" /></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="va-meta-card" style={{ marginBottom:0 }}>
+                    <div className="va-meta-head accent-purple"><span className="dot"/>Vigencia y alertas</div>
+                    <div className="va-kv-list">
+                      <div className="ir"><span className="ir-k">Fecha de firma</span>
+                        <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_firma || ''} onChange={e => setF('fecha_firma', e.target.value)} /></span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Fecha de inicio</span>
+                        <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_inicio || ''} onChange={e => setF('fecha_inicio', e.target.value)} /></span>
+                      </div>
+                      <div className="ir"><span className="ir-k" style={{ fontWeight:700 }}>Vencimiento</span>
+                        <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_vencimiento || ''} onChange={e => setF('fecha_vencimiento', e.target.value)} /></span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Días restantes</span>
+                        <span className="ir-v">{dr === null ? '—' : (dr < 0 ? <span style={{ color:'var(--red)', fontWeight:700 }}>Vencido hace {Math.abs(dr)}d</span> : <span style={{ color: dr <= 30 ? 'var(--red)' : dr <= 60 ? 'var(--amber)' : 'var(--text)' }}>{dr} días</span>)}</span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Preaviso (días)</span>
+                        <span className="ir-v"><input type="number" style={{ ...inp, width:80 }} value={form.preaviso_dias} onChange={e => setF('preaviso_dias', e.target.value)} /></span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Alertar X días antes</span>
+                        <span className="ir-v"><input type="number" style={{ ...inp, width:80 }} value={form.alerta_dias} onChange={e => setF('alerta_dias', e.target.value)} /></span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Prórroga tácita</span>
+                        <span className="ir-v">
+                          <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:11 }}>
+                            <input type="checkbox" checked={form.prorroga_tacita} onChange={e => setF('prorroga_tacita', e.target.checked)} />
+                            {form.prorroga_tacita ? 'Sí' : 'No'}
+                          </label>
+                        </span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Meses de prórroga</span>
+                        <span className="ir-v"><input type="number" style={{ ...inp, width:80 }} value={form.prorroga_meses} onChange={e => setF('prorroga_meses', e.target.value)} disabled={!form.prorroga_tacita} /></span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div>
-                  <div className="va-meta-card">
-                    <div className="va-meta-head"><span className="dot"/>Notas</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <textarea style={ta} value={form.notas} onChange={e => setF('notas', e.target.value)} placeholder="Notas internas sobre el mandato..." />
+                {/* ─── FILA 3: Exclusividad | Notas + Visión y novedades ─── */}
+                <div className="va-two-col">
+                  <div className="va-meta-card" style={{ marginBottom:0 }}>
+                    <div className="va-meta-head"><span className="dot"/>Exclusividad</div>
+                    <div className="va-kv-list">
+                      <div className="ir"><span className="ir-k" style={{ fontWeight:700 }}>Modo</span>
+                        <span className="ir-v">
+                          <select style={sel} value={form.exclusividad_modo} onChange={e => setF('exclusividad_modo', e.target.value)}>
+                            {EXCL_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                          </select>
+                        </span>
+                      </div>
+                      {form.exclusividad_modo === 'coexclusiva' && (
+                        <>
+                          <div className="ir"><span className="ir-k">Cuenta del agente</span>
+                            <span className="ir-v">
+                              <select style={{ ...sel, minWidth:200 }} value={form.cuenta_agente_id} onChange={e => { setF('cuenta_agente_id', e.target.value); setF('contacto_agente_id','') }}>
+                                <option value="">Selecciona agencia…</option>
+                                {cuentasCatalog.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>)}
+                              </select>
+                            </span>
+                          </div>
+                          <div className="ir"><span className="ir-k">Contacto del agente</span>
+                            <span className="ir-v">
+                              <select style={{ ...sel, minWidth:200 }} value={form.contacto_agente_id} onChange={e => setF('contacto_agente_id', e.target.value)} disabled={!form.cuenta_agente_id}>
+                                <option value="">Selecciona contacto…</option>
+                                {contactosAgente.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre} — {c.email || c.telefono || ''}</option>)}
+                              </select>
+                            </span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
-                </div>
-              </div>
-            </div></div>
-          )}
 
-          {/* TAB Activos vinculados */}
-          {tab === 'man-activos' && (
-            <div className="tab-content active"><div className="info-pad">
-              <div className="of-section">🏢 ACTIVOS VINCULADOS AL MANDATO</div>
-              <div style={{ fontSize:10, color:'var(--text4)', marginBottom:10 }}>
-                Un mandato puede cubrir <strong>uno o varios activos</strong> (ej. Merlin encarga 3 edificios = 1 mandato con 3 activos).
-                {(form.tipo === 'alquiler' || form.tipo === 'venta') && activosLinked.length === 0 && (
-                  <span style={{ color:'#dc2626', marginLeft:6, fontWeight:600 }}>· Tipo {TIPO_LABEL[form.tipo]} requiere al menos 1 activo.</span>
-                )}
-              </div>
-
-              {activosLinked.length === 0 ? (
-                <div style={{ padding:'12px 0', color:'var(--text4)', fontSize:12 }}>Sin activos vinculados todavía.</div>
-              ) : (
-                <table className="pat-table" style={{ marginBottom:14 }}>
-                  <thead><tr><th>Activo</th><th>Ciudad</th><th>Uso</th><th>SBA total</th><th>SBA asignada</th><th></th></tr></thead>
-                  <tbody>
-                    {activosLinked.map(l => l.activos && (
-                      <tr key={l.id}>
-                        <td><div style={{ fontWeight:600, color:'var(--accent)' }}>{l.activos.nombre}</div><div style={{ fontSize:9, color:'var(--text4)', fontFamily:'var(--mono)' }}>{l.activos.ref}</div></td>
-                        <td style={{ fontSize:11 }}>{l.activos.ciudad || '—'}</td>
-                        <td style={{ fontSize:11 }}>{l.activos.uso || '—'}</td>
-                        <td className="mono" style={{ fontSize:11 }}>{l.activos.sba ? l.activos.sba.toLocaleString('es-ES') : '—'}</td>
-                        <td>
-                          <input type="number" style={{ ...inp, width:90 }} defaultValue={l.sba_asignada ?? ''}
-                            onBlur={e => updateSbaAsignada(l.id, e.target.value)} placeholder="—" />
-                        </td>
-                        <td style={{ textAlign:'right' }}>
-                          <button onClick={() => removeActivo(l.id)} style={{ background:'none', border:'none', color:'var(--text4)', cursor:'pointer', fontSize:14 }}>×</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-
-              <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                <select style={{ ...sel, minWidth:280 }} value="" onChange={e => { if (e.target.value) addActivo(e.target.value) }}>
-                  <option value="">+ Añadir activo al mandato...</option>
-                  {activosDisponibles.map(a => (
-                    <option key={a.id} value={a.id}>{a.nombre} — {a.ciudad || ''} · {a.ref}</option>
-                  ))}
-                </select>
-                {activosDisponibles.length === 0 && <span style={{ fontSize:10, color:'var(--text4)' }}>No quedan activos en catálogo.</span>}
-              </div>
-            </div></div>
-          )}
-
-          {/* TAB Vigencia */}
-          {tab === 'man-vigencia' && (
-            <div className="tab-content active"><div className="info-pad">
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-                <div>
-                  <div className="of-section">📅 FECHAS</div>
-                  <div className="info-block">
-                    <div className="ir"><span className="ir-k">Fecha de firma</span>
-                      <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_firma || ''} onChange={e => setF('fecha_firma', e.target.value)} /></span>
+                  <div className="va-card" style={{ marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico">▭</span> Notas y novedades</h3>
                     </div>
-                    <div className="ir"><span className="ir-k">Fecha de inicio</span>
-                      <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_inicio || ''} onChange={e => setF('fecha_inicio', e.target.value)} /></span>
-                    </div>
-                    <div className="ir"><span className="ir-k" style={{ fontWeight:700 }}>Fecha de vencimiento</span>
-                      <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_vencimiento || ''} onChange={e => setF('fecha_vencimiento', e.target.value)} /></span>
-                    </div>
-                    <div className="ir"><span className="ir-k">Días restantes</span>
-                      <span className="ir-v">{dr === null ? '—' : (dr < 0 ? <span style={{ color:'var(--red)', fontWeight:700 }}>Vencido hace {Math.abs(dr)}d</span> : <span style={{ color: dr <= 30 ? 'var(--red)' : dr <= 60 ? 'var(--amber)' : 'var(--text)' }}>{dr} días</span>)}</span>
+                    <div style={{ padding:'4px 20px 16px' }}>
+                      <div className="rp-lbl">Notas internas</div>
+                      <textarea style={{ ...ta, width:'100%', marginTop:3 }} value={form.notas} onChange={e => setF('notas', e.target.value)} placeholder="Notas internas sobre el mandato..." rows={3} />
+                      <div className="rp-lbl" style={{ marginTop:12 }}>Visión y novedades</div>
+                      <textarea style={{ ...ta, width:'100%', marginTop:3 }} value={form.vision_novedades || ''} onChange={e => setF('vision_novedades', e.target.value)} placeholder="Resumen ejecutivo, hitos y próximos pasos..." rows={3} />
                     </div>
                   </div>
                 </div>
 
-                <div>
-                  <div className="of-section">🔔 ALERTAS Y PRÓRROGA</div>
-                  <div className="info-block">
-                    <div className="ir"><span className="ir-k">Días de preaviso</span>
-                      <span className="ir-v"><input type="number" style={inp} value={form.preaviso_dias} onChange={e => setF('preaviso_dias', e.target.value)} /></span>
-                    </div>
-                    <div className="ir"><span className="ir-k">Alertar X días antes</span>
-                      <span className="ir-v"><input type="number" style={inp} value={form.alerta_dias} onChange={e => setF('alerta_dias', e.target.value)} /></span>
-                    </div>
-                    <div className="ir"><span className="ir-k">Prórroga tácita</span>
-                      <span className="ir-v">
-                        <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:11 }}>
-                          <input type="checkbox" checked={form.prorroga_tacita} onChange={e => setF('prorroga_tacita', e.target.checked)} />
-                          {form.prorroga_tacita ? 'Sí' : 'No'}
-                        </label>
-                      </span>
-                    </div>
-                    <div className="ir"><span className="ir-k">Meses de prórroga</span>
-                      <span className="ir-v"><input type="number" style={inp} value={form.prorroga_meses} onChange={e => setF('prorroga_meses', e.target.value)} disabled={!form.prorroga_tacita} /></span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div></div>
-          )}
-
-          {/* TAB Exclusividad */}
-          {tab === 'man-excl' && (
-            <div className="tab-content active"><div className="info-pad">
-              <div className="of-section">🤝 RÉGIMEN DE EXCLUSIVIDAD</div>
-              <div className="info-block" style={{ marginBottom:14 }}>
-                <div className="ir"><span className="ir-k" style={{ fontWeight:700 }}>Modo</span>
-                  <span className="ir-v">
-                    <select style={sel} value={form.exclusividad_modo} onChange={e => setF('exclusividad_modo', e.target.value)}>
-                      {EXCL_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                    </select>
-                  </span>
-                </div>
-              </div>
-
-              {form.exclusividad_modo === 'coexclusiva' && (
-                <>
-                  <div className="of-section">👥 AGENTE EXTERNO CO-EXCLUSIVO</div>
-                  <div className="info-block">
-                    <div className="ir"><span className="ir-k">Cuenta del agente</span>
-                      <span className="ir-v">
-                        <select style={{ ...sel, minWidth:240 }} value={form.cuenta_agente_id} onChange={e => { setF('cuenta_agente_id', e.target.value); setF('contacto_agente_id','') }}>
-                          <option value="">Selecciona agencia / consultora...</option>
-                          {cuentasCatalog.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>)}
-                        </select>
-                      </span>
-                    </div>
-                    <div className="ir"><span className="ir-k">Contacto del agente</span>
-                      <span className="ir-v">
-                        <select style={{ ...sel, minWidth:240 }} value={form.contacto_agente_id} onChange={e => setF('contacto_agente_id', e.target.value)} disabled={!form.cuenta_agente_id}>
-                          <option value="">Selecciona contacto...</option>
-                          {contactosAgente.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre} — {c.email || c.telefono || ''}</option>)}
-                        </select>
-                        {form.cuenta_agente_id && contactosAgente.length === 0 && (
-                          <span style={{ fontSize:10, color:'var(--text4)', marginLeft:8 }}>Sin contactos en esta cuenta.</span>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div></div>
-          )}
+              </div></div>
+            )
+          })()}
 
           {/* TAB Fees */}
           {tab === 'man-fees' && (() => {
@@ -1151,27 +1156,6 @@ export default function FichaMandatoSupabase({ refOrId }) {
             )
           })()}
 
-          {tab === 'man-equipo' && (() => {
-            const equipo = Array.isArray(mandato.equipo_trabajo) ? mandato.equipo_trabajo : []
-            const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
-            const canManage = userIsPrincipal || equipo.length === 0
-            const handlers = makeEquipoHandlers({
-              supabase, table:'mandatos', idValue:mandato.id, equipo,
-              onAfter: () => load(),
-              onError: (msg) => setSaveError(msg),
-            })
-            return (
-              <div className="tab-content active"><div className="info-pad">
-                <EquipoTrabajoCard
-                  equipo={equipo}
-                  canManage={canManage}
-                  onAdd={handlers.addMiembro}
-                  onRemove={handlers.removeMiembro}
-                  onUpdateRol={handlers.updateMiembroRol}
-                />
-              </div></div>
-            )
-          })()}
           {tab === 'man-docs' && <StubTab label="Documentos del mandato" />}
           {tab === 'man-act'  && (
             <div className="tab-content active">
