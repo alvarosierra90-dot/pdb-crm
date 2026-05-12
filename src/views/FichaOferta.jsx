@@ -151,7 +151,7 @@ function FichaOfertaMock() {
 
   // Tab 1
   // Comercialización: 3 opciones canónicas. Migramos valores legacy en el load.
-  const [tipoComercializacion, setTipoComercializacion] = useState('Mandatos hábiles')
+  const [tipoComercializacion, setTipoComercializacion] = useState('Mandato Savills')
   const [tipologia, setTipologia] = useState('')
   const [estadoEspacio, setEstadoEspacio] = useState('')
   const [tipoOperacion, setTipoOperacion] = useState('Alquiler')
@@ -179,7 +179,7 @@ function FichaOfertaMock() {
   const [precioMax,         setPrecioMax]         = useState('')
   const [precioVentaTotal,  setPrecioVentaTotal]  = useState('')
 
-  // ── Mandato asociado (solo si Mandatos hábiles) ──
+  // ── Mandato asociado (solo si Mandato Savills) ──
   const [mandatoAsociado,    setMandatoAsociado]    = useState(null)   // { id, ref, titulo, activos:[{nombre,direccion}] }
   const [mandatoBuscador,    setMandatoBuscador]    = useState('')
   const [showMandatoDropdown,setShowMandatoDropdown]= useState(false)
@@ -425,9 +425,9 @@ function FichaOfertaMock() {
       .then(({ data }) => { if (data) setActivosDB(data) })
   }, [])
 
-  // ── Load mandatos para el buscador (solo cuando Mandatos hábiles) ──
+  // ── Load mandatos para el buscador (solo cuando Mandato Savills) ──
   useEffect(() => {
-    if (tipoComercializacion !== 'Mandatos hábiles') return
+    if (tipoComercializacion !== 'Mandato Savills') return
     if (mandatosDB.length > 0) return
     // 1) Query base — no usa joins para evitar errores si la relación falla
     supabase.from('mandatos')
@@ -507,7 +507,7 @@ function FichaOfertaMock() {
             setIsMock(true)
             setOferta({ ref: mock.ref, id: null })
             if (mock.tipo_comercializacion) {
-              const legacyMap = { 'Mandato Savills': 'Mandatos hábiles', 'Otras consultoras': 'Colaboradores' }
+              const legacyMap = { 'Otras consultoras': 'Colaboradores', 'Mandatos hábiles': 'Mandato Savills' }
               setTipoComercializacion(legacyMap[mock.tipo_comercializacion] || mock.tipo_comercializacion)
             }
             if (mock.tipologia)             setTipologia(mock.tipologia)
@@ -546,7 +546,7 @@ function FichaOfertaMock() {
         setOferta(data)
         if (data.tipo_comercializacion) {
           // Normalizar valores legacy a los nuevos canónicos
-          const legacyMap = { 'Mandato Savills': 'Mandatos hábiles', 'Otras consultoras': 'Colaboradores' }
+          const legacyMap = { 'Mandato Savills': 'Mandato Savills', 'Otras consultoras': 'Colaboradores' }
           setTipoComercializacion(legacyMap[data.tipo_comercializacion] || data.tipo_comercializacion)
         }
         if (data.tipologia)             setTipologia(data.tipologia)
@@ -939,7 +939,7 @@ function FichaOfertaMock() {
                   <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
 
                     {/* ── ACTIVO VINCULADO ── */}
-                    <div className="va-card">
+                    <div className="va-card" style={{ overflow:'visible' }}>
                       <div className="va-card-header">
                         <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Activo vinculado</h3>
                         {activoSeleccionado && <span className="hint">Datos heredados del activo</span>}
@@ -960,7 +960,7 @@ function FichaOfertaMock() {
                               onFocus={() => setShowActivoDropdown(true)}
                               onBlur={() => setTimeout(() => setShowActivoDropdown(false), 150)} />
                             {showActivoDropdown && (
-                              <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 4px 12px rgba(0,0,0,.12)', zIndex:200, maxHeight:200, overflowY:'auto', textAlign:'left' }}>
+                              <div style={{ position:'absolute', top:'100%', left:0, right:0, minWidth:300, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 8px 24px rgba(0,0,0,.18)', zIndex:9999, maxHeight:240, overflowY:'auto', textAlign:'left' }}>
                                 {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).slice(0,8).map(a => (
                                   <div key={a.ref} onMouseDown={() => {
                                     setActivoBuscador(''); setShowActivoDropdown(false)
@@ -999,13 +999,13 @@ function FichaOfertaMock() {
                     </div>
 
                     {/* ── COMERCIALIZACIÓN + TIPOLOGÍA Y ESTADO ── */}
-                    <div className="va-two-col">
-                      <div className="va-meta-card">
+                    <div className="va-two-col" style={{ overflow:'visible' }}>
+                      <div className="va-meta-card" style={{ overflow:'visible' }}>
                         <div className="va-meta-head"><span className="dot"/>Comercialización</div>
                         <div className="va-kv-list">
                           <div className="ir"><span className="ir-k">Tipología comerc. *</span><span className="ir-v">
                             <select className="of-sel" value={tipoComercializacion} onChange={e => setTipoComercializacion(e.target.value)} style={{minWidth:160}}>
-                              <option>Mandatos hábiles</option><option>Sin mandato</option><option>Colaboradores</option>
+                              <option>Mandato Savills</option><option>Sin mandato</option><option>Colaboradores</option>
                             </select>
                           </span></div>
                           <div className="ir"><span className="ir-k">Tipo de operación *</span><span className="ir-v">
@@ -1020,8 +1020,8 @@ function FichaOfertaMock() {
                             </select>
                           </span></div>
                         </div>
-                        {/* Mandato asociado — bloque dedicado a ancho completo (sólo si Mandatos hábiles) */}
-                        {tipoComercializacion === 'Mandatos hábiles' && (
+                        {/* Mandato asociado — bloque dedicado a ancho completo (sólo si Mandato Savills) */}
+                        {tipoComercializacion === 'Mandato Savills' && (
                           <div style={{ padding:'4px 14px 12px', borderTop:'1px dashed var(--va-line2)', marginTop:4 }}>
                             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
                               <span style={{ fontSize:11, fontWeight:600, color: mandatoAsociado ? 'var(--text3)' : 'var(--red,#dc2626)' }}>
@@ -1061,7 +1061,7 @@ function FichaOfertaMock() {
                                   style={{ width:'100%' }}
                                 />
                                 {showMandatoDropdown && (
-                                  <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 4px 12px rgba(0,0,0,.12)', zIndex:200, maxHeight:240, overflowY:'auto', textAlign:'left', marginTop:2 }}>
+                                  <div style={{ position:'absolute', top:'100%', left:0, right:0, minWidth:340, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 8px 24px rgba(0,0,0,.18)', zIndex:9999, maxHeight:260, overflowY:'auto', textAlign:'left', marginTop:2 }}>
                                     {(()=>{
                                       const term = mandatoBuscador.toLowerCase()
                                       const filtered = mandatosDB.filter(m => !term
@@ -1255,10 +1255,10 @@ function FichaOfertaMock() {
                       <div className="va-card">
                         <div className="va-card-header">
                           <h3><span className="ico" style={{color:'var(--accent)'}}>◆</span> Vinculación</h3>
-                          <span className="hint">{tipoComercializacion === 'Mandatos hábiles' ? 'Mandato asociado' : 'Consultora colaboradora'}</span>
+                          <span className="hint">{tipoComercializacion === 'Mandato Savills' ? 'Mandato asociado' : 'Consultora colaboradora'}</span>
                         </div>
                         <div style={{ padding:'8px 18px 14px' }}>
-                          {tipoComercializacion === 'Mandatos hábiles' ? (
+                          {tipoComercializacion === 'Mandato Savills' ? (
                             mandatoAsociado ? (
                               <div style={{ padding:'8px 12px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
                                 <div style={{ fontSize:12, fontWeight:600, color:'var(--accent)' }}>{mandatoAsociado.titulo || mandatoAsociado.ref}</div>
@@ -1285,10 +1285,10 @@ function FichaOfertaMock() {
                       </div>
                     )}
 
-                    {/* ── PROPIETARIO ── */}
+                    {/* ── PROPIETARIOS ── */}
                     <div className="va-card">
                       <div className="va-card-header">
-                        <h3><span className="ico">◉</span> Propietario</h3>
+                        <h3><span className="ico">◉</span> Propietarios</h3>
                         <span className="hint">Heredado del activo · Solo lectura</span>
                       </div>
                       <div style={{padding:'4px 20px 16px'}}>
@@ -1309,7 +1309,7 @@ function FichaOfertaMock() {
                     </div>
 
                     {/* ── COLABORADORES ── */}
-                    <div className="va-card">
+                    <div className="va-card" style={{ overflow:'visible' }}>
                       <div className="va-card-header">
                         <h3><span className="ico">◈</span> Colaboradores</h3>
                         <span className="hint">{tipoComercializacion==='Colaboradores' ? 'Consultora asociada' : 'Inactivo'}</span>
@@ -1343,7 +1343,7 @@ function FichaOfertaMock() {
                               style={{ width:'100%' }}
                             />
                             {showColaboradorDropdown && colaboradorBuscador.length >= 2 && (
-                              <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 4px 12px rgba(0,0,0,.12)', zIndex:200, maxHeight:240, overflowY:'auto', textAlign:'left', marginTop:2 }}>
+                              <div style={{ position:'absolute', top:'100%', left:0, right:0, minWidth:340, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 8px 24px rgba(0,0,0,.18)', zIndex:9999, maxHeight:260, overflowY:'auto', textAlign:'left', marginTop:2 }}>
                                 {colaboradoresResults.length === 0 ? (
                                   <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Sin resultados</div>
                                 ) : (
@@ -1370,10 +1370,10 @@ function FichaOfertaMock() {
                       </div>
                     </div>
 
-                    {/* ── EQUIPO SAVILLS ── */}
+                    {/* ── EQUIPOS HÁBILES ── */}
                     <div className="va-card">
                       <div className="va-card-header">
-                        <h3><span className="ico">◆</span> Equipo Savills</h3>
+                        <h3><span className="ico">◆</span> Equipos hábiles</h3>
                         <div style={{display:'flex',gap:5}}>
                           <button className="ab-btn" onClick={() => setAddingMiembro(true)}>+ Miembro</button>
                           <button className="ab-btn">+ Equipo</button>
