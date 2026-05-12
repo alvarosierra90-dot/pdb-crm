@@ -9,7 +9,7 @@ import {
   Building2, Factory, ShoppingBag, Server, Home, Hotel, Square,
   Mail, Phone, Users, FileText, Pencil, CheckSquare,
   MapPin, Search, Upload, Image as ImageIcon, AlertTriangle, ArrowDown, BarChart3, Wallet, ClipboardList,
-  Inbox, Clock, FileSpreadsheet
+  Inbox, Clock, FileSpreadsheet, StickyNote, Link2, X as XClose, Download
 } from 'lucide-react'
 
 const USO_PREFIX_FA    = { 'Oficinas':'OF', 'Logístico':'LG', 'Retail':'RT', 'Data Center':'DC', 'Residencial':'RS', 'Hoteles':'HT', 'Suelo':'SU' }
@@ -925,8 +925,8 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
       </div>
 
       {/* Vista sub-tabs + botón expandir */}
-      <div className="sp-tabs" style={{marginLeft:-24,marginRight:-24,paddingLeft:24,paddingRight:24,display:'flex',alignItems:'center',gap:8}}>
-        <div style={{display:'flex',gap:0,flex:1}}>
+      <div className="sp-tabs" style={{marginLeft:-24,marginRight:-24,paddingLeft:24,paddingRight:24,display:'flex',alignItems:'center',gap:12}}>
+        <div style={{display:'flex',gap:14,flex:1}}>
           {[['principal','Uso principal'],['prop','Propietarios'],['arr','Arrendatarios y oferta']].map(([k,l])=>(
             <div key={k} onClick={()=>setView(k)} className={`sp-tab${view===k?' active':''}`}>{l}</div>
           ))}
@@ -3034,6 +3034,8 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
                 <span className="ir-v" style={{flex:1,color:'var(--pdb-blue)'}}>
                   {(info.sba && info.ratio_perdida) ? Math.round(Number(info.sba)*(1-Number(info.ratio_perdida)/100)).toLocaleString('es-ES') : '—'}
                 </span>
+                {/* Placeholder invisible para alinear con InlineField (que tiene botón lápiz a la derecha) */}
+                <span style={{width:20,flexShrink:0}} aria-hidden="true"/>
               </div>
               <InlineField label="Año construcción" value={info.anno_construccion||'—'} onSave={()=>setDirty(true)}>
                 <input type="number" value={info.anno_construccion} onChange={e=>setI('anno_construccion',e.target.value)} style={inp} placeholder="—"/>
@@ -3050,6 +3052,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
                   <span>{nEdificios ?? 1}</span>
                   <span style={{fontSize:11,color:'var(--pdb-blue)',cursor:'pointer',fontWeight:500}}>ver stacking plan</span>
                 </span>
+                <span style={{width:20,flexShrink:0}} aria-hidden="true"/>
               </div>
             </div>
           </div>
@@ -3326,16 +3329,16 @@ function RightPanel({ navigate, nEdificios, nPropietarios, plazas, esg, activo, 
         </div>
       </div>
 
-      {/* 9. Documentos recientes */}
+      {/* 9. Documentos recientes — iconos vectoriales por tipo de archivo */}
       <div className="va-side-card">
         <div className="va-side-title">Documentos recientes</div>
         {[
-          {ico:'📊',icoType:'pdf',name:'Dossier Avalon',      fecha:'07/02/2026',tag:'Comercial', tagType:'comercial'},
-          {ico:'💰',icoType:'xls',name:'Valoración Q1 2026',  fecha:'20/03/2026',tag:'Valoración',tagType:'valoracion'},
-          {ico:'📋',icoType:'ppt',name:'Rent Roll 2026',       fecha:'01/01/2026',tag:'Comercial', tagType:'comercial'},
+          { Ico:FileText,        icoType:'pdf', name:'Dossier Avalon',      fecha:'07/02/2026', tag:'Comercial',  tagType:'comercial'  },
+          { Ico:FileSpreadsheet, icoType:'xls', name:'Valoración Q1 2026',  fecha:'20/03/2026', tag:'Valoración', tagType:'valoracion' },
+          { Ico:ClipboardList,   icoType:'ppt', name:'Rent Roll 2026',      fecha:'01/01/2026', tag:'Comercial',  tagType:'comercial'  },
         ].map((d,i)=>(
           <div key={i} className="va-doc-item">
-            <div className={`va-doc-ico ${d.icoType}`}>{d.ico}</div>
+            <div className={`va-doc-ico ${d.icoType}`} style={{display:'flex',alignItems:'center',justifyContent:'center'}}><d.Ico size={16} strokeWidth={1.75}/></div>
             <div style={{flex:1,minWidth:0}}>
               <div className="va-doc-title">{d.name}</div>
               <div className="va-doc-date">{d.fecha}</div>
@@ -3810,6 +3813,13 @@ export default function FichaActivo() {
   const [caracTab, setCaracTab]         = useState('ct-transporte')
   const [docCat,   setDocCat]           = useState('todos')
   const [showTarea, setShowTarea]       = useState(false)
+  const [showNotasModal, setShowNotasModal] = useState(false)
+  const [showIneModal, setShowIneModal] = useState(false)
+  const [notasInternas, setNotasInternas] = useState([
+    // Mock inicial. Cuando la tabla notas_internas exista, vendrá de Supabase.
+    { id:1, autor:'Sierra Álvaro', fecha:'10/05/2026', texto:'Llamar al propietario antes del 30/06 para revisar break options.' },
+  ])
+  const [nuevaNota, setNuevaNota] = useState('')
   const [confidential, setConfidential] = useState(false)
   const [authorizedUsers, setAuthorizedUsers] = useState([
     { name:'Sierra Álvaro',     team:'Leasing Oficinas MAD', role:'Principal',    initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
@@ -4400,6 +4410,9 @@ export default function FichaActivo() {
                 <div style={{ display:'flex', gap:6 }}>
                   <button className="tbtn" onClick={() => exportRentRoll(displayNombre ?? activo?.nombre ?? 'Activo')}><FileSpreadsheet size={13} strokeWidth={1.75} /> Rent-roll XLSX</button>
                   <button className="tbtn" onClick={() => exportFichaActivo(navigate)}><FileText size={13} strokeWidth={1.75} /> Ficha PDF</button>
+                  <button className="tbtn" onClick={() => setShowNotasModal(true)}><StickyNote size={13} strokeWidth={1.75} /> Notas</button>
+                  <button className="tbtn" onClick={() => setShowIneModal(true)}><BarChart3 size={13} strokeWidth={1.75} /> Datos INE</button>
+                  <button className="tbtn" onClick={() => { const url = `https://savills.es/m/${activo?.ref || 'demo'}`; navigator.clipboard?.writeText(url); alert(`Link copiado:\n${url}`) }}><Link2 size={13} strokeWidth={1.75} /> Link microsite</button>
                 </div>
               </div>
             )}
@@ -5100,10 +5113,22 @@ export default function FichaActivo() {
               <table className="doc-table">
                 <thead><tr><th>Documento</th><th>Categoría</th><th>Ámbito / Planta</th><th>Fecha</th><th>Por</th><th>Tamaño</th><th></th></tr></thead>
                 <tbody>
-                  <tr><td><span className="doc-link">📊 Dossier Avalon</span></td><td><span className="doc-tag" style={{background:'var(--accent-lt)',color:'var(--accent)'}}>Comercial</span></td><td><span className="doc-tag" style={{background:'var(--gray-lt)',color:'var(--text3)'}}>Edificio completo</span></td><td>07/02/2026</td><td>Álvaro Sierra</td><td>4.2 MB</td><td style={{display:'flex',gap:4}}>⬇ ✏ 🗑</td></tr>
-                  <tr><td><span className="doc-link">📈 Stacking plan Q1 2026</span></td><td><span className="doc-tag" style={{background:'var(--accent-lt)',color:'var(--accent)'}}>Comercial</span></td><td><span className="doc-tag" style={{background:'var(--gray-lt)',color:'var(--text3)'}}>Edificio completo</span></td><td>07/02/2026</td><td>Álvaro Sierra</td><td>1.1 MB</td><td style={{display:'flex',gap:4}}>⬇ ✏ 🗑</td></tr>
-                  <tr><td><span className="doc-link">💰 Valoración Q1 2026</span></td><td><span className="doc-tag" style={{background:'var(--amber-lt)',color:'var(--amber)'}}>Valoraciones</span></td><td><span className="doc-tag" style={{background:'var(--gray-lt)',color:'var(--text3)'}}>Edificio completo</span></td><td>20/03/2026</td><td>Jorge López</td><td>5.6 MB</td><td style={{display:'flex',gap:4}}>⬇ ✏ 🗑</td></tr>
-                  <tr><td><span className="doc-link">📋 Rent Roll 2026</span></td><td><span className="doc-tag" style={{background:'var(--accent-lt)',color:'var(--accent)'}}>Comercial</span></td><td><span className="doc-tag" style={{background:'#f0fdfa',color:'#0f766e',border:'1px solid #99f6e4'}}>P3</span></td><td>01/01/2026</td><td>Álvaro Sierra</td><td>680 KB</td><td style={{display:'flex',gap:4}}>⬇ ✏ 🗑</td></tr>
+                  {[
+                    { Ico:FileText,        name:'Dossier Avalon',          cat:'Comercial',   catCol:{bg:'var(--accent-lt)',color:'var(--accent)'}, amb:'Edificio completo', ambCol:{bg:'var(--gray-lt)',color:'var(--text3)'}, fecha:'07/02/2026', user:'Álvaro Sierra', size:'4.2 MB' },
+                    { Ico:BarChart3,       name:'Stacking plan Q1 2026',   cat:'Comercial',   catCol:{bg:'var(--accent-lt)',color:'var(--accent)'}, amb:'Edificio completo', ambCol:{bg:'var(--gray-lt)',color:'var(--text3)'}, fecha:'07/02/2026', user:'Álvaro Sierra', size:'1.1 MB' },
+                    { Ico:FileSpreadsheet, name:'Valoración Q1 2026',      cat:'Valoraciones',catCol:{bg:'var(--amber-lt)',color:'var(--amber)'},   amb:'Edificio completo', ambCol:{bg:'var(--gray-lt)',color:'var(--text3)'}, fecha:'20/03/2026', user:'Jorge López',   size:'5.6 MB' },
+                    { Ico:ClipboardList,   name:'Rent Roll 2026',          cat:'Comercial',   catCol:{bg:'var(--accent-lt)',color:'var(--accent)'}, amb:'P3',                ambCol:{bg:'#f0fdfa',color:'#0f766e',border:'1px solid #99f6e4'}, fecha:'01/01/2026', user:'Álvaro Sierra', size:'680 KB' },
+                  ].map((d,i) => (
+                    <tr key={i}>
+                      <td><span className="doc-link" style={{display:'inline-flex',alignItems:'center',gap:6}}><d.Ico size={14} strokeWidth={1.75}/> {d.name}</span></td>
+                      <td><span className="doc-tag" style={d.catCol}>{d.cat}</span></td>
+                      <td><span className="doc-tag" style={d.ambCol}>{d.amb}</span></td>
+                      <td>{d.fecha}</td>
+                      <td>{d.user}</td>
+                      <td>{d.size}</td>
+                      <td style={{display:'flex',gap:6,color:'var(--text4)'}}><Download size={13} strokeWidth={1.75}/><Pencil size={13} strokeWidth={1.75}/><XClose size={13} strokeWidth={1.75}/></td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div></div>
@@ -5556,6 +5581,69 @@ export default function FichaActivo() {
         <RightPanel navigate={navigate} nEdificios={liveEdifCount ?? activo?.n_edificios ?? 1} nPropietarios={liveOwnerCount} plazas={plazas} esg={esg} activo={activo} arrendatariosReg={arrendatariosReg}/>
 
       </div>{/* /ficha-wrap */}
+
+      {/* Modal: Notas internas — registro persistente para no preguntar lo mismo dos veces */}
+      {showNotasModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={()=>setShowNotasModal(false)}>
+          <div style={{background:'#fff',borderRadius:10,width:'min(560px,100%)',maxHeight:'80vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 12px 32px rgba(0,0,0,0.25)'}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 18px',borderBottom:'1px solid var(--border)'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,fontSize:14,fontWeight:700}}><StickyNote size={16} strokeWidth={1.75}/> Notas internas · {displayNombre ?? activo?.nombre ?? 'Activo'}</div>
+              <button onClick={()=>setShowNotasModal(false)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text3)',padding:4,display:'flex'}}><XClose size={16}/></button>
+            </div>
+            <div style={{padding:'12px 18px',borderBottom:'1px solid var(--border)',background:'var(--gray-lt)'}}>
+              <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>Las notas quedan registradas para que nadie pregunte lo mismo dos veces. Visibles para el equipo de trabajo.</div>
+              <div style={{display:'flex',gap:8}}>
+                <input className="of-inp" style={{flex:1}} placeholder="Escribe una nota…" value={nuevaNota} onChange={e=>setNuevaNota(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter' && nuevaNota.trim()){ setNotasInternas(p=>[{id:Date.now(),autor:'Sierra Álvaro',fecha:new Date().toLocaleDateString('es-ES'),texto:nuevaNota.trim()},...p]); setNuevaNota('') } }}/>
+                <button className="tbtn prim" onClick={()=>{ if(!nuevaNota.trim())return; setNotasInternas(p=>[{id:Date.now(),autor:'Sierra Álvaro',fecha:new Date().toLocaleDateString('es-ES'),texto:nuevaNota.trim()},...p]); setNuevaNota('') }}>Guardar</button>
+              </div>
+            </div>
+            <div style={{overflowY:'auto',padding:'10px 18px 16px'}}>
+              {notasInternas.length === 0
+                ? <div style={{padding:20,textAlign:'center',color:'var(--text4)',fontSize:12}}>Aún no hay notas registradas.</div>
+                : notasInternas.map(n=>(
+                  <div key={n.id} style={{padding:'10px 0',borderBottom:'1px solid var(--border)'}}>
+                    <div style={{fontSize:13,color:'var(--text)',lineHeight:1.45,marginBottom:4}}>{n.texto}</div>
+                    <div style={{fontSize:10,color:'var(--text4)'}}>{n.autor} · {n.fecha}</div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Datos INE de la zona */}
+      {showIneModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={()=>setShowIneModal(false)}>
+          <div style={{background:'#fff',borderRadius:10,width:'min(640px,100%)',maxHeight:'80vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 12px 32px rgba(0,0,0,0.25)'}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 18px',borderBottom:'1px solid var(--border)'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,fontSize:14,fontWeight:700}}><BarChart3 size={16} strokeWidth={1.75}/> Datos INE · {activo?.zona || 'Zona'} · {activo?.ciudad || ''}</div>
+              <button onClick={()=>setShowIneModal(false)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text3)',padding:4,display:'flex'}}><XClose size={16}/></button>
+            </div>
+            <div style={{padding:'16px 18px',overflowY:'auto'}}>
+              <div style={{fontSize:11,color:'var(--text3)',marginBottom:14}}>Indicadores socioeconómicos de la zona obtenidos del Instituto Nacional de Estadística. Datos del último censo disponible.</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                {[
+                  { k:'Población', v:'168.420 hab.' },
+                  { k:'Renta media bruta', v:'34.180 €/año' },
+                  { k:'Tasa de paro', v:'8,2 %' },
+                  { k:'Densidad', v:'4.520 hab/km²' },
+                  { k:'Edad media', v:'42,1 años' },
+                  { k:'Hogares unipersonales', v:'28,5 %' },
+                  { k:'Empresas activas', v:'12.350' },
+                  { k:'PIB municipal', v:'5,8 mil M€' },
+                ].map(r => (
+                  <div key={r.k} style={{padding:'10px 12px',background:'var(--gray-lt)',borderRadius:6}}>
+                    <div style={{fontSize:10,color:'var(--text4)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:2}}>{r.k}</div>
+                    <div style={{fontSize:15,fontWeight:700,color:'var(--text)',fontVariantNumeric:'tabular-nums'}}>{r.v}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{marginTop:12,padding:'8px 12px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:6,fontSize:10,color:'var(--accent)'}}>Fuente: INE · datos cacheados localmente. Cuando se conecte la API del INE, este modal se llenará en tiempo real con la geo del activo.</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showTarea && <AsignarTareaModal refTipo="Activo" refNombre="P.E Avalon" onClose={() => setShowTarea(false)} />}
       {bajaArr && (
         <BajaArrendatarioModal
