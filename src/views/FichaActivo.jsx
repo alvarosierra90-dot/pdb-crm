@@ -1137,6 +1137,10 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     background:isTgt?'var(--pdb-blue-50)':isSel?'#f0f9ff':'var(--surface)',
                     outline:isSel||isTgt?'1.5px solid var(--pdb-blue)':'none',
                     cursor:'pointer',
+                    // Ancho proporcional a la superficie de la planta (silueta del edificio).
+                    // La más grande ocupa 100%; el resto se escala. Alineadas a la izquierda.
+                    width: `${Math.max((floor.sup / maxFloorSup) * 100, 30)}%`,
+                    minWidth: 280,
                   }}
                   onClick={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
                 >
@@ -1406,6 +1410,9 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                       borderBottom: floor.id==='PB' ? '3px solid var(--ink-2)' : undefined,
                       background:isTgt?'var(--pdb-blue-50)':isSel?'#f0f9ff':isEmpty?'var(--bg)':'var(--surface)',
                       outline:isSel||isTgt?'1.5px solid var(--pdb-blue)':'none', cursor:'pointer',
+                      // Ancho proporcional (capa Propietarios)
+                      width: `${Math.max((floor.sup / maxFloorSup) * 100, 30)}%`,
+                      minWidth: 280,
                     }}>
 
                     <div className={`sp-row-floor${isEmpty?' empty':''}`} style={{color:isSel?'var(--pdb-blue)':undefined}}>{floor.id}</div>
@@ -1647,6 +1654,9 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                       background:dropWarning===floor.id?'#fff1f2':isTgt?'var(--pdb-blue-50)':isSel?'#f0f9ff':isEmpty?'var(--bg)':'var(--surface)',
                       outline:dropWarning===floor.id?'1.5px solid #fca5a5':isSel||isTgt?'1.5px solid var(--pdb-blue)':'none',
                       cursor:'pointer',
+                      // Ancho proporcional (capa Arrendatarios + ofertas)
+                      width: `${Math.max((floor.sup / maxFloorSup) * 100, 30)}%`,
+                      minWidth: 280,
                     }}>
 
                     <div className={`sp-row-floor${isEmpty?' empty':''}`} style={{color:isSel?'var(--pdb-blue)':undefined}}>{floor.id}</div>
