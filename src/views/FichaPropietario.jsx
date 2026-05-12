@@ -68,6 +68,10 @@ const LOG_INIT = [
 export default function FichaPropietario() {
   const { navigate, params } = useNav()
   const fromActivo = !!(params?.fromActivoRef)
+  // "Nuevo en blanco" = sin contexto de activo, sin id de DB, sin ownerData del stacking
+  const isBlankNew = !fromActivo && !params?.id && !params?.ownerData
+  // Tratamos blank-new igual que fromActivo en cuanto a borrar todos los defaults
+  const noPrefill  = fromActivo || isBlankNew
   const [tab, setTab] = useState('datos')
   const [hist] = useState(HIST_INIT)
   const [log]  = useState(LOG_INIT)
@@ -100,65 +104,65 @@ export default function FichaPropietario() {
   // con placeholder 'por completar'.
   const [form, setForm] = useState({
     // Identificación
-    id: params?.ownerData?.id || (fromActivo ? `PRO-${Date.now()}` : 'PRO-2501'),
-    propietario: params?.ownerData?.propietario || (fromActivo ? '' : 'Merlín Properties SOCIMI'),
-    cif:           fromActivo ? '' : 'A-86305997',
-    tipo_entidad:  fromActivo ? '' : 'SOCIMI',
-    pais:          fromActivo ? '' : 'España',
-    ciudad_sede:   fromActivo ? '' : 'Madrid',
-    estado:        fromActivo ? '' : 'Activo',
-    perfil:        fromActivo ? '' : 'Core',
-    asset_manager: fromActivo ? '' : 'Merlín Properties SOCIMI',
+    id: params?.ownerData?.id || (noPrefill ? `PRO-${Date.now()}` : 'PRO-2501'),
+    propietario: params?.ownerData?.propietario || (noPrefill ? '' : 'Merlín Properties SOCIMI'),
+    cif:           noPrefill ? '' : 'A-86305997',
+    tipo_entidad:  noPrefill ? '' : 'SOCIMI',
+    pais:          noPrefill ? '' : 'España',
+    ciudad_sede:   noPrefill ? '' : 'Madrid',
+    estado:        noPrefill ? '' : 'Activo',
+    perfil:        noPrefill ? '' : 'Core',
+    asset_manager: noPrefill ? '' : 'Merlín Properties SOCIMI',
     responsable:   '',
-    email:         fromActivo ? '' : 'ir@merlin-properties.com',
-    telefono:      fromActivo ? '' : '+34 91 769 99 00',
-    contacto_principal: fromActivo ? '' : 'Ismael Clemente (CEO)',
+    email:         noPrefill ? '' : 'ir@merlin-properties.com',
+    telefono:      noPrefill ? '' : '+34 91 769 99 00',
+    contacto_principal: noPrefill ? '' : 'Ismael Clemente (CEO)',
     observaciones: '',
 
     // Activo vinculado — único bloque que se autocompleta
-    activo:           fromActivo ? (params?.fromActivoNombre    || '') : 'P.E Avalon',
-    activo_direccion: fromActivo ? (params?.fromActivoDireccion || '') : 'Calle Albasanz 16, 28037 Madrid',
-    zona:             fromActivo ? '' : 'M-30',
+    activo:           noPrefill ? (params?.fromActivoNombre    || '') : 'P.E Avalon',
+    activo_direccion: noPrefill ? (params?.fromActivoDireccion || '') : 'Calle Albasanz 16, 28037 Madrid',
+    zona:             noPrefill ? '' : 'M-30',
     subzona:          '',
     superficie: params?.ownerSuperficie != null
       ? String(params.ownerSuperficie)
       : params?.ownerData?.superficie != null
         ? String(params.ownerData.superficie)
-        : fromActivo ? '' : '46956',
-    uso:           fromActivo ? '' : 'Oficinas',
+        : noPrefill ? '' : '46956',
+    uso:           noPrefill ? '' : 'Oficinas',
     area:          '',
-    tipologia:     fromActivo ? '' : 'Asset deal',
-    anyo_compra:   fromActivo ? '' : '2018',
-    trimestre:     fromActivo ? '' : 'Q3',
+    tipologia:     noPrefill ? '' : 'Asset deal',
+    anyo_compra:   noPrefill ? '' : '2018',
+    trimestre:     noPrefill ? '' : 'Q3',
     precio_compra: '',
-    estado_activo: fromActivo ? '' : 'Ocupado',
-    regimen:       fromActivo ? '' : 'Propiedad 100%',
+    estado_activo: noPrefill ? '' : 'Ocupado',
+    regimen:       noPrefill ? '' : 'Propiedad 100%',
     valoracion_actual: '',
     plusvalia_latente: '',
 
     // Condiciones inversión — sin defaults ficticios cuando fromActivo
-    cap_rate:           fromActivo ? '' : '5.1',
-    yield:              fromActivo ? '' : '5.4',
-    tir_objetivo:       fromActivo ? '' : '7.0',
-    horizonte_inv:      fromActivo ? '' : '7',
-    estrategia:         fromActivo ? '' : 'Hold',
-    cap_rate_compra:    fromActivo ? '' : '7.2',
-    precio_m2_compra:   fromActivo ? '' : '2769',
-    precio_m2_actual:   fromActivo ? '' : '3088',
-    revalorizacion:     fromActivo ? '' : '+11.5%',
-    nota_estrategia:    fromActivo ? '' : 'Activo estabilizado con potencial de rotación de arrendatarios. Estrategia de captura de rentas y eventual desinversión en ciclo alcista.',
+    cap_rate:           noPrefill ? '' : '5.1',
+    yield:              noPrefill ? '' : '5.4',
+    tir_objetivo:       noPrefill ? '' : '7.0',
+    horizonte_inv:      noPrefill ? '' : '7',
+    estrategia:         noPrefill ? '' : 'Hold',
+    cap_rate_compra:    noPrefill ? '' : '7.2',
+    precio_m2_compra:   noPrefill ? '' : '2769',
+    precio_m2_actual:   noPrefill ? '' : '3088',
+    revalorizacion:     noPrefill ? '' : '+11.5%',
+    nota_estrategia:    noPrefill ? '' : 'Activo estabilizado con potencial de rotación de arrendatarios. Estrategia de captura de rentas y eventual desinversión en ciclo alcista.',
 
     // Financiación — sin defaults ficticios cuando fromActivo
-    ltv:               fromActivo ? '' : '45',
-    financiacion:      fromActivo ? '' : '60',
-    banco:             fromActivo ? '' : 'CaixaBank / BBVA (sindicado)',
-    tipo_deuda:        fromActivo ? '' : 'Préstamo hipotecario',
-    vencimiento_deuda: fromActivo ? '' : '2028',
-    tipo_interes:      fromActivo ? '' : 'EURIBOR + 175pb',
-    cobertura:         fromActivo ? '' : 'IRS al 70%',
-    loan_amount:       fromActivo ? '' : '58.5 M€',
-    dscr:              fromActivo ? '' : '2.1x',
-    nota_financiacion: fromActivo ? '' : 'Deuda sindicada refinanciada en 2023. Covenant DSCR mínimo 1.5x cumplido holgadamente.',
+    ltv:               noPrefill ? '' : '45',
+    financiacion:      noPrefill ? '' : '60',
+    banco:             noPrefill ? '' : 'CaixaBank / BBVA (sindicado)',
+    tipo_deuda:        noPrefill ? '' : 'Préstamo hipotecario',
+    vencimiento_deuda: noPrefill ? '' : '2028',
+    tipo_interes:      noPrefill ? '' : 'EURIBOR + 175pb',
+    cobertura:         noPrefill ? '' : 'IRS al 70%',
+    loan_amount:       noPrefill ? '' : '58.5 M€',
+    dscr:              noPrefill ? '' : '2.1x',
+    nota_financiacion: noPrefill ? '' : 'Deuda sindicada refinanciada en 2023. Covenant DSCR mínimo 1.5x cumplido holgadamente.',
   })
 
   const set = (k,v) => setForm(p=>({...p,[k]:v}))
@@ -181,6 +185,36 @@ export default function FichaPropietario() {
     }, 200)
     return () => { cancel = true; clearTimeout(t) }
   }, [propSearch])
+
+  // ── Lupa: Activo (para vincular desde la lista o cambiar el actual) ──
+  const [activoSearch,  setActivoSearch]  = useState('')
+  const [showActivoDD,  setShowActivoDD]  = useState(false)
+  const [activoResults, setActivoResults] = useState([])
+  useEffect(() => {
+    if (!activoSearch || activoSearch.length < 2) { setActivoResults([]); return }
+    let cancel = false
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from('activos')
+        .select('ref, nombre, direccion, propietario, zona, uso')
+        .ilike('nombre', `%${activoSearch}%`)
+        .order('nombre')
+        .limit(10)
+      if (!cancel) setActivoResults(data || [])
+    }, 200)
+    return () => { cancel = true; clearTimeout(t) }
+  }, [activoSearch])
+  const [linkedActivoRef, setLinkedActivoRef] = useState(null)
+  const linkActivo = (a) => {
+    set('activo',           a.nombre || '')
+    set('activo_direccion', a.direccion || '')
+    if (a.propietario) set('propietario', a.propietario)
+    if (a.zona)        set('zona', a.zona)
+    if (a.uso)         set('uso', a.uso)
+    setLinkedActivoRef(a.ref || null)
+    setActivoSearch('')
+    setShowActivoDD(false)
+  }
 
   const plusvaliaNum = form.valoracion_actual && form.precio_compra
     ? (() => {
@@ -205,7 +239,7 @@ export default function FichaPropietario() {
       id:                form.id,
       propietario:       form.propietario,
       activo:            form.activo,
-      activo_ref:        params?.fromActivoRef || null,
+      activo_ref:        params?.fromActivoRef || linkedActivoRef || null,
       zona:              form.zona || null,
       subzona:           form.subzona || null,
       superficie:        form.superficie ? parseFloat(form.superficie) : null,
@@ -257,7 +291,7 @@ export default function FichaPropietario() {
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
       <div className="action-bar">
-        {fromActivo ? (
+        {noPrefill ? (
           <>
             <button className="ab-btn save" onClick={handleSaveFromActivo} disabled={saving}>{saving ? 'Guardando...' : 'Guardar propietario'}</button>
             <button className="ab-btn" onClick={()=>navigate('ficha-activo',{
@@ -534,14 +568,42 @@ export default function FichaPropietario() {
                 </div>
 
                 {/* Col 2: Activo vinculado */}
-                <div className="va-meta-card">
+                <div className="va-meta-card" style={{ overflow:'visible' }}>
                   <div className="va-meta-head accent-purple"><span className="dot"/>Activo vinculado</div>
                   <div style={{padding:'10px 14px'}}>
                     <div className="kf-grid">
                       <KF label="Activo">
-                        {form.activo
-                          ? <span className="asset-link" style={{cursor:'pointer'}} onClick={()=>navigate('ficha-activo', params?.fromActivoRef ? { ref: params.fromActivoRef } : undefined)}>{form.activo} ↗</span>
-                          : <span style={{fontStyle:'italic', color:'var(--text4)'}}>por completar</span>}
+                        {form.activo ? (
+                          <div style={{display:'inline-flex',alignItems:'center',gap:6,width:'100%'}}>
+                            <span className="asset-link" style={{cursor:'pointer',flex:1,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}} onClick={()=>navigate('ficha-activo', params?.fromActivoRef ? { ref: params.fromActivoRef } : undefined)}>{form.activo} ↗</span>
+                            <button onClick={() => { set('activo',''); set('activo_direccion',''); set('zona',''); set('uso','') }} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}} title="Cambiar activo">✕</button>
+                          </div>
+                        ) : (
+                          <div style={{position:'relative'}}>
+                            <input
+                              className="kf-inp"
+                              placeholder="🔍 Buscar activo..."
+                              value={activoSearch}
+                              onChange={e => { setActivoSearch(e.target.value); setShowActivoDD(true) }}
+                              onFocus={() => setShowActivoDD(true)}
+                              onBlur={() => setTimeout(() => setShowActivoDD(false), 200)}
+                              style={{ fontStyle: activoSearch ? 'normal' : 'italic', width:'100%' }}
+                            />
+                            {showActivoDD && activoSearch.length >= 2 && (
+                              <div style={{position:'absolute',top:'100%',left:0,right:0,minWidth:280,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',boxShadow:'0 8px 24px rgba(0,0,0,.18)',zIndex:9999,maxHeight:240,overflowY:'auto',marginTop:2}}>
+                                {activoResults.length === 0 ? (
+                                  <div style={{padding:'10px 12px',color:'var(--text4)',fontSize:11}}>Sin resultados</div>
+                                ) : activoResults.map(a => (
+                                  <div key={a.ref} onMouseDown={() => linkActivo(a)}
+                                    style={{padding:'7px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:11}}>
+                                    <div style={{fontWeight:600}}>{a.nombre}</div>
+                                    <div style={{color:'var(--text4)',fontSize:10,marginTop:2}}>{[a.ref, a.uso, a.zona].filter(Boolean).join(' · ')}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </KF>
                       <KF label="Dirección">
                         {form.activo_direccion

@@ -152,6 +152,12 @@ export default function FichaArrendatario() {
         zona:             params.fromActivoZona       || '',
       }
     }
+    // Nuevo arrendatario "en blanco" (desde el módulo / lista, sin contexto):
+    // formulario 100% vacío. El usuario vincula activo + cuenta con lupa.
+    const isBlankNew = !params?.tenantName && !params?.arrRef
+    if (isBlankNew) {
+      return { ...EMPTY_FORM }
+    }
     // Mock data for existing tenant view
     return {
       activo: 'Albatros Edif. D',
@@ -218,6 +224,36 @@ export default function FichaArrendatario() {
     }
     return next
   })
+
+  // ── Lupa de Activo (para vincular desde la lista o cambiar el actual) ──
+  const [activoSearch,    setActivoSearch]    = useState('')
+  const [showActivoDD,    setShowActivoDD]    = useState(false)
+  const [activoResults,   setActivoResults]   = useState([])
+  useEffect(() => {
+    if (!activoSearch || activoSearch.length < 2) { setActivoResults([]); return }
+    let cancel = false
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from('activos')
+        .select('ref, nombre, direccion, propietario, zona, uso')
+        .ilike('nombre', `%${activoSearch}%`)
+        .order('nombre')
+        .limit(10)
+      if (!cancel) setActivoResults(data || [])
+    }, 200)
+    return () => { cancel = true; clearTimeout(t) }
+  }, [activoSearch])
+
+  const [linkedActivoRef, setLinkedActivoRef] = useState(null)
+  const linkActivo = (a) => {
+    set('activo',           a.nombre || '')
+    set('activo_direccion', a.direccion || '')
+    if (a.propietario) set('propietario', a.propietario)
+    if (a.zona)        set('zona', a.zona)
+    setLinkedActivoRef(a.ref || null)
+    setActivoSearch('')
+    setShowActivoDD(false)
+  }
 
   // ── Lupa de cuentas (Arrendatario + Arrendatario mayoritario) ──
   const [tenantSearch,    setTenantSearch]    = useState('')
@@ -697,14 +733,42 @@ export default function FichaArrendatario() {
                   <div className="va-meta-card" style={{ overflow:'visible' }}>
                     <div className="va-meta-head"><span className="dot"/>Inquilino</div>
                     <div style={{padding:'10px 14px'}}>
-                      {/* Activo + dirección heredados (lo único que se autocompleta) */}
-                      <FField label="Activo">
-                        {form.activo
-                          ? <div style={{padding:'6px 9px',border:'1px solid var(--border2)',borderRadius:'var(--r)',fontSize:12,color:'var(--accent)',cursor:'pointer'}}
-                              onClick={() => navigate('ficha-activo', params?.fromActivoRef ? { ref: params.fromActivoRef } : undefined)}>
-                              {form.activo} ↗
-                            </div>
-                          : <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontStyle:'italic',color:'var(--text4)'}}>por completar</div>}
+                      {/* Activo · lupa para vincular; si ya hay activo, chip clicable + ✕ para cambiar */}
+                      <FField label="Activo" req invalid={invalidFields.has('activo')}>
+                        {form.activo ? (
+                          <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',background:'var(--accent-lt)',width:'100%'}}>
+                            <span
+                              onClick={() => navigate('ficha-activo', params?.fromActivoRef ? { ref: params.fromActivoRef } : undefined)}
+                              style={{fontWeight:600,color:'var(--accent)',fontSize:12,flex:1,cursor:'pointer',textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}
+                            >{form.activo} ↗</span>
+                            <button onClick={() => { set('activo',''); set('activo_direccion',''); set('propietario','') }} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}} title="Cambiar activo">✕</button>
+                          </div>
+                        ) : (
+                          <div style={{position:'relative'}}>
+                            <input
+                              className="of-inp"
+                              placeholder="🔍 Buscar activo..."
+                              value={activoSearch}
+                              onChange={e => { setActivoSearch(e.target.value); setShowActivoDD(true) }}
+                              onFocus={() => setShowActivoDD(true)}
+                              onBlur={() => setTimeout(() => setShowActivoDD(false), 200)}
+                              style={{ fontStyle: activoSearch ? 'normal' : 'italic' }}
+                            />
+                            {showActivoDD && activoSearch.length >= 2 && (
+                              <div style={{position:'absolute',top:'100%',left:0,right:0,minWidth:300,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',boxShadow:'0 8px 24px rgba(0,0,0,.18)',zIndex:9999,maxHeight:240,overflowY:'auto',marginTop:2}}>
+                                {activoResults.length === 0 ? (
+                                  <div style={{padding:'10px 12px',color:'var(--text4)',fontSize:11}}>Sin resultados</div>
+                                ) : activoResults.map(a => (
+                                  <div key={a.ref} onMouseDown={() => linkActivo(a)}
+                                    style={{padding:'7px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:11}}>
+                                    <div style={{fontWeight:600}}>{a.nombre}</div>
+                                    <div style={{color:'var(--text4)',fontSize:10,marginTop:2}}>{[a.ref, a.uso, a.zona].filter(Boolean).join(' · ')}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </FField>
                       <FField label="Dirección">
                         {form.activo_direccion
