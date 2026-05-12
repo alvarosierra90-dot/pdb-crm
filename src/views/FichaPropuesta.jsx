@@ -90,7 +90,9 @@ function FichaPropuestaMock() {
     mandato_ref: '',
   })
 
-  const [activos, setActivos] = useState(['Torre Norte Castellana'])
+  // activos como objetos { ref, nombre, direccion, uso, sba, zona, ciudad }
+  // para poder mostrar cards con dirección, uso principal y SBA.
+  const [activos, setActivos] = useState([{ nombre:'Torre Norte Castellana', direccion:'Paseo de la Castellana 261, Madrid', uso:'Oficinas', sba:21500 }])
   const [ofertas, setOfertas] = useState([])
   const [newActivo, setNewActivo] = useState('')
   const [newOferta, setNewOferta] = useState('')
@@ -113,18 +115,20 @@ function FichaPropuestaMock() {
     return () => { cancel = true; clearTimeout(t) }
   }, [newActivo])
 
-  // ── Lupa Ofertas: búsqueda en tabla ofertas ──
+  // ── Lupa Ofertas: búsqueda en tabla ofertas (sólo ref — no hay columna `nombre`) ──
   const [showOfertaDD,    setShowOfertaDD]    = useState(false)
   const [ofertaResults,   setOfertaResults]   = useState([])
   useEffect(() => {
     if (!newOferta || newOferta.length < 2) { setOfertaResults([]); return }
     let cancel = false
     const t = setTimeout(async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('ofertas')
-        .select('ref, nombre, activo_ref')
-        .or(`ref.ilike.%${newOferta}%,nombre.ilike.%${newOferta}%`)
+        .select('ref, tipo_operacion, tipologia, estado')
+        .ilike('ref', `%${newOferta}%`)
+        .order('ref', { ascending:false })
         .limit(10)
+      if (error) console.error('Error buscando ofertas:', error)
       if (!cancel) setOfertaResults(data || [])
     }, 200)
     return () => { cancel = true; clearTimeout(t) }
@@ -341,35 +345,31 @@ function FichaPropuestaMock() {
                       <span className="hint" style={{ color:'var(--red, #dc2626)', fontWeight:600 }}>Una Propuesta SIEMPRE cuelga de Oportunidad</span>
                     </div>
                     <div style={{padding:'4px 20px 16px'}}>
-                      <div style={{marginBottom:4,fontSize:10,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}>Obligatorios</div>
-
-                      {/* Oportunidad — FK obligatorio · sin caja amarilla */}
-                      <div style={{ marginBottom:10 }}>
-                        <div className="rp-lbl" style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      {/* Oportunidad */}
+                      <div style={{ marginBottom:12 }}>
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5, display:'flex', alignItems:'center', gap:6 }}>
                           <span>Oportunidad</span>
                           <span style={{ color:'var(--red, #dc2626)', fontWeight:700 }}>*</span>
                         </div>
-                        <input className="kf-inp" value={form.oportunidad} onChange={e=>set('oportunidad',e.target.value)} style={{width:'100%',marginTop:4,fontWeight:600}} placeholder="Ej: OP-2026-0078"/>
+                        <input className="kf-inp" value={form.oportunidad} onChange={e=>set('oportunidad',e.target.value)} style={{width:'100%',fontWeight:600}} placeholder="Ej: OP-2026-0078"/>
                         {form.oportunidad_nombre && <div style={{fontSize:10, color:'var(--text3)', marginTop:3}}>{form.oportunidad_nombre}</div>}
                         <div style={{ fontSize:10, color:'var(--red, #dc2626)', fontWeight:600, marginTop:4 }}>
                           Una Propuesta SIEMPRE cuelga de una Oportunidad existente en Dynamics. Sin Oportunidad no puede guardarse.
                         </div>
                       </div>
 
-                      {/* Empresa / Cuenta — sin caja azul */}
+                      {/* Empresa / Cuenta */}
                       <div style={{ marginBottom:12 }}>
-                        <div className="rp-lbl" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                          <span>Empresa / Cuenta <span style={{color:'var(--red, #dc2626)',fontWeight:700}}>*</span></span>
-                          {form.oportunidad && <span style={{fontSize:9,fontWeight:600,color:'var(--text3)'}}>🔒 heredada de Oportunidad</span>}
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                          <span>Empresa (Cuenta) <span style={{color:'var(--red, #dc2626)',fontWeight:700}}>*</span></span>
+                          {form.oportunidad && <span style={{fontSize:9,fontWeight:600,color:'var(--text3)',textTransform:'none',letterSpacing:'normal'}}>🔒 heredada de Oportunidad</span>}
                         </div>
-                        <input className="kf-inp" value={form.empresa} onChange={e=>!form.oportunidad && set('empresa',e.target.value)} disabled={!!form.oportunidad} style={{width:'100%',marginTop:4,fontWeight:600,background:form.oportunidad?'var(--gray-lt)':undefined,cursor:form.oportunidad?'not-allowed':undefined}} placeholder="Buscar cuenta en Dynamics..."/>
-                        <div style={{fontSize:9,color:'var(--text4)',marginTop:3}}>{form.oportunidad ? 'Cuenta heredada automáticamente desde la Oportunidad' : 'Campo obligatorio — vinculado a Dynamics CRM'}</div>
+                        <input className="kf-inp" value={form.empresa} onChange={e=>!form.oportunidad && set('empresa',e.target.value)} disabled={!!form.oportunidad} style={{width:'100%',fontWeight:600,background:form.oportunidad?'var(--gray-lt)':undefined,cursor:form.oportunidad?'not-allowed':undefined}} placeholder="Buscar cuenta en Dynamics..."/>
+                        <div style={{fontSize:9,color:'var(--text4)',marginTop:3}}>{form.oportunidad ? 'Cuenta heredada automáticamente desde la Oportunidad' : 'Vinculado a Dynamics CRM'}</div>
                       </div>
 
-                      <div style={{fontSize:10,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginTop:12,marginBottom:4}}>Opcional</div>
-
                       {/* Demanda — lupa sobre demandas */}
-                      <KF label="Demanda (si aplica)">
+                      <KF label={<span style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em' }}>Demanda</span>}>
                         {form.demanda ? (
                           <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 10px',border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--surface)',width:'100%'}}>
                             <span onClick={()=>navigate('ficha-demanda')} style={{fontFamily:'var(--mono)',fontWeight:600,color:'var(--accent)',flex:1,cursor:'pointer',textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>{form.demanda} ↗</span>
@@ -398,17 +398,27 @@ function FichaPropuestaMock() {
                         )}
                       </KF>
 
-                      {/* Activos vinculados — lupa sobre activos */}
-                      <div style={{marginTop:8}}>
-                        <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Activos vinculados</div>
-                        {activos.map((a,i)=>(
-                          <div key={i} style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
-                            <span style={{fontSize:11,color:'var(--text)',fontWeight:500,flex:1,padding:'4px 8px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:4}}>🏛 {a}</span>
-                            <button className="ra p" style={{fontSize:9,padding:'2px 5px'}} onClick={()=>navigate('ficha-activo')}>Ver</button>
-                            <button className="ra" style={{color:'var(--text4)',fontSize:10}} onClick={()=>setActivos(v=>v.filter((_,idx)=>idx!==i))}>✕</button>
+                      {/* Activos vinculados — lupa + cards con dirección/uso/SBA */}
+                      <div style={{marginTop:14}}>
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:6 }}>Activos vinculados</div>
+                        {activos.map((a,i) => (
+                          <div key={i} style={{ padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', marginBottom:6 }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:6 }}>
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', display:'flex', alignItems:'center', gap:6 }}>
+                                  🏛 <span onClick={() => navigate('ficha-activo', a.ref ? { ref:a.ref } : undefined)} style={{ cursor:'pointer', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{a.nombre}</span>
+                                </div>
+                                {a.direccion && <div style={{ fontSize:10, color:'var(--text3)', marginTop:3 }}>📍 {a.direccion}{a.ciudad && a.direccion?.indexOf(a.ciudad) === -1 ? `, ${a.ciudad}` : ''}</div>}
+                                <div style={{ display:'flex', gap:12, marginTop:4, fontSize:10 }}>
+                                  {a.uso && <div><span style={{ color:'var(--text4)' }}>Uso · </span><span style={{ color:'var(--text), fontWeight:500' }}>{a.uso}</span></div>}
+                                  {a.sba != null && <div><span style={{ color:'var(--text4)' }}>SBA · </span><span style={{ fontFamily:'var(--mono)', fontWeight:600 }}>{Number(a.sba).toLocaleString('es-ES')} m²</span></div>}
+                                </div>
+                              </div>
+                              <button onClick={() => setActivos(v => v.filter((_,idx) => idx !== i))} style={{ background:'none', border:'none', color:'var(--text4)', cursor:'pointer', fontSize:12, padding:'0 4px' }} title="Quitar">✕</button>
+                            </div>
                           </div>
                         ))}
-                        <div style={{position:'relative'}}>
+                        <div style={{position:'relative', marginTop:4}}>
                           <input className="kf-inp" value={newActivo}
                             onChange={e=>{ setNewActivo(e.target.value); setShowActivoDD(true) }}
                             onFocus={()=>setShowActivoDD(true)}
@@ -420,11 +430,13 @@ function FichaPropuestaMock() {
                                 <div style={{padding:'10px 12px',color:'var(--text4)',fontSize:11}}>Sin resultados</div>
                               ) : activoResults.map(a => (
                                 <div key={a.ref} onMouseDown={() => {
-                                  if (!activos.includes(a.nombre)) setActivos(v => [...v, a.nombre])
+                                  if (!activos.some(x => x.ref === a.ref || x.nombre === a.nombre)) {
+                                    setActivos(v => [...v, { ref:a.ref, nombre:a.nombre, direccion:a.direccion, uso:a.uso, sba:a.sba, zona:a.zona, ciudad:a.ciudad }])
+                                  }
                                   setNewActivo(''); setShowActivoDD(false)
                                 }} style={{padding:'7px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:11}}>
                                   <div style={{fontWeight:600}}>{a.nombre}</div>
-                                  <div style={{color:'var(--text4)',fontSize:10,marginTop:2}}>{[a.ref, a.uso, a.zona].filter(Boolean).join(' · ')}</div>
+                                  <div style={{color:'var(--text4)',fontSize:10,marginTop:2}}>{[a.ref, a.uso, a.zona, a.ciudad].filter(Boolean).join(' · ')}</div>
                                 </div>
                               ))}
                             </div>
@@ -432,14 +444,14 @@ function FichaPropuestaMock() {
                         </div>
                       </div>
 
-                      {/* Ofertas vinculadas — lupa sobre ofertas */}
-                      <div style={{marginTop:12}}>
-                        <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Ofertas vinculadas</div>
-                        {ofertas.length===0 && <div style={{fontSize:10,color:'var(--text4)',padding:'4px 0',fontStyle:'italic'}}>Sin ofertas — opcional</div>}
+                      {/* Ofertas vinculadas — lupa sobre ofertas (solo ref) */}
+                      <div style={{marginTop:14}}>
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:6 }}>Ofertas vinculadas</div>
+                        {ofertas.length===0 && <div style={{fontSize:10,color:'var(--text4)',padding:'4px 0',fontStyle:'italic'}}>—</div>}
                         {ofertas.map((o,i)=>(
                           <div key={i} style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
                             <span style={{fontSize:11,color:'var(--text)',fontWeight:500,flex:1,padding:'4px 8px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:4,fontFamily:'var(--mono)'}}>📧 {o}</span>
-                            <button className="ra p" style={{fontSize:9,padding:'2px 5px'}} onClick={()=>navigate('ficha-oferta')}>Ver</button>
+                            <button className="ra p" style={{fontSize:9,padding:'2px 5px'}} onClick={()=>navigate('ficha-oferta', { ofertaRef:o })}>Ver</button>
                             <button className="ra" style={{color:'var(--text4)',fontSize:10}} onClick={()=>setOfertas(v=>v.filter((_,idx)=>idx!==i))}>✕</button>
                           </div>
                         ))}
@@ -448,7 +460,7 @@ function FichaPropuestaMock() {
                             onChange={e=>{ setNewOferta(e.target.value); setShowOfertaDD(true) }}
                             onFocus={()=>setShowOfertaDD(true)}
                             onBlur={()=>setTimeout(()=>setShowOfertaDD(false), 200)}
-                            placeholder="🔍 Buscar oferta existente..." style={{ fontSize:11, fontFamily:'var(--mono)', fontStyle: newOferta ? 'normal' : 'italic', width:'100%' }}/>
+                            placeholder="🔍 Buscar oferta por referencia..." style={{ fontSize:11, fontFamily:'var(--mono)', fontStyle: newOferta ? 'normal' : 'italic', width:'100%' }}/>
                           {showOfertaDD && newOferta.length >= 2 && (
                             <div style={{position:'absolute',top:'100%',left:0,right:0,minWidth:280,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',boxShadow:'0 8px 24px rgba(0,0,0,.18)',zIndex:9999,maxHeight:220,overflowY:'auto',marginTop:2}}>
                               {ofertaResults.length === 0 ? (
@@ -459,7 +471,7 @@ function FichaPropuestaMock() {
                                   setNewOferta(''); setShowOfertaDD(false)
                                 }} style={{padding:'7px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:11}}>
                                   <div style={{fontWeight:600, fontFamily:'var(--mono)'}}>{o.ref}</div>
-                                  {o.nombre && <div style={{color:'var(--text4)',fontSize:10,marginTop:2}}>{o.nombre}</div>}
+                                  <div style={{color:'var(--text4)',fontSize:10,marginTop:2}}>{[o.tipo_operacion, o.tipologia, o.estado].filter(Boolean).join(' · ')}</div>
                                 </div>
                               ))}
                             </div>
@@ -614,31 +626,35 @@ function FichaPropuestaMock() {
                 </div>
               )}
 
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:10}}>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14}}>
                 {docs.map(doc=>{
                   const tipo_color = {Presentación:'var(--accent)',Análisis:'var(--teal)',Legal:'var(--red)',Propuesta:'var(--purple)',Informe:'var(--amber)',Plano:'var(--text2)',Foto:'var(--green)',Otro:'var(--text4)'}
                   const tipo_ico   = {Presentación:'📊',Análisis:'📈',Legal:'⚖️',Propuesta:'📋',Informe:'📄',Plano:'📐',Foto:'🖼',Otro:'📎'}
                   const col = tipo_color[doc.tipo]||'var(--text3)'
                   return (
-                    <div key={doc.id} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'10px 12px',display:'flex',gap:10,alignItems:'flex-start',cursor:'pointer',transition:'border .15s'}}
-                      onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'}
-                      onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
-                      <div style={{fontSize:22,flexShrink:0,marginTop:2}}>{tipo_ico[doc.tipo]||'📎'}</div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:11,fontWeight:600,color:'var(--text1)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{doc.nombre}</div>
-                        <div style={{display:'flex',gap:6,marginTop:4,flexWrap:'wrap',alignItems:'center'}}>
-                          <span style={{fontSize:9,padding:'1px 7px',borderRadius:8,background:col+'18',color:col,border:`1px solid ${col}33`,fontWeight:700}}>{doc.tipo}</span>
-                          <span style={{fontSize:9,color:'var(--text4)'}}>{doc.fecha}</span>
-                          <span style={{fontSize:9,color:'var(--text4)'}}>{doc.size}</span>
-                        </div>
-                        <div style={{fontSize:10,color:'var(--text3)',marginTop:3}}>{doc.u}</div>
+                    <div key={doc.id} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'18px 16px',display:'flex',flexDirection:'column',gap:10,cursor:'pointer',transition:'border .15s,box-shadow .15s',minHeight:170}}
+                      onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.boxShadow='0 4px 12px rgba(0,0,0,.08)'}}
+                      onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.boxShadow='none'}}>
+                      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between'}}>
+                        <div style={{fontSize:38,lineHeight:1,flexShrink:0}}>{tipo_ico[doc.tipo]||'📎'}</div>
+                        <button onClick={(e)=>{e.stopPropagation();setDocs(prev=>prev.filter(d=>d.id!==doc.id))}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text4)',fontSize:14,padding:'0 4px',flexShrink:0}}>✕</button>
                       </div>
-                      <button onClick={(e)=>{e.stopPropagation();setDocs(prev=>prev.filter(d=>d.id!==doc.id))}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text4)',fontSize:12,padding:'0 2px',flexShrink:0}}>✕</button>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:6,overflow:'hidden',textOverflow:'ellipsis',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{doc.nombre}</div>
+                        <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',marginBottom:6}}>
+                          <span style={{fontSize:10,padding:'2px 8px',borderRadius:10,background:col+'18',color:col,border:`1px solid ${col}33`,fontWeight:700}}>{doc.tipo}</span>
+                          <span style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>{doc.fecha}</span>
+                        </div>
+                        <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'var(--text3)'}}>
+                          <span>{doc.u}</span>
+                          <span style={{fontFamily:'var(--mono)'}}>{doc.size}</span>
+                        </div>
+                      </div>
                     </div>
                   )
                 })}
                 {docs.length===0 && (
-                  <div style={{gridColumn:'1/-1',textAlign:'center',padding:40,color:'var(--text4)',fontSize:12}}>No hay documentos. Añade el primero.</div>
+                  <div style={{gridColumn:'1/-1',textAlign:'center',padding:60,color:'var(--text4)',fontSize:13}}>No hay documentos. Añade el primero.</div>
                 )}
               </div>
             </div></div>
