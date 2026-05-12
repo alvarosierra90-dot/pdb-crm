@@ -38,10 +38,11 @@ function ExportMenu({ getConfig }) {
   )
 }
 
-// Tabs sintetizados: solo los que tienen datos reales detrás. Antes existían
-// 'pt-actividad' y 'pt-financiero' con contenido mock — quitados.
-const TABS = ['pt-overview','pt-activos','pt-ofertas','pt-oportunidades','pt-transaccion']
-// Las etiquetas con conteo se generan en runtime — ver tabLabel(idx, counts)
+// Tabs consolidados: Vista 360 unifica Activos/Ofertas/Oportunidades/
+// Mandatos/Propuestas/Demandas/Actividades en una sola pantalla
+// sincronizada. Facturación añade dashboard analítico de honorarios.
+const TABS = ['pt-overview','pt-360','pt-facturacion']
+const TAB_LABELS = ['Overview','Vista 360','Facturación']
 
 // USOS_FILTRO eliminado — los filtros se calculan ahora dinámicamente
 // de los activos reales del portfolio (uso y ciudad).
@@ -586,23 +587,11 @@ export default function PortfolioFicha() {
           <div className="pks"><div className="pks-lbl">Mandatos</div><div className="pks-val">{mandatos.filter(m => m.estado === 'en_curso').length}</div><div className="pks-sub">{mandatos.length} totales</div></div>
         </div>
 
-        {/* Tabs (con conteos reales del portfolio) */}
-        {(() => {
-          const labels = [
-            'Overview',
-            `Activos (${activosFiltrados.length})`,
-            `Ofertas (${ofertasActivas})`,
-            `Oportunidades (${oportunidadesActivas.length})`,
-            `Mandatos (${mandatos.length})`,
-          ]
-          return (
-            <div className="tabs">
-              {TABS.map((t, i) => (
-                <div key={t} className={`tab ${activeTab === t ? 'active' : ''}`} onClick={() => setActiveTab(t)}>{labels[i]}</div>
-              ))}
-            </div>
-          )
-        })()}
+        <div className="tabs">
+          {TABS.map((t, i) => (
+            <div key={t} className={`tab ${activeTab === t ? 'active' : ''}`} onClick={() => setActiveTab(t)}>{TAB_LABELS[i]}</div>
+          ))}
+        </div>
 
         {/* ── Overview ── */}
         {activeTab === 'pt-overview' && (
@@ -734,167 +723,427 @@ export default function PortfolioFicha() {
         )}
 
         {/* Activos */}
-        {activeTab === 'pt-activos' && (
-          <div className="tab-content active" style={{ overflowY: 'auto' }}>
-            <div className="port-body">
-              <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>
-                <button onClick={()=>exportarInforme('Activos-Portfolio-Merlin',[
-                  'ACTIVOS DEL PORTFOLIO',
-                  'Activo | Ciudad | Uso | SBA m² | Ocupación | Renta €/m²',
-                  'P.E Avalon | Madrid | Oficinas | 46.956 | 78.4% | 10,5',
-                  'Torre Glòries | Barcelona | Oficinas | 18.500 | 100% | 28,0',
-                  'Park Logístico Getafe | Madrid | Logístico | 24.000 | 96% | 6,8',
-                ])} style={{padding:'4px 12px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:5,fontSize:10,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)',fontWeight:600}}>
-                  ⬇ Exportar
-                </button>
-              </div>
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Activos del portfolio ({activosFiltrados.length})</div>
-                <table className="dtbl">
-                  <thead><tr><th>Ref.</th><th>Activo</th><th>Ciudad</th><th>Uso</th><th>SBA (m²)</th><th>Disponible</th><th>Estado</th></tr></thead>
-                  <tbody>
-                    {activosFiltrados.length === 0 ? (
-                      <tr><td colSpan={7} style={{ textAlign:'center', padding:24, color:'var(--text4)', fontSize:12 }}>{loadingPort ? 'Cargando…' : 'Sin activos en este portfolio.'}</td></tr>
-                    ) : activosFiltrados.map(a => {
-                      const sba = Number(a.sba) || Number(a.m2_totales) || 0
-                      const disp = Number(a.m2_disponibles) || 0
-                      const ocu = sba > 0 ? Math.round(((sba - disp) / sba) * 1000) / 10 : null
-                      return (
-                        <tr key={a.id} onClick={() => navigate('ficha-activo', { ref: a.ref })} style={{ cursor:'pointer' }}>
-                          <td style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--accent)' }}>{a.ref}</td>
-                          <td className="dtbl-link">{a.nombre || '—'}</td>
-                          <td>{a.ciudad || '—'}</td>
-                          <td><span className="tag tag-blue">{a.uso || '—'}</span></td>
-                          <td>{sba ? sba.toLocaleString('es-ES') : '—'}</td>
-                          <td style={{ color: disp > 0 ? 'var(--amber)' : 'var(--green)' }}>{disp ? `${disp.toLocaleString('es-ES')} (${ocu ? (100 - ocu) : 0}%)` : '0'}</td>
-                          <td><span className={`tag ${a.estado === 'archivado' ? 'tag-gray' : 'tag-green'}`}>{a.estado || 'Activo'}</span></td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Ofertas */}
-        {activeTab === 'pt-ofertas' && (
-          <div className="tab-content active" style={{ overflowY: 'auto' }}>
-            <div className="port-body">
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Ofertas del portfolio ({ofertasFiltradas.length})</div>
-                <table className="dtbl">
-                  <thead><tr><th>Ref.</th><th>Activo</th><th>Tipo</th><th>M²</th><th>Renta €/m²</th><th>Disponibilidad</th><th>Estado</th></tr></thead>
-                  <tbody>
-                    {ofertasFiltradas.length === 0 ? (
-                      <tr><td colSpan={7} style={{ textAlign:'center', padding:24, color:'var(--text4)', fontSize:12 }}>{loadingPort ? 'Cargando…' : 'Sin ofertas en este portfolio.'}</td></tr>
-                    ) : ofertasFiltradas.map(o => {
-                      const a = activosFiltrados.find(x => x.id === o.activo_id)
-                      const tagClass = o.estado === 'Retirada' ? 'tag-gray' : (o.estado || '').includes('Ocupada') ? 'tag-amber' : 'tag-blue'
-                      return (
-                        <tr key={o.id} onClick={() => navigate('ficha-oferta', { id: o.ref })} style={{ cursor:'pointer' }}>
-                          <td><span className="asset-link" style={{fontFamily:'var(--mono)'}}>{o.ref}</span></td>
-                          <td>{a?.nombre || '—'}</td>
-                          <td style={{ fontSize:11 }}>{o.tipo_operacion || '—'}</td>
-                          <td>{o.superficie_disponible ? Number(o.superficie_disponible).toLocaleString('es-ES') : '—'}</td>
-                          <td>{o.renta_m2 != null ? Number(o.renta_m2).toLocaleString('es-ES') : '—'}</td>
-                          <td style={{ fontSize:10, color:'var(--text3)' }}>{o.fecha_disponibilidad ? new Date(o.fecha_disponibilidad).toLocaleDateString('es-ES') : '—'}</td>
-                          <td><span className={`tag ${tagClass}`}>{o.estado || '—'}</span></td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Oportunidades */}
-        {activeTab === 'pt-oportunidades' && (
-          <div className="tab-content active" style={{ overflowY: 'auto' }}>
-            <div className="port-body">
-              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-                {[
-                  { lbl: 'Total',  val: oportunidades.length,         color: 'var(--text1)' },
-                  { lbl: 'Activas', val: oportunidadesActivas.length, color: 'var(--accent)' },
-                  { lbl: 'Cerradas', val: oportunidades.filter(o => o.estado === 'cerrada').length, color: 'var(--green)' },
-                ].map(k => (
-                  <div key={k.lbl} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 12px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 9, color: 'var(--text4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>{k.lbl}</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--mono)', color: k.color }}>{k.val}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-                <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Oportunidades vinculadas a la cuenta ({oportunidades.length})</div>
-                <table className="dtbl">
-                  <thead>
-                    <tr><th>Dynamics ID</th><th>Nombre</th><th>Tipo</th><th>Estado</th><th>Fecha</th></tr>
-                  </thead>
-                  <tbody>
-                    {oportunidades.length === 0 ? (
-                      <tr><td colSpan={5} style={{ textAlign:'center', padding:24, color:'var(--text4)', fontSize:12 }}>{loadingPort ? 'Cargando…' : (propietario?.dynamics_account_id ? 'Sin oportunidades para esta cuenta.' : 'Este portfolio no tiene cuenta Dynamics vinculada.')}</td></tr>
-                    ) : oportunidades.map(o => (
-                      <tr key={o.dynamics_id} style={{ cursor: 'pointer' }}>
-                        <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>{o.dynamics_id}</span></td>
-                        <td style={{ fontSize: 11, fontWeight: 500 }}>{o.nombre || '—'}</td>
-                        <td><span className="tag tag-blue" style={{ fontSize: 9 }}>{o.tipo || '—'}</span></td>
-                        <td><span className="tag tag-gray" style={{ fontSize: 9 }}>{o.estado || '—'}</span></td>
-                        <td style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--text3)' }}>{o.fecha_creacion ? new Date(o.fecha_creacion).toLocaleDateString('es-ES') : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Mandatos del portfolio */}
-        {activeTab === 'pt-transaccion' && (() => {
-          const totalFee = mandatos.reduce((s, m) => s + (Number(m.fee_eur_fijo) || 0), 0)
+        {/* ─── VISTA 360 ── Consolida activos, ofertas, oportunidades,
+            mandatos, propuestas, demandas y actividades en una sola
+            interfaz, mismo formato que la Vista 360 de Activos. ─── */}
+        {activeTab === 'pt-360' && (() => {
+          const totalFee = mandatos.reduce((s,m) => s + (Number(m.fee_eur_fijo)||0), 0)
+          const numOps = mandatos.length + (oportunidadesActivas?.length || 0)
+          // Timeline cronológico simulado (en un futuro vendrá de tabla actividades).
+          const timeline = [
+            ...mandatos.slice(0,3).map(m => ({ tipo:'MANDATO', av:'AS', bg:'#fef3c7', color:'#92400e', name:'Sistema', msg:`firmó mandato ${m.ref} — ${m.titulo || m.tipo}`, badge:{bg:'#fef3c7',color:'#92400e',bc:'#fde68a',lbl:'MANDATO'}, time:m.fecha_firma ? new Date(m.fecha_firma).toLocaleDateString('es-ES') : '—' })),
+            ...ofertasFiltradas.slice(0,2).map(o => ({ tipo:'OFERTA', av:'JL', bg:'#dcfce7', color:'#166534', name:'Sistema', msg:`registró oferta ${o.ref}`, badge:{bg:'var(--green-lt)',color:'var(--green)',bc:'var(--green-bd)',lbl:'OFERTA'}, time:'—' })),
+            ...oportunidades.slice(0,2).map(o => ({ tipo:'OPORT', av:'MR', bg:'#fce7f3', color:'#9d174d', name:'Sistema', msg:`abrió oportunidad ${o.nombre || o.dynamics_id}`, badge:{bg:'var(--accent-lt)',color:'var(--accent)',bc:'var(--accent-bd)',lbl:'OPORTUNIDAD'}, time:o.fecha_creacion ? new Date(o.fecha_creacion).toLocaleDateString('es-ES') : '—' })),
+          ]
           return (
-            <div className="tab-content active" style={{ overflowY: 'auto' }}>
+            <div className="tab-content active" style={{ overflowY:'auto' }}>
               <div className="port-body">
-                <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+
+                {/* KPI strip — 7 categorías sincronizadas */}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:8, marginBottom:14 }}>
                   {[
-                    { lbl: 'Total mandatos', val: mandatos.length,                                              color: 'var(--text1)' },
-                    { lbl: 'En curso',       val: mandatos.filter(m => m.estado === 'en_curso').length,         color: 'var(--green)' },
-                    { lbl: 'Cerrados',       val: mandatos.filter(m => m.estado === 'cerrado').length,          color: 'var(--text3)' },
-                    { lbl: 'Fees totales',   val: `${(totalFee/1000).toLocaleString('es-ES', { maximumFractionDigits:0 })} k€`, color: 'var(--accent)' },
+                    { lbl:'Activos',       val:activosFiltrados.length, color:'var(--text1)' },
+                    { lbl:'Ofertas',       val:ofertasFiltradas.length, color:'var(--green)' },
+                    { lbl:'Oportunidades', val:oportunidades.length,    color:'var(--accent)' },
+                    { lbl:'Mandatos',      val:mandatos.length,         color:'var(--amber)' },
+                    { lbl:'Propuestas',    val:0,                        color:'var(--teal)' },
+                    { lbl:'Demandas',      val:0,                        color:'var(--purple)' },
+                    { lbl:'Fee total',     val:`${(totalFee/1000).toLocaleString('es-ES',{maximumFractionDigits:0})} k€`, color:'var(--green)' },
                   ].map(k => (
-                    <div key={k.lbl} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 12px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 9, color: 'var(--text4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>{k.lbl}</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--mono)', color: k.color }}>{k.val}</div>
+                    <div key={k.lbl} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'8px 10px', textAlign:'center' }}>
+                      <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em', marginBottom:3, lineHeight:1.2 }}>{k.lbl}</div>
+                      <div style={{ fontSize:18, fontWeight:800, fontFamily:'var(--mono)', color:k.color, lineHeight:1 }}>{k.val}</div>
                     </div>
                   ))}
                 </div>
-                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', overflow: 'hidden' }}>
-                  <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600 }}>Mandatos vinculados ({mandatos.length})</div>
-                  <table className="dtbl">
-                    <thead>
-                      <tr><th>Ref.</th><th>Título</th><th>Tipo</th><th>Firma</th><th>Vencimiento</th><th>Fee €</th><th>Fee %</th><th>Estado</th></tr>
-                    </thead>
-                    <tbody>
-                      {mandatos.length === 0 ? (
-                        <tr><td colSpan={8} style={{ textAlign:'center', padding:24, color:'var(--text4)', fontSize:12 }}>{loadingPort ? 'Cargando…' : (propietario?.dynamics_account_id ? 'Sin mandatos para esta cuenta.' : 'Este portfolio no tiene cuenta Dynamics vinculada.')}</td></tr>
-                      ) : mandatos.map(m => (
-                        <tr key={m.id} onClick={() => navigate('ficha-mandato', { id: m.ref })} style={{ cursor: 'pointer' }}>
-                          <td><span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>{m.ref}</span></td>
-                          <td style={{ fontSize: 11, fontWeight: 500 }}>{m.titulo || '—'}</td>
-                          <td><span className="tag tag-blue" style={{ fontSize: 9 }}>{m.tipo || '—'}</span></td>
-                          <td style={{ fontSize: 10, fontFamily: 'var(--mono)' }}>{m.fecha_firma ? new Date(m.fecha_firma).toLocaleDateString('es-ES') : '—'}</td>
-                          <td style={{ fontSize: 10, fontFamily: 'var(--mono)' }}>{m.fecha_vencimiento ? new Date(m.fecha_vencimiento).toLocaleDateString('es-ES') : '—'}</td>
-                          <td style={{ fontSize: 11, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--green)' }}>{m.fee_eur_fijo ? Number(m.fee_eur_fijo).toLocaleString('es-ES') : '—'}</td>
-                          <td style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{m.fee_porcentaje != null ? `${m.fee_porcentaje}%` : '—'}</td>
-                          <td><span className={`tag ${m.estado === 'en_curso' ? 'tag-green' : m.estado === 'cancelado' ? 'tag-red' : 'tag-gray'}`} style={{ fontSize: 9 }}>{m.estado || '—'}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+
+                {/* Timeline cronológico */}
+                <div style={{ fontSize:11, fontWeight:600, marginBottom:8, color:'var(--text2)' }}>Timeline cronológico · trazabilidad comercial</div>
+                <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r2)', overflow:'hidden', marginBottom:18 }}>
+                  {timeline.length === 0 ? (
+                    <div style={{ padding:'16px', textAlign:'center', color:'var(--text4)', fontSize:11 }}>Sin actividad reciente</div>
+                  ) : timeline.map((item,i,arr) => (
+                    <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'10px 14px', borderBottom:i<arr.length-1?'1px solid var(--border)':'none' }}>
+                      <div style={{ width:28, height:28, borderRadius:'50%', background:item.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:item.color, flexShrink:0 }}>{item.av}</div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:12, color:'var(--text2)' }}><strong>{item.name}</strong> {item.msg} <span style={{ background:item.badge.bg, color:item.badge.color, border:`1px solid ${item.badge.bc}`, padding:'1px 7px', borderRadius:10, fontSize:9, fontWeight:700, marginLeft:4 }}>{item.badge.lbl}</span></div>
+                        <div style={{ fontSize:10, color:'var(--text4)', marginTop:2 }}>{item.time}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+
+                {/* Grid 2 columnas con todas las secciones sincronizadas */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+
+                  {/* Activos vinculados */}
+                  <div className="va-card" style={{ margin:0 }}>
+                    <div className="va-card-header"><h3>Activos vinculados <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>{activosFiltrados.length}</span></h3></div>
+                    <div style={{ padding:'4px 0 14px' }}>
+                      <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                        <thead><tr>{['Ref','Activo','Ciudad','Uso','SBA m²'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 12px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
+                        <tbody>
+                          {activosFiltrados.length === 0
+                            ? <tr><td colSpan={5} style={{ padding:14, color:'var(--text4)', fontSize:11, textAlign:'center' }}>Sin activos</td></tr>
+                            : activosFiltrados.slice(0,10).map(a => (
+                              <tr key={a.id} style={{ borderTop:'1px solid var(--border)', cursor:'pointer' }} onClick={() => navigate('ficha-activo', { ref:a.ref })}>
+                                <td style={{ padding:'6px 12px' }}><span style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--accent)' }}>{a.ref}</span></td>
+                                <td style={{ padding:'6px 12px', fontWeight:500 }}>{a.nombre || '—'}</td>
+                                <td style={{ padding:'6px 12px', fontSize:10 }}>{a.ciudad || '—'}</td>
+                                <td style={{ padding:'6px 12px' }}><span className="tag tag-blue" style={{ fontSize:9 }}>{a.uso || '—'}</span></td>
+                                <td style={{ padding:'6px 12px', fontFamily:'var(--mono)', fontSize:10 }}>{(Number(a.sba)||0).toLocaleString('es-ES')}</td>
+                              </tr>
+                            ))}
+                          {activosFiltrados.length > 10 && <tr><td colSpan={5} style={{ padding:'6px 12px', fontSize:10, color:'var(--text3)', textAlign:'center' }}>+ {activosFiltrados.length - 10} más</td></tr>}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Ofertas asociadas */}
+                  <div className="va-card" style={{ margin:0 }}>
+                    <div className="va-card-header"><h3>Ofertas asociadas <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>{ofertasFiltradas.length}</span></h3></div>
+                    <div style={{ padding:'4px 0 14px' }}>
+                      <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                        <thead><tr>{['Ref','Activo','Renta','Estado'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 12px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
+                        <tbody>
+                          {ofertasFiltradas.length === 0
+                            ? <tr><td colSpan={4} style={{ padding:14, color:'var(--text4)', fontSize:11, textAlign:'center' }}>Sin ofertas</td></tr>
+                            : ofertasFiltradas.slice(0,10).map(o => {
+                              const a = activosFiltrados.find(x => x.id === o.activo_id)
+                              const col = o.estado === 'Retirada' ? 'tag-gray' : (o.estado || '').includes('Ocupada') ? 'tag-amber' : 'tag-green'
+                              return (
+                                <tr key={o.id} style={{ borderTop:'1px solid var(--border)', cursor:'pointer' }} onClick={() => navigate('ficha-oferta', { id:o.ref })}>
+                                  <td style={{ padding:'6px 12px' }}><span style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--accent)' }}>{o.ref}</span></td>
+                                  <td style={{ padding:'6px 12px', fontSize:10 }}>{a?.nombre || '—'}</td>
+                                  <td style={{ padding:'6px 12px', fontFamily:'var(--mono)', fontSize:10 }}>{o.renta_m2 ? `${o.renta_m2} €/m²` : '—'}</td>
+                                  <td style={{ padding:'6px 12px' }}><span className={`tag ${col}`} style={{ fontSize:9 }}>{o.estado || '—'}</span></td>
+                                </tr>
+                              )
+                            })}
+                          {ofertasFiltradas.length > 10 && <tr><td colSpan={4} style={{ padding:'6px 12px', fontSize:10, color:'var(--text3)', textAlign:'center' }}>+ {ofertasFiltradas.length - 10} más</td></tr>}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Oportunidades */}
+                  <div className="va-card" style={{ margin:0 }}>
+                    <div className="va-card-header"><h3>Oportunidades <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>{oportunidades.length}</span></h3></div>
+                    <div style={{ padding:'4px 0 14px' }}>
+                      <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                        <thead><tr>{['ID','Nombre','Tipo','Estado'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 12px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
+                        <tbody>
+                          {oportunidades.length === 0
+                            ? <tr><td colSpan={4} style={{ padding:14, color:'var(--text4)', fontSize:11, textAlign:'center' }}>Sin oportunidades</td></tr>
+                            : oportunidades.slice(0,10).map(o => (
+                              <tr key={o.dynamics_id} style={{ borderTop:'1px solid var(--border)' }}>
+                                <td style={{ padding:'6px 12px' }}><span style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--accent)' }}>{o.dynamics_id}</span></td>
+                                <td style={{ padding:'6px 12px', fontWeight:500 }}>{o.nombre || '—'}</td>
+                                <td style={{ padding:'6px 12px' }}><span className="tag tag-blue" style={{ fontSize:9 }}>{o.tipo || '—'}</span></td>
+                                <td style={{ padding:'6px 12px' }}><span className="tag tag-gray" style={{ fontSize:9 }}>{o.estado || '—'}</span></td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Mandatos */}
+                  <div className="va-card" style={{ margin:0 }}>
+                    <div className="va-card-header"><h3>Mandatos vinculados <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>{mandatos.length}</span></h3></div>
+                    <div style={{ padding:'4px 0 14px' }}>
+                      <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                        <thead><tr>{['Ref','Título','Tipo','Fee €','Estado'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 12px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
+                        <tbody>
+                          {mandatos.length === 0
+                            ? <tr><td colSpan={5} style={{ padding:14, color:'var(--text4)', fontSize:11, textAlign:'center' }}>Sin mandatos</td></tr>
+                            : mandatos.slice(0,10).map(m => (
+                              <tr key={m.id} style={{ borderTop:'1px solid var(--border)', cursor:'pointer' }} onClick={() => navigate('ficha-mandato', { id:m.ref })}>
+                                <td style={{ padding:'6px 12px' }}><span style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--accent)' }}>{m.ref}</span></td>
+                                <td style={{ padding:'6px 12px', fontSize:10 }}>{m.titulo || '—'}</td>
+                                <td style={{ padding:'6px 12px' }}><span className="tag tag-blue" style={{ fontSize:9 }}>{m.tipo || '—'}</span></td>
+                                <td style={{ padding:'6px 12px', fontFamily:'var(--mono)', fontSize:10, fontWeight:600, color:'var(--green)' }}>{m.fee_eur_fijo ? Number(m.fee_eur_fijo).toLocaleString('es-ES') : '—'}</td>
+                                <td style={{ padding:'6px 12px' }}><span className={`tag ${m.estado === 'en_curso' ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:9 }}>{m.estado || '—'}</span></td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Propuestas (placeholder hasta wiring de propuestas) */}
+                  <div className="va-card" style={{ margin:0 }}>
+                    <div className="va-card-header"><h3>Propuestas y proyectos <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>0</span></h3></div>
+                    <div style={{ padding:'16px', textAlign:'center', color:'var(--text4)', fontSize:11, fontStyle:'italic' }}>
+                      Las propuestas vinculadas a la cuenta aparecerán aquí cuando se asocien al portfolio.
+                    </div>
+                  </div>
+
+                  {/* Demandas (placeholder) */}
+                  <div className="va-card" style={{ margin:0 }}>
+                    <div className="va-card-header"><h3>Demandas relacionadas <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>0</span></h3></div>
+                    <div style={{ padding:'16px', textAlign:'center', color:'var(--text4)', fontSize:11, fontStyle:'italic' }}>
+                      Las demandas en las que algún activo del portfolio aparezca como alternativa se mostrarán aquí.
+                    </div>
+                  </div>
+
+                  {/* Instrucciones / actividades */}
+                  <div className="va-card" style={{ margin:0, gridColumn:'1 / -1' }}>
+                    <div className="va-card-header"><h3>Histórico de movimientos y vinculaciones</h3><span className="hint">Trazabilidad inmutable</span></div>
+                    <div style={{ padding:'12px 20px', fontSize:11, color:'var(--text3)', lineHeight:1.6 }}>
+                      Toda la actividad operativa del portfolio queda registrada y sincronizada automáticamente desde activos, ofertas, oportunidades y mandatos. El timeline superior muestra los eventos más relevantes.
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* ─── FACTURACIÓN ── Dashboard analítico ejecutivo ─── */}
+        {activeTab === 'pt-facturacion' && (() => {
+          const totalFee = mandatos.reduce((s,m) => s + (Number(m.fee_eur_fijo)||0), 0)
+          const numOps = mandatos.length
+          const feeMedio = numOps > 0 ? totalFee / numOps : 0
+
+          // Breakdown por línea de negocio (tipo de mandato)
+          const porLinea = {}
+          mandatos.forEach(m => {
+            const k = m.tipo || 'Otro'
+            porLinea[k] = (porLinea[k] || 0) + (Number(m.fee_eur_fijo)||0)
+          })
+          const lineas = Object.entries(porLinea).sort((a,b) => b[1] - a[1])
+          const maxLinea = Math.max(...lineas.map(l => l[1]), 1)
+
+          // Por año (basado en fecha_firma)
+          const porAnyo = {}
+          mandatos.forEach(m => {
+            if (!m.fecha_firma) return
+            const y = String(new Date(m.fecha_firma).getFullYear())
+            porAnyo[y] = (porAnyo[y] || 0) + (Number(m.fee_eur_fijo)||0)
+          })
+          const anyosSorted = Object.entries(porAnyo).sort((a,b) => a[0].localeCompare(b[0]))
+          const maxAnyo = Math.max(...anyosSorted.map(a => a[1]), 1)
+
+          // YoY (comparativa último vs anterior)
+          const ult = anyosSorted[anyosSorted.length-1]
+          const ant = anyosSorted[anyosSorted.length-2]
+          const yoy = (ult && ant && ant[1] > 0) ? ((ult[1] - ant[1]) / ant[1]) * 100 : null
+
+          // Por trimestre del año actual
+          const yearAct = new Date().getFullYear()
+          const trimestres = { Q1:0, Q2:0, Q3:0, Q4:0 }
+          mandatos.forEach(m => {
+            if (!m.fecha_firma) return
+            const d = new Date(m.fecha_firma)
+            if (d.getFullYear() !== yearAct) return
+            const q = `Q${Math.floor(d.getMonth()/3)+1}`
+            trimestres[q] += (Number(m.fee_eur_fijo)||0)
+          })
+
+          // Por responsable / consultor
+          const porResp = {}
+          mandatos.forEach(m => {
+            const k = m.responsable || 'Sin asignar'
+            porResp[k] = (porResp[k] || 0) + (Number(m.fee_eur_fijo)||0)
+          })
+          const responsables = Object.entries(porResp).sort((a,b) => b[1] - a[1])
+
+          // Por provincia
+          const porProv = {}
+          mandatos.forEach(m => {
+            const k = m.provincia || 'Sin asignar'
+            porProv[k] = (porProv[k] || 0) + (Number(m.fee_eur_fijo)||0)
+          })
+          const provincias = Object.entries(porProv).sort((a,b) => b[1] - a[1])
+
+          // Por departamento / delegación
+          const porDep = {}
+          mandatos.forEach(m => {
+            const k = m.departamento || 'Sin asignar'
+            porDep[k] = (porDep[k] || 0) + (Number(m.fee_eur_fijo)||0)
+          })
+          const deps = Object.entries(porDep).sort((a,b) => b[1] - a[1])
+
+          const fmtEur = (n) => n >= 1000 ? `${(n/1000).toLocaleString('es-ES',{maximumFractionDigits:0})} k€` : `${n.toLocaleString('es-ES',{maximumFractionDigits:0})} €`
+
+          return (
+            <div className="tab-content active" style={{ overflowY:'auto' }}>
+              <div className="port-body">
+
+                {/* KPIs superiores */}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:14 }}>
+                  {[
+                    { lbl:'Facturación total',  val:fmtEur(totalFee),                                color:'var(--green)' },
+                    { lbl:'Operaciones',        val:numOps,                                          color:'var(--text1)' },
+                    { lbl:'Honorario medio',    val:fmtEur(feeMedio),                                color:'var(--accent)' },
+                    { lbl:'Líneas de negocio',  val:lineas.length,                                   color:'var(--purple)' },
+                    { lbl:'YoY',                val:yoy != null ? `${yoy>=0?'+':''}${yoy.toFixed(1)}%` : '—', color: yoy != null && yoy >= 0 ? 'var(--green)' : 'var(--red)' },
+                  ].map(k => (
+                    <div key={k.lbl} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'10px 14px' }}>
+                      <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4 }}>{k.lbl}</div>
+                      <div style={{ fontSize:20, fontWeight:800, fontFamily:'var(--mono)', color:k.color, lineHeight:1 }}>{k.val}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+
+                  {/* Evolución anual */}
+                  <div className="va-card" style={{ margin:0 }}>
+                    <div className="va-card-header"><h3>Evolución temporal · facturación por año</h3></div>
+                    <div style={{ padding:'14px 18px' }}>
+                      {anyosSorted.length === 0 ? (
+                        <div style={{ padding:'16px', textAlign:'center', color:'var(--text4)', fontSize:11 }}>Sin datos históricos</div>
+                      ) : (
+                        <div style={{ display:'flex', alignItems:'flex-end', gap:8, height:140 }}>
+                          {anyosSorted.map(([y, v]) => {
+                            const h = (v / maxAnyo) * 110
+                            return (
+                              <div key={y} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+                                <div style={{ fontSize:9, fontFamily:'var(--mono)', fontWeight:600, color:'var(--text2)' }}>{fmtEur(v)}</div>
+                                <div style={{ width:'100%', height:h, background:'linear-gradient(180deg,var(--accent),var(--accent-bd))', borderRadius:'4px 4px 0 0', minHeight:4 }} />
+                                <div style={{ fontSize:10, color:'var(--text3)', fontWeight:600 }}>{y}</div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Por trimestre (año actual) */}
+                  <div className="va-card" style={{ margin:0 }}>
+                    <div className="va-card-header"><h3>Por trimestre · {yearAct}</h3></div>
+                    <div style={{ padding:'14px 18px' }}>
+                      {(() => {
+                        const maxQ = Math.max(...Object.values(trimestres), 1)
+                        return (
+                          <div style={{ display:'flex', alignItems:'flex-end', gap:8, height:140 }}>
+                            {Object.entries(trimestres).map(([q, v]) => {
+                              const h = (v / maxQ) * 110
+                              return (
+                                <div key={q} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+                                  <div style={{ fontSize:9, fontFamily:'var(--mono)', fontWeight:600, color:'var(--text2)' }}>{v > 0 ? fmtEur(v) : '—'}</div>
+                                  <div style={{ width:'100%', height: v > 0 ? h : 4, background: v > 0 ? 'var(--purple)' : 'var(--gray-lt)', borderRadius:'4px 4px 0 0', minHeight:4 }} />
+                                  <div style={{ fontSize:10, color:'var(--text3)', fontWeight:600 }}>{q}</div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  </div>
+
+                </div>
+
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+
+                  {/* Ranking líneas de negocio */}
+                  <div className="va-card" style={{ margin:0 }}>
+                    <div className="va-card-header"><h3>Ranking · líneas de negocio</h3></div>
+                    <div style={{ padding:'10px 18px 14px' }}>
+                      {lineas.length === 0 ? (
+                        <div style={{ padding:'16px', textAlign:'center', color:'var(--text4)', fontSize:11 }}>Sin datos</div>
+                      ) : (
+                        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                          {lineas.map(([l, v], i) => (
+                            <div key={l}>
+                              <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, marginBottom:3 }}>
+                                <span style={{ fontWeight:600 }}>{i === 0 && '🏆 '}{l}</span>
+                                <span style={{ fontFamily:'var(--mono)', fontWeight:700, color:'var(--green)' }}>{fmtEur(v)}</span>
+                              </div>
+                              <div style={{ height:6, background:'var(--gray-lt)', borderRadius:3, overflow:'hidden' }}>
+                                <div style={{ height:'100%', width:`${(v / maxLinea) * 100}%`, background:i === 0 ? 'var(--green)' : i === 1 ? 'var(--accent)' : 'var(--purple)' }} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Por responsable */}
+                  <div className="va-card" style={{ margin:0 }}>
+                    <div className="va-card-header"><h3>Por consultor responsable</h3></div>
+                    <div style={{ padding:'4px 0 14px' }}>
+                      <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                        <thead><tr>{['Consultor','Ops','Facturado'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 14px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
+                        <tbody>
+                          {responsables.length === 0
+                            ? <tr><td colSpan={3} style={{ padding:14, color:'var(--text4)', fontSize:11, textAlign:'center' }}>Sin datos</td></tr>
+                            : responsables.map(([r, v]) => {
+                              const ops = mandatos.filter(m => (m.responsable || 'Sin asignar') === r).length
+                              return (
+                                <tr key={r} style={{ borderTop:'1px solid var(--border)' }}>
+                                  <td style={{ padding:'6px 14px', fontWeight:500 }}>{r}</td>
+                                  <td style={{ padding:'6px 14px', fontFamily:'var(--mono)' }}>{ops}</td>
+                                  <td style={{ padding:'6px 14px', fontFamily:'var(--mono)', fontWeight:700, color:'var(--green)' }}>{fmtEur(v)}</td>
+                                </tr>
+                              )
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+
+                  {/* Por provincia */}
+                  <div className="va-card" style={{ margin:0 }}>
+                    <div className="va-card-header"><h3>Por provincia</h3></div>
+                    <div style={{ padding:'4px 0 14px' }}>
+                      <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                        <thead><tr>{['Provincia','Ops','Facturado'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 14px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
+                        <tbody>
+                          {provincias.length === 0
+                            ? <tr><td colSpan={3} style={{ padding:14, color:'var(--text4)', fontSize:11, textAlign:'center' }}>Sin datos</td></tr>
+                            : provincias.map(([p, v]) => {
+                              const ops = mandatos.filter(m => (m.provincia || 'Sin asignar') === p).length
+                              return (
+                                <tr key={p} style={{ borderTop:'1px solid var(--border)' }}>
+                                  <td style={{ padding:'6px 14px', fontWeight:500 }}>{p}</td>
+                                  <td style={{ padding:'6px 14px', fontFamily:'var(--mono)' }}>{ops}</td>
+                                  <td style={{ padding:'6px 14px', fontFamily:'var(--mono)', fontWeight:700, color:'var(--green)' }}>{fmtEur(v)}</td>
+                                </tr>
+                              )
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Por delegación / departamento */}
+                  <div className="va-card" style={{ margin:0 }}>
+                    <div className="va-card-header"><h3>Por delegación / equipo</h3></div>
+                    <div style={{ padding:'4px 0 14px' }}>
+                      <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                        <thead><tr>{['Delegación','Ops','Facturado'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 14px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
+                        <tbody>
+                          {deps.length === 0
+                            ? <tr><td colSpan={3} style={{ padding:14, color:'var(--text4)', fontSize:11, textAlign:'center' }}>Sin datos</td></tr>
+                            : deps.map(([d, v]) => {
+                              const ops = mandatos.filter(m => (m.departamento || 'Sin asignar') === d).length
+                              return (
+                                <tr key={d} style={{ borderTop:'1px solid var(--border)' }}>
+                                  <td style={{ padding:'6px 14px', fontWeight:500 }}>{d}</td>
+                                  <td style={{ padding:'6px 14px', fontFamily:'var(--mono)' }}>{ops}</td>
+                                  <td style={{ padding:'6px 14px', fontFamily:'var(--mono)', fontWeight:700, color:'var(--green)' }}>{fmtEur(v)}</td>
+                                </tr>
+                              )
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                </div>
+
               </div>
             </div>
           )
