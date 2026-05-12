@@ -2491,22 +2491,39 @@ function FichaOfertaMock() {
             )}
 
             {/* ── Superficie mínima alquilable ── */}
+            {/*
+              Regla:
+              - divisible = No  → sup. total disponible
+              - divisible = Sí  → menor módulo asignado en el stacking
+                                  (fallback al menor supMin del desglose si no
+                                  hay espacios asignados aún)
+            */}
             <div className="rp-sec">
               <div className="rp-lbl">Superficie mínima alquilable</div>
               {(()=>{
-                const supMins = ofertasDesglose
-                  .filter(o => o.divisible && o.supMin > 0)
-                  .map(o => o.supMin)
-                if (supMins.length === 0) {
-                  return <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>No divisible o sin sup. mínima definida.</div>
+                let minSup = null
+                let hint = ''
+                if (!divisibleGlobal) {
+                  if (supTotal > 0) { minSup = supTotal; hint = 'No divisible · total disponible' }
+                } else {
+                  const sizes = espaciosComercializables.map(e => e.sup).filter(s => s > 0)
+                  if (sizes.length > 0) {
+                    minSup = Math.min(...sizes)
+                    hint = `Divisible · menor módulo de ${sizes.length}`
+                  } else {
+                    const supMins = ofertasDesglose.filter(o => o.divisible && o.supMin > 0).map(o => o.supMin)
+                    if (supMins.length > 0) { minSup = Math.min(...supMins); hint = 'Divisible · mínimo del desglose' }
+                  }
                 }
-                const minSup = Math.min(...supMins)
+                if (minSup == null) {
+                  return <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin espacios asignados todavía.</div>
+                }
                 return (
                   <div>
                     <div style={{ fontSize:20, fontWeight:700, color:'var(--accent)', fontFamily:'var(--mono)' }}>
                       {minSup.toLocaleString('es-ES')} <span style={{ fontSize:11, color:'var(--text3)', fontWeight:500 }}>m²</span>
                     </div>
-                    <div style={{ fontSize:10, color:'var(--text3)', marginTop:2 }}>Mínimo divisible en el desglose</div>
+                    <div style={{ fontSize:10, color:'var(--text3)', marginTop:2 }}>{hint}</div>
                   </div>
                 )
               })()}
