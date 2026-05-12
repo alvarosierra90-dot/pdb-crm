@@ -130,11 +130,17 @@ ALTER TABLE caracteristicas_oferta  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE plazas_oferta           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fotos_activo            ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "dev_all_desglose"   ON desglose_ofertas       FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "dev_all_asig"       ON asignaciones_stacking  FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "dev_all_caract"     ON caracteristicas_oferta FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "dev_all_plazas"     ON plazas_oferta          FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "dev_all_fotos"      ON fotos_activo           FOR ALL USING (true) WITH CHECK (true);
+-- Postgres no soporta CREATE POLICY IF NOT EXISTS; usamos DROP IF EXISTS + CREATE.
+DROP POLICY IF EXISTS "dev_all_desglose" ON desglose_ofertas;
+DROP POLICY IF EXISTS "dev_all_asig"     ON asignaciones_stacking;
+DROP POLICY IF EXISTS "dev_all_caract"   ON caracteristicas_oferta;
+DROP POLICY IF EXISTS "dev_all_plazas"   ON plazas_oferta;
+DROP POLICY IF EXISTS "dev_all_fotos"    ON fotos_activo;
+CREATE POLICY "dev_all_desglose"   ON desglose_ofertas       FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "dev_all_asig"       ON asignaciones_stacking  FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "dev_all_caract"     ON caracteristicas_oferta FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "dev_all_plazas"     ON plazas_oferta          FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "dev_all_fotos"      ON fotos_activo           FOR ALL USING (true) WITH CHECK (true);
 
 -- ─── Políticas abiertas para tablas existentes (si no existen) ─
 DO $$
