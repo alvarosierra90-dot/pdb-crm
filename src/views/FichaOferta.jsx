@@ -1358,7 +1358,7 @@ function FichaOfertaMock() {
                       initBuildings={liveBuildings.current?.length > 0 ? liveBuildings.current : (activoSeleccionado.stacking_data?.length > 0 ? activoSeleccionado.stacking_data : [])}
                       initView='arr'
                       allowCreate={true}
-                      extraOfertas={ofertasDesglose}
+                      extraOfertas={ofertasDesglose.map(o => ({ ...o, tipoOperacion }))}
                       activoPropietario={activoSeleccionado.propietario || ''}
                       extraOwners={[activoSeleccionado.propietario].filter(Boolean)}
                       extraTenants={stackingExtraTenants}
