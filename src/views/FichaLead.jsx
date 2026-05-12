@@ -316,8 +316,8 @@ export default function FichaLead() {
             ))}
           </div>
 
-          {/* Tab content */}
-          <div className="info-pad">
+          {/* Tab content — flex:1 + overflowY:auto para permitir scroll vertical */}
+          <div className="info-pad" style={{ flex:1, overflowY:'auto', minHeight:0 }}>
 
             {tab === 'ld-info' && (
               <>
@@ -376,23 +376,26 @@ export default function FichaLead() {
                   </div>
                 </div>
 
-                {/* Equipo de trabajo (Principal · Soporte · Colaborador) */}
-                <EquipoTrabajoCard
-                  equipo={equipoTrabajo}
-                  canManage={canManageTeam}
-                  onAdd={addMiembro}
-                  onRemove={removeMiembro}
-                  onUpdateRol={updateMiembroRol}
-                />
-
-                <div className="va-card">
-                  <div className="va-card-header">
-                    <h3><span className="ico">▭</span> Descripción</h3>
+                {/* ─── Descripción (izquierda) | Equipo de trabajo (derecha) ─── */}
+                <div className="va-two-col">
+                  <div className="va-card" style={{ marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico">▭</span> Descripción</h3>
+                    </div>
+                    <div style={{padding:'4px 20px 16px',fontSize:12,color:'var(--text2)',lineHeight:1.55}}>
+                      {editing
+                        ? <textarea style={inlineTa} value={form.descripcion} onChange={e => setF('descripcion', e.target.value)} placeholder="Detalles del lead..." />
+                        : (lead.descripcion || <span style={{color:'var(--text4)'}}>Sin descripción.</span>)}
+                    </div>
                   </div>
-                  <div style={{padding:'4px 20px 16px',fontSize:12,color:'var(--text2)',lineHeight:1.55}}>
-                    {editing
-                      ? <textarea style={inlineTa} value={form.descripcion} onChange={e => setF('descripcion', e.target.value)} placeholder="Detalles del lead..." />
-                      : (lead.descripcion || <span style={{color:'var(--text4)'}}>Sin descripción.</span>)}
+                  <div style={{ minWidth:0 }}>
+                    <EquipoTrabajoCard
+                      equipo={equipoTrabajo}
+                      canManage={canManageTeam}
+                      onAdd={addMiembro}
+                      onRemove={removeMiembro}
+                      onUpdateRol={updateMiembroRol}
+                    />
                   </div>
                 </div>
 
