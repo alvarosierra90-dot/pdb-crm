@@ -555,7 +555,28 @@ function FichaOfertaMock() {
         if (data.origen_oferta)         setOrigenOferta(data.origen_oferta)
         if (data.modalidad_visita)      setModalidadVisita(data.modalidad_visita)
         if (data.confidencial != null)  setConfidential(data.confidencial)
-        if (data.equipo?.length)        setEquipoMembers(data.equipo)
+        // Cuando la oferta nace de una transformación de lead, el equipo viene
+        // en `equipo_trabajo` con shape { nombre, equipo, rol }. Lo mapeamos al
+        // shape interno { name, team, role, initials, bg, color, owner }.
+        // Si la oferta ya tiene `equipo` (gestión propia posterior), prevalece.
+        if (data.equipo?.length) {
+          setEquipoMembers(data.equipo)
+        } else if (Array.isArray(data.equipo_trabajo) && data.equipo_trabajo.length > 0) {
+          const palette = [
+            { bg:'#dbeafe', color:'#1e40af' },
+            { bg:'#f3e8ff', color:'#6b21a8' },
+            { bg:'#dcfce7', color:'#166534' },
+            { bg:'#fef3c7', color:'#92400e' },
+            { bg:'#fee2e2', color:'#991b1b' },
+          ]
+          const mapped = data.equipo_trabajo.map((m, i) => {
+            const name = m.nombre || m.name || ''
+            const initials = name.split(' ').filter(Boolean).slice(0,2).map(s => s[0]?.toUpperCase() || '').join('') || '·'
+            const p = palette[i % palette.length]
+            return { name, team: m.equipo || m.team || '', role: m.rol || m.role || 'Colaborador', initials, bg: p.bg, color: p.color, owner: (m.rol || m.role) === 'Principal' }
+          })
+          setEquipoMembers(mapped)
+        }
         if (data.colaboradores?.length) {
           setColaboradores(data.colaboradores)
           // El primer colaborador se considera el principal (asociado)
