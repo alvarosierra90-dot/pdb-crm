@@ -4,8 +4,8 @@ import AsignarTareaModal from '../components/AsignarTareaModal'
 import { isSupabaseRef } from '../components/FichaPendienteSupabase'
 import FichaPropuestaSupabase from './FichaPropuestaSupabase'
 
-const TABS = ['datos','equipos','trazabilidad','docs','resumen']
-const TAB_LABELS = ['Datos del proyecto','Equipos y participantes','Trazabilidad','Documentación','Resumen']
+const TABS = ['datos','vista360','docs','resumen']
+const TAB_LABELS = ['Datos del proyecto','Vista 360','Documentación','Resumen']
 
 const TIPOS = ['Pitch','Valoración','Propuesta de servicios','Mandato comercial','Consultoría','Urbanismo','Proyecto de arquitectura / workplace']
 const ESTADOS = ['Activo','Standby','Cancelado','Adjudicado']
@@ -158,19 +158,23 @@ function FichaPropuestaMock() {
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
       <div className="action-bar">
         <button className="ab-btn save">💾 Guardar</button>
-        <button className="ab-btn">Nuevo</button>
-        <button className="ab-btn" style={{color:'var(--red)'}}>Cancelar proyecto</button>
+        <button className="ab-btn" onClick={()=>navigate('propuestas')}>← Volver</button>
+        <div className="ab-sep"/>
+        {/* Acciones rápidas — antes en un bloque dentro de Datos, ahora en cabecera */}
+        <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
+        <button className="ab-btn" onClick={()=>navigate('ficha-actividad')}>📝 Crear actividad</button>
+        <button className="ab-btn" onClick={()=>navigate('ficha-oferta')}>📧 Emitir oferta</button>
+        <button className="ab-btn" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>
         <div className="ab-sep"/>
         {form.convertido_mandato
           ? <button className="ab-btn blue" onClick={()=>navigate('ficha-mandato')}>📄 Ver mandato {form.mandato_ref}</button>
           : <>
-              <button className="ab-btn" style={{background:'var(--accent)',color:'#fff',border:'none'}} onClick={()=>{set('estado','Adjudicado');setShowConvert(true)}}>🏆 Marcar adjudicado</button>
-              <button className="ab-btn" style={{background:'var(--purple)',color:'#fff',border:'none'}} onClick={()=>navigate('ficha-mandato',{nuevo:true})}>📋 Transformar en mandato</button>
+              <button className="ab-btn" style={{background:'var(--accent)',color:'#fff',border:'none',fontWeight:700}} onClick={()=>{set('estado','Adjudicado');setShowConvert(true)}}>🏆 Marcar adjudicado</button>
+              <button className="ab-btn" style={{background:'var(--green)',color:'#fff',border:'none',fontWeight:700}} onClick={()=>navigate('ficha-mandato',{nuevo:true})}>📋 Transformar en mandato</button>
             </>
         }
-        <button className="ab-btn" onClick={()=>navigate('propuestas')}>← Volver</button>
         <div className="ab-sep"/>
-        <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
+        <button className="ab-btn" style={{color:'var(--red)'}}>Cancelar proyecto</button>
       </div>
 
       {/* Banner adjudicado */}
@@ -199,27 +203,22 @@ function FichaPropuestaMock() {
       <div className="ficha-wrap" style={{overflow:'auto'}}>
         <div className="ficha-main" style={{minWidth:0}}>
 
-          {/* Header */}
+          {/* Header — sobrio, sin gradientes; estilo coherente con FichaOferta */}
           <div className="ah">
-            <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-              <div className="ah-ico" style={{background:'linear-gradient(135deg,#7c3aed,#a78bfa)',fontSize:18}}>📋</div>
-              <div style={{flex:1}}>
-                <div className="ah-ref">
-                  <span style={{background:'#f5f3ff',color:'#7c3aed',border:'1px solid #ddd6fe',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>PROPUESTA</span>
-                  <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{form.id}</span>
-                  <span className="tag" style={{fontSize:9,background:TIPO_COLOR[form.tipo]+'22',color:TIPO_COLOR[form.tipo],border:`1px solid ${TIPO_COLOR[form.tipo]}44`}}>{form.tipo}</span>
-                  <span className="tag" style={{fontSize:9,background:ESTADO_COLOR[form.estado]+'22',color:ESTADO_COLOR[form.estado],border:`1px solid ${ESTADO_COLOR[form.estado]}44`}}>{form.estado}</span>
+            <div style={{display:'flex',alignItems:'flex-start',gap:14}}>
+              <div style={{ width:50, height:50, borderRadius:10, background:'#f5f3ff', border:'1px solid #ddd6fe', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0, color:'#6b21a8' }}>
+                📋
+              </div>
+              <div style={{flex:1, minWidth:0}}>
+                <div className="ah-ref" style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                  <span style={{ background:'var(--gray-lt)', color:'var(--text3)', border:'1px solid var(--border)', padding:'1px 7px', borderRadius:3, fontSize:9, fontWeight:700, letterSpacing:'.04em' }}>PROPUESTA</span>
+                  <span style={{ fontFamily:'var(--mono)', color:'var(--text3)', fontSize:11 }}>{form.id}</span>
+                  <span className="tag" style={{ fontSize:9, background:'var(--gray-lt)', color:'var(--text2)', border:'1px solid var(--border)' }}>{form.tipo}</span>
+                  <span className="tag" style={{ fontSize:9, background:ESTADO_COLOR[form.estado]+'18', color:ESTADO_COLOR[form.estado], border:`1px solid ${ESTADO_COLOR[form.estado]}55` }}>● {form.estado}</span>
                 </div>
                 <div className="ah-name">{form.nombre}</div>
                 <div className="ah-sub">{form.empresa} · {form.linea} · Creado {form.fecha_creacion} por {form.creado_por}</div>
               </div>
-            </div>
-            <div style={{display:'flex',gap:24,marginTop:12,paddingTop:12,borderTop:'1px solid var(--border)',flexWrap:'wrap'}}>
-              <KpiMini label="Fees potenciales" value={`${parseInt(form.fees.replace(/[^0-9]/g,'')||0).toLocaleString('es-ES')} €`} color="var(--green)"/>
-              <KpiMini label="Probabilidad" value={`${form.probabilidad}%`} color="var(--accent)"/>
-              <KpiMini label="Fees ajustados" value={`${Math.round(feesAdj).toLocaleString('es-ES')} €`} color="var(--purple)"/>
-              <KpiMini label="Cierre estimado" value={form.fecha_cierre||'—'} color="var(--text2)"/>
-              <KpiMini label="Equipos" value={equipos.length} color="var(--teal)"/>
             </div>
           </div>
 
@@ -280,7 +279,7 @@ function FichaPropuestaMock() {
                   </div>
                 </div>
 
-                {/* ─── FILA 2: Descripción y notas | Acciones rápidas ─── */}
+                {/* ─── FILA 2: Descripción y notas | Equipos y participantes ─── */}
                 <div className="va-two-col">
                   <div className="va-card" style={{ marginBottom:0 }}>
                     <div className="va-card-header">
@@ -293,16 +292,58 @@ function FichaPropuestaMock() {
                       <textarea className="kf-inp" value={form.notas_internas} onChange={e=>set('notas_internas',e.target.value)} rows={3} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
                     </div>
                   </div>
-                  <div className="va-meta-card" style={{ marginBottom:0 }}>
-                    <div className="va-meta-head accent-purple"><span className="dot"/>Acciones rápidas</div>
-                    <div style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:8}}>
-                      <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-actividad')}>📝 Crear actividad vinculada</button>
-                      <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-oferta')}>📧 Emitir oferta</button>
-                      <button className="ab-btn blue" style={{justifyContent:'flex-start'}} onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>
-                      {form.estado==='Adjudicado'&&!form.convertido_mandato&&(
-                        <button style={{background:'var(--green)',color:'#fff',border:'none',borderRadius:5,padding:'7px 14px',cursor:'pointer',fontWeight:700,fontSize:11,fontFamily:'inherit',textAlign:'left'}} onClick={convertirMandato}>
-                          🏆 Convertir en mandato →
-                        </button>
+                  <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico">◆</span> Equipos y participantes</h3>
+                      <button className="ab-btn" style={{fontSize:10,padding:'3px 10px'}} onClick={()=>setShowAddEquipo(v=>!v)}>+ Añadir</button>
+                    </div>
+                    <div style={{padding:'4px 20px 16px'}}>
+                      {showAddEquipo && (
+                        <div style={{marginBottom:10, padding:10, border:'1px solid var(--border)', borderRadius:6, background:'var(--surface-2)', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, alignItems:'end'}}>
+                          <div>
+                            <div className="rp-lbl">Equipo</div>
+                            <select className="fsel" value={newEq.equipo} onChange={e=>setNewEq(p=>({...p,equipo:e.target.value,usuario:''}))} style={{width:'100%'}}>
+                              <option value="">Seleccionar...</option>
+                              {EQUIPOS_DISPONIBLES.filter(eq=>!equipos.find(e=>e.equipo===eq)).map(eq=><option key={eq}>{eq}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <div className="rp-lbl">Usuario</div>
+                            <select className="fsel" value={newEq.usuario} onChange={e=>setNewEq(p=>({...p,usuario:e.target.value}))} disabled={!newEq.equipo} style={{width:'100%'}}>
+                              <option value="">Seleccionar...</option>
+                              {(USUARIOS_POR_EQUIPO[newEq.equipo]||[]).map(u=><option key={u}>{u}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <div className="rp-lbl">Rol</div>
+                            <select className="fsel" value={newEq.rol} onChange={e=>setNewEq(p=>({...p,rol:e.target.value}))} style={{width:'100%'}}>
+                              {ROLES.map(r=><option key={r}>{r}</option>)}
+                            </select>
+                          </div>
+                          <div style={{gridColumn:'1 / -1', display:'flex', gap:6, justifyContent:'flex-end'}}>
+                            <button className="ab-btn save" onClick={addEquipo} disabled={!newEq.equipo||!newEq.usuario}>Añadir</button>
+                            <button className="ab-btn" onClick={()=>setShowAddEquipo(false)}>Cancelar</button>
+                          </div>
+                        </div>
+                      )}
+                      {equipos.length === 0 ? (
+                        <div style={{fontSize:11, color:'var(--text4)', fontStyle:'italic', padding:'8px 0'}}>Sin equipos asignados.</div>
+                      ) : (
+                        <div style={{display:'flex', flexDirection:'column', gap:6}}>
+                          {equipos.map((eq,i) => (
+                            <div key={i} style={{display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)'}}>
+                              <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>
+                                {eq.usuario.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
+                              </div>
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <div style={{ fontSize:12, fontWeight:600 }}>{eq.usuario}</div>
+                                <div style={{ fontSize:10, color:'var(--text3)' }}>{eq.equipo}</div>
+                              </div>
+                              <span className="tag tag-blue" style={{ fontSize:9 }}>{eq.rol}</span>
+                              <button onClick={()=>removeEquipo(i)} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -378,25 +419,6 @@ function FichaPropuestaMock() {
                       </div>
                     </div>
 
-                    {/* Mapa de vinculaciones */}
-                    <div style={{marginTop:14,background:'var(--gray-lt)',borderRadius:8,padding:12}}>
-                      <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:10}}>Mapa de vinculaciones</div>
-                      <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                        {[
-                          {icon:'🏢',label:'Empresa',value:form.empresa,color:'var(--accent)',req:true},
-                          {icon:'🏛',label:`Activos (${activos.length})`,value:activos.length>0?activos.join(', '):'—',color:'var(--teal)',req:false},
-                          {icon:'🔍',label:'Demanda',value:form.demanda||'—',color:'var(--purple)',req:false},
-                          {icon:'📧',label:`Ofertas (${ofertas.length})`,value:ofertas.length>0?ofertas.join(', '):'—',color:'var(--amber)',req:false},
-                        ].map(v=>(
-                          <div key={v.label} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 8px',borderRadius:5,border:`1px solid ${v.value&&v.value!=='—'?v.color+'44':'var(--border)'}`,background:v.value&&v.value!=='—'?v.color+'11':'transparent'}}>
-                            <span style={{fontSize:13}}>{v.icon}</span>
-                            <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',width:70,flexShrink:0}}>{v.label}{v.req&&<span style={{color:'var(--red)'}}>*</span>}</span>
-                            <span style={{fontSize:11,fontWeight:600,color:v.value&&v.value!=='—'?v.color:'var(--text4)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{v.value||'—'}</span>
-                            {v.value&&v.value!=='—'&&<span style={{width:6,height:6,borderRadius:'50%',background:v.color,flexShrink:0,display:'inline-block'}}/>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
                   </div>
                 </div>
 
@@ -404,92 +426,8 @@ function FichaPropuestaMock() {
             </div>
           )}
 
-          {/* TAB EQUIPOS */}
-          {tab==='equipos' && (
-            <div className="tab-content active">
-            <div className="info-pad">
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-                <div style={{fontSize:12,color:'var(--text3)'}}>Equipos internos participantes en este proyecto</div>
-                <button className="tbtn prim" style={{fontSize:11}} onClick={()=>setShowAddEquipo(v=>!v)}>+ Añadir equipo</button>
-              </div>
-
-              {showAddEquipo && (
-                <div style={{marginBottom:14,padding:14,border:'1px solid var(--accent-bd)',borderRadius:8,background:'var(--accent-lt)',display:'flex',gap:10,alignItems:'flex-end',flexWrap:'wrap'}}>
-                  <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                    <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Equipo</span>
-                    <select className="fsel" value={newEq.equipo} onChange={e=>setNewEq(p=>({...p,equipo:e.target.value,usuario:''}))}>
-                      <option value="">Seleccionar equipo...</option>
-                      {EQUIPOS_DISPONIBLES.filter(eq=>!equipos.find(e=>e.equipo===eq)).map(eq=><option key={eq}>{eq}</option>)}
-                    </select>
-                  </div>
-                  <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                    <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Usuario</span>
-                    <select className="fsel" value={newEq.usuario} onChange={e=>setNewEq(p=>({...p,usuario:e.target.value}))} disabled={!newEq.equipo}>
-                      <option value="">Seleccionar usuario...</option>
-                      {(USUARIOS_POR_EQUIPO[newEq.equipo]||[]).map(u=><option key={u}>{u}</option>)}
-                    </select>
-                  </div>
-                  <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                    <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Rol</span>
-                    <select className="fsel" value={newEq.rol} onChange={e=>setNewEq(p=>({...p,rol:e.target.value}))}>
-                      {ROLES.map(r=><option key={r}>{r}</option>)}
-                    </select>
-                  </div>
-                  <button className="tbtn prim" onClick={addEquipo} disabled={!newEq.equipo||!newEq.usuario}>Añadir</button>
-                  <button className="tbtn" onClick={()=>setShowAddEquipo(false)}>Cancelar</button>
-                </div>
-              )}
-
-              {equipos.length===0 ? (
-                <div style={{textAlign:'center',padding:'40px 0',color:'var(--text4)',fontSize:12}}>Sin equipos asignados. Añade el primer equipo participante.</div>
-              ) : (
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:10}}>
-                  {equipos.map((eq,i)=>(
-                    <div key={i} style={{border:'1px solid var(--border)',borderRadius:8,overflow:'hidden',background:'#fff'}}>
-                      <div style={{background:'var(--gray-lt)',padding:'8px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid var(--border)'}}>
-                        <div style={{fontWeight:700,fontSize:12}}>{eq.equipo}</div>
-                        <button onClick={()=>removeEquipo(i)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text4)',fontSize:14,lineHeight:1}}>✕</button>
-                      </div>
-                      <div style={{padding:'10px 12px'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-                          <div style={{width:28,height:28,borderRadius:'50%',background:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:11,fontWeight:700,flexShrink:0}}>
-                            {eq.usuario.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
-                          </div>
-                          <div>
-                            <div style={{fontSize:12,fontWeight:600}}>{eq.usuario}</div>
-                            <div style={{fontSize:10,color:'var(--text4)'}}>{eq.equipo}</div>
-                          </div>
-                        </div>
-                        <div style={{display:'flex',justifyContent:'flex-end'}}>
-                          <span className="tag tag-blue" style={{fontSize:9}}>{eq.rol}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Equipos disponibles */}
-              <div style={{marginTop:24}}>
-                <div className="ib-title">Equipos disponibles</div>
-                <div style={{display:'flex',flexWrap:'wrap',gap:6,padding:'8px 0'}}>
-                  {EQUIPOS_DISPONIBLES.map(eq=>{
-                    const asignado = equipos.find(e=>e.equipo===eq)
-                    return (
-                      <div key={eq} style={{padding:'4px 10px',borderRadius:12,border:`1px solid ${asignado?'var(--green)':'var(--border)'}`,background:asignado?'#f0fdf4':'transparent',fontSize:11,color:asignado?'var(--green)':'var(--text3)',display:'flex',alignItems:'center',gap:4}}>
-                        {asignado&&<span style={{fontSize:10}}>✓</span>}
-                        {eq}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-            </div>
-          )}
-
-          {/* TAB TRAZABILIDAD */}
-          {tab==='trazabilidad' && (
+          {/* TAB VISTA 360 (renombrado desde Trazabilidad) */}
+          {tab==='vista360' && (
             <div className="tab-content active">
             <div className="info-pad">
               <div style={{marginBottom:12,fontSize:12,color:'var(--text3)'}}>Registro completo de cambios y acciones sobre este proyecto. Inmutable.</div>
@@ -677,39 +615,115 @@ function FichaPropuestaMock() {
 
         </div>
 
-        {/* ─── Right sidebar: KPIs + IA · resumen vivo ─── */}
+        {/* ─── Right sidebar — vinculaciones, KPIs e IA · estilo sobrio ─── */}
         <div className="ficha-right">
-          {/* KPI principal · Probabilidad con barra */}
+
+          {/* VINCULACIONES — primer bloque, lo más visible (como en Oferta) */}
+          <div className="rp-sec">
+            <div className="rp-lbl">Vinculaciones</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {/* Oportunidad */}
+              <div style={{ padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background: form.oportunidad ? 'var(--surface)' : 'var(--gray-lt)' }}>
+                <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:3 }}>Oportunidad</div>
+                {form.oportunidad ? (
+                  <>
+                    <div style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)', color:'var(--text)' }}>{form.oportunidad}</div>
+                    {form.oportunidad_nombre && <div style={{ fontSize:10, color:'var(--text3)', marginTop:2 }}>{form.oportunidad_nombre}</div>}
+                  </>
+                ) : (
+                  <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>por completar</div>
+                )}
+              </div>
+              {/* Empresa / Cuenta */}
+              <div style={{ padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background: form.empresa ? 'var(--surface)' : 'var(--gray-lt)' }}>
+                <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:3 }}>Empresa / Cuenta</div>
+                {form.empresa ? (
+                  <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{form.empresa}</div>
+                ) : (
+                  <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>por completar</div>
+                )}
+              </div>
+              {/* Demanda */}
+              <div style={{ padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background: form.demanda ? 'var(--surface)' : 'var(--gray-lt)' }}>
+                <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:3 }}>Demanda vinculada</div>
+                {form.demanda ? (
+                  <div onClick={() => navigate('ficha-demanda')} style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)', color:'var(--accent)', cursor:'pointer', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{form.demanda} ↗</div>
+                ) : (
+                  <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>—</div>
+                )}
+              </div>
+              {/* Activos */}
+              <div style={{ padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background: activos.length > 0 ? 'var(--surface)' : 'var(--gray-lt)' }}>
+                <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:3 }}>Activos vinculados ({activos.length})</div>
+                {activos.length === 0 ? (
+                  <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>—</div>
+                ) : (
+                  <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                    {activos.map((a,i) => (
+                      <div key={i} onClick={() => navigate('ficha-activo')} style={{ fontSize:11, color:'var(--text)', cursor:'pointer' }}>
+                        🏛 <span style={{ textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{a}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Ofertas (secundario) */}
+              {ofertas.length > 0 && (
+                <div style={{ padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                  <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:3 }}>Ofertas ({ofertas.length})</div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                    {ofertas.map((o,i) => (
+                      <div key={i} onClick={() => navigate('ficha-oferta')} style={{ fontSize:11, fontFamily:'var(--mono)', color:'var(--text)', cursor:'pointer' }}>
+                        📧 <span style={{ textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{o}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Estado del proyecto */}
+          <div className="rp-sec">
+            <div className="rp-lbl">Estado</div>
+            <div style={{ padding:'7px 11px', borderRadius:'var(--r)', background:ESTADO_COLOR[form.estado]+'18', border:`1px solid ${ESTADO_COLOR[form.estado]}55`, fontSize:12, fontWeight:700, color:ESTADO_COLOR[form.estado], display:'inline-block' }}>
+              ● {form.estado}
+            </div>
+            {form.convertido_mandato && (
+              <div onClick={() => navigate('ficha-mandato')} style={{ marginTop:8, padding:'6px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', fontSize:11, color:'var(--text2)', cursor:'pointer' }}>
+                ✓ Mandato <span style={{ fontFamily:'var(--mono)', color:'var(--accent)' }}>{form.mandato_ref}</span>
+              </div>
+            )}
+          </div>
+
+          {/* KPIs económicos */}
           <div className="rp-sec">
             <div className="rp-lbl">Probabilidad de éxito</div>
             <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:6 }}>
-              <span style={{ fontSize:24, fontWeight:700, color:'var(--accent)', fontFamily:'var(--mono)' }}>{form.probabilidad}%</span>
-              <span style={{ fontSize:11, color:'var(--text3)' }}>de éxito</span>
+              <span style={{ fontSize:22, fontWeight:700, color:'var(--accent)', fontFamily:'var(--mono)' }}>{form.probabilidad}%</span>
             </div>
-            <div style={{ background:'var(--gray-lt)', borderRadius:6, height:8, overflow:'hidden' }}>
+            <div style={{ background:'var(--gray-lt)', borderRadius:6, height:6, overflow:'hidden' }}>
               <div style={{ background:'var(--accent)', height:'100%', width:`${form.probabilidad}%`, transition:'width .25s ease' }}/>
             </div>
           </div>
 
-          {/* Fees */}
           <div className="rp-sec">
             <div className="rp-lbl">Fees</div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
               <div>
                 <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>Brutos</div>
-                <div style={{ fontSize:14, fontWeight:700, fontFamily:'var(--mono)' }}>{parseInt(form.fees.replace(/[^0-9]/g,'')||0).toLocaleString('es-ES')} €</div>
+                <div style={{ fontSize:13, fontWeight:700, fontFamily:'var(--mono)' }}>{parseInt(form.fees.replace(/[^0-9]/g,'')||0).toLocaleString('es-ES')} €</div>
               </div>
               <div>
                 <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>Ajustados</div>
-                <div style={{ fontSize:14, fontWeight:700, fontFamily:'var(--mono)', color:'var(--green)' }}>{Math.round(feesAdj).toLocaleString('es-ES')} €</div>
+                <div style={{ fontSize:13, fontWeight:700, fontFamily:'var(--mono)', color:'var(--green)' }}>{Math.round(feesAdj).toLocaleString('es-ES')} €</div>
               </div>
             </div>
           </div>
 
-          {/* Cierre estimado + días restantes */}
           <div className="rp-sec">
             <div className="rp-lbl">Cierre estimado</div>
-            <div style={{ fontSize:14, fontWeight:700, fontFamily:'var(--mono)', marginBottom:4 }}>{form.fecha_cierre || '—'}</div>
+            <div style={{ fontSize:13, fontWeight:700, fontFamily:'var(--mono)', marginBottom:4 }}>{form.fecha_cierre || '—'}</div>
             {(() => {
               if (!form.fecha_cierre) return null
               const m = form.fecha_cierre.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
@@ -717,49 +731,22 @@ function FichaPropuestaMock() {
               const [, d, mo, y] = m
               const target = new Date(Number(y), Number(mo) - 1, Number(d))
               const diff = Math.ceil((target - new Date()) / (1000 * 60 * 60 * 24))
-              const color = diff < 0 ? 'var(--red)' : diff < 30 ? 'var(--amber)' : 'var(--green)'
+              const color = diff < 0 ? 'var(--red)' : diff < 30 ? 'var(--amber)' : 'var(--text3)'
               const label = diff < 0 ? `Hace ${-diff} días` : diff === 0 ? 'Hoy' : `En ${diff} días`
               return <div style={{ fontSize:11, color, fontWeight:600 }}>{label}</div>
             })()}
           </div>
 
-          {/* Vinculaciones */}
+          {/* Equipo responsable (resumen — la gestión completa va en la pestaña) */}
           <div className="rp-sec">
-            <div className="rp-lbl">Vinculaciones</div>
-            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-              <div style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
-                <span style={{ color:'var(--text3)' }}>🏢 Cuenta</span>
-                <span style={{ fontWeight:600, color: form.empresa ? 'var(--accent)' : 'var(--text4)', fontStyle: form.empresa ? 'normal' : 'italic' }}>{form.empresa || 'por completar'}</span>
-              </div>
-              <div style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
-                <span style={{ color:'var(--text3)' }}>⚡ Oportunidad</span>
-                <span style={{ fontWeight:600, fontFamily:'var(--mono)', color: form.oportunidad ? 'var(--text1)' : 'var(--text4)', fontStyle: form.oportunidad ? 'normal' : 'italic' }}>{form.oportunidad || 'por completar'}</span>
-              </div>
-              <div style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
-                <span style={{ color:'var(--text3)' }}>🏛 Activos</span>
-                <span style={{ fontWeight:600, color: activos.length>0 ? 'var(--teal)' : 'var(--text4)' }}>{activos.length}</span>
-              </div>
-              <div style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
-                <span style={{ color:'var(--text3)' }}>📧 Ofertas</span>
-                <span style={{ fontWeight:600, color: ofertas.length>0 ? 'var(--amber)' : 'var(--text4)' }}>{ofertas.length}</span>
-              </div>
-              <div style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
-                <span style={{ color:'var(--text3)' }}>🔍 Demanda</span>
-                <span style={{ fontWeight:600, fontFamily:'var(--mono)', color: form.demanda ? 'var(--purple)' : 'var(--text4)', fontStyle: form.demanda ? 'normal' : 'italic' }}>{form.demanda || '—'}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Equipos */}
-          <div className="rp-sec">
-            <div className="rp-lbl">Equipos participantes ({equipos.length})</div>
+            <div className="rp-lbl">Equipo responsable</div>
             {equipos.length === 0 ? (
               <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin equipos asignados</div>
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                {equipos.slice(0,4).map((eq,i) => (
+                {equipos.slice(0,3).map((eq,i) => (
                   <div key={i} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <div style={{ width:22, height:22, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>
+                    <div style={{ width:24, height:24, borderRadius:'50%', background:'var(--surface-2)', color:'var(--text2)', border:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>
                       {eq.usuario.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
@@ -768,7 +755,7 @@ function FichaPropuestaMock() {
                     </div>
                   </div>
                 ))}
-                {equipos.length > 4 && <div style={{ fontSize:10, color:'var(--text3)' }}>+ {equipos.length - 4} más</div>}
+                {equipos.length > 3 && <div style={{ fontSize:10, color:'var(--text3)' }}>+ {equipos.length - 3} más</div>}
               </div>
             )}
           </div>
@@ -789,19 +776,6 @@ function FichaPropuestaMock() {
               </div>
               <div className="ai-cta">✎ Preguntar a la IA</div>
             </div>
-          </div>
-
-          {/* Estado */}
-          <div className="rp-sec">
-            <div className="rp-lbl">Estado del proyecto</div>
-            <div style={{ padding:'8px 12px', borderRadius:6, background:ESTADO_COLOR[form.estado]+'22', border:`1px solid ${ESTADO_COLOR[form.estado]}55`, fontSize:12, fontWeight:700, color:ESTADO_COLOR[form.estado] }}>
-              {form.estado}
-            </div>
-            {form.convertido_mandato && (
-              <div style={{ marginTop:8, padding:'6px 10px', background:'#dcfce7', border:'1px solid #86efac', borderRadius:5, fontSize:10, color:'#15803d', fontWeight:600 }}>
-                ✅ Mandato {form.mandato_ref}
-              </div>
-            )}
           </div>
         </div>
       </div>
