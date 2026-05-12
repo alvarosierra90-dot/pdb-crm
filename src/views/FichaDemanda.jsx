@@ -190,110 +190,183 @@ function Etapa360({ icon, color, estado, titulo, ref_id, badge, fecha, detalle, 
   )
 }
 
-/* ── Right Panel ── */
-function RightPanel({ navigate, naturaleza, cmFields }) {
+/* ── Right Panel — mismo orden y estética que FichaOferta ── */
+function RightPanel({ navigate, naturaleza, cmFields, demCampos = {}, demPres = {}, demUsoPpal, demTipologia }) {
   const esInversion = naturaleza === 'Inversión'
+  const supMin  = Number(demCampos.sup_min || demCampos.sba_min) || 2200
+  const supMax  = Number(demCampos.sup_max || demCampos.sba_max) || 3000
+  const rentaMax = Number(demPres.alq_max) || 14.5
+  const rentaMin = Number(demPres.alq_min) || 12.0
   return (
     <div className="ficha-right">
+
+      {/* 1 · EQUIPO RESPONSABLE — arriba del todo, formato Oferta */}
       <div className="rp-sec">
-        <div className="rp-lbl">Estado</div>
-        <select className="of-sel" style={{fontSize:12,marginBottom:10}}>
+        <div className="rp-lbl">Equipo responsable</div>
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+            <div style={{ width:32, height:32, borderRadius:'50%', background:'#dbeafe', color:'#1e40af', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>AS</div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:12, fontWeight:600 }}>Sierra Álvaro</div>
+              <div style={{ fontSize:10, color:'var(--text3)' }}>{esInversion ? 'Capital Markets · MAD' : 'Leasing Oficinas · MAD'}</div>
+            </div>
+            <span className="tag tag-blue" style={{ fontSize:9 }}>Principal</span>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+            <div style={{ width:32, height:32, borderRadius:'50%', background:'#fdf4ff', color:'#7e22ce', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>GI</div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:12, fontWeight:600 }}>GOMEZ Ignacio</div>
+              <div style={{ fontSize:10, color:'var(--text3)' }}>{esInversion ? 'Capital Markets · MAD' : 'Leasing Oficinas · MAD'}</div>
+            </div>
+            <span className="tag tag-purple" style={{ fontSize:9 }}>Soporte</span>
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:6, marginTop:8 }}>
+          <button className="acc-btn" style={{ flex:1, fontSize:10 }}>📞 Contacto</button>
+          <button className="acc-btn" style={{ flex:1, fontSize:10 }}>✅ Asignar</button>
+        </div>
+      </div>
+
+      {/* 2 · ASISTENTE IA — justo debajo del equipo */}
+      <div className="rp-sec">
+        <div className="rp-lbl">Asistente IA</div>
+        <div className="ai-box">
+          <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Análisis de la demanda</span><span className="ai-badge">Tiempo real</span></div>
+          <div className="ai-text">
+            {esInversion
+              ? <>Demanda de inversión <strong>{cmFields.calidad||'—'}</strong> · ticket {cmFields.ticket_min||'—'}–{cmFields.ticket_max||'—'} M€. Detectando activos compatibles en mercado y posibles riesgos de yield.</>
+              : <>Búsqueda de <strong>{supMin.toLocaleString('es-ES')}–{supMax.toLocaleString('es-ES')} m²</strong> en A-1 · Alcobendas. <strong>3 ofertas cumplen requisitos</strong>, 5 alternativas razonables. Oferta OFR-0018 (Albatros P4) encaja al 100%.</>}
+          </div>
+          <div style={{ display:'flex', gap:6, marginTop:8, flexWrap:'wrap' }}>
+            <span style={{ fontSize:9, fontWeight:700, color:'#15803d', background:'#dcfce7', padding:'2px 7px', borderRadius:6 }}>✓ Cumple · 3</span>
+            <span style={{ fontSize:9, fontWeight:700, color:'#7c2d12', background:'#fef3c7', padding:'2px 7px', borderRadius:6 }}>± Flexible · 3</span>
+            <span style={{ fontSize:9, fontWeight:700, color:'#475569', background:'#e2e8f0', padding:'2px 7px', borderRadius:6 }}>≈ Alternativas · 2</span>
+            <span style={{ fontSize:9, fontWeight:700, color:'#991b1b', background:'#fee2e2', padding:'2px 7px', borderRadius:6 }}>⚠ Riesgos · 1</span>
+          </div>
+          <div style={{ marginTop:8, display:'flex', flexDirection:'column', gap:3 }}>
+            <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>📊 Resumen ejecutivo</button>
+            <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>🏢 Sugerir zonas alternativas</button>
+            <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>🔍 Matching con ofertas</button>
+          </div>
+          <div className="ai-cta">✎ Preguntar a la IA</div>
+        </div>
+      </div>
+
+      {/* 3 · KPIs ejecutivos — cards compactas */}
+      <div className="rp-sec">
+        <div className="rp-lbl">KPIs · resumen ejecutivo</div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+          {/* Superficie */}
+          <div style={{ padding:'7px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', gridColumn:'1 / -1' }}>
+            <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700, marginBottom:3 }}>Superficie requerida</div>
+            <div style={{ fontSize:16, fontWeight:800, fontFamily:'var(--mono)', color:'var(--accent)' }}>{supMin.toLocaleString('es-ES')} – {supMax.toLocaleString('es-ES')} <span style={{ fontSize:11, color:'var(--text3)', fontWeight:500 }}>m²</span></div>
+          </div>
+          {/* Sup min / max separadas */}
+          <div style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+            <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700 }}>Sup. mín.</div>
+            <div style={{ fontSize:13, fontWeight:700, fontFamily:'var(--mono)' }}>{supMin.toLocaleString('es-ES')} m²</div>
+          </div>
+          <div style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+            <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700 }}>Sup. máx.</div>
+            <div style={{ fontSize:13, fontWeight:700, fontFamily:'var(--mono)' }}>{supMax.toLocaleString('es-ES')} m²</div>
+          </div>
+          {/* Renta objetivo o Ticket inversión */}
+          <div style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)', gridColumn:'1 / -1' }}>
+            <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700 }}>{esInversion ? 'Ticket objetivo' : 'Renta objetivo'}</div>
+            <div style={{ fontSize:13, fontWeight:700, fontFamily:'var(--mono)', color:'var(--green)' }}>
+              {esInversion
+                ? `${cmFields.ticket_min || '—'}–${cmFields.ticket_max || '—'} M€`
+                : `${rentaMin.toFixed(1)}–${rentaMax.toFixed(1)} €/m²/mes`}
+            </div>
+          </div>
+        </div>
+
+        {/* Métricas operativas */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:6, marginTop:6 }}>
+          {[
+            { lbl:'Alternativas', val:5, col:'var(--text1)' },
+            { lbl:'Visitas',      val:2, col:'var(--accent)' },
+            { lbl:'Propuestas',   val:1, col:'var(--purple)' },
+          ].map(k => (
+            <div key={k.lbl} style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)', textAlign:'center' }}>
+              <div style={{ fontSize:8, color:'var(--text4)', textTransform:'uppercase', fontWeight:700 }}>{k.lbl}</div>
+              <div style={{ fontSize:14, fontWeight:800, fontFamily:'var(--mono)', color:k.col }}>{k.val}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Estado + Prioridad */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginTop:6 }}>
+          <div style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+            <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700, marginBottom:3 }}>Estado</div>
+            <span className="tag tag-green" style={{ fontSize:10 }}>● En Curso</span>
+          </div>
+          <div style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+            <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700, marginBottom:3 }}>Prioridad</div>
+            <span className="tag tag-amber" style={{ fontSize:10 }}>Alta</span>
+          </div>
+        </div>
+
+        {/* Probabilidad de cierre con barra */}
+        <div style={{ padding:'7px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', marginTop:6 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:4 }}>
+            <span style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700 }}>Probabilidad de cierre</span>
+            <span style={{ fontSize:13, fontWeight:800, fontFamily:'var(--mono)', color:'var(--accent)' }}>65%</span>
+          </div>
+          <div style={{ height:5, background:'var(--gray-lt)', borderRadius:3, overflow:'hidden' }}>
+            <div style={{ height:'100%', width:'65%', background:'var(--accent)' }} />
+          </div>
+        </div>
+
+        {/* Fecha objetivo + Tiempo activa */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginTop:6 }}>
+          <div style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+            <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700 }}>Fecha objetivo</div>
+            <div style={{ fontSize:12, fontWeight:700, fontFamily:'var(--mono)' }}>30/06/2026</div>
+          </div>
+          <div style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+            <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700 }}>Tiempo activa</div>
+            <div style={{ fontSize:12, fontWeight:700, fontFamily:'var(--mono)' }}>87 d</div>
+          </div>
+        </div>
+
+        {/* Tipo de activo + Zonas objetivo */}
+        <div style={{ padding:'7px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', marginTop:6 }}>
+          <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700, marginBottom:4 }}>Tipo de activo</div>
+          <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+            <span className="tag tag-blue" style={{ fontSize:9 }}>{demUsoPpal || 'Oficinas'}</span>
+            {demTipologia && <span className="tag tag-gray" style={{ fontSize:9 }}>{demTipologia}</span>}
+          </div>
+        </div>
+        <div style={{ padding:'7px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', marginTop:6 }}>
+          <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700, marginBottom:4 }}>Zonas objetivo</div>
+          <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+            <span className="tag tag-blue" style={{ fontSize:9 }}>Madrid</span>
+            <span className="tag tag-gray" style={{ fontSize:9 }}>A-1</span>
+            <span className="tag tag-gray" style={{ fontSize:9 }}>Alcobendas</span>
+            <span className="tag tag-gray" style={{ fontSize:9 }}>Arroyo de la Vega</span>
+          </div>
+        </div>
+
+        {/* Equipos involucrados */}
+        <div style={{ padding:'7px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', marginTop:6 }}>
+          <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700, marginBottom:4 }}>Equipos involucrados</div>
+          <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+            <span className="tag tag-blue" style={{ fontSize:9 }}>{esInversion ? 'Capital Markets' : 'Leasing Oficinas'}</span>
+            <span className="tag tag-purple" style={{ fontSize:9 }}>Advisory</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 4 · Acciones rápidas */}
+      <div className="rp-sec">
+        <div className="rp-lbl">Acciones</div>
+        <select className="of-sel" style={{ fontSize:12, marginBottom:8 }}>
           <option>● En Curso</option><option>◎ Potencial</option><option>⏸ Paralizado</option>
         </select>
         <button className="acc-btn">↔ Ver negociación vinculada</button>
         <button className="acc-btn">📋 Ver oferta vinculada</button>
-        <button className="acc-btn" style={{background:'var(--accent)',color:'#fff',border:'none',fontWeight:600}} onClick={()=>navigate('mapas',{from:'demanda',id:'D251035690',nombre:'Corporacion Financiera Azuaga SL',uso:demUsoPpal,sbaMin:Number(demCampos.sup_min||demCampos.sba_min)||undefined,sbaMax:Number(demCampos.sup_max||demCampos.sba_max)||undefined,rentaMax:Number(demPres.alq_max)||undefined,zona:'A-1 · Alcobendas',provincia:'Madrid'})}>🗺 Exportar a mapa</button>
-      </div>
-
-      {esInversion ? (
-        <div className="rp-sec">
-          <div className="rp-lbl">Ticket objetivo</div>
-          <div className="kf-grid">
-            <div className="kf"><div className="kf-lbl">Desde</div><div className="kf-val">{cmFields.ticket_min ? `${cmFields.ticket_min} M€` : '—'}</div></div>
-            <div className="kf"><div className="kf-lbl">Hasta</div><div className="kf-val">{cmFields.ticket_max ? `${cmFields.ticket_max} M€` : '—'}</div></div>
-          </div>
-          {(cmFields.yield_min || cmFields.yield_max) && (
-            <div style={{marginTop:8,display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
-              <div className="kf"><div className="kf-lbl">Yield desde</div><div className="kf-val">{cmFields.yield_min}%</div></div>
-              <div className="kf"><div className="kf-lbl">Yield hasta</div><div className="kf-val">{cmFields.yield_max}%</div></div>
-            </div>
-          )}
-          {cmFields.tipo_op && (
-            <div style={{marginTop:8}}>
-              <div style={{fontSize:9,color:'var(--text4)',marginBottom:3}}>Tipo operación</div>
-              <span className="tag tag-amber">{cmFields.tipo_op}</span>
-            </div>
-          )}
-          {cmFields.calidad && (
-            <div style={{marginTop:6}}>
-              <div style={{fontSize:9,color:'var(--text4)',marginBottom:3}}>Calidad</div>
-              <span className="tag tag-gray">{cmFields.calidad}</span>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="rp-sec">
-          <div className="rp-lbl">Superficie buscada</div>
-          <div className="kf-grid">
-            <div className="kf"><div className="kf-lbl">Mínimo</div><div className="kf-val">2.200 m²</div></div>
-            <div className="kf"><div className="kf-lbl">Máximo</div><div className="kf-val">3.000 m²</div></div>
-          </div>
-          <div style={{marginTop:8}}>
-            <div style={{fontSize:9,color:'var(--text4)',marginBottom:3}}>Tipo búsqueda</div>
-            <span className="tag tag-gray">Estándar</span>
-          </div>
-        </div>
-      )}
-
-      {!esInversion && (
-        <div className="rp-sec">
-          <div className="rp-lbl" style={{display:'flex',alignItems:'center',gap:6}}>
-            Ofertas presentadas
-            <span style={{fontSize:8,fontWeight:700,color:'#7c2d12',background:'#fef3c7',border:'1px solid #fde68a',borderRadius:6,padding:'1px 6px'}}>OFR · no activos</span>
-          </div>
-          <div style={{background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',padding:'7px 9px',marginBottom:5,cursor:'pointer'}}>
-            <div style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>OFR-0018</div>
-            <div style={{fontSize:11,fontWeight:600,color:'var(--accent)'}}>Albatros — Edif. D · P3-P4</div>
-            <div style={{fontSize:10,color:'var(--text3)'}}>6.742 m² · 14,5 €/m²·mes · Presentado 13/11/2025</div>
-          </div>
-          <div style={{background:'var(--green-lt)',border:'1px solid var(--green-bd)',borderRadius:'var(--r)',padding:'7px 9px',cursor:'pointer'}}>
-            <div style={{fontSize:10,color:'var(--text4)',fontFamily:'var(--mono)'}}>OFR-0019</div>
-            <div style={{fontSize:11,fontWeight:600,color:'var(--green)'}}>Albatros — Edif. D · P2 parcial</div>
-            <div style={{fontSize:10,color:'var(--text3)'}}>1.200 m² · 14,0 €/m²·mes · Visita programada</div>
-          </div>
-        </div>
-      )}
-
-      <div className="rp-sec">
-        <div className="rp-lbl">Zona de búsqueda</div>
-        <span className="tag tag-blue">Madrid</span>
-        <div style={{marginTop:6,fontSize:11,color:'var(--text3)'}}>A-1 · Alcobendas / Arroyo de la Vega</div>
-      </div>
-      <div className="rp-sec">
-        <div className="rp-lbl">Equipo asignado</div>
-        <div className="cont-row">
-          <div className="c-av" style={{background:'#dbeafe',color:'#1e40af'}}>AS</div>
-          <div>
-            <div className="c-name">Sierra Alvaro</div>
-            <div className="c-role">{esInversion ? 'Capital Markets · MAD' : 'Leasing Oficinas · MAD'}</div>
-          </div>
-        </div>
-      </div>
-      <div className="rp-sec">
-        <div className="rp-lbl">Asistente IA</div>
-        <div className="ai-box">
-          <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Matching automático</span><span className="ai-badge">Beta</span></div>
-          {esInversion
-            ? <div className="ai-text">Demanda de inversión · {cmFields.calidad||'—'} · Ticket {cmFields.ticket_min||'—'}–{cmFields.ticket_max||'—'} M€. <strong>Buscando ofertas de venta compatibles.</strong></div>
-            : <div className="ai-text">2.200–3.000 m² en A-1. <strong>3 ofertas compatibles + 5 alternativas razonables</strong>. OFR-0018 (Albatros P4) cumple requisitos exactos. OFR-0023 (Avalon P3) se ajusta con +10% sup.</div>
-          }
-          <div style={{display:'flex',gap:6,marginTop:8,flexWrap:'wrap'}}>
-            <span style={{fontSize:9,fontWeight:700,color:'#15803d',background:'#dcfce7',padding:'2px 7px',borderRadius:6}}>✓ Cumple req · 3</span>
-            <span style={{fontSize:9,fontWeight:700,color:'#7c2d12',background:'#fef3c7',padding:'2px 7px',borderRadius:6}}>± Flexible · 3</span>
-            <span style={{fontSize:9,fontWeight:700,color:'#475569',background:'#e2e8f0',padding:'2px 7px',borderRadius:6}}>≈ Alternativas · 2</span>
-          </div>
-          <div className="ai-cta">✎ Ver ofertas compatibles · Solo se muestran activos con oferta vigente</div>
-        </div>
+        <button className="acc-btn" style={{ background:'var(--accent)', color:'#fff', border:'none', fontWeight:600 }} onClick={() => navigate('mapas', { from:'demanda', id:'D251035690', nombre:'Corporacion Financiera Azuaga SL', uso:demUsoPpal, sbaMin:supMin, sbaMax:supMax, rentaMax, zona:'A-1 · Alcobendas', provincia:'Madrid' })}>🗺 Exportar a mapa</button>
       </div>
     </div>
   )
@@ -1253,7 +1326,7 @@ function FichaDemandaMock() {
           )}
         </div>
 
-        <RightPanel navigate={navigate} naturaleza={naturaleza} cmFields={cmFields}/>
+        <RightPanel navigate={navigate} naturaleza={naturaleza} cmFields={cmFields} demCampos={demCampos} demPres={demPres} demUsoPpal={demUsoPpal} demTipologia={demTipologia}/>
       </div>
       {showTarea && <AsignarTareaModal refTipo="Demanda" refNombre="D251035690 · Corp. Financiera Azuaga" onClose={() => setShowTarea(false)} />}
 
