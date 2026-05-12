@@ -4169,7 +4169,7 @@ export default function FichaActivo() {
         n_arrendatarios: arrRes.count || 0,
         n_propietarios: propRes.count || 0,
         n_edificios: nEdif,
-        plazas: a.plazas || 0,
+        plazas: 0, // columna 'plazas' no existe en activos; se deriva en el futuro del stacking
       }
     }))
   }
@@ -4181,7 +4181,7 @@ export default function FichaActivo() {
     try {
       const { data: rows = [], error } = await supabase
         .from('activo_competidores')
-        .select('id, competidor_id, motivo, motivos, orden, created_at, competidor:activos!competidor_id(id,ref,nombre,zona,subzona,ciudad,uso,sba,occupancy_rate,renta_zona,leed,n_edificios,plazas,stacking_data)')
+        .select('id, competidor_id, motivo, motivos, orden, created_at, competidor:activos!competidor_id(id,ref,nombre,zona,subzona,ciudad,uso,sba,occupancy_rate,renta_zona,leed,n_edificios,stacking_data)')
         .eq('activo_id', activo.id)
         .order('orden', { ascending: true })
       if (error) throw error
@@ -4209,7 +4209,7 @@ export default function FichaActivo() {
       if (activo.uso)    conds.push(`uso.eq.${activo.uso}`)
       const orClause = conds.length ? conds.join(',') : null
       let query = supabase.from('activos')
-        .select('id,ref,nombre,zona,subzona,ciudad,uso,sba,occupancy_rate,renta_zona,leed,n_edificios,plazas,stacking_data')
+        .select('id,ref,nombre,zona,subzona,ciudad,uso,sba,occupancy_rate,renta_zona,leed,n_edificios,stacking_data')
         .neq('id', activo.id).limit(12)
       if (orClause) query = query.or(orClause)
       const { data = [] } = await query
