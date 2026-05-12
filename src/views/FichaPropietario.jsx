@@ -40,8 +40,11 @@ function ExportMenu({ getConfig }) {
   )
 }
 
-const TABS = ['datos','condiciones','historico','analisis','conf']
-const TAB_LABELS = ['Datos del propietario','Condiciones de inversión','Histórico propietarios','Análisis','Confidencialidad']
+// Tabs (mayo 2026): Condiciones + Análisis unificadas; renombrado el "Histórico
+// propietarios" como "Histórico de activos" (más correcto: el propietario no se
+// historifica a sí mismo, sino los activos que ha tenido).
+const TABS = ['datos','condiciones','historico','conf']
+const TAB_LABELS = ['Datos del propietario','Condiciones e inversión','Histórico de activos','Confidencialidad']
 
 const USOS_PROPIETARIO = [
   'Oficinas','Logístico / Industrial','Retail','Centros comerciales',
@@ -643,11 +646,11 @@ export default function FichaPropietario() {
             </div>
           )}
 
-          {/* TAB: HISTÓRICO PROPIETARIOS */}
+          {/* TAB: HISTÓRICO DE ACTIVOS — activos que ha tenido este propietario */}
           {tab==='historico' && (
             <div className="tab-content active">
               <div style={{marginBottom:12,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <div style={{fontSize:12,color:'var(--text3)'}}>Propietarios anteriores de este activo — cuando un propietario se desactiva, queda registrado aquí.</div>
+                <div style={{fontSize:12,color:'var(--text3)'}}>Activos que este propietario ha tenido en cartera — cuando un activo se desinviste, queda registrado aquí.</div>
                 <button className="tbtn prim" style={{fontSize:11}} onClick={()=>{}}>+ Registrar desinversión</button>
               </div>
 
@@ -703,8 +706,8 @@ export default function FichaPropietario() {
             </div>
           )}
 
-          {/* TAB: ANÁLISIS */}
-          {tab==='analisis' && (
+          {/* Bloque Análisis — fusionado dentro de "Condiciones e inversión" */}
+          {tab==='condiciones' && (
             <div className="tab-content active">
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
 

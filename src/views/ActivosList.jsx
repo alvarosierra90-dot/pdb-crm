@@ -124,7 +124,7 @@ export default function ActivosList() {
 
   const cell = (a) => ({
     _chk:    <td key="_chk"><input type="checkbox" style={{ accentColor: 'var(--accent)' }} onClick={e => e.stopPropagation()} /></td>,
-    nombre:       <td key="nombre"><div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><div style={{ width: 28, height: 28, borderRadius: 5, background: usoColor(a.uso).bg, color: usoColor(a.uso).color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{a.uso[0]}</div><div><div className="asset-link">{shortDir(a.direccion) || a.name}</div><div className="asset-sub">{a.ref}</div></div></div></td>,
+    nombre:       <td key="nombre" style={{ minWidth: 360 }}><div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><div style={{ width: 28, height: 28, borderRadius: 5, background: usoColor(a.uso).bg, color: usoColor(a.uso).color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{a.uso[0]}</div><div style={{ minWidth: 0, flex: 1 }}><div className="asset-link" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={a.direccion || a.name}>{a.direccion || a.name}</div><div className="asset-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.ref}</div></div></div></td>,
     nombre_activo: <td key="nombre_activo" style={{ fontSize: 11, fontWeight: 500 }}>{a.name}</td>,
     area:    <td key="area" className="mono">{a.sba.toLocaleString()} m²</td>,
     zona:    <td key="zona" style={{ fontSize: 11, fontWeight: 500 }}>{a.zona}</td>,

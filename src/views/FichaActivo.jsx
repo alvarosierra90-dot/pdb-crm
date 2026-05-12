@@ -594,6 +594,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
     if (defaultLabel && !setupForm.label) setSetupForm(p => ({ ...p, label: defaultLabel }))
   }, [defaultLabel])
   const [view, setView]                 = useState(initView)
+  const [expanded, setExpanded]         = useState(false)
   const [dragging, setDragging]         = useState(null)
   const [dragTarget, setDragTarget]     = useState(null)
   const [editFloor, setEditFloor]       = useState(null) // {floorId, idx, layer}
@@ -899,7 +900,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   )
 
   return (
-    <div>
+    <div style={expanded ? {position:'fixed',inset:0,zIndex:1000,background:'var(--bg)',overflow:'auto',padding:'20px 24px'} : undefined}>
       {/* Edificio tabs */}
       <div style={{display:'flex',gap:6,borderBottom:'1px solid var(--border)',background:'var(--gray-lt)',marginLeft:-24,marginRight:-24,paddingLeft:24,paddingTop:6,flexWrap:'wrap'}}>
         {buildings.map(b=>(
@@ -923,11 +924,20 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
         )}
       </div>
 
-      {/* Vista sub-tabs */}
-      <div className="sp-tabs" style={{marginLeft:-24,marginRight:-24,paddingLeft:24}}>
-        {[['principal','Uso principal'],['prop','Propietarios'],['arr','Arrendatarios y oferta']].map(([k,l])=>(
-          <div key={k} onClick={()=>setView(k)} className={`sp-tab${view===k?' active':''}`}>{l}</div>
-        ))}
+      {/* Vista sub-tabs + botón expandir */}
+      <div className="sp-tabs" style={{marginLeft:-24,marginRight:-24,paddingLeft:24,paddingRight:24,display:'flex',alignItems:'center',gap:8}}>
+        <div style={{display:'flex',gap:0,flex:1}}>
+          {[['principal','Uso principal'],['prop','Propietarios'],['arr','Arrendatarios y oferta']].map(([k,l])=>(
+            <div key={k} onClick={()=>setView(k)} className={`sp-tab${view===k?' active':''}`}>{l}</div>
+          ))}
+        </div>
+        <button
+          onClick={()=>setExpanded(v=>!v)}
+          style={{padding:'5px 12px',fontSize:11,fontWeight:600,cursor:'pointer',border:'1px solid var(--border)',borderRadius:6,background:'var(--surface)',color:'var(--text3)',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:5}}
+          title={expanded?'Cerrar vista expandida (Esc)':'Expandir a pantalla completa'}
+        >
+          {expanded ? '↙ Contraer' : '↗ Expandir'}
+        </button>
       </div>
 
       {/* Header KPIs */}
@@ -1072,7 +1082,8 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
             </div>
 
             {(()=>{ const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1); return edif.floors.map((floor, floorIdx)=>{
-              const barH = Math.max(28, Math.round((floor.sup / maxFloorSup) * 56))
+              // barH reducido ~30% para que torres con muchas plantas (15-30+) entren sin scroll infinito.
+              const barH = Math.max(22, Math.round((floor.sup / maxFloorSup) * 38))
               const used  = floor.principal.reduce((s,u)=>s+u.sup,0)
               const avail = floor.sup-used
               const isTgt = dragTarget===floor.id
@@ -1367,7 +1378,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                 <div style={{textAlign:'right'}}>Sup.</div>
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
-                const barH = Math.max(30, Math.round((floor.sup / maxFloorSup) * 60))
+                const barH = Math.max(22, Math.round((floor.sup / maxFloorSup) * 40))
                 const propRow = (edif.prop||[]).find(r=>r.p===floor.id)
                 const units    = propRow?.units || []
                 const rowSup   = propRow?.sup ?? floor.sup
@@ -1598,7 +1609,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                 <div style={{textAlign:'right'}}>Sup.</div>
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
-                const barH = Math.max(38, Math.round((floor.sup / maxFloorSup) * 70))
+                const barH = Math.max(26, Math.round((floor.sup / maxFloorSup) * 46))
                 const arrRow  = (edif.arr||[]).find(r=>r.p===floor.id)
                 const units   = arrRow?.units || []
                 const rowSup  = arrRow?.sup ?? floor.sup
