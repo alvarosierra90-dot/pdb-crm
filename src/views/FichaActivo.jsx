@@ -9,7 +9,8 @@ import {
   Building2, Factory, ShoppingBag, Server, Home, Hotel, Square,
   Mail, Phone, Users, FileText, Pencil, CheckSquare,
   MapPin, Search, Upload, Image as ImageIcon, AlertTriangle, ArrowDown, BarChart3, Wallet, ClipboardList,
-  Inbox, Clock, FileSpreadsheet, StickyNote, Link2, X as XClose, Download
+  Inbox, Clock, FileSpreadsheet, StickyNote, Link2, X as XClose, Download,
+  Folder, Wrench, Target, Compass
 } from 'lucide-react'
 
 const USO_PREFIX_FA    = { 'Oficinas':'OF', 'Logístico':'LG', 'Retail':'RT', 'Data Center':'DC', 'Residencial':'RS', 'Hoteles':'HT', 'Suelo':'SU' }
@@ -5090,48 +5091,59 @@ export default function FichaActivo() {
             </div>
           )}
 
-          {/* ── TAB: Multimedia & Documentos — bloque Multimedia ── */}
-          {activeTab==='at-mediadocs' && <TabMultimedia/>}
-
-          {/* ── TAB: Multimedia & Documentos — bloque Documentos (mismo activeTab) ── */}
+          {/* ── TAB: Multimedia & Documentos — layout 2 columnas (50/50) ── */}
           {activeTab==='at-mediadocs' && (
-            <div className="tab-content active"><div className="info-pad">
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-                <div style={{fontSize:14,fontWeight:600}}>Documentos</div>
-                <button className="ab-btn blue">↑ Cargar</button>
-              </div>
-              <div className="doc-cats">
-                {[['todos','📁','Todos',8],['comercial','📊','Comercial',3],['tecnica','🔧','Técnica',2],['marketing','🎯','Marketing',1],['valoraciones','💰','Valoraciones',1],['arquitectura','📐','Arquitectura',1],['informes','📋','Informes',0]].map(([k,ico,lbl,cnt])=>(
-                  <div key={k} className={`doc-cat ${docCat===k?'active':''}`} onClick={()=>setDocCat(k)}>
-                    <div className="doc-cat-ico">{ico}</div>
-                    <div className="doc-cat-name">{lbl}</div>
-                    <div className="doc-cat-count">{cnt}</div>
+            <div className="tab-content active">
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:18,padding:'18px 24px',alignItems:'start'}}>
+                {/* Columna izquierda: Multimedia */}
+                <div style={{minWidth:0}}>
+                  <TabMultimedia/>
+                </div>
+                {/* Columna derecha: Documentos */}
+                <div style={{minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                    <div style={{fontSize:14,fontWeight:600}}>Documentos</div>
+                    <button className="ab-btn blue" style={{display:'inline-flex',alignItems:'center',gap:6}}><Upload size={13} strokeWidth={1.75}/> Cargar</button>
                   </div>
-                ))}
+                  <div className="doc-cats" style={{gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
+                    {[
+                      { k:'todos',        Ico:Folder,          lbl:'Todos',        cnt:8 },
+                      { k:'comercial',    Ico:BarChart3,       lbl:'Comercial',    cnt:3 },
+                      { k:'tecnica',      Ico:Wrench,          lbl:'Técnica',      cnt:2 },
+                      { k:'marketing',    Ico:Target,          lbl:'Marketing',    cnt:1 },
+                      { k:'valoraciones', Ico:Wallet,          lbl:'Valoraciones', cnt:1 },
+                      { k:'arquitectura', Ico:Compass,         lbl:'Arquitectura', cnt:1 },
+                      { k:'informes',     Ico:ClipboardList,   lbl:'Informes',     cnt:0 },
+                    ].map(c => (
+                      <div key={c.k} className={`doc-cat ${docCat===c.k?'active':''}`} onClick={()=>setDocCat(c.k)} style={{padding:'10px 8px',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                        <c.Ico size={20} strokeWidth={1.75} style={{color: docCat===c.k ? 'var(--accent)' : 'var(--text3)'}}/>
+                        <div className="doc-cat-name" style={{fontSize:11}}>{c.lbl}</div>
+                        <div className="doc-cat-count" style={{padding:'1px 7px',fontSize:9,marginTop:0}}>{c.cnt}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="doc-drop" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,width:'100%'}}><Upload size={14} strokeWidth={1.75}/> Arrastra documentos aquí o haz clic para cargar</div>
+                  <table className="doc-table">
+                    <thead><tr><th>Documento</th><th>Categoría</th><th>Fecha</th><th></th></tr></thead>
+                    <tbody>
+                      {[
+                        { Ico:FileText,        name:'Dossier Avalon',        cat:'Comercial',   catCol:{bg:'var(--accent-lt)',color:'var(--accent)'}, fecha:'07/02/2026' },
+                        { Ico:BarChart3,       name:'Stacking plan Q1',      cat:'Comercial',   catCol:{bg:'var(--accent-lt)',color:'var(--accent)'}, fecha:'07/02/2026' },
+                        { Ico:FileSpreadsheet, name:'Valoración Q1 2026',    cat:'Valoraciones',catCol:{bg:'var(--amber-lt)',color:'var(--amber)'},   fecha:'20/03/2026' },
+                        { Ico:ClipboardList,   name:'Rent Roll 2026',        cat:'Comercial',   catCol:{bg:'var(--accent-lt)',color:'var(--accent)'}, fecha:'01/01/2026' },
+                      ].map((d,i) => (
+                        <tr key={i}>
+                          <td><span className="doc-link" style={{display:'inline-flex',alignItems:'center',gap:6}}><d.Ico size={14} strokeWidth={1.75}/> {d.name}</span></td>
+                          <td><span className="doc-tag" style={d.catCol}>{d.cat}</span></td>
+                          <td>{d.fecha}</td>
+                          <td style={{display:'flex',gap:6,color:'var(--text4)'}}><Download size={13} strokeWidth={1.75}/><Pencil size={13} strokeWidth={1.75}/><XClose size={13} strokeWidth={1.75}/></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <div className="doc-drop">↑ Arrastra documentos aquí o haz clic para cargar</div>
-              <table className="doc-table">
-                <thead><tr><th>Documento</th><th>Categoría</th><th>Ámbito / Planta</th><th>Fecha</th><th>Por</th><th>Tamaño</th><th></th></tr></thead>
-                <tbody>
-                  {[
-                    { Ico:FileText,        name:'Dossier Avalon',          cat:'Comercial',   catCol:{bg:'var(--accent-lt)',color:'var(--accent)'}, amb:'Edificio completo', ambCol:{bg:'var(--gray-lt)',color:'var(--text3)'}, fecha:'07/02/2026', user:'Álvaro Sierra', size:'4.2 MB' },
-                    { Ico:BarChart3,       name:'Stacking plan Q1 2026',   cat:'Comercial',   catCol:{bg:'var(--accent-lt)',color:'var(--accent)'}, amb:'Edificio completo', ambCol:{bg:'var(--gray-lt)',color:'var(--text3)'}, fecha:'07/02/2026', user:'Álvaro Sierra', size:'1.1 MB' },
-                    { Ico:FileSpreadsheet, name:'Valoración Q1 2026',      cat:'Valoraciones',catCol:{bg:'var(--amber-lt)',color:'var(--amber)'},   amb:'Edificio completo', ambCol:{bg:'var(--gray-lt)',color:'var(--text3)'}, fecha:'20/03/2026', user:'Jorge López',   size:'5.6 MB' },
-                    { Ico:ClipboardList,   name:'Rent Roll 2026',          cat:'Comercial',   catCol:{bg:'var(--accent-lt)',color:'var(--accent)'}, amb:'P3',                ambCol:{bg:'#f0fdfa',color:'#0f766e',border:'1px solid #99f6e4'}, fecha:'01/01/2026', user:'Álvaro Sierra', size:'680 KB' },
-                  ].map((d,i) => (
-                    <tr key={i}>
-                      <td><span className="doc-link" style={{display:'inline-flex',alignItems:'center',gap:6}}><d.Ico size={14} strokeWidth={1.75}/> {d.name}</span></td>
-                      <td><span className="doc-tag" style={d.catCol}>{d.cat}</span></td>
-                      <td><span className="doc-tag" style={d.ambCol}>{d.amb}</span></td>
-                      <td>{d.fecha}</td>
-                      <td>{d.user}</td>
-                      <td>{d.size}</td>
-                      <td style={{display:'flex',gap:6,color:'var(--text4)'}}><Download size={13} strokeWidth={1.75}/><Pencil size={13} strokeWidth={1.75}/><XClose size={13} strokeWidth={1.75}/></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div></div>
+            </div>
           )}
 
           {/* ── TAB: Información adicional ── */}
