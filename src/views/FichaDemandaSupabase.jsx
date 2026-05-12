@@ -812,6 +812,209 @@ export default function FichaDemandaSupabase({ refOrId }) {
           )}
 
         </div>
+
+        {/* ─── SIDEBAR DERECHO · mismo formato que Oferta ─── */}
+        {(() => {
+          const esInversion = form.naturaleza === 'Inversión' || form.naturaleza === 'inversion'
+          const supMin  = Number(form.sup_min) || 0
+          const supMax  = Number(form.sup_max) || 0
+          const rentaMin = Number(form.alq_min) || 0
+          const rentaMax = Number(form.alq_max) || 0
+          const ventaMin = Number(form.venta_m2_min) || 0
+          const ventaMax = Number(form.venta_m2_max) || 0
+          const equipo = Array.isArray(demanda?.equipo_trabajo) ? demanda.equipo_trabajo : []
+          const principal = equipo.find(m => m.rol === 'Principal') || equipo[0]
+          const soportes  = equipo.filter(m => m !== principal).slice(0,2)
+          const initials = (n) => (n || '').split(' ').filter(Boolean).slice(0,2).map(s => s[0]?.toUpperCase() || '').join('') || '—'
+          const fmtFecha = (iso) => iso ? new Date(iso).toLocaleDateString('es-ES') : '—'
+          const diasActiva = demanda?.created_at ? Math.max(0, Math.floor((Date.now() - new Date(demanda.created_at)) / 86400000)) : 0
+          return (
+            <div className="ficha-right">
+
+              {/* 1 · EQUIPO RESPONSABLE */}
+              <div className="rp-sec">
+                <div className="rp-lbl">Equipo responsable</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                  {equipo.length === 0 ? (
+                    <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin equipo asignado.</div>
+                  ) : (
+                    <>
+                      {principal && (
+                        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                          <div style={{ width:32, height:32, borderRadius:'50%', background:'#dbeafe', color:'#1e40af', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>{initials(principal.nombre)}</div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:12, fontWeight:600 }}>{principal.nombre}</div>
+                            <div style={{ fontSize:10, color:'var(--text3)' }}>{principal.equipo}</div>
+                          </div>
+                          <span className="tag tag-blue" style={{ fontSize:9 }}>Principal</span>
+                        </div>
+                      )}
+                      {soportes.map((m,i) => (
+                        <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                          <div style={{ width:32, height:32, borderRadius:'50%', background:'#fdf4ff', color:'#7e22ce', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>{initials(m.nombre)}</div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:12, fontWeight:600 }}>{m.nombre}</div>
+                            <div style={{ fontSize:10, color:'var(--text3)' }}>{m.equipo}</div>
+                          </div>
+                          <span className="tag tag-purple" style={{ fontSize:9 }}>{m.rol}</span>
+                        </div>
+                      ))}
+                      {equipo.length > 1 + soportes.length && (
+                        <div style={{ fontSize:10, color:'var(--text3)', textAlign:'center' }}>+ {equipo.length - 1 - soportes.length} más</div>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div style={{ display:'flex', gap:6, marginTop:8 }}>
+                  <button className="acc-btn" style={{ flex:1, fontSize:10 }}>📞 Contacto</button>
+                  <button className="acc-btn" style={{ flex:1, fontSize:10 }}>✅ Asignar</button>
+                </div>
+              </div>
+
+              {/* 2 · ASISTENTE IA */}
+              <div className="rp-sec">
+                <div className="rp-lbl">Asistente IA</div>
+                <div className="ai-box">
+                  <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Análisis de la demanda</span><span className="ai-badge">Tiempo real</span></div>
+                  <div className="ai-text">
+                    {esInversion
+                      ? <>Demanda de inversión · ticket en análisis. <strong>Detectando activos compatibles</strong> y posibles riesgos de yield.</>
+                      : <>Búsqueda de <strong>{supMin.toLocaleString('es-ES')}–{supMax.toLocaleString('es-ES')} m²</strong>. <strong>Matching automático con ofertas vigentes</strong>.</>}
+                  </div>
+                  <div style={{ display:'flex', gap:6, marginTop:8, flexWrap:'wrap' }}>
+                    <span style={{ fontSize:9, fontWeight:700, color:'#15803d', background:'#dcfce7', padding:'2px 7px', borderRadius:6 }}>✓ Cumple · 3</span>
+                    <span style={{ fontSize:9, fontWeight:700, color:'#7c2d12', background:'#fef3c7', padding:'2px 7px', borderRadius:6 }}>± Flexible · 3</span>
+                    <span style={{ fontSize:9, fontWeight:700, color:'#475569', background:'#e2e8f0', padding:'2px 7px', borderRadius:6 }}>≈ Alternativas · 2</span>
+                    <span style={{ fontSize:9, fontWeight:700, color:'#991b1b', background:'#fee2e2', padding:'2px 7px', borderRadius:6 }}>⚠ Riesgos · 1</span>
+                  </div>
+                  <div style={{ marginTop:8, display:'flex', flexDirection:'column', gap:3 }}>
+                    <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>📊 Resumen ejecutivo</button>
+                    <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>🏢 Sugerir zonas alternativas</button>
+                    <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>🔍 Matching con ofertas</button>
+                  </div>
+                  <div className="ai-cta">✎ Preguntar a la IA</div>
+                </div>
+              </div>
+
+              {/* 3 · KPIs · resumen ejecutivo */}
+              <div className="rp-sec">
+                <div className="rp-lbl">KPIs · resumen ejecutivo</div>
+
+                {/* Superficie requerida (rango grande) */}
+                <div style={{ padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', marginBottom:6 }}>
+                  <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700, marginBottom:3 }}>Superficie requerida</div>
+                  <div style={{ fontSize:16, fontWeight:800, fontFamily:'var(--mono)', color:'var(--accent)' }}>
+                    {supMin > 0 || supMax > 0 ? `${supMin.toLocaleString('es-ES')} – ${supMax.toLocaleString('es-ES')}` : '—'}
+                    <span style={{ fontSize:11, color:'var(--text3)', fontWeight:500 }}> m²</span>
+                  </div>
+                </div>
+
+                {/* Sup min/max + Renta/Ticket */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:6 }}>
+                  <div style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                    <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700 }}>Sup. mín.</div>
+                    <div style={{ fontSize:13, fontWeight:700, fontFamily:'var(--mono)' }}>{supMin > 0 ? supMin.toLocaleString('es-ES') + ' m²' : '—'}</div>
+                  </div>
+                  <div style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                    <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700 }}>Sup. máx.</div>
+                    <div style={{ fontSize:13, fontWeight:700, fontFamily:'var(--mono)' }}>{supMax > 0 ? supMax.toLocaleString('es-ES') + ' m²' : '—'}</div>
+                  </div>
+                </div>
+
+                {/* Renta / Ticket */}
+                <div style={{ padding:'7px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', marginBottom:6 }}>
+                  <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700 }}>{esInversion ? 'Precio venta €/m²' : 'Renta objetivo'}</div>
+                  <div style={{ fontSize:13, fontWeight:700, fontFamily:'var(--mono)', color:'var(--green)' }}>
+                    {esInversion
+                      ? (ventaMin > 0 || ventaMax > 0 ? `${ventaMin}–${ventaMax} €/m²` : '—')
+                      : (rentaMin > 0 || rentaMax > 0 ? `${rentaMin}–${rentaMax} €/m²/mes` : '—')}
+                  </div>
+                </div>
+
+                {/* Métricas operativas */}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:6, marginBottom:6 }}>
+                  {[
+                    { lbl:'Alternativas', val:5, col:'var(--text1)' },
+                    { lbl:'Visitas',      val:2, col:'var(--accent)' },
+                    { lbl:'Propuestas',   val:1, col:'var(--purple)' },
+                  ].map(k => (
+                    <div key={k.lbl} style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)', textAlign:'center' }}>
+                      <div style={{ fontSize:8, color:'var(--text4)', textTransform:'uppercase', fontWeight:700 }}>{k.lbl}</div>
+                      <div style={{ fontSize:14, fontWeight:800, fontFamily:'var(--mono)', color:k.col }}>{k.val}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Estado + Prioridad */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:6 }}>
+                  <div style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                    <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700, marginBottom:3 }}>Estado</div>
+                    <span className="tag tag-green" style={{ fontSize:10 }}>● {form.estatus || 'En curso'}</span>
+                  </div>
+                  <div style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                    <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700, marginBottom:3 }}>Prioridad</div>
+                    <span className="tag tag-amber" style={{ fontSize:10 }}>Alta</span>
+                  </div>
+                </div>
+
+                {/* Probabilidad de cierre */}
+                <div style={{ padding:'7px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', marginBottom:6 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:4 }}>
+                    <span style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700 }}>Probabilidad de cierre</span>
+                    <span style={{ fontSize:13, fontWeight:800, fontFamily:'var(--mono)', color:'var(--accent)' }}>65%</span>
+                  </div>
+                  <div style={{ height:5, background:'var(--gray-lt)', borderRadius:3, overflow:'hidden' }}>
+                    <div style={{ height:'100%', width:'65%', background:'var(--accent)' }} />
+                  </div>
+                </div>
+
+                {/* Fecha objetivo + Tiempo activa */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:6 }}>
+                  <div style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                    <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700 }}>Fecha objetivo</div>
+                    <div style={{ fontSize:12, fontWeight:700, fontFamily:'var(--mono)' }}>{form.timing || '—'}</div>
+                  </div>
+                  <div style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                    <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700 }}>Tiempo activa</div>
+                    <div style={{ fontSize:12, fontWeight:700, fontFamily:'var(--mono)' }}>{diasActiva} d</div>
+                  </div>
+                </div>
+
+                {/* Tipo de activo */}
+                <div style={{ padding:'7px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', marginBottom:6 }}>
+                  <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700, marginBottom:4 }}>Tipo de activo</div>
+                  <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+                    {form.uso_principal && <span className="tag tag-blue" style={{ fontSize:9 }}>{form.uso_principal}</span>}
+                    {form.tipologia && <span className="tag tag-gray" style={{ fontSize:9 }}>{form.tipologia}</span>}
+                    {!form.uso_principal && !form.tipologia && <span style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>—</span>}
+                  </div>
+                </div>
+
+                {/* Zonas objetivo */}
+                <div style={{ padding:'7px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', marginBottom:6 }}>
+                  <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700, marginBottom:4 }}>Zonas objetivo</div>
+                  <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+                    {(form.provincias || []).map(p => <span key={p} className="tag tag-blue" style={{ fontSize:9 }}>{p}</span>)}
+                    {(form.zonas || []).map(z => <span key={z} className="tag tag-gray" style={{ fontSize:9 }}>{z}</span>)}
+                    {(form.provincias || []).length === 0 && (form.zonas || []).length === 0 && <span style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>—</span>}
+                  </div>
+                </div>
+
+                {/* Equipos involucrados */}
+                <div style={{ padding:'7px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                  <div style={{ fontSize:9, color:'var(--text4)', textTransform:'uppercase', fontWeight:700, marginBottom:4 }}>Equipos involucrados</div>
+                  <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+                    {[...new Set(equipo.map(m => m.equipo).filter(Boolean))].map(eq => (
+                      <span key={eq} className="tag tag-blue" style={{ fontSize:9 }}>{eq}</span>
+                    ))}
+                    {equipo.length === 0 && <span style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>—</span>}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )
+        })()}
       </div>
     </div>
   )
