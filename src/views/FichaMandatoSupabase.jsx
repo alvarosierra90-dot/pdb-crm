@@ -666,7 +666,139 @@ export default function FichaMandatoSupabase({ refOrId }) {
             return (
               <div className="tab-content active"><div className="info-pad">
 
-                {/* ─── FILA 1: Vinculaciones (izquierda) | Equipo de trabajo (derecha) ─── */}
+                {/* ─── FILA 1 (antes 2): Mandato | Vigencia y alertas ─── */}
+                <div className="va-two-col">
+                  <div className="va-meta-card" style={{ marginBottom:0 }}>
+                    <div className="va-meta-head"><span className="dot"/>Mandato</div>
+                    <div className="va-kv-list">
+                      <div className="ir"><span className="ir-k">Tipo</span>
+                        <span className="ir-v">
+                          <select style={sel} value={form.tipo} onChange={e => setF('tipo', e.target.value)}>
+                            {TIPO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                          </select>
+                        </span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Vía</span>
+                        <span className="ir-v">
+                          <select style={sel} value={form.via} onChange={e => setF('via', e.target.value)}>
+                            {VIA_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                          </select>
+                        </span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Estado</span>
+                        <span className="ir-v">
+                          <select style={sel} value={form.estado} onChange={e => setF('estado', e.target.value)}>
+                            {ESTADO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                          </select>
+                        </span>
+                      </div>
+                      {form.estado === 'cancelado' && (() => {
+                        const motivoEsPredef = MOTIVOS_CANCELACION.includes(form.motivo_cancelacion)
+                        const motivoEsOtro   = !!form.motivo_cancelacion && !motivoEsPredef
+                        const sel_v          = motivoEsOtro ? 'Otro motivo' : (form.motivo_cancelacion || '')
+                        const otroTexto      = motivoEsOtro ? form.motivo_cancelacion : ''
+                        const sinMotivo      = !form.motivo_cancelacion.trim()
+                        return (
+                          <>
+                            <div className="ir" style={{ alignItems:'flex-start' }}>
+                              <span className="ir-k" style={{ color:'#dc2626', fontWeight:700 }}>Motivo cancelación *</span>
+                              <span className="ir-v">
+                                <select
+                                  style={{ ...sel, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
+                                  value={sel_v}
+                                  onChange={e => {
+                                    const v = e.target.value
+                                    if (v === '') setF('motivo_cancelacion','')
+                                    else if (v === 'Otro motivo') setF('motivo_cancelacion', otroTexto || ' ')
+                                    else setF('motivo_cancelacion', v)
+                                  }}
+                                >
+                                  <option value="">Selecciona un motivo...</option>
+                                  {MOTIVOS_CANCELACION.map(m => <option key={m}>{m}</option>)}
+                                </select>
+                              </span>
+                            </div>
+                            {(sel_v === 'Otro motivo' || motivoEsOtro) && (
+                              <div className="ir" style={{ alignItems:'flex-start' }}>
+                                <span className="ir-k">Describe el motivo</span>
+                                <span className="ir-v" style={{ flex:1 }}>
+                                  <textarea
+                                    style={{ ...ta, minHeight:50, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
+                                    value={otroTexto}
+                                    onChange={e => setF('motivo_cancelacion', e.target.value)}
+                                    placeholder="Describe el motivo de la cancelación..."
+                                  />
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
+                      <div className="ir"><span className="ir-k">Departamento</span>
+                        <span className="ir-v">
+                          <select style={sel} value={form.departamento} onChange={e => setF('departamento', e.target.value)}>
+                            <option value="">—</option>
+                            {DEPARTAMENTOS.map(d => <option key={d}>{d}</option>)}
+                          </select>
+                        </span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Provincia</span>
+                        <span className="ir-v">
+                          <select style={sel} value={form.provincia} onChange={e => setF('provincia', e.target.value)}>
+                            <option value="">—</option>
+                            {PROVINCIAS.map(p => <option key={p}>{p}</option>)}
+                          </select>
+                        </span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Zona</span>
+                        <span className="ir-v"><input style={{ ...inp, width:140 }} value={form.zona} onChange={e => setF('zona', e.target.value)} placeholder="Zona / submercado" /></span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Responsable</span>
+                        <span className="ir-v"><input style={{ ...inp, width:160 }} value={form.responsable} onChange={e => setF('responsable', e.target.value)} placeholder="Nombre" /></span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Equipo legacy</span>
+                        <span className="ir-v"><input style={{ ...inp, width:200 }} value={form.equipo} onChange={e => setF('equipo', e.target.value)} placeholder="Equipo asignado" /></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="va-meta-card" style={{ marginBottom:0 }}>
+                    <div className="va-meta-head accent-purple"><span className="dot"/>Vigencia y alertas</div>
+                    <div className="va-kv-list">
+                      <div className="ir"><span className="ir-k">Fecha de firma</span>
+                        <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_firma || ''} onChange={e => setF('fecha_firma', e.target.value)} /></span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Fecha de inicio</span>
+                        <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_inicio || ''} onChange={e => setF('fecha_inicio', e.target.value)} /></span>
+                      </div>
+                      <div className="ir"><span className="ir-k" style={{ fontWeight:700 }}>Vencimiento</span>
+                        <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_vencimiento || ''} onChange={e => setF('fecha_vencimiento', e.target.value)} /></span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Días restantes</span>
+                        <span className="ir-v">{dr === null ? '—' : (dr < 0 ? <span style={{ color:'var(--red)', fontWeight:700 }}>Vencido hace {Math.abs(dr)}d</span> : <span style={{ color: dr <= 30 ? 'var(--red)' : dr <= 60 ? 'var(--amber)' : 'var(--text)' }}>{dr} días</span>)}</span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Preaviso (días)</span>
+                        <span className="ir-v"><input type="number" style={{ ...inp, width:80 }} value={form.preaviso_dias} onChange={e => setF('preaviso_dias', e.target.value)} /></span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Alertar X días antes</span>
+                        <span className="ir-v"><input type="number" style={{ ...inp, width:80 }} value={form.alerta_dias} onChange={e => setF('alerta_dias', e.target.value)} /></span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Prórroga tácita</span>
+                        <span className="ir-v">
+                          <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:11 }}>
+                            <input type="checkbox" checked={form.prorroga_tacita} onChange={e => setF('prorroga_tacita', e.target.checked)} />
+                            {form.prorroga_tacita ? 'Sí' : 'No'}
+                          </label>
+                        </span>
+                      </div>
+                      <div className="ir"><span className="ir-k">Meses de prórroga</span>
+                        <span className="ir-v"><input type="number" style={{ ...inp, width:80 }} value={form.prorroga_meses} onChange={e => setF('prorroga_meses', e.target.value)} disabled={!form.prorroga_tacita} /></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ─── FILA 2 (antes 1): Vinculaciones | Fees + Equipo de trabajo ─── */}
                 <div className="va-two-col" style={{ overflow:'visible' }}>
                   <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
                     <div className="va-card-header">
@@ -927,138 +1059,6 @@ export default function FichaMandatoSupabase({ refOrId }) {
                             ))}
                           </div>
                         )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ─── FILA 2: Mandato (datos) | Vigencia y alertas ─── */}
-                <div className="va-two-col">
-                  <div className="va-meta-card" style={{ marginBottom:0 }}>
-                    <div className="va-meta-head"><span className="dot"/>Mandato</div>
-                    <div className="va-kv-list">
-                      <div className="ir"><span className="ir-k">Tipo</span>
-                        <span className="ir-v">
-                          <select style={sel} value={form.tipo} onChange={e => setF('tipo', e.target.value)}>
-                            {TIPO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                          </select>
-                        </span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Vía</span>
-                        <span className="ir-v">
-                          <select style={sel} value={form.via} onChange={e => setF('via', e.target.value)}>
-                            {VIA_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                          </select>
-                        </span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Estado</span>
-                        <span className="ir-v">
-                          <select style={sel} value={form.estado} onChange={e => setF('estado', e.target.value)}>
-                            {ESTADO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                          </select>
-                        </span>
-                      </div>
-                      {form.estado === 'cancelado' && (() => {
-                        const motivoEsPredef = MOTIVOS_CANCELACION.includes(form.motivo_cancelacion)
-                        const motivoEsOtro   = !!form.motivo_cancelacion && !motivoEsPredef
-                        const sel_v          = motivoEsOtro ? 'Otro motivo' : (form.motivo_cancelacion || '')
-                        const otroTexto      = motivoEsOtro ? form.motivo_cancelacion : ''
-                        const sinMotivo      = !form.motivo_cancelacion.trim()
-                        return (
-                          <>
-                            <div className="ir" style={{ alignItems:'flex-start' }}>
-                              <span className="ir-k" style={{ color:'#dc2626', fontWeight:700 }}>Motivo cancelación *</span>
-                              <span className="ir-v">
-                                <select
-                                  style={{ ...sel, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
-                                  value={sel_v}
-                                  onChange={e => {
-                                    const v = e.target.value
-                                    if (v === '') setF('motivo_cancelacion','')
-                                    else if (v === 'Otro motivo') setF('motivo_cancelacion', otroTexto || ' ')
-                                    else setF('motivo_cancelacion', v)
-                                  }}
-                                >
-                                  <option value="">Selecciona un motivo...</option>
-                                  {MOTIVOS_CANCELACION.map(m => <option key={m}>{m}</option>)}
-                                </select>
-                              </span>
-                            </div>
-                            {(sel_v === 'Otro motivo' || motivoEsOtro) && (
-                              <div className="ir" style={{ alignItems:'flex-start' }}>
-                                <span className="ir-k">Describe el motivo</span>
-                                <span className="ir-v" style={{ flex:1 }}>
-                                  <textarea
-                                    style={{ ...ta, minHeight:50, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
-                                    value={otroTexto}
-                                    onChange={e => setF('motivo_cancelacion', e.target.value)}
-                                    placeholder="Describe el motivo de la cancelación..."
-                                  />
-                                </span>
-                              </div>
-                            )}
-                          </>
-                        )
-                      })()}
-                      <div className="ir"><span className="ir-k">Departamento</span>
-                        <span className="ir-v">
-                          <select style={sel} value={form.departamento} onChange={e => setF('departamento', e.target.value)}>
-                            <option value="">—</option>
-                            {DEPARTAMENTOS.map(d => <option key={d}>{d}</option>)}
-                          </select>
-                        </span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Provincia</span>
-                        <span className="ir-v">
-                          <select style={sel} value={form.provincia} onChange={e => setF('provincia', e.target.value)}>
-                            <option value="">—</option>
-                            {PROVINCIAS.map(p => <option key={p}>{p}</option>)}
-                          </select>
-                        </span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Zona</span>
-                        <span className="ir-v"><input style={{ ...inp, width:140 }} value={form.zona} onChange={e => setF('zona', e.target.value)} placeholder="Zona / submercado" /></span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Responsable</span>
-                        <span className="ir-v"><input style={{ ...inp, width:160 }} value={form.responsable} onChange={e => setF('responsable', e.target.value)} placeholder="Nombre" /></span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Equipo legacy</span>
-                        <span className="ir-v"><input style={{ ...inp, width:200 }} value={form.equipo} onChange={e => setF('equipo', e.target.value)} placeholder="Equipo asignado" /></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="va-meta-card" style={{ marginBottom:0 }}>
-                    <div className="va-meta-head accent-purple"><span className="dot"/>Vigencia y alertas</div>
-                    <div className="va-kv-list">
-                      <div className="ir"><span className="ir-k">Fecha de firma</span>
-                        <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_firma || ''} onChange={e => setF('fecha_firma', e.target.value)} /></span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Fecha de inicio</span>
-                        <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_inicio || ''} onChange={e => setF('fecha_inicio', e.target.value)} /></span>
-                      </div>
-                      <div className="ir"><span className="ir-k" style={{ fontWeight:700 }}>Vencimiento</span>
-                        <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_vencimiento || ''} onChange={e => setF('fecha_vencimiento', e.target.value)} /></span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Días restantes</span>
-                        <span className="ir-v">{dr === null ? '—' : (dr < 0 ? <span style={{ color:'var(--red)', fontWeight:700 }}>Vencido hace {Math.abs(dr)}d</span> : <span style={{ color: dr <= 30 ? 'var(--red)' : dr <= 60 ? 'var(--amber)' : 'var(--text)' }}>{dr} días</span>)}</span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Preaviso (días)</span>
-                        <span className="ir-v"><input type="number" style={{ ...inp, width:80 }} value={form.preaviso_dias} onChange={e => setF('preaviso_dias', e.target.value)} /></span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Alertar X días antes</span>
-                        <span className="ir-v"><input type="number" style={{ ...inp, width:80 }} value={form.alerta_dias} onChange={e => setF('alerta_dias', e.target.value)} /></span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Prórroga tácita</span>
-                        <span className="ir-v">
-                          <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:11 }}>
-                            <input type="checkbox" checked={form.prorroga_tacita} onChange={e => setF('prorroga_tacita', e.target.checked)} />
-                            {form.prorroga_tacita ? 'Sí' : 'No'}
-                          </label>
-                        </span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Meses de prórroga</span>
-                        <span className="ir-v"><input type="number" style={{ ...inp, width:80 }} value={form.prorroga_meses} onChange={e => setF('prorroga_meses', e.target.value)} disabled={!form.prorroga_tacita} /></span>
                       </div>
                     </div>
                   </div>
