@@ -242,8 +242,13 @@ export default function FichaPropietario() {
       <div className="action-bar">
         {fromActivo ? (
           <>
-            <button className="ab-btn save" onClick={handleSaveFromActivo} disabled={saving}>{saving ? 'Guardando...' : '💾 Guardar propietario'}</button>
-            <button className="ab-btn" onClick={()=>navigate('ficha-activo',{ref:params?.fromActivoRef,tab:'at-stacking'})}>← Volver al activo</button>
+            <button className="ab-btn save" onClick={handleSaveFromActivo} disabled={saving}>{saving ? 'Guardando...' : 'Guardar propietario'}</button>
+            <button className="ab-btn" onClick={()=>navigate('ficha-activo',{
+              ref: params?.fromActivoRef,
+              tab: params?.fromActivoTab || 'at-stacking',
+            })}>
+              ← Volver a {params?.fromActivoNombre ? params.fromActivoNombre : 'activo'}
+            </button>
             {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
           </>
         ) : (

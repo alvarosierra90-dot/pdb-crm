@@ -541,13 +541,13 @@ export default function FichaArrendatario() {
         {(params?.fromActivoRef || fromDarBaja || fromActivo) && <button className="ab-btn blue" onClick={()=>navigate('ficha-activo',{ref:params?.fromActivoRef||(fromDarBaja?(form.activo||params?.arrRef):undefined)})}>🏢 Ver activo</button>}
         {!isNew && !fromDarBaja && !params?.fromActivoRef && <button className="ab-btn blue" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>}
         <button className="ab-btn" onClick={()=>
-          params?.fromActivoRef ? navigate('ficha-activo',{ref:params.fromActivoRef,tab:'at-prop'})
+          params?.fromActivoRef ? navigate('ficha-activo',{ref:params.fromActivoRef, tab: params?.fromActivoTab || 'at-prop'})
           : fromDarBaja  ? navigate('arrendatarios')
           : fromOferta  ? navigate('ficha-oferta',{ofertaRef:params.fromOfertaRef})
-          : fromActivo ? navigate('ficha-activo',{ref:params.fromActivoRef,tab:'at-stacking'})
+          : fromActivo ? navigate('ficha-activo',{ref:params.fromActivoRef, tab: params?.fromActivoTab || 'at-stacking'})
           : fromTenantClick ? navigate(-1)
           : navigate('arrendatarios')}>
-          ← {params?.fromActivoRef ? 'Volver al activo' : fromDarBaja ? 'Ir al listado' : fromOferta ? 'Volver a la oferta' : fromActivo ? 'Volver al activo' : 'Volver'}
+          ← {params?.fromActivoRef ? `Volver a ${params?.fromActivoNombre || 'activo'}` : fromDarBaja ? 'Ir al listado' : fromOferta ? 'Volver a la oferta' : fromActivo ? 'Volver al activo' : 'Volver'}
         </button>
         <div className="ab-sep"/>
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>

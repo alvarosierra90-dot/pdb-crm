@@ -586,7 +586,7 @@ const INIT_BUILDINGS = [
 // Exportado para que FichaOferta consuma EXACTAMENTE el mismo componente.
 // La regla del usuario: el Stacking Plan debe ser un único componente reutilizable,
 // no varios componentes replicados. (Ver memoria project_stacking_compartido.md)
-export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, onRemoveTenant, onTenantClick, extraOfertas=[], initView='principal', defaultLabel='', defaultSupPlantaTipo, allowCreate=true, noDataMessage=null }) {
+export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', activoRef='', activoNombre='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, onRemoveTenant, onTenantClick, extraOfertas=[], initView='principal', defaultLabel='', defaultSupPlantaTipo, allowCreate=true, noDataMessage=null }) {
   const { navigate: spNavigate } = useNav()
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
@@ -1353,14 +1353,17 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                       onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
                       onClick={(e) => {
                         // Click sin drag → navega a la ficha del propietario.
-                        // Pasamos m2 (suma real del stacking) para que la ficha
-                        // muestre la superficie asignada, no el SBA total mock.
+                        // Pasa m2 real, id, y refs de retorno para que el botón
+                        // 'Volver al activo' vuelva al stacking exacto del origen.
                         if (dragging) return
                         spNavigate('ficha-propietario', {
                           id: o.id,
                           ownerData: { id: o.id, propietario: o.name, superficie: m2 },
                           ownerSuperficie: m2,
                           fromOwnerStacking: true,
+                          fromActivoRef: activoRef,
+                          fromActivoNombre: activoNombre,
+                          fromActivoTab: 'at-stacking',
                         })
                       }}
                       title={`Ver ficha de ${o.name}`}
@@ -1579,7 +1582,13 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                       onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
                       onClick={(e) => {
                         if (dragging) return
-                        spNavigate('ficha-arrendatario', { tenantName: t.name, tenantRef: t.ref })
+                        spNavigate('ficha-arrendatario', {
+                          tenantName: t.name,
+                          arrRef: t.ref,
+                          fromActivoRef: activoRef,
+                          fromActivoNombre: activoNombre,
+                          fromActivoTab: 'at-stacking',
+                        })
                       }}
                       title={`Ver ficha de ${t.name}`}
                       style={{
@@ -1616,7 +1625,12 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                           onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
                           onClick={(e) => {
                             if (dragging) return
-                            spNavigate('ficha-oferta', { ofertaRef: ofr.ref || ofr.id || ofr.nombre })
+                            spNavigate('ficha-oferta', {
+                              ofertaRef: ofr.ref || ofr.id || ofr.nombre,
+                              fromActivoRef: activoRef,
+                              fromActivoNombre: activoNombre,
+                              fromActivoTab: 'at-stacking',
+                            })
                           }}
                           title={`Ver ficha de ${ofr.nombre}`}
                         >
@@ -3993,6 +4007,7 @@ export default function FichaActivo() {
   const infoSaveRef = useRef(null) // ref to TabInfo's handleSave
   const infoSyncRef = useRef(null) // ref to TabInfo's syncCatastro (available for future use)
   const liveStackingRef = useRef(null) // latest buildings state from StackingPlan
+  const [liveBuildings, setLiveBuildings] = useState(null) // estado React para que las tablas se re-renderizen cuando cambie el stacking
   const activoRef = useRef(null) // always has latest activo (for auto-save closure)
   const autoSaveTimer = useRef(null) // debounce timer for stacking auto-save
   activoRef.current = activo // keep ref in sync on every render
@@ -4558,6 +4573,9 @@ export default function FichaActivo() {
                 onOwnersChange={setLiveOwnerCount}
                 onBuildingsChange={(blds) => {
                   liveStackingRef.current = blds
+                  // Estado React para que las tablas de Propietarios y Arrendatarios
+                  // se re-rendericen con la superficie real asignada en el stacking.
+                  setLiveBuildings(blds)
                   // Auto-save stacking to Supabase (debounced 1.5 s)
                   const ref = activoRef.current?.ref
                   if (!ref) return
@@ -4567,6 +4585,8 @@ export default function FichaActivo() {
                   }, 1500)
                 }}
                 activoPropietario={activo?.propietario || ''}
+                activoRef={activo?.ref || params?.ref || ''}
+                activoNombre={displayNombre ?? activo?.nombre ?? ''}
                 extraOwners={propietariosReg.map(p=>({ id: p.id, name: p.propietario }))}
                 extraTenants={arrendatariosReg.map(a=>({ ref: a.ref, name: a.tenant }))}
                 onAddOwner={handleAddOwner}
@@ -5057,24 +5077,48 @@ export default function FichaActivo() {
                   <div style={{fontSize:13,fontWeight:700,letterSpacing:'.01em',color:'var(--text1)'}}>PROPIETARIOS</div>
                   <button className="ab-btn blue" onClick={handleAddOwner}>+ Nuevo propietario</button>
                 </div>
+                {(()=>{
+                  // Calcular superficie real asignada a cada propietario desde el stacking.
+                  // Fuente: liveBuildings (en memoria, tras drag) o activo.stacking_data (persistido).
+                  const blds = liveBuildings || activo?.stacking_data || []
+                  const getOwnerSup = (p) => blds
+                    .flatMap(b => b.prop || [])
+                    .flatMap(r => r.units || [])
+                    .reduce((s, u) => {
+                      const match = p.id ? u.prop_id === p.id : (!u.prop_id && u.n === p.propietario)
+                      return s + (match ? (Number(u.sup) || 0) : 0)
+                    }, 0)
+                  // Navegación con retorno explícito al stacking del activo origen
+                  const goToOwner = (p) => navigate('ficha-propietario', {
+                    id: p.id,
+                    ownerData: { ...p, superficie: getOwnerSup(p) },
+                    ownerSuperficie: getOwnerSup(p),
+                    fromActivoRef: activo?.ref || params?.ref,
+                    fromActivoNombre: activo?.nombre || displayNombre,
+                    fromActivoTab: 'at-prop',
+                  })
+                  return (
                 <table className="pat-table" style={{marginBottom:8}}>
-                  <thead><tr><th>Perfil</th><th>Propietario</th><th>SBA</th><th>Yield</th><th>Precio compra</th><th>Año compra</th><th>Trim.</th><th></th></tr></thead>
+                  <thead><tr><th>Perfil</th><th>Propietario</th><th>SBA asignada</th><th>Yield</th><th>Precio compra</th><th>Año compra</th><th>Trim.</th><th></th></tr></thead>
                   <tbody>
-                    {propietariosReg.map(p=>(
-                      <tr key={p.id} style={{cursor:'pointer'}} onClick={()=>navigate('ficha-propietario',{ownerData:p})}>
+                    {propietariosReg.map(p=>{
+                      const supReal = getOwnerSup(p)
+                      return (
+                      <tr key={p.id} style={{cursor:'pointer'}} onClick={()=>goToOwner(p)}>
                         <td>{p.perfil||'—'}</td>
                         <td><span className="pat-link">{p.propietario}</span></td>
-                        <td>{p.sba ? Number(p.sba).toLocaleString('es-ES') : (activo?.sba?.toLocaleString('es-ES')||'—')}</td>
+                        <td style={{fontFamily:'var(--mono)'}}>{supReal > 0 ? Number(supReal).toLocaleString('es-ES') : <span style={{color:'var(--text4)',fontStyle:'italic'}}>Pendiente · arrastra al stacking</span>}</td>
                         <td>{p.yield_pct ? p.yield_pct+'%' : '—'}</td>
                         <td>{p.precio_compra||'—'}</td>
                         <td>{p.anyo_compra||'—'}</td>
                         <td>{p.trimestre && <span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>{p.trimestre}</span>}</td>
-                        <td><button className="ra" onClick={e=>{e.stopPropagation();navigate('ficha-propietario',{ownerData:p})}}>↗ Ver</button></td>
+                        <td><button className="ra" onClick={e=>{e.stopPropagation();goToOwner(p)}}>↗ Ver</button></td>
                       </tr>
-                    ))}
+                    )})}
                     {propietariosReg.length===0 && <tr><td colSpan={8} style={{textAlign:'center',color:'var(--text4)',fontSize:12,padding:16}}>Sin propietarios — añade uno con el botón</td></tr>}
                   </tbody>
                 </table>
+                )})()}
 
                 {/* HISTÓRICO PROPIETARIOS */}
                 {propietariosHist.length > 0 && (
@@ -5101,25 +5145,48 @@ export default function FichaActivo() {
                   <div style={{fontSize:13,fontWeight:700,letterSpacing:'.01em',color:'var(--text1)'}}>ARRENDATARIOS</div>
                   <button className="ab-btn blue" onClick={handleAddTenant}>+ Nuevo arrendatario</button>
                 </div>
+                {(()=>{
+                  const blds = liveBuildings || activo?.stacking_data || []
+                  const getTenantSup = (a) => blds
+                    .flatMap(b => b.arr || [])
+                    .flatMap(r => (r.units || []).filter(u => u.type !== 'ofr' && u.type !== 'ofr_split'))
+                    .reduce((s, u) => {
+                      const match = a.ref ? u.arr_ref === a.ref : (!u.arr_ref && u.n === a.tenant)
+                      return s + (match ? (Number(u.sup) || 0) : 0)
+                    }, 0)
+                  const goToArr = (a) => {
+                    const supReal = getTenantSup(a)
+                    navigate('ficha-arrendatario', {
+                      ...(a.ref ? { arrRef: a.ref } : { tenantName: a.tenant }),
+                      tenantSuperficie: supReal,
+                      fromActivoRef: activo?.ref || params?.ref,
+                      fromActivoNombre: activo?.nombre || displayNombre,
+                      fromActivoTab: 'at-prop',
+                    })
+                  }
+                  return (
                 <table className="pat-table" style={{marginBottom:20}}>
-                  <thead><tr><th>Arrendatario</th><th>Uso</th><th>Sup. (m²)</th><th>Renta</th><th>Break option</th><th>Vencimiento</th><th>Año alquiler</th><th>Trim.</th><th></th></tr></thead>
+                  <thead><tr><th>Arrendatario</th><th>Uso</th><th>Sup. asignada</th><th>Renta</th><th>Break option</th><th>Vencimiento</th><th>Año alquiler</th><th>Trim.</th><th></th></tr></thead>
                   <tbody>
-                    {arrendatariosReg.map(a=>(
-                      <tr key={a.id} style={{cursor:'pointer'}} onClick={()=>navigate('ficha-arrendatario',a.ref?{arrRef:a.ref,fromActivoRef:activo?.ref||params?.ref}:{tenantName:a.tenant})}>
+                    {arrendatariosReg.map(a=>{
+                      const supReal = getTenantSup(a)
+                      return (
+                      <tr key={a.id} style={{cursor:'pointer'}} onClick={()=>goToArr(a)}>
                         <td><span className="pat-link">{a.tenant}</span></td>
                         <td>{a.uso||'—'}</td>
-                        <td>{a.sup ? Number(a.sup).toLocaleString('es-ES') : '—'}</td>
+                        <td style={{fontFamily:'var(--mono)'}}>{supReal > 0 ? Number(supReal).toLocaleString('es-ES') : <span style={{color:'var(--text4)',fontStyle:'italic'}}>Pendiente · arrastra al stacking</span>}</td>
                         <td>{a.closing_rent||'—'}</td>
                         <td style={{color:'var(--amber)',fontWeight:600}}>{a.break_option||'—'}</td>
                         <td style={{color:'var(--green)',fontWeight:600}}>{a.fecha_fin||'—'}</td>
                         <td>{a.anyo_firma||'—'}</td>
                         <td>{a.trimestre && <span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>{a.trimestre}</span>}</td>
-                        <td><button className="ra" onClick={e=>{e.stopPropagation();navigate('ficha-arrendatario',a.ref?{arrRef:a.ref,fromActivoRef:activo?.ref||params?.ref}:{tenantName:a.tenant})}}>↗ Ver</button></td>
+                        <td><button className="ra" onClick={e=>{e.stopPropagation();goToArr(a)}}>↗ Ver</button></td>
                       </tr>
-                    ))}
+                    )})}
                     {arrendatariosReg.length===0 && <tr><td colSpan={9} style={{textAlign:'center',color:'var(--text4)',fontSize:12,padding:16}}>Sin arrendatarios — añade uno con el botón</td></tr>}
                   </tbody>
                 </table>
+                )})()}
 
                 {/* NOTA read-only */}
                 <div style={{padding:'10px 14px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:11,color:'var(--text4)',marginBottom:16}}>
