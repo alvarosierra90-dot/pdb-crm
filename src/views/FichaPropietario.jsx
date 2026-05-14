@@ -5,6 +5,7 @@ import AsignarTareaModal from '../components/AsignarTareaModal'
 import { exportPDF, exportPPT } from '../utils/exportReport'
 import { supabase } from '../lib/supabase'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
+import { StackingPlan } from './FichaActivo'
 
 function ExportMenu({ getConfig }) {
   const [open, setOpen] = useState(false)
@@ -43,8 +44,8 @@ function ExportMenu({ getConfig }) {
 // Tabs (mayo 2026): Condiciones + Análisis unificadas; renombrado el "Histórico
 // propietarios" como "Histórico de activos" (más correcto: el propietario no se
 // historifica a sí mismo, sino los activos que ha tenido).
-const TABS = ['datos','condiciones','historico','conf']
-const TAB_LABELS = ['Datos del propietario','Condiciones e inversión','Histórico de activos','Confidencialidad']
+const TABS = ['datos','condiciones','stacking','historico','conf']
+const TAB_LABELS = ['Datos del propietario','Condiciones e inversión','Stacking plan','Histórico de activos','Confidencialidad']
 
 const USOS_PROPIETARIO = [
   'Oficinas','Logístico / Industrial','Retail','Centros comerciales',
@@ -205,6 +206,13 @@ export default function FichaPropietario() {
     return () => { cancel = true; clearTimeout(t) }
   }, [activoSearch])
   const [linkedActivoRef, setLinkedActivoRef] = useState(null)
+  // Stacking plan compartido (mismo patrón que FichaArrendatario)
+  const [stackingActivo, setStackingActivo] = useState(null)
+  const [propTodosActivo, setPropTodosActivo] = useState([])
+  const stackingAutoSaveTimer = useRef(null)
+  // Flag de persistido: si ya se hizo INSERT, los siguientes saves son UPDATE
+  const [isPersisted, setIsPersisted] = useState(false)
+  const [saveOk, setSaveOk] = useState(false)
   const linkActivo = (a) => {
     set('activo',           a.nombre || '')
     set('activo_direccion', a.direccion || '')
@@ -218,6 +226,51 @@ export default function FichaPropietario() {
     setActivoSearch('')
     setShowActivoDD(false)
   }
+
+  // ── Load del activo + stacking_data cuando se abre el tab "Stacking" ──
+  useEffect(() => {
+    if (tab !== 'stacking') return
+    let cancel = false
+    const candRef  = (params?.fromActivoRef || linkedActivoRef || '').trim()
+    const candForm = (form.activo || '').trim()
+    const SELECT = 'id, ref, nombre, direccion, stacking_data, sup_planta_tipo, propietario, dynamics_account_id, portfolio_id, uso'
+    ;(async () => {
+      let data = null
+      if (candRef) {
+        const r = await supabase.from('activos').select(SELECT).eq('ref', candRef).maybeSingle()
+        data = r.data
+      }
+      if (!data && candForm) {
+        const r = await supabase.from('activos').select(SELECT).eq('nombre', candForm).maybeSingle()
+        data = r.data
+      }
+      if (!data && candForm) {
+        const r = await supabase.from('activos').select(SELECT).ilike('nombre', `%${candForm}%`).limit(1)
+        data = r.data?.[0] || null
+      }
+      if (!cancel) setStackingActivo(data || null)
+    })()
+    return () => { cancel = true }
+  }, [tab, form.activo, params?.fromActivoRef, linkedActivoRef])
+
+  // Carga propietarios del activo para alimentar el sidebar de la capa 'prop'
+  useEffect(() => {
+    if (tab !== 'stacking' || !stackingActivo?.ref) { setPropTodosActivo([]); return }
+    let cancel = false
+    supabase.from('propietarios')
+      .select('id, propietario, activo_ref')
+      .eq('activo_ref', stackingActivo.ref)
+      .then(({ data }) => {
+        if (cancel) return
+        const list = (data || []).map(r => ({ id: r.id, name: r.propietario }))
+        const currentId   = form.id
+        const currentName = (form.propietario || '').trim()
+        const already = list.some(p => (currentId && p.id === currentId) || (!currentId && p.name === currentName))
+        if (!already && currentName) list.unshift({ id: currentId, name: currentName })
+        setPropTodosActivo(list)
+      })
+    return () => { cancel = true }
+  }, [tab, stackingActivo?.ref, form.id, form.propietario])
 
   const plusvaliaNum = form.valoracion_actual && form.precio_compra
     ? (() => {
@@ -284,23 +337,11 @@ export default function FichaPropietario() {
     const { error } = await supabase.from('propietarios').upsert(row)
     setSaving(false)
     if (error) { setSaveErr(error.message); return }
-
-    if (activoRefFinal) {
-      // Si el propietario está vinculado a un activo, abrir su Stacking Plan
-      // para que el chip aparezca en el sidebar (capa Propietarios) y se
-      // pueda arrastrar a una planta.
-      navigate('ficha-activo', {
-        ref: activoRefFinal,
-        tab: 'at-stacking',
-        stackingView: 'prop',
-        newOwnerData: { ...row, sba: row.superficie },
-        substituteOwner: params?.substituteOwner || false,
-        previousOwner: params?.previousOwner || null,
-      })
-    } else {
-      // Propietario creado sin activo · ir a la lista
-      navigate('propietarios')
-    }
+    // Marcamos como persistido y nos quedamos en la ficha · el usuario puede
+    // abrir el tab "Stacking plan" para arrastrar el chip a una planta.
+    setIsPersisted(true)
+    setSaveOk(true)
+    setTimeout(() => setSaveOk(false), 3000)
   }
 
   return (
@@ -308,7 +349,8 @@ export default function FichaPropietario() {
       <div className="action-bar">
         {noPrefill ? (
           <>
-            <button className="ab-btn save" onClick={handleSaveFromActivo} disabled={saving}>{saving ? 'Guardando...' : 'Guardar propietario'}</button>
+            <button className="ab-btn save" onClick={handleSaveFromActivo} disabled={saving}>{saving ? 'Guardando...' : (isPersisted ? '💾 Guardar cambios' : '💾 Guardar propietario')}</button>
+            {saveOk && <span style={{marginLeft:8, fontSize:11, color:'var(--green)', fontWeight:600}}>✓ Guardado</span>}
             <button className="ab-btn" onClick={()=>navigate('ficha-activo',{
               ref: params?.fromActivoRef,
               tab: params?.fromActivoTab || 'at-stacking',
@@ -808,6 +850,89 @@ export default function FichaPropietario() {
                   </div>
                 </div>
 
+              </div>
+            </div>
+          )}
+
+          {/* TAB: STACKING PLAN — mismo componente compartido, vista 'prop' */}
+          {tab==='stacking' && (
+            <div className="tab-content active">
+              <div className="info-pad">
+                {(() => {
+                  const ref = (params?.fromActivoRef || linkedActivoRef || '').trim() || (form.activo || '').trim()
+                  if (!ref) {
+                    return (
+                      <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
+                        Este propietario no está vinculado a un activo. Vincula uno desde la pestaña "Datos del propietario" para ver su stacking plan.
+                      </div>
+                    )
+                  }
+                  if (!stackingActivo) {
+                    return (
+                      <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
+                        <div style={{ marginBottom:8 }}>No encuentro el activo <strong>{ref}</strong> en la BBDD.</div>
+                        <div style={{ fontSize:11, color:'var(--text3)' }}>El stacking plan se nutre del activo, así que primero hay que tenerlo dado de alta.</div>
+                      </div>
+                    )
+                  }
+                  const hasStacking = Array.isArray(stackingActivo.stacking_data) && stackingActivo.stacking_data.length > 0
+                  return (
+                    <>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                        <div>
+                          <div style={{ fontSize:13, fontWeight:700 }}>Stacking plan · {stackingActivo.nombre || stackingActivo.ref}</div>
+                          <div style={{ fontSize:10, color:'var(--text4)', marginTop:2 }}>
+                            Mismo plan que en la ficha del activo. Vista por defecto: propietarios. Los cambios se sincronizan al activo.
+                          </div>
+                        </div>
+                        <button
+                          className="ab-btn"
+                          onClick={() => navigate('ficha-activo', { ref: stackingActivo.ref, tab: 'at-stacking' })}
+                          style={{ fontSize:11 }}
+                        >
+                          Abrir en ficha del activo →
+                        </button>
+                      </div>
+                      {!hasStacking && (
+                        <div style={{ background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:6, padding:10, marginBottom:10, fontSize:11, color:'#7c2d12' }}>
+                          Este activo todavía no tiene stacking plan creado. Construirlo aquí lo guarda en la ficha del activo (es el mismo plan).
+                        </div>
+                      )}
+                      <StackingPlan
+                        key={stackingActivo.ref}
+                        initBuildings={hasStacking ? stackingActivo.stacking_data : []}
+                        defaultLabel={stackingActivo.nombre || stackingActivo.direccion || ''}
+                        defaultSupPlantaTipo={stackingActivo.sup_planta_tipo || undefined}
+                        activoRef={stackingActivo.ref}
+                        activoNombre={stackingActivo.nombre || ''}
+                        activoPropietario={stackingActivo.propietario || ''}
+                        extraOwners={propTodosActivo}
+                        initView="prop"
+                        onBuildingsChange={(blds) => {
+                          clearTimeout(stackingAutoSaveTimer.current)
+                          stackingAutoSaveTimer.current = setTimeout(async () => {
+                            // 1) Persistir stacking_data del activo
+                            await supabase.from('activos').update({ stacking_data: blds }).eq('ref', stackingActivo.ref)
+                            // 2) Sincronizar la superficie del propietario actual sumando
+                            //    todas las units de la capa prop con prop_id == form.id
+                            const myId = form.id
+                            if (myId) {
+                              const totalSup = (blds || []).flatMap(b => b.prop || []).flatMap(r => r.units || [])
+                                .filter(u => u.prop_id === myId)
+                                .reduce((s,u) => s + (Number(u.sup) || 0), 0)
+                              if (totalSup > 0) {
+                                await supabase.from('propietarios')
+                                  .update({ superficie: totalSup })
+                                  .eq('id', myId)
+                                set('superficie', String(totalSup))
+                              }
+                            }
+                          }, 1500)
+                        }}
+                      />
+                    </>
+                  )
+                })()}
               </div>
             </div>
           )}
