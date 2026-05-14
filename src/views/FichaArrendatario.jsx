@@ -300,6 +300,7 @@ export default function FichaArrendatario() {
 
   // Stacking plan compartido — capa 'arr' por defecto
   const [stackingActivo, setStackingActivo] = useState(null) // { id, ref, nombre, stacking_data, ... }
+  const [arrTodosActivo, setArrTodosActivo] = useState([])    // arrendatarios del mismo activo (sidebar)
   const [bajaArr, setBajaArr] = useState(null)
   const stackingAutoSaveTimer = useRef(null)
 
@@ -398,6 +399,29 @@ export default function FichaArrendatario() {
     lookupActivo()
     return () => { cancel = true }
   }, [tab, form.activo, params?.fromActivoRef])
+
+  // Carga la lista de arrendatarios del activo para alimentar el sidebar
+  // del Stacking Plan dentro de la ficha del arrendatario.
+  useEffect(() => {
+    if (tab !== 'stacking' || !stackingActivo?.ref) { setArrTodosActivo([]); return }
+    let cancel = false
+    supabase.from('arrendatarios')
+      .select('ref, nombre, tenant, activo_ref')
+      .eq('activo_ref', stackingActivo.ref)
+      .order('created_at', { ascending:false })
+      .then(({ data }) => {
+        if (cancel) return
+        const list = (data || []).map(r => ({ ref: r.ref, name: r.tenant || r.nombre || '—' }))
+        // Si el arrendatario actual aún no está en BD (recién creado y sin persistir)
+        // pero el form tiene nombre, añadimos un chip temporal para que se vea.
+        const currentName = form.tenant_desconocido ? 'Desconocido' : (form.tenant || '').trim()
+        const currentRef  = loadedRef
+        const already = list.some(t => (currentRef && t.ref === currentRef) || (!currentRef && t.name === currentName))
+        if (!already && currentName) list.unshift({ ref: currentRef, name: currentName })
+        setArrTodosActivo(list)
+      })
+    return () => { cancel = true }
+  }, [tab, stackingActivo?.ref, loadedRef, form.tenant, form.tenant_desconocido])
 
   // ── Load from DB when opened by tenant name click ─────────────
   useEffect(() => {
@@ -1210,12 +1234,32 @@ export default function FichaArrendatario() {
                         initBuildings={hasStacking ? stackingActivo.stacking_data : []}
                         defaultLabel={stackingActivo.nombre || stackingActivo.direccion || ''}
                         defaultSupPlantaTipo={stackingActivo.sup_planta_tipo || undefined}
+                        activoRef={stackingActivo.ref}
+                        activoNombre={stackingActivo.nombre || ''}
                         activoPropietario={stackingActivo.propietario || ''}
+                        extraTenants={arrTodosActivo}
                         initView="arr"
                         onBuildingsChange={(blds) => {
                           clearTimeout(stackingAutoSaveTimer.current)
-                          stackingAutoSaveTimer.current = setTimeout(() => {
-                            supabase.from('activos').update({ stacking_data: blds }).eq('ref', stackingActivo.ref)
+                          stackingAutoSaveTimer.current = setTimeout(async () => {
+                            // 1) Persistir stacking_data del activo
+                            await supabase.from('activos').update({ stacking_data: blds }).eq('ref', stackingActivo.ref)
+                            // 2) Sincronizar la superficie del arrendatario actual
+                            //    sumando todas las units 'ten' cuyo arr_ref coincide con
+                            //    el ref de este arrendatario (loadedRef o ref guardado).
+                            const myRef = loadedRef
+                            if (myRef) {
+                              const totalSup = (blds || []).flatMap(b => b.arr || []).flatMap(r => r.units || [])
+                                .filter(u => u.type === 'ten' && u.arr_ref === myRef)
+                                .reduce((s,u) => s + (Number(u.sup) || 0), 0)
+                              if (totalSup > 0) {
+                                await supabase.from('arrendatarios')
+                                  .update({ superficie: totalSup })
+                                  .eq('ref', myRef)
+                                // Reflejar en el form para que el usuario vea el valor actualizado
+                                set('superficie', String(totalSup))
+                              }
+                            }
                           }, 1500)
                         }}
                         onAddTenant={() => navigate('ficha-arrendatario', {
