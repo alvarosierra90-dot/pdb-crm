@@ -1178,11 +1178,20 @@ export default function FichaArrendatario() {
             <div className="tab-content active">
               <div className="info-pad">
                 {(() => {
+                  // Guard: el arrendatario debe estar persistido antes de poder
+                  // asignarlo al stacking. Si no, la sup no se vincularía a su ref.
+                  if (!loadedRef) {
+                    return (
+                      <div style={{ padding:32, textAlign:'center', color:'var(--text3)', fontSize:13, background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:6 }}>
+                        <div style={{ fontWeight:700, marginBottom:8, color:'#7c2d12', fontSize:14 }}>Guarda primero los datos del arrendatario</div>
+                        <div>Vuelve a la pestaña <strong>Datos del arrendatario</strong>, completa los campos obligatorios y pulsa <strong>💾 Guardar</strong>. Después podrás asignarlo al stacking plan.</div>
+                      </div>
+                    )
+                  }
                   const ref = (params?.fromActivoRef || '').trim() || (form.activo || '').trim()
                   if (!ref) {
                     return (
                       <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
-                        <div style={{ fontSize:32, marginBottom:8 }}></div>
                         Este arrendatario no está vinculado a un activo. Asigna uno desde la pestaña "Datos del arrendatario" para ver su stacking plan.
                       </div>
                     )

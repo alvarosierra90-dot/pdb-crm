@@ -210,8 +210,11 @@ export default function FichaPropietario() {
   const [stackingActivo, setStackingActivo] = useState(null)
   const [propTodosActivo, setPropTodosActivo] = useState([])
   const stackingAutoSaveTimer = useRef(null)
-  // Flag de persistido: si ya se hizo INSERT, los siguientes saves son UPDATE
-  const [isPersisted, setIsPersisted] = useState(false)
+  // dbId: uuid real de la fila en supabase.propietarios. Se rellena tras INSERT
+  // exitoso y se usa para los UPDATEs posteriores. form.id se mantiene como
+  // código amigable (PRO-...) pero NO es la PK de la BD.
+  const [dbId, setDbId] = useState(params?.id || null)
+  const isPersisted = !!dbId
   const [saveOk, setSaveOk] = useState(false)
   const linkActivo = (a) => {
     set('activo',           a.nombre || '')
@@ -262,15 +265,15 @@ export default function FichaPropietario() {
       .eq('activo_ref', stackingActivo.ref)
       .then(({ data }) => {
         if (cancel) return
-        const list = (data || []).map(r => ({ id: r.id, name: r.propietario }))
-        const currentId   = form.id
+        const list = (data || []).map(r => ({ id: r.id, name: r.propietario || r.nombre }))
+        const currentId   = dbId
         const currentName = (form.propietario || '').trim()
         const already = list.some(p => (currentId && p.id === currentId) || (!currentId && p.name === currentName))
         if (!already && currentName) list.unshift({ id: currentId, name: currentName })
         setPropTodosActivo(list)
       })
     return () => { cancel = true }
-  }, [tab, stackingActivo?.ref, form.id, form.propietario])
+  }, [tab, stackingActivo?.ref, dbId, form.propietario])
 
   const plusvaliaNum = form.valoracion_actual && form.precio_compra
     ? (() => {
@@ -291,13 +294,13 @@ export default function FichaPropietario() {
     if (!form.anyo_compra) { setSaveErr('El año de compra es obligatorio'); return }
     if (!form.trimestre)   { setSaveErr('El trimestre es obligatorio'); return }
     setSaving(true)
-    // Resolución del activo final: fromActivoRef (navegado desde activo) o
-    // linkedActivoRef (vinculado con la lupa desde el formulario)
     const activoRefFinal = params?.fromActivoRef || linkedActivoRef || null
+    // Construimos el payload SIN id (la columna es uuid con default gen_random_uuid)
+    // y CON nombre (NOT NULL).
     const row = {
-      id:                form.id,
+      nombre:            form.propietario,
       propietario:       form.propietario,
-      activo:            form.activo,
+      activo:            form.activo || null,
       activo_ref:        activoRefFinal,
       zona:              form.zona || null,
       subzona:           form.subzona || null,
@@ -334,12 +337,18 @@ export default function FichaPropietario() {
       contacto_principal: form.contacto_principal || null,
       observaciones:     form.observaciones || null,
     }
-    const { error } = await supabase.from('propietarios').upsert(row)
-    setSaving(false)
-    if (error) { setSaveErr(error.message); return }
-    // Marcamos como persistido y nos quedamos en la ficha · el usuario puede
-    // abrir el tab "Stacking plan" para arrastrar el chip a una planta.
-    setIsPersisted(true)
+    if (dbId) {
+      // UPDATE sobre el uuid real de la fila
+      const { error } = await supabase.from('propietarios').update(row).eq('id', dbId)
+      setSaving(false)
+      if (error) { setSaveErr(error.message); return }
+    } else {
+      // INSERT · capturamos el uuid real generado por la BD
+      const { data, error } = await supabase.from('propietarios').insert(row).select('id').single()
+      setSaving(false)
+      if (error) { setSaveErr(error.message); return }
+      if (data?.id) setDbId(data.id)
+    }
     setSaveOk(true)
     setTimeout(() => setSaveOk(false), 3000)
   }
@@ -859,6 +868,16 @@ export default function FichaPropietario() {
             <div className="tab-content active">
               <div className="info-pad">
                 {(() => {
+                  // Guard: el propietario debe estar persistido antes de poder
+                  // asignarlo al stacking. Si no, la sup no se vincularía a su id.
+                  if (!dbId) {
+                    return (
+                      <div style={{ padding:32, textAlign:'center', color:'var(--text3)', fontSize:13, background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:6 }}>
+                        <div style={{ fontWeight:700, marginBottom:8, color:'#7c2d12', fontSize:14 }}>Guarda primero los datos del propietario</div>
+                        <div>Vuelve a la pestaña <strong>Datos del propietario</strong>, completa los campos obligatorios y pulsa <strong>💾 Guardar propietario</strong>. Después podrás asignarlo al stacking plan.</div>
+                      </div>
+                    )
+                  }
                   const ref = (params?.fromActivoRef || linkedActivoRef || '').trim() || (form.activo || '').trim()
                   if (!ref) {
                     return (
@@ -914,8 +933,8 @@ export default function FichaPropietario() {
                             // 1) Persistir stacking_data del activo
                             await supabase.from('activos').update({ stacking_data: blds }).eq('ref', stackingActivo.ref)
                             // 2) Sincronizar la superficie del propietario actual sumando
-                            //    todas las units de la capa prop con prop_id == form.id
-                            const myId = form.id
+                            //    todas las units de la capa prop con prop_id == dbId
+                            const myId = dbId
                             if (myId) {
                               const totalSup = (blds || []).flatMap(b => b.prop || []).flatMap(r => r.units || [])
                                 .filter(u => u.prop_id === myId)
