@@ -561,39 +561,24 @@ export default function FichaArrendatario() {
       }
 
       setSaveOk(true)
-      setTimeout(() => {
-        if (params?.fromOfertaRef) {
-          navigate('ficha-oferta', {
-            ofertaRef: params.fromOfertaRef,
-            newTenantName: tenantName,
-            newTenantFloor: params?.fromFloorId || null,
-            newActivoRef: params?.fromActivoRef || null,
-          })
-        } else if (activoRefFinal) {
-          // Si el arrendatario fue vinculado a un activo (por flujo activo o
-          // por la lupa), abrir la ficha del activo en el tab Stacking. El
-          // sidebar lo cargará automáticamente desde Supabase (activo_ref).
-          navigate('ficha-activo', {
-            ref: activoRefFinal,
-            tab: 'at-stacking',
-            newTenantData: {
-              id: extRow.ref,
-              tenant: tenantName,
-              activo: form.activo,
-              activo_ref: activoRefFinal,
-              uso: form.sector || '',
-              sup: parseFloat(form.superficie) || 0,
-              closing_rent: form.closing_rent,
-              break_option: form.break_option,
-              fecha_fin: form.fecha_fin,
-              anyo_firma: form.anyo_firma,
-              trimestre: form.trimestre,
-            },
-          })
-        } else {
-          navigate('arrendatarios')
-        }
-      }, 1000)
+      // Marcamos como persistido: a partir de aquí, los cambios (incluida la
+      // superficie que se asignará en el Stacking) se aplican como UPDATE
+      // contra este mismo arr_ref.
+      setLoadedRef(extRow.ref)
+
+      // Solo navegamos fuera si el arrendatario se creó desde el flujo de Oferta
+      // (allí hay un activo y una planta concretos esperando el chip).
+      if (params?.fromOfertaRef) {
+        setTimeout(() => navigate('ficha-oferta', {
+          ofertaRef: params.fromOfertaRef,
+          newTenantName: tenantName,
+          newTenantFloor: params?.fromFloorId || null,
+          newActivoRef: params?.fromActivoRef || null,
+        }), 1000)
+      }
+      // En cualquier otro caso (desde lista o desde activo) nos quedamos en
+      // la ficha del arrendatario. El usuario puede ir al tab Stacking Plan
+      // para asignar la superficie y volver al tab Datos para verla reflejada.
     } catch(e) {
       setSaveErr(e.message || 'Error inesperado')
     } finally {
@@ -605,7 +590,10 @@ export default function FichaArrendatario() {
     if (!loadedRef) return
     setSaving(true); setSaveErr('')
     const tenantName = form.tenant_desconocido ? 'Desconocido' : form.tenant.trim()
-    const { error } = await supabase.from('arrendatarios').update({
+    // activo_ref editable: si el usuario vinculó otro activo con la lupa,
+    // lo persistimos. Si no, mantenemos el que ya tenía.
+    const activoRefFinal = linkedActivoRef || params?.fromActivoRef || undefined
+    const updatePayload = {
       nombre: tenantName, tenant: tenantName,
       tenant_desconocido: form.tenant_desconocido,
       anyo_firma: parseInt(form.anyo_firma)||null,
@@ -626,7 +614,9 @@ export default function FichaArrendatario() {
       agente_activo: form.agente_activo||null,
       agente_pasivo: form.agente_pasivo||null,
       estado_arr: form.estado||'Vigente',
-    }).eq('ref', loadedRef)
+    }
+    if (activoRefFinal !== undefined) updatePayload.activo_ref = activoRefFinal
+    const { error } = await supabase.from('arrendatarios').update(updatePayload).eq('ref', loadedRef)
     setSaving(false)
     if (error) { setSaveErr(error.message); return }
     setSaveOk(true); setTimeout(()=>setSaveOk(false),3000)
@@ -647,7 +637,7 @@ export default function FichaArrendatario() {
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
       <div className="action-bar">
-        <button className="ab-btn save" onClick={fromDarBaja ? handleSaveUpdate : handleSave} disabled={saving}>{saving ? 'Guardando...' : '💾 Guardar'}</button>
+        <button className="ab-btn save" onClick={(fromDarBaja || loadedRef) ? handleSaveUpdate : handleSave} disabled={saving}>{saving ? 'Guardando...' : (loadedRef ? '💾 Guardar cambios' : '💾 Guardar')}</button>
         {!isNew && !fromDarBaja && <button className="ab-btn">Nuevo</button>}
         {!isNew && !fromDarBaja && <button className="ab-btn">Desactivar</button>}
         <div className="ab-sep"/>
