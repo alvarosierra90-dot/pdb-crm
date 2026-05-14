@@ -482,7 +482,9 @@ export default function FichaArrendatario() {
         vencimiento:  parseDate(form.fecha_fin),
         inicio:       parseDate(form.fecha_inicio),
         planta:       params?.fromFloorId || null,
-        edificio:     params?.fromActivoNombre || null,
+        // Si se viene desde un activo, usar su nombre directo; si se vincula
+        // con la lupa, usar form.activo (que es el nombre del activo elegido)
+        edificio:     params?.fromActivoNombre || form.activo || null,
         estado_arr:   form.estado || 'Vigente',
       }
 
@@ -497,6 +499,16 @@ export default function FichaArrendatario() {
         tenant:               tenantName,
         tenant_desconocido:   form.tenant_desconocido,
         persona_fisica:       form.persona_fisica,
+        // Campos heredados del activo · necesarios para que la vista principal
+        // de /arrendatarios muestre zona/subzona/area/uso correctamente.
+        zona:                 form.zona || null,
+        subzona:              form.subzona || null,
+        area_zona:            form.area || null,
+        // baseRow.uso = form.sector (legacy). Mantenemos sector explícito abajo
+        // y persistimos también el uso real del activo en columna 'uso' aparte
+        // cuando exista — comentado porque baseRow.uso ya está ocupado por sector.
+        propietario_cuenta:   form.propietario || null,
+        tenant_mayoritario:   form.tenant_mayoritario || null,
         anyo_firma:           parseInt(form.anyo_firma) || null,
         trimestre:            form.trimestre,
         asking_rent:          parseFloat(form.asking_rent) || null,
@@ -596,6 +608,13 @@ export default function FichaArrendatario() {
     const updatePayload = {
       nombre: tenantName, tenant: tenantName,
       tenant_desconocido: form.tenant_desconocido,
+      persona_fisica: form.persona_fisica,
+      // Heredados del activo · vista principal de /arrendatarios los necesita
+      zona: form.zona || null,
+      subzona: form.subzona || null,
+      area_zona: form.area || null,
+      propietario_cuenta: form.propietario || null,
+      tenant_mayoritario: form.tenant_mayoritario || null,
       anyo_firma: parseInt(form.anyo_firma)||null,
       trimestre: form.trimestre,
       superficie: parseFloat(form.superficie)||null,
@@ -603,6 +622,11 @@ export default function FichaArrendatario() {
       closing_rent: parseFloat(form.closing_rent)||null,
       renta: parseFloat(form.closing_rent)||null,
       meses_carencia: parseInt(form.meses_carencia)||null,
+      plazas_int: parseInt(form.plazas_int)||0,
+      precio_int: parseFloat(form.precio_int)||0,
+      plazas_ext: parseInt(form.plazas_ext)||0,
+      precio_ext: parseFloat(form.precio_ext)||0,
+      aportacion_obras_m2: parseFloat(form.aportacion_obras_m2)||null,
       tipo_contrato: form.tipo_contrato,
       anios_obligado: parseFloat(form.anios_obligado)||null,
       anios_obligado_2: parseFloat(form.anios_obligado_2)||null,
@@ -610,12 +634,15 @@ export default function FichaArrendatario() {
       break_option: parseDate(form.break_option),
       vencimiento: parseDate(form.fecha_fin),
       meses_recordatorio: parseInt(form.meses_recordatorio)||3,
+      color: form.color,
       sector: form.sector||null,
       agente_activo: form.agente_activo||null,
       agente_pasivo: form.agente_pasivo||null,
       estado_arr: form.estado||'Vigente',
     }
     if (activoRefFinal !== undefined) updatePayload.activo_ref = activoRefFinal
+    // edificio = nombre del activo (cuando se cambió por la lupa)
+    if (form.activo) updatePayload.edificio = form.activo
     const { error } = await supabase.from('arrendatarios').update(updatePayload).eq('ref', loadedRef)
     setSaving(false)
     if (error) { setSaveErr(error.message); return }
