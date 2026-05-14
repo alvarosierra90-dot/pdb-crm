@@ -49,7 +49,7 @@ function mapDbRow(r) {
     responsable:     r.agente_activo || r.responsable || '—',
     ultima_act:      r.updated_at ? isoToDisplay(r.updated_at.split('T')[0]) : isoToDisplay(r.created_at?.split('T')[0]),
     planta:          r.planta || null,
-    color:           r.color || '#3b82f6',
+    color:           r.color || '#B08D57',
     _real:           true,
   }
 }

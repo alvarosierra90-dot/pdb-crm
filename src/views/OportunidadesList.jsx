@@ -46,12 +46,12 @@ function DynIcon() {
     <button
       title="Abrir en Microsoft Dynamics 365"
       onClick={e => { e.stopPropagation(); alert('En producción, este enlace abrirá la oportunidad directamente en Microsoft Dynamics 365 para su edición oficial.') }}
-      style={{ display:'flex', alignItems:'center', justifyContent:'center', width:22, height:22, borderRadius:4, background:'#0078d4', border:'none', cursor:'pointer', flexShrink:0, padding:0 }}
+      style={{ display:'flex', alignItems:'center', justifyContent:'center', width:22, height:22, borderRadius:4, background:'#B08D57', border:'none', cursor:'pointer', flexShrink:0, padding:0 }}
     >
       <svg viewBox="0 0 16 16" fill="none" width="13" height="13">
         <path d="M3 2h5.5L13 6.5v7.5H3V2z" fill="#fff" opacity=".9"/>
-        <path d="M8.5 2v4.5H13" stroke="#0078d4" strokeWidth="1.2"/>
-        <path d="M5.5 8.5h5M5.5 11h3.5" stroke="#0078d4" strokeWidth="1.2" strokeLinecap="round"/>
+        <path d="M8.5 2v4.5H13" stroke="#B08D57" strokeWidth="1.2"/>
+        <path d="M5.5 8.5h5M5.5 11h3.5" stroke="#B08D57" strokeWidth="1.2" strokeLinecap="round"/>
       </svg>
     </button>
   )
@@ -96,11 +96,11 @@ export default function OportunidadesList() {
           <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Total</div>
         </div>
         <div className="ks">
-          <div style={{ fontSize:22, fontWeight:800, color:'#1e40af' }}>{identif}</div>
+          <div style={{ fontSize:22, fontWeight:800, color:'#5a4828' }}>{identif}</div>
           <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Identificación</div>
         </div>
         <div className="ks">
-          <div style={{ fontSize:22, fontWeight:800, color:'#7e22ce' }}>{negociacion}</div>
+          <div style={{ fontSize:22, fontWeight:800, color:'#6b5b8e' }}>{negociacion}</div>
           <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Negociación</div>
         </div>
         <div className="ks">

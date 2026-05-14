@@ -5,7 +5,7 @@ import { isSupabaseRef } from '../components/FichaPendienteSupabase'
 import FichaDemandaSupabase from './FichaDemandaSupabase'
 
 const DEM_USERS_INIT = [
-  { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', granted:'—', owner:true },
+  { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#f5efe5', color:'#5a4828', granted:'—', owner:true },
 ]
 
 const DEM_TABS = [
@@ -106,16 +106,16 @@ const TIPO_ICO_DEM = { Email:'📧', Llamada:'📞', Reunión:'🤝', Tarea:'✅
 const ACT_EST_DEM  = { Abierto:'tag-amber', Finalizado:'tag-gray', 'En curso':'tag-blue', Realizada:'tag-green' }
 
 const DEM_ACTS = [
-  { id:'ACT-DEM-01', tipo:'Nota',         asunto:'Reunión interna equipo — análisis encaje demanda con portfolio Barings',          fecha:'18/10/2025', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
-  { id:'ACT-DEM-02', tipo:'Llamada',      asunto:'Llamada inicial con James Richardson (Dir. Real Estate) — briefing requisitos',  fecha:'22/10/2025', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
-  { id:'ACT-DEM-03', tipo:'Email',        asunto:'Envío de lista larga de activos candidatos (6 opciones en Madrid)',              fecha:'28/10/2025', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
-  { id:'ACT-DEM-04', tipo:'Presentación', asunto:'Presentación Albatros Edif. D — 13.486 m² A-1 Alcobendas',                     fecha:'13/11/2025', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
-  { id:'ACT-DEM-05', tipo:'Visita',       asunto:'Visita técnica Albatros Edif. D — James Richardson + Laura Martín',             fecha:'20/11/2025', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Realizada'  },
-  { id:'ACT-DEM-06', tipo:'Presentación', asunto:'Presentación P.E Avalon — 46.956 m² M-30 Julián Camarillo',                    fecha:'20/11/2025', user:'GOMEZ Ignacio', initials:'GI', bg:'#fdf4ff', color:'#7e22ce', estado:'Finalizado' },
-  { id:'ACT-DEM-07', tipo:'Email',        asunto:'Solicitud de condiciones económicas — Oracle Spain SL vs. Corp. Azuaga',         fecha:'05/12/2025', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
-  { id:'ACT-DEM-08', tipo:'Reunión',      asunto:'Reunión presencial Corp. Financiera Azuaga — revisión shortlist final',          fecha:'15/01/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
-  { id:'ACT-DEM-09', tipo:'Llamada',      asunto:'Llamada de seguimiento — confirmación decisión final Albatros',                  fecha:'10/02/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
-  { id:'ACT-DEM-10', tipo:'Tarea',        asunto:'Preparar borrador contrato — pendiente validación legal',                        fecha:'15/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'En curso'   },
+  { id:'ACT-DEM-01', tipo:'Nota',         asunto:'Reunión interna equipo — análisis encaje demanda con portfolio Barings',          fecha:'18/10/2025', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
+  { id:'ACT-DEM-02', tipo:'Llamada',      asunto:'Llamada inicial con James Richardson (Dir. Real Estate) — briefing requisitos',  fecha:'22/10/2025', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
+  { id:'ACT-DEM-03', tipo:'Email',        asunto:'Envío de lista larga de activos candidatos (6 opciones en Madrid)',              fecha:'28/10/2025', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
+  { id:'ACT-DEM-04', tipo:'Presentación', asunto:'Presentación Albatros Edif. D — 13.486 m² A-1 Alcobendas',                     fecha:'13/11/2025', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
+  { id:'ACT-DEM-05', tipo:'Visita',       asunto:'Visita técnica Albatros Edif. D — James Richardson + Laura Martín',             fecha:'20/11/2025', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Realizada'  },
+  { id:'ACT-DEM-06', tipo:'Presentación', asunto:'Presentación P.E Avalon — 46.956 m² M-30 Julián Camarillo',                    fecha:'20/11/2025', user:'GOMEZ Ignacio', initials:'GI', bg:'#fdf4ff', color:'#6b5b8e', estado:'Finalizado' },
+  { id:'ACT-DEM-07', tipo:'Email',        asunto:'Solicitud de condiciones económicas — Oracle Spain SL vs. Corp. Azuaga',         fecha:'05/12/2025', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
+  { id:'ACT-DEM-08', tipo:'Reunión',      asunto:'Reunión presencial Corp. Financiera Azuaga — revisión shortlist final',          fecha:'15/01/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
+  { id:'ACT-DEM-09', tipo:'Llamada',      asunto:'Llamada de seguimiento — confirmación decisión final Albatros',                  fecha:'10/02/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
+  { id:'ACT-DEM-10', tipo:'Tarea',        asunto:'Preparar borrador contrato — pendiente validación legal',                        fecha:'15/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'En curso'   },
 ]
 
 const MOCK_PRESENTACIONES = [
@@ -205,7 +205,7 @@ function RightPanel({ navigate, naturaleza, cmFields, demCampos = {}, demPres = 
         <div className="rp-lbl">Equipo responsable</div>
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
-            <div style={{ width:32, height:32, borderRadius:'50%', background:'#dbeafe', color:'#1e40af', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>AS</div>
+            <div style={{ width:32, height:32, borderRadius:'50%', background:'#f5efe5', color:'#5a4828', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>AS</div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:12, fontWeight:600 }}>Sierra Álvaro</div>
               <div style={{ fontSize:10, color:'var(--text3)' }}>{esInversion ? 'Capital Markets · MAD' : 'Leasing Oficinas · MAD'}</div>
@@ -213,7 +213,7 @@ function RightPanel({ navigate, naturaleza, cmFields, demCampos = {}, demPres = 
             <span className="tag tag-blue" style={{ fontSize:9 }}>Principal</span>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
-            <div style={{ width:32, height:32, borderRadius:'50%', background:'#fdf4ff', color:'#7e22ce', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>GI</div>
+            <div style={{ width:32, height:32, borderRadius:'50%', background:'#fdf4ff', color:'#6b5b8e', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>GI</div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:12, fontWeight:600 }}>GOMEZ Ignacio</div>
               <div style={{ fontSize:10, color:'var(--text3)' }}>{esInversion ? 'Capital Markets · MAD' : 'Leasing Oficinas · MAD'}</div>
@@ -436,7 +436,7 @@ function FichaDemandaMock() {
         <div className="ab-sep"/>
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
         <div className="ab-sep"/>
-        <button className="ab-btn" style={{background:'#0078d4',color:'#fff',border:'none',fontWeight:700}} onClick={()=>setShowTransformar(true)}>⚡ Transformar en oportunidad</button>
+        <button className="ab-btn" style={{background:'#B08D57',color:'#fff',border:'none',fontWeight:700}} onClick={()=>setShowTransformar(true)}>⚡ Transformar en oportunidad</button>
       </div>
 
       <div className="ficha-wrap">
@@ -444,7 +444,7 @@ function FichaDemandaMock() {
           {/* Header */}
           <div className="ah">
             <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-              <div className="ah-ico" style={{background:'linear-gradient(135deg,#1e3a5f,#2563eb)'}}>🔍</div>
+              <div className="ah-ico" style={{background:'linear-gradient(135deg,#1e3a5f,#8a6d40)'}}>🔍</div>
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'var(--accent-lt)',color:'var(--accent)',border:'1px solid var(--accent-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>DEMANDA</span>
@@ -495,7 +495,7 @@ function FichaDemandaMock() {
                   <div style={{padding:'10px 14px'}}>
                     <div className="ir">
                       <span className="ir-k" style={{display:'flex',alignItems:'center',gap:6}}>
-                        <span style={{width:14,height:14,borderRadius:3,background:'#0078d4',color:'#fff',fontSize:9,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>D</span>
+                        <span style={{width:14,height:14,borderRadius:3,background:'#B08D57',color:'#fff',fontSize:9,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>D</span>
                         Oportunidad
                       </span>
                       <span className="ir-v">
@@ -1335,7 +1335,7 @@ function FichaDemandaMock() {
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setShowTransformar(false)}>
           <div style={{background:'var(--surface)',borderRadius:10,padding:24,maxWidth:480,width:'90%',boxShadow:'0 8px 32px rgba(0,0,0,.18)'}} onClick={e=>e.stopPropagation()}>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
-              <div style={{width:32,height:32,borderRadius:6,background:'#0078d4',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <div style={{width:32,height:32,borderRadius:6,background:'#B08D57',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                 <span style={{color:'#fff',fontWeight:800,fontSize:14}}>D</span>
               </div>
               <div>
@@ -1353,8 +1353,8 @@ function FichaDemandaMock() {
               </div>
             ) : (
               <>
-                <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:7,padding:12,marginBottom:14}}>
-                  <div style={{fontSize:10,fontWeight:700,color:'#1e40af',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:8}}>Información que viajará a Dynamics</div>
+                <div style={{background:'#faf5ec',border:'1px solid #ece0c9',borderRadius:7,padding:12,marginBottom:14}}>
+                  <div style={{fontSize:10,fontWeight:700,color:'#5a4828',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:8}}>Información que viajará a Dynamics</div>
                   {[
                     ['Cuenta','Corporacion Financiera Azuaga SL'],
                     ['Contacto','—'],
@@ -1382,7 +1382,7 @@ function FichaDemandaMock() {
               ) : (
                 <>
                   <button className="ab-btn" onClick={()=>setShowTransformar(false)}>Cancelar</button>
-                  <button style={{padding:'7px 16px',borderRadius:6,background:'#0078d4',color:'#fff',border:'none',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}
+                  <button style={{padding:'7px 16px',borderRadius:6,background:'#B08D57',color:'#fff',border:'none',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}
                     onClick={()=>setDinamicsOk(true)}>
                     Confirmar
                   </button>

@@ -34,7 +34,7 @@ const MAP_STYLE = [
 
 // Paleta deterministic — mismo uso = mismo color siempre.
 const USO_PALETTE = [
-  '#3b82f6', // azul — Oficinas
+  '#B08D57', // azul — Oficinas
   '#16a34a', // verde — Logístico/Industrial
   '#ec4899', // rosa — Retail
   '#8b5cf6', // morado — Residencial / Living
@@ -142,7 +142,7 @@ export default function PortfolioMap({ activos = [], height = 420, onMarkerClick
         m.addListener('click', () => {
           const html = `
             <div style="font-family:inherit;min-width:180px;padding:2px">
-              <div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:2px">${(a.nombre || a.ref || '—').replace(/</g,'&lt;')}</div>
+              <div style="font-size:12px;font-weight:700;color:#6f5734;margin-bottom:2px">${(a.nombre || a.ref || '—').replace(/</g,'&lt;')}</div>
               <div style="font-size:10px;color:#64748b;margin-bottom:4px">${(a.ciudad || '').replace(/</g,'&lt;')}${a.zona ? ' · ' + String(a.zona).replace(/</g,'&lt;') : ''}</div>
               <div style="display:inline-block;font-size:9px;font-weight:700;background:${color};color:white;padding:2px 8px;border-radius:8px;margin-bottom:4px">${(a.uso || 'Sin uso').replace(/</g,'&lt;')}</div>
               <div style="font-size:10px;color:#475569;font-family:ui-monospace,monospace">${(a.ref || '').replace(/</g,'&lt;')}</div>

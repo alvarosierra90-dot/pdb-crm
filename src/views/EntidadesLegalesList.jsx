@@ -31,12 +31,12 @@ function DynIcon() {
     <button
       title="Abrir en Microsoft Dynamics 365"
       onClick={e => { e.stopPropagation(); alert('En producción, este enlace abrirá la entidad legal directamente en Microsoft Dynamics 365.') }}
-      style={{ display:'flex', alignItems:'center', justifyContent:'center', width:22, height:22, borderRadius:4, background:'#0078d4', border:'none', cursor:'pointer', flexShrink:0, padding:0 }}
+      style={{ display:'flex', alignItems:'center', justifyContent:'center', width:22, height:22, borderRadius:4, background:'#B08D57', border:'none', cursor:'pointer', flexShrink:0, padding:0 }}
     >
       <svg viewBox="0 0 16 16" fill="none" width="13" height="13">
         <path d="M3 2h5.5L13 6.5v7.5H3V2z" fill="#fff" opacity=".9"/>
-        <path d="M8.5 2v4.5H13" stroke="#0078d4" strokeWidth="1.2"/>
-        <path d="M5.5 8.5h5M5.5 11h3.5" stroke="#0078d4" strokeWidth="1.2" strokeLinecap="round"/>
+        <path d="M8.5 2v4.5H13" stroke="#B08D57" strokeWidth="1.2"/>
+        <path d="M5.5 8.5h5M5.5 11h3.5" stroke="#B08D57" strokeWidth="1.2" strokeLinecap="round"/>
       </svg>
     </button>
   )

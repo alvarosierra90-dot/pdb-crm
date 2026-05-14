@@ -58,14 +58,14 @@ const TIPO_ICO_ARR = { Email:'📧', Llamada:'📞', Reunión:'🤝', Tarea:'✅
 const ACT_EST_ARR  = { Sistema:'tag-gray', 'Sierra Alvaro':'tag-blue', Automático:'tag-amber' }
 
 const HIST_ACTS = [
-  { id:'HST-001', tipo:'Nota',         asunto:'Arrendatario creado — Oracle Spain SL vinculado a Albatros Edif. D · 13.486 m²',        fecha:'01/07/2021', user:'Sierra Alvaro',  initials:'AS', bg:'#dbeafe', color:'#1e40af', origen:'Sierra Alvaro'  },
-  { id:'HST-002', tipo:'Modificación', asunto:'Actualización condiciones económicas — closing rent ajustado a 12,50 €/m²/mes',          fecha:'15/06/2023', user:'Sierra Alvaro',  initials:'AS', bg:'#dbeafe', color:'#1e40af', origen:'Sierra Alvaro'  },
-  { id:'HST-003', tipo:'Email',        asunto:'Email de renovación enviado a Carlos Méndez (Dir. Real Estate Oracle)',                   fecha:'01/04/2024', user:'Sierra Alvaro',  initials:'AS', bg:'#dbeafe', color:'#1e40af', origen:'Sierra Alvaro'  },
+  { id:'HST-001', tipo:'Nota',         asunto:'Arrendatario creado — Oracle Spain SL vinculado a Albatros Edif. D · 13.486 m²',        fecha:'01/07/2021', user:'Sierra Alvaro',  initials:'AS', bg:'#f5efe5', color:'#5a4828', origen:'Sierra Alvaro'  },
+  { id:'HST-002', tipo:'Modificación', asunto:'Actualización condiciones económicas — closing rent ajustado a 12,50 €/m²/mes',          fecha:'15/06/2023', user:'Sierra Alvaro',  initials:'AS', bg:'#f5efe5', color:'#5a4828', origen:'Sierra Alvaro'  },
+  { id:'HST-003', tipo:'Email',        asunto:'Email de renovación enviado a Carlos Méndez (Dir. Real Estate Oracle)',                   fecha:'01/04/2024', user:'Sierra Alvaro',  initials:'AS', bg:'#f5efe5', color:'#5a4828', origen:'Sierra Alvaro'  },
   { id:'HST-004', tipo:'Alerta',       asunto:'Recordatorio automático — break option a 90 días (vencimiento 01/07/2024)',               fecha:'01/04/2024', user:'Sistema',        initials:'SY', bg:'#fff7ed', color:'#c2410c', origen:'Automático'     },
-  { id:'HST-005', tipo:'Llamada',      asunto:'Llamada Carlos Méndez — Oracle no ejercerá break option, confirma continuidad',          fecha:'15/05/2024', user:'Sierra Alvaro',  initials:'AS', bg:'#dbeafe', color:'#1e40af', origen:'Sierra Alvaro'  },
+  { id:'HST-005', tipo:'Llamada',      asunto:'Llamada Carlos Méndez — Oracle no ejercerá break option, confirma continuidad',          fecha:'15/05/2024', user:'Sierra Alvaro',  initials:'AS', bg:'#f5efe5', color:'#5a4828', origen:'Sierra Alvaro'  },
   { id:'HST-006', tipo:'Alerta',       asunto:'Break option alcanzada — Oracle Spain SL no ha notificado decisión (vencida 01/07/2024)',fecha:'01/07/2024', user:'Sistema',        initials:'SY', bg:'#fff7ed', color:'#c2410c', origen:'Automático'     },
-  { id:'HST-007', tipo:'Reunión',      asunto:'Reunión de seguimiento anual — revisión condiciones y plazos',                           fecha:'10/01/2025', user:'GOMEZ Ignacio',  initials:'GI', bg:'#fdf4ff', color:'#7e22ce', origen:'Sierra Alvaro'  },
-  { id:'HST-008', tipo:'Nota',         asunto:'Oracle interesado en ampliar superficie — P3 disponible (13.486 m² adicionales)',        fecha:'15/02/2025', user:'Sierra Alvaro',  initials:'AS', bg:'#dbeafe', color:'#1e40af', origen:'Sierra Alvaro'  },
+  { id:'HST-007', tipo:'Reunión',      asunto:'Reunión de seguimiento anual — revisión condiciones y plazos',                           fecha:'10/01/2025', user:'GOMEZ Ignacio',  initials:'GI', bg:'#fdf4ff', color:'#6b5b8e', origen:'Sierra Alvaro'  },
+  { id:'HST-008', tipo:'Nota',         asunto:'Oracle interesado en ampliar superficie — P3 disponible (13.486 m² adicionales)',        fecha:'15/02/2025', user:'Sierra Alvaro',  initials:'AS', bg:'#f5efe5', color:'#5a4828', origen:'Sierra Alvaro'  },
 ]
 
 export default function FichaArrendatario() {
@@ -75,7 +75,7 @@ export default function FichaArrendatario() {
   const [saving, setSaving] = useState(false)
   const [arrConfidential, setArrConfidential] = useState(false)
   const [arrAuthUsers, setArrAuthUsers] = useState([
-    { name:'Sierra Álvaro', team:'Leasing Oficinas MAD', role:'Principal', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
+    { name:'Sierra Álvaro', team:'Leasing Oficinas MAD', role:'Principal', initials:'AS', bg:'#f5efe5', color:'#5a4828', owner:true },
   ])
   const [saveErr, setSaveErr] = useState('')
   const [saveOk, setSaveOk] = useState(false)
@@ -121,7 +121,7 @@ export default function FichaArrendatario() {
     fecha_fin: '',
     fecha_salida: '',
     meses_recordatorio: '',
-    color: '#3b82f6',
+    color: '#B08D57',
     estado: '',
     responsable: '',
     sector: '',
@@ -189,7 +189,7 @@ export default function FichaArrendatario() {
       fecha_fin: '01/07/2026',
       fecha_salida: '',
       meses_recordatorio: '3',
-      color: '#3b82f6',
+      color: '#B08D57',
       estado: 'Próximo a vencimiento',
       responsable: 'Sierra Alvaro',
       sector: 'Tecnología',
@@ -523,7 +523,7 @@ export default function FichaArrendatario() {
               // arr_ref es el id estable del arrendatario — sobrevive a renames y
               // resuelve la ambigüedad entre múltiples 'Desconocido'.
               const withoutOffers = r.units.filter(u => !(u.type === 'vac' && u.oferta))
-              return { ...r, units: [...withoutOffers, { type:'ten', arr_ref: extRow.ref, n:tenantName, sup, brk:null, brkColor: form.color || '#3b82f6' }] }
+              return { ...r, units: [...withoutOffers, { type:'ten', arr_ref: extRow.ref, n:tenantName, sup, brk:null, brkColor: form.color || '#B08D57' }] }
             })
           }))
           await supabase.from('activos').update({ stacking_data: updatedStacking }).eq('ref', params.fromActivoRef)
@@ -648,7 +648,7 @@ export default function FichaArrendatario() {
 
           {/* Banner "creación desde oferta" */}
           {fromOferta && (
-            <div style={{padding:'8px 16px',background:'#eff6ff',borderBottom:'1px solid #bfdbfe',fontSize:11,color:'#1e40af',display:'flex',alignItems:'center',gap:8}}>
+            <div style={{padding:'8px 16px',background:'#faf5ec',borderBottom:'1px solid #ece0c9',fontSize:11,color:'#5a4828',display:'flex',alignItems:'center',gap:8}}>
               <span style={{fontWeight:700}}>📋 Creación desde oferta</span>
               <span>·</span>
               <span>Vinculado a <strong>{params?.fromOfertaRef}</strong>{params?.fromActivoNombre ? ` · Activo: ${params.fromActivoNombre}` : ''}</span>
@@ -657,9 +657,9 @@ export default function FichaArrendatario() {
           )}
           {/* Banner "creación desde activo" */}
           {fromActivo && (
-            <div style={{padding:'8px 14px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'var(--r)',margin:'0 0 12px',fontSize:11,color:'#1e40af',display:'flex',alignItems:'center',gap:8}}>
+            <div style={{padding:'8px 14px',background:'#faf5ec',border:'1px solid #ece0c9',borderRadius:'var(--r)',margin:'0 0 12px',fontSize:11,color:'#5a4828',display:'flex',alignItems:'center',gap:8}}>
               <span style={{fontWeight:700}}>Nuevo arrendatario</span>
-              <span style={{color:'#3b82f6'}}>·</span>
+              <span style={{color:'#B08D57'}}>·</span>
               Activo: <strong>{params?.fromActivoNombre || params?.fromActivoRef}</strong>
               <span style={{marginLeft:'auto',color:'#60a5fa',fontSize:10}}>Los campos marcados con * son obligatorios</span>
             </div>
@@ -674,7 +674,7 @@ export default function FichaArrendatario() {
                   <span style={{background:'var(--teal-lt)',color:'var(--teal)',border:'1px solid var(--teal-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>ARRENDATARIO</span>
                   <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{isNew ? 'NUEVO' : fromTenantClick ? params.tenantName : 'ARR-2501'}</span>
                   <span className={`tag ${form.estado==='Activo'?'tag-green':form.estado==='Próximo a vencimiento'?'tag-red':form.estado==='En negociación'?'tag-purple':'tag-gray'}`}>{form.estado}</span>
-                  {isNew && <span style={{background:'#dbeafe',color:'#1e40af',border:'1px solid #bfdbfe',padding:'0 6px',borderRadius:3,fontSize:9,fontWeight:700}}>DESDE OFERTA</span>}
+                  {isNew && <span style={{background:'#f5efe5',color:'#5a4828',border:'1px solid #ece0c9',padding:'0 6px',borderRadius:3,fontSize:9,fontWeight:700}}>DESDE OFERTA</span>}
                 </div>
                 <div className="ah-name">{form.tenant_desconocido ? 'Arrendatario desconocido' : (form.tenant || <span style={{color:'var(--text4)',fontStyle:'italic'}}>Sin nombre</span>)} {form.activo ? `— ${form.activo}` : ''}</div>
                 <div className="ah-addr">📍 {form.zona} · {form.subzona} · Inicio: {form.fecha_inicio} · Break: {form.break_option} · Fin: {form.fecha_fin}</div>

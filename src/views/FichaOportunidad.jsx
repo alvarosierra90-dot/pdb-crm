@@ -61,12 +61,12 @@ export default function FichaOportunidad() {
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
       {/* Banner Dynamics */}
-      <div style={{ padding:'7px 16px', background:'#eff6ff', borderBottom:'1px solid #bfdbfe', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-        <div style={{ width:18, height:18, borderRadius:3, background:'#0078d4', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+      <div style={{ padding:'7px 16px', background:'#faf5ec', borderBottom:'1px solid #ece0c9', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+        <div style={{ width:18, height:18, borderRadius:3, background:'#B08D57', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
           <span style={{ color:'#fff', fontWeight:800, fontSize:10 }}>D</span>
         </div>
-        <span style={{ fontSize:11, color:'#1e40af', fontWeight:600 }}>Información de la oportunidad: read-only · Editable solo en Microsoft Dynamics 365</span>
-        <button onClick={() => alert('En producción, abrirá el registro directamente en Microsoft Dynamics 365.')} style={{ marginLeft:'auto', fontSize:10, padding:'3px 10px', background:'#0078d4', color:'#fff', border:'none', borderRadius:5, fontWeight:700, cursor:'pointer' }}>
+        <span style={{ fontSize:11, color:'#5a4828', fontWeight:600 }}>Información de la oportunidad: read-only · Editable solo en Microsoft Dynamics 365</span>
+        <button onClick={() => alert('En producción, abrirá el registro directamente en Microsoft Dynamics 365.')} style={{ marginLeft:'auto', fontSize:10, padding:'3px 10px', background:'#B08D57', color:'#fff', border:'none', borderRadius:5, fontWeight:700, cursor:'pointer' }}>
           Editar en Dynamics ↗
         </button>
       </div>
@@ -85,7 +85,7 @@ export default function FichaOportunidad() {
           {/* Header */}
           <div className="ah">
             <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
-              <div style={{ width:50, height:50, borderRadius:10, background:'#dbeafe', border:'1px solid #93c5fd', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>
+              <div style={{ width:50, height:50, borderRadius:10, background:'#f5efe5', border:'1px solid #93c5fd', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>
                 ⚡
               </div>
               <div style={{ flex:1, minWidth:0 }}>
@@ -234,7 +234,7 @@ export default function FichaOportunidad() {
                 <Seccion
                   titulo="🔍 Demandas"
                   count={v.demandas.length}
-                  color="#7c3aed"
+                  color="#6b5b8e"
                   bgEmpty="#faf5ff"
                   vacioMsg="Sin demandas vinculadas"
                   addLabel="Vincular demanda"
@@ -246,7 +246,7 @@ export default function FichaOportunidad() {
                       icon="🔍"
                       titulo={ref}
                       subtitulo="Click para abrir ficha de la demanda"
-                      color="#7c3aed" bg="#faf5ff" borderColor="#ddd6fe"
+                      color="#6b5b8e" bg="#faf5ff" borderColor="#ddd6fe"
                       onClick={() => navigate('ficha-demanda', { ref })}
                     />
                   ))}

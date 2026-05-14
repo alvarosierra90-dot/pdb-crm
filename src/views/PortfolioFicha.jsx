@@ -681,7 +681,7 @@ export default function PortfolioFicha() {
     })
     const total = Object.values(totals).reduce((s, v) => s + v, 0)
     if (total === 0) return []
-    const palette = { Oficinas:'#3b82f6', 'Logístico':'#16a34a', Logistico:'#16a34a', 'Industrial':'#16a34a', Retail:'#ec4899', Residencial:'#8b5cf6', Hoteles:'#f59e0b', Suelo:'#ef4444', 'Centros comerciales':'#0891b2', 'Data Center':'#9333ea', Mixto:'#9333ea' }
+    const palette = { Oficinas:'#B08D57', 'Logístico':'#16a34a', Logistico:'#16a34a', 'Industrial':'#16a34a', Retail:'#ec4899', Residencial:'#8b5cf6', Hoteles:'#f59e0b', Suelo:'#ef4444', 'Centros comerciales':'#0891b2', 'Data Center':'#9333ea', Mixto:'#9333ea' }
     return Object.entries(totals)
       .sort((a,b) => b[1] - a[1])
       .map(([uso, m2]) => ({

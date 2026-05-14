@@ -77,7 +77,7 @@ export default function FichaPropietario() {
   const [log]  = useState(LOG_INIT)
   const [propConfidential, setPropConfidential] = useState(false)
   const [propAuthUsers, setPropAuthUsers] = useState([
-    { name:'Sierra Álvaro', team:'Leasing Oficinas MAD', role:'Principal', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
+    { name:'Sierra Álvaro', team:'Leasing Oficinas MAD', role:'Principal', initials:'AS', bg:'#f5efe5', color:'#5a4828', owner:true },
   ])
   const [showTarea, setShowTarea] = useState(false)
   const [saveErr, setSaveErr] = useState('')
@@ -408,9 +408,9 @@ export default function FichaPropietario() {
         <div className="ficha-main" style={{minWidth:0}}>
 
           {fromActivo && (
-            <div style={{padding:'8px 14px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'var(--r)',marginBottom:12,display:'flex',alignItems:'center',gap:8,fontSize:11,color:'#1e40af'}}>
+            <div style={{padding:'8px 14px',background:'#faf5ec',border:'1px solid #ece0c9',borderRadius:'var(--r)',marginBottom:12,display:'flex',alignItems:'center',gap:8,fontSize:11,color:'#5a4828'}}>
               <span style={{fontWeight:700}}>Nuevo propietario</span>
-              <span style={{color:'#3b82f6'}}>·</span>
+              <span style={{color:'#B08D57'}}>·</span>
               Activo: <strong>{params?.fromActivoNombre || params?.fromActivoRef}</strong>
               {params?.substituteOwner && params?.previousOwner && (
                 <span style={{marginLeft:8,padding:'2px 8px',background:'#fef9c3',border:'1px solid #fde047',borderRadius:8,color:'#92400e',fontWeight:600,fontSize:10}}>
@@ -422,10 +422,10 @@ export default function FichaPropietario() {
 
           <div className="ah">
             <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-              <div className="ah-ico" style={{background:'linear-gradient(135deg,#1e40af,#3b82f6)',fontSize:18}}>🏛</div>
+              <div className="ah-ico" style={{background:'linear-gradient(135deg,#5a4828,#B08D57)',fontSize:18}}>🏛</div>
               <div style={{flex:1}}>
                 <div className="ah-ref">
-                  <span style={{background:'#eff6ff',color:'#1d4ed8',border:'1px solid #bfdbfe',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>PROPIETARIO</span>
+                  <span style={{background:'#faf5ec',color:'#6f5734',border:'1px solid #ece0c9',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>PROPIETARIO</span>
                   <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{form.id}</span>
                   <span className="tag" style={{fontSize:9,background:PERFIL_COLOR[form.perfil]+'22',color:PERFIL_COLOR[form.perfil],border:`1px solid ${PERFIL_COLOR[form.perfil]}44`}}>{form.perfil}</span>
                   <span className="tag" style={{fontSize:9,background:ESTADO_COLOR[form.estado]+'22',color:ESTADO_COLOR[form.estado],border:`1px solid ${ESTADO_COLOR[form.estado]}44`}}>{form.estado}</span>

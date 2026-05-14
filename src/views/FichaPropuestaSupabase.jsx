@@ -72,7 +72,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
   const [cuenta, setCuenta] = useState(null)
   const [pryConfidential, setPryConfidential] = useState(false)
   const [pryAuthUsers, setPryAuthUsers] = useState([
-    { name: CURRENT_USER.nombre, team: CURRENT_USER.equipo || 'Equipo PDB', role:'Principal', initials:(CURRENT_USER.nombre||'').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(), bg:'#dbeafe', color:'#1e40af', owner:true },
+    { name: CURRENT_USER.nombre, team: CURRENT_USER.equipo || 'Equipo PDB', role:'Principal', initials:(CURRENT_USER.nombre||'').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(), bg:'#f5efe5', color:'#5a4828', owner:true },
   ])
   const [oportunidad, setOportunidad] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -236,10 +236,10 @@ export default function FichaPropuestaSupabase({ refOrId }) {
 
           <div className="ah">
             <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
-              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#7c3aed,#a78bfa)' }}>📄</div>
+              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#6b5b8e,#a78bfa)' }}>📄</div>
               <div style={{ flex:1 }}>
                 <div className="ah-ref">
-                  <span style={{ background:'#f3e8ff', color:'#7c3aed', border:'1px solid #d8b4fe', padding:'0 5px', borderRadius:3, fontSize:9, fontWeight:700 }}>PROPUESTA</span>
+                  <span style={{ background:'#f3e8ff', color:'#6b5b8e', border:'1px solid #d8b4fe', padding:'0 5px', borderRadius:3, fontSize:9, fontWeight:700 }}>PROPUESTA</span>
                   <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{propuesta.ref}</span>
                 </div>
                 <div className="ah-name">
@@ -287,7 +287,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                     <div style={{ padding:'10px 14px' }}>
                       <div className="ir">
                         <span className="ir-k" style={{ display:'flex', alignItems:'center', gap:6 }}>
-                          <span style={{ width:14, height:14, borderRadius:3, background:'#0078d4', color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>D</span>
+                          <span style={{ width:14, height:14, borderRadius:3, background:'#B08D57', color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>D</span>
                           Oportunidad
                         </span>
                         <span className="ir-v" style={{ fontSize:11 }}>

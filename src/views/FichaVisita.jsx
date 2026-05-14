@@ -3,7 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 
 const COLAB_INIT = [
-  { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable visita', initials:'AS', bg:'#dbeafe', color:'#1e40af', principal:true },
+  { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable visita', initials:'AS', bg:'#f5efe5', color:'#5a4828', principal:true },
   { name:'García Marta', team:'Arquitectura / Workplace', role:'Asesor implantación', initials:'GM', bg:'#f3e8ff', color:'#6b21a8', principal:false },
 ]
 

@@ -35,12 +35,12 @@ function DynIcon() {
     <button
       title="Abrir en Microsoft Dynamics 365"
       onClick={e => { e.stopPropagation(); alert('En producción, este enlace abrirá el registro directamente en Microsoft Dynamics 365.') }}
-      style={{ display:'flex', alignItems:'center', justifyContent:'center', width:22, height:22, borderRadius:4, background:'#0078d4', border:'none', cursor:'pointer', flexShrink:0, padding:0 }}
+      style={{ display:'flex', alignItems:'center', justifyContent:'center', width:22, height:22, borderRadius:4, background:'#B08D57', border:'none', cursor:'pointer', flexShrink:0, padding:0 }}
     >
       <svg viewBox="0 0 16 16" fill="none" width="13" height="13">
         <path d="M3 2h5.5L13 6.5v7.5H3V2z" fill="#fff" opacity=".9"/>
-        <path d="M8.5 2v4.5H13" stroke="#0078d4" strokeWidth="1.2"/>
-        <path d="M5.5 8.5h5M5.5 11h3.5" stroke="#0078d4" strokeWidth="1.2" strokeLinecap="round"/>
+        <path d="M8.5 2v4.5H13" stroke="#B08D57" strokeWidth="1.2"/>
+        <path d="M5.5 8.5h5M5.5 11h3.5" stroke="#B08D57" strokeWidth="1.2" strokeLinecap="round"/>
       </svg>
     </button>
   )
@@ -108,7 +108,7 @@ export default function CuentasList() {
                   <td style={{ fontSize:11, color:'var(--text3)' }}>{r.principal}</td>
                   <td style={{ fontSize:11, textAlign:'center' }}>
                     {r.rel_cap === 'IH'
-                      ? <span style={{ fontSize:9, background:'#eff6ff', color:'#1e40af', border:'1px solid #bfdbfe', borderRadius:8, padding:'1px 7px', fontWeight:700 }}>IH</span>
+                      ? <span style={{ fontSize:9, background:'#faf5ec', color:'#5a4828', border:'1px solid #ece0c9', borderRadius:8, padding:'1px 7px', fontWeight:700 }}>IH</span>
                       : <span style={{ color:'var(--text4)' }}>—</span>
                     }
                   </td>

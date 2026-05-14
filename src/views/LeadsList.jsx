@@ -145,7 +145,7 @@ export default function LeadsList() {
           <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Total leads</div>
         </div>
         <div className="ks">
-          <div style={{ fontSize:22, fontWeight:800, color:'#1e40af' }}>{nuevos}</div>
+          <div style={{ fontSize:22, fontWeight:800, color:'#5a4828' }}>{nuevos}</div>
           <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Nuevos</div>
         </div>
         <div className="ks">
@@ -165,7 +165,7 @@ export default function LeadsList() {
           <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>No cualificados</div>
         </div>
         <div className="ks">
-          <div style={{ fontSize:22, fontWeight:800, color:'#7c3aed' }}>{tasaConv}%</div>
+          <div style={{ fontSize:22, fontWeight:800, color:'#6b5b8e' }}>{tasaConv}%</div>
           <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>Tasa conversión</div>
         </div>
       </div>

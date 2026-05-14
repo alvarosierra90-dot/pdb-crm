@@ -448,7 +448,7 @@ const INIT_PLAZAS = [
 
 /* ── USOS PRINCIPALES ── */
 const USOS_PPAL = [
-  {id:'oficinas',    label:'Oficinas',    cls:'u-of',  color:'#3b82f6', bg:'#dbeafe', bd:'#93c5fd'},
+  {id:'oficinas',    label:'Oficinas',    cls:'u-of',  color:'#B08D57', bg:'#f5efe5', bd:'#93c5fd'},
   {id:'retail',      label:'Retail',      cls:'u-rt',  color:'#ec4899', bg:'#fce7f3', bd:'#fbcfe8'},
   {id:'logistico',   label:'Logístico',   cls:'u-log', color:'#f97316', bg:'#fff7ed', bd:'#fed7aa'},
   {id:'residencial', label:'Residencial', cls:'u-res', color:'#8b5cf6', bg:'#ede9fe', bd:'#c4b5fd'},
@@ -459,7 +459,7 @@ const USOS_PPAL = [
 
 /* ── USOS ADICIONALES ── */
 const UA_ALL = [
-  {id:'recepcion',      label:'Recepción',          attr:true, color:'#7c3aed', bg:'#ede9fe', bd:'#c4b5fd'},
+  {id:'recepcion',      label:'Recepción',          attr:true, color:'#6b5b8e', bg:'#ede9fe', bd:'#c4b5fd'},
   {id:'nucleo_com',     label:'Núcleos comunic.',   attr:true, color:'#6366f1', bg:'#e0e7ff', bd:'#a5b4fc'},
   {id:'instalaciones',  label:'Instalaciones',      attr:true, color:'#64748b', bg:'#f1f5f9', bd:'#cbd5e1'},
   {id:'seguridad',      label:'Seguridad 24h',      attr:true, color:'#dc2626', bg:'#fee2e2', bd:'#fca5a5'},
@@ -469,7 +469,7 @@ const UA_ALL = [
   {id:'archivo',        label:'Archivo / Almacén',  sup:true,  color:'#92400e', bg:'#fff7ed', bd:'#fed7aa'},
   {id:'vestuarios',     label:'Vestuarios',          sup:true,  color:'#9d174d', bg:'#fdf2f8', bd:'#f9a8d4'},
   {id:'comedor',        label:'Comedor',             sup:true,  color:'#d97706', bg:'#fffbeb', bd:'#fde68a'},
-  {id:'auditorio',      label:'Auditorio',           sup:true,  color:'#7c3aed', bg:'#ede9fe', bd:'#c4b5fd'},
+  {id:'auditorio',      label:'Auditorio',           sup:true,  color:'#6b5b8e', bg:'#ede9fe', bd:'#c4b5fd'},
   {id:'salas_reunion',  label:'Salas reuniones',     sup:true,  color:'#0284c7', bg:'#e0f2fe', bd:'#7dd3fc'},
   {id:'gimnasio',       label:'Gimnasio',            sup:true,  color:'#059669', bg:'#ecfdf5', bd:'#6ee7b7'},
   {id:'terraza',        label:'Terraza / Jardín',    sup:true,  color:'#65a30d', bg:'#f7fee7', bd:'#bef264'},
@@ -478,11 +478,11 @@ const UA_ALL = [
   {id:'playa_maniobras',label:'Playa maniobras',     sup:true,  color:'#c2410c', bg:'#fff7ed', bd:'#fed7aa'},
   {id:'muelles_carga',  label:'Muelles de carga',    sup:true,  color:'#b45309', bg:'#fefce8', bd:'#fde68a'},
   {id:'cross_docking',  label:'Cross-docking',       sup:true,  color:'#7c2d12', bg:'#fff1f2', bd:'#fecdd3'},
-  {id:'camaras_frigo',  label:'Cámaras frigoríficas',sup:true,  color:'#1d4ed8', bg:'#eff6ff', bd:'#bfdbfe'},
+  {id:'camaras_frigo',  label:'Cámaras frigoríficas',sup:true,  color:'#6f5734', bg:'#faf5ec', bd:'#ece0c9'},
   {id:'pk_camiones',    label:'Parking camiones',    sup:true,  color:'#374151', bg:'#f9fafb', bd:'#e5e7eb'},
   {id:'lobby',          label:'Lobby hotel',         sup:true,  color:'#b45309', bg:'#fffbeb', bd:'#fde68a'},
   {id:'spa',            label:'Spa / Wellness',      sup:true,  color:'#be185d', bg:'#fdf2f8', bd:'#fbcfe8'},
-  {id:'salas_eventos',  label:'Salas de eventos',    sup:true,  color:'#6d28d9', bg:'#f5f3ff', bd:'#ddd6fe'},
+  {id:'salas_eventos',  label:'Salas de eventos',    sup:true,  color:'#4d4068', bg:'#f5f3ff', bd:'#ddd6fe'},
   {id:'restaurante',    label:'Restaurante',         sup:true,  color:'#c2410c', bg:'#fff7ed', bd:'#fed7aa'},
   {id:'salon_comun',    label:'Salón comunidad',     sup:true,  color:'#047857', bg:'#ecfdf5', bd:'#a7f3d0'},
 ]
@@ -1279,7 +1279,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                   {/* Acciones: ✎ editar sup · + insertar encima · − eliminar */}
                   <div style={{display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:2,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
                     {[
-                      {icon:'✎', title:'Editar superficie', onClick:()=>{setEditFloorSup(floor.id);setEditFloorSupVal(String(floor.sup))}, hoverBg:'#eff6ff', hoverCol:'var(--accent)', hoverBd:'var(--accent-bd)'},
+                      {icon:'✎', title:'Editar superficie', onClick:()=>{setEditFloorSup(floor.id);setEditFloorSupVal(String(floor.sup))}, hoverBg:'#faf5ec', hoverCol:'var(--accent)', hoverBd:'var(--accent-bd)'},
                       {icon:'+', title:'Insertar planta encima', onClick:()=>insertFloorAt(floorIdx), hoverBg:'#f0fdf4', hoverCol:'#16a34a', hoverBd:'#86efac'},
                       {icon:'−', title:'Eliminar planta', onClick:()=>deleteFloor(floor.id), hoverBg:'#fee2e2', hoverCol:'#dc2626', hoverBd:'#fca5a5'},
                     ].map(({icon,title,onClick,hoverBg,hoverCol,hoverBd})=>(
@@ -1308,7 +1308,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
 
       {/* ══ PROPIETARIOS ══ */}
       {view==='prop' && (()=>{
-        const PROP_COLORS = ['#3b82f6','#8b5cf6','#14b8a6','#f97316','#ec4899','#22c55e']
+        const PROP_COLORS = ['#B08D57','#8b5cf6','#14b8a6','#f97316','#ec4899','#22c55e']
         // ownerSet = lista deduplicada de chips {key, id, name}.
         //   key = id (propietarios.id, ej. 'PRO-...') si lo hay, sino name.
         //   Permite resolver renames y disambiguar varios propietarios con el
@@ -1548,7 +1548,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
             }
           }
         }
-        const ARR_COLORS = ['#1e40af','#0f766e','#7c3aed','#b45309','#be185d','#065f46']
+        const ARR_COLORS = ['#5a4828','#0f766e','#6b5b8e','#b45309','#be185d','#065f46']
         const tenantIndexByKey = Object.fromEntries(tenantSet.map((t,i) => [t.key, i]))
         const tenantColor = (n) => {
           // n puede ser nombre legacy (sin ref). Buscar primer chip cuyo name coincide.
@@ -1556,7 +1556,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
           return ARR_COLORS[(i >= 0 ? i : 0) % ARR_COLORS.length]
         }
         const TYPE_COLORS = {
-          ten: {bg:'#dbeafe',bd:'#93c5fd',col:'#1e40af'},
+          ten: {bg:'#f5efe5',bd:'#93c5fd',col:'#5a4828'},
           vac: {bg:'#fff8ec',bd:'#fcd34d',col:'#d97706'},
           com: {bg:'#dcfce7',bd:'#86efac',col:'#15803d'},
           rt:  {bg:'#fce7f3',bd:'#fbcfe8',col:'#ec4899'},
@@ -1619,7 +1619,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                 {extraOfertas.length === 0
                   ? <div style={{fontSize:10,color:'var(--muted)',fontStyle:'italic',padding:'4px 0'}}>Sin ofertas. Créalas desde Desglose de ofertas.</div>
                   : extraOfertas.map((ofr,idx)=>{
-                      const COLS=['#16a34a','#2563eb','#d97706','#7c3aed']
+                      const COLS=['#16a34a','#8a6d40','#d97706','#6b5b8e']
                       const col=COLS[idx%COLS.length]
                       const dragKey='ofr:'+ofr.nombre
                       return (
@@ -1750,7 +1750,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                               if (u.type==='ten') {
                                 col = tenantColor(u.n); bg = col+'18'; bd = col+'88'
                               } else if (u.type==='vac') {
-                                const OCOLS=['#16a34a','#2563eb','#d97706','#7c3aed']
+                                const OCOLS=['#16a34a','#8a6d40','#d97706','#6b5b8e']
                                 const oIdx = extraOfertas.findIndex(o=>o.nombre===u.oferta)
                                 col = oIdx>=0 ? OCOLS[oIdx%OCOLS.length] : OCOLS[0]; bg=col+'12'; bd=col+'55'
                               } else {
@@ -2096,7 +2096,7 @@ function TabMultimedia() {
             <div style={{padding:'6px 8px'}}>
               <div style={{fontSize:10,fontWeight:600,color:'var(--text1)',marginBottom:3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{m.desc}</div>
               <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-                <span style={{fontSize:8,padding:'1px 5px',borderRadius:8,background:m.tipo==='Plano'?'#ede9fe':'#dbeafe',color:m.tipo==='Plano'?'#7c3aed':'#1e40af',fontWeight:600}}>{m.tipo}</span>
+                <span style={{fontSize:8,padding:'1px 5px',borderRadius:8,background:m.tipo==='Plano'?'#ede9fe':'#f5efe5',color:m.tipo==='Plano'?'#6b5b8e':'#5a4828',fontWeight:600}}>{m.tipo}</span>
                 <span style={{fontSize:8,padding:'1px 5px',borderRadius:8,background:'var(--gray-lt)',color:'var(--text3)',border:'1px solid var(--border)'}}>{m.subtipo}</span>
               </div>
             </div>
@@ -2123,7 +2123,7 @@ function TabMultimedia() {
             <div style={{padding:'16px 20px'}}>
               <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>{lightbox.desc}</div>
               <div style={{display:'flex',gap:6,marginBottom:10}}>
-                <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>{lightbox.tipo}</span>
+                <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'#f5efe5',color:'#5a4828',fontWeight:600}}>{lightbox.tipo}</span>
                 <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'var(--gray-lt)',color:'var(--text3)',border:'1px solid var(--border)'}}>{lightbox.subtipo}</span>
                 {lightbox.principal && <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'var(--accent)',color:'#fff',fontWeight:700}}>PRINCIPAL</span>}
               </div>
@@ -3444,13 +3444,13 @@ function TipoIcoAct({ tipo, size = 11 }) {
 }
 const ACT_EST_ACT  = { Abierto:'tag-amber', Finalizado:'tag-gray', 'En curso':'tag-blue', Realizada:'tag-green' }
 const FOLLOWUP_ACTS = [
-  { id:'ACT-AV-01', tipo:'Reunión',  asunto:'Reunión propietario Barings — revisión estado comercialización Q1',   fecha:'15/01/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
-  { id:'ACT-AV-02', tipo:'Visita',   asunto:'Visita técnica Oracle Spain SL — P1–P4 Edif. D (13.486 m²)',         fecha:'20/02/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Realizada'  },
-  { id:'ACT-AV-03', tipo:'Email',    asunto:'Envío informe ocupación Q1 2026 al asset manager de Barings',        fecha:'01/03/2026', user:'GOMEZ Ignacio', initials:'GI', bg:'#fdf4ff', color:'#7e22ce', estado:'Finalizado' },
-  { id:'ACT-AV-04', tipo:'Llamada',  asunto:'Llamada Asset Manager Barings — interés mandato captación P4–P5',    fecha:'12/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
-  { id:'ACT-AV-05', tipo:'Reunión',  asunto:'Visita Oracle Spain — segunda visita + negociación condiciones',     fecha:'28/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
-  { id:'ACT-AV-06', tipo:'Email',    asunto:'Contraoferta Oracle enviada a propietario — pendiente validación',   fecha:'02/04/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
-  { id:'ACT-AV-07', tipo:'Tarea',    asunto:'Preparar informe de gestión mensual para Barings — deadline 15/04', fecha:'07/04/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'En curso'   },
+  { id:'ACT-AV-01', tipo:'Reunión',  asunto:'Reunión propietario Barings — revisión estado comercialización Q1',   fecha:'15/01/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
+  { id:'ACT-AV-02', tipo:'Visita',   asunto:'Visita técnica Oracle Spain SL — P1–P4 Edif. D (13.486 m²)',         fecha:'20/02/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Realizada'  },
+  { id:'ACT-AV-03', tipo:'Email',    asunto:'Envío informe ocupación Q1 2026 al asset manager de Barings',        fecha:'01/03/2026', user:'GOMEZ Ignacio', initials:'GI', bg:'#fdf4ff', color:'#6b5b8e', estado:'Finalizado' },
+  { id:'ACT-AV-04', tipo:'Llamada',  asunto:'Llamada Asset Manager Barings — interés mandato captación P4–P5',    fecha:'12/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
+  { id:'ACT-AV-05', tipo:'Reunión',  asunto:'Visita Oracle Spain — segunda visita + negociación condiciones',     fecha:'28/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
+  { id:'ACT-AV-06', tipo:'Email',    asunto:'Contraoferta Oracle enviada a propietario — pendiente validación',   fecha:'02/04/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
+  { id:'ACT-AV-07', tipo:'Tarea',    asunto:'Preparar informe de gestión mensual para Barings — deadline 15/04', fecha:'07/04/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'En curso'   },
 ]
 
 /* ══ Rent Roll data ══ */
@@ -3904,7 +3904,7 @@ export default function FichaActivo() {
   const [nuevaNota, setNuevaNota] = useState('')
   const [confidential, setConfidential] = useState(false)
   const [authorizedUsers, setAuthorizedUsers] = useState([
-    { name:'Sierra Álvaro',     team:'Leasing Oficinas MAD', role:'Principal',    initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
+    { name:'Sierra Álvaro',     team:'Leasing Oficinas MAD', role:'Principal',    initials:'AS', bg:'#f5efe5', color:'#5a4828', owner:true },
     { name:'GOMEZ Ignacio',     team:'Leasing Oficinas MAD', role:'Autorizado',   initials:'GI', bg:'#f0fdf4', color:'#166534', granted:'12/03/2026' },
   ])
 
@@ -4929,9 +4929,9 @@ export default function FichaActivo() {
                       return (
                         <div key={c.id} style={{background:'#fff',border:'1px solid var(--border)',borderRadius:10,overflow:'hidden',display:'flex',flexDirection:'column'}}>
                           {/* Imagen / placeholder */}
-                          <div style={{height:120,background:'linear-gradient(135deg,#dbeafe,#bfdbfe)',position:'relative',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
+                          <div style={{height:120,background:'linear-gradient(135deg,#f5efe5,#ece0c9)',position:'relative',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
                             onClick={()=>navigate('ficha-activo',{ref:a.ref})}>
-                            <Building2 size={36} strokeWidth={1.5} color="#1e40af" style={{opacity:0.5}}/>
+                            <Building2 size={36} strokeWidth={1.5} color="#5a4828" style={{opacity:0.5}}/>
                             {/* Tags arriba a la derecha */}
                             <div style={{position:'absolute',top:8,right:8,display:'flex',flexWrap:'wrap',gap:4,justifyContent:'flex-end',maxWidth:'70%'}}>
                               {sim.tags.slice(0,3).map(tag => (
@@ -5188,7 +5188,7 @@ export default function FichaActivo() {
                         <thead><tr><th>Medio</th><th>Línea / Vía</th><th>Descripción</th><th>Tiempo acceso</th><th style={{width:32}}></th></tr></thead>
                         <tbody>{transportes.map(t=>(
                           <tr key={t.id}>
-                            <td><span style={{fontSize:10,padding:'2px 8px',borderRadius:9,background:'#eff6ff',border:'1px solid #bfdbfe',color:'#1d4ed8',fontWeight:600}}>{t.medio}</span></td>
+                            <td><span style={{fontSize:10,padding:'2px 8px',borderRadius:9,background:'#faf5ec',border:'1px solid #ece0c9',color:'#6f5734',fontWeight:600}}>{t.medio}</span></td>
                             <td style={{fontFamily:'var(--mono)',fontSize:11}}>{t.linea || '—'}</td>
                             <td style={{fontSize:11,color:'var(--text2)'}}>{t.descripcion || '—'}</td>
                             <td style={{fontSize:11,fontWeight:600}}>{t.tiempo || '—'}</td>
@@ -5441,7 +5441,7 @@ export default function FichaActivo() {
                                   </span>
                                 </td>
                                 <td>
-                                  <span style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#ede9fe',border:'1px solid #c4b5fd',color:'#7c3aed',fontWeight:600}}>{p.tipo}</span>
+                                  <span style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#ede9fe',border:'1px solid #c4b5fd',color:'#6b5b8e',fontWeight:600}}>{p.tipo}</span>
                                 </td>
                                 <td>
                                   <span style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#f0fdf4',border:'1px solid #86efac',color:'#15803d',fontWeight:600}}>{p.vehiculo}</span>
@@ -5509,7 +5509,7 @@ export default function FichaActivo() {
                         <td>{p.yield_pct ? p.yield_pct+'%' : '—'}</td>
                         <td>{p.precio_compra||'—'}</td>
                         <td>{p.anyo_compra||'—'}</td>
-                        <td>{p.trimestre && <span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>{p.trimestre}</span>}</td>
+                        <td>{p.trimestre && <span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#f5efe5',color:'#5a4828',fontWeight:600}}>{p.trimestre}</span>}</td>
                         <td><button className="ra" onClick={e=>{e.stopPropagation();goToOwner(p)}}>↗ Ver</button></td>
                       </tr>
                     )})}
@@ -5577,7 +5577,7 @@ export default function FichaActivo() {
                         <td style={{color:'var(--amber)',fontWeight:600}}>{a.break_option||'—'}</td>
                         <td style={{color:'var(--green)',fontWeight:600}}>{a.fecha_fin||'—'}</td>
                         <td>{a.anyo_firma||'—'}</td>
-                        <td>{a.trimestre && <span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#dbeafe',color:'#1e40af',fontWeight:600}}>{a.trimestre}</span>}</td>
+                        <td>{a.trimestre && <span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#f5efe5',color:'#5a4828',fontWeight:600}}>{a.trimestre}</span>}</td>
                         <td><button className="ra" onClick={e=>{e.stopPropagation();goToArr(a)}}>↗ Ver</button></td>
                       </tr>
                     )})}
@@ -5771,8 +5771,8 @@ export default function FichaActivo() {
 
                   {/* Ficha PDF */}
                   <div style={{border:'1px solid var(--border)',borderRadius:'var(--r2)',padding:'14px 18px',background:'var(--surface)',display:'flex',alignItems:'flex-start',gap:12,minWidth:260,flex:1}}>
-                    <div style={{width:36,height:36,borderRadius:8,background:'#eff6ff',border:'1px solid #bfdbfe',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                      <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="#2563eb" strokeWidth="1.5"><rect x="3" y="2" width="14" height="16" rx="1.5"/><path d="M7 7h6M7 10h4"/><path d="M7 13h2"/></svg>
+                    <div style={{width:36,height:36,borderRadius:8,background:'#faf5ec',border:'1px solid #ece0c9',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="#8a6d40" strokeWidth="1.5"><rect x="3" y="2" width="14" height="16" rx="1.5"/><path d="M7 7h6M7 10h4"/><path d="M7 13h2"/></svg>
                     </div>
                     <div style={{flex:1}}>
                       <div style={{fontSize:12,fontWeight:700,marginBottom:2}}>Ficha del activo</div>
@@ -5909,11 +5909,11 @@ export default function FichaActivo() {
               <div style={{fontSize:11,fontWeight:600,marginBottom:8,color:'var(--text2)'}}>Timeline cronológico</div>
               <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden',marginBottom:18}}>
                 {[
-                  {av:'AS',bg:'#dbeafe',color:'#1e40af',name:'Álvaro Sierra',msg:'firmó contrato con Oracle Spain (P5 · 13.486 m²)',badge:{bg:'var(--green-lt)',color:'var(--green)',bc:'var(--green-bd)',lbl:'TRANSACCIÓN'},time:'04/04/2026'},
-                  {av:'AS',bg:'#dbeafe',color:'#1e40af',name:'Álvaro Sierra',msg:'registró visita con Oracle Spain',badge:{bg:'var(--accent-lt)',color:'var(--accent)',bc:'var(--accent-bd)',lbl:'VISITA'},time:'15/02/2026'},
+                  {av:'AS',bg:'#f5efe5',color:'#5a4828',name:'Álvaro Sierra',msg:'firmó contrato con Oracle Spain (P5 · 13.486 m²)',badge:{bg:'var(--green-lt)',color:'var(--green)',bc:'var(--green-bd)',lbl:'TRANSACCIÓN'},time:'04/04/2026'},
+                  {av:'AS',bg:'#f5efe5',color:'#5a4828',name:'Álvaro Sierra',msg:'registró visita con Oracle Spain',badge:{bg:'var(--accent-lt)',color:'var(--accent)',bc:'var(--accent-bd)',lbl:'VISITA'},time:'15/02/2026'},
                   {av:'MR',bg:'#fce7f3',color:'#9d174d',name:'María Ruiz',msg:'presentó P.E Avalon a Generali RE',badge:{bg:'var(--purple-lt)',color:'var(--purple)',bc:'var(--purple-bd)',lbl:'PRESENTACIÓN'},time:'20/01/2026'},
                   {av:'JL',bg:'#dcfce7',color:'#166534',name:'Jorge López',name2:'creó',msg:'OLB001 — P1-P6 oferta de alquiler',badge:{bg:'var(--green-lt)',color:'var(--green)',bc:'var(--green-bd)',lbl:'OFERTA'},time:'10/12/2025'},
-                  {av:'AS',bg:'#dbeafe',color:'#1e40af',name:'Álvaro Sierra',msg:'firmó mandato de leasing exclusiva con Barings RE',badge:{bg:'#fef3c7',color:'#92400e',bc:'#fde68a',lbl:'MANDATO'},time:'01/10/2025'},
+                  {av:'AS',bg:'#f5efe5',color:'#5a4828',name:'Álvaro Sierra',msg:'firmó mandato de leasing exclusiva con Barings RE',badge:{bg:'#fef3c7',color:'#92400e',bc:'#fde68a',lbl:'MANDATO'},time:'01/10/2025'},
                 ].map((item,i,arr)=>(
                   <div key={i} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'10px 14px',borderBottom:i<arr.length-1?'1px solid var(--border)':'none'}}>
                     <div style={{width:28,height:28,borderRadius:'50%',background:item.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:item.color,flexShrink:0}}>{item.av}</div>
@@ -6097,8 +6097,8 @@ export default function FichaActivo() {
               <div style={{fontSize:11,color:'var(--text4)',marginBottom:14}}>Registro de última modificación y auditoría de cambios.</div>
               <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
                 {[
-                  {u:'AS',bg:'#dbeafe',color:'#1e40af',nombre:'Álvaro Sierra',cambio:'Actualización SBA y subida de planos P2',fecha:'04/04/2026',hora:'12:32'},
-                  {u:'AS',bg:'#dbeafe',color:'#1e40af',nombre:'Álvaro Sierra',cambio:'Modificación occupancy rate → 78.4%',fecha:'01/04/2026',hora:'09:15'},
+                  {u:'AS',bg:'#f5efe5',color:'#5a4828',nombre:'Álvaro Sierra',cambio:'Actualización SBA y subida de planos P2',fecha:'04/04/2026',hora:'12:32'},
+                  {u:'AS',bg:'#f5efe5',color:'#5a4828',nombre:'Álvaro Sierra',cambio:'Modificación occupancy rate → 78.4%',fecha:'01/04/2026',hora:'09:15'},
                   {u:'JL',bg:'#dcfce7',color:'#166534',nombre:'Jorge López',  cambio:'Subida Valoración Q1 2026 a Documentos',fecha:'20/03/2026',hora:'11:48'},
                   {u:'MR',bg:'#fce7f3',color:'#9d174d',nombre:'María Ruiz',   cambio:'Actualización datos urbanísticos',fecha:'15/03/2026',hora:'17:05'},
                 ].map((item,i,arr)=>(

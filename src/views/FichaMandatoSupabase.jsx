@@ -97,7 +97,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
   const [cuenta, setCuenta]   = useState(null)
   const [mandatoConfidential, setMandatoConfidential] = useState(false)
   const [mandatoAuthUsers, setMandatoAuthUsers] = useState([
-    { name: CURRENT_USER.nombre, team: CURRENT_USER.equipo || 'Equipo PDB', role:'Principal', initials:(CURRENT_USER.nombre||'').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(), bg:'#dbeafe', color:'#1e40af', owner:true },
+    { name: CURRENT_USER.nombre, team: CURRENT_USER.equipo || 'Equipo PDB', role:'Principal', initials:(CURRENT_USER.nombre||'').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(), bg:'#f5efe5', color:'#5a4828', owner:true },
   ])
   const [oportunidad, setOportunidad] = useState(null)
   const [activosLinked, setActivosLinked] = useState([]) // [{ link_id, sba_asignada, activo:{id,ref,nombre,...} }]
@@ -611,7 +611,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
           {/* Header */}
           <div className="ah">
             <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
-              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#6d28d9,#9333ea)' }}>📜</div>
+              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#4d4068,#9333ea)' }}>📜</div>
               <div style={{ flex:1 }}>
                 <div className="ah-ref">
                   <span style={{ background:'var(--purple-lt,#f3e8ff)', color:'var(--purple,#9333ea)', border:'1px solid var(--purple-bd,#d8b4fe)', padding:'0 5px', borderRadius:3, fontSize:9, fontWeight:700 }}>MANDATO</span>

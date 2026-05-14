@@ -461,8 +461,8 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
 
               {/* Resumen */}
               {esquema && tieneVinculo && activoOk && (
-                <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:12 }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:'#1e40af', marginBottom:4 }}>Resumen de la transformación</div>
+                <div style={{ background:'#faf5ec', border:'1px solid #ece0c9', borderRadius:8, padding:12 }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#5a4828', marginBottom:4 }}>Resumen de la transformación</div>
                   <div style={{ fontSize:11, color:'#1e3a8a', lineHeight:1.5 }}>
                     {esquema.label}.
                     {' '}Oportunidad <strong>{esquema.oppType}</strong>

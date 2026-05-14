@@ -245,7 +245,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
               onClick={() => setShowFirmarModal(true)}
               disabled={!puede}
               title={tip}
-              style={{ background: puede ? 'var(--purple, #7c3aed)' : undefined, color: puede ? '#fff' : undefined, border: puede ? '1px solid var(--purple, #7c3aed)' : undefined, opacity: puede ? 1 : 0.45 }}
+              style={{ background: puede ? 'var(--purple, #6b5b8e)' : undefined, color: puede ? '#fff' : undefined, border: puede ? '1px solid var(--purple, #6b5b8e)' : undefined, opacity: puede ? 1 : 0.45 }}
             >
               📜 Firmar mandato
             </button>
@@ -361,7 +361,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
                     <div style={{ padding:'10px 14px' }}>
                       <div className="ir">
                         <span className="ir-k" style={{ display:'flex', alignItems:'center', gap:6 }}>
-                          <span style={{ width:14, height:14, borderRadius:3, background:'#0078d4', color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>D</span>
+                          <span style={{ width:14, height:14, borderRadius:3, background:'#B08D57', color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>D</span>
                           Oportunidad
                         </span>
                         <span className="ir-v">{oportunidad

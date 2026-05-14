@@ -123,8 +123,8 @@ const ESTADO_ARR_TAG = {
   'Vigente':                  { bg:'#f0fdf4', color:'#15803d', border:'#bbf7d0' },
   'Activo':                   { bg:'#f0fdf4', color:'#15803d', border:'#bbf7d0' },
   'Próximo a vencimiento':    { bg:'#fef9c3', color:'#ca8a04', border:'#fde047' },
-  'En negociación':           { bg:'#f5f3ff', color:'#7c3aed', border:'#ddd6fe' },
-  'Renovado':                 { bg:'#eff6ff', color:'#1d4ed8', border:'#bfdbfe' },
+  'En negociación':           { bg:'#f5f3ff', color:'#6b5b8e', border:'#ddd6fe' },
+  'Renovado':                 { bg:'#faf5ec', color:'#6f5734', border:'#ece0c9' },
   'Finalizado':               { bg:'#f1f5f9', color:'#475569', border:'#cbd5e1' },
 }
 
@@ -319,7 +319,7 @@ export default function VencimientosView() {
             <div style={{fontSize:9,color:'#dc2626',fontWeight:700,textTransform:'uppercase'}}>Alertas &lt;90d</div>
             <div style={{fontSize:18,fontWeight:800,color:'#dc2626',fontFamily:'var(--mono)'}}>{alertas}</div>
           </div>
-          <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'var(--r)',padding:'4px 12px',textAlign:'center'}}>
+          <div style={{background:'#faf5ec',border:'1px solid #ece0c9',borderRadius:'var(--r)',padding:'4px 12px',textAlign:'center'}}>
             <div style={{fontSize:9,color:'var(--accent)',fontWeight:700,textTransform:'uppercase'}}>Próximos 12m</div>
             <div style={{fontSize:18,fontWeight:800,color:'var(--accent)',fontFamily:'var(--mono)'}}>{proximos}</div>
           </div>
@@ -423,7 +423,7 @@ export default function VencimientosView() {
                         {v._ambiguoMatch && (
                           <span
                             title="Hay varias unidades 'Desconocido' en el stacking del activo. El match por nombre es ambiguo — la m² mostrada viene del registro libre, no del stacking."
-                            style={{ marginLeft:6, fontSize:8, fontWeight:700, padding:'1px 6px', borderRadius:8, background:'#eff6ff', color:'#1e40af', border:'1px solid #bfdbfe' }}
+                            style={{ marginLeft:6, fontSize:8, fontWeight:700, padding:'1px 6px', borderRadius:8, background:'#faf5ec', color:'#5a4828', border:'1px solid #ece0c9' }}
                           >
                             🆔 AMBIGUO
                           </span>
@@ -447,7 +447,7 @@ export default function VencimientosView() {
                         {v._mandatoRef ? (
                           <button
                             onClick={(e) => { e.stopPropagation(); navigate('ficha-mandato', { id: v._mandatoRef }) }}
-                            style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:9, background:'#f3e8ff', color:'#7c3aed', border:'1px solid #d8b4fe', cursor:'pointer', fontFamily:'inherit' }}
+                            style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:9, background:'#f3e8ff', color:'#6b5b8e', border:'1px solid #d8b4fe', cursor:'pointer', fontFamily:'inherit' }}
                             title={`Mandato ${v._mandatoTipo} vivo · click para abrir`}
                           >
                             📜 {v._mandatoRef}

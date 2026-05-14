@@ -261,7 +261,7 @@ export default function FichaLead() {
             <div className="ab-sep"/>
             <button
               className="ab-btn"
-              style={{ background:'#0078d4', color:'#fff', border:'none', fontWeight:700, opacity: cerrado ? 0.5 : 1, cursor: cerrado ? 'not-allowed' : 'pointer' }}
+              style={{ background:'#B08D57', color:'#fff', border:'none', fontWeight:700, opacity: cerrado ? 0.5 : 1, cursor: cerrado ? 'not-allowed' : 'pointer' }}
               disabled={cerrado}
               onClick={() => !cerrado && setShowTransformar(true)}
             >
@@ -381,7 +381,7 @@ export default function FichaLead() {
                     <div className="va-meta-head"><span className="dot"/>Cuenta (Dynamics)</div>
                     <div style={{padding:'12px 14px'}}>
                       {cuentaNombre ? (
-                        <div onClick={() => navigate('cuentas')} style={{ background:'#dbeafe', border:'1px solid #93c5fd', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#1e40af', cursor:'pointer' }}>
+                        <div onClick={() => navigate('cuentas')} style={{ background:'#f5efe5', border:'1px solid #93c5fd', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#5a4828', cursor:'pointer' }}>
                           🏢 {cuentaNombre}
                         </div>
                       ) : (
@@ -588,7 +588,7 @@ export default function FichaLead() {
                 </div>
                 <div style={{padding:'4px 20px 18px',display:'flex',flexDirection:'column',gap:10}}>
                   <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
-                    <div style={{ width:24, height:24, borderRadius:'50%', background:'#dbeafe', color:'#1e40af', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>1</div>
+                    <div style={{ width:24, height:24, borderRadius:'50%', background:'#f5efe5', color:'#5a4828', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>1</div>
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:12, fontWeight:600 }}>Lead capturado</div>
                       <div style={{ fontSize:10, color:'var(--text4)' }}>{fmtFecha(lead.created_at)} · {lead.origen_canal}{lead.origen_anuncio ? ` · ${lead.origen_anuncio}` : ''}</div>
@@ -614,7 +614,7 @@ export default function FichaLead() {
                   )}
                   {oportunidadId && (
                     <div style={{ background:'#cffafe', border:'1px solid #67e8f9', borderRadius:'var(--r)', padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
-                      <div style={{ width:24, height:24, borderRadius:'50%', background:'#0078d4', color:'#fff', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>D</div>
+                      <div style={{ width:24, height:24, borderRadius:'50%', background:'#B08D57', color:'#fff', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>D</div>
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:12, fontWeight:600, color:'#0e7490' }}>Transformado · Oportunidad creada en Dynamics</div>
                         <div style={{ fontSize:10, color:'#0891b2', fontFamily:'var(--mono)' }}>{oportunidadId} · {oportunidadNombre}</div>

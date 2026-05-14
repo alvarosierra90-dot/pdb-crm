@@ -68,7 +68,7 @@ const ESTADO_LABEL = Object.fromEntries(ESTADO_OPTS.map(o => [o.v, o.label]))
 // Paleta visual por estado · usada en header, badge de estado grande y lista
 const ESTADO_COLOR = {
   ongoing:           { tag:'tag-green', headerCol:'var(--green)',  bg:'#dcfce7', bd:'#86efac', text:'#15803d', icon:'●' },
-  potencial:         { tag:'tag-blue',  headerCol:'var(--accent)', bg:'#dbeafe', bd:'#93c5fd', text:'#1d4ed8', icon:'◌' },
+  potencial:         { tag:'tag-blue',  headerCol:'var(--accent)', bg:'#f5efe5', bd:'#93c5fd', text:'#6f5734', icon:'◌' },
   paralizada:        { tag:'tag-amber', headerCol:'var(--amber)',  bg:'#fef3c7', bd:'#fcd34d', text:'#92400e', icon:'⏸' },
   descartada:        { tag:'tag-red',   headerCol:'#dc2626',       bg:'#fee2e2', bd:'#fca5a5', text:'#991b1b', icon:'✕' },
   cerrada_concedido: { tag:'tag-green', headerCol:'var(--green)',  bg:'#dcfce7', bd:'#86efac', text:'#15803d', icon:'🏆' },
@@ -106,7 +106,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [cuenta, setCuenta]   = useState(null)
   const [demandaConfidential, setDemandaConfidential] = useState(false)
   const [demandaAuthUsers, setDemandaAuthUsers] = useState([
-    { name: CURRENT_USER.nombre, team: CURRENT_USER.equipo || 'Equipo PDB', role:'Principal', initials:(CURRENT_USER.nombre||'').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(), bg:'#dbeafe', color:'#1e40af', owner:true },
+    { name: CURRENT_USER.nombre, team: CURRENT_USER.equipo || 'Equipo PDB', role:'Principal', initials:(CURRENT_USER.nombre||'').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(), bg:'#f5efe5', color:'#5a4828', owner:true },
   ])
   const [contactosCuenta, setContactosCuenta] = useState([])
   const [otrosContactosFull, setOtrosContactosFull] = useState([])
@@ -419,7 +419,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
               onClick={() => setShowFirmarModal(true)}
               disabled={!puede}
               title={tip}
-              style={{ background: puede ? 'var(--purple, #7c3aed)' : undefined, color: puede ? '#fff' : undefined, border: puede ? '1px solid var(--purple, #7c3aed)' : undefined, opacity: puede ? 1 : 0.45 }}
+              style={{ background: puede ? 'var(--purple, #6b5b8e)' : undefined, color: puede ? '#fff' : undefined, border: puede ? '1px solid var(--purple, #6b5b8e)' : undefined, opacity: puede ? 1 : 0.45 }}
             >
               📜 Firmar mandato
             </button>
@@ -447,7 +447,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
           {/* Header */}
           <div className="ah">
             <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
-              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>🔍</div>
+              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#1e3a5f,#8a6d40)' }}>🔍</div>
               <div style={{ flex:1 }}>
                 <div className="ah-ref">
                   <span style={{ background:'var(--accent-lt)', color:'var(--accent)', border:'1px solid var(--accent-bd)', padding:'0 5px', borderRadius:3, fontSize:9, fontWeight:700 }}>DEMANDA</span>
@@ -610,7 +610,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                         <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Oportunidad</div>
                         {oportunidad ? (
                           <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                            <div style={{ width:28, height:28, borderRadius:'50%', background:'#0078d4', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>D</div>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:'#B08D57', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>D</div>
                             <div style={{ flex:1, minWidth:0 }}>
                               <div style={{ fontSize:12, fontWeight:600 }}>{oportunidad.nombre || '—'}</div>
                               {oportunidad.tipo && <div style={{ fontSize:10, color:'var(--text3)' }}>{oportunidad.tipo}</div>}
@@ -644,7 +644,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                         <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Mandato</div>
                         {demanda.mandato_id && demanda.mandato ? (
                           <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--purple, #7c3aed)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>📜</div>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--purple, #6b5b8e)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>📜</div>
                             <div style={{ flex:1, minWidth:0 }}>
                               <div style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)' }}>{demanda.mandato.ref}</div>
                               <div style={{ fontSize:10, color:'var(--text3)' }}>Mandato vinculado</div>
@@ -679,7 +679,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                                       onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                                       onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
                                     >
-                                      <div style={{ width:24, height:24, borderRadius:'50%', background:'var(--purple, #7c3aed)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>📜</div>
+                                      <div style={{ width:24, height:24, borderRadius:'50%', background:'var(--purple, #6b5b8e)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>📜</div>
                                       <div style={{ flex:1, minWidth:0 }}>
                                         <div style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)' }}>{m.ref}</div>
                                         <div style={{ fontSize:10, color:'var(--text4)', display:'flex', gap:6, flexWrap:'wrap' }}>
@@ -779,7 +779,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   {/* === PARTES INVOLUCRADAS === */}
                   <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
                     <div className="va-card-header">
-                      <h3><span className="ico" style={{ color:'#7e22ce' }}>◉</span> Partes involucradas</h3>
+                      <h3><span className="ico" style={{ color:'#6b5b8e' }}>◉</span> Partes involucradas</h3>
                       <span className="hint">Contactos de {cuenta?.nombre || '(cuenta)'}</span>
                     </div>
                     <div style={{ padding:'8px 20px 16px' }}>
@@ -789,7 +789,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                         <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                           {otrosListaFull.map(c => (
                             <div key={c.dynamics_id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
-                              <div style={{ width:28, height:28, borderRadius:'50%', background:'#7e22ce', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>
+                              <div style={{ width:28, height:28, borderRadius:'50%', background:'#6b5b8e', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>
                                 {(c.nombre || '').split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
                               </div>
                               <div style={{ flex:1, minWidth:0 }}>
@@ -1087,7 +1087,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 {/* Cabecera con KPIs de funnel */}
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:14 }}>
                   {[
-                    ['Presentadas', presentadas.length, '#dbeafe', '#1d4ed8', '📨'],
+                    ['Presentadas', presentadas.length, '#f5efe5', '#6f5734', '📨'],
                     ['Visitadas',   visitadas.length,   '#f0fdfa', '#0f766e', '👣'],
                     ['Negociando',  negociando.length,  '#fef3c7', '#92400e', '🤝'],
                     ['Cerradas',    cerradas.length,    '#f1f5f9', '#475569', '✓'],
@@ -1122,13 +1122,13 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     {/* === COL 1 · PRESENTADAS === */}
                     <div className="va-card" style={{ marginBottom:0 }}>
                       <div className="va-card-header" style={{ background:'#f8fafc' }}>
-                        <h3><span className="ico" style={{ color:'#1d4ed8' }}>📨</span> Presentadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({presentadas.length})</span></h3>
+                        <h3><span className="ico" style={{ color:'#6f5734' }}>📨</span> Presentadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({presentadas.length})</span></h3>
                       </div>
                       <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8 }}>
                         {presentadas.length === 0
                           ? <EmptyCol msg="Aún no se han presentado edificios." />
                           : presentadas.map(alt => (
-                              <AltCard key={alt.id} alt={alt} accent="#1d4ed8" actions={
+                              <AltCard key={alt.id} alt={alt} accent="#6f5734" actions={
                                 <>
                                   {alt.estado_alternativa === 'propuesta' && (
                                     <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'enviada')}>📤 Marcar enviada</button>
@@ -1159,7 +1159,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                                   {alt.estado_alternativa === 'visita_realizada' && (
                                     <button
                                       className="ab-btn"
-                                      style={{ fontSize:9, padding:'3px 8px', background:'var(--purple, #7c3aed)', color:'#fff', border:'1px solid var(--purple, #7c3aed)', fontWeight:700 }}
+                                      style={{ fontSize:9, padding:'3px 8px', background:'var(--purple, #6b5b8e)', color:'#fff', border:'1px solid var(--purple, #6b5b8e)', fontWeight:700 }}
                                       onClick={() => {
                                         // TODO: cascada Instrucción → Negociación
                                         // Por ahora cambia estado a 'negociando' y muestra aviso
@@ -1234,7 +1234,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
               'Propuesta económica':'💰', Reporte:'📊', Contrato:'📜', Email:'📧', Otro:'📎',
             }
             const COLOR_CAT = {
-              Brief:'#1d4ed8', NDA:'#7e22ce', KYC:'#0f766e', Plano:'#0891b2',
+              Brief:'#6f5734', NDA:'#6b5b8e', KYC:'#0f766e', Plano:'#0891b2',
               'Propuesta económica':'#15803d', Reporte:'#b45309', Contrato:'#0f172a', Email:'#475569', Otro:'#64748b',
             }
 
@@ -1416,7 +1416,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     <>
                       {principal && (
                         <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
-                          <div style={{ width:32, height:32, borderRadius:'50%', background:'#dbeafe', color:'#1e40af', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>{initials(principal.nombre)}</div>
+                          <div style={{ width:32, height:32, borderRadius:'50%', background:'#f5efe5', color:'#5a4828', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>{initials(principal.nombre)}</div>
                           <div style={{ flex:1, minWidth:0 }}>
                             <div style={{ fontSize:12, fontWeight:600 }}>{principal.nombre}</div>
                             <div style={{ fontSize:10, color:'var(--text3)' }}>{principal.equipo}</div>
@@ -1426,7 +1426,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       )}
                       {soportes.map((m,i) => (
                         <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
-                          <div style={{ width:32, height:32, borderRadius:'50%', background:'#fdf4ff', color:'#7e22ce', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>{initials(m.nombre)}</div>
+                          <div style={{ width:32, height:32, borderRadius:'50%', background:'#fdf4ff', color:'#6b5b8e', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>{initials(m.nombre)}</div>
                           <div style={{ flex:1, minWidth:0 }}>
                             <div style={{ fontSize:12, fontWeight:600 }}>{m.nombre}</div>
                             <div style={{ fontSize:10, color:'var(--text3)' }}>{m.equipo}</div>

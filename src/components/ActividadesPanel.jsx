@@ -80,7 +80,7 @@ export default function ActividadesPanel({ filter, title = 'Actividades', onCrea
           { lbl:'Total',      val: total,      color:'var(--text)'   },
           { lbl:'Llamadas',   val: llamadas,   color:'var(--green)'  },
           { lbl:'Emails',     val: emails,     color:'var(--accent)' },
-          { lbl:'Reuniones',  val: reuniones,  color:'var(--purple, #7c3aed)' },
+          { lbl:'Reuniones',  val: reuniones,  color:'var(--purple, #6b5b8e)' },
           { lbl:'Pendientes', val: pendientes, color:'var(--red)'    },
         ].map(k => (
           <div key={k.lbl} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'8px 12px', textAlign:'center' }}>

@@ -220,8 +220,8 @@ function LineChart({ points, color = 'var(--accent)' }) {
       <svg width="100%" viewBox={`0 0 ${W} ${H+22}`} style={{ overflow:'visible' }}>
         <defs>
           <linearGradient id="lcg" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#1e40af" stopOpacity="0.12" />
-            <stop offset="100%" stopColor="#1e40af" stopOpacity="0" />
+            <stop offset="0%" stopColor="#5a4828" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#5a4828" stopOpacity="0" />
           </linearGradient>
         </defs>
         {fill && <path d={fill} fill="url(#lcg)" />}
@@ -244,7 +244,7 @@ function LineChart({ points, color = 'var(--accent)' }) {
 }
 
 function DonutChart({ items }) {
-  const COLORS = ['#1e40af','#0891b2','#059669','#d97706','#7c3aed','#db2777','#dc2626']
+  const COLORS = ['#5a4828','#0891b2','#059669','#d97706','#6b5b8e','#db2777','#dc2626']
   const total = items.reduce((s, i) => s + i.value, 0)
   const R=46, ir=22, cx=52, cy=52, sz=104
   let angle = -90

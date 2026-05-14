@@ -117,7 +117,7 @@ export default function SeleccionarActivoModal({ tipo = 'propietario', onClose }
             </div>
           )}
 
-          <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:6, padding:10, fontSize:11, color:'#1e40af' }}>
+          <div style={{ background:'#faf5ec', border:'1px solid #ece0c9', borderRadius:6, padding:10, fontSize:11, color:'#5a4828' }}>
             ℹ Al guardar la ficha volverás al stacking del activo. Recuerda <strong>arrastrar el {tipo} a las plantas</strong> que le correspondan — sin eso, la superficie del activo queda incompleta.
           </div>
         </div>

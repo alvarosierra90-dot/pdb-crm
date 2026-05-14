@@ -29,8 +29,8 @@ export const MIEMBROS_POR_EQUIPO = {
 
 export const ROLES = ['Principal','Soporte','Colaborador']
 export const ROL_TAG = {
-  'Principal':   { bg:'#eff6ff', color:'#1d4ed8', border:'#bfdbfe' },
-  'Soporte':     { bg:'#f5f3ff', color:'#7c3aed', border:'#ddd6fe' },
+  'Principal':   { bg:'#faf5ec', color:'#6f5734', border:'#ece0c9' },
+  'Soporte':     { bg:'#f5f3ff', color:'#6b5b8e', border:'#ddd6fe' },
   'Colaborador': { bg:'#f1f5f9', color:'#475569', border:'#cbd5e1' },
 }
 

@@ -142,7 +142,7 @@ export default function NuevaDemandaModal({ onClose, onSuccess }) {
                   >
                     <div style={{ fontWeight:600 }}>{o.nombre}</div>
                     <div style={{ fontSize:10, color:'var(--text4)', marginTop:2 }}>
-                      <span style={{ display:'inline-block', padding:'1px 6px', borderRadius:3, background:'#dbeafe', color:'#1d4ed8', fontWeight:600, marginRight:6 }}>{o.tipo}</span>
+                      <span style={{ display:'inline-block', padding:'1px 6px', borderRadius:3, background:'#f5efe5', color:'#6f5734', fontWeight:600, marginRight:6 }}>{o.tipo}</span>
                       {o.dynamics_accounts?.nombre || 'Sin cuenta vinculada'}
                     </div>
                   </div>
@@ -176,7 +176,7 @@ export default function NuevaDemandaModal({ onClose, onSuccess }) {
             </div>
           )}
 
-          <div style={{ padding:'8px 12px', background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:5, fontSize:11, color:'#1e40af' }}>
+          <div style={{ padding:'8px 12px', background:'#faf5ec', border:'1px solid #ece0c9', borderRadius:5, fontSize:11, color:'#5a4828' }}>
             💡 Tras crear, podrás editar los requisitos y empezar a presentar edificios desde la pestaña Vista 360.
           </div>
         </div>

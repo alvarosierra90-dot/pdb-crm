@@ -218,13 +218,13 @@ export default function FirmarMandatoModal({ origen, oportunidad, cuenta, onClos
         ) : (
           <>
             <div style={body}>
-              <div style={{ background:'var(--accent-lt, #eff6ff)', border:'1px solid var(--accent-bd, #bfdbfe)', borderRadius:8, padding:12, fontSize:11, color:'var(--text3)' }}>
+              <div style={{ background:'var(--accent-lt, #faf5ec)', border:'1px solid var(--accent-bd, #ece0c9)', borderRadius:8, padding:12, fontSize:11, color:'var(--text3)' }}>
                 Esta {tipoLabel.toLowerCase()} se creó sin pitch (vía <strong>directo</strong>). Al firmar se ejecuta la cascada: <strong>(1)</strong> abrir la instrucción en Dynamics → <strong>(2)</strong> crear el mandato en PDB → <strong>(3)</strong> vincular esta {tipoLabel.toLowerCase()} al mandato.
               </div>
 
               <div style={{ border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
-                <div style={{ background:'#0078d4', color:'#fff', padding:'8px 12px', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', gap:6 }}>
-                  <span style={{ width:14, height:14, borderRadius:3, background:'#fff', color:'#0078d4', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>D</span>
+                <div style={{ background:'#B08D57', color:'#fff', padding:'8px 12px', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ width:14, height:14, borderRadius:3, background:'#fff', color:'#B08D57', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>D</span>
                   1. Instrucción · Microsoft Dynamics 365
                 </div>
                 <div style={{ padding:'12px 14px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
@@ -243,7 +243,7 @@ export default function FirmarMandatoModal({ origen, oportunidad, cuenta, onClos
               </div>
 
               <div style={{ border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
-                <div style={{ background:'#7c3aed', color:'#fff', padding:'8px 12px', fontSize:11, fontWeight:700 }}>
+                <div style={{ background:'#6b5b8e', color:'#fff', padding:'8px 12px', fontSize:11, fontWeight:700 }}>
                   📜 2. Mandato · PDB
                 </div>
                 <div style={{ padding:'12px 14px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>

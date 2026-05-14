@@ -19,9 +19,9 @@ function occColor(occ) {
   return 'var(--red)'
 }
 function usoColor(uso) {
-  if (uso === 'Oficinas')    return { bg: '#dbeafe', color: '#1e40af' }
+  if (uso === 'Oficinas')    return { bg: '#f5efe5', color: '#5a4828' }
   if (uso === 'Logístico')   return { bg: '#f0fdfa', color: '#0f766e' }
-  if (uso === 'Retail')      return { bg: '#fdf4ff', color: '#7e22ce' }
+  if (uso === 'Retail')      return { bg: '#fdf4ff', color: '#6b5b8e' }
   if (uso === 'Data Center') return { bg: '#f0f9ff', color: '#0369a1' }
   if (uso === 'Residencial') return { bg: '#fff7ed', color: '#c2410c' }
   return { bg: '#fce7f3', color: '#9d174d' }
@@ -219,9 +219,9 @@ export default function ActivosList() {
           {chip('vacio',           'Vacío al completo',   vacioCompleto,       'var(--red)')}
           <span style={{ width:1, height:18, background:'var(--border)', margin:'0 6px' }}/>
           <span style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginRight:4 }}>Uso</span>
-          {chip('oficinas',        'Oficinas',            cntOficinas,         '#1e40af')}
+          {chip('oficinas',        'Oficinas',            cntOficinas,         '#5a4828')}
           {chip('logistico',       'Logístico',           cntLogistico,        '#0f766e')}
-          {chip('retail',          'Retail',              cntRetail,           '#7e22ce')}
+          {chip('retail',          'Retail',              cntRetail,           '#6b5b8e')}
           {chip('datacenter',      'Data Center',         cntDataCenter,       '#0369a1')}
           {chip('residencial',     'Residencial',         cntResidencial,      '#c2410c')}
           {quickFilter && (

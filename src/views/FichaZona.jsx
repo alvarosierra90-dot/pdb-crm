@@ -82,7 +82,7 @@ export default function FichaZona() {
         {/* Header */}
         <div className="ah">
           <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-            <div className="ah-ico" style={{background:'linear-gradient(135deg,#1e3a5f,#3b82f6)',fontSize:20}}>📍</div>
+            <div className="ah-ico" style={{background:'linear-gradient(135deg,#1e3a5f,#B08D57)',fontSize:20}}>📍</div>
             <div style={{flex:1}}>
               <div className="ah-ref">
                 <span style={{background:'var(--accent-lt)',color:'var(--accent)',border:'1px solid var(--accent-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>ZONA</span>
@@ -468,7 +468,7 @@ export default function FichaZona() {
                 </thead>
                 <tbody>
                   {ACTIVOS_ZONA.map(a => {
-                    const uc = a.uso==='Oficinas'?{bg:'#dbeafe',color:'#1e40af'}:a.uso==='Logístico'?{bg:'#f0fdfa',color:'#0f766e'}:{bg:'#fce7f3',color:'#9d174d'}
+                    const uc = a.uso==='Oficinas'?{bg:'#f5efe5',color:'#5a4828'}:a.uso==='Logístico'?{bg:'#f0fdfa',color:'#0f766e'}:{bg:'#fce7f3',color:'#9d174d'}
                     const occColor = a.occ>=90?'var(--green)':a.occ>=75?'var(--amber)':'var(--red)'
                     return (
                       <tr key={a.ref} onClick={()=>navigate('ficha-activo')}>

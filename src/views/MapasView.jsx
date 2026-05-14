@@ -380,8 +380,8 @@ export default function MapasView() {
       // Drawing manager
       const dm = new window.google.maps.drawing.DrawingManager({
         drawingMode: null, drawingControl: false,
-        circleOptions:  { fillColor:'#2563eb', fillOpacity:.07, strokeColor:'#2563eb', strokeWeight:1.5, clickable:false, editable:true, zIndex:1 },
-        polygonOptions: { fillColor:'#2563eb', fillOpacity:.07, strokeColor:'#2563eb', strokeWeight:1.5, clickable:false, editable:true, zIndex:1 },
+        circleOptions:  { fillColor:'#8a6d40', fillOpacity:.07, strokeColor:'#8a6d40', strokeWeight:1.5, clickable:false, editable:true, zIndex:1 },
+        polygonOptions: { fillColor:'#8a6d40', fillOpacity:.07, strokeColor:'#8a6d40', strokeWeight:1.5, clickable:false, editable:true, zIndex:1 },
       })
       dm.setMap(map)
       dmgr.current = dm

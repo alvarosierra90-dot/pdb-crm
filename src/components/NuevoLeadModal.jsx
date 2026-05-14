@@ -204,7 +204,7 @@ export default function NuevoLeadModal({ onClose, onSuccess }) {
             </>
           )}
 
-          <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:10, fontSize:11, color:'#1e3a8a' }}>
+          <div style={{ background:'#faf5ec', border:'1px solid #ece0c9', borderRadius:8, padding:10, fontSize:11, color:'#1e3a8a' }}>
             El lead nace en estado <strong>nuevo</strong>. Para vincular Cuenta y Contacto de Dynamics y crear la Oportunidad, usa después el botón <strong>⚡ Transformar</strong> en su ficha.
           </div>
 

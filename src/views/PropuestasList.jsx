@@ -143,7 +143,7 @@ export default function PropuestasList() {
   const cell = (p) => ({
     _chk:         <td key="_chk"><input type="checkbox" onClick={e=>e.stopPropagation()} style={{accentColor:'var(--accent)'}}/></td>,
     id:           <td key="id"><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{p.id}</span>{p._pendiente && <span className="tag tag-amber" style={{ marginLeft:6, fontSize:9 }}>PENDIENTE</span>}</td>,
-    oportunidad:  <td key="oportunidad" title="FK Oportunidad obligatorio · Dynamics WIP">{p.oportunidad ? <span style={{fontFamily:'var(--mono)',fontSize:10,fontWeight:700,color:'#1e40af',background:'#dbeafe',padding:'2px 7px',borderRadius:6,whiteSpace:'nowrap'}}>D · {p.oportunidad}</span> : <span style={{color:'var(--red)',fontSize:10,fontWeight:600}}>★ FALTA</span>}</td>,
+    oportunidad:  <td key="oportunidad" title="FK Oportunidad obligatorio · Dynamics WIP">{p.oportunidad ? <span style={{fontFamily:'var(--mono)',fontSize:10,fontWeight:700,color:'#5a4828',background:'#f5efe5',padding:'2px 7px',borderRadius:6,whiteSpace:'nowrap'}}>D · {p.oportunidad}</span> : <span style={{color:'var(--red)',fontSize:10,fontWeight:600}}>★ FALTA</span>}</td>,
     nombre:       <td key="nombre"><div className="asset-link" style={{fontWeight:600,maxWidth:260}}>{p.nombre}</div></td>,
     tipo:         <td key="tipo"><span className={`tag ${TIPO_TAG[p.tipo]||'tag-gray'}`} style={{fontSize:9,whiteSpace:'nowrap'}}>{p.tipo}</span></td>,
     linea:        <td key="linea" style={{fontSize:11,color:'var(--text2)',whiteSpace:'nowrap'}}>{p.linea}</td>,

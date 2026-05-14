@@ -38,16 +38,16 @@ function ContractCard({ c, isLatest }) {
     <div className={isSavills ? 'neg-bubble-left' : 'neg-bubble-right'} style={{maxWidth:'90%'}}>
       <div className="neg-meta" style={isSavills ? {} : { justifyContent:'flex-end' }}>
         {!isSavills && <>
-          <span style={{background:'#f3e8ff',color:'#7c3aed',border:'1px solid #e9d5ff',padding:'0 6px',borderRadius:8,fontSize:9,fontWeight:700}}>BORRADOR v{c.version}</span>
+          <span style={{background:'#f3e8ff',color:'#6b5b8e',border:'1px solid #e9d5ff',padding:'0 6px',borderRadius:8,fontSize:9,fontWeight:700}}>BORRADOR v{c.version}</span>
           <span>{c.fecha} · {c.hora}</span>
           <span className="neg-name">{c.autor} · {c.parte}</span>
           <div className="neg-av" style={{background:'#fce7f3',color:'#9d174d'}}>{c.autor.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
         </>}
         {isSavills && <>
-          <div className="neg-av" style={{background:'#dbeafe',color:'#1e40af'}}>AS</div>
+          <div className="neg-av" style={{background:'#f5efe5',color:'#5a4828'}}>AS</div>
           <span className="neg-name">{c.autor} · {c.parte}</span>
           <span>{c.fecha} · {c.hora}</span>
-          <span style={{background:'#f3e8ff',color:'#7c3aed',border:'1px solid #e9d5ff',padding:'0 6px',borderRadius:8,fontSize:9,fontWeight:700}}>BORRADOR v{c.version}</span>
+          <span style={{background:'#f3e8ff',color:'#6b5b8e',border:'1px solid #e9d5ff',padding:'0 6px',borderRadius:8,fontSize:9,fontWeight:700}}>BORRADOR v{c.version}</span>
           {isLatest && <span style={{background:'var(--accent-lt)',color:'var(--accent)',border:'1px solid var(--accent-bd)',padding:'0 6px',borderRadius:8,fontSize:9,fontWeight:700}}>ÚLTIMA VERSIÓN</span>}
         </>}
       </div>
@@ -176,7 +176,7 @@ const TABS = ['neg-chat','neg-condiciones','neg-docs','neg-historial','neg-colab
 const TAB_LABELS = ['Negociación','Condiciones acordadas','Documentos contractuales','Historial completo','Equipos colaboradores','Confidencialidad']
 
 const COLAB_INIT_NEG = [
-  { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable negociación', initials:'AS', bg:'#dbeafe', color:'#1e40af', principal:true },
+  { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable negociación', initials:'AS', bg:'#f5efe5', color:'#5a4828', principal:true },
 ]
 
 export default function FichaNegociacion() {
@@ -186,7 +186,7 @@ export default function FichaNegociacion() {
   const [addingTeam, setAddingTeam] = useState(false)
   const [negConfidential, setNegConfidential] = useState(false)
   const [negAuthUsers, setNegAuthUsers] = useState([
-    { name:'Sierra Álvaro', team:'Leasing Oficinas MAD', role:'Principal', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true },
+    { name:'Sierra Álvaro', team:'Leasing Oficinas MAD', role:'Principal', initials:'AS', bg:'#f5efe5', color:'#5a4828', owner:true },
   ])
   const [newTeam, setNewTeam] = useState('')
   const [showTarea, setShowTarea] = useState(false)
@@ -243,13 +243,13 @@ export default function FichaNegociacion() {
               <span style={{ background: 'var(--green-lt)', color: 'var(--green)', border: '1px solid var(--green-bd)', padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 600 }}>🔗 Link activo</span>
             </div>
             {/* ─── Vinculaciones obligatorias · Oportunidad + herencia Cuenta ─── */}
-            <div style={{ marginTop:10, padding:'8px 10px', background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:6, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-              <span style={{ width:18, height:18, borderRadius:3, background:'#0078d4', color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>D</span>
+            <div style={{ marginTop:10, padding:'8px 10px', background:'#faf5ec', border:'1px solid #ece0c9', borderRadius:6, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+              <span style={{ width:18, height:18, borderRadius:3, background:'#B08D57', color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>D</span>
               <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
                 <span style={{ fontSize:9, fontWeight:700, color:'#1e3a8a', textTransform:'uppercase', letterSpacing:'.04em' }}>Oportunidad ★ obligatorio</span>
-                <span onClick={() => navigate('ficha-oportunidad', { id:'OPO-2501' })} style={{ fontSize:11, fontWeight:700, color:'#1e40af', cursor:'pointer', textDecoration:'underline' }}>OPO-2501 · Albatros D — Oracle Relocation 2026</span>
+                <span onClick={() => navigate('ficha-oportunidad', { id:'OPO-2501' })} style={{ fontSize:11, fontWeight:700, color:'#5a4828', cursor:'pointer', textDecoration:'underline' }}>OPO-2501 · Albatros D — Oracle Relocation 2026</span>
               </div>
-              <div style={{ width:1, height:28, background:'#bfdbfe' }}/>
+              <div style={{ width:1, height:28, background:'#ece0c9' }}/>
               <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
                 <span style={{ fontSize:9, fontWeight:700, color:'#1e3a8a', textTransform:'uppercase', letterSpacing:'.04em' }}>Cuenta · heredada de Op.</span>
                 <span style={{ fontSize:11, fontWeight:600, color:'#1e3a8a' }}>🏢 Oracle Spain SL</span>
@@ -279,7 +279,7 @@ export default function FichaNegociacion() {
               {/* Chat header */}
               <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <div className="neg-av" style={{ background: '#dbeafe', color: '#1e40af', width: 28, height: 28 }}>AS</div>
+                  <div className="neg-av" style={{ background: '#f5efe5', color: '#5a4828', width: 28, height: 28 }}>AS</div>
                   <div><div style={{ fontSize: 11, fontWeight: 600 }}>Sierra Álvaro · Savills</div><div style={{ fontSize: 10, color: 'var(--text3)' }}>Parte — Propietario Avalon</div></div>
                 </div>
                 <div style={{ fontSize: 16, color: 'var(--border2)' }}>⇄</div>
@@ -298,7 +298,7 @@ export default function FichaNegociacion() {
                 {/* Oferta inicial */}
                 <div className="neg-bubble-left">
                   <div className="neg-meta">
-                    <div className="neg-av" style={{ background: '#dbeafe', color: '#1e40af' }}>AS</div>
+                    <div className="neg-av" style={{ background: '#f5efe5', color: '#5a4828' }}>AS</div>
                     <span className="neg-name">Sierra Álvaro · Savills (Propiedad Avalon)</span>
                     <span>10/03/2026 · 09:45</span>
                     <span style={{ background: 'var(--accent-lt)', color: 'var(--accent)', border: '1px solid var(--accent-bd)', padding: '0 6px', borderRadius: 8, fontSize: 9, fontWeight: 700 }}>OFERTA INICIAL</span>
@@ -477,7 +477,7 @@ export default function FichaNegociacion() {
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--amber)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>COMENTARIOS SOBRE CLÁUSULAS</div>
                   {[
                     { av: 'XY', bg: '#fce7f3', color: '#9d174d', name: 'Ana Gómez · Empresa XYZ', msg: 'Cláusula 8.2 (subarriendo): solicitamos incluir posibilidad de subarrendar hasta el 30% de la superficie sin necesidad de consentimiento previo del arrendador.', date: '14/03/2026 · 16:30' },
-                    { av: 'AS', bg: '#dbeafe', color: '#1e40af', name: 'Sierra Álvaro · Savills', msg: 'Cláusula 12 (obras): el propietario acepta aportación de 15 €/m² para adecuación básica del espacio, no obras estructurales.', date: '15/03/2026 · 09:15' },
+                    { av: 'AS', bg: '#f5efe5', color: '#5a4828', name: 'Sierra Álvaro · Savills', msg: 'Cláusula 12 (obras): el propietario acepta aportación de 15 €/m² para adecuación básica del espacio, no obras estructurales.', date: '15/03/2026 · 09:15' },
                   ].map((c, i) => (
                     <div key={i} style={{ display: 'flex', gap: 8, marginBottom: i === 0 ? 8 : 0 }}>
                       <div className="neg-av" style={{ background: c.bg, color: c.color, width: 24, height: 24, fontSize: 8, flexShrink: 0 }}>{c.av}</div>
@@ -640,7 +640,7 @@ export default function FichaNegociacion() {
           <div className="rp-sec">
             <div className="rp-lbl">Partes</div>
             <div style={{ fontSize: 9, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Propiedad</div>
-            <div className="cont-row"><div className="c-av" style={{ background: '#dbeafe', color: '#1e40af' }}>AS</div><div><div className="c-name">Sierra Álvaro</div><div className="c-role">Savills · Transaction Spain</div></div></div>
+            <div className="cont-row"><div className="c-av" style={{ background: '#f5efe5', color: '#5a4828' }}>AS</div><div><div className="c-name">Sierra Álvaro</div><div className="c-role">Savills · Transaction Spain</div></div></div>
             <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
             <div style={{ fontSize: 9, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Demanda / Contraparte</div>
             <div className="cont-row"><div className="c-av" style={{ background: '#fce7f3', color: '#9d174d' }}>AG</div><div><div className="c-name">Ana Gómez</div><div className="c-role">Empresa XYZ · Dir. RRHH</div></div></div>

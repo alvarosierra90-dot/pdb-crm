@@ -22,7 +22,7 @@ export default function FichaActividad() {
           {/* Header */}
           <div className="ah">
             <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-              <div className="ah-ico" style={{background:'linear-gradient(135deg,#1e3a5f,#3b82f6)',fontSize:20}}>📧</div>
+              <div className="ah-ico" style={{background:'linear-gradient(135deg,#1e3a5f,#B08D57)',fontSize:20}}>📧</div>
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'var(--accent-lt)',color:'var(--accent)',border:'1px solid var(--accent-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>ACTIVIDAD</span>

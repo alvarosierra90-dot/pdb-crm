@@ -86,23 +86,23 @@ const TIPOLOGIA_MAP = {
 
 const OFERTA_COLORS = [
   { bg:'#dcfce7', border:'#86efac', text:'#166534', dot:'#16a34a' },
-  { bg:'#dbeafe', border:'#93c5fd', text:'#1e40af', dot:'#3b82f6' },
+  { bg:'#f5efe5', border:'#93c5fd', text:'#5a4828', dot:'#B08D57' },
   { bg:'#fef3c7', border:'#fcd34d', text:'#92400e', dot:'#f59e0b' },
   { bg:'#f3e8ff', border:'#d8b4fe', text:'#6b21a8', dot:'#a855f7' },
 ]
 
-const USERS_INIT = [{ name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', granted:'—', owner:true }]
+const USERS_INIT = [{ name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#f5efe5', color:'#5a4828', granted:'—', owner:true }]
 const TIPO_TAG = { Email:'tag-blue', Llamada:'tag-green', Reunión:'tag-purple', Tarea:'tag-gray', Visita:'tag-teal', Presentación:'tag-amber' }
 const TIPO_ICO = { Email:'📧', Llamada:'📞', Reunión:'🤝', Tarea:'✅', Visita:'🏢', Presentación:'📤' }
 const ACT_EST  = { Abierto:'tag-amber', Finalizado:'tag-gray', 'En curso':'tag-blue', Realizada:'tag-green' }
 const SEG_ACTS = [
-  { id:'ACT-OF-01', tipo:'Presentación', asunto:'Presentación oferta Albatros P1–P4 enviada a Oracle Spain',  fecha:'10/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
-  { id:'ACT-OF-02', tipo:'Visita',       asunto:'Visita técnica Oracle Spain — Albatros Edif. D P2',          fecha:'15/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Realizada'  },
-  { id:'ACT-OF-03', tipo:'Email',        asunto:'Envío condiciones económicas actualizadas a Carlos Méndez',   fecha:'20/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
-  { id:'ACT-OF-04', tipo:'Llamada',      asunto:'Llamada de seguimiento — confirmación interés Oracle',        fecha:'25/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Finalizado' },
-  { id:'ACT-OF-05', tipo:'Reunión',      asunto:'Reunión propietario Allianz — revisión oferta y condiciones', fecha:'28/03/2026', user:'GOMEZ Ignacio', initials:'GI', bg:'#fdf4ff', color:'#7e22ce', estado:'Finalizado' },
-  { id:'ACT-OF-06', tipo:'Email',        asunto:'Contraoferta recibida Oracle — análisis pendiente',           fecha:'02/04/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'En curso'   },
-  { id:'ACT-OF-07', tipo:'Tarea',        asunto:'Preparar respuesta a contraoferta Oracle Spain SL',           fecha:'07/04/2026', user:'Sierra Álvaro', initials:'AS', bg:'#dbeafe', color:'#1e40af', estado:'Abierto'    },
+  { id:'ACT-OF-01', tipo:'Presentación', asunto:'Presentación oferta Albatros P1–P4 enviada a Oracle Spain',  fecha:'10/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
+  { id:'ACT-OF-02', tipo:'Visita',       asunto:'Visita técnica Oracle Spain — Albatros Edif. D P2',          fecha:'15/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Realizada'  },
+  { id:'ACT-OF-03', tipo:'Email',        asunto:'Envío condiciones económicas actualizadas a Carlos Méndez',   fecha:'20/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
+  { id:'ACT-OF-04', tipo:'Llamada',      asunto:'Llamada de seguimiento — confirmación interés Oracle',        fecha:'25/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
+  { id:'ACT-OF-05', tipo:'Reunión',      asunto:'Reunión propietario Allianz — revisión oferta y condiciones', fecha:'28/03/2026', user:'GOMEZ Ignacio', initials:'GI', bg:'#fdf4ff', color:'#6b5b8e', estado:'Finalizado' },
+  { id:'ACT-OF-06', tipo:'Email',        asunto:'Contraoferta recibida Oracle — análisis pendiente',           fecha:'02/04/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'En curso'   },
+  { id:'ACT-OF-07', tipo:'Tarea',        asunto:'Preparar respuesta a contraoferta Oracle Spain SL',           fecha:'07/04/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Abierto'    },
 ]
 
 function FieldLbl({ children, req }) {
@@ -209,7 +209,7 @@ function FichaOfertaMock() {
   const [newColabEmpresa, setNewColabEmpresa] = useState('')
   const [newColabContacto, setNewColabContacto] = useState('')
   const [equipoMembers, setEquipoMembers] = useState([
-    { name:'Sierra Álvaro',    team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#dbeafe', color:'#1e40af', owner:true  },
+    { name:'Sierra Álvaro',    team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#f5efe5', color:'#5a4828', owner:true  },
     { name:'Alonso Abruña D.', team:'Leasing MAD',       role:'Colaborador', initials:'AD', bg:'#f3e8ff', color:'#6b21a8', owner:false },
   ])
   const [addingMiembro, setAddingMiembro] = useState(false)
@@ -563,7 +563,7 @@ function FichaOfertaMock() {
           setEquipoMembers(data.equipo)
         } else if (Array.isArray(data.equipo_trabajo) && data.equipo_trabajo.length > 0) {
           const palette = [
-            { bg:'#dbeafe', color:'#1e40af' },
+            { bg:'#f5efe5', color:'#5a4828' },
             { bg:'#f3e8ff', color:'#6b21a8' },
             { bg:'#dcfce7', color:'#166534' },
             { bg:'#fef3c7', color:'#92400e' },
@@ -1230,7 +1230,7 @@ function FichaOfertaMock() {
                               {imagenesOferta.map(m => {
                                 const catColor = m.tipo === 'Plano'
                                   ? { bg:'#fef3c7', text:'#92400e' }
-                                  : { bg:'#dbeafe', text:'#1e40af' }
+                                  : { bg:'#f5efe5', text:'#5a4828' }
                                 return (
                                   <div key={m.id} style={{
                                     position:'relative',
@@ -2212,7 +2212,7 @@ function FichaOfertaMock() {
                           <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginTop:10 }}>
                             <div style={{ fontSize:9, color:'var(--text4)', width:'100%', marginBottom:3 }}>Vista previa:</div>
                             {keywordsWeb.filter(k=>k).map((k,i) => (
-                              <span key={i} style={{ padding:'3px 10px', background:'#dbeafe', color:'#1e40af', border:'1px solid #93c5fd', borderRadius:12, fontSize:10, fontWeight:600 }}>{k}</span>
+                              <span key={i} style={{ padding:'3px 10px', background:'#f5efe5', color:'#5a4828', border:'1px solid #93c5fd', borderRadius:12, fontSize:10, fontWeight:600 }}>{k}</span>
                             ))}
                           </div>
                         )}
@@ -2468,7 +2468,7 @@ function FichaOfertaMock() {
             <div className="rp-sec">
               <div className="rp-lbl">Equipo responsable</div>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <div className="c-av" style={{ background: equipoMembers[0]?.bg || '#dbeafe', color: equipoMembers[0]?.color || '#1e40af', width:30, height:30, fontSize:10 }}>{equipoMembers[0]?.initials || 'AS'}</div>
+                <div className="c-av" style={{ background: equipoMembers[0]?.bg || '#f5efe5', color: equipoMembers[0]?.color || '#5a4828', width:30, height:30, fontSize:10 }}>{equipoMembers[0]?.initials || 'AS'}</div>
                 <div>
                   <div style={{ fontSize:12, fontWeight:600 }}>{equipoMembers[0]?.name || 'Sierra Álvaro'}</div>
                   <div style={{ fontSize:10, color:'var(--text3)' }}>{equipoMembers[0]?.team || 'Transaction Spain'}</div>

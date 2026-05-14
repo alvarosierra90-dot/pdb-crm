@@ -9,7 +9,7 @@ const ESTADOS = [
   { key: 'En negociación',     label: 'En negociación',     icon: ArrowLeftRight, color: '#d97706', bg: '#fffbeb', border: '#fde68a', dot: '#f59e0b' },
   { key: 'Pendiente respuesta',label: 'Pdte. respuesta',    icon: Hourglass,       color: '#9d174d', bg: '#fdf2f8', border: '#fbcfe8', dot: '#ec4899' },
   { key: 'Acuerdo alcanzado',  label: 'Acuerdo',            icon: Check,           color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', dot: '#22c55e' },
-  { key: 'Firmado',            label: 'Firmado',            icon: FileSignature,   color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', dot: '#3b82f6' },
+  { key: 'Firmado',            label: 'Firmado',            icon: FileSignature,   color: '#6f5734', bg: '#faf5ec', border: '#ece0c9', dot: '#B08D57' },
   { key: 'Rechazado',          label: 'Rechazado',          icon: X,               color: '#b91c1c', bg: '#fef2f2', border: '#fecaca', dot: '#ef4444' },
 ]
 
@@ -129,7 +129,7 @@ export default function NegociacionesList() {
     _chk:       <td key="_chk"><input type="checkbox" style={{accentColor:'var(--accent)'}} onClick={e=>e.stopPropagation()}/></td>,
     ref:        <td key="ref"><span className="asset-link" style={{fontFamily:'var(--mono)',fontSize:11}}>{n.ref}</span></td>,
     creado:     <td key="creado" style={{fontSize:11,color:'var(--text3)',whiteSpace:'nowrap'}}>{n.creado || n.envio || '—'}</td>,
-    oportunidad:<td key="oportunidad" title="FK Oportunidad obligatorio · Cuenta heredada">{n.oportunidad ? <span style={{fontFamily:'var(--mono)',fontSize:10,fontWeight:700,color:'#1e40af',background:'#dbeafe',padding:'2px 7px',borderRadius:6,whiteSpace:'nowrap'}} onClick={e=>{e.stopPropagation();navigate('ficha-oportunidad',{id:n.oportunidad})}}>D · {n.oportunidad}</span> : <span style={{color:'var(--red)',fontSize:10,fontWeight:600}}>★ FALTA</span>}</td>,
+    oportunidad:<td key="oportunidad" title="FK Oportunidad obligatorio · Cuenta heredada">{n.oportunidad ? <span style={{fontFamily:'var(--mono)',fontSize:10,fontWeight:700,color:'#5a4828',background:'#f5efe5',padding:'2px 7px',borderRadius:6,whiteSpace:'nowrap'}} onClick={e=>{e.stopPropagation();navigate('ficha-oportunidad',{id:n.oportunidad})}}>D · {n.oportunidad}</span> : <span style={{color:'var(--red)',fontSize:10,fontWeight:600}}>★ FALTA</span>}</td>,
     contraparte:<td key="contraparte"><div className="asset-link">{n.contraparte}</div><div className="asset-sub">{n.contacto}</div></td>,
     parte:      <td key="parte"><div style={{fontSize:11,fontWeight:600}}>{n.parte}</div><div className="asset-sub">{n.equipo}</div></td>,
     equipo:     <td key="equipo" style={{fontSize:11,color:'var(--text3)'}}>{n.equipo}</td>,

@@ -6,9 +6,9 @@
 
 const VARIANTS = {
   dynamics: {
-    bg:'#eff6ff', border:'#bfdbfe',
-    iconBg:'#0078d4', iconChar:'D',
-    titleColor:'#1e40af', subColor:'#3b82f6',
+    bg:'#faf5ec', border:'#ece0c9',
+    iconBg:'#B08D57', iconChar:'D',
+    titleColor:'#5a4828', subColor:'#B08D57',
   },
   info: {
     bg:'#fef3c7', border:'#fde68a',

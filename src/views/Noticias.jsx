@@ -109,10 +109,10 @@ const NOTICIAS = [
 ]
 
 const CAT_COLORS = {
-  'Expansión':  { bg:'#eff6ff', color:'#2563eb' },
+  'Expansión':  { bg:'#faf5ec', color:'#8a6d40' },
   'Transacción':{ bg:'#f0fdf4', color:'#16a34a' },
   'Resultados': { bg:'#fefce8', color:'#ca8a04' },
-  'Estrategia': { bg:'#faf5ff', color:'#7c3aed' },
+  'Estrategia': { bg:'#faf5ff', color:'#6b5b8e' },
   'Corporativo':{ bg:'#fff1f2', color:'#e11d48' },
   'Producto':   { bg:'#f0fdfa', color:'#0d9488' },
   'Mercado':    { bg:'#fdf4ff', color:'#a21caf' },

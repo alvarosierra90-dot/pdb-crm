@@ -21,7 +21,7 @@ export default function FichaTarea() {
         <div className="ficha-main">
           <div className="ah">
             <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-              <div className="ah-ico" style={{background:'linear-gradient(135deg,#7c3aed,#a855f7)',fontSize:20}}>✅</div>
+              <div className="ah-ico" style={{background:'linear-gradient(135deg,#6b5b8e,#a855f7)',fontSize:20}}>✅</div>
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'var(--purple-lt)',color:'var(--purple)',border:'1px solid var(--purple-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>TAREA</span>
