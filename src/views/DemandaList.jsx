@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import NuevaDemandaModal from '../components/NuevaDemandaModal'
 import { Download, SlidersHorizontal } from 'lucide-react'
 
 // Las demandas viven en Supabase (migración 016 las migró todas).
@@ -51,6 +52,7 @@ export default function DemandaList() {
   const [supabaseDems, setSupabaseDems] = useState([])
   const [vista, setVista] = useState('activas') // 'activas' | 'desactivadas'
   const [reloadKey, setReloadKey] = useState(0)
+  const [showNuevaModal, setShowNuevaModal] = useState(false)
 
   // Carga las demandas reales desde Supabase y las mapea al formato de la lista
   useEffect(() => {
@@ -189,7 +191,7 @@ export default function DemandaList() {
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
           <ColumnEditor cols={COLS} vis={vis} setVis={setVis} />
           <button className="tbtn"><Download size={14} strokeWidth={1.75} /> Exportar</button>
-          <button className="tbtn prim" onClick={() => navigate('ficha-demanda')}>+ Nueva Demanda</button>
+          <button className="tbtn prim" onClick={() => setShowNuevaModal(true)}>+ Nueva Demanda</button>
         </div>
       </div>
       {showAdv && (
@@ -213,6 +215,13 @@ export default function DemandaList() {
           </tbody>
         </table>
       </div>
+
+      {showNuevaModal && (
+        <NuevaDemandaModal
+          onClose={() => setShowNuevaModal(false)}
+          onSuccess={() => { setShowNuevaModal(false); setReloadKey(k => k + 1) }}
+        />
+      )}
     </div>
   )
 }
