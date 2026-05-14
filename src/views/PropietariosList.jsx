@@ -96,38 +96,54 @@ export default function PropietariosList() {
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
-    supabase.from('propietarios').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => {
-        if (data?.length) {
-          setDbRows(data.map(p => ({
-            id:            p.id,
-            estado:        p.estado || 'Activo',
-            fechaBaja:     p.fecha_desactivacion || null,
-            motivoBaja:    p.motivo_desactivacion || null,
-            propietario:   p.propietario || p.nombre,
-            activo:        p.activo || '—',
-            zona:          p.zona || '—',
-            subzona:       p.subzona || '—',
-            superficie:    p.superficie || 0,
-            precio_compra: p.precio_compra || '—',
-            cap_rate:      p.cap_rate || 0,
-            yield:         p.yield_pct || 0,
-            estado_activo: p.estado_activo || 'Ocupado',
-            tipologia:     p.tipologia || '—',
-            area:          p.area || '—',
-            anyo_compra:   p.anyo_compra || '—',
-            trimestre:     p.trimestre || '—',
-            ltv:           p.ltv || 0,
-            financiacion:  p.financiacion || 0,
-            perfil:        p.perfil || 'Core',
-            responsable:   p.responsable || '—',
-            ultima_act:    p.created_at ? new Date(p.created_at).toLocaleDateString('es-ES') : '—',
-            regimen:       p.regimen || '—',
-            asset_manager: p.asset_manager || '—',
-            _real:         true,
-          })))
+    let cancel = false
+    ;(async () => {
+      const { data: props } = await supabase.from('propietarios').select('*').order('created_at', { ascending: false })
+      if (cancel) return
+      const list = props || []
+      // JOIN manual con activos para enriquecer dirección/zona/área/uso
+      const refs = [...new Set(list.map(p => p.activo_ref).filter(Boolean))]
+      let activosById = {}
+      if (refs.length > 0) {
+        const { data: activos } = await supabase
+          .from('activos')
+          .select('ref, nombre, direccion, zona, subzona, area, uso')
+          .in('ref', refs)
+        if (cancel) return
+        activosById = Object.fromEntries((activos || []).map(a => [a.ref, a]))
+      }
+      setDbRows(list.map(p => {
+        const ac = (p.activo_ref && activosById[p.activo_ref]) || null
+        return {
+          id:            p.id,
+          estado:        p.estado || 'Activo',
+          fechaBaja:     p.fecha_desactivacion || null,
+          motivoBaja:    p.motivo_desactivacion || null,
+          propietario:   p.propietario || p.nombre,
+          activo:        ac?.direccion || ac?.nombre || p.activo || '—',
+          zona:          ac?.zona || p.zona || '—',
+          subzona:       ac?.subzona || p.subzona || '—',
+          superficie:    p.superficie || 0,
+          precio_compra: p.precio_compra || '—',
+          cap_rate:      p.cap_rate || 0,
+          yield:         p.yield_pct || 0,
+          estado_activo: p.estado_activo || 'Ocupado',
+          tipologia:     p.tipologia || '—',
+          area:          ac?.area || p.area || '—',
+          anyo_compra:   p.anyo_compra || '—',
+          trimestre:     p.trimestre || '—',
+          ltv:           p.ltv || 0,
+          financiacion:  p.financiacion || 0,
+          perfil:        p.perfil || 'Core',
+          responsable:   p.responsable || '—',
+          ultima_act:    p.created_at ? new Date(p.created_at).toLocaleDateString('es-ES') : '—',
+          regimen:       p.regimen || '—',
+          asset_manager: p.asset_manager || '—',
+          _real:         true,
         }
-      })
+      }))
+    })()
+    return () => { cancel = true }
   }, [reloadKey])
 
   const allRows = [...dbRows, ...PROPIETARIOS.filter(m => !dbRows.some(d => d.id === m.id))]

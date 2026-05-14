@@ -24,20 +24,26 @@ function isoToDisplay(iso) {
   return `${d}/${m}/${y}`
 }
 
-function mapDbRow(r) {
+// activosById: { [ref]: { nombre, direccion, zona, subzona, area, uso, propietario } }
+// Se usa para enriquecer cada arrendatario con los datos reales del activo
+// vinculado. Así la vista principal muestra dirección, zona, propietario, etc.
+// aunque la fila de arrendatario no los tenga duplicados en columnas.
+function mapDbRow(r, activosById = {}) {
+  const ac = (r.activo_ref && activosById[r.activo_ref]) || null
   return {
     id:              r.ref || r.id,
     _dbId:           r.id,
     arrendatario:    r.tenant || r.nombre || '—',
-    activo:          r.edificio || r.activo_ref || '—',
+    // Activo · dirección si existe, sino nombre del activo, sino edificio guardado, sino ref
+    activo:          ac?.direccion || ac?.nombre || r.edificio || r.activo_ref || '—',
     activo_ref:      r.activo_ref || null,
-    zona:            r.zona || '—',
-    subzona:         r.subzona || '—',
+    zona:            ac?.zona || r.zona || '—',
+    subzona:         ac?.subzona || r.subzona || '—',
     superficie:      r.superficie || 0,
     renta_media:     r.closing_rent ?? r.renta ?? 0,
-    propietario:     r.propietario_cuenta || '—',
+    propietario:     ac?.propietario || r.propietario_cuenta || '—',
     tipo_alquiler:   r.tipo_contrato || '—',
-    area:            r.area_zona || '—',
+    area:            ac?.area || r.area_zona || '—',
     sector:          r.sector || '—',
     anyo_firma:      r.anyo_firma || null,
     trimestre:       r.trimestre || '—',
@@ -113,12 +119,26 @@ export default function ArrendatariosList() {
   const [showNuevo, setShowNuevo] = useState(false)
 
   useEffect(() => {
-    supabase.from('arrendatarios').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => {
-        if (data?.length) setDbRows(data.map(mapDbRow))
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+    let cancel = false
+    ;(async () => {
+      const { data: arrs } = await supabase.from('arrendatarios').select('*').order('created_at', { ascending: false })
+      if (cancel) return
+      const list = arrs || []
+      // JOIN manual con activos · cogemos las refs únicas y traemos sus datos
+      const refs = [...new Set(list.map(a => a.activo_ref).filter(Boolean))]
+      let activosById = {}
+      if (refs.length > 0) {
+        const { data: activos } = await supabase
+          .from('activos')
+          .select('ref, nombre, direccion, zona, subzona, area, uso, propietario')
+          .in('ref', refs)
+        if (cancel) return
+        activosById = Object.fromEntries((activos || []).map(a => [a.ref, a]))
+      }
+      setDbRows(list.map(r => mapDbRow(r, activosById)))
+      setLoading(false)
+    })().catch(() => setLoading(false))
+    return () => { cancel = true }
   }, [])
 
   // Combine: real DB rows first, then mocks
