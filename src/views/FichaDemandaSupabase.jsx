@@ -7,18 +7,12 @@ import FirmarMandatoModal from '../components/FirmarMandatoModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 
 const DEM_TABS = [
-  ['dem-info',     'Información Demanda'],
-  ['dem-equipo',   'Equipo de trabajo'],
-  ['dem-req',      'Requisitos'],
-  ['dem-zona',     'Zona búsqueda'],
-  ['dem-seg',      'Seguimiento comercial'],
-  ['dem-360',      'Vista 360'],
-  ['dem-act',      'Actividades'],
-  ['dem-partes',   'Partes involucradas'],
-  ['dem-docs',     'Documentos'],
-  ['dem-neg',      'Negociaciones en curso'],
-  ['dem-followup', 'Follow-up'],
-  ['dem-conf',     'Confidencialidad'],
+  ['dem-info', 'Información general'],
+  ['dem-req',  'Requisitos'],
+  ['dem-360',  'Vista 360'],
+  ['dem-docs', 'Documentos'],
+  ['dem-neg',  'Negociaciones'],
+  ['dem-conf', 'Confidencialidad'],
 ]
 
 const USOS_TIPOLOGIAS = {
@@ -379,18 +373,23 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   {(reqs.sup_min || reqs.sup_max) && <span className="tag tag-gray">{reqs.sup_min || '?'}–{reqs.sup_max || '?'} m²</span>}
                 </div>
               </div>
-              <div style={{ flexShrink:0, display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:1, background:'var(--border)', border:'1px solid var(--border)', borderRadius:'var(--r)', overflow:'hidden', fontSize:10, alignSelf:'flex-start' }}>
-                {[
-                  ['Estado', ESTADO_LABEL[demanda.estatus] || demanda.estatus || '—', 'var(--green)'],
-                  ['Confidencial', 'No', null],
-                  ['Equipo', '—', null],
-                  ['Responsable', CURRENT_USER.nombre, 'var(--accent)'],
-                ].map(([lbl,val,col]) => (
-                  <div key={lbl} style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
-                    <div style={{ fontSize:9, color:'var(--text4)' }}>{lbl}</div>
-                    <div style={{ fontWeight:600, color:col || 'var(--text)' }}>{val}</div>
-                  </div>
-                ))}
+              <div style={{ flexShrink:0, display:'flex', flexDirection:'column', gap:4, alignSelf:'flex-start' }}>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:1, background:'var(--border)', border:'1px solid var(--border)', borderRadius:'var(--r)', overflow:'hidden', fontSize:10 }}>
+                  {[
+                    ['Estado', ESTADO_LABEL[demanda.estatus] || demanda.estatus || '—', 'var(--green)'],
+                    ['Confidencial', demandaConfidential ? 'Sí' : 'No', demandaConfidential ? 'var(--amber)' : null],
+                    ['Equipo', '—', null],
+                    ['Responsable', CURRENT_USER.nombre, 'var(--accent)'],
+                  ].map(([lbl,val,col]) => (
+                    <div key={lbl} style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
+                      <div style={{ fontSize:9, color:'var(--text4)' }}>{lbl}</div>
+                      <div style={{ fontWeight:600, color:col || 'var(--text)' }}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize:9, color:'var(--text4)', textAlign:'right', fontStyle:'italic' }}>
+                  Última modificación: {fmtDate(demanda.updated_at)} · {CURRENT_USER.nombre}
+                </div>
               </div>
             </div>
           </div>
@@ -521,10 +520,10 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
                 <div>
                   <div className="va-meta-card">
-                    <div className="va-meta-head accent-red"><span className="dot"/>Otros contactos asociados</div>
+                    <div className="va-meta-head accent-red"><span className="dot"/>Partes involucradas</div>
                     <div style={{ padding:'10px 14px' }}>
                       <div style={{ fontSize:10, color:'var(--text4)', marginBottom:8 }}>
-                        Contactos adicionales de <strong>{cuenta?.nombre || '(cuenta)'}</strong>.
+                        Contactos adicionales de <strong>{cuenta?.nombre || '(cuenta)'}</strong> implicados en la demanda.
                       </div>
 
                       {otrosListaFull.length === 0 && !editing && (
@@ -578,35 +577,52 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   </div>
                 </div>
               </div>
+
+              {/* Equipo de trabajo (integrado en Información) */}
+              {(() => {
+                const equipo = Array.isArray(demanda.equipo_trabajo) ? demanda.equipo_trabajo : []
+                const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
+                const canManage = userIsPrincipal || equipo.length === 0
+                const handlers = makeEquipoHandlers({
+                  supabase, table:'demandas', idValue:demanda.id, equipo,
+                  onAfter: () => load(),
+                  onError: (msg) => setSaveError(msg),
+                })
+                return (
+                  <div style={{ marginTop:14 }}>
+                    <EquipoTrabajoCard
+                      equipo={equipo}
+                      canManage={canManage}
+                      onAdd={handlers.addMiembro}
+                      onRemove={handlers.removeMiembro}
+                      onUpdateRol={handlers.updateMiembroRol}
+                    />
+                  </div>
+                )
+              })()}
             </div></div>
           )}
 
-          {/* TAB: Equipo de trabajo */}
-          {tab === 'dem-equipo' && (() => {
-            const equipo = Array.isArray(demanda.equipo_trabajo) ? demanda.equipo_trabajo : []
-            const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
-            const canManage = userIsPrincipal || equipo.length === 0
-            const handlers = makeEquipoHandlers({
-              supabase, table:'demandas', idValue:demanda.id, equipo,
-              onAfter: () => load(),
-              onError: (msg) => setSaveError(msg),
-            })
-            return (
-              <div className="tab-content active"><div className="info-pad">
-                <EquipoTrabajoCard
-                  equipo={equipo}
-                  canManage={canManage}
-                  onAdd={handlers.addMiembro}
-                  onRemove={handlers.removeMiembro}
-                  onUpdateRol={handlers.updateMiembroRol}
-                />
-              </div></div>
-            )
-          })()}
-
-          {/* TAB: Requisitos */}
+          {/* TAB: Requisitos (Requisitos + Zona de búsqueda fusionados) */}
           {tab === 'dem-req' && (
             <div className="tab-content active"><div className="info-pad">
+
+              {/* Barra de acción: Exportar a mapa */}
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+                <div style={{ fontSize:11, color:'var(--text3)' }}>
+                  Define los requisitos y la zona de búsqueda. Cuando tengas el perfil mínimo, exporta al mapa para seleccionar alternativas.
+                </div>
+                <button
+                  className="ab-btn"
+                  onClick={() => navigate('mapa-busqueda', { demanda: demanda.ref })}
+                  disabled={!form.uso_principal || (!form.sup_min && !form.sup_max)}
+                  title={!form.uso_principal ? 'Define al menos el uso principal' : (!form.sup_min && !form.sup_max ? 'Define superficie mínima o máxima' : 'Exportar requisitos al mapa de búsqueda')}
+                  style={{ background:'var(--accent)', color:'#fff', border:'1px solid var(--accent)', opacity: (form.uso_principal && (form.sup_min || form.sup_max)) ? 1 : 0.45 }}
+                >
+                  🗺 Exportar a mapa
+                </button>
+              </div>
+
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
                 <div>
                   <div className="of-section">📋 REQUISITOS GENERALES</div>
@@ -714,84 +730,82 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   </div>
                 </div>
               </div>
-            </div></div>
-          )}
 
-          {/* TAB: Zona búsqueda — chips de provincias + chips de zonas */}
-          {tab === 'dem-zona' && (
-            <div className="tab-content active"><div className="info-pad">
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-                <div>
-                  <div className="of-section">🗺 PROVINCIAS DE INTERÉS</div>
-                  <div className="info-block" style={{ minHeight:180 }}>
-                    <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10, minHeight:30 }}>
-                      {provinciasMostrar.length === 0 && !editing && (
-                        <span style={{ fontSize:11, color:'var(--text4)' }}>Ninguna provincia añadida.</span>
+              {/* ── ZONA DE BÚSQUEDA (fusionado del antiguo tab dem-zona) ── */}
+              <div style={{ marginTop:18, paddingTop:14, borderTop:'1px dashed var(--border)' }}>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+                  <div>
+                    <div className="of-section">🗺 PROVINCIAS DE INTERÉS</div>
+                    <div className="info-block" style={{ minHeight:180 }}>
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10, minHeight:30 }}>
+                        {provinciasMostrar.length === 0 && !editing && (
+                          <span style={{ fontSize:11, color:'var(--text4)' }}>Ninguna provincia añadida.</span>
+                        )}
+                        {provinciasMostrar.map(p => (
+                          <Chip key={p} label={p}
+                            onRemove={editing ? () => togglePick('provincias', p) : null} />
+                        ))}
+                      </div>
+                      {editing && (
+                        <select style={{ ...sel, width:'auto' }} value=""
+                          onChange={e => { if (e.target.value) togglePick('provincias', e.target.value) }}>
+                          <option value="">+ Añadir provincia</option>
+                          {PROVINCIAS_LISTA.filter(p => !form.provincias.includes(p)).map(p => <option key={p}>{p}</option>)}
+                        </select>
                       )}
-                      {provinciasMostrar.map(p => (
-                        <Chip key={p} label={p}
-                          onRemove={editing ? () => togglePick('provincias', p) : null} />
-                      ))}
                     </div>
-                    {editing && (
-                      <select style={{ ...sel, width:'auto' }} value=""
-                        onChange={e => { if (e.target.value) togglePick('provincias', e.target.value) }}>
-                        <option value="">+ Añadir provincia</option>
-                        {PROVINCIAS_LISTA.filter(p => !form.provincias.includes(p)).map(p => <option key={p}>{p}</option>)}
-                      </select>
-                    )}
+                  </div>
+                  <div>
+                    <div className="of-section">📍 ZONAS DE BÚSQUEDA</div>
+                    <div className="info-block" style={{ minHeight:180 }}>
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10, minHeight:30 }}>
+                        {zonasMostrar.length === 0 && !editing && (
+                          <span style={{ fontSize:11, color:'var(--text4)' }}>Ninguna zona añadida.</span>
+                        )}
+                        {zonasMostrar.map(z => (
+                          <Chip key={z} label={z}
+                            onRemove={editing ? () => togglePick('zonas', z) : null} />
+                        ))}
+                      </div>
+                      {editing && (
+                        <select style={{ ...sel, width:'auto' }} value=""
+                          onChange={e => { if (e.target.value) togglePick('zonas', e.target.value) }}>
+                          <option value="">+ Añadir zona</option>
+                          {ZONAS_MADRID.filter(z => !form.zonas.includes(z)).map(z => <option key={z}>{z}</option>)}
+                        </select>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="of-section">📍 ZONAS DE BÚSQUEDA</div>
-                  <div className="info-block" style={{ minHeight:180 }}>
-                    <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10, minHeight:30 }}>
-                      {zonasMostrar.length === 0 && !editing && (
-                        <span style={{ fontSize:11, color:'var(--text4)' }}>Ninguna zona añadida.</span>
-                      )}
-                      {zonasMostrar.map(z => (
-                        <Chip key={z} label={z}
-                          onRemove={editing ? () => togglePick('zonas', z) : null} />
-                      ))}
-                    </div>
-                    {editing && (
-                      <select style={{ ...sel, width:'auto' }} value=""
-                        onChange={e => { if (e.target.value) togglePick('zonas', e.target.value) }}>
-                        <option value="">+ Añadir zona</option>
-                        {ZONAS_MADRID.filter(z => !form.zonas.includes(z)).map(z => <option key={z}>{z}</option>)}
-                      </select>
-                    )}
-                  </div>
 
-                  <div className="info-block" style={{ marginTop:12 }}>
-                    <div className="ir"><span className="ir-k">Calles específicas</span>
-                      <span className="ir-v" style={{ flex:1 }}>{editing
-                        ? <input style={inpFull} value={form.calles} onChange={e => setF('calles', e.target.value)} placeholder="Ej. Castellana 50–120, Serrano 1–60" />
-                        : (reqs.calles || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
-                    </div>
-                    <div className="ir"><span className="ir-k">Puntos de interés</span>
-                      <span className="ir-v" style={{ flex:1 }}>{editing
-                        ? <input style={inpFull} value={form.puntos_interes} onChange={e => setF('puntos_interes', e.target.value)} placeholder="Cerca de metro, autopistas..." />
-                        : (reqs.puntos_interes || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
-                    </div>
-                    <div className="ir"><span className="ir-k">Puntos a evitar</span>
-                      <span className="ir-v" style={{ flex:1 }}>{editing
-                        ? <input style={inpFull} value={form.puntos_evitar} onChange={e => setF('puntos_evitar', e.target.value)} placeholder="Zonas en obras, polígonos..." />
-                        : (reqs.puntos_evitar || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
-                    </div>
+                <div className="info-block" style={{ marginTop:12 }}>
+                  <div className="ir"><span className="ir-k">Calles específicas</span>
+                    <span className="ir-v" style={{ flex:1 }}>{editing
+                      ? <input style={inpFull} value={form.calles} onChange={e => setF('calles', e.target.value)} placeholder="Ej. Castellana 50–120, Serrano 1–60" />
+                      : (reqs.calles || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
+                  </div>
+                  <div className="ir"><span className="ir-k">Puntos de interés</span>
+                    <span className="ir-v" style={{ flex:1 }}>{editing
+                      ? <input style={inpFull} value={form.puntos_interes} onChange={e => setF('puntos_interes', e.target.value)} placeholder="Cerca de metro, autopistas..." />
+                      : (reqs.puntos_interes || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
+                  </div>
+                  <div className="ir"><span className="ir-k">Puntos a evitar</span>
+                    <span className="ir-v" style={{ flex:1 }}>{editing
+                      ? <input style={inpFull} value={form.puntos_evitar} onChange={e => setF('puntos_evitar', e.target.value)} placeholder="Zonas en obras, polígonos..." />
+                      : (reqs.puntos_evitar || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
                   </div>
                 </div>
               </div>
             </div></div>
           )}
 
-          {tab === 'dem-seg'      && <div className="tab-content active"><StubTab label="Seguimiento comercial" /></div>}
-          {tab === 'dem-360'      && <div className="tab-content active"><StubTab label="Vista 360" /></div>}
-          {tab === 'dem-act'      && <div className="tab-content active"><StubTab label="Actividades" /></div>}
-          {tab === 'dem-partes'   && <div className="tab-content active"><StubTab label="Partes involucradas" /></div>}
-          {tab === 'dem-docs'     && <div className="tab-content active"><StubTab label="Documentos" /></div>}
-          {tab === 'dem-neg'      && <div className="tab-content active"><StubTab label="Negociaciones en curso" /></div>}
-          {tab === 'dem-followup' && <div className="tab-content active"><StubTab label="Follow-up" /></div>}
+          {tab === 'dem-360'  && (
+            <div className="tab-content active">
+              <StubTab label="Vista 360 · Seguimiento + Actividades + Microsites" />
+            </div>
+          )}
+          {tab === 'dem-docs' && <div className="tab-content active"><StubTab label="Documentos" /></div>}
+          {tab === 'dem-neg'  && <div className="tab-content active"><StubTab label="Negociaciones en curso" /></div>}
           {tab === 'dem-conf'     && (
             <ConfidencialidadPanel
               entityLabel="demanda"
