@@ -463,10 +463,13 @@ export default function FichaArrendatario() {
       }
 
       // Extended row — needs migration 007
+      // Resolución del activo final: fromActivoRef (navegado desde Oferta/Activo) o
+      // linkedActivoRef (vinculado con la lupa desde el formulario)
+      const activoRefFinal = params?.fromActivoRef || linkedActivoRef || null
       const extRow = {
         ...baseRow,
         ref:                  'ARR-' + Date.now(),
-        activo_ref:           params?.fromActivoRef || null,
+        activo_ref:           activoRefFinal,
         tenant:               tenantName,
         tenant_desconocido:   form.tenant_desconocido,
         persona_fisica:       form.persona_fisica,
@@ -542,15 +545,18 @@ export default function FichaArrendatario() {
             newTenantFloor: params?.fromFloorId || null,
             newActivoRef: params?.fromActivoRef || null,
           })
-        } else if (fromActivo) {
+        } else if (activoRefFinal) {
+          // Si el arrendatario fue vinculado a un activo (por flujo activo o
+          // por la lupa), abrir la ficha del activo en el tab Stacking. El
+          // sidebar lo cargará automáticamente desde Supabase (activo_ref).
           navigate('ficha-activo', {
-            ref: params.fromActivoRef,
-            tab: 'at-prop',
+            ref: activoRefFinal,
+            tab: 'at-stacking',
             newTenantData: {
-              id: `ARR-${Date.now()}`,
+              id: extRow.ref,
               tenant: tenantName,
               activo: form.activo,
-              activo_ref: params.fromActivoRef,
+              activo_ref: activoRefFinal,
               uso: form.sector || '',
               sup: parseFloat(form.superficie) || 0,
               closing_rent: form.closing_rent,

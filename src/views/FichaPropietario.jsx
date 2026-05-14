@@ -238,11 +238,14 @@ export default function FichaPropietario() {
     if (!form.anyo_compra) { setSaveErr('El año de compra es obligatorio'); return }
     if (!form.trimestre)   { setSaveErr('El trimestre es obligatorio'); return }
     setSaving(true)
+    // Resolución del activo final: fromActivoRef (navegado desde activo) o
+    // linkedActivoRef (vinculado con la lupa desde el formulario)
+    const activoRefFinal = params?.fromActivoRef || linkedActivoRef || null
     const row = {
       id:                form.id,
       propietario:       form.propietario,
       activo:            form.activo,
-      activo_ref:        params?.fromActivoRef || linkedActivoRef || null,
+      activo_ref:        activoRefFinal,
       zona:              form.zona || null,
       subzona:           form.subzona || null,
       superficie:        form.superficie ? parseFloat(form.superficie) : null,
@@ -282,13 +285,22 @@ export default function FichaPropietario() {
     setSaving(false)
     if (error) { setSaveErr(error.message); return }
 
-    navigate('ficha-activo', {
-      ref: params?.fromActivoRef,
-      tab: 'at-prop',
-      newOwnerData: { ...row, sba: row.superficie },
-      substituteOwner: params?.substituteOwner || false,
-      previousOwner: params?.previousOwner || null,
-    })
+    if (activoRefFinal) {
+      // Si el propietario está vinculado a un activo, abrir su Stacking Plan
+      // para que el chip aparezca en el sidebar (capa Propietarios) y se
+      // pueda arrastrar a una planta.
+      navigate('ficha-activo', {
+        ref: activoRefFinal,
+        tab: 'at-stacking',
+        stackingView: 'prop',
+        newOwnerData: { ...row, sba: row.superficie },
+        substituteOwner: params?.substituteOwner || false,
+        previousOwner: params?.previousOwner || null,
+      })
+    } else {
+      // Propietario creado sin activo · ir a la lista
+      navigate('propietarios')
+    }
   }
 
   return (
