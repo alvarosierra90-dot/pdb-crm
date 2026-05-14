@@ -726,9 +726,9 @@ export default function FichaArrendatario() {
           {/* Tab Datos */}
           {tab==='datos' && (
             <div className="tab-content active">
-              <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 48px',alignItems:'start',padding:'28px 36px'}}>
+              <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 40px',alignItems:'start',padding:'28px 36px'}}>
 
-                {/* Columna izquierda */}
+                {/* Columna 1 — Inquilino */}
                 <div style={{minWidth:0}}>
                   <Section title="Inquilino">
                       {/* Activo · lupa para vincular; si ya hay activo, chip clicable + ✕ para cambiar */}
@@ -895,7 +895,10 @@ export default function FichaArrendatario() {
                         </div>
                       </FField>
                   </Section>
+                </div>
 
+                {/* Columna 2 — Condiciones / Aparcamiento / Intervinientes */}
+                <div style={{minWidth:0}}>
                   <Section title="Condiciones económicas">
                       <FField label="Superficie total ocupada (m²)" req invalid={invalidFields.has('superficie')}><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.superficie ? 'normal' : 'italic' }} value={form.superficie} onChange={e=>set('superficie',e.target.value)}/></FField>
                       <FField label="Asking rent (€/m²/mes)"><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.asking_rent ? 'normal' : 'italic' }} value={form.asking_rent} onChange={e=>set('asking_rent',e.target.value)}/></FField>
@@ -925,7 +928,7 @@ export default function FichaArrendatario() {
                   </Section>
                 </div>
 
-                {/* Columna derecha */}
+                {/* Columna 3 — Workplace / Contrato / Acción comercial */}
                 <div style={{minWidth:0}}>
                   <Section title="Workplace">
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 14px'}}>

@@ -468,7 +468,7 @@ export default function FichaPropietario() {
           {/* TAB: DATOS */}
           {tab==='datos' && (
             <div className="tab-content active">
-              <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 48px',alignItems:'start',padding:'28px 36px'}}>
+              <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 40px',alignItems:'start',padding:'28px 36px'}}>
 
                 {/* Col 1: Propietario */}
                 <div style={{minWidth:0, overflow:'visible'}}>
@@ -661,7 +661,10 @@ export default function FichaPropietario() {
                       </div>
                     </div>
                   </Section>
+                </div>
 
+                {/* Col 3: Financiación y estrategia */}
+                <div style={{minWidth:0, overflow:'visible'}}>
                   <Section title="Financiación y estrategia">
                     <div className="kf-grid">
                       <KF label="LTV %" value={form.ltv} set={(v)=>set('ltv',v)} mono
