@@ -82,8 +82,8 @@ export default function DemandaList() {
               : d.estatus === 'cerrada_concedido' ? 'Cerrada · Concedido'
               : d.estatus === 'cerrada_perdida' ? 'Cerrada · Perdida'
               : d.estatus || '—',
-        supMin: Number(d.requisitos?.m2_min) || 0,
-        supMax: Number(d.requisitos?.m2_max) || 0,
+        supMin: Number(d.requisitos?.sup_min ?? d.requisitos?.m2_min) || 0,
+        supMax: Number(d.requisitos?.sup_max ?? d.requisitos?.m2_max) || 0,
         tipoB:  d.requisitos?.tipologia || '',
         razon:  '—',
         _estatus:    d.estatus,
