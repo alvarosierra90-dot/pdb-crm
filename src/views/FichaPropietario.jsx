@@ -177,7 +177,7 @@ export default function FichaPropietario() {
     const t = setTimeout(async () => {
       const { data } = await supabase
         .from('dynamics_accounts')
-        .select('dynamics_id, nombre, tipo, sector')
+        .select('dynamics_id, nombre, tipo, sector, pais, ciudad')
         .ilike('nombre', `%${propSearch}%`)
         .order('nombre')
         .limit(10)
@@ -475,13 +475,13 @@ export default function FichaPropietario() {
 
                 {/* Col 1: Propietario */}
                 <div style={{minWidth:0, overflow:'visible'}}>
-                  <Section title="Propietario">
+                  <Section title="Propietario" hint={form.propietario ? 'Datos heredados de la cuenta' : null}>
                     <div className="kf-grid">
                       <KF label="Propietario (cuenta)">
                         {form.propietario ? (
                           <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',background:'var(--accent-lt)',width:'100%'}}>
                             <span style={{fontWeight:600,color:'var(--accent)',fontSize:12,flex:1}}>{form.propietario}</span>
-                            <button onClick={()=>set('propietario','')} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}}>✕</button>
+                            <button onClick={()=>{ set('propietario',''); set('tipo_entidad',''); set('pais',''); set('ciudad_sede','') }} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}} title="Quitar propietario">✕</button>
                           </div>
                         ) : (
                           <div style={{position:'relative'}}>
@@ -499,7 +499,13 @@ export default function FichaPropietario() {
                                 {propResults.length === 0 ? (
                                   <div style={{padding:'10px 12px',color:'var(--text4)',fontSize:11}}>Sin resultados</div>
                                 ) : propResults.map(a => (
-                                  <div key={a.dynamics_id} onMouseDown={() => { set('propietario', a.nombre); setPropSearch(''); setShowPropDD(false) }}
+                                  <div key={a.dynamics_id} onMouseDown={() => {
+                                    set('propietario', a.nombre)
+                                    if (a.tipo)   set('tipo_entidad', a.tipo)
+                                    if (a.pais)   set('pais', a.pais)
+                                    if (a.ciudad) set('ciudad_sede', a.ciudad)
+                                    setPropSearch(''); setShowPropDD(false)
+                                  }}
                                     style={{padding:'7px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:11}}>
                                     <div style={{fontWeight:600}}>{a.nombre}</div>
                                     <div style={{color:'var(--text4)',fontSize:10,marginTop:2}}>{[a.tipo, a.sector].filter(Boolean).join(' · ') || a.dynamics_id}</div>
@@ -510,10 +516,17 @@ export default function FichaPropietario() {
                           </div>
                         )}
                       </KF>
-                      <KF label="CIF / NIF" value={form.cif} set={(v)=>set('cif',v)} mono/>
-                      <KF label="Tipo entidad" value={form.tipo_entidad} set={(v)=>set('tipo_entidad',v)}/>
-                      <KF label="País" value={form.pais} set={(v)=>set('pais',v)}/>
-                      <KF label="Ciudad sede" value={form.ciudad_sede} set={(v)=>set('ciudad_sede',v)}/>
+                      {(() => {
+                        const lockProp = !!form.propietario
+                        return (
+                          <>
+                            <KF label="CIF / NIF" value={form.cif} {...(lockProp ? {} : { set:(v)=>set('cif',v) })} mono/>
+                            <KF label="Tipo entidad" value={form.tipo_entidad} {...(lockProp ? {} : { set:(v)=>set('tipo_entidad',v) })}/>
+                            <KF label="País" value={form.pais} {...(lockProp ? {} : { set:(v)=>set('pais',v) })}/>
+                            <KF label="Ciudad sede" value={form.ciudad_sede} {...(lockProp ? {} : { set:(v)=>set('ciudad_sede',v) })}/>
+                          </>
+                        )
+                      })()}
                       <KF label="Perfil inversor">
                         <select className="kf-sel" value={form.perfil} onChange={e=>set('perfil',e.target.value)}>
                           {['Core','Value-add','Oportunista','Institucional','Privado'].map(o=><option key={o}>{o}</option>)}
@@ -1042,11 +1055,16 @@ export default function FichaPropietario() {
   )
 }
 
-// Sección editorial · título serif + hairline · opcional `tinted` añade fondo crema sutil
+// Sección editorial · caja sutil siempre · título serif + hairline interior
 function Section({title, hint, tinted, children, style}) {
-  const wrap = tinted
-    ? {marginBottom:18, padding:'18px 20px 20px', background:'#faf8f4', border:'1px solid #f0ebe0', borderRadius:4, ...style}
-    : {marginBottom:18, padding:'18px 4px 20px', ...style}
+  const wrap = {
+    marginBottom: 14,
+    padding: '16px 20px 18px',
+    background: tinted ? '#f4efe3' : '#fbfaf6',
+    border: '1px solid var(--border)',
+    borderRadius: 4,
+    ...style,
+  }
   return (
     <section style={wrap}>
       <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', paddingBottom:10, marginBottom:14, borderBottom:'1px solid var(--border)'}}>

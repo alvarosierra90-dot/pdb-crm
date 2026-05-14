@@ -1387,11 +1387,16 @@ function FField({label,req,invalid,children}){
   )
 }
 
-// Sección editorial · título serif + hairline · opcional `tinted` añade fondo crema sutil
+// Sección editorial · caja sutil siempre · título serif + hairline interior
 function Section({title, hint, tinted, children, style}){
-  const wrap = tinted
-    ? {marginBottom:18, padding:'18px 20px 20px', background:'#faf8f4', border:'1px solid #f0ebe0', borderRadius:4, ...style}
-    : {marginBottom:18, padding:'18px 4px 20px', ...style}
+  const wrap = {
+    marginBottom: 14,
+    padding: '16px 20px 18px',
+    background: tinted ? '#f4efe3' : '#fbfaf6',
+    border: '1px solid var(--border)',
+    borderRadius: 4,
+    ...style,
+  }
   return (
     <section style={wrap}>
       <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', paddingBottom:10, marginBottom:14, borderBottom:'1px solid var(--border)'}}>
