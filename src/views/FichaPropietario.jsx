@@ -468,12 +468,11 @@ export default function FichaPropietario() {
           {/* TAB: DATOS */}
           {tab==='datos' && (
             <div className="tab-content active">
-              <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,alignItems:'start'}}>
+              <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 48px',alignItems:'start',padding:'28px 36px'}}>
 
                 {/* Col 1: Propietario */}
-                <div className="va-meta-card" style={{ overflow:'visible' }}>
-                  <div className="va-meta-head"><span className="dot"/>Propietario</div>
-                  <div style={{padding:'10px 14px'}}>
+                <div style={{minWidth:0, overflow:'visible'}}>
+                  <Section title="Propietario">
                     <div className="kf-grid">
                       <KF label="ID" value={form.id} mono/>
                       <KF label="Propietario (cuenta)">
@@ -564,13 +563,12 @@ export default function FichaPropietario() {
                         })}
                       </div>
                     </div>
-                  </div>
+                  </Section>
                 </div>
 
-                {/* Col 2: Activo vinculado */}
-                <div className="va-meta-card" style={{ overflow:'visible' }}>
-                  <div className="va-meta-head accent-purple"><span className="dot"/>Activo vinculado</div>
-                  <div style={{padding:'10px 14px'}}>
+                {/* Col 2: Activo vinculado + Financiación */}
+                <div style={{minWidth:0, overflow:'visible'}}>
+                  <Section title="Activo vinculado">
                     <div className="kf-grid">
                       <KF label="Activo">
                         {form.activo ? (
@@ -662,13 +660,9 @@ export default function FichaPropietario() {
                         <span style={{fontSize:13,fontWeight:700,fontFamily:'var(--mono)',color:plusvaliaNum.startsWith('+')?'var(--green)':'var(--red)'}}>{plusvaliaNum}</span>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </Section>
 
-                {/* Col 3: Financiación */}
-                <div className="va-meta-card">
-                  <div className="va-meta-head accent-green"><span className="dot"/>Financiación y estrategia</div>
-                  <div style={{padding:'10px 14px'}}>
+                  <Section title="Financiación y estrategia">
                     <div className="kf-grid">
                       <KF label="LTV %" value={form.ltv} set={(v)=>set('ltv',v)} mono
                         extra={<span style={{fontSize:10,color:parseFloat(form.ltv)>55?'var(--amber)':'var(--green)',fontWeight:700,marginLeft:4}}>{parseFloat(form.ltv)>55?'⚠ Alto':'✓ OK'}</span>}
@@ -703,7 +697,7 @@ export default function FichaPropietario() {
                         <textarea className="kf-inp" value={form.nota_estrategia} onChange={e=>set('nota_estrategia',e.target.value)} rows={3} style={{width:'100%',marginTop:3,resize:'vertical'}}/>
                       </div>
                     </div>
-                  </div>
+                  </Section>
                 </div>
 
               </div>
@@ -1031,6 +1025,19 @@ export default function FichaPropietario() {
         />
       )}
     </div>
+  )
+}
+
+// Sección editorial · sin caja, solo título serif + hairline
+function Section({title, hint, children, style}) {
+  return (
+    <section style={{marginBottom:32, ...style}}>
+      <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', paddingBottom:10, marginBottom:14, borderBottom:'1px solid var(--border)'}}>
+        <h3 style={{fontFamily:'var(--serif)', fontSize:15, fontWeight:500, color:'var(--ink)', letterSpacing:'-.005em', margin:0}}>{title}</h3>
+        {hint && <span style={{fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.12em'}}>{hint}</span>}
+      </div>
+      <div>{children}</div>
+    </section>
   )
 }
 

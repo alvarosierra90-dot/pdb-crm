@@ -726,13 +726,11 @@ export default function FichaArrendatario() {
           {/* Tab Datos */}
           {tab==='datos' && (
             <div className="tab-content active">
-              <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,alignItems:'start'}}>
+              <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 48px',alignItems:'start',padding:'28px 36px'}}>
 
-                {/* Columna izquierda — Inquilino */}
-                <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
-                  <div className="va-meta-card" style={{ overflow:'visible' }}>
-                    <div className="va-meta-head"><span className="dot"/>Inquilino</div>
-                    <div style={{padding:'10px 14px'}}>
+                {/* Columna izquierda */}
+                <div style={{minWidth:0}}>
+                  <Section title="Inquilino">
                       {/* Activo · lupa para vincular; si ya hay activo, chip clicable + ✕ para cambiar */}
                       <FField label="Activo" req invalid={invalidFields.has('activo')}>
                         {form.activo ? (
@@ -896,15 +894,9 @@ export default function FichaArrendatario() {
                           <span style={{fontSize:11,color:'var(--text3)'}}>Para stacking plan</span>
                         </div>
                       </FField>
-                    </div>
-                  </div>
-                </div>
+                  </Section>
 
-                {/* Columna central — Condiciones / Aparcamiento / Intervinientes */}
-                <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-green"><span className="dot"/>Condiciones económicas</div>
-                    <div style={{padding:'10px 14px'}}>
+                  <Section title="Condiciones económicas">
                       <FField label="Superficie total ocupada (m²)" req invalid={invalidFields.has('superficie')}><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.superficie ? 'normal' : 'italic' }} value={form.superficie} onChange={e=>set('superficie',e.target.value)}/></FField>
                       <FField label="Asking rent (€/m²/mes)"><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.asking_rent ? 'normal' : 'italic' }} value={form.asking_rent} onChange={e=>set('asking_rent',e.target.value)}/></FField>
                       <FField label="Closing rent (€/m²/mes)" req invalid={invalidFields.has('closing_rent')}><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.closing_rent ? 'normal' : 'italic' }} value={form.closing_rent} onChange={e=>set('closing_rent',e.target.value)}/></FField>
@@ -912,44 +904,39 @@ export default function FichaArrendatario() {
                         <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontWeight:700,color: rentaMensual ? 'var(--accent)' : 'var(--text4)', fontStyle: rentaMensual ? 'normal' : 'italic',background:'var(--gray-lt)'}}>{rentaMensual ? `${rentaMensual} €` : 'por completar'}</div>
                       </FField>
                       <FField label="Nº meses carencia"><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.meses_carencia ? 'normal' : 'italic' }} value={form.meses_carencia} onChange={e=>set('meses_carencia',e.target.value)}/></FField>
-                    </div>
-                  </div>
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-purple"><span className="dot"/>Aparcamiento</div>
-                    <div style={{padding:'10px 14px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                  </Section>
+
+                  <Section title="Aparcamiento">
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 14px'}}>
                       <FField label="Plazas interior"><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.plazas_int ? 'normal' : 'italic' }} value={form.plazas_int} onChange={e=>set('plazas_int',e.target.value)}/></FField>
                       <FField label="Precio/plaza int. (€)"><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.precio_int ? 'normal' : 'italic' }} value={form.precio_int} onChange={e=>set('precio_int',e.target.value)}/></FField>
                       <FField label="Plazas exterior"><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.plazas_ext ? 'normal' : 'italic' }} value={form.plazas_ext} onChange={e=>set('plazas_ext',e.target.value)}/></FField>
                       <FField label="Precio/plaza ext. (€)"><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.precio_ext ? 'normal' : 'italic' }} value={form.precio_ext} onChange={e=>set('precio_ext',e.target.value)}/></FField>
                     </div>
-                  </div>
-                  <div className="va-meta-card">
-                    <div className="va-meta-head"><span className="dot"/>Intervinientes</div>
-                    <div style={{padding:'10px 14px'}}>
-                      <FField label="Agente activo">
-                        <select className="of-sel" value={form.agente_activo} onChange={e=>set('agente_activo',e.target.value)}>
-                          <option>Sierra Alvaro</option><option>GOMEZ Ignacio</option><option>García Marta</option><option>López Carmen</option>
-                        </select>
-                      </FField>
-                      <FField label="Agente pasivo (cobroker)"><input className="of-inp" value={form.agente_pasivo} onChange={e=>set('agente_pasivo',e.target.value)}/></FField>
-                    </div>
-                  </div>
+                  </Section>
+
+                  <Section title="Intervinientes">
+                    <FField label="Agente activo">
+                      <select className="of-sel" value={form.agente_activo} onChange={e=>set('agente_activo',e.target.value)}>
+                        <option>Sierra Alvaro</option><option>GOMEZ Ignacio</option><option>García Marta</option><option>López Carmen</option>
+                      </select>
+                    </FField>
+                    <FField label="Agente pasivo (cobroker)"><input className="of-inp" value={form.agente_pasivo} onChange={e=>set('agente_pasivo',e.target.value)}/></FField>
+                  </Section>
                 </div>
 
-                {/* Columna derecha — Workplace / Contrato / Acción */}
-                <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-purple"><span className="dot"/>Workplace</div>
-                    <div style={{padding:'10px 14px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                {/* Columna derecha */}
+                <div style={{minWidth:0}}>
+                  <Section title="Workplace">
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 14px'}}>
                       <FField label="Aportación obras (€/m²)"><input className="of-inp" value={form.aportacion_obras_m2} onChange={e=>set('aportacion_obras_m2',e.target.value)}/></FField>
                       <FField label="Aportación total (€)">
                         <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontWeight:700,color:'var(--accent)',background:'var(--gray-lt)'}}>{aportacionTotal} €</div>
                       </FField>
                     </div>
-                  </div>
-                  <div className="va-meta-card">
-                    <div className="va-meta-head"><span className="dot"/>Contrato</div>
-                    <div style={{padding:'10px 14px'}}>
+                  </Section>
+
+                  <Section title="Contrato">
                       <FField label="Tipo de contrato">
                         <select className="of-sel" value={form.tipo_contrato} onChange={e=>set('tipo_contrato',e.target.value)}>
                           <option>Alquiler comercial</option><option>Alquiler industrial</option><option>Arrendamiento mixto</option>
@@ -975,23 +962,20 @@ export default function FichaArrendatario() {
                       <FField label="Fecha salida efectiva">
                         <input type="date" className="of-inp" value={toInputDate(form.fecha_salida)} onChange={e=>set('fecha_salida',fromInputDate(e.target.value))}/>
                       </FField>
-                    </div>
-                  </div>
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-red"><span className="dot"/>Acción comercial</div>
-                    <div style={{padding:'10px 14px'}}>
-                      <FField label="Recordatorio (meses antes de break option)" req invalid={invalidFields.has('meses_recordatorio')}>
-                        <input className="of-inp" type="number" value={form.meses_recordatorio} onChange={e=>set('meses_recordatorio',e.target.value)} min="1" max="24"/>
-                      </FField>
-                      <FField label="Fecha recordatorio (automática)">
-                        <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontWeight:700,color:diasRecord!==null&&diasRecord<=0?'var(--red)':diasRecord!==null&&diasRecord<=30?'var(--amber)':'var(--text)',background:'var(--gray-lt)'}}>
-                          {fechaRecordatorio}
-                          {diasRecord!==null&&diasRecord<=0&&<span style={{fontSize:10,fontWeight:700,color:'var(--red)',marginLeft:8}}>⚠ Vencida</span>}
-                          {diasRecord!==null&&diasRecord>0&&diasRecord<=30&&<span style={{fontSize:10,fontWeight:700,color:'var(--amber)',marginLeft:8}}>En {diasRecord}d</span>}
-                        </div>
-                      </FField>
-                    </div>
-                  </div>
+                  </Section>
+
+                  <Section title="Acción comercial">
+                    <FField label="Recordatorio (meses antes de break option)" req invalid={invalidFields.has('meses_recordatorio')}>
+                      <input className="of-inp" type="number" value={form.meses_recordatorio} onChange={e=>set('meses_recordatorio',e.target.value)} min="1" max="24"/>
+                    </FField>
+                    <FField label="Fecha recordatorio (automática)">
+                      <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontWeight:700,color:diasRecord!==null&&diasRecord<=0?'var(--red)':diasRecord!==null&&diasRecord<=30?'var(--amber)':'var(--text)',background:'var(--gray-lt)'}}>
+                        {fechaRecordatorio}
+                        {diasRecord!==null&&diasRecord<=0&&<span style={{fontSize:10,fontWeight:700,color:'var(--red)',marginLeft:8}}>⚠ Vencida</span>}
+                        {diasRecord!==null&&diasRecord>0&&diasRecord<=30&&<span style={{fontSize:10,fontWeight:700,color:'var(--amber)',marginLeft:8}}>En {diasRecord}d</span>}
+                      </div>
+                    </FField>
+                  </Section>
                 </div>
 
               </div>
@@ -1341,5 +1325,18 @@ function FField({label,req,invalid,children}){
       <div className="of-lbl" style={invalid?{color:'var(--red)',fontWeight:600}:req?{color:'var(--text)'}:{}}>{(req||invalid)&&<span style={{color:'var(--red)',marginRight:2}}>*</span>}{label}</div>
       <div style={invalid?{borderRadius:'var(--r)',boxShadow:'0 0 0 2px var(--red)',overflow:'hidden'}:{}}>{children}</div>
     </div>
+  )
+}
+
+// Sección editorial · sin caja, solo título serif + hairline
+function Section({title, hint, children, style}){
+  return (
+    <section style={{marginBottom:32, ...style}}>
+      <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', paddingBottom:10, marginBottom:14, borderBottom:'1px solid var(--border)'}}>
+        <h3 style={{fontFamily:'var(--serif)', fontSize:15, fontWeight:500, color:'var(--ink)', letterSpacing:'-.005em', margin:0}}>{title}</h3>
+        {hint && <span style={{fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.12em'}}>{hint}</span>}
+      </div>
+      <div>{children}</div>
+    </section>
   )
 }
