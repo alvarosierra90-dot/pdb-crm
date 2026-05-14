@@ -477,7 +477,6 @@ export default function FichaPropietario() {
                 <div style={{minWidth:0, overflow:'visible'}}>
                   <Section title="Propietario">
                     <div className="kf-grid">
-                      <KF label="ID" value={form.id} mono/>
                       <KF label="Propietario (cuenta)">
                         {form.propietario ? (
                           <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',background:'var(--accent-lt)',width:'100%'}}>
@@ -571,7 +570,7 @@ export default function FichaPropietario() {
 
                 {/* Col 2: Activo vinculado + Financiación */}
                 <div style={{minWidth:0, overflow:'visible'}}>
-                  <Section title="Activo vinculado" hint={form.activo ? 'Datos heredados del activo' : null}>
+                  <Section title="Activo vinculado" hint={form.activo ? 'Datos heredados del activo' : null} tinted>
                     <div className="kf-grid">
                       <KF label="Activo">
                         {form.activo ? (
@@ -1043,10 +1042,13 @@ export default function FichaPropietario() {
   )
 }
 
-// Sección editorial · sin caja, solo título serif + hairline
-function Section({title, hint, children, style}) {
+// Sección editorial · título serif + hairline · opcional `tinted` añade fondo crema sutil
+function Section({title, hint, tinted, children, style}) {
+  const wrap = tinted
+    ? {marginBottom:18, padding:'18px 20px 20px', background:'#faf8f4', border:'1px solid #f0ebe0', borderRadius:4, ...style}
+    : {marginBottom:18, padding:'18px 4px 20px', ...style}
   return (
-    <section style={{marginBottom:32, ...style}}>
+    <section style={wrap}>
       <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', paddingBottom:10, marginBottom:14, borderBottom:'1px solid var(--border)'}}>
         <h3 style={{fontFamily:'var(--serif)', fontSize:15, fontWeight:500, color:'var(--ink)', letterSpacing:'-.005em', margin:0}}>{title}</h3>
         {hint && <span style={{fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.12em'}}>{hint}</span>}

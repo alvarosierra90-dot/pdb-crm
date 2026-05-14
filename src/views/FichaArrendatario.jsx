@@ -776,6 +776,42 @@ export default function FichaArrendatario() {
                           ? <div style={{padding:'6px 9px',border:'1px solid var(--border2)',borderRadius:'var(--r)',fontSize:12,color:'var(--text2)'}}>{form.activo_direccion}</div>
                           : <div style={{padding:'6px 9px',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:12,fontStyle:'italic',color:'var(--text4)'}}>por completar</div>}
                       </FField>
+
+                      {/* Campos heredados del activo · read-only cuando hay activo */}
+                      {(() => {
+                        const lock = !!form.activo
+                        const ReadOnly = ({value, placeholder='por completar'}) => (
+                          <div style={{padding:'6px 9px',border:'1px solid var(--border2)',borderRadius:'var(--r)',fontSize:12,color:value?'var(--text2)':'var(--text4)',fontStyle:value?'normal':'italic',background:'var(--gray-lt)'}}>{value || placeholder}</div>
+                        )
+                        return (
+                          <>
+                            <FField label="Zona">
+                              {lock
+                                ? <ReadOnly value={form.zona}/>
+                                : <input className="of-inp" value={form.zona||''} onChange={e=>set('zona',e.target.value)} placeholder="por completar" style={{ fontStyle: form.zona ? 'normal' : 'italic' }}/>}
+                            </FField>
+                            <FField label="Sub-zona">
+                              {lock
+                                ? <ReadOnly value={form.subzona}/>
+                                : <input className="of-inp" value={form.subzona||''} onChange={e=>set('subzona',e.target.value)} placeholder="por completar" style={{ fontStyle: form.subzona ? 'normal' : 'italic' }}/>}
+                            </FField>
+                            <FField label="Área">
+                              {lock
+                                ? <ReadOnly value={form.area}/>
+                                : <select className="of-sel" value={form.area} onChange={e=>set('area',e.target.value)} style={{ color: form.area ? 'var(--text)' : 'var(--text4)', fontStyle: form.area ? 'normal' : 'italic' }}>
+                                    <option value="">por completar</option>
+                                    <option>CBD</option><option>Centro</option><option>Descentralizado</option><option>Periferia</option><option>Corredor de Carretera</option>
+                                  </select>}
+                            </FField>
+                            <FField label="Uso">
+                              {lock
+                                ? <ReadOnly value={form.uso}/>
+                                : <input className="of-inp" value={form.uso||''} onChange={e=>set('uso',e.target.value)} placeholder="por completar" style={{ fontStyle: form.uso ? 'normal' : 'italic' }}/>}
+                            </FField>
+                          </>
+                        )
+                      })()}
+
                       <div style={{display:'flex',gap:12,marginBottom:8}}>
                         <label style={{display:'flex',alignItems:'center',gap:5,fontSize:11,cursor:'pointer'}}>
                           <input type="checkbox" checked={form.persona_fisica} onChange={e=>set('persona_fisica',e.target.checked)} style={{accentColor:'var(--accent)'}}/>
@@ -898,14 +934,6 @@ export default function FichaArrendatario() {
                           <option>Tecnología</option><option>Logística</option><option>Sanidad</option><option>Comunicación / Media</option><option>Finanzas / Inversión</option><option>Consultoría</option><option>Retail / Distribución</option><option>Hostelería</option>
                         </select>
                       </FField>
-                      <FField label="Área">
-                        {form.activo
-                          ? <div style={{padding:'6px 9px',border:'1px solid var(--border2)',borderRadius:'var(--r)',fontSize:12,color:form.area?'var(--text2)':'var(--text4)',fontStyle:form.area?'normal':'italic',background:'var(--gray-lt)'}}>{form.area || 'heredado del activo'}</div>
-                          : <select className="of-sel" value={form.area} onChange={e=>set('area',e.target.value)} style={{ color: form.area ? 'var(--text)' : 'var(--text4)', fontStyle: form.area ? 'normal' : 'italic' }}>
-                              <option value="">por completar</option>
-                              <option>CBD</option><option>Centro</option><option>Descentralizado</option><option>Periferia</option><option>Corredor de Carretera</option>
-                            </select>}
-                      </FField>
                       <FField label="Estado contrato">
                         <select className="of-sel" value={form.estado} onChange={e=>set('estado',e.target.value)} style={{ color: form.estado ? 'var(--text)' : 'var(--text4)', fontStyle: form.estado ? 'normal' : 'italic' }}>
                           <option value="">por completar</option>
@@ -923,8 +951,12 @@ export default function FichaArrendatario() {
 
                 {/* Columna 2 — Condiciones / Aparcamiento / Intervinientes */}
                 <div style={{minWidth:0}}>
-                  <Section title="Condiciones económicas">
-                      <FField label="Superficie total ocupada (m²)" req invalid={invalidFields.has('superficie')}><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.superficie ? 'normal' : 'italic' }} value={form.superficie} onChange={e=>set('superficie',e.target.value)}/></FField>
+                  <Section title="Condiciones económicas" tinted>
+                      <FField label="Superficie total ocupada (m²)" req invalid={invalidFields.has('superficie')}>
+                        {form.superficie
+                          ? <input className="of-inp" value={form.superficie} onChange={e=>set('superficie',e.target.value)} style={{fontFamily:'var(--mono)'}}/>
+                          : <div style={{padding:'6px 9px',border:'1px dashed var(--border)',borderRadius:'var(--r)',fontSize:12,color:'var(--text4)',fontStyle:'italic',background:'var(--gray-lt)'}}>por asignar en stacking plan</div>}
+                      </FField>
                       <FField label="Asking rent (€/m²/mes)"><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.asking_rent ? 'normal' : 'italic' }} value={form.asking_rent} onChange={e=>set('asking_rent',e.target.value)}/></FField>
                       <FField label="Closing rent (€/m²/mes)" req invalid={invalidFields.has('closing_rent')}><input className="of-inp" placeholder="por completar" style={{ fontStyle: form.closing_rent ? 'normal' : 'italic' }} value={form.closing_rent} onChange={e=>set('closing_rent',e.target.value)}/></FField>
                       <FField label="Renta mensual (€)">
@@ -942,7 +974,7 @@ export default function FichaArrendatario() {
                     </div>
                   </Section>
 
-                  <Section title="Intervinientes">
+                  <Section title="Intervinientes" tinted>
                     <FField label="Agente activo">
                       <select className="of-sel" value={form.agente_activo} onChange={e=>set('agente_activo',e.target.value)}>
                         <option>Sierra Alvaro</option><option>GOMEZ Ignacio</option><option>García Marta</option><option>López Carmen</option>
@@ -963,7 +995,7 @@ export default function FichaArrendatario() {
                     </div>
                   </Section>
 
-                  <Section title="Contrato">
+                  <Section title="Contrato" tinted>
                       <FField label="Tipo de contrato">
                         <select className="of-sel" value={form.tipo_contrato} onChange={e=>set('tipo_contrato',e.target.value)}>
                           <option>Alquiler comercial</option><option>Alquiler industrial</option><option>Arrendamiento mixto</option>
@@ -1355,10 +1387,13 @@ function FField({label,req,invalid,children}){
   )
 }
 
-// Sección editorial · sin caja, solo título serif + hairline
-function Section({title, hint, children, style}){
+// Sección editorial · título serif + hairline · opcional `tinted` añade fondo crema sutil
+function Section({title, hint, tinted, children, style}){
+  const wrap = tinted
+    ? {marginBottom:18, padding:'18px 20px 20px', background:'#faf8f4', border:'1px solid #f0ebe0', borderRadius:4, ...style}
+    : {marginBottom:18, padding:'18px 4px 20px', ...style}
   return (
-    <section style={{marginBottom:32, ...style}}>
+    <section style={wrap}>
       <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', paddingBottom:10, marginBottom:14, borderBottom:'1px solid var(--border)'}}>
         <h3 style={{fontFamily:'var(--serif)', fontSize:15, fontWeight:500, color:'var(--ink)', letterSpacing:'-.005em', margin:0}}>{title}</h3>
         {hint && <span style={{fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.12em'}}>{hint}</span>}
