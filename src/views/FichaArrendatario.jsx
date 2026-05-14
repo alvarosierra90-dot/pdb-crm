@@ -250,6 +250,9 @@ export default function FichaArrendatario() {
     set('activo_direccion', a.direccion || '')
     if (a.propietario) set('propietario', a.propietario)
     if (a.zona)        set('zona', a.zona)
+    if (a.subzona)     set('subzona', a.subzona)
+    if (a.area)        set('area', a.area)
+    if (a.uso)         set('uso', a.uso)
     setLinkedActivoRef(a.ref || null)
     setActivoSearch('')
     setShowActivoDD(false)
@@ -739,7 +742,7 @@ export default function FichaArrendatario() {
                               onClick={() => navigate('ficha-activo', params?.fromActivoRef ? { ref: params.fromActivoRef } : undefined)}
                               style={{fontWeight:600,color:'var(--accent)',fontSize:12,flex:1,cursor:'pointer',textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}
                             >{form.activo} ↗</span>
-                            <button onClick={() => { set('activo',''); set('activo_direccion',''); set('propietario','') }} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}} title="Cambiar activo">✕</button>
+                            <button onClick={() => { set('activo',''); set('activo_direccion',''); set('propietario',''); set('zona',''); set('subzona',''); set('area',''); set('uso','') }} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}} title="Cambiar activo">✕</button>
                           </div>
                         ) : (
                           <div style={{position:'relative'}}>
@@ -779,14 +782,33 @@ export default function FichaArrendatario() {
                           Persona física
                         </label>
                         <label style={{display:'flex',alignItems:'center',gap:5,fontSize:11,cursor:'pointer'}}>
-                          <input type="checkbox" checked={form.tenant_desconocido} onChange={e=>set('tenant_desconocido',e.target.checked)} style={{accentColor:'var(--accent)'}}/>
+                          <input
+                            type="checkbox"
+                            checked={form.tenant_desconocido}
+                            onChange={e => {
+                              const checked = e.target.checked
+                              set('tenant_desconocido', checked)
+                              if (checked) {
+                                // Al marcar desconocido, limpiar cualquier cuenta seleccionada
+                                set('tenant', '')
+                                setTenantSearch('')
+                                setShowTenantDD(false)
+                              }
+                            }}
+                            style={{accentColor:'var(--accent)'}}
+                          />
                           Arrendatario desconocido
                         </label>
                       </div>
 
-                      {/* Arrendatario (cuenta) — buscador lupa sobre dynamics_accounts */}
-                      <FField label="Arrendatario (cuenta)" req invalid={invalidFields.has('tenant')}>
-                        {form.tenant ? (
+                      {/* Arrendatario (cuenta) — buscador lupa sobre dynamics_accounts.
+                          Bloqueado cuando se marca "Arrendatario desconocido". */}
+                      <FField label="Arrendatario (cuenta)" req={!form.tenant_desconocido} invalid={invalidFields.has('tenant')}>
+                        {form.tenant_desconocido ? (
+                          <div style={{padding:'6px 9px',border:'1px dashed var(--border)',borderRadius:'var(--r)',fontSize:11,color:'var(--text4)',fontStyle:'italic',background:'var(--gray-lt)'}}>
+                            Arrendatario desconocido — desmarca la casilla para buscar una cuenta
+                          </div>
+                        ) : form.tenant ? (
                           <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',background:'var(--accent-lt)',width:'100%'}}>
                             <span style={{fontWeight:600,color:'var(--accent)',fontSize:12,flex:1}}>{form.tenant}</span>
                             <button onClick={() => set('tenant','')} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}}>✕</button>
@@ -877,10 +899,12 @@ export default function FichaArrendatario() {
                         </select>
                       </FField>
                       <FField label="Área">
-                        <select className="of-sel" value={form.area} onChange={e=>set('area',e.target.value)} style={{ color: form.area ? 'var(--text)' : 'var(--text4)', fontStyle: form.area ? 'normal' : 'italic' }}>
-                          <option value="">por completar</option>
-                          <option>CBD</option><option>Centro</option><option>Descentralizado</option><option>Periferia</option><option>Corredor de Carretera</option>
-                        </select>
+                        {form.activo
+                          ? <div style={{padding:'6px 9px',border:'1px solid var(--border2)',borderRadius:'var(--r)',fontSize:12,color:form.area?'var(--text2)':'var(--text4)',fontStyle:form.area?'normal':'italic',background:'var(--gray-lt)'}}>{form.area || 'heredado del activo'}</div>
+                          : <select className="of-sel" value={form.area} onChange={e=>set('area',e.target.value)} style={{ color: form.area ? 'var(--text)' : 'var(--text4)', fontStyle: form.area ? 'normal' : 'italic' }}>
+                              <option value="">por completar</option>
+                              <option>CBD</option><option>Centro</option><option>Descentralizado</option><option>Periferia</option><option>Corredor de Carretera</option>
+                            </select>}
                       </FField>
                       <FField label="Estado contrato">
                         <select className="of-sel" value={form.estado} onChange={e=>set('estado',e.target.value)} style={{ color: form.estado ? 'var(--text)' : 'var(--text4)', fontStyle: form.estado ? 'normal' : 'italic' }}>

@@ -210,7 +210,10 @@ export default function FichaPropietario() {
     set('activo_direccion', a.direccion || '')
     if (a.propietario) set('propietario', a.propietario)
     if (a.zona)        set('zona', a.zona)
+    if (a.subzona)     set('subzona', a.subzona)
+    if (a.superficie || a.sba) set('superficie', String(a.superficie || a.sba))
     if (a.uso)         set('uso', a.uso)
+    if (a.area)        set('area', a.area)
     setLinkedActivoRef(a.ref || null)
     setActivoSearch('')
     setShowActivoDD(false)
@@ -568,13 +571,13 @@ export default function FichaPropietario() {
 
                 {/* Col 2: Activo vinculado + Financiación */}
                 <div style={{minWidth:0, overflow:'visible'}}>
-                  <Section title="Activo vinculado">
+                  <Section title="Activo vinculado" hint={form.activo ? 'Datos heredados del activo' : null}>
                     <div className="kf-grid">
                       <KF label="Activo">
                         {form.activo ? (
                           <div style={{display:'inline-flex',alignItems:'center',gap:6,width:'100%'}}>
                             <span className="asset-link" style={{cursor:'pointer',flex:1,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}} onClick={()=>navigate('ficha-activo', params?.fromActivoRef ? { ref: params.fromActivoRef } : undefined)}>{form.activo} ↗</span>
-                            <button onClick={() => { set('activo',''); set('activo_direccion',''); set('zona',''); set('uso','') }} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}} title="Cambiar activo">✕</button>
+                            <button onClick={() => { set('activo',''); set('activo_direccion',''); set('zona',''); set('subzona',''); set('superficie',''); set('uso',''); set('area','') }} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}} title="Cambiar activo">✕</button>
                           </div>
                         ) : (
                           <div style={{position:'relative'}}>
@@ -608,15 +611,24 @@ export default function FichaPropietario() {
                           ? <span style={{ color:'var(--text2)' }}>{form.activo_direccion}</span>
                           : <span style={{fontStyle:'italic', color:'var(--text4)'}}>por completar</span>}
                       </KF>
-                      <KF label="Zona" value={form.zona} set={(v)=>set('zona',v)}/>
-                      <KF label="Sub-zona" value={form.subzona} set={(v)=>set('subzona',v)}/>
-                      <KF label="Superficie" value={form.superficie} set={(v)=>set('superficie',v)} mono suffix="m²"/>
-                      <KF label="Uso" value={form.uso} set={(v)=>set('uso',v)}/>
-                      <KF label="Área">
-                        <select className="kf-sel" value={form.area} onChange={e=>set('area',e.target.value)}>
-                          {['CBD','Centro','Descentralizado','Periferia'].map(o=><option key={o}>{o}</option>)}
-                        </select>
-                      </KF>
+                      {(() => {
+                        const lock = !!form.activo
+                        return (
+                          <>
+                            <KF label="Zona" value={form.zona} {...(lock ? {} : { set:(v)=>set('zona',v) })}/>
+                            <KF label="Sub-zona" value={form.subzona} {...(lock ? {} : { set:(v)=>set('subzona',v) })}/>
+                            <KF label="Superficie" value={form.superficie} {...(lock ? {} : { set:(v)=>set('superficie',v) })} mono suffix="m²"/>
+                            <KF label="Uso" value={form.uso} {...(lock ? {} : { set:(v)=>set('uso',v) })}/>
+                            <KF label="Área">
+                              {lock
+                                ? <div className="kf-val">{form.area || <span style={{fontStyle:'italic',color:'var(--text4)'}}>por completar</span>}</div>
+                                : <select className="kf-sel" value={form.area} onChange={e=>set('area',e.target.value)}>
+                                    {['CBD','Centro','Descentralizado','Periferia'].map(o=><option key={o}>{o}</option>)}
+                                  </select>}
+                            </KF>
+                          </>
+                        )
+                      })()}
                       <KF label="Tipología op.">
                         <select className="kf-sel" value={form.tipologia} onChange={e=>set('tipologia',e.target.value)}>
                           {['Asset deal','Share deal'].map(o=><option key={o}>{o}</option>)}
