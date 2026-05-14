@@ -536,8 +536,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
             return (
               <div className="tab-content active"><div className="info-pad">
 
-                {/* ─── FILA 1: Estado visual (1/3) + Vinculaciones (2/3) ─── */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1.6fr', gap:12, marginBottom:12 }}>
+                {/* ─── FILA 1: Estado (1/2) + Vinculaciones (1/2) · alineado con fila 2 ─── */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
 
                   {/* === ESTADO DE LA DEMANDA · cuadro visual grande === */}
                   <div className="va-card" style={{ marginBottom:0 }}>
