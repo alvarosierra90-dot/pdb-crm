@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
-import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
+import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal, EQUIPOS_SAVILLS, MIEMBROS_POR_EQUIPO } from '../components/EquipoTrabajoCard'
 import FirmarMandatoModal from '../components/FirmarMandatoModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 
@@ -65,6 +65,16 @@ const ESTADO_OPTS = [
 ]
 const ESTADO_LABEL = Object.fromEntries(ESTADO_OPTS.map(o => [o.v, o.label]))
 
+// Paleta visual por estado · usada en header, badge de estado grande y lista
+const ESTADO_COLOR = {
+  ongoing:           { tag:'tag-green', headerCol:'var(--green)',  bg:'#dcfce7', bd:'#86efac', text:'#15803d', icon:'●' },
+  potencial:         { tag:'tag-blue',  headerCol:'var(--accent)', bg:'#dbeafe', bd:'#93c5fd', text:'#1d4ed8', icon:'◌' },
+  paralizada:        { tag:'tag-amber', headerCol:'var(--amber)',  bg:'#fef3c7', bd:'#fcd34d', text:'#92400e', icon:'⏸' },
+  descartada:        { tag:'tag-red',   headerCol:'#dc2626',       bg:'#fee2e2', bd:'#fca5a5', text:'#991b1b', icon:'✕' },
+  cerrada_concedido: { tag:'tag-green', headerCol:'var(--green)',  bg:'#dcfce7', bd:'#86efac', text:'#15803d', icon:'🏆' },
+  cerrada_perdida:   { tag:'tag-red',   headerCol:'#dc2626',       bg:'#fee2e2', bd:'#fca5a5', text:'#991b1b', icon:'✕' },
+}
+
 function StubTab({ label }) {
   return (
     <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
@@ -109,6 +119,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [saveError, setSaveError] = useState(null)
   const [showFirmarModal, setShowFirmarModal] = useState(false)
   const [oportunidad, setOportunidad] = useState(null)
+  const [showAddEq, setShowAddEq] = useState(false)
+  const [newEqDraft, setNewEqDraft] = useState({ equipo:'', usuario:'', rol:'Soporte' })
 
   const [form, setForm] = useState({
     nombre:'', estatus:'', notas:'', motivo_descarte:'',
@@ -362,7 +374,10 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   📍 {[cuenta?.direccion, cuenta?.codigo_postal, cuenta?.ciudad].filter(Boolean).join(', ') || 'Dirección no disponible'} · Creada: {fmtDate(demanda.created_at)} · {CURRENT_USER.nombre}
                 </div>
                 <div className="ah-tags">
-                  <span className="tag tag-green">● {ESTADO_LABEL[demanda.estatus] || demanda.estatus || '—'}</span>
+                  {(() => {
+                    const ec = ESTADO_COLOR[form.estatus] || ESTADO_COLOR.ongoing
+                    return <span className={`tag ${ec.tag}`}>{ec.icon} {ESTADO_LABEL[form.estatus] || form.estatus || '—'}</span>
+                  })()}
                   {visNaturaleza && (
                     visNaturaleza === 'Inversión'
                       ? <span className="tag" style={{ background:'#fffbeb', color:'var(--amber)', border:'1px solid var(--amber-bd)', fontWeight:700 }}>🏦 Capital Markets</span>
@@ -374,19 +389,31 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 </div>
               </div>
               <div style={{ flexShrink:0, display:'flex', flexDirection:'column', gap:4, alignSelf:'flex-start' }}>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:1, background:'var(--border)', border:'1px solid var(--border)', borderRadius:'var(--r)', overflow:'hidden', fontSize:10 }}>
-                  {[
-                    ['Estado', ESTADO_LABEL[demanda.estatus] || demanda.estatus || '—', 'var(--green)'],
-                    ['Confidencial', demandaConfidential ? 'Sí' : 'No', demandaConfidential ? 'var(--amber)' : null],
-                    ['Equipo', '—', null],
-                    ['Responsable', CURRENT_USER.nombre, 'var(--accent)'],
-                  ].map(([lbl,val,col]) => (
-                    <div key={lbl} style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
-                      <div style={{ fontSize:9, color:'var(--text4)' }}>{lbl}</div>
-                      <div style={{ fontWeight:600, color:col || 'var(--text)' }}>{val}</div>
+                {(() => {
+                  const ec = ESTADO_COLOR[form.estatus] || ESTADO_COLOR.ongoing
+                  const equipoLen = Array.isArray(demanda.equipo_trabajo) ? demanda.equipo_trabajo.length : 0
+                  const equipos = [...new Set((demanda.equipo_trabajo || []).map(m => m.equipo).filter(Boolean))]
+                  return (
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:1, background:'var(--border)', border:'1px solid var(--border)', borderRadius:'var(--r)', overflow:'hidden', fontSize:10 }}>
+                      <div style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
+                        <div style={{ fontSize:9, color:'var(--text4)' }}>Estado</div>
+                        <div style={{ fontWeight:700, color:ec.headerCol }}>{ec.icon} {ESTADO_LABEL[form.estatus] || form.estatus || '—'}</div>
+                      </div>
+                      <div style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
+                        <div style={{ fontSize:9, color:'var(--text4)' }}>Confidencial</div>
+                        <div style={{ fontWeight:600, color: demandaConfidential ? 'var(--amber)' : 'var(--text)' }}>{demandaConfidential ? 'Sí' : 'No'}</div>
+                      </div>
+                      <div style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
+                        <div style={{ fontSize:9, color:'var(--text4)' }}>Equipo</div>
+                        <div style={{ fontWeight:600 }}>{equipos[0] || '—'}{equipoLen > 1 ? ` +${equipoLen-1}` : ''}</div>
+                      </div>
+                      <div style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
+                        <div style={{ fontSize:9, color:'var(--text4)' }}>Responsable</div>
+                        <div style={{ fontWeight:600, color:'var(--accent)' }}>{CURRENT_USER.nombre}</div>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  )
+                })()}
                 <div style={{ fontSize:9, color:'var(--text4)', textAlign:'right', fontStyle:'italic' }}>
                   Última modificación: {fmtDate(demanda.updated_at)} · {CURRENT_USER.nombre}
                 </div>
@@ -400,404 +427,481 @@ export default function FichaDemandaSupabase({ refOrId }) {
             ))}
           </div>
 
-          {/* TAB: Información Demanda */}
-          {tab === 'dem-info' && (
-            <div className="tab-content active"><div className="info-pad">
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
-                <div>
-                  <div className="va-meta-card" style={{ marginBottom:14 }}>
-                    <div className="va-meta-head"><span className="dot"/>Oportunidad vinculada</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div className="ir">
-                        <span className="ir-k" style={{ display:'flex', alignItems:'center', gap:6 }}>
-                          <span style={{ width:14, height:14, borderRadius:3, background:'#0078d4', color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>D</span>
-                          Oportunidad
-                        </span>
-                        <span className="ir-v" style={{ fontSize:11 }}>
-                          {demanda.dynamics_opportunities
-                            ? <span style={{ fontWeight:600 }}>{demanda.dynamics_opportunities.nombre} <span className="tag tag-blue" style={{ marginLeft:6, fontSize:9 }}>{demanda.dynamics_opportunities.tipo}</span></span>
-                            : <span style={{ color:'var(--text4)' }}>—</span>}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+          {/* TAB: Información general — formato cards uniformes (Mandato/Propuesta) */}
+          {tab === 'dem-info' && (() => {
+            const equipo = Array.isArray(demanda.equipo_trabajo) ? demanda.equipo_trabajo : []
+            const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
+            const canManage = userIsPrincipal || equipo.length === 0
+            const handlers = makeEquipoHandlers({
+              supabase, table:'demandas', idValue:demanda.id, equipo,
+              onAfter: () => load(),
+              onError: (msg) => setSaveError(msg),
+            })
+            const ec = ESTADO_COLOR[form.estatus] || ESTADO_COLOR.ongoing
+            const motivoEsPredef = MOTIVOS_DESCARTE_DEMANDA.includes(form.motivo_descarte)
+            const motivoEsOtro   = !!form.motivo_descarte && !motivoEsPredef
+            const motivoSelV     = motivoEsOtro ? 'Otro motivo' : (form.motivo_descarte || '')
+            const motivoOtroTxt  = motivoEsOtro ? form.motivo_descarte : ''
+            const requiereMotivo = form.estatus === 'descartada'
+            const sinMotivo      = requiereMotivo && !(form.motivo_descarte || '').trim()
 
-                  <div className="va-meta-card" style={{ marginBottom:14 }}>
-                    <div className="va-meta-head accent-green"><span className="dot"/>Cuenta · heredada de Dynamics</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div style={{ fontSize:13, fontWeight:600, color:'var(--accent)', marginBottom:6, cursor:'pointer' }}>{cuenta?.nombre || '—'} ↗</div>
-                      <div className="ir"><span className="ir-k">Tipo</span><span className="ir-v">{cuenta?.tipo || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Sector</span><span className="ir-v">{cuenta?.sector || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Teléfono</span><span className="ir-v">{cuenta?.telefono || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v" style={{ fontSize:10 }}>{cuenta?.direccion || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Código postal</span><span className="ir-v">{cuenta?.codigo_postal || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Ciudad</span><span className="ir-v">{cuenta?.ciudad || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">País</span><span className="ir-v link">🌍 {cuenta?.pais || 'España'}</span></div>
-                      <div className="ir"><span className="ir-k">Web</span><span className="ir-v">{cuenta?.web || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                    </div>
-                  </div>
-                </div>
+            return (
+              <div className="tab-content active"><div className="info-pad">
 
-                <div>
-                  <div className="va-meta-card" style={{ marginBottom:14 }}>
-                    <div className="va-meta-head accent-purple"><span className="dot"/>Estado de la demanda</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div className="ir">
-                        <span className="ir-k">Motivo del estado</span>
-                        <span className="ir-v">
-                          {editing
-                            ? <select style={sel} value={form.estatus} onChange={e => setF('estatus', e.target.value)}>
-                                {ESTADO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                              </select>
-                            : (ESTADO_LABEL[demanda.estatus] || demanda.estatus || '—')}
-                        </span>
-                      </div>
-                      {/* Motivo de descarte: obligatorio cuando se elige descartada.
-                          Desplegable con opciones predefinidas + "Otro motivo" → textarea libre. */}
-                      {(form.estatus === 'descartada' || demanda.motivo_descarte) && (() => {
-                        const motivoEsPredef = MOTIVOS_DESCARTE_DEMANDA.includes(form.motivo_descarte)
-                        const motivoEsOtro   = !!form.motivo_descarte && !motivoEsPredef
-                        const sel_v          = motivoEsOtro ? 'Otro motivo' : (form.motivo_descarte || '')
-                        const otroTexto      = motivoEsOtro ? form.motivo_descarte : ''
-                        const requiereMotivo = form.estatus === 'descartada'
-                        const sinMotivo      = requiereMotivo && !form.motivo_descarte.trim()
-                        return (
-                          <>
-                            <div className="ir" style={{ alignItems:'flex-start' }}>
-                              <span className="ir-k" style={{ color: requiereMotivo ? '#dc2626' : 'var(--text4)', fontWeight:700 }}>
-                                Motivo del descarte {requiereMotivo && <span style={{ color:'#dc2626' }}>*</span>}
-                              </span>
-                              <span className="ir-v">
-                                {editing
-                                  ? <select
-                                      style={{ ...sel, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
-                                      value={sel_v}
-                                      onChange={e => {
-                                        const v = e.target.value
-                                        if (v === '') setF('motivo_descarte', '')
-                                        else if (v === 'Otro motivo') setF('motivo_descarte', otroTexto || ' ')
-                                        else setF('motivo_descarte', v)
-                                      }}
-                                    >
-                                      <option value="">Selecciona un motivo...</option>
-                                      {MOTIVOS_DESCARTE_DEMANDA.map(m => <option key={m}>{m}</option>)}
-                                    </select>
-                                  : (motivoEsPredef ? form.motivo_descarte : (motivoEsOtro ? 'Otro motivo' : <span style={{ color:'var(--text4)' }}>—</span>))}
-                              </span>
-                            </div>
-                            {/* Textarea solo cuando se eligió "Otro motivo" */}
-                            {(sel_v === 'Otro motivo' || motivoEsOtro) && (
-                              <div className="ir" style={{ alignItems:'flex-start' }}>
-                                <span className="ir-k">Describe el motivo</span>
-                                <span className="ir-v" style={{ flex:1 }}>
-                                  {editing
-                                    ? <textarea
-                                        style={{ ...ta, minHeight:50, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
-                                        value={otroTexto}
-                                        onChange={e => setF('motivo_descarte', e.target.value)}
-                                        placeholder="Describe brevemente por qué se descarta esta demanda..."
-                                      />
-                                    : (demanda.motivo_descarte || <span style={{ color:'var(--text4)' }}>—</span>)}
-                                </span>
-                              </div>
-                            )}
-                          </>
-                        )
-                      })()}
-                      <div className="ir"><span className="ir-k">Equipo</span><span className="ir-v">Leasing Oficinas — MAD</span></div>
-                    </div>
-                  </div>
+                {/* ─── FILA 1: Estado visual (1/3) + Vinculaciones (2/3) ─── */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1.6fr', gap:12, marginBottom:12 }}>
 
-                  <div className="va-meta-card">
-                    <div className="va-meta-head"><span className="dot"/>Notas</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      {editing
-                        ? <textarea style={ta} value={form.notas} onChange={e => setF('notas', e.target.value)} placeholder="Notas internas sobre la demanda..." />
-                        : (demanda.notas || <span style={{ color:'var(--text4)' }}>—</span>)}
+                  {/* === ESTADO DE LA DEMANDA · cuadro visual grande === */}
+                  <div className="va-card" style={{ marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico" style={{ color: ec.headerCol }}>{ec.icon}</span> Estado de la demanda</h3>
                     </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-red"><span className="dot"/>Partes involucradas</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div style={{ fontSize:10, color:'var(--text4)', marginBottom:8 }}>
-                        Contactos adicionales de <strong>{cuenta?.nombre || '(cuenta)'}</strong> implicados en la demanda.
+                    <div style={{ padding:'8px 18px 16px' }}>
+                      {/* Badge grande con color por estado */}
+                      <div style={{
+                        padding:'14px 16px',
+                        background: ec.bg, border: `2px solid ${ec.bd}`, borderRadius: 8,
+                        display:'flex', alignItems:'center', gap:12, marginBottom: 12,
+                      }}>
+                        <div style={{ fontSize:26, lineHeight:1, color: ec.text }}>{ec.icon}</div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:10, fontWeight:700, color: ec.text, opacity:.75, textTransform:'uppercase', letterSpacing:'.04em' }}>Estado actual</div>
+                          <div style={{ fontSize:18, fontWeight:800, color: ec.text, lineHeight:1.2 }}>{ESTADO_LABEL[form.estatus] || form.estatus || '—'}</div>
+                        </div>
                       </div>
 
-                      {otrosListaFull.length === 0 && !editing && (
-                        <div style={{ fontSize:11, color:'var(--text4)', padding:'8px 0' }}>No hay contactos adicionales.</div>
-                      )}
+                      {/* Cambiar estado */}
+                      <div style={{ marginBottom: motivoSelV ? 10 : 0 }}>
+                        <div className="rp-lbl" style={{ marginBottom:4 }}>Cambiar estado</div>
+                        <select className="fsel" value={form.estatus} onChange={e => setF('estatus', e.target.value)} style={{ width:'100%' }}>
+                          {ESTADO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                        </select>
+                      </div>
 
-                      {otrosListaFull.length > 0 && (
-                        <table className="pat-table">
-                          <thead><tr><th>Nombre</th><th>Email</th>{editing && <th></th>}</tr></thead>
-                          <tbody>
-                            {otrosListaFull.map(c => (
-                              <tr key={c.dynamics_id}>
-                                <td style={{ fontWeight:600 }}>{c.nombre}</td>
-                                <td style={{ fontSize:10, color:'var(--text3)' }}>{c.email || '—'}</td>
-                                {editing && (
-                                  <td style={{ textAlign:'right' }}>
-                                    <button onClick={() => setF('otros_contactos', form.otros_contactos.filter(id => id !== c.dynamics_id))}
-                                      style={{ background:'none', border:'none', color:'var(--text4)', cursor:'pointer', fontSize:14 }}>×</button>
-                                  </td>
-                                )}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-
-                      {editing && (
-                        <div style={{ marginTop:10 }}>
-                          <select
-                            style={{ ...sel, width:'100%' }}
-                            value=""
+                      {/* Motivo del descarte: visible si descartada o ya guardado */}
+                      {(requiereMotivo || demanda.motivo_descarte) && (
+                        <>
+                          <div className="rp-lbl" style={{ marginTop:8, marginBottom:4, color: requiereMotivo ? '#dc2626' : undefined }}>
+                            Motivo del descarte {requiereMotivo && <span style={{ color:'#dc2626' }}>*</span>}
+                          </div>
+                          <select className="fsel" value={motivoSelV}
+                            style={{ width:'100%', borderColor: sinMotivo ? '#dc2626' : undefined }}
                             onChange={e => {
-                              if (e.target.value) {
-                                setF('otros_contactos', [...form.otros_contactos, e.target.value])
-                              }
-                            }}
-                          >
-                            <option value="">+ Añadir contacto de la cuenta...</option>
-                            {otrosDisponibles.map(c => (
-                              <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre} — {c.email || c.telefono || ''}</option>
-                            ))}
+                              const v = e.target.value
+                              if (v === '') setF('motivo_descarte', '')
+                              else if (v === 'Otro motivo') setF('motivo_descarte', motivoOtroTxt || ' ')
+                              else setF('motivo_descarte', v)
+                            }}>
+                            <option value="">Selecciona un motivo...</option>
+                            {MOTIVOS_DESCARTE_DEMANDA.map(m => <option key={m}>{m}</option>)}
                           </select>
-                          {otrosDisponibles.length === 0 && (
-                            <div style={{ fontSize:10, color:'var(--text4)', marginTop:4 }}>
-                              No hay más contactos disponibles en la cuenta.
-                            </div>
+                          {(motivoSelV === 'Otro motivo' || motivoEsOtro) && (
+                            <textarea
+                              className="kf-inp"
+                              style={{ width:'100%', marginTop:6, minHeight:50, resize:'vertical', borderColor: sinMotivo ? '#dc2626' : undefined }}
+                              value={motivoOtroTxt}
+                              onChange={e => setF('motivo_descarte', e.target.value)}
+                              placeholder="Describe brevemente por qué se descarta esta demanda..."
+                            />
                           )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* === VINCULACIONES === */}
+                  <div className="va-card" style={{ marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico">◇</span> Vinculaciones</h3>
+                      <span className="hint">Oportunidad · Cuenta · Mandato</span>
+                    </div>
+                    <div style={{ padding:'8px 20px 16px' }}>
+
+                      {/* Oportunidad */}
+                      <div style={{ marginBottom:10 }}>
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Oportunidad</div>
+                        {oportunidad ? (
+                          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:'#0078d4', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>D</div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontSize:12, fontWeight:600 }}>{oportunidad.nombre || '—'}</div>
+                              {oportunidad.tipo && <div style={{ fontSize:10, color:'var(--text3)' }}>{oportunidad.tipo}</div>}
+                            </div>
+                            <span className="tag tag-blue" style={{ fontSize:9 }}>Dynamics</span>
+                          </div>
+                        ) : (
+                          <div style={{ padding:'8px 10px', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'var(--gray-lt)', fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin oportunidad vinculada</div>
+                        )}
+                      </div>
+
+                      {/* Cuenta */}
+                      <div style={{ marginBottom:10 }}>
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Cuenta (heredada de Dynamics)</div>
+                        {cuenta ? (
+                          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>🏢</div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontSize:12, fontWeight:600 }}>{cuenta.nombre || '—'}</div>
+                              <div style={{ fontSize:10, color:'var(--text3)' }}>{[cuenta.tipo, cuenta.sector, cuenta.ciudad].filter(Boolean).join(' · ') || '—'}</div>
+                            </div>
+                            <span className="tag tag-blue" style={{ fontSize:9 }}>Dynamics</span>
+                          </div>
+                        ) : (
+                          <div style={{ padding:'8px 10px', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'var(--gray-lt)', fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin cuenta vinculada</div>
+                        )}
+                      </div>
+
+                      {/* Mandato */}
+                      <div>
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Mandato</div>
+                        {demanda.mandato_id && demanda.mandato ? (
+                          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--purple, #7c3aed)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>📜</div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)' }}>{demanda.mandato.ref}</div>
+                              <div style={{ fontSize:10, color:'var(--text3)' }}>Mandato vinculado</div>
+                            </div>
+                            <button className="ab-btn" style={{ fontSize:9, padding:'2px 8px' }} onClick={() => navigate('ficha-mandato', { id: demanda.mandato.ref })}>Ver</button>
+                          </div>
+                        ) : (
+                          <div style={{ padding:'8px 10px', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'var(--gray-lt)', fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin mandato firmado todavía</div>
+                        )}
+                      </div>
+
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* ─── FILA 2: Equipo de trabajo (1/2) + Partes involucradas (1/2) ─── */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+
+                  {/* === EQUIPO DE TRABAJO · formato Propuestas/Mandato (inline) === */}
+                  <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico">◆</span> Equipo de trabajo</h3>
+                      {canManage && (
+                        <button className="ab-btn" style={{ fontSize:10, padding:'3px 10px' }} onClick={() => setShowAddEq(v => !v)}>+ Añadir</button>
+                      )}
+                    </div>
+                    <div style={{ padding:'8px 20px 16px' }}>
+                      {showAddEq && canManage && (
+                        <div style={{ marginBottom:10, padding:10, border:'1px solid var(--border)', borderRadius:6, background:'var(--surface-2)', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, alignItems:'end' }}>
+                          <div>
+                            <div className="rp-lbl">Equipo</div>
+                            <select className="fsel" value={newEqDraft.equipo} onChange={e => setNewEqDraft(p => ({ ...p, equipo:e.target.value, usuario:'' }))} style={{ width:'100%' }}>
+                              <option value="">Seleccionar...</option>
+                              {EQUIPOS_SAVILLS.filter(eq => !equipo.find(m => m.equipo === eq && m.nombre)).map(eq => <option key={eq}>{eq}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <div className="rp-lbl">Miembro</div>
+                            <select className="fsel" value={newEqDraft.usuario} onChange={e => setNewEqDraft(p => ({ ...p, usuario:e.target.value }))} disabled={!newEqDraft.equipo} style={{ width:'100%' }}>
+                              <option value="">Seleccionar...</option>
+                              {(MIEMBROS_POR_EQUIPO[newEqDraft.equipo] || []).map(u => <option key={u}>{u}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <div className="rp-lbl">Rol</div>
+                            <select className="fsel" value={newEqDraft.rol} onChange={e => setNewEqDraft(p => ({ ...p, rol:e.target.value }))} style={{ width:'100%' }}>
+                              {['Principal','Soporte','Colaborador'].map(r => <option key={r}>{r}</option>)}
+                            </select>
+                          </div>
+                          <div style={{ gridColumn:'1 / -1', display:'flex', gap:6, justifyContent:'flex-end' }}>
+                            <button className="ab-btn save" disabled={!newEqDraft.equipo || !newEqDraft.usuario}
+                              onClick={() => {
+                                handlers.addMiembro(newEqDraft.usuario, newEqDraft.equipo, newEqDraft.rol)
+                                setShowAddEq(false)
+                                setNewEqDraft({ equipo:'', usuario:'', rol:'Soporte' })
+                              }}>Añadir</button>
+                            <button className="ab-btn" onClick={() => setShowAddEq(false)}>Cancelar</button>
+                          </div>
+                        </div>
+                      )}
+                      {equipo.length === 0 ? (
+                        <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', padding:'8px 0' }}>Sin equipo asignado.</div>
+                      ) : (
+                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                          {equipo.map((m,i) => (
+                            <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                              <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>
+                                {(m.nombre || '').split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
+                              </div>
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <div style={{ fontSize:12, fontWeight:600 }}>{m.nombre}</div>
+                                <div style={{ fontSize:10, color:'var(--text3)' }}>{m.equipo}</div>
+                              </div>
+                              <span className="tag tag-blue" style={{ fontSize:9 }}>{m.rol}</span>
+                              {canManage && (
+                                <button onClick={() => handlers.removeMiembro(i)} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Equipo de trabajo (integrado en Información) */}
-              {(() => {
-                const equipo = Array.isArray(demanda.equipo_trabajo) ? demanda.equipo_trabajo : []
-                const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
-                const canManage = userIsPrincipal || equipo.length === 0
-                const handlers = makeEquipoHandlers({
-                  supabase, table:'demandas', idValue:demanda.id, equipo,
-                  onAfter: () => load(),
-                  onError: (msg) => setSaveError(msg),
-                })
-                return (
-                  <div style={{ marginTop:14 }}>
-                    <EquipoTrabajoCard
-                      equipo={equipo}
-                      canManage={canManage}
-                      onAdd={handlers.addMiembro}
-                      onRemove={handlers.removeMiembro}
-                      onUpdateRol={handlers.updateMiembroRol}
+                  {/* === PARTES INVOLUCRADAS === */}
+                  <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico" style={{ color:'#7e22ce' }}>◉</span> Partes involucradas</h3>
+                      <span className="hint">Contactos de {cuenta?.nombre || '(cuenta)'}</span>
+                    </div>
+                    <div style={{ padding:'8px 20px 16px' }}>
+                      {otrosListaFull.length === 0 ? (
+                        <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', padding:'8px 0' }}>Sin partes adicionales.</div>
+                      ) : (
+                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                          {otrosListaFull.map(c => (
+                            <div key={c.dynamics_id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                              <div style={{ width:28, height:28, borderRadius:'50%', background:'#7e22ce', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>
+                                {(c.nombre || '').split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
+                              </div>
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <div style={{ fontSize:12, fontWeight:600 }}>{c.nombre}</div>
+                                <div style={{ fontSize:10, color:'var(--text3)' }}>{c.email || c.telefono || '—'}</div>
+                              </div>
+                              <button onClick={() => setF('otros_contactos', form.otros_contactos.filter(id => id !== c.dynamics_id))}
+                                style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <select
+                        className="fsel"
+                        style={{ width:'100%', marginTop:8 }}
+                        value=""
+                        onChange={e => { if (e.target.value) setF('otros_contactos', [...form.otros_contactos, e.target.value]) }}
+                      >
+                        <option value="">+ Añadir contacto de la cuenta...</option>
+                        {otrosDisponibles.map(c => (
+                          <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre} — {c.email || c.telefono || ''}</option>
+                        ))}
+                      </select>
+                      {otrosDisponibles.length === 0 && (
+                        <div style={{ fontSize:10, color:'var(--text4)', marginTop:4 }}>No hay más contactos disponibles en la cuenta.</div>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* ─── FILA 3: Notas (full-width) ─── */}
+                <div className="va-card" style={{ marginBottom:0 }}>
+                  <div className="va-card-header">
+                    <h3><span className="ico">▭</span> Notas internas</h3>
+                  </div>
+                  <div style={{ padding:'8px 20px 16px' }}>
+                    <textarea
+                      className="kf-inp"
+                      style={{ width:'100%', minHeight:80, resize:'vertical', fontSize:12 }}
+                      value={form.notas}
+                      onChange={e => setF('notas', e.target.value)}
+                      placeholder="Notas internas sobre la demanda..."
                     />
                   </div>
-                )
-              })()}
-            </div></div>
-          )}
+                </div>
+
+              </div></div>
+            )
+          })()}
 
           {/* TAB: Requisitos (Requisitos + Zona de búsqueda fusionados) */}
-          {tab === 'dem-req' && (
-            <div className="tab-content active"><div className="info-pad">
-
-              {/* Barra de acción: Exportar a mapa */}
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-                <div style={{ fontSize:11, color:'var(--text3)' }}>
-                  Define los requisitos y la zona de búsqueda. Cuando tengas el perfil mínimo, exporta al mapa para seleccionar alternativas.
+          {tab === 'dem-req' && (() => {
+            // Helper compacto: label + control + gap mínimo
+            const ReqField = ({ label, required, accent, children }) => (
+              <div style={{ display:'flex', flexDirection:'column', gap:4, minWidth:0 }}>
+                <div style={{ fontSize:11, fontWeight:700, color: accent || 'var(--text)', textTransform:'uppercase', letterSpacing:'.03em' }}>
+                  {label} {required && <span style={{ color:'#dc2626' }}>*</span>}
                 </div>
-                <button
-                  className="ab-btn"
-                  onClick={() => navigate('mapa-busqueda', { demanda: demanda.ref })}
-                  disabled={!form.uso_principal || (!form.sup_min && !form.sup_max)}
-                  title={!form.uso_principal ? 'Define al menos el uso principal' : (!form.sup_min && !form.sup_max ? 'Define superficie mínima o máxima' : 'Exportar requisitos al mapa de búsqueda')}
-                  style={{ background:'var(--accent)', color:'#fff', border:'1px solid var(--accent)', opacity: (form.uso_principal && (form.sup_min || form.sup_max)) ? 1 : 0.45 }}
-                >
-                  🗺 Exportar a mapa
-                </button>
+                {children}
               </div>
+            )
+            const canExport = !!form.uso_principal && (!!form.sup_min || !!form.sup_max)
+            return (
+              <div className="tab-content active"><div className="info-pad">
 
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-                <div>
-                  <div className="of-section">📋 REQUISITOS GENERALES</div>
-                  <div className="info-block" style={{ marginBottom:10 }}>
-                    <div className="ir"><span className="ir-k" style={{ fontWeight:700, color:'#0f172a' }}>Naturaleza</span>
-                      <span className="ir-v">{editing
-                        ? <select style={sel} value={form.naturaleza} onChange={e => setF('naturaleza', e.target.value)}>
-                            <option value="">—</option><option>Leasing</option><option>Inversión</option>
-                          </select>
-                        : (visNaturaleza || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
+                {/* ─── BARRA SUPERIOR · descripción + botón Exportar a mapa ─── */}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12, padding:'10px 14px', background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:6 }}>
+                  <div style={{ fontSize:12, color:'var(--text2)' }}>
+                    Define los requisitos y la zona de búsqueda. Cuando tengas el perfil mínimo, exporta al mapa para seleccionar alternativas.
+                  </div>
+                  <button
+                    className="ab-btn"
+                    onClick={() => navigate('mapa-busqueda', { demanda: demanda.ref })}
+                    disabled={!canExport}
+                    title={!form.uso_principal ? 'Define al menos el uso principal' : (!form.sup_min && !form.sup_max ? 'Define superficie mínima o máxima' : 'Exportar requisitos al mapa de búsqueda')}
+                    style={{ background:'var(--accent)', color:'#fff', border:'1px solid var(--accent)', opacity: canExport ? 1 : 0.45, fontWeight:600, fontSize:12 }}
+                  >
+                    🗺 Exportar a mapa
+                  </button>
+                </div>
+
+                {/* ─── FILA 1: Requisitos generales (1/2) + Económicos (1/2) ─── */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+
+                  {/* === REQUISITOS GENERALES === */}
+                  <div className="va-card" style={{ marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico" style={{ color:'var(--accent)' }}>◐</span> Requisitos generales</h3>
                     </div>
-                    <div className="ir"><span className="ir-k">Tipo activo</span>
-                      <span className="ir-v">{editing
-                        ? <select style={sel} value={form.tipo_activo} onChange={e => setF('tipo_activo', e.target.value)}>
-                            <option value="">—</option><option>Edificio</option><option>Suelo</option>
-                          </select>
-                        : (reqs.tipo_activo || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
-                    </div>
-                    <div className="ir"><span className="ir-k" style={{ fontWeight:700, color:'var(--accent)' }}>Uso principal</span>
-                      <span className="ir-v">{editing
-                        ? <select style={sel} value={form.uso_principal} onChange={e => { setF('uso_principal', e.target.value); setF('tipologia','') }}>
-                            <option value="">—</option>
-                            {Object.keys(USOS_TIPOLOGIAS).map(u => <option key={u}>{u}</option>)}
-                          </select>
-                        : (visUso || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
-                    </div>
-                    <div className="ir"><span className="ir-k" style={{ fontWeight:700, color:'var(--purple)' }}>Tipología</span>
-                      <span className="ir-v">{editing
-                        ? <select style={sel} value={form.tipologia} onChange={e => setF('tipologia', e.target.value)} disabled={!form.uso_principal}>
-                            <option value="">—</option>
-                            {tipologiasDisp.map(t => <option key={t}>{t}</option>)}
-                          </select>
-                        : (visTipologia || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
-                    </div>
-                    <div className="ir"><span className="ir-k">Razón búsqueda</span>
-                      <span className="ir-v">{editing
-                        ? <select style={sel} value={form.razon_busqueda} onChange={e => setF('razon_busqueda', e.target.value)}>
-                            <option value="">—</option>
-                            {RAZONES_LEASING.map(r => <option key={r}>{r}</option>)}
-                          </select>
-                        : (reqs.razon_busqueda || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
-                    </div>
-                    <div className="ir"><span className="ir-k">Timing proyecto</span>
-                      <span className="ir-v">{editing
-                        ? <input type="date" style={{ ...sel, width:130 }} value={form.timing} onChange={e => setF('timing', e.target.value)} />
-                        : fmtDate(reqs.timing)}</span>
+                    <div style={{ padding:'10px 18px 16px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                      <ReqField label="Naturaleza" accent="#0f172a">
+                        <select className="fsel" value={form.naturaleza} onChange={e => setF('naturaleza', e.target.value)} style={{ width:'100%' }}>
+                          <option value="">—</option><option>Leasing</option><option>Inversión</option>
+                        </select>
+                      </ReqField>
+                      <ReqField label="Tipo de activo">
+                        <select className="fsel" value={form.tipo_activo} onChange={e => setF('tipo_activo', e.target.value)} style={{ width:'100%' }}>
+                          <option value="">—</option><option>Edificio</option><option>Suelo</option>
+                        </select>
+                      </ReqField>
+                      <ReqField label="Uso principal" accent="var(--accent)">
+                        <select className="fsel" value={form.uso_principal} onChange={e => { setF('uso_principal', e.target.value); setF('tipologia','') }} style={{ width:'100%' }}>
+                          <option value="">—</option>
+                          {Object.keys(USOS_TIPOLOGIAS).map(u => <option key={u}>{u}</option>)}
+                        </select>
+                      </ReqField>
+                      <ReqField label="Tipología" accent="var(--purple)">
+                        <select className="fsel" value={form.tipologia} onChange={e => setF('tipologia', e.target.value)} disabled={!form.uso_principal} style={{ width:'100%' }}>
+                          <option value="">—</option>
+                          {tipologiasDisp.map(t => <option key={t}>{t}</option>)}
+                        </select>
+                      </ReqField>
+                      <ReqField label="Razón de búsqueda">
+                        <select className="fsel" value={form.razon_busqueda} onChange={e => setF('razon_busqueda', e.target.value)} style={{ width:'100%' }}>
+                          <option value="">—</option>
+                          {RAZONES_LEASING.map(r => <option key={r}>{r}</option>)}
+                        </select>
+                      </ReqField>
+                      <ReqField label="Timing del proyecto">
+                        <input type="date" className="fsel" value={form.timing} onChange={e => setF('timing', e.target.value)} style={{ width:'100%' }} />
+                      </ReqField>
+                      <ReqField label="Superficie mín. (m²)">
+                        <input type="number" className="kf-inp" value={form.sup_min} onChange={e => setF('sup_min', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
+                      </ReqField>
+                      <ReqField label="Superficie máx. (m²)">
+                        <input type="number" className="kf-inp" value={form.sup_max} onChange={e => setF('sup_max', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
+                      </ReqField>
                     </div>
                   </div>
 
-                  <div className="of-section">📐 SUPERFICIE</div>
-                  <div className="info-block">
-                    <div className="ir"><span className="ir-k">Sup. desde (m²)</span>
-                      <span className="ir-v">{editing
-                        ? <input style={inp} type="number" value={form.sup_min} onChange={e => setF('sup_min', e.target.value)} placeholder="—" />
-                        : (reqs.sup_min ? `${Number(reqs.sup_min).toLocaleString('es-ES')} m²` : <span style={{ color:'var(--text4)' }}>—</span>)}</span>
+                  {/* === PRESUPUESTO === */}
+                  <div className="va-card" style={{ marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico" style={{ color:'var(--green)' }}>€</span> Presupuesto</h3>
                     </div>
-                    <div className="ir"><span className="ir-k">Sup. hasta (m²)</span>
-                      <span className="ir-v">{editing
-                        ? <input style={inp} type="number" value={form.sup_max} onChange={e => setF('sup_max', e.target.value)} placeholder="—" />
-                        : (reqs.sup_max ? `${Number(reqs.sup_max).toLocaleString('es-ES')} m²` : <span style={{ color:'var(--text4)' }}>—</span>)}</span>
+                    <div style={{ padding:'10px 18px 16px' }}>
+                      <ReqField label="Tipo de presupuesto" accent="var(--text)">
+                        <select className="fsel" value={form.presupuesto_tipo} onChange={e => setF('presupuesto_tipo', e.target.value)} style={{ width:'100%' }}>
+                          <option value="">—</option><option>Alquiler</option><option>Venta</option><option>Alquiler / Venta</option>
+                        </select>
+                      </ReqField>
+
+                      {(presTipo === 'Alquiler' || presTipo === 'Alquiler / Venta') && (
+                        <div style={{ marginTop:12, padding:10, background:'#f0fdfa', border:'1px solid #99f6e4', borderRadius:6 }}>
+                          <div style={{ fontSize:10, fontWeight:700, color:'#0f766e', marginBottom:8, textTransform:'uppercase', letterSpacing:'.04em' }}>Alquiler · €/m²/mes</div>
+                          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+                            <ReqField label="Desde">
+                              <input type="number" className="kf-inp" value={form.alq_min} onChange={e => setF('alq_min', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
+                            </ReqField>
+                            <ReqField label="Hasta">
+                              <input type="number" className="kf-inp" value={form.alq_max} onChange={e => setF('alq_max', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
+                            </ReqField>
+                          </div>
+                        </div>
+                      )}
+                      {(presTipo === 'Venta' || presTipo === 'Alquiler / Venta') && (
+                        <div style={{ marginTop:10, padding:10, background:'#fffbeb', border:'1px solid #fde68a', borderRadius:6 }}>
+                          <div style={{ fontSize:10, fontWeight:700, color:'#b45309', marginBottom:8, textTransform:'uppercase', letterSpacing:'.04em' }}>Venta · €/m²</div>
+                          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+                            <ReqField label="Desde">
+                              <input type="number" className="kf-inp" value={form.venta_m2_min} onChange={e => setF('venta_m2_min', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
+                            </ReqField>
+                            <ReqField label="Hasta">
+                              <input type="number" className="kf-inp" value={form.venta_m2_max} onChange={e => setF('venta_m2_max', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
+                            </ReqField>
+                          </div>
+                        </div>
+                      )}
+                      {!presTipo && (
+                        <div style={{ marginTop:10, padding:14, border:'1px dashed var(--border)', borderRadius:6, background:'var(--gray-lt)', fontSize:11, color:'var(--text4)', fontStyle:'italic', textAlign:'center' }}>
+                          Selecciona el tipo de presupuesto para definir rangos económicos.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div>
-                  <div className="of-section">💰 PRESUPUESTO</div>
-                  <div className="info-block">
-                    <div className="ir"><span className="ir-k" style={{ fontWeight:700 }}>Tipo</span>
-                      <span className="ir-v">{editing
-                        ? <select style={sel} value={form.presupuesto_tipo} onChange={e => setF('presupuesto_tipo', e.target.value)}>
-                            <option value="">—</option><option>Alquiler</option><option>Venta</option><option>Alquiler / Venta</option>
-                          </select>
-                        : (reqs.presupuesto_tipo || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
+                {/* ─── FILA 2: Provincias (1/2) + Zonas (1/2) ─── */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+                  <div className="va-card" style={{ marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico" style={{ color:'var(--accent)' }}>🗺</span> Provincias de interés</h3>
+                      <span className="hint">{provinciasMostrar.length} seleccionada(s)</span>
                     </div>
-                    {(presTipo === 'Alquiler' || presTipo === 'Alquiler / Venta') && (
-                      <div style={{ marginTop:8, paddingTop:8, borderTop:'1px dashed var(--border)' }}>
-                        <div style={{ fontSize:10, fontWeight:700, color:'var(--teal)', marginBottom:4, textTransform:'uppercase', letterSpacing:'.04em' }}>Alquiler</div>
-                        <div className="ir"><span className="ir-k">Alquiler desde €/m²/mes</span>
-                          <span className="ir-v">{editing
-                            ? <input style={inp} type="number" value={form.alq_min} onChange={e => setF('alq_min', e.target.value)} placeholder="—" />
-                            : (reqs.alq_min || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
-                        </div>
-                        <div className="ir"><span className="ir-k">Alquiler hasta €/m²/mes</span>
-                          <span className="ir-v">{editing
-                            ? <input style={inp} type="number" value={form.alq_max} onChange={e => setF('alq_max', e.target.value)} placeholder="—" />
-                            : (reqs.alq_max || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
-                        </div>
-                      </div>
-                    )}
-                    {(presTipo === 'Venta' || presTipo === 'Alquiler / Venta') && (
-                      <div style={{ marginTop:8, paddingTop:8, borderTop:'1px dashed var(--border)' }}>
-                        <div style={{ fontSize:10, fontWeight:700, color:'var(--amber)', marginBottom:4, textTransform:'uppercase', letterSpacing:'.04em' }}>Venta</div>
-                        <div className="ir"><span className="ir-k">€/m² desde</span>
-                          <span className="ir-v">{editing
-                            ? <input style={inp} type="number" value={form.venta_m2_min} onChange={e => setF('venta_m2_min', e.target.value)} placeholder="—" />
-                            : (reqs.venta_m2_min || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
-                        </div>
-                        <div className="ir"><span className="ir-k">€/m² hasta</span>
-                          <span className="ir-v">{editing
-                            ? <input style={inp} type="number" value={form.venta_m2_max} onChange={e => setF('venta_m2_max', e.target.value)} placeholder="—" />
-                            : (reqs.venta_m2_max || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* ── ZONA DE BÚSQUEDA (fusionado del antiguo tab dem-zona) ── */}
-              <div style={{ marginTop:18, paddingTop:14, borderTop:'1px dashed var(--border)' }}>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-                  <div>
-                    <div className="of-section">🗺 PROVINCIAS DE INTERÉS</div>
-                    <div className="info-block" style={{ minHeight:180 }}>
-                      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10, minHeight:30 }}>
-                        {provinciasMostrar.length === 0 && !editing && (
-                          <span style={{ fontSize:11, color:'var(--text4)' }}>Ninguna provincia añadida.</span>
+                    <div style={{ padding:'10px 18px 16px' }}>
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8, minHeight:28 }}>
+                        {provinciasMostrar.length === 0 && (
+                          <span style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Ninguna provincia añadida.</span>
                         )}
                         {provinciasMostrar.map(p => (
-                          <Chip key={p} label={p}
-                            onRemove={editing ? () => togglePick('provincias', p) : null} />
+                          <Chip key={p} label={p} onRemove={() => togglePick('provincias', p)} />
                         ))}
                       </div>
-                      {editing && (
-                        <select style={{ ...sel, width:'auto' }} value=""
-                          onChange={e => { if (e.target.value) togglePick('provincias', e.target.value) }}>
-                          <option value="">+ Añadir provincia</option>
-                          {PROVINCIAS_LISTA.filter(p => !form.provincias.includes(p)).map(p => <option key={p}>{p}</option>)}
-                        </select>
-                      )}
+                      <select className="fsel" style={{ width:'100%' }} value=""
+                        onChange={e => { if (e.target.value) togglePick('provincias', e.target.value) }}>
+                        <option value="">+ Añadir provincia</option>
+                        {PROVINCIAS_LISTA.filter(p => !form.provincias.includes(p)).map(p => <option key={p}>{p}</option>)}
+                      </select>
                     </div>
                   </div>
-                  <div>
-                    <div className="of-section">📍 ZONAS DE BÚSQUEDA</div>
-                    <div className="info-block" style={{ minHeight:180 }}>
-                      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10, minHeight:30 }}>
-                        {zonasMostrar.length === 0 && !editing && (
-                          <span style={{ fontSize:11, color:'var(--text4)' }}>Ninguna zona añadida.</span>
+
+                  <div className="va-card" style={{ marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico" style={{ color:'var(--purple)' }}>📍</span> Zonas de búsqueda</h3>
+                      <span className="hint">{zonasMostrar.length} seleccionada(s)</span>
+                    </div>
+                    <div style={{ padding:'10px 18px 16px' }}>
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8, minHeight:28 }}>
+                        {zonasMostrar.length === 0 && (
+                          <span style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Ninguna zona añadida.</span>
                         )}
                         {zonasMostrar.map(z => (
-                          <Chip key={z} label={z}
-                            onRemove={editing ? () => togglePick('zonas', z) : null} />
+                          <Chip key={z} label={z} onRemove={() => togglePick('zonas', z)} />
                         ))}
                       </div>
-                      {editing && (
-                        <select style={{ ...sel, width:'auto' }} value=""
-                          onChange={e => { if (e.target.value) togglePick('zonas', e.target.value) }}>
-                          <option value="">+ Añadir zona</option>
-                          {ZONAS_MADRID.filter(z => !form.zonas.includes(z)).map(z => <option key={z}>{z}</option>)}
-                        </select>
-                      )}
+                      <select className="fsel" style={{ width:'100%' }} value=""
+                        onChange={e => { if (e.target.value) togglePick('zonas', e.target.value) }}>
+                        <option value="">+ Añadir zona</option>
+                        {ZONAS_MADRID.filter(z => !form.zonas.includes(z)).map(z => <option key={z}>{z}</option>)}
+                      </select>
                     </div>
                   </div>
                 </div>
 
-                <div className="info-block" style={{ marginTop:12 }}>
-                  <div className="ir"><span className="ir-k">Calles específicas</span>
-                    <span className="ir-v" style={{ flex:1 }}>{editing
-                      ? <input style={inpFull} value={form.calles} onChange={e => setF('calles', e.target.value)} placeholder="Ej. Castellana 50–120, Serrano 1–60" />
-                      : (reqs.calles || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
+                {/* ─── FILA 3: Detalles geográficos (full-width) ─── */}
+                <div className="va-card" style={{ marginBottom:0 }}>
+                  <div className="va-card-header">
+                    <h3><span className="ico" style={{ color:'var(--teal)' }}>◑</span> Detalles geográficos</h3>
                   </div>
-                  <div className="ir"><span className="ir-k">Puntos de interés</span>
-                    <span className="ir-v" style={{ flex:1 }}>{editing
-                      ? <input style={inpFull} value={form.puntos_interes} onChange={e => setF('puntos_interes', e.target.value)} placeholder="Cerca de metro, autopistas..." />
-                      : (reqs.puntos_interes || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
-                  </div>
-                  <div className="ir"><span className="ir-k">Puntos a evitar</span>
-                    <span className="ir-v" style={{ flex:1 }}>{editing
-                      ? <input style={inpFull} value={form.puntos_evitar} onChange={e => setF('puntos_evitar', e.target.value)} placeholder="Zonas en obras, polígonos..." />
-                      : (reqs.puntos_evitar || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
+                  <div style={{ padding:'10px 18px 16px', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
+                    <ReqField label="Calles específicas">
+                      <input className="kf-inp" value={form.calles} onChange={e => setF('calles', e.target.value)} placeholder="Ej. Castellana 50–120" style={{ width:'100%' }} />
+                    </ReqField>
+                    <ReqField label="Puntos de interés">
+                      <input className="kf-inp" value={form.puntos_interes} onChange={e => setF('puntos_interes', e.target.value)} placeholder="Cerca de metro, autopistas..." style={{ width:'100%' }} />
+                    </ReqField>
+                    <ReqField label="Puntos a evitar">
+                      <input className="kf-inp" value={form.puntos_evitar} onChange={e => setF('puntos_evitar', e.target.value)} placeholder="Zonas en obras, polígonos..." style={{ width:'100%' }} />
+                    </ReqField>
                   </div>
                 </div>
-              </div>
-            </div></div>
-          )}
+
+              </div></div>
+            )
+          })()}
 
           {tab === 'dem-360'  && (
             <div className="tab-content active">
