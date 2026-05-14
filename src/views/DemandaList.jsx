@@ -6,8 +6,16 @@ import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilte
 import { Download, SlidersHorizontal } from 'lucide-react'
 
 // Las demandas viven en Supabase (migración 016 las migró todas).
-// Aquí solo queda el mapeo visual de estados.
-const estadoTag = e => e === 'En Curso' ? 'tag-green' : e === 'Paralizado' ? 'tag-amber' : 'tag-gray'
+// Mapeo visual de estados · misma paleta que FichaDemandaSupabase
+const ESTADO_TAG_MAP = {
+  'En Curso':            'tag-green',
+  'Potencial':           'tag-blue',
+  'Paralizado':          'tag-amber',
+  'Descartado':          'tag-red',
+  'Cerrada · Concedido': 'tag-green',
+  'Cerrada · Perdida':   'tag-red',
+}
+const estadoTag = e => ESTADO_TAG_MAP[e] || 'tag-gray'
 
 const COLS = [
   { id: '_chk',   label: '',               sys: true },
@@ -66,6 +74,7 @@ export default function DemandaList() {
         by:     '—',
         desc:   d.nombre || d.notas || '(Sin descripción — completar)',
         estado: d.estatus === 'ongoing' ? 'En Curso'
+              : d.estatus === 'potencial' ? 'Potencial'
               : d.estatus === 'paralizada' ? 'Paralizado'
               : d.estatus === 'descartada' ? 'Descartado'
               : d.estatus === 'cerrada_concedido' ? 'Cerrada · Concedido'
@@ -125,7 +134,10 @@ export default function DemandaList() {
     created:<td key="created" style={{ fontSize: 11 }}>{d.created}</td>,
     by:     <td key="by" style={{ fontSize: 11 }}>{d.by}</td>,
     desc:   <td key="desc" style={{ fontSize: 11, color: 'var(--text3)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.desc}</td>,
-    estado: <td key="estado"><span className={`tag ${estadoTag(d.estado)}`}>{d.estado}</span></td>,
+    estado: <td key="estado">
+              <span className={`tag ${estadoTag(d.estado)}`} title={d._motivo ? `Motivo: ${d._motivo}` : undefined}>{d.estado}</span>
+              {d._motivo && <div style={{ fontSize:10, color:'var(--text4)', marginTop:2, fontStyle:'italic', maxWidth:160, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d._motivo}</div>}
+            </td>,
     supMin: <td key="supMin" className="mono">{d.supMin ? d.supMin.toLocaleString('es-ES') : '—'}</td>,
     supMax: <td key="supMax" className="mono">{d.supMax ? d.supMax.toLocaleString('es-ES') : '—'}</td>,
     tipoB:  <td key="tipoB" style={{ fontSize: 11 }}>{d.tipoB || '—'}</td>,
