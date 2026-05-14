@@ -136,17 +136,24 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('demandas')
-      .select(`
-        id, ref, nombre, estatus, notas, motivo_descarte, requisitos, otros_contactos, equipo_trabajo, documentos,
-        dynamics_account_id, dynamics_opportunity_id, mandato_id, created_at, updated_at,
-        dynamics_accounts:dynamics_account_id ( dynamics_id, nombre, tipo, sector, direccion, codigo_postal, ciudad, pais, telefono, web ),
-        dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo ),
-        mandato:mandato_id ( id, ref )
-      `)
-      .eq('ref', refOrId)
-      .maybeSingle()
+    // SELECT robusto: si la columna `documentos` aún no existe (migración 031
+    // sin aplicar), reintentamos sin ella para no romper la ficha entera.
+    const SELECT_FULL = `
+      id, ref, nombre, estatus, notas, motivo_descarte, requisitos, otros_contactos, equipo_trabajo, documentos,
+      dynamics_account_id, dynamics_opportunity_id, mandato_id, created_at, updated_at,
+      dynamics_accounts:dynamics_account_id ( dynamics_id, nombre, tipo, sector, direccion, codigo_postal, ciudad, pais, telefono, web ),
+      dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo ),
+      mandato:mandato_id ( id, ref )
+    `
+    const SELECT_FALLBACK = SELECT_FULL.replace(', documentos', '')
+
+    let { data, error } = await supabase.from('demandas').select(SELECT_FULL).eq('ref', refOrId).maybeSingle()
+    if (error && /documentos/i.test(error.message)) {
+      // Reintenta sin la columna documentos
+      const r = await supabase.from('demandas').select(SELECT_FALLBACK).eq('ref', refOrId).maybeSingle()
+      data = r.data; error = r.error
+      if (data) data.documentos = []
+    }
     if (error) { setError(error.message); setDemanda(null); setLoading(false); return }
     if (!data)  { setError(`Demanda ${refOrId} no encontrada`); setDemanda(null); setLoading(false); return }
     setDemanda(data)

@@ -77,18 +77,22 @@ export default function NuevaDemandaModal({ onClose, onSuccess }) {
     setError('')
     try {
       const ref = await nextDemandaRef()
-      const { error: insErr } = await supabase
-        .from('demandas')
-        .insert({
-          ref,
-          dynamics_opportunity_id: oppPick.dynamics_id,
-          dynamics_account_id:     cuenta.dynamics_id,
-          estatus:                 'ongoing',
-          nombre:                  '',
-          requisitos:              null,
-          documentos:              [],
-          equipo_trabajo:          [],
-        })
+      const basePayload = {
+        ref,
+        dynamics_opportunity_id: oppPick.dynamics_id,
+        dynamics_account_id:     cuenta.dynamics_id,
+        estatus:                 'ongoing',
+        nombre:                  '',
+        requisitos:              null,
+        equipo_trabajo:          [],
+      }
+      // Intento con `documentos` (migración 031); si la columna no existe,
+      // reintento sin ella.
+      let { error: insErr } = await supabase.from('demandas').insert({ ...basePayload, documentos: [] })
+      if (insErr && /documentos/i.test(insErr.message)) {
+        const r = await supabase.from('demandas').insert(basePayload)
+        insErr = r.error
+      }
       if (insErr) throw insErr
       onSuccess && onSuccess(ref)
       navigate('ficha-demanda', { id: ref })
