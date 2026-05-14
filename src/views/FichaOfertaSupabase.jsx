@@ -237,7 +237,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
             : 'Crear instrucción + mandato'
           return yaTieneMandato && mandatoVinculado ? (
             <button className="ab-btn" onClick={() => navigate('ficha-mandato', { id: mandatoVinculado.ref })}>
-              📜 Mandato {mandatoVinculado.ref}
+              Mandato {mandatoVinculado.ref}
             </button>
           ) : (
             <button
@@ -247,7 +247,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
               title={tip}
               style={{ background: puede ? 'var(--purple, #6b5b8e)' : undefined, color: puede ? '#fff' : undefined, border: puede ? '1px solid var(--purple, #6b5b8e)' : undefined, opacity: puede ? 1 : 0.45 }}
             >
-              📜 Firmar mandato
+              Firmar mandato
             </button>
           )
         })()}

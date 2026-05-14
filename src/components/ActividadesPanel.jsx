@@ -16,7 +16,7 @@ import { useNav } from '../context/NavigationContext'
 
 const TIPO_LABEL = {
   email:    { lbl:'Email',     icon:'✉️', tag:'tag-blue'   },
-  llamada:  { lbl:'Llamada',   icon:'📞', tag:'tag-green'  },
+  llamada:  { lbl:'Llamada',   icon:'', tag:'tag-green'  },
   reunion:  { lbl:'Reunión',   icon:'👥', tag:'tag-purple' },
   nota:     { lbl:'Nota',      icon:'📝', tag:'tag-gray'   },
   tarea:    { lbl:'Tarea',     icon:'✅', tag:'tag-amber'  },

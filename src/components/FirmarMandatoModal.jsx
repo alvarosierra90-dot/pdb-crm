@@ -187,7 +187,7 @@ export default function FirmarMandatoModal({ origen, oportunidad, cuenta, onClos
       <div style={panel} onClick={e => e.stopPropagation()}>
         <div style={header}>
           <div>
-            <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>📜 Firmar mandato</div>
+            <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>Firmar mandato</div>
             <div style={{ fontSize:11, color:'var(--text4)', marginTop:2 }}>{tipoLabel} {r.ref} · {r.nombre || cuenta?.nombre || '—'}</div>
           </div>
           {step !== 'submitting' && (
@@ -212,7 +212,7 @@ export default function FirmarMandatoModal({ origen, oportunidad, cuenta, onClos
             </div>
             <div style={footer}>
               <button className="ab-btn" onClick={onClose}>Cerrar</button>
-              <button className="ab-btn save" onClick={irAlMandato}>📜 Ir al mandato {created.mandato_ref} →</button>
+              <button className="ab-btn save" onClick={irAlMandato}>Ir al mandato {created.mandato_ref} →</button>
             </div>
           </>
         ) : (
@@ -244,7 +244,7 @@ export default function FirmarMandatoModal({ origen, oportunidad, cuenta, onClos
 
               <div style={{ border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
                 <div style={{ background:'#6b5b8e', color:'#fff', padding:'8px 12px', fontSize:11, fontWeight:700 }}>
-                  📜 2. Mandato · PDB
+                  2. Mandato · PDB
                 </div>
                 <div style={{ padding:'12px 14px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
                   <div style={{ gridColumn:'1 / -1' }}>

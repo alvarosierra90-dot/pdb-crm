@@ -227,8 +227,8 @@ function FichaPropuestaMock() {
         {form.convertido_mandato
           ? <button className="ab-btn blue" onClick={()=>navigate('ficha-mandato')}>📄 Ver mandato {form.mandato_ref}</button>
           : <>
-              <button className="ab-btn" style={{background:'var(--accent)',color:'#fff',border:'none',fontWeight:700}} onClick={()=>{set('estado','Adjudicado');setShowConvert(true)}}>🏆 Marcar adjudicado</button>
-              <button className="ab-btn" style={{background:'var(--green)',color:'#fff',border:'none',fontWeight:700}} onClick={()=>navigate('ficha-mandato',{nuevo:true})}>📋 Transformar en mandato</button>
+              <button className="ab-btn" style={{background:'var(--accent)',color:'#fff',border:'none',fontWeight:700}} onClick={()=>{set('estado','Adjudicado');setShowConvert(true)}}>Marcar adjudicado</button>
+              <button className="ab-btn" style={{background:'var(--green)',color:'#fff',border:'none',fontWeight:700}} onClick={()=>navigate('ficha-mandato',{nuevo:true})}>Transformar en mandato</button>
             </>
         }
         <div className="ab-sep"/>
@@ -238,7 +238,7 @@ function FichaPropuestaMock() {
       {/* Banner adjudicado */}
       {showConvert && !form.convertido_mandato && (
         <div style={{background:'linear-gradient(90deg,#14532d,#166534)',color:'#fff',padding:'10px 20px',display:'flex',alignItems:'center',gap:12,borderBottom:'2px solid #16a34a'}}>
-          <span style={{fontSize:18}}>🏆</span>
+          <span style={{fontSize:18}}></span>
           <div style={{flex:1}}>
             <div style={{fontWeight:700,fontSize:13}}>¡Proyecto adjudicado!</div>
             <div style={{fontSize:11,opacity:.85}}>Puedes convertirlo automáticamente en un mandato comercial con trazabilidad completa.</div>
@@ -265,7 +265,7 @@ function FichaPropuestaMock() {
           <div className="ah">
             <div style={{display:'flex',alignItems:'flex-start',gap:14}}>
               <div style={{ width:50, height:50, borderRadius:10, background:'#f5f3ff', border:'1px solid #ddd6fe', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0, color:'#6b21a8' }}>
-                📋
+                
               </div>
               <div style={{flex:1, minWidth:0}}>
                 <div className="ah-ref" style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
@@ -341,7 +341,7 @@ function FichaPropuestaMock() {
                 <div className="va-two-col" style={{ overflow:'visible' }}>
                   <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
                     <div className="va-card-header">
-                      <h3><span className="ico">◇</span> Vinculaciones</h3>
+                      <h3><span className="ico"></span> Vinculaciones</h3>
                       <span className="hint" style={{ color:'var(--red, #dc2626)', fontWeight:600 }}>Una Propuesta SIEMPRE cuelga de Oportunidad</span>
                     </div>
                     <div style={{padding:'4px 20px 16px'}}>
@@ -380,12 +380,12 @@ function FichaPropuestaMock() {
                         </div>
                         {form.empresa ? (
                           <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>🏢</div>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}></div>
                             <div style={{ flex:1, minWidth:0 }}>
                               <div style={{ fontSize:12, fontWeight:600 }}>{form.empresa}</div>
                               <div style={{ fontSize:10, color:'var(--text3)' }}>{form.oportunidad ? 'Heredada de Oportunidad' : 'Cuenta Dynamics'}</div>
                             </div>
-                            <span className="tag tag-blue" style={{ fontSize:9 }}>{form.oportunidad ? '🔒 Heredada' : 'Dynamics'}</span>
+                            <span className="tag tag-blue" style={{ fontSize:9 }}>{form.oportunidad ? 'Heredada' : 'Dynamics'}</span>
                             {!form.oportunidad && <button onClick={() => set('empresa','')} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>}
                           </div>
                         ) : (
@@ -436,7 +436,7 @@ function FichaPropuestaMock() {
                         <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                           {activos.map((a,i) => (
                             <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                              <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>🏛</div>
+                              <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}></div>
                               <div style={{ flex:1, minWidth:0 }}>
                                 <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>
                                   <span onClick={() => navigate('ficha-activo', a.ref ? { ref:a.ref } : undefined)} style={{ cursor:'pointer', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{a.nombre}</span>
@@ -524,7 +524,7 @@ function FichaPropuestaMock() {
                   </div>
                   <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
                     <div className="va-card-header">
-                      <h3><span className="ico">◆</span> Equipos y participantes</h3>
+                      <h3><span className="ico"></span> Equipos y participantes</h3>
                       <button className="ab-btn" style={{fontSize:10,padding:'3px 10px'}} onClick={()=>setShowAddEquipo(v=>!v)}>+ Añadir</button>
                     </div>
                     <div style={{padding:'4px 20px 16px'}}>
@@ -607,7 +607,7 @@ function FichaPropuestaMock() {
                 <div style={{display:'flex',flexDirection:'column',gap:0}}>
                   {trazabilidad.map((t,i)=>{
                     const colorMap = { estado:'var(--accent)', fees:'var(--green)', activo:'var(--teal)', sistema:'var(--purple)', demanda:'var(--amber)', oferta:'var(--orange)' }
-                    const iconMap  = { estado:'🔄', fees:'💰', activo:'🏛', sistema:'⚙', demanda:'🔍', oferta:'📧' }
+                    const iconMap  = { estado:'🔄', fees:'', activo:'', sistema:'⚙', demanda:'🔍', oferta:'📧' }
                     const col = colorMap[t.campo]||'var(--text3)'
                     const ico = iconMap[t.campo]||'📝'
                     return (
@@ -636,7 +636,7 @@ function FichaPropuestaMock() {
           {tab==='docs' && (
             <div className="tab-content active"><div className="info-pad">
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-                <div style={{fontSize:12,fontWeight:700}}>📁 Documentación del proyecto</div>
+                <div style={{fontSize:12,fontWeight:700}}>Documentación del proyecto</div>
                 <button className="ab-btn blue" style={{padding:'4px 12px',fontSize:10}} onClick={()=>setShowUploadDoc(v=>!v)}>+ Añadir documento</button>
               </div>
 
@@ -671,7 +671,7 @@ function FichaPropuestaMock() {
               <div style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14}}>
                 {docs.map(doc=>{
                   const tipo_color = {Presentación:'var(--accent)',Análisis:'var(--teal)',Legal:'var(--red)',Propuesta:'var(--purple)',Informe:'var(--amber)',Plano:'var(--text2)',Foto:'var(--green)',Otro:'var(--text4)'}
-                  const tipo_ico   = {Presentación:'📊',Análisis:'📈',Legal:'⚖️',Propuesta:'📋',Informe:'📄',Plano:'📐',Foto:'🖼',Otro:'📎'}
+                  const tipo_ico   = {Presentación:'',Análisis:'',Legal:'⚖️',Propuesta:'',Informe:'📄',Plano:'📐',Foto:'🖼',Otro:'📎'}
                   const col = tipo_color[doc.tipo]||'var(--text3)'
                   return (
                     <div key={doc.id} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'18px 16px',display:'flex',flexDirection:'column',gap:10,cursor:'pointer',transition:'border .15s,box-shadow .15s',minHeight:170}}
@@ -767,7 +767,7 @@ function FichaPropuestaMock() {
                     {form.estado==='Adjudicado'&&(
                       <div style={{marginTop:16,padding:'12px 14px',background:form.convertido_mandato?'#f0fdf4':'linear-gradient(135deg,#14532d22,#16653422)',border:`1px solid ${form.convertido_mandato?'#bbf7d0':'#16a34a44'}`,borderRadius:8}}>
                         <div style={{fontWeight:700,fontSize:12,color:form.convertido_mandato?'#15803d':'var(--green)',marginBottom:4}}>
-                          {form.convertido_mandato ? `✅ Mandato generado: ${form.mandato_ref}` : '🏆 Proyecto adjudicado'}
+                          {form.convertido_mandato ? `✅ Mandato generado: ${form.mandato_ref}` : 'Proyecto adjudicado'}
                         </div>
                         {!form.convertido_mandato&&(
                           <button onClick={convertirMandato} style={{marginTop:6,background:'var(--green)',color:'#fff',border:'none',borderRadius:5,padding:'6px 14px',cursor:'pointer',fontWeight:700,fontSize:11,fontFamily:'inherit'}}>
@@ -835,7 +835,7 @@ function FichaPropuestaMock() {
                   <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
                     {activos.map((a,i) => (
                       <div key={i} onClick={() => navigate('ficha-activo', a.ref ? { ref:a.ref } : undefined)} style={{ fontSize:11, color:'var(--text)', cursor:'pointer' }}>
-                        🏛 <span style={{ textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{a.nombre}</span>
+                        <span style={{ textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{a.nombre}</span>
                       </div>
                     ))}
                   </div>
@@ -938,7 +938,7 @@ function FichaPropuestaMock() {
           <div className="rp-sec">
             <div className="rp-lbl">Asistente IA</div>
             <div className="ai-box">
-              <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Insight propuesta</span><span className="ai-badge">Tiempo real</span></div>
+              <div className="ai-head"><div className="ai-ico"></div><span className="ai-lbl">Insight propuesta</span><span className="ai-badge">Tiempo real</span></div>
               <div className="ai-text">
                 {(() => {
                   const p = parseInt(form.probabilidad) || 0

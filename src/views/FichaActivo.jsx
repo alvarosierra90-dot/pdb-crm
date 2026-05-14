@@ -3213,7 +3213,7 @@ function RightPanel({ navigate, nEdificios, nPropietarios, plazas, esg, activo, 
         <div className="va-ai-card">
           <div className="va-ai-header">
             <span>Asistente IA · Insight activo</span>
-            <span className="va-ai-badge">✦ IA</span>
+            <span className="va-ai-badge">IA</span>
           </div>
           <div className="va-ai-body">
             <strong>10.142 m² disponibles</strong> (21,6%). 2 break options vencidas o próximas. Renta zona 10,5 €/m² — margen de subida. Oracle en fase finalista para P1–P4.
@@ -3361,7 +3361,7 @@ function RightPanel({ navigate, nEdificios, nPropietarios, plazas, esg, activo, 
         <div className="va-side-title">Propuestas / Proyectos</div>
         {[
           {ico:'🏗',label:'Reforma integral lobby',sub:'Arquitectura · En curso',dot:'var(--pdb-orange)'},
-          {ico:'📋',label:'Mandato captación P4-P5',sub:'Leasing · Activo',dot:'var(--pdb-blue)'},
+          {ico:'',label:'Mandato captación P4-P5',sub:'Leasing · Activo',dot:'var(--pdb-blue)'},
         ].map((p,i)=>(
           <div key={i} className="va-proj-item">
             <div className="va-proj-ico">{p.ico}</div>
@@ -5823,7 +5823,7 @@ export default function FichaActivo() {
                       {/* Catastro */}
                       <div className="info-block">
                         <div className="ib-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                          <span>🏛 Catastro</span>
+                          <span>Catastro</span>
                           <div style={{display:'flex',alignItems:'center',gap:6}}>
                             {catSyncMsgAd==='ok' && <span style={{fontSize:9,color:'var(--green)',fontWeight:600}}>✓ Sincronizado</span>}
                             {catSyncMsgAd&&catSyncMsgAd!=='ok' && <span style={{fontSize:9,color:'var(--red)'}}>{catSyncMsgAd}</span>}
@@ -5854,7 +5854,7 @@ export default function FichaActivo() {
                       </div>
                       {/* Visor Urbanístico */}
                       <div className="info-block">
-                        <div className="ib-title">🗺 Visor Urbanístico</div>
+                        <div className="ib-title">Visor Urbanístico</div>
                         {[
                           {ciudad:'Madrid',    lbl:'SIGUR Madrid',     url:'https://sig.madrid.es/SigGeoportal/'},
                           {ciudad:'Barcelona', lbl:'Urbanisme BCN',    url:'https://w133.bcn.cat/APPS/geoportal/AppGeoportal.html'},
@@ -5867,7 +5867,7 @@ export default function FichaActivo() {
                         ))}
                       </div>
                       {/* INE */}
-                      <div className="info-block"><div className="ib-title">📊 INE</div><div className="ir"><span className="ir-k">Estadísticas del barrio</span><a href="https://www.ine.es/censos2021/" target="_blank" rel="noreferrer" style={{fontSize:10,color:'var(--accent)',fontWeight:600,textDecoration:'none'}}>Abrir INE ↗</a></div></div>
+                      <div className="info-block"><div className="ib-title">INE</div><div className="ir"><span className="ir-k">Estadísticas del barrio</span><a href="https://www.ine.es/censos2021/" target="_blank" rel="noreferrer" style={{fontSize:10,color:'var(--accent)',fontWeight:600,textDecoration:'none'}}>Abrir INE ↗</a></div></div>
                       {/* Registradores */}
                       <div className="info-block"><div className="ib-title">🏷 Registradores</div><div className="ir"><span className="ir-k">Nota simple</span><a href="https://www.registradores.org/tools/servicios/solicitud-nota-simple-informativa/" target="_blank" rel="noreferrer" style={{fontSize:10,color:'var(--accent)',fontWeight:600,textDecoration:'none'}}>Solicitar ↗</a></div></div>
                     </div>

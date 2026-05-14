@@ -68,17 +68,17 @@ const ESTADO_LABEL = Object.fromEntries(ESTADO_OPTS.map(o => [o.v, o.label]))
 // Paleta visual por estado · usada en header, badge de estado grande y lista
 const ESTADO_COLOR = {
   ongoing:           { tag:'tag-green', headerCol:'var(--green)',  bg:'#dcfce7', bd:'#86efac', text:'#15803d', icon:'●' },
-  potencial:         { tag:'tag-blue',  headerCol:'var(--accent)', bg:'#f5efe5', bd:'#93c5fd', text:'#6f5734', icon:'◌' },
+  potencial:         { tag:'tag-blue',  headerCol:'var(--accent)', bg:'#f5efe5', bd:'#93c5fd', text:'#6f5734', icon:'' },
   paralizada:        { tag:'tag-amber', headerCol:'var(--amber)',  bg:'#fef3c7', bd:'#fcd34d', text:'#92400e', icon:'⏸' },
   descartada:        { tag:'tag-red',   headerCol:'#dc2626',       bg:'#fee2e2', bd:'#fca5a5', text:'#991b1b', icon:'✕' },
-  cerrada_concedido: { tag:'tag-green', headerCol:'var(--green)',  bg:'#dcfce7', bd:'#86efac', text:'#15803d', icon:'🏆' },
+  cerrada_concedido: { tag:'tag-green', headerCol:'var(--green)',  bg:'#dcfce7', bd:'#86efac', text:'#15803d', icon:'' },
   cerrada_perdida:   { tag:'tag-red',   headerCol:'#dc2626',       bg:'#fee2e2', bd:'#fca5a5', text:'#991b1b', icon:'✕' },
 }
 
 function StubTab({ label }) {
   return (
     <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
-      <div style={{ fontSize:32, marginBottom:8 }}>📋</div>
+      <div style={{ fontSize:32, marginBottom:8 }}></div>
       <div style={{ fontWeight:600, color:'var(--text2)', marginBottom:4 }}>{label}</div>
       <div>Sección disponible cuando completes la información básica y guardes la demanda.</div>
     </div>
@@ -411,7 +411,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
             : 'Crear instrucción + mandato'
           return yaTieneMandato ? (
             <button className="ab-btn" onClick={() => navigate('ficha-mandato', { id: demanda.mandato.ref })}>
-              📜 Mandato {demanda.mandato.ref}
+              Mandato {demanda.mandato.ref}
             </button>
           ) : (
             <button
@@ -421,7 +421,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
               title={tip}
               style={{ background: puede ? 'var(--purple, #6b5b8e)' : undefined, color: puede ? '#fff' : undefined, border: puede ? '1px solid var(--purple, #6b5b8e)' : undefined, opacity: puede ? 1 : 0.45 }}
             >
-              📜 Firmar mandato
+              Firmar mandato
             </button>
           )
         })()}
@@ -600,7 +600,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   {/* === VINCULACIONES === */}
                   <div className="va-card" style={{ marginBottom:0 }}>
                     <div className="va-card-header">
-                      <h3><span className="ico">◇</span> Vinculaciones</h3>
+                      <h3><span className="ico"></span> Vinculaciones</h3>
                       <span className="hint">Oportunidad · Cuenta · Mandato</span>
                     </div>
                     <div style={{ padding:'8px 20px 16px' }}>
@@ -627,7 +627,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                         <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Cuenta (heredada de Dynamics)</div>
                         {cuenta ? (
                           <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>🏢</div>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}></div>
                             <div style={{ flex:1, minWidth:0 }}>
                               <div style={{ fontSize:12, fontWeight:600 }}>{cuenta.nombre || '—'}</div>
                               <div style={{ fontSize:10, color:'var(--text3)' }}>{[cuenta.tipo, cuenta.sector, cuenta.ciudad].filter(Boolean).join(' · ') || '—'}</div>
@@ -644,7 +644,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                         <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Mandato</div>
                         {demanda.mandato_id && demanda.mandato ? (
                           <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--purple, #6b5b8e)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>📜</div>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--purple, #6b5b8e)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}></div>
                             <div style={{ flex:1, minWidth:0 }}>
                               <div style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)' }}>{demanda.mandato.ref}</div>
                               <div style={{ fontSize:10, color:'var(--text3)' }}>Mandato vinculado</div>
@@ -679,7 +679,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                                       onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                                       onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
                                     >
-                                      <div style={{ width:24, height:24, borderRadius:'50%', background:'var(--purple, #6b5b8e)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>📜</div>
+                                      <div style={{ width:24, height:24, borderRadius:'50%', background:'var(--purple, #6b5b8e)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}></div>
                                       <div style={{ flex:1, minWidth:0 }}>
                                         <div style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)' }}>{m.ref}</div>
                                         <div style={{ fontSize:10, color:'var(--text4)', display:'flex', gap:6, flexWrap:'wrap' }}>
@@ -696,7 +696,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                               </div>
                             )}
                             <div style={{ fontSize:10, color:'var(--text4)', marginTop:4, fontStyle:'italic' }}>
-                              Buscas un mandato existente. Para firmar uno nuevo desde esta demanda, usa <strong>📜 Firmar mandato</strong> arriba.
+                              Buscas un mandato existente. Para firmar uno nuevo desde esta demanda, usa <strong>Firmar mandato</strong> arriba.
                             </div>
                           </div>
                         )}
@@ -713,7 +713,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   {/* === EQUIPO DE TRABAJO · formato Propuestas/Mandato (inline) === */}
                   <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
                     <div className="va-card-header">
-                      <h3><span className="ico">◆</span> Equipo de trabajo</h3>
+                      <h3><span className="ico"></span> Equipo de trabajo</h3>
                       {canManage && (
                         <button className="ab-btn" style={{ fontSize:10, padding:'3px 10px' }} onClick={() => setShowAddEq(v => !v)}>+ Añadir</button>
                       )}
@@ -779,7 +779,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   {/* === PARTES INVOLUCRADAS === */}
                   <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
                     <div className="va-card-header">
-                      <h3><span className="ico" style={{ color:'#6b5b8e' }}>◉</span> Partes involucradas</h3>
+                      <h3><span className="ico" style={{ color:'#6b5b8e' }}></span> Partes involucradas</h3>
                       <span className="hint">Contactos de {cuenta?.nombre || '(cuenta)'}</span>
                     </div>
                     <div style={{ padding:'8px 20px 16px' }}>
@@ -868,7 +868,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     title={!form.uso_principal ? 'Define al menos el uso principal' : (!form.sup_min && !form.sup_max ? 'Define superficie mínima o máxima' : 'Exportar requisitos al mapa de búsqueda')}
                     style={{ background:'var(--accent)', color:'#fff', border:'1px solid var(--accent)', opacity: canExport ? 1 : 0.45, fontWeight:600, fontSize:12 }}
                   >
-                    🗺 Exportar a mapa
+                    Exportar a mapa
                   </button>
                 </div>
 
@@ -878,7 +878,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   {/* === REQUISITOS GENERALES === */}
                   <div className="va-card" style={{ marginBottom:0 }}>
                     <div className="va-card-header">
-                      <h3><span className="ico" style={{ color:'var(--accent)' }}>◐</span> Requisitos generales</h3>
+                      <h3><span className="ico" style={{ color:'var(--accent)' }}></span> Requisitos generales</h3>
                     </div>
                     <div style={{ padding:'10px 18px 16px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                       <ReqField label="Naturaleza" accent="#0f172a">
@@ -972,7 +972,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
                   <div className="va-card" style={{ marginBottom:0 }}>
                     <div className="va-card-header">
-                      <h3><span className="ico" style={{ color:'var(--accent)' }}>🗺</span> Provincias de interés</h3>
+                      <h3><span className="ico" style={{ color:'var(--accent)' }}></span> Provincias de interés</h3>
                       <span className="hint">{provinciasMostrar.length} seleccionada(s)</span>
                     </div>
                     <div style={{ padding:'10px 18px 16px' }}>
@@ -1018,7 +1018,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 {/* ─── FILA 3: Detalles geográficos (full-width) ─── */}
                 <div className="va-card" style={{ marginBottom:0 }}>
                   <div className="va-card-header">
-                    <h3><span className="ico" style={{ color:'var(--teal)' }}>◑</span> Detalles geográficos</h3>
+                    <h3><span className="ico" style={{ color:'var(--teal)' }}></span> Detalles geográficos</h3>
                   </div>
                   <div style={{ padding:'10px 18px 16px', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
                     <ReqField label="Calles específicas">
@@ -1053,7 +1053,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
               return (
                 <div style={{ display:'flex', flexDirection:'column', gap:8, padding:'10px 12px', border:'1px solid var(--border)', borderLeft:`3px solid ${accent}`, borderRadius:'var(--r)', background:'var(--surface)' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                    <div style={{ width:32, height:32, borderRadius:'50%', background:accent, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, flexShrink:0 }}>🏛</div>
+                    <div style={{ width:32, height:32, borderRadius:'50%', background:accent, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, flexShrink:0 }}></div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', cursor:'pointer' }} onClick={() => a.ref && navigate('ficha-activo', { ref:a.ref })}>
                         {a.nombre || '(activo sin nombre)'}
@@ -1087,9 +1087,9 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 {/* Cabecera con KPIs de funnel */}
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:14 }}>
                   {[
-                    ['Presentadas', presentadas.length, '#f5efe5', '#6f5734', '📨'],
-                    ['Visitadas',   visitadas.length,   '#f0fdfa', '#0f766e', '👣'],
-                    ['Negociando',  negociando.length,  '#fef3c7', '#92400e', '🤝'],
+                    ['Presentadas', presentadas.length, '#f5efe5', '#6f5734', ''],
+                    ['Visitadas',   visitadas.length,   '#f0fdfa', '#0f766e', ''],
+                    ['Negociando',  negociando.length,  '#fef3c7', '#92400e', ''],
                     ['Cerradas',    cerradas.length,    '#f1f5f9', '#475569', '✓'],
                   ].map(([lbl, val, bg, color, icon]) => (
                     <div key={lbl} style={{ padding:'10px 12px', background:bg, border:`1px solid ${color}33`, borderRadius:6 }}>
@@ -1107,10 +1107,10 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 {!loadingAlt && alternativas.length === 0 && (
                   <div className="va-card" style={{ marginBottom:0 }}>
                     <div className="va-card-header">
-                      <h3><span className="ico">◯</span> Aún no hay edificios presentados</h3>
+                      <h3><span className="ico"></span> Aún no hay edificios presentados</h3>
                     </div>
                     <div style={{ padding:'14px 18px 18px', fontSize:12, color:'var(--text3)' }}>
-                      <p style={{ margin:'0 0 8px' }}>Define los requisitos en la pestaña <strong>Requisitos</strong> y pulsa <strong>🗺 Exportar a mapa</strong> para seleccionar edificios candidatos. Cuando envíes microsites a la cuenta, aparecerán aquí como <strong>Presentadas</strong>.</p>
+                      <p style={{ margin:'0 0 8px' }}>Define los requisitos en la pestaña <strong>Requisitos</strong> y pulsa <strong>Exportar a mapa</strong> para seleccionar edificios candidatos. Cuando envíes microsites a la cuenta, aparecerán aquí como <strong>Presentadas</strong>.</p>
                       <p style={{ margin:'8px 0 0' }}>Desde cada visita realizada podrás transformar la alternativa en <strong>Negociación</strong> creando primero una Instrucción.</p>
                     </div>
                   </div>
@@ -1122,7 +1122,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     {/* === COL 1 · PRESENTADAS === */}
                     <div className="va-card" style={{ marginBottom:0 }}>
                       <div className="va-card-header" style={{ background:'#f8fafc' }}>
-                        <h3><span className="ico" style={{ color:'#6f5734' }}>📨</span> Presentadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({presentadas.length})</span></h3>
+                        <h3><span className="ico" style={{ color:'#6f5734' }}></span> Presentadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({presentadas.length})</span></h3>
                       </div>
                       <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8 }}>
                         {presentadas.length === 0
@@ -1145,7 +1145,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     {/* === COL 2 · VISITADAS === */}
                     <div className="va-card" style={{ marginBottom:0 }}>
                       <div className="va-card-header" style={{ background:'#f0fdfa' }}>
-                        <h3><span className="ico" style={{ color:'#0f766e' }}>👣</span> Visitadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({visitadas.length})</span></h3>
+                        <h3><span className="ico" style={{ color:'#0f766e' }}></span> Visitadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({visitadas.length})</span></h3>
                       </div>
                       <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8 }}>
                         {visitadas.length === 0
@@ -1168,7 +1168,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                                         }
                                       }}
                                       title="Crea Instrucción + Negociación (cascada)"
-                                    >🤝 Transformar a Negociación</button>
+                                    >Transformar a Negociación</button>
                                   )}
                                   <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'descartada')}>✕ Descartar</button>
                                 </>
@@ -1181,7 +1181,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     {/* === COL 3 · EN NEGOCIACIÓN === */}
                     <div className="va-card" style={{ marginBottom:0 }}>
                       <div className="va-card-header" style={{ background:'#fef3c7' }}>
-                        <h3><span className="ico" style={{ color:'#92400e' }}>🤝</span> En negociación <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({negociando.length})</span></h3>
+                        <h3><span className="ico" style={{ color:'#92400e' }}></span> En negociación <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({negociando.length})</span></h3>
                       </div>
                       <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8 }}>
                         {negociando.length === 0
@@ -1190,7 +1190,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                               <AltCard key={alt.id} alt={alt} accent="#92400e" actions={
                                 <>
                                   <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px' }} onClick={() => alt.ofertas?.ref && navigate('ficha-negociacion', { id: alt.ofertas.ref })}>Ver negociación</button>
-                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--green)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'ganada')}>🏆 Ganada</button>
+                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--green)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'ganada')}>Ganada</button>
                                   <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'perdida')}>✕ Perdida</button>
                                 </>
                               } />
@@ -1214,7 +1214,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                         return (
                           <AltCard key={alt.id} alt={alt} accent={isWin ? 'var(--green)' : '#94a3b8'} actions={
                             <span className={`tag ${isWin ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:9 }}>
-                              {alt.estado_alternativa === 'ganada' ? '🏆 Ganada' : alt.estado_alternativa === 'perdida' ? '✕ Perdida' : '⊘ Descartada'}
+                              {alt.estado_alternativa === 'ganada' ? 'Ganada' : alt.estado_alternativa === 'perdida' ? '✕ Perdida' : '⊘ Descartada'}
                             </span>
                           } />
                         )
@@ -1230,8 +1230,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
             const docs = Array.isArray(demanda.documentos) ? demanda.documentos : []
             const CATEGORIAS = ['Brief','NDA','KYC','Plano','Propuesta económica','Reporte','Contrato','Email','Otro']
             const ICON_CAT = {
-              Brief:'📋', NDA:'🔒', KYC:'🪪', Plano:'📐',
-              'Propuesta económica':'💰', Reporte:'📊', Contrato:'📜', Email:'📧', Otro:'📎',
+              Brief:'', NDA:'', KYC:'🪪', Plano:'📐',
+              'Propuesta económica':'', Reporte:'', Contrato:'', Email:'📧', Otro:'📎',
             }
             const COLOR_CAT = {
               Brief:'#6f5734', NDA:'#6b5b8e', KYC:'#0f766e', Plano:'#0891b2',
@@ -1302,7 +1302,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     border:'2px dashed var(--border)', borderRadius:8,
                     background:'var(--surface-2)', cursor:'pointer', textAlign:'center',
                   }}>
-                    <div style={{ fontSize:32, marginBottom:6 }}>📁</div>
+                    <div style={{ fontSize:32, marginBottom:6 }}></div>
                     <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', marginBottom:3 }}>Arrastra archivos o haz click</div>
                     <div style={{ fontSize:11, color:'var(--text4)' }}>Brief · NDA · KYC · Planos · Propuestas · Reportes</div>
                     <input
@@ -1441,7 +1441,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   )}
                 </div>
                 <div style={{ display:'flex', gap:6, marginTop:8 }}>
-                  <button className="acc-btn" style={{ flex:1, fontSize:10 }}>📞 Contacto</button>
+                  <button className="acc-btn" style={{ flex:1, fontSize:10 }}>Contacto</button>
                   <button className="acc-btn" style={{ flex:1, fontSize:10 }}>✅ Asignar</button>
                 </div>
               </div>
@@ -1450,7 +1450,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
               <div className="rp-sec">
                 <div className="rp-lbl">Asistente IA</div>
                 <div className="ai-box">
-                  <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Análisis de la demanda</span><span className="ai-badge">Tiempo real</span></div>
+                  <div className="ai-head"><div className="ai-ico"></div><span className="ai-lbl">Análisis de la demanda</span><span className="ai-badge">Tiempo real</span></div>
                   <div className="ai-text">
                     {esInversion
                       ? <>Demanda de inversión · ticket en análisis. <strong>Detectando activos compatibles</strong> y posibles riesgos de yield.</>
@@ -1463,8 +1463,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     <span style={{ fontSize:9, fontWeight:700, color:'#991b1b', background:'#fee2e2', padding:'2px 7px', borderRadius:6 }}>⚠ Riesgos · 1</span>
                   </div>
                   <div style={{ marginTop:8, display:'flex', flexDirection:'column', gap:3 }}>
-                    <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>📊 Resumen ejecutivo</button>
-                    <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>🏢 Sugerir zonas alternativas</button>
+                    <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>Resumen ejecutivo</button>
+                    <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>Sugerir zonas alternativas</button>
                     <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>🔍 Matching con ofertas</button>
                   </div>
                   <div className="ai-cta">✎ Preguntar a la IA</div>

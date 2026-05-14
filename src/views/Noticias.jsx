@@ -267,7 +267,7 @@ export default function Noticias() {
         <div style={{flex:1,overflowY:'auto',padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
           {watchlist.length === 0 ? (
             <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,color:'var(--text3)',padding:40}}>
-              <div style={{fontSize:32}}>📋</div>
+              <div style={{fontSize:32}}></div>
               <div style={{fontSize:14,fontWeight:600,color:'var(--text2)'}}>Sin cuentas en seguimiento</div>
               <div style={{fontSize:12,textAlign:'center',maxWidth:280}}>Añade cuentas de la PDB a tu watchlist para ver las últimas noticias relacionadas.</div>
             </div>
@@ -297,7 +297,7 @@ export default function Noticias() {
                 <div style={{fontSize:13,fontWeight:700,color:'var(--text)',lineHeight:1.4}}>{n.titular}</div>
                 <div style={{fontSize:11,color:'var(--text3)',lineHeight:1.6}}>{n.resumen}</div>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginTop:2}}>
-                  <span style={{fontSize:10,fontWeight:600,color:'var(--accent)',background:'var(--accent-lt)',borderRadius:4,padding:'2px 7px'}}>🏢 {n.cliente}</span>
+                  <span style={{fontSize:10,fontWeight:600,color:'var(--accent)',background:'var(--accent-lt)',borderRadius:4,padding:'2px 7px'}}>{n.cliente}</span>
                   <span style={{fontSize:10,color:'var(--text4)',marginLeft:'auto'}}>Ver fuente →</span>
                 </div>
               </div>

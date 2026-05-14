@@ -76,7 +76,7 @@ export default function FichaOportunidad() {
         <button className="ab-btn" onClick={() => navigate('oportunidades')}>← Volver</button>
         <div className="ab-sep"/>
         <button className="ab-btn">✅ Asignar tarea</button>
-        <button className="ab-btn">📞 Registrar actividad</button>
+        <button className="ab-btn">Registrar actividad</button>
       </div>
 
       <div className="ficha-wrap">
@@ -147,7 +147,7 @@ export default function FichaOportunidad() {
                 {/* ── ORIGEN ── */}
                 <div className="va-card">
                   <div className="va-card-header">
-                    <h3><span className="ico">◉</span> Origen</h3>
+                    <h3><span className="ico"></span> Origen</h3>
                   </div>
                   <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:16}}>
                     <div className="ir"><span className="ir-k">Origen del negocio</span><span className="ir-v">{op.origen || '—'}</span></div>
@@ -190,7 +190,7 @@ export default function FichaOportunidad() {
                 </div>
 
                 <Seccion
-                  titulo="🏢 Activos"
+                  titulo="Activos"
                   count={v.activos.length}
                   color="#ea580c"
                   bgEmpty="#fff7ed"
@@ -201,7 +201,7 @@ export default function FichaOportunidad() {
                   {v.activos.map(ref => (
                     <VinculacionCard
                       key={ref}
-                      icon="🏢"
+                      icon=""
                       titulo={ref}
                       subtitulo="Click para abrir ficha del activo"
                       color="#ea580c" bg="#fff7ed" borderColor="#fed7aa"
@@ -211,7 +211,7 @@ export default function FichaOportunidad() {
                 </Seccion>
 
                 <Seccion
-                  titulo="📨 Ofertas"
+                  titulo="Ofertas"
                   count={v.ofertas.length}
                   color="#15803d"
                   bgEmpty="#f0fdf4"
@@ -222,7 +222,7 @@ export default function FichaOportunidad() {
                   {v.ofertas.map(ref => (
                     <VinculacionCard
                       key={ref}
-                      icon="📨"
+                      icon=""
                       titulo={ref}
                       subtitulo="Click para abrir ficha de la oferta"
                       color="#15803d" bg="#f0fdf4" borderColor="#bbf7d0"
@@ -253,7 +253,7 @@ export default function FichaOportunidad() {
                 </Seccion>
 
                 <Seccion
-                  titulo="📋 Mandatos"
+                  titulo="Mandatos"
                   count={v.mandatos.length}
                   color="#b91c1c"
                   bgEmpty="#fef2f2"
@@ -264,7 +264,7 @@ export default function FichaOportunidad() {
                   {v.mandatos.map(ref => (
                     <VinculacionCard
                       key={ref}
-                      icon="📋"
+                      icon=""
                       titulo={ref}
                       subtitulo="Click para abrir ficha del mandato"
                       color="#b91c1c" bg="#fef2f2" borderColor="#fecaca"
@@ -295,7 +295,7 @@ export default function FichaOportunidad() {
                 </Seccion>
 
                 <Seccion
-                  titulo="📊 Propuestas / Proyectos"
+                  titulo="Propuestas / Proyectos"
                   count={v.propuestas.length}
                   color="#0e7490"
                   bgEmpty="#ecfeff"
@@ -306,7 +306,7 @@ export default function FichaOportunidad() {
                   {v.propuestas.map(ref => (
                     <VinculacionCard
                       key={ref}
-                      icon="📊"
+                      icon=""
                       titulo={ref}
                       subtitulo="Click para abrir ficha de propuesta"
                       color="#0e7490" bg="#ecfeff" borderColor="#a5f3fc"

@@ -83,7 +83,7 @@ function diasEntre(d) { if (!d) return null; const t = new Date(d).getTime(); re
 function StubTab({ label }) {
   return (
     <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
-      <div style={{ fontSize:32, marginBottom:8 }}>📋</div>
+      <div style={{ fontSize:32, marginBottom:8 }}></div>
       <div style={{ fontWeight:600, color:'var(--text2)', marginBottom:4 }}>{label}</div>
       <div>Sección disponible próximamente.</div>
     </div>
@@ -611,7 +611,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
           {/* Header */}
           <div className="ah">
             <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
-              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#4d4068,#9333ea)' }}>📜</div>
+              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#4d4068,#9333ea)' }}></div>
               <div style={{ flex:1 }}>
                 <div className="ah-ref">
                   <span style={{ background:'var(--purple-lt,#f3e8ff)', color:'var(--purple,#9333ea)', border:'1px solid var(--purple-bd,#d8b4fe)', padding:'0 5px', borderRadius:3, fontSize:9, fontWeight:700 }}>MANDATO</span>
@@ -802,7 +802,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
                 <div className="va-two-col" style={{ overflow:'visible' }}>
                   <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
                     <div className="va-card-header">
-                      <h3><span className="ico">◇</span> Vinculaciones</h3>
+                      <h3><span className="ico"></span> Vinculaciones</h3>
                     </div>
                     <div style={{ padding:'4px 20px 16px' }}>
 
@@ -828,7 +828,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
                         <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Cuenta (heredada de Dynamics)</div>
                         {cuenta ? (
                           <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>🏢</div>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}></div>
                             <div style={{ flex:1, minWidth:0 }}>
                               <div style={{ fontSize:12, fontWeight:600 }}>{cuenta.nombre || '—'}</div>
                               <div style={{ fontSize:10, color:'var(--text3)' }}>{[cuenta.tipo, cuenta.sector, cuenta.ciudad].filter(Boolean).join(' · ') || '—'}</div>
@@ -854,7 +854,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
                           )}
                           {activosLinked.map(l => l.activos && (
                             <div key={l.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                              <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>🏛</div>
+                              <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}></div>
                               <div style={{ flex:1, minWidth:0 }}>
                                 <div style={{ fontSize:12, fontWeight:600 }}>{l.activos.nombre}</div>
                                 <div style={{ fontSize:10, color:'var(--text3)' }}>
@@ -999,7 +999,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
                     {/* ─── EQUIPO DE TRABAJO — formato Propuestas (inline) ─── */}
                     <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
                       <div className="va-card-header">
-                        <h3><span className="ico">◆</span> Equipo de trabajo</h3>
+                        <h3><span className="ico"></span> Equipo de trabajo</h3>
                         {canManage && (
                           <button className="ab-btn" style={{ fontSize:10, padding:'3px 10px' }} onClick={() => setShowAddEq(v => !v)}>+ Añadir</button>
                         )}
@@ -1140,7 +1140,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
                 <div style={{ background:'linear-gradient(135deg, var(--accent-lt), #fff)', border:'1px solid var(--accent-bd)', borderRadius:8, padding:'20px 24px', marginBottom:24 }}>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:20 }}>
                     <div>
-                      <div style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:6 }}>💰 Importe total del fee</div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:6 }}>Importe total del fee</div>
                       <div style={{ fontSize:11, color:'var(--text3)', marginBottom:10, maxWidth:380 }}>
                         Total que cobra Savills por este mandato. Sobre este importe se distribuye el reparto entre colaboradores y/o agencias externas.
                       </div>
@@ -1172,7 +1172,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
                 {/* BLOQUE 2: Reparto del fee */}
                 <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:24 }}>
                   <div style={{ background:'var(--gray-lt)', padding:'14px 20px', borderBottom:'1px solid var(--border)' }}>
-                    <div style={{ fontSize:14, fontWeight:700, color:'var(--text)', marginBottom:4 }}>🤝 Reparto del fee</div>
+                    <div style={{ fontSize:14, fontWeight:700, color:'var(--text)', marginBottom:4 }}>Reparto del fee</div>
                     <div style={{ fontSize:11, color:'var(--text3)' }}>
                       El 100% es el importe total del fee. Cada línea indica qué porcentaje se lleva un equipo interno o un colaborador externo. El importe en € se calcula automáticamente.
                     </div>
@@ -1187,7 +1187,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
                   <div style={{ padding:'14px 20px' }}>
                     {reparto.length === 0 ? (
                       <div style={{ padding:'24px 0', textAlign:'center', color:'var(--text4)', fontSize:13 }}>
-                        <div style={{ fontSize:24, marginBottom:6 }}>💼</div>
+                        <div style={{ fontSize:24, marginBottom:6 }}></div>
                         Sin reparto definido. El 100% del fee se lo lleva el responsable del mandato.
                       </div>
                     ) : (

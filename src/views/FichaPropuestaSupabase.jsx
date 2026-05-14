@@ -58,7 +58,7 @@ function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateStrin
 function StubTab({ label }) {
   return (
     <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
-      <div style={{ fontSize:32, marginBottom:8 }}>📋</div>
+      <div style={{ fontSize:32, marginBottom:8 }}></div>
       <div style={{ fontWeight:600, color:'var(--text2)', marginBottom:4 }}>{label}</div>
       <div>Sección disponible cuando completes los datos del proyecto y guardes la propuesta.</div>
     </div>
@@ -214,7 +214,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
               title={tip}
               style={{ background: puede ? 'var(--green)' : undefined, color: puede ? '#fff' : undefined, border: puede ? '1px solid var(--green)' : undefined, opacity: puede ? 1 : 0.45 }}
             >
-              🏆 Marcar como ganada
+              Marcar como ganada
             </button>
           )
         })()}

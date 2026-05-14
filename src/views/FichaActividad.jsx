@@ -51,7 +51,7 @@ export default function FichaActividad() {
             <div className="info-pad">
               <div className="info-2col">
                 <div>
-                  <div style={{fontSize:10,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',margin:'0 0 8px'}}>📋 Datos</div>
+                  <div style={{fontSize:10,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',margin:'0 0 8px'}}>Datos</div>
                   <div className="info-block">
                     <div className="ir"><span className="ir-k">ID</span><span className="ir-v mono">ACT-2501</span></div>
                     <div className="ir"><span className="ir-k">Tipo</span><span className="ir-v"><span className="tag tag-blue">📧 Email</span></span></div>
@@ -111,7 +111,7 @@ export default function FichaActividad() {
           <div className="rp-sec">
             <div className="rp-lbl">Tipo de actividad</div>
             <select style={{width:'100%',fontSize:12,padding:'5px 8px',border:'1px solid var(--border2)',borderRadius:'var(--r)',fontFamily:'inherit'}}>
-              <option>📧 Email</option><option>📞 Llamada</option><option>🤝 Reunión</option><option>📝 Nota</option><option>💬 WhatsApp</option><option>✅ Tarea</option>
+              <option>📧 Email</option><option>Llamada</option><option>Reunión</option><option>📝 Nota</option><option>💬 WhatsApp</option><option>✅ Tarea</option>
             </select>
           </div>
           <div className="rp-sec">
@@ -126,7 +126,7 @@ export default function FichaActividad() {
           <div className="rp-sec">
             <div className="rp-lbl">Asistente IA</div>
             <div className="ai-box">
-              <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Insight actividad</span></div>
+              <div className="ai-head"><div className="ai-ico"></div><span className="ai-lbl">Insight actividad</span></div>
               <div className="ai-text">Email sin respuesta <strong>7 días</strong>. Considerar llamada de seguimiento.</div>
               <div className="ai-cta">✎ Redactar seguimiento</div>
             </div>

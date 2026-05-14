@@ -143,7 +143,7 @@ export default function FichaVisita() {
                     </tr>
                     <tr>
                       <td style={{padding:'7px 10px'}}>12/11/2025</td>
-                      <td style={{padding:'7px 10px'}}><span className="tag tag-green">📞 Llamada</span></td>
+                      <td style={{padding:'7px 10px'}}><span className="tag tag-green">Llamada</span></td>
                       <td style={{padding:'7px 10px'}}>Confirmación visita 13/11</td>
                       <td style={{padding:'7px 10px'}}>Sierra Alvaro</td>
                       <td style={{padding:'7px 10px'}}><span className="tag tag-gray">Finalizado</span></td>
@@ -235,8 +235,8 @@ export default function FichaVisita() {
               <option>Realizada</option><option>Pendiente</option><option>Cancelada</option>
             </select>
             <RpBtn>🔍 Ver demanda ↗</RpBtn>
-            <RpBtn>📋 Ver oferta ↗</RpBtn>
-            <RpBtn>🏢 Ver activo ↗</RpBtn>
+            <RpBtn>Ver oferta ↗</RpBtn>
+            <RpBtn>Ver activo ↗</RpBtn>
           </div>
           <div className="rp-sec">
             <div className="rp-lbl">Interés y probabilidad</div>
@@ -253,7 +253,7 @@ export default function FichaVisita() {
           <div className="rp-sec">
             <div className="rp-lbl">Asistente IA</div>
             <div className="ai-box">
-              <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Insight visita</span></div>
+              <div className="ai-head"><div className="ai-ico"></div><span className="ai-lbl">Insight visita</span></div>
               <div className="ai-text">Interés <strong>alto</strong>. 60% prob. — programar seguimiento en 5 días.</div>
               <div className="ai-cta">✎ Generar email de seguimiento</div>
             </div>

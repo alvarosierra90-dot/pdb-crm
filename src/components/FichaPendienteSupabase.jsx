@@ -13,7 +13,7 @@ const ENTITIES = {
   demanda: {
     table:    'demandas',
     label:    'Demanda',
-    icon:     '🎯',
+    icon:     '',
     backView: 'demandas',
     fkRelations: [
       { fk:'dynamics_account_id',     table:'dynamics_accounts',     label:'Cuenta inquilina',  cols:'dynamics_id, nombre' },
@@ -35,7 +35,7 @@ const ENTITIES = {
   oferta: {
     table:    'ofertas',
     label:    'Oferta',
-    icon:     '🏢',
+    icon:     '',
     backView: 'ofertas',
     fkRelations: [
       { fk:'activo_id',               table:'activos',               label:'Activo',     cols:'id, ref, nombre, ciudad, zona' },
@@ -216,7 +216,7 @@ export default function FichaPendienteSupabase({ entity, refOrId }) {
               <button className="ab-btn save" onClick={startEdit}>✎ Editar</button>
             ) : (
               <button className="ab-btn" disabled style={{ opacity:0.55, cursor:'not-allowed' }} title={`Solo el responsable puede editar`}>
-                🔒 Solo lectura
+                Solo lectura
               </button>
             )}
             <button className="ab-btn" onClick={() => navigate(cfg.backView)}>← Volver</button>

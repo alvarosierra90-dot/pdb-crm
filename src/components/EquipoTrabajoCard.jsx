@@ -121,7 +121,7 @@ export default function EquipoTrabajoCard({ equipo = [], canManage = true, onAdd
 
         {!canManage && equipo.length > 0 && (
           <div style={{ fontSize:10, color:'var(--text4)', fontStyle:'italic' }}>
-            🔒 Solo los Principales del equipo pueden añadir o quitar miembros.
+            Solo los Principales del equipo pueden añadir o quitar miembros.
           </div>
         )}
 

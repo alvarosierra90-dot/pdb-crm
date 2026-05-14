@@ -3,8 +3,8 @@ import { useNav } from '../context/NavigationContext'
 
 const SUBTABS = [
   ['campanas',    '📣 Campañas'],
-  ['posicionamiento', '📊 Posicionamiento'],
-  ['material',    '📁 Material y Reporting'],
+  ['posicionamiento', 'Posicionamiento'],
+  ['material',    'Material y Reporting'],
 ]
 
 /* ── Mock data ── */
@@ -105,7 +105,7 @@ function TabCampanas({ navigate }) {
                   <span style={{fontSize:12,fontWeight:700}}>{c.nombre}</span>
                   <span className={`tag ${ESTADO_TAG[c.estado]||'tag-gray'}`} style={{fontSize:9}}>{c.estado}</span>
                 </div>
-                <div style={{fontSize:10,color:'var(--text3)'}}>🏢 {c.activo} · 📡 {c.canal} · 🎯 {c.target}</div>
+                <div style={{fontSize:10,color:'var(--text3)'}}>{c.activo} · 📡 {c.canal} · {c.target}</div>
               </div>
               <div style={{fontSize:10,color:'var(--text4)',flexShrink:0}}>{c.fecha}</div>
             </div>
@@ -137,7 +137,7 @@ function TabCampanas({ navigate }) {
 function TabPosicionamiento() {
   return (
     <div className="info-pad">
-      <div style={{fontSize:12,fontWeight:700,marginBottom:12}}>📊 Posicionamiento de Activos vs. Comparables</div>
+      <div style={{fontSize:12,fontWeight:700,marginBottom:12}}>Posicionamiento de Activos vs. Comparables</div>
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         {MOCK_ACTIVOS_POS.map(a=>{
           const scoreColor = a.score>=80?'var(--green)':a.score>=60?'var(--amber)':'var(--red)'
@@ -196,7 +196,7 @@ function TabMaterial() {
       </div>
 
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-        <div style={{fontSize:12,fontWeight:700}}>📁 Biblioteca de materiales</div>
+        <div style={{fontSize:12,fontWeight:700}}>Biblioteca de materiales</div>
         <button className="ab-btn blue" style={{padding:'4px 12px',fontSize:10}} onClick={()=>setShowNew(v=>!v)}>+ Añadir material</button>
       </div>
 
@@ -259,7 +259,7 @@ function TabMaterial() {
 
       {/* Reporting resumen */}
       <div style={{marginTop:16,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r2)',overflow:'hidden'}}>
-        <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>📈 Reporting de actividad</div>
+        <div style={{padding:'9px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:600}}>Reporting de actividad</div>
         <div style={{padding:'12px 14px',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
           {[
             {lbl:'Nº campañas Q2 2026',val:'3',color:'var(--accent)'},

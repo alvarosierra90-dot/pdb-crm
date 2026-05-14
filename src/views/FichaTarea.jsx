@@ -51,7 +51,7 @@ export default function FichaTarea() {
             <div className="info-pad">
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
                 <div>
-                  <div style={{fontSize:10,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>📋 Datos</div>
+                  <div style={{fontSize:10,fontWeight:600,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>Datos</div>
                   <div className="info-block">
                     <div className="ir"><span className="ir-k">ID</span><span className="ir-v mono">TAR-001</span></div>
                     <div className="ir"><span className="ir-k">Tipo</span><span className="ir-v"><span className="tag tag-teal">Gestión de producto</span></span></div>
@@ -153,7 +153,7 @@ export default function FichaTarea() {
           <div className="rp-sec">
             <div className="rp-lbl">Asistente IA</div>
             <div className="ai-box">
-              <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Insight tarea</span></div>
+              <div className="ai-head"><div className="ai-ico"></div><span className="ai-lbl">Insight tarea</span></div>
               <div className="ai-text">Tarea <strong>vence mañana</strong>. NEG-0044 activa — momento clave para negociar margen.</div>
               <div className="ai-cta">✎ Preparar argumentario</div>
             </div>

@@ -156,12 +156,12 @@ export default function NuevaDemandaModal({ onClose, onSuccess }) {
             <label style={lbl}>Cuenta (heredada de la Oportunidad)</label>
             {cuenta ? (
               <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', border:'1px solid var(--border)', borderRadius:6, background:'var(--surface-2)' }}>
-                <div style={{ width:32, height:32, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, flexShrink:0 }}>🏢</div>
+                <div style={{ width:32, height:32, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, flexShrink:0 }}></div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:13, fontWeight:600 }}>{cuenta.nombre}</div>
                   <div style={{ fontSize:10, color:'var(--text3)' }}>{[cuenta.sector, cuenta.ciudad].filter(Boolean).join(' · ') || '—'}</div>
                 </div>
-                <span className="tag tag-blue" style={{ fontSize:9 }}>🔒 Heredada</span>
+                <span className="tag tag-blue" style={{ fontSize:9 }}>Heredada</span>
               </div>
             ) : (
               <div style={{ padding:'10px 12px', border:'1px dashed var(--border)', borderRadius:6, background:'var(--gray-lt)', fontSize:12, color:'var(--text4)', fontStyle:'italic' }}>

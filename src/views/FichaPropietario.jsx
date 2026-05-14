@@ -32,7 +32,7 @@ function ExportMenu({ getConfig }) {
             style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8}}
             onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
             onMouseLeave={e=>e.currentTarget.style.background=''}>
-            📊 <span>PowerPoint</span>
+            <span>PowerPoint</span>
           </div>
         </div>
       )}
@@ -316,7 +316,7 @@ export default function FichaPropietario() {
               <button className="ab-btn" disabled style={{color:'var(--text4)', opacity:0.5}} title="Abre este propietario desde la lista para poder desactivarlo">⏸ Desactivar</button>
             )}
             <div className="ab-sep"/>
-            <button className="ab-btn blue" onClick={()=>navigate('ficha-activo')}>🏢 Ver activo</button>
+            <button className="ab-btn blue" onClick={()=>navigate('ficha-activo')}>Ver activo</button>
             <button className="ab-btn blue" onClick={()=>navigate('ficha-arrendatario')}>🔑 Ver arrendatarios</button>
             <button className="ab-btn blue" onClick={()=>navigate('mandatos')}>📄 Mandatos</button>
             <button className="ab-btn" onClick={()=>navigate('propietarios')}>← Volver</button>
@@ -422,7 +422,7 @@ export default function FichaPropietario() {
 
           <div className="ah">
             <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-              <div className="ah-ico" style={{background:'linear-gradient(135deg,#5a4828,#B08D57)',fontSize:18}}>🏛</div>
+              <div className="ah-ico" style={{background:'linear-gradient(135deg,#5a4828,#B08D57)',fontSize:18}}></div>
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'#faf5ec',color:'#6f5734',border:'1px solid #ece0c9',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>PROPIETARIO</span>
@@ -769,7 +769,7 @@ export default function FichaPropietario() {
                         <button className="ab-btn blue" style={{justifyContent:'flex-start',textAlign:'left'}} onClick={()=>navigate('ficha-mandato')}>📄 Crear mandato de venta</button>
                         <button className="ab-btn blue" style={{justifyContent:'flex-start',textAlign:'left'}} onClick={()=>navigate('demandas')}>🔍 Buscar comprador activo</button>
                         <button className="ab-btn blue" style={{justifyContent:'flex-start',textAlign:'left'}} onClick={()=>navigate('ficha-oferta')}>📧 Emitir oferta de venta</button>
-                        <button className="ab-btn blue" style={{justifyContent:'flex-start',textAlign:'left'}} onClick={()=>navigate('ficha-negociacion')}>🤝 Iniciar negociación</button>
+                        <button className="ab-btn blue" style={{justifyContent:'flex-start',textAlign:'left'}} onClick={()=>navigate('ficha-negociacion')}>Iniciar negociación</button>
                       </div>
                     </div>
                   </div>
@@ -970,9 +970,9 @@ export default function FichaPropietario() {
               <div style={{width:10,height:10,borderRadius:'50%',background:ESTADO_COLOR[form.estado]||'var(--text4)'}}/>
               <span style={{fontSize:13,fontWeight:700,color:ESTADO_COLOR[form.estado]||'var(--text4)'}}>{form.estado}</span>
             </div>
-            <button className="acc-btn" onClick={()=>navigate('ficha-activo')}>🏢 Ver activo</button>
-            <button className="acc-btn" onClick={()=>navigate('ficha-actividad')}>📞 Registrar actividad</button>
-            <button className="acc-btn" onClick={()=>navigate('portfolios')}>📊 Ver portfolio</button>
+            <button className="acc-btn" onClick={()=>navigate('ficha-activo')}>Ver activo</button>
+            <button className="acc-btn" onClick={()=>navigate('ficha-actividad')}>Registrar actividad</button>
+            <button className="acc-btn" onClick={()=>navigate('portfolios')}>Ver portfolio</button>
           </div>
 
           <div className="rp-sec">

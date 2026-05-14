@@ -22,12 +22,12 @@ const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
 // ── Layers ─────────────────────────────────────────────────────────────────
 const LAYERS = [
-  { id:'ofertas',        label:'Ofertas',        color:'#4CAF50', letter:'O', icon:'🏢' },
+  { id:'ofertas',        label:'Ofertas',        color:'#4CAF50', letter:'O', icon:'' },
   { id:'activos',        label:'Activos',         color:'#FF9800', letter:'A', icon:'🏗' },
   { id:'cuentas',        label:'Cuentas',         color:'#2196F3', letter:'C', icon:'🏬' },
   { id:'demanda',        label:'Demanda',         color:'#9C27B0', letter:'D', icon:'🔍' },
   { id:'vencimientos',   label:'Vencimientos',    color:'#F44336', letter:'V', icon:'⏳' },
-  { id:'transacciones',  label:'Transacciones',   color:'#607D8B', letter:'T', icon:'📊' },
+  { id:'transacciones',  label:'Transacciones',   color:'#607D8B', letter:'T', icon:'' },
 ]
 
 // ── Map style ──────────────────────────────────────────────────────────────
@@ -142,7 +142,7 @@ function MapCard({ item, layerId, cfg, isActive, isSelected, onToggle }) {
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:3,marginBottom:5}}>
           {[['SBA',item.sba?.toLocaleString()+' m²'],['Renta',item.renta+' €/m²'],['Disp.',item.disp]].map(([k,v])=>kpi(k,v))}
         </div>
-        <div style={{fontSize:9,color:'var(--text4)'}}>🏢 {item.prop} · <span style={{color:item.mandato!=='Sin mandato'?'var(--purple)':'inherit',fontWeight:item.mandato!=='Sin mandato'?600:400}}>{item.mandato}</span> · <span className="mono">{item.id}</span></div>
+        <div style={{fontSize:9,color:'var(--text4)'}}>{item.prop} · <span style={{color:item.mandato!=='Sin mandato'?'var(--purple)':'inherit',fontWeight:item.mandato!=='Sin mandato'?600:400}}>{item.mandato}</span> · <span className="mono">{item.id}</span></div>
       </>}
 
       {layerId === 'activos' && <>
@@ -151,7 +151,7 @@ function MapCard({ item, layerId, cfg, isActive, isSelected, onToggle }) {
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:3,marginBottom:5}}>
           {[['SBA',item.sba?.toLocaleString()+' m²'],['Ocup.',item.occ+'%'],['Disp.',item.disp?.toLocaleString()+' m²'],['Plantas',item.plantas+'pl']].map(([k,v])=>kpi(k,v))}
         </div>
-        <div style={{fontSize:9,color:'var(--text4)'}}>🏢 {item.prop} · {item.ano}</div>
+        <div style={{fontSize:9,color:'var(--text4)'}}>{item.prop} · {item.ano}</div>
       </>}
 
       {layerId === 'cuentas' && <>
@@ -566,7 +566,7 @@ export default function MapasView() {
   if (mapError) {
     return (
       <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16,background:'#f8f9fa',padding:32,textAlign:'center'}}>
-        <div style={{fontSize:48}}>🗺️</div>
+        <div style={{fontSize:48}}>️</div>
         <div style={{fontSize:18,fontWeight:700,color:'var(--text)'}}>Configurar Google Maps API</div>
         <p style={{maxWidth:480,lineHeight:1.7,fontSize:13,color:'var(--text3)',margin:0}}>
           Crea el fichero <code style={{background:'var(--gray-lt)',padding:'1px 6px',borderRadius:4,fontFamily:'monospace'}}>.env</code> en la raíz del proyecto:
@@ -605,7 +605,7 @@ export default function MapasView() {
         {/* Draw tools */}
         <div style={{display:'flex',alignItems:'center',gap:4,padding:'0 10px',borderLeft:'1px solid var(--border)',flexShrink:0}}>
           <span style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginRight:2}}>Zona</span>
-          {[{id:'circle',icon:'◯',tip:'Zona circular'},{id:'polygon',icon:'⬡',tip:'Polígono libre'}].map(t=>(
+          {[{id:'circle',icon:'',tip:'Zona circular'},{id:'polygon',icon:'⬡',tip:'Polígono libre'}].map(t=>(
             <button key={t.id} title={t.tip} onClick={()=>toggleDraw(t.id)}
               style={{width:28,height:28,borderRadius:4,border:`1px solid ${drawMode===t.id?'var(--accent)':'var(--border)'}`,background:drawMode===t.id?'var(--accent-lt)':'#fff',color:drawMode===t.id?'var(--accent)':'var(--text3)',fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .1s'}}>
               {t.icon}
@@ -644,14 +644,14 @@ export default function MapasView() {
 
           {!loaded && (
             <div style={{position:'absolute',inset:0,background:'#f2f0eb',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12}}>
-              <div style={{fontSize:36}}>🗺️</div>
+              <div style={{fontSize:36}}>️</div>
               <div style={{fontSize:13,color:'var(--text3)',fontWeight:500}}>Cargando Google Maps…</div>
             </div>
           )}
 
           {drawMode && (
             <div style={{position:'absolute',top:12,left:'50%',transform:'translateX(-50%)',background:'var(--accent)',color:'#fff',padding:'6px 16px',borderRadius:20,fontSize:11,fontWeight:600,pointerEvents:'none',boxShadow:'0 2px 8px rgba(37,99,235,.35)',whiteSpace:'nowrap'}}>
-              {drawMode==='circle' ? '◯ Haz clic y arrastra para definir el radio' : '⬡ Clic para añadir puntos · Doble clic para cerrar'}
+              {drawMode==='circle' ? 'Haz clic y arrastra para definir el radio' : '⬡ Clic para añadir puntos · Doble clic para cerrar'}
             </div>
           )}
 
@@ -665,7 +665,7 @@ export default function MapasView() {
               </label>
               <div style={{opacity:.45}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-                  <div><div style={{fontSize:11,fontWeight:600}}>📊 Datos INE</div><div style={{fontSize:9,color:'var(--text4)'}}>Renta, población</div></div>
+                  <div><div style={{fontSize:11,fontWeight:600}}>Datos INE</div><div style={{fontSize:9,color:'var(--text4)'}}>Renta, población</div></div>
                   <span style={{fontSize:9,background:'var(--amber-lt)',color:'var(--amber)',border:'1px solid var(--amber-bd)',padding:'1px 6px',borderRadius:9,fontWeight:600}}>Próximo</span>
                 </div>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>

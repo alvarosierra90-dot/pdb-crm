@@ -102,7 +102,7 @@ function CampoFisico({ campo, value, onChange }) {
 }
 
 const TIPO_TAG_DEM = { Email:'tag-blue', Llamada:'tag-green', Reunión:'tag-purple', Tarea:'tag-gray', Visita:'tag-teal', Presentación:'tag-amber', Nota:'tag-gray' }
-const TIPO_ICO_DEM = { Email:'📧', Llamada:'📞', Reunión:'🤝', Tarea:'✅', Visita:'🏢', Presentación:'📤', Nota:'📝' }
+const TIPO_ICO_DEM = { Email:'📧', Llamada:'', Reunión:'', Tarea:'✅', Visita:'', Presentación:'📤', Nota:'📝' }
 const ACT_EST_DEM  = { Abierto:'tag-amber', Finalizado:'tag-gray', 'En curso':'tag-blue', Realizada:'tag-green' }
 
 const DEM_ACTS = [
@@ -130,9 +130,9 @@ const MOCK_VISITAS = [
 const ETAPAS_360 = [
   { key:'demanda',       label:'Demanda',       icon:'🔍', color:'var(--accent)' },
   { key:'presentacion',  label:'Presentación',  icon:'📤', color:'var(--teal)' },
-  { key:'visita',        label:'Visita',        icon:'🏢', color:'var(--purple)' },
+  { key:'visita',        label:'Visita',        icon:'', color:'var(--purple)' },
   { key:'oferta',        label:'Oferta',        icon:'📧', color:'var(--amber)' },
-  { key:'negociacion',   label:'Negociación',   icon:'🤝', color:'#f97316' },
+  { key:'negociacion',   label:'Negociación',   icon:'', color:'#f97316' },
   { key:'oportunidad',   label:'Oportunidad',   icon:'⚡', color:'var(--green)' },
   { key:'instruccion',   label:'Instrucción',   icon:'✅', color:'#16a34a' },
 ]
@@ -222,7 +222,7 @@ function RightPanel({ navigate, naturaleza, cmFields, demCampos = {}, demPres = 
           </div>
         </div>
         <div style={{ display:'flex', gap:6, marginTop:8 }}>
-          <button className="acc-btn" style={{ flex:1, fontSize:10 }}>📞 Contacto</button>
+          <button className="acc-btn" style={{ flex:1, fontSize:10 }}>Contacto</button>
           <button className="acc-btn" style={{ flex:1, fontSize:10 }}>✅ Asignar</button>
         </div>
       </div>
@@ -231,7 +231,7 @@ function RightPanel({ navigate, naturaleza, cmFields, demCampos = {}, demPres = 
       <div className="rp-sec">
         <div className="rp-lbl">Asistente IA</div>
         <div className="ai-box">
-          <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Análisis de la demanda</span><span className="ai-badge">Tiempo real</span></div>
+          <div className="ai-head"><div className="ai-ico"></div><span className="ai-lbl">Análisis de la demanda</span><span className="ai-badge">Tiempo real</span></div>
           <div className="ai-text">
             {esInversion
               ? <>Demanda de inversión <strong>{cmFields.calidad||'—'}</strong> · ticket {cmFields.ticket_min||'—'}–{cmFields.ticket_max||'—'} M€. Detectando activos compatibles en mercado y posibles riesgos de yield.</>
@@ -244,8 +244,8 @@ function RightPanel({ navigate, naturaleza, cmFields, demCampos = {}, demPres = 
             <span style={{ fontSize:9, fontWeight:700, color:'#991b1b', background:'#fee2e2', padding:'2px 7px', borderRadius:6 }}>⚠ Riesgos · 1</span>
           </div>
           <div style={{ marginTop:8, display:'flex', flexDirection:'column', gap:3 }}>
-            <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>📊 Resumen ejecutivo</button>
-            <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>🏢 Sugerir zonas alternativas</button>
+            <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>Resumen ejecutivo</button>
+            <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>Sugerir zonas alternativas</button>
             <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>🔍 Matching con ofertas</button>
           </div>
           <div className="ai-cta">✎ Preguntar a la IA</div>
@@ -365,8 +365,8 @@ function RightPanel({ navigate, naturaleza, cmFields, demCampos = {}, demPres = 
           <option>● En Curso</option><option>◎ Potencial</option><option>⏸ Paralizado</option>
         </select>
         <button className="acc-btn">↔ Ver negociación vinculada</button>
-        <button className="acc-btn">📋 Ver oferta vinculada</button>
-        <button className="acc-btn" style={{ background:'var(--accent)', color:'#fff', border:'none', fontWeight:600 }} onClick={() => navigate('mapas', { from:'demanda', id:'D251035690', nombre:'Corporacion Financiera Azuaga SL', uso:demUsoPpal, sbaMin:supMin, sbaMax:supMax, rentaMax, zona:'A-1 · Alcobendas', provincia:'Madrid' })}>🗺 Exportar a mapa</button>
+        <button className="acc-btn">Ver oferta vinculada</button>
+        <button className="acc-btn" style={{ background:'var(--accent)', color:'#fff', border:'none', fontWeight:600 }} onClick={() => navigate('mapas', { from:'demanda', id:'D251035690', nombre:'Corporacion Financiera Azuaga SL', uso:demUsoPpal, sbaMin:supMin, sbaMax:supMax, rentaMax, zona:'A-1 · Alcobendas', provincia:'Madrid' })}>Exportar a mapa</button>
       </div>
     </div>
   )
@@ -430,7 +430,7 @@ function FichaDemandaMock() {
         <button className="ab-btn">Transformar</button>
         <button className="ab-btn">Desactivar</button>
         <div className="ab-sep"/>
-        <button className="ab-btn blue" onClick={()=>navigate('mapas',{from:'demanda',id:'D251035690',nombre:'Corporacion Financiera Azuaga SL',uso:demUsoPpal,sbaMin:Number(demCampos.sup_min||demCampos.sba_min)||undefined,sbaMax:Number(demCampos.sup_max||demCampos.sba_max)||undefined,rentaMax:Number(demPres.alq_max)||undefined,zona:'A-1 · Alcobendas',provincia:'Madrid'})}>🗺 Exportar a mapa</button>
+        <button className="ab-btn blue" onClick={()=>navigate('mapas',{from:'demanda',id:'D251035690',nombre:'Corporacion Financiera Azuaga SL',uso:demUsoPpal,sbaMin:Number(demCampos.sup_min||demCampos.sba_min)||undefined,sbaMax:Number(demCampos.sup_max||demCampos.sba_max)||undefined,rentaMax:Number(demPres.alq_max)||undefined,zona:'A-1 · Alcobendas',provincia:'Madrid'})}>Exportar a mapa</button>
         <button className="ab-btn">Actualizar</button>
         <button className="ab-btn">Asignar</button>
         <div className="ab-sep"/>
@@ -449,7 +449,7 @@ function FichaDemandaMock() {
                 <div className="ah-ref">
                   <span style={{background:'var(--accent-lt)',color:'var(--accent)',border:'1px solid var(--accent-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>DEMANDA</span>
                   <span className="asset-link" style={{fontFamily:'var(--mono)'}}>D251035690</span>
-                  {confidential && <span style={{background:'#1e293b',color:'#f8fafc',border:'1px solid #334155',padding:'0 7px',borderRadius:3,fontSize:9,fontWeight:700,letterSpacing:'.04em'}}>🔒 CONFIDENCIAL</span>}
+                  {confidential && <span style={{background:'#1e293b',color:'#f8fafc',border:'1px solid #334155',padding:'0 7px',borderRadius:3,fontSize:9,fontWeight:700,letterSpacing:'.04em'}}>CONFIDENCIAL</span>}
                   <span className="tag tag-gray" style={{fontSize:9}}>Guardado</span>
                 </div>
                 <div className="ah-name">Corporacion Financiera Azuaga SL</div>
@@ -574,7 +574,7 @@ function FichaDemandaMock() {
 
                 {/* ── Col 1: Requisitos generales ── */}
                 <div>
-                  <div className="of-section">📋 REQUISITOS GENERALES</div>
+                  <div className="of-section">REQUISITOS GENERALES</div>
                   <div className="info-block" style={{marginBottom:10}}>
                     {/* Naturaleza */}
                     <div className="ir">
@@ -713,7 +713,7 @@ function FichaDemandaMock() {
                     </div>
 
                     {/* Nivel 4: Presupuesto condicional */}
-                    <div className="of-section">💰 PRESUPUESTO</div>
+                    <div className="of-section">PRESUPUESTO</div>
                     <div className="info-block">
                       <div className="ir">
                         <span className="ir-k" style={{fontWeight:700}}>Tipo</span>
@@ -753,7 +753,7 @@ function FichaDemandaMock() {
                   </>) : (<>
                     {/* Capital Markets — Criterios financieros */}
                     <div className="of-section">
-                      💰 CRITERIOS FINANCIEROS
+                      CRITERIOS FINANCIEROS
                       <span style={{marginLeft:6,fontSize:9,background:'var(--amber)22',color:'var(--amber)',border:'1px solid var(--amber)44',borderRadius:8,padding:'1px 6px',fontWeight:700}}>Capital Markets</span>
                     </div>
                     <div className="info-block" style={{marginBottom:10}}>
@@ -801,7 +801,7 @@ function FichaDemandaMock() {
                   {/* Resumen visual */}
                   {naturaleza === 'Leasing' ? (
                     <div style={{background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',padding:10,marginTop:8}}>
-                      <div style={{fontSize:10,fontWeight:700,color:'var(--accent)',marginBottom:8,textTransform:'uppercase',letterSpacing:'.04em'}}>✦ Resumen demanda</div>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--accent)',marginBottom:8,textTransform:'uppercase',letterSpacing:'.04em'}}>Resumen demanda</div>
                       <div style={{fontSize:11,color:'var(--text2)',lineHeight:1.7}}>
                         <div><strong>Uso:</strong> {demUsoPpal}</div>
                         <div><strong>Tipología:</strong> {demTipologia}</div>
@@ -838,7 +838,7 @@ function FichaDemandaMock() {
             <div className="tab-content active"><div className="info-pad">
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
                 <div>
-                  <div className="of-section">🗺 PROVINCIAS DE INTERÉS</div>
+                  <div className="of-section">PROVINCIAS DE INTERÉS</div>
                   <div className="info-block" style={{minHeight:200}}>
                     <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
                       <span style={{background:'var(--border2)',color:'var(--text2)',padding:'3px 10px',borderRadius:20,fontSize:12,display:'inline-flex',alignItems:'center',gap:5}}>Madrid <span style={{cursor:'pointer',color:'var(--text4)'}}>×</span></span>
@@ -897,7 +897,7 @@ function FichaDemandaMock() {
                 {/* VISITAS */}
                 <div>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-                    <div style={{fontSize:12,fontWeight:700}}>🏢 Visitas</div>
+                    <div style={{fontSize:12,fontWeight:700}}>Visitas</div>
                     <button className="ab-btn blue" style={{padding:'3px 10px',fontSize:10}} onClick={()=>navigate('visitas')}>+ Nueva visita</button>
                   </div>
                   <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -991,7 +991,7 @@ function FichaDemandaMock() {
 
                 {/* VISITAS */}
                 <Etapa360
-                  icon="🏢" color="var(--purple)" estado="completado"
+                  icon="" color="var(--purple)" estado="completado"
                   titulo="Visitas realizadas" badge={`${MOCK_VISITAS.length} visita`}
                   fecha="20/11/2025"
                   detalle="Albatros Edif. D · Resultado muy positivo"
@@ -1024,7 +1024,7 @@ function FichaDemandaMock() {
 
                 {/* NEGOCIACIÓN — pendiente */}
                 <Etapa360
-                  icon="🤝" color="#f97316" estado="pendiente"
+                  icon="" color="#f97316" estado="pendiente"
                   titulo="Negociación" fecha="—"
                   detalle="Pendiente — se iniciará cuando la oferta sea aceptada"
                   onNav={()=>navigate('negociaciones')}
@@ -1156,7 +1156,7 @@ function FichaDemandaMock() {
                   <div style={{display:'flex',gap:6,marginBottom:10}}><button className="ab-btn">🗑 BORRAR</button><button className="ab-btn">🔍 CONSULTAR</button></div>
                   <table className="doc-table"><thead><tr><th><input type="checkbox" style={{accentColor:'var(--accent)'}}/></th><th>Título del documento</th><th>Creado en</th><th>Creado por</th></tr></thead>
                   <tbody><tr><td colSpan={4} style={{textAlign:'center',color:'var(--text4)',fontSize:11,padding:14}}>No records are available.</td></tr></tbody></table>
-                  <div className="doc-drop" style={{marginTop:10}}>📁 Deja tus archivos aquí</div>
+                  <div className="doc-drop" style={{marginTop:10}}>Deja tus archivos aquí</div>
                 </div>
               </div>
             </div></div>
@@ -1211,7 +1211,7 @@ function FichaDemandaMock() {
                     </div>
                   </div>
                   <button onClick={()=>setConfidential(v=>!v)} style={{padding:'6px 16px',borderRadius:20,border:'none',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'inherit',background:confidential?'#f8fafc':'#1e293b',color:confidential?'#0f172a':'#f8fafc',transition:'all .2s'}}>
-                    {confidential ? '🔓 Desactivar' : '🔒 Activar'}
+                    {confidential ? '🔓 Desactivar' : 'Activar'}
                   </button>
                 </div>
 
@@ -1297,7 +1297,7 @@ function FichaDemandaMock() {
                     <div style={{fontSize:10,fontWeight:700,color:'var(--amber)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>DEMO — Vista de usuario no autorizado</div>
                     <div style={{fontSize:11,color:'var(--text2)',marginBottom:10}}>Un usuario sin acceso vería este mensaje y podría solicitar acceso al responsable.</div>
                     <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--surface)'}}>
-                      <span style={{fontSize:20}}>🔒</span>
+                      <span style={{fontSize:20}}></span>
                       <div style={{flex:1}}>
                         <div style={{fontSize:12,fontWeight:600}}>Demanda confidencial</div>
                         <div style={{fontSize:11,color:'var(--text3)'}}>No tienes permisos para ver el detalle de esta demanda. Puedes solicitar acceso al responsable.</div>

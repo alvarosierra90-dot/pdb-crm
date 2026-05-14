@@ -181,7 +181,7 @@ export default function PortfolioMap({ activos = [], height = 420, onMarkerClick
   if (puntos.length === 0) {
     return (
       <div style={{ background:'var(--gray-lt)', border:'1px solid var(--border)', borderRadius:6, padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
-        🗺 Ningún activo del portfolio tiene coordenadas guardadas. Edita la ficha de un activo y añade su dirección/coordenadas para verlo en el mapa.
+        Ningún activo del portfolio tiene coordenadas guardadas. Edita la ficha de un activo y añade su dirección/coordenadas para verlo en el mapa.
       </div>
     )
   }

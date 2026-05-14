@@ -331,7 +331,7 @@ export default function InteligenciaComercial() {
         {messages.length === 0 && !loading && (
           <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:32,gap:24}}>
             <div style={{textAlign:'center'}}>
-              <div style={{width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),#6366f1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,margin:'0 auto 14px'}}>✦</div>
+              <div style={{width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),#6366f1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,margin:'0 auto 14px'}}></div>
               <div style={{fontSize:20,fontWeight:700,marginBottom:6}}>Inteligencia Comercial</div>
               <div style={{fontSize:13,color:'var(--text3)',maxWidth:400,lineHeight:1.6}}>
                 Consulta sobre demandas, activos, pipeline, mandatos y actividad comercial usando lenguaje natural.
@@ -370,7 +370,7 @@ export default function InteligenciaComercial() {
                   </div>
                 ) : (
                   <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
-                    <div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),#6366f1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,flexShrink:0,marginTop:2}}>✦</div>
+                    <div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),#6366f1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,flexShrink:0,marginTop:2}}></div>
                     <div style={{flex:1,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:12,borderTopLeftRadius:3,padding:'12px 16px'}}>
                       <MsgContent text={m.text}/>
                     </div>
@@ -381,7 +381,7 @@ export default function InteligenciaComercial() {
             {loading && (
               <div style={{maxWidth:780,margin:'0 auto',padding:'0 24px',marginBottom:20}}>
                 <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
-                  <div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),#6366f1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,flexShrink:0}}>✦</div>
+                  <div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),#6366f1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,flexShrink:0}}></div>
                   <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:12,borderTopLeftRadius:3,padding:'12px 16px',display:'flex',gap:5,alignItems:'center'}}>
                     {[0,1,2].map(j=>(
                       <div key={j} style={{width:7,height:7,borderRadius:'50%',background:'var(--accent)',opacity:.7,animation:`pulse 1.2s ease-in-out ${j*0.2}s infinite`}}/>

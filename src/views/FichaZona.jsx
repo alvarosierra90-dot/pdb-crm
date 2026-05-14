@@ -28,7 +28,7 @@ function ExportMenu({ getConfig }) {
             style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8}}
             onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
             onMouseLeave={e=>e.currentTarget.style.background=''}>
-            📊 <span>PowerPoint</span>
+            <span>PowerPoint</span>
           </div>
         </div>
       )}
@@ -701,7 +701,7 @@ export default function FichaZona() {
         <div className="rp-sec">
           <div className="rp-lbl">Asistente IA</div>
           <div className="ai-box">
-            <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Análisis zona</span><span className="ai-badge">Tiempo real</span></div>
+            <div className="ai-head"><div className="ai-ico"></div><span className="ai-lbl">Análisis zona</span><span className="ai-badge">Tiempo real</span></div>
             <div className="ai-text">Disponibilidad <strong>22,4%</strong> — por encima de la media de Madrid (18%). 3 ofertas activas en curso. Renta media estabilizada en 13,5 €/m². Take-up 2026 en línea con 2025.</div>
             <div className="ai-cta">✎ Generar informe de zona</div>
           </div>

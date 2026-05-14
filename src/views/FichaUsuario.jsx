@@ -28,7 +28,7 @@ function ExportMenu({ getConfig }) {
             style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8}}
             onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
             onMouseLeave={e=>e.currentTarget.style.background=''}>
-            📊 <span>PowerPoint</span>
+            <span>PowerPoint</span>
           </div>
         </div>
       )}
@@ -54,7 +54,7 @@ const ACTS_U = [
   {id:'ACT-TAR-01',tipo:'Llamada',asunto:'Llamada propietario Barings — mandato Avalon',ref:'Activo · P.E Avalon',f:'12/03/2026',est:'Finalizado',cat:'Propietario'},
 ]
 const TIPO_TAG = {Email:'tag-blue',Llamada:'tag-green','Reunión':'tag-purple',Tarea:'tag-gray'}
-const TIPO_ICO = {Email:'📧',Llamada:'📞','Reunión':'🤝',Tarea:'✅'}
+const TIPO_ICO = {Email:'📧',Llamada:'','Reunión':'',Tarea:'✅'}
 const CAT_TAG  = {Cliente:'tag-blue',Propietario:'tag-teal',Interna:'tag-gray'}
 
 // Demandas (fuente: módulo Demanda)
@@ -269,7 +269,7 @@ export default function FichaUsuario() {
                     </div>
                   ))}
                   <div style={{marginTop:8,display:'flex',flexWrap:'wrap',gap:4}}>
-                    {[['📧','Emails',USUARIO.actividades>0?5:0,'var(--accent)'],['📞','Llamadas',1,'var(--green)'],['🤝','Reuniones',2,'var(--purple)']].map(([ico,l,n,c])=>(
+                    {[['📧','Emails',USUARIO.actividades>0?5:0,'var(--accent)'],['','Llamadas',1,'var(--green)'],['','Reuniones',2,'var(--purple)']].map(([ico,l,n,c])=>(
                       <div key={l} style={{flex:'1 0 auto',minWidth:60,background:'var(--gray-lt)',borderRadius:'var(--r)',padding:'4px 6px',textAlign:'center'}}>
                         <div style={{fontSize:11}}>{ico}</div>
                         <div style={{fontSize:9,color:'var(--text4)'}}>{l}</div>
@@ -679,7 +679,7 @@ export default function FichaUsuario() {
         <div className="rp-sec">
           <div className="rp-lbl">Asistente IA</div>
           <div className="ai-box">
-            <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Análisis usuario</span><span className="ai-badge">Tiempo real</span></div>
+            <div className="ai-head"><div className="ai-ico"></div><span className="ai-lbl">Análisis usuario</span><span className="ai-badge">Tiempo real</span></div>
             <div className="ai-text"><strong>5 operaciones</strong> cerradas, 3,2 M€ en honorarios. Pipeline activo 1,1 M€. Oracle en fase finalista — posible cierre Q2 2026.</div>
             <div className="ai-cta">✎ Ver objetivos del equipo</div>
           </div>

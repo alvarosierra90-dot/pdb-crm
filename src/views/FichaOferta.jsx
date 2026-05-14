@@ -93,7 +93,7 @@ const OFERTA_COLORS = [
 
 const USERS_INIT = [{ name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#f5efe5', color:'#5a4828', granted:'—', owner:true }]
 const TIPO_TAG = { Email:'tag-blue', Llamada:'tag-green', Reunión:'tag-purple', Tarea:'tag-gray', Visita:'tag-teal', Presentación:'tag-amber' }
-const TIPO_ICO = { Email:'📧', Llamada:'📞', Reunión:'🤝', Tarea:'✅', Visita:'🏢', Presentación:'📤' }
+const TIPO_ICO = { Email:'📧', Llamada:'', Reunión:'', Tarea:'✅', Visita:'', Presentación:'📤' }
 const ACT_EST  = { Abierto:'tag-amber', Finalizado:'tag-gray', 'En curso':'tag-blue', Realizada:'tag-green' }
 const SEG_ACTS = [
   { id:'ACT-OF-01', tipo:'Presentación', asunto:'Presentación oferta Albatros P1–P4 enviada a Oracle Spain',  fecha:'10/03/2026', user:'Sierra Álvaro', initials:'AS', bg:'#f5efe5', color:'#5a4828', estado:'Finalizado' },
@@ -864,14 +864,14 @@ function FichaOfertaMock() {
         {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
         <button className="ab-btn">Nuevo</button>
         {!isMock && oferta?.ref && oferta?.activa !== false && (
-          <button className="ab-btn" style={{color:'var(--red)',borderColor:'var(--red)'}} onClick={()=>{ setDbForm(p=>({...p,closing_rent:oferta?.renta_m2?String(oferta.renta_m2):''})); setShowDarBaja(true) }}>🔒 Dar de baja</button>
+          <button className="ab-btn" style={{color:'var(--red)',borderColor:'var(--red)'}} onClick={()=>{ setDbForm(p=>({...p,closing_rent:oferta?.renta_m2?String(oferta.renta_m2):''})); setShowDarBaja(true) }}>Dar de baja</button>
         )}
         <div className="ab-sep" />
         <button className="ab-btn">Recalcular</button>
         <div className="ab-sep" />
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
         {!isMock && oferta?.ref && oferta?.estado !== 'En negociación' && (
-          <button className="ab-btn" style={{ color:'var(--amber)', borderColor:'var(--amber-bd)', background:'var(--amber-lt)' }} onClick={() => setShowNegociacion(true)}>🤝 Iniciar negociación</button>
+          <button className="ab-btn" style={{ color:'var(--amber)', borderColor:'var(--amber-bd)', background:'var(--amber-lt)' }} onClick={() => setShowNegociacion(true)}>Iniciar negociación</button>
         )}
         {negOk && <span style={{ fontSize:11, color:'var(--amber)', marginLeft:8, fontWeight:600 }}>✓ Estado actualizado: En negociación</span>}
       </div>
@@ -881,12 +881,12 @@ function FichaOfertaMock() {
           {/* Header */}
           <div className="ah">
             <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
-              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#064e3b,#10b981)' }}>📋</div>
+              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#064e3b,#10b981)' }}></div>
               <div style={{ flex:1 }}>
                 <div className="ah-ref">
                   <span className="ref-badge-oferta">OFERTA</span>
                   <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{oferta?.ref || '—'}</span>
-                  {confidential && <span style={{ background:'#1e293b',color:'#f8fafc',border:'1px solid #334155',padding:'0 7px',borderRadius:3,fontSize:9,fontWeight:700,letterSpacing:'.04em' }}>🔒 CONFIDENCIAL</span>}
+                  {confidential && <span style={{ background:'#1e293b',color:'#f8fafc',border:'1px solid #334155',padding:'0 7px',borderRadius:3,fontSize:9,fontWeight:700,letterSpacing:'.04em' }}>CONFIDENCIAL</span>}
                   {activoSeleccionado && (
                     <span style={{ color:'var(--text3)' }}>· Activo: <span className="pat-link" onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref })}>{activoSeleccionado.nombre}</span></span>
                   )}
@@ -973,7 +973,7 @@ function FichaOfertaMock() {
                             title={`Abrir ficha de ${activoSeleccionado.nombre}`}
                             style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)', marginBottom:8, cursor:'pointer' }}
                           >
-                            <span>🏢</span>
+                            <span></span>
                             <span style={{ fontWeight:600, color:'var(--accent)', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{activoSeleccionado.nombre}</span>
                             <span style={{ fontSize:10, fontWeight:700, color:'var(--accent)', padding:'0 2px' }}>↗</span>
                             <button
@@ -1184,7 +1184,7 @@ function FichaOfertaMock() {
                     {/* ── IMÁGENES ── */}
                     <div className="va-card">
                       <div className="va-card-header">
-                        <h3><span className="ico">◇</span> Imágenes</h3>
+                        <h3><span className="ico"></span> Imágenes</h3>
                         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                           {lastSyncAt && (
                             <span style={{ fontSize:9, color:'var(--text4)' }}>
@@ -1283,7 +1283,7 @@ function FichaOfertaMock() {
                     {tipoComercializacion === 'Mandato Savills' && (
                       <div className="va-card">
                         <div className="va-card-header">
-                          <h3><span className="ico" style={{color:'var(--accent)'}}>◆</span> Vinculación</h3>
+                          <h3><span className="ico" style={{color:'var(--accent)'}}></span> Vinculación</h3>
                           <span className="hint">Mandato Savills</span>
                         </div>
                         <div style={{ padding:'8px 18px 14px' }}>
@@ -1302,7 +1302,7 @@ function FichaOfertaMock() {
                     {/* ── PROPIETARIOS ── */}
                     <div className="va-card">
                       <div className="va-card-header">
-                        <h3><span className="ico">◉</span> Propietarios</h3>
+                        <h3><span className="ico"></span> Propietarios</h3>
                         <span className="hint">Heredado del activo · Solo lectura</span>
                       </div>
                       <div style={{padding:'4px 20px 16px'}}>
@@ -1387,7 +1387,7 @@ function FichaOfertaMock() {
                     {/* ── EQUIPOS HÁBILES ── */}
                     <div className="va-card">
                       <div className="va-card-header">
-                        <h3><span className="ico">◆</span> Equipos hábiles</h3>
+                        <h3><span className="ico"></span> Equipos hábiles</h3>
                         <div style={{display:'flex',gap:5}}>
                           <button className="ab-btn" onClick={() => setAddingMiembro(true)}>+ Miembro</button>
                           <button className="ab-btn">+ Equipo</button>
@@ -1693,7 +1693,7 @@ function FichaOfertaMock() {
                           </div>
                           {espaciosComercializables.length === 0 ? (
                             <div style={{ padding:'28px 16px', textAlign:'center', color:'var(--text4)', fontSize:12 }}>
-                              <div style={{ fontSize:20, marginBottom:8 }}>📊</div>
+                              <div style={{ fontSize:20, marginBottom:8 }}></div>
                               <div style={{ fontWeight:600, marginBottom:4 }}>Sin espacios asignados</div>
                               <div style={{ fontSize:11 }}>Ve a la pestaña <strong>Stacking plan</strong> y arrastra la oferta sobre las plantas disponibles.</div>
                             </div>
@@ -1900,7 +1900,7 @@ function FichaOfertaMock() {
                         {/* ── ECONÓMICAS · GASTOS / IBI ── */}
                         <div className="va-card">
                           <div className="va-card-header">
-                            <h3><span className="ico">◇</span> Gastos e IBI</h3>
+                            <h3><span className="ico"></span> Gastos e IBI</h3>
                             <span className="hint">{isVenta ? 'IBI anual · gastos opcionales' : 'Desde el desglose de ofertas'}</span>
                           </div>
                           <div className="va-kv-list" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 24px', paddingBottom:14 }}>
@@ -2003,7 +2003,7 @@ function FichaOfertaMock() {
 
                   {!caracteristicas ? (
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 20px', border:'2px dashed var(--border)', borderRadius:'var(--r2)', gap:12 }}>
-                      <div style={{ fontSize:32 }}>📋</div>
+                      <div style={{ fontSize:32 }}></div>
                       <div style={{ fontSize:13, fontWeight:600, color:'var(--text2)' }}>Sin características importadas</div>
                       <div style={{ fontSize:11, color:'var(--text3)', textAlign:'center', maxWidth:380, lineHeight:1.6 }}>
                         Pulsa <strong>Recuperar del activo</strong> para importar todas las características técnicas de <em>{ASSET.nombre}</em>. Después podrás elegir cuáles mostrar en la ficha comercial.
@@ -2072,8 +2072,8 @@ function FichaOfertaMock() {
                     </div>
                     <table className="doc-table"><thead><tr><th>Documento</th><th>Tipo</th><th>Fecha</th></tr></thead>
                     <tbody>
-                      <tr><td><span className="doc-link">📊 Dossier Albatros</span></td><td><span className="tag tag-blue">Comercial</span></td><td>05/11/2024</td></tr>
-                      <tr><td><span className="doc-link">📋 Ficha técnica Edif. D</span></td><td><span className="tag tag-teal">Técnica</span></td><td>05/11/2024</td></tr>
+                      <tr><td><span className="doc-link">Dossier Albatros</span></td><td><span className="tag tag-blue">Comercial</span></td><td>05/11/2024</td></tr>
+                      <tr><td><span className="doc-link">Ficha técnica Edif. D</span></td><td><span className="tag tag-teal">Técnica</span></td><td>05/11/2024</td></tr>
                     </tbody></table>
                   </div>
 
@@ -2188,14 +2188,14 @@ function FichaOfertaMock() {
                       <div>
                         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
                           <FieldLbl>Título web / ficha</FieldLbl>
-                          <button className="ab-btn blue" style={{ fontSize:9, padding:'2px 8px' }}>✦ IA</button>
+                          <button className="ab-btn blue" style={{ fontSize:9, padding:'2px 8px' }}>IA</button>
                         </div>
                         <input className="of-inp" value={tituloWeb} onChange={e => setTituloWeb(e.target.value)} placeholder="Título comercial de la oferta..." />
                       </div>
                       <div>
                         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
                           <FieldLbl>Texto descriptivo web / ficha</FieldLbl>
-                          <button className="ab-btn blue" style={{ fontSize:9, padding:'2px 8px' }}>✦ IA</button>
+                          <button className="ab-btn blue" style={{ fontSize:9, padding:'2px 8px' }}>IA</button>
                         </div>
                         <textarea className="of-textarea" value={textoWeb} onChange={e => setTextoWeb(e.target.value)} style={{ minHeight:120 }} placeholder="Descripción comercial del espacio..." />
                       </div>
@@ -2348,7 +2348,7 @@ function FichaOfertaMock() {
                       <div style={{ fontSize:11, color:confidential?'#94a3b8':'var(--text3)', marginTop:2 }}>{confidential?'Activo, dirección, documentos y condiciones ocultos para no autorizados.':'La oferta es visible para todos los usuarios con acceso al PDB.'}</div>
                     </div>
                     <button onClick={() => setConfidential(v=>!v)} style={{ padding:'6px 16px', borderRadius:20, border:'none', fontWeight:700, fontSize:12, cursor:'pointer', fontFamily:'inherit', background:confidential?'#f8fafc':'#1e293b', color:confidential?'#0f172a':'#f8fafc' }}>
-                      {confidential?'🔓 Desactivar':'🔒 Activar'}
+                      {confidential?'🔓 Desactivar':'Activar'}
                     </button>
                   </div>
 
@@ -2377,7 +2377,7 @@ function FichaOfertaMock() {
                   {/* ── Usuarios autorizados ── */}
                   <div className="va-card">
                     <div className="va-card-header">
-                      <h3><span className="ico">◆</span> Usuarios autorizados</h3>
+                      <h3><span className="ico"></span> Usuarios autorizados</h3>
                       <button className="ab-btn blue" onClick={() => setAddingUser(true)}>+ Añadir usuario</button>
                     </div>
                     <div style={{padding:'4px 20px 16px'}}>
@@ -2429,7 +2429,7 @@ function FichaOfertaMock() {
                       </div>
                       <div style={{padding:'4px 20px 16px'}}>
                         <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px', border:'1px solid var(--amber-bd)', borderRadius:'var(--r)', background:'var(--amber-lt)' }}>
-                          <span style={{ fontSize:22 }}>🔒</span>
+                          <span style={{ fontSize:22 }}></span>
                           <div style={{ flex:1 }}><div style={{ fontSize:12, fontWeight:600 }}>Oferta confidencial</div><div style={{ fontSize:11, color:'var(--text3)' }}>No tienes permisos. Puedes solicitar acceso al responsable.</div></div>
                           <button className="ab-btn save" style={{ flexShrink:0 }} onClick={() => alert('✅ Solicitud enviada a Sierra Álvaro')}>Solicitar acceso</button>
                         </div>
@@ -2478,7 +2478,7 @@ function FichaOfertaMock() {
             <div className="rp-sec">
               <div className="rp-lbl">Asistente IA</div>
               <div className="ai-box">
-                <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Insight oferta</span><span className="ai-badge">Tiempo real</span></div>
+                <div className="ai-head"><div className="ai-ico"></div><span className="ai-lbl">Insight oferta</span><span className="ai-badge">Tiempo real</span></div>
                 <div className="ai-text">127 días en comercialización. Renta 12,50 €/m² <strong>por debajo del mercado A-1</strong> (13,50–14,00 €). Oracle en fase finalista.</div>
                 <div className="ai-cta">✎ Preguntar a la IA</div>
               </div>
@@ -2589,7 +2589,7 @@ function FichaOfertaMock() {
 
             <div className="rp-sec">
               <div className="rp-lbl">Publicación portales</div>
-              {[['🌐 Web Savills','Publicado',true],['🏠 Idealista','No publicado',false],['🏢 Mis Oficinas','No publicado',false]].map(([lbl,status,pub],i) => (
+              {[['🌐 Web Savills','Publicado',true],['🏠 Idealista','No publicado',false],['Mis Oficinas','No publicado',false]].map(([lbl,status,pub],i) => (
                 <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'5px 0', borderBottom:i<2?'1px solid var(--border)':'none' }}>
                   <span style={{ fontSize:11 }}>{lbl}</span><span style={{ fontSize:10, fontWeight:600, color:pub?'var(--green)':'var(--text4)' }}>{status}</span>
                 </div>
@@ -2604,7 +2604,7 @@ function FichaOfertaMock() {
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setShowNegociacion(false)}>
           <div style={{background:'var(--surface)',borderRadius:10,padding:24,maxWidth:420,width:'90%',boxShadow:'0 8px 32px rgba(0,0,0,.18)'}} onClick={e=>e.stopPropagation()}>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
-              <div style={{width:32,height:32,borderRadius:6,background:'var(--amber-lt)',border:'1px solid var(--amber-bd)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0}}>🤝</div>
+              <div style={{width:32,height:32,borderRadius:6,background:'var(--amber-lt)',border:'1px solid var(--amber-bd)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0}}></div>
               <div>
                 <div style={{fontSize:14,fontWeight:700}}>Iniciar negociación</div>
                 <div style={{fontSize:11,color:'var(--text3)'}}>El estado de la oferta pasará a "En negociación"</div>
@@ -2637,7 +2637,7 @@ function FichaOfertaMock() {
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'var(--surface)',borderRadius:12,padding:28,width:480,maxWidth:'95vw',boxShadow:'0 8px 40px rgba(0,0,0,.25)',display:'flex',flexDirection:'column',gap:16}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <div><div style={{fontSize:15,fontWeight:700,color:'var(--text1)'}}>🔒 Dar de baja oferta</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Se creará un arrendatario y se actualizará el stacking plan</div></div>
+              <div><div style={{fontSize:15,fontWeight:700,color:'var(--text1)'}}>Dar de baja oferta</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Se creará un arrendatario y se actualizará el stacking plan</div></div>
               <button onClick={()=>setShowDarBaja(false)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,color:'var(--text3)',lineHeight:1}}>✕</button>
             </div>
 
@@ -2702,7 +2702,7 @@ function FichaOfertaMock() {
             <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:4}}>
               <button onClick={()=>setShowDarBaja(false)} style={{padding:'8px 16px',background:'none',border:'1px solid var(--border)',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>Cancelar</button>
               <button onClick={handleDarBaja} disabled={dbSaving} style={{padding:'8px 16px',background:'var(--red)',color:'#fff',border:'none',borderRadius:6,fontSize:12,fontWeight:600,cursor:dbSaving?'wait':'pointer',fontFamily:'inherit',opacity:dbSaving?.6:1}}>
-                {dbSaving ? 'Procesando...' : '🔒 Confirmar baja'}
+                {dbSaving ? 'Procesando...' : 'Confirmar baja'}
               </button>
             </div>
           </div>

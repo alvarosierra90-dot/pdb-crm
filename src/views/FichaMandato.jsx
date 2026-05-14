@@ -15,7 +15,7 @@ export default function FichaMandato() {
         <div style={{ fontSize:12, color:'var(--text3)', lineHeight:1.55, marginBottom:16 }}>
           Los mandatos se firman desde su origen — una <strong>Propuesta ganada</strong> (vía pitch) o
           una <strong>Demanda / Oferta</strong> ya existente (vía directa). Cada uno tiene su botón
-          <em> 📜 Firmar mandato</em> en la barra de acciones.
+          <em> Firmar mandato</em> en la barra de acciones.
         </div>
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
           <button className="ab-btn" onClick={() => navigate('mandatos')}>← Volver a Mandatos</button>

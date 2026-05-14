@@ -254,7 +254,7 @@ export default function FichaLead() {
               <button className="ab-btn save" onClick={startEdit}>✎ Editar</button>
             ) : (
               <button className="ab-btn" disabled style={{ opacity:0.55, cursor:'not-allowed' }} title={`Solo el responsable (${lead.responsable || 'sin asignar'}) puede editar`}>
-                🔒 Solo lectura
+                Solo lectura
               </button>
             )}
             <button className="ab-btn" onClick={() => navigate('leads')}>← Volver</button>
@@ -277,7 +277,7 @@ export default function FichaLead() {
             </button>
             <div className="ab-sep"/>
             <button className="ab-btn">✅ Asignar tarea</button>
-            <button className="ab-btn">📞 Registrar llamada</button>
+            <button className="ab-btn">Registrar llamada</button>
           </>
         )}
         {saveError && <span style={{ marginLeft:12, fontSize:11, color:'#991b1b', fontWeight:600 }}>{saveError}</span>}
@@ -295,7 +295,7 @@ export default function FichaLead() {
           <div className="ah">
             <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
               <div style={{ width:50, height:50, borderRadius:10, background:'#fef3c7', border:'1px solid #fde68a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>
-                🎯
+                
               </div>
               <div style={{ flex:1, minWidth:0 }}>
                 <div className="ah-name">{lead.nombre}</div>
@@ -306,7 +306,7 @@ export default function FichaLead() {
                   <TipoTag tipo={lead.tipo} />
                   <EstadoTag estado={lead.estado} />
                   <PrioridadTag prioridad={lead.prioridad} />
-                  {cuentaNombre && <span className="tag tag-blue">🏢 {cuentaNombre}</span>}
+                  {cuentaNombre && <span className="tag tag-blue">{cuentaNombre}</span>}
                   {oportunidadId && <span className="tag tag-teal">⚡ Oportunidad: {oportunidadNombre}</span>}
                 </div>
               </div>
@@ -382,7 +382,7 @@ export default function FichaLead() {
                     <div style={{padding:'12px 14px'}}>
                       {cuentaNombre ? (
                         <div onClick={() => navigate('cuentas')} style={{ background:'#f5efe5', border:'1px solid #93c5fd', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#5a4828', cursor:'pointer' }}>
-                          🏢 {cuentaNombre}
+                          {cuentaNombre}
                         </div>
                       ) : (
                         <div style={{ background:'var(--surface-2)', border:'1px dashed var(--border)', borderRadius:'var(--r)', padding:'10px 12px', fontSize:11, color:'var(--text4)', textAlign:'center', fontStyle:'italic' }}>
@@ -556,12 +556,12 @@ export default function FichaLead() {
                       )}
                       {lead.demandas && (
                         <div onClick={() => navigate('demandas')} style={{ background:'#f3e8ff', border:'1px solid #d8b4fe', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#6b21a8', cursor:'pointer' }}>
-                          🎯 Demanda: {lead.demandas.nombre || lead.demandas.ref} <span className="tag tag-purple" style={{ marginLeft:8 }}>{lead.demandas.estatus}</span>
+                          Demanda: {lead.demandas.nombre || lead.demandas.ref} <span className="tag tag-purple" style={{ marginLeft:8 }}>{lead.demandas.estatus}</span>
                         </div>
                       )}
                       {lead.ofertas && (
                         <div onClick={() => navigate('ofertas')} style={{ background:'#dcfce7', border:'1px solid #86efac', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#15803d', cursor:'pointer' }}>
-                          🏢 Oferta: {lead.ofertas.ref}
+                          Oferta: {lead.ofertas.ref}
                         </div>
                       )}
                     </div>

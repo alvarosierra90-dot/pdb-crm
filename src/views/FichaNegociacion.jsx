@@ -218,7 +218,7 @@ export default function FichaNegociacion() {
         <div className="ab-sep" />
         <button className="ab-btn blue" onClick={() => alert('✅ Link copiado:\nhttps://pdb.savills.es/neg/NEG-0044\n\nCompartir con ambas partes.')}>🔗 Copiar link partes</button>
         <button className="ab-btn">📄 Subir contrato</button>
-        <button className="ab-btn" onClick={() => navigate('ficha-activo')}>📊 Ver activo vinculado</button>
+        <button className="ab-btn" onClick={() => navigate('ficha-activo')}>Ver activo vinculado</button>
         <div className="ab-sep" />
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
       </div>
@@ -226,7 +226,7 @@ export default function FichaNegociacion() {
       {/* Header */}
       <div className="ah">
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div className="ah-ico" style={{ background: 'linear-gradient(135deg,#1e3a8a,#6366f1)' }}>🤝</div>
+          <div className="ah-ico" style={{ background: 'linear-gradient(135deg,#1e3a8a,#6366f1)' }}></div>
           <div style={{ flex: 1 }}>
             <div className="ah-ref">
               <span className="ref-badge-neg">NEGOCIACIÓN</span>
@@ -252,7 +252,7 @@ export default function FichaNegociacion() {
               <div style={{ width:1, height:28, background:'#ece0c9' }}/>
               <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
                 <span style={{ fontSize:9, fontWeight:700, color:'#1e3a8a', textTransform:'uppercase', letterSpacing:'.04em' }}>Cuenta · heredada de Op.</span>
-                <span style={{ fontSize:11, fontWeight:600, color:'#1e3a8a' }}>🏢 Oracle Spain SL</span>
+                <span style={{ fontSize:11, fontWeight:600, color:'#1e3a8a' }}>Oracle Spain SL</span>
               </div>
             </div>
           </div>
@@ -388,7 +388,7 @@ export default function FichaNegociacion() {
                 <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
                   <div style={{ flex: 1, border: '1px solid var(--border2)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
                     <div style={{ display: 'flex', gap: 4, padding: '4px 8px', borderBottom: '1px solid var(--border)', background: 'var(--gray-lt)', flexWrap:'wrap' }}>
-                      <button className="ab-btn" style={{ padding: '2px 8px', fontSize: 10 }}>💰 Nueva propuesta</button>
+                      <button className="ab-btn" style={{ padding: '2px 8px', fontSize: 10 }}>Nueva propuesta</button>
                       <button className="ab-btn" style={{ padding: '2px 8px', fontSize: 10 }}>📎 Adjuntar</button>
                       <button
                         className="ab-btn"
@@ -429,7 +429,7 @@ export default function FichaNegociacion() {
 
                 <div className="va-card">
                   <div className="va-card-header">
-                    <h3><span className="ico">◇</span> Condiciones por ronda</h3>
+                    <h3><span className="ico"></span> Condiciones por ronda</h3>
                   </div>
                   <table className="pat-table">
                     <thead><tr><th>Condición</th><th>Oferta inicial</th><th>Contraoferta 1</th><th>Ajuste 2</th><th>Estado</th></tr></thead>
@@ -456,7 +456,7 @@ export default function FichaNegociacion() {
                   <div style={{ display: 'flex', gap: 6 }}><button className="ab-btn">📎 Subir documento</button><button className="ab-btn blue">📄 Subir contrato</button></div>
                 </div>
                 <div style={{ background: 'var(--accent-lt)', border: '1px solid var(--accent-bd)', borderRadius: 'var(--r2)', padding: '12px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 20 }}>📋</span>
+                  <span style={{ fontSize: 20 }}></span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>Modelo contrato arrendamiento v1 — Avalon P5 — Empresa XYZ</div>
                     <div style={{ fontSize: 10, color: 'var(--text3)' }}>Subido por Sierra Álvaro · 14/03/2026 · Compartido con contraparte · 2 comentarios pendientes</div>
@@ -469,7 +469,7 @@ export default function FichaNegociacion() {
                 <table className="doc-table">
                   <thead><tr><th>Documento</th><th>Versión</th><th>Subido por</th><th>Fecha</th><th>Compartido</th><th>Comentarios</th><th></th></tr></thead>
                   <tbody>
-                    <tr><td><span className="doc-link">📋 Modelo contrato arrendamiento v1</span></td><td>v1</td><td>Sierra Álvaro</td><td>14/03/2026</td><td><span className="tag tag-green">Sí</span></td><td style={{ color: 'var(--accent)', fontWeight: 600 }}>2</td><td>⬇ 🗑</td></tr>
+                    <tr><td><span className="doc-link">Modelo contrato arrendamiento v1</span></td><td>v1</td><td>Sierra Álvaro</td><td>14/03/2026</td><td><span className="tag tag-green">Sí</span></td><td style={{ color: 'var(--accent)', fontWeight: 600 }}>2</td><td>⬇ 🗑</td></tr>
                     <tr><td><span className="doc-link">📄 Term Sheet Empresa XYZ</span></td><td>—</td><td>Ana Gómez</td><td>12/03/2026</td><td><span className="tag tag-gray">Interno</span></td><td style={{ color: 'var(--text4)' }}>0</td><td>⬇ 🗑</td></tr>
                   </tbody>
                 </table>
@@ -623,7 +623,7 @@ export default function FichaNegociacion() {
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--amber)' }} />
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--amber)' }}>En negociación</span>
             </div>
-            <button className="acc-btn">📋 Cambiar estado</button>
+            <button className="acc-btn">Cambiar estado</button>
             <button className="acc-btn" onClick={() => alert('Link copiado:\nhttps://pdb.savills.es/neg/NEG-0044')}>🔗 Copiar link partes</button>
             <button className="acc-btn">✅ Marcar acuerdo</button>
             <button className="acc-btn">→ Pasar a Instrucción</button>
@@ -632,7 +632,7 @@ export default function FichaNegociacion() {
             <div className="rp-lbl">Activo vinculado</div>
             <div style={{ background: 'var(--gray-lt)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 10px', cursor: 'pointer', marginBottom: 6 }} onClick={() => navigate('ficha-activo')}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <div style={{ width: 26, height: 26, borderRadius: 5, background: '#1e3a8a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>🏢</div>
+                <div style={{ width: 26, height: 26, borderRadius: 5, background: '#1e3a8a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}></div>
                 <div><div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)' }}>P.E Avalon</div><div style={{ fontSize: 10, color: 'var(--text3)' }}>Santa Leonor 65 · M-30 · Madrid</div></div>
               </div>
             </div>
@@ -661,7 +661,7 @@ export default function FichaNegociacion() {
           <div className="rp-sec">
             <div className="rp-lbl">Asistente IA</div>
             <div className="ai-box">
-              <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Análisis negociación</span><span className="ai-badge">Tiempo real</span></div>
+              <div className="ai-head"><div className="ai-ico"></div><span className="ai-lbl">Análisis negociación</span><span className="ai-badge">Tiempo real</span></div>
               <div className="ai-text">Renta 19 €/m² está <strong>5,6% por encima</strong> del precio de salida. Carencia 3m y gastos incluidos reducen margen. Cierre estimado <strong>vencido</strong> — revisar fecha.</div>
               <div className="ai-cta">✎ Pedir estrategia de cierre</div>
             </div>

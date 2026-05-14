@@ -54,7 +54,7 @@ const TABS = ['datos','stacking','condiciones','alertas','historial','conf']
 const TAB_LABELS = ['Datos del arrendatario','Stacking plan','Condiciones económicas','Alertas y break option','Historial','Confidencialidad']
 
 const TIPO_TAG_ARR = { Email:'tag-blue', Llamada:'tag-green', Reunión:'tag-purple', Tarea:'tag-gray', Nota:'tag-gray', Alerta:'tag-red', Modificación:'tag-amber' }
-const TIPO_ICO_ARR = { Email:'📧', Llamada:'📞', Reunión:'🤝', Tarea:'✅', Nota:'📝', Alerta:'🔔', Modificación:'✏️' }
+const TIPO_ICO_ARR = { Email:'📧', Llamada:'', Reunión:'', Tarea:'✅', Nota:'📝', Alerta:'🔔', Modificación:'✏️' }
 const ACT_EST_ARR  = { Sistema:'tag-gray', 'Sierra Alvaro':'tag-blue', Automático:'tag-amber' }
 
 const HIST_ACTS = [
@@ -618,7 +618,7 @@ export default function FichaArrendatario() {
         {!isNew && !fromDarBaja && <button className="ab-btn">Nuevo</button>}
         {!isNew && !fromDarBaja && <button className="ab-btn">Desactivar</button>}
         <div className="ab-sep"/>
-        {(params?.fromActivoRef || fromDarBaja || fromActivo) && <button className="ab-btn blue" onClick={()=>navigate('ficha-activo',{ref:params?.fromActivoRef||(fromDarBaja?(form.activo||params?.arrRef):undefined)})}>🏢 Ver activo</button>}
+        {(params?.fromActivoRef || fromDarBaja || fromActivo) && <button className="ab-btn blue" onClick={()=>navigate('ficha-activo',{ref:params?.fromActivoRef||(fromDarBaja?(form.activo||params?.arrRef):undefined)})}>Ver activo</button>}
         {!isNew && !fromDarBaja && !params?.fromActivoRef && <button className="ab-btn blue" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>}
         <button className="ab-btn" onClick={()=>
           params?.fromActivoRef ? navigate('ficha-activo',{ref:params.fromActivoRef, tab: params?.fromActivoTab || 'at-prop'})
@@ -649,7 +649,7 @@ export default function FichaArrendatario() {
           {/* Banner "creación desde oferta" */}
           {fromOferta && (
             <div style={{padding:'8px 16px',background:'#faf5ec',borderBottom:'1px solid #ece0c9',fontSize:11,color:'#5a4828',display:'flex',alignItems:'center',gap:8}}>
-              <span style={{fontWeight:700}}>📋 Creación desde oferta</span>
+              <span style={{fontWeight:700}}>Creación desde oferta</span>
               <span>·</span>
               <span>Vinculado a <strong>{params?.fromOfertaRef}</strong>{params?.fromActivoNombre ? ` · Activo: ${params.fromActivoNombre}` : ''}</span>
               <span style={{marginLeft:'auto',color:'#60a5fa',fontSize:10}}>Los campos marcados con * son obligatorios para guardar</span>
@@ -668,7 +668,7 @@ export default function FichaArrendatario() {
           {/* Header */}
           <div className="ah">
             <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-              <div className="ah-ico" style={{background:'linear-gradient(135deg,#0f766e,#14b8a6)',fontSize:18}}>🏢</div>
+              <div className="ah-ico" style={{background:'linear-gradient(135deg,#0f766e,#14b8a6)',fontSize:18}}></div>
               <div style={{flex:1}}>
                 <div className="ah-ref">
                   <span style={{background:'var(--teal-lt)',color:'var(--teal)',border:'1px solid var(--teal-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>ARRENDATARIO</span>
@@ -1069,7 +1069,7 @@ export default function FichaArrendatario() {
                         <div style={{fontSize:11,color:'var(--text3)'}}>Oracle Spain SL tenía break option el 01/07/2024. Verificar si ejercieron o continúan. Contrato vence jun 2026.</div>
                       </div>
                       <div style={{display:'flex',gap:6,flexShrink:0}}>
-                        <button className="ab-btn" style={{fontSize:10,padding:'3px 9px'}}>📞 Llamar</button>
+                        <button className="ab-btn" style={{fontSize:10,padding:'3px 9px'}}>Llamar</button>
                         <button className="ab-btn save" style={{fontSize:10,padding:'3px 9px'}} onClick={()=>navigate('ficha-actividad')}>+ Crear actividad</button>
                       </div>
                     </div>
@@ -1119,7 +1119,7 @@ export default function FichaArrendatario() {
                   if (!ref) {
                     return (
                       <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
-                        <div style={{ fontSize:32, marginBottom:8 }}>🏢</div>
+                        <div style={{ fontSize:32, marginBottom:8 }}></div>
                         Este arrendatario no está vinculado a un activo. Asigna uno desde la pestaña "Datos del arrendatario" para ver su stacking plan.
                       </div>
                     )
@@ -1269,10 +1269,10 @@ export default function FichaArrendatario() {
               <div style={{width:10,height:10,borderRadius:'50%',background:ESTADO_COLOR[form.estado]||'var(--text4)'}}/>
               <span style={{fontSize:13,fontWeight:700,color:ESTADO_COLOR[form.estado]||'var(--text4)'}}>{form.estado}</span>
             </div>
-            <button className="acc-btn" onClick={()=>navigate('ficha-activo')}>🏢 Ver activo</button>
+            <button className="acc-btn" onClick={()=>navigate('ficha-activo')}>Ver activo</button>
             <button className="acc-btn" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>
-            <button className="acc-btn" onClick={()=>navigate('ficha-actividad')}>📞 Registrar actividad</button>
-            <button className="acc-btn">📊 Ver en stacking plan</button>
+            <button className="acc-btn" onClick={()=>navigate('ficha-actividad')}>Registrar actividad</button>
+            <button className="acc-btn">Ver en stacking plan</button>
           </div>
           <div className="rp-sec">
             <div className="rp-lbl">Fechas clave</div>

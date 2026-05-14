@@ -30,7 +30,7 @@ function ExportMenu({ getConfig }) {
             style={{padding:'9px 14px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:8}}
             onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
             onMouseLeave={e=>e.currentTarget.style.background=''}>
-            📊 <span>PowerPoint</span>
+            <span>PowerPoint</span>
           </div>
         </div>
       )}
@@ -1293,7 +1293,7 @@ export default function PortfolioFicha() {
                           {lineas.map(([l, v], i) => (
                             <div key={l}>
                               <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, marginBottom:3 }}>
-                                <span style={{ fontWeight:600 }}>{i === 0 && '🏆 '}{l}</span>
+                                <span style={{ fontWeight:600 }}>{i === 0 && ''}{l}</span>
                                 <span style={{ fontFamily:'var(--mono)', fontWeight:700, color:'var(--green)' }}>{fmtEur(v)}</span>
                               </div>
                               <div style={{ height:6, background:'var(--gray-lt)', borderRadius:3, overflow:'hidden' }}>
@@ -1474,10 +1474,10 @@ export default function PortfolioFicha() {
             <div style={{ fontSize: 9, color: 'var(--text3)', textAlign: 'right' }}>48% conseguido</div>
           </div>
           {[
-            {ico:'📋',label:'Arrendamiento P.E Avalon P4',valor:'620 k€',estado:'Cerrado',color:'var(--green)'},
+            {ico:'',label:'Arrendamiento P.E Avalon P4',valor:'620 k€',estado:'Cerrado',color:'var(--green)'},
             {ico:'💹',label:'Mandato captación Glòries',valor:'1,03 M€',estado:'Cerrado',color:'var(--green)'},
-            {ico:'📊',label:'Valoración portfolio Q1',valor:'85 k€',estado:'Facturado',color:'var(--teal)'},
-            {ico:'🤝',label:'Arrendamiento Getafe P3',valor:'910 k€',estado:'En curso',color:'var(--amber)'},
+            {ico:'',label:'Valoración portfolio Q1',valor:'85 k€',estado:'Facturado',color:'var(--teal)'},
+            {ico:'',label:'Arrendamiento Getafe P3',valor:'910 k€',estado:'En curso',color:'var(--amber)'},
             {ico:'📄',label:'Mandato exclusiva retail',valor:'590 k€',estado:'En curso',color:'var(--amber)'},
           ].map((op,i)=>(
             <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, padding: '5px 0', borderBottom: '1px solid var(--border)' }}>
@@ -1497,10 +1497,10 @@ export default function PortfolioFicha() {
         <div className="rp-sec">
           <div className="rp-lbl">Proyectos en curso</div>
           {[
-            {ico:'📋',label:'Mandato exclusiva Leasing',sub:'Leasing · P.E Avalon P4–P5 · Activo',color:'var(--accent)'},
-            {ico:'📋',label:'Mandato captación retail',sub:'Retail · Parque La Gavia · Activo',color:'var(--accent)'},
+            {ico:'',label:'Mandato exclusiva Leasing',sub:'Leasing · P.E Avalon P4–P5 · Activo',color:'var(--accent)'},
+            {ico:'',label:'Mandato captación retail',sub:'Retail · Parque La Gavia · Activo',color:'var(--accent)'},
             {ico:'💹',label:'Due Diligence venta Torre Glòries',sub:'Capital Markets · En proceso',color:'var(--purple)'},
-            {ico:'📊',label:'Valoración anual portfolio',sub:'Valoraciones · Q2 2026 · Abierto',color:'var(--teal)'},
+            {ico:'',label:'Valoración anual portfolio',sub:'Valoraciones · Q2 2026 · Abierto',color:'var(--teal)'},
             {ico:'🔍',label:'Informe de mercado logístico',sub:'Research · Q2 2026 · En redacción',color:'var(--gray)'},
           ].map((p,i)=>(
             <div key={i} className="proj-item">
@@ -1544,7 +1544,7 @@ export default function PortfolioFicha() {
         <div className="rp-sec">
           <div className="rp-lbl">Asistente IA</div>
           <div className="ai-box">
-            <div className="ai-head"><div className="ai-ico">✦</div><span className="ai-lbl">Análisis relación</span><span className="ai-badge">Tiempo real</span></div>
+            <div className="ai-head"><div className="ai-ico"></div><span className="ai-lbl">Análisis relación</span><span className="ai-badge">Tiempo real</span></div>
             <div className="ai-text">Relación de <strong>5 años</strong>. Facturación histórica 20M€ — 3er mayor cliente. Pipeline 1,5M€ activo. Próximo vencimiento mandato <strong>Jul 2026</strong>.</div>
             <div className="ai-cta">✎ Preparar propuesta de valor</div>
           </div>
@@ -1553,9 +1553,9 @@ export default function PortfolioFicha() {
         {/* Accesos rápidos */}
         <div className="rp-sec">
           <div className="rp-lbl">Accesos rápidos</div>
-          <button className="acc-btn" onClick={() => setActiveTab('pt-activos')}>📋 Ver activos (8)</button>
+          <button className="acc-btn" onClick={() => setActiveTab('pt-activos')}>Ver activos (8)</button>
           <button className="acc-btn" onClick={() => setActiveTab('pt-ofertas')}>📄 Ver ofertas (5)</button>
-          <button className="acc-btn" onClick={() => setActiveTab('pt-actividad')}>📊 Actividad comercial</button>
+          <button className="acc-btn" onClick={() => setActiveTab('pt-actividad')}>Actividad comercial</button>
           <button className="acc-btn">💹 Cotización 11,24€</button>
           <button className="acc-btn" onClick={doExport}>⬇ Exportar informe completo</button>
         </div>

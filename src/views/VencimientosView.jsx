@@ -450,7 +450,7 @@ export default function VencimientosView() {
                             style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:9, background:'#f3e8ff', color:'#6b5b8e', border:'1px solid #d8b4fe', cursor:'pointer', fontFamily:'inherit' }}
                             title={`Mandato ${v._mandatoTipo} vivo · click para abrir`}
                           >
-                            📜 {v._mandatoRef}
+                            {v._mandatoRef}
                           </button>
                         ) : <span style={{ fontSize:9, color:'var(--text4)' }}>—</span>}
                       </td>
