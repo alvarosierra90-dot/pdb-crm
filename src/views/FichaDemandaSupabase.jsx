@@ -121,6 +121,9 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [oportunidad, setOportunidad] = useState(null)
   const [showAddEq, setShowAddEq] = useState(false)
   const [newEqDraft, setNewEqDraft] = useState({ equipo:'', usuario:'', rol:'Soporte' })
+  // Vista 360 · alternativas (oferta_demanda con joins a ofertas + activos)
+  const [alternativas, setAlternativas] = useState([])
+  const [loadingAlt, setLoadingAlt] = useState(false)
 
   const [form, setForm] = useState({
     nombre:'', estatus:'', notas:'', motivo_descarte:'',
@@ -136,7 +139,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
     const { data, error } = await supabase
       .from('demandas')
       .select(`
-        id, ref, nombre, estatus, notas, motivo_descarte, requisitos, otros_contactos, equipo_trabajo,
+        id, ref, nombre, estatus, notas, motivo_descarte, requisitos, otros_contactos, equipo_trabajo, documentos,
         dynamics_account_id, dynamics_opportunity_id, mandato_id, created_at, updated_at,
         dynamics_accounts:dynamics_account_id ( dynamics_id, nombre, tipo, sector, direccion, codigo_postal, ciudad, pais, telefono, web ),
         dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo ),
@@ -179,6 +182,35 @@ export default function FichaDemandaSupabase({ refOrId }) {
   }, [refOrId])
 
   useEffect(() => { load() }, [load])
+
+  // Carga las alternativas (oferta_demanda) cuando se conoce la demanda
+  const loadAlternativas = useCallback(async () => {
+    if (!demanda?.id) return
+    setLoadingAlt(true)
+    const { data } = await supabase
+      .from('oferta_demanda')
+      .select(`
+        id, estado_alternativa, condiciones_negociadas, created_at, updated_at,
+        ofertas:oferta_id ( id, ref, tipo_operacion, estado ),
+        activos:activo_id ( id, ref, nombre, ciudad, uso, sba )
+      `)
+      .eq('demanda_id', demanda.id)
+      .order('updated_at', { ascending:false })
+    setAlternativas(data || [])
+    setLoadingAlt(false)
+  }, [demanda?.id])
+
+  useEffect(() => { loadAlternativas() }, [loadAlternativas])
+
+  // Transición de estado de una alternativa (presentada → visita → negociación)
+  const cambiarEstadoAlternativa = async (altId, nuevoEstado) => {
+    const { error } = await supabase
+      .from('oferta_demanda')
+      .update({ estado_alternativa: nuevoEstado, updated_at: new Date().toISOString() })
+      .eq('id', altId)
+    if (error) { setSaveError(error.message); return }
+    await loadAlternativas()
+  }
 
   // Cada vez que la demanda se (re)carga, sincroniza el form para que los
   // inputs reflejen el estado persistido. El usuario puede modificar
@@ -903,12 +935,335 @@ export default function FichaDemandaSupabase({ refOrId }) {
             )
           })()}
 
-          {tab === 'dem-360'  && (
-            <div className="tab-content active">
-              <StubTab label="Vista 360 · Seguimiento + Actividades + Microsites" />
-            </div>
-          )}
-          {tab === 'dem-docs' && <div className="tab-content active"><StubTab label="Documentos" /></div>}
+          {tab === 'dem-360' && (() => {
+            // Agrupación por fase del funnel
+            const presentadas = alternativas.filter(a => ['propuesta','enviada'].includes(a.estado_alternativa))
+            const visitadas   = alternativas.filter(a => ['visita_programada','visita_realizada'].includes(a.estado_alternativa))
+            const negociando  = alternativas.filter(a => ['negociando'].includes(a.estado_alternativa))
+            const cerradas    = alternativas.filter(a => ['ganada','perdida','descartada'].includes(a.estado_alternativa))
+
+            const fmtSba = sba => sba ? `${Number(sba).toLocaleString('es-ES')} m²` : '—'
+
+            // Tarjeta de alternativa reutilizable (mismo formato cards uniformes)
+            const AltCard = ({ alt, accent = 'var(--accent)', actions }) => {
+              const a = alt.activos || {}
+              const o = alt.ofertas || {}
+              return (
+                <div style={{ display:'flex', flexDirection:'column', gap:8, padding:'10px 12px', border:'1px solid var(--border)', borderLeft:`3px solid ${accent}`, borderRadius:'var(--r)', background:'var(--surface)' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                    <div style={{ width:32, height:32, borderRadius:'50%', background:accent, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, flexShrink:0 }}>🏛</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', cursor:'pointer' }} onClick={() => a.ref && navigate('ficha-activo', { ref:a.ref })}>
+                        {a.nombre || '(activo sin nombre)'}
+                      </div>
+                      <div style={{ fontSize:10, color:'var(--text3)' }}>
+                        {[a.ciudad, a.uso, fmtSba(a.sba)].filter(x => x && x !== '—').join(' · ') || '—'}
+                      </div>
+                    </div>
+                    {o.ref && (
+                      <span className="tag tag-blue" style={{ fontSize:9, fontFamily:'var(--mono)', cursor:'pointer' }} onClick={() => navigate('ficha-oferta', { ofertaRef: o.ref })}>{o.ref}</span>
+                    )}
+                  </div>
+                  {actions && (
+                    <div style={{ display:'flex', gap:5, flexWrap:'wrap', borderTop:'1px dashed var(--border)', paddingTop:8, marginTop:2 }}>
+                      {actions}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
+            const EmptyCol = ({ msg }) => (
+              <div style={{ padding:'20px 12px', textAlign:'center', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'var(--gray-lt)', fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>
+                {msg}
+              </div>
+            )
+
+            return (
+              <div className="tab-content active"><div className="info-pad">
+
+                {/* Cabecera con KPIs de funnel */}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:14 }}>
+                  {[
+                    ['Presentadas', presentadas.length, '#dbeafe', '#1d4ed8', '📨'],
+                    ['Visitadas',   visitadas.length,   '#f0fdfa', '#0f766e', '👣'],
+                    ['Negociando',  negociando.length,  '#fef3c7', '#92400e', '🤝'],
+                    ['Cerradas',    cerradas.length,    '#f1f5f9', '#475569', '✓'],
+                  ].map(([lbl, val, bg, color, icon]) => (
+                    <div key={lbl} style={{ padding:'10px 12px', background:bg, border:`1px solid ${color}33`, borderRadius:6 }}>
+                      <div style={{ fontSize:9, fontWeight:700, color, textTransform:'uppercase', letterSpacing:'.04em', marginBottom:3 }}>{lbl}</div>
+                      <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
+                        <span style={{ fontSize:22, fontWeight:800, fontFamily:'var(--mono)', color, lineHeight:1 }}>{val}</span>
+                        <span style={{ fontSize:14 }}>{icon}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {loadingAlt && <div style={{ padding:12, fontSize:11, color:'var(--text4)' }}>Cargando alternativas…</div>}
+
+                {!loadingAlt && alternativas.length === 0 && (
+                  <div className="va-card" style={{ marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico">◯</span> Aún no hay edificios presentados</h3>
+                    </div>
+                    <div style={{ padding:'14px 18px 18px', fontSize:12, color:'var(--text3)' }}>
+                      <p style={{ margin:'0 0 8px' }}>Define los requisitos en la pestaña <strong>Requisitos</strong> y pulsa <strong>🗺 Exportar a mapa</strong> para seleccionar edificios candidatos. Cuando envíes microsites a la cuenta, aparecerán aquí como <strong>Presentadas</strong>.</p>
+                      <p style={{ margin:'8px 0 0' }}>Desde cada visita realizada podrás transformar la alternativa en <strong>Negociación</strong> creando primero una Instrucción.</p>
+                    </div>
+                  </div>
+                )}
+
+                {!loadingAlt && alternativas.length > 0 && (
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12 }}>
+
+                    {/* === COL 1 · PRESENTADAS === */}
+                    <div className="va-card" style={{ marginBottom:0 }}>
+                      <div className="va-card-header" style={{ background:'#f8fafc' }}>
+                        <h3><span className="ico" style={{ color:'#1d4ed8' }}>📨</span> Presentadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({presentadas.length})</span></h3>
+                      </div>
+                      <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8 }}>
+                        {presentadas.length === 0
+                          ? <EmptyCol msg="Aún no se han presentado edificios." />
+                          : presentadas.map(alt => (
+                              <AltCard key={alt.id} alt={alt} accent="#1d4ed8" actions={
+                                <>
+                                  {alt.estado_alternativa === 'propuesta' && (
+                                    <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'enviada')}>📤 Marcar enviada</button>
+                                  )}
+                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'visita_programada')}>🗓 Visita programada</button>
+                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'descartada')}>✕ Descartar</button>
+                                </>
+                              } />
+                            ))
+                        }
+                      </div>
+                    </div>
+
+                    {/* === COL 2 · VISITADAS === */}
+                    <div className="va-card" style={{ marginBottom:0 }}>
+                      <div className="va-card-header" style={{ background:'#f0fdfa' }}>
+                        <h3><span className="ico" style={{ color:'#0f766e' }}>👣</span> Visitadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({visitadas.length})</span></h3>
+                      </div>
+                      <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8 }}>
+                        {visitadas.length === 0
+                          ? <EmptyCol msg="Aún no hay visitas programadas." />
+                          : visitadas.map(alt => (
+                              <AltCard key={alt.id} alt={alt} accent="#0f766e" actions={
+                                <>
+                                  {alt.estado_alternativa === 'visita_programada' && (
+                                    <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'visita_realizada')}>✓ Visita realizada</button>
+                                  )}
+                                  {alt.estado_alternativa === 'visita_realizada' && (
+                                    <button
+                                      className="ab-btn"
+                                      style={{ fontSize:9, padding:'3px 8px', background:'var(--purple, #7c3aed)', color:'#fff', border:'1px solid var(--purple, #7c3aed)', fontWeight:700 }}
+                                      onClick={() => {
+                                        // TODO: cascada Instrucción → Negociación
+                                        // Por ahora cambia estado a 'negociando' y muestra aviso
+                                        if (window.confirm('Esto creará primero una Instrucción y después una Negociación. ¿Continuar?\n\n(Cascada Instrucción→Negociación todavía no implementada — por ahora solo se cambia el estado a "negociando".)')) {
+                                          cambiarEstadoAlternativa(alt.id, 'negociando')
+                                        }
+                                      }}
+                                      title="Crea Instrucción + Negociación (cascada)"
+                                    >🤝 Transformar a Negociación</button>
+                                  )}
+                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'descartada')}>✕ Descartar</button>
+                                </>
+                              } />
+                            ))
+                        }
+                      </div>
+                    </div>
+
+                    {/* === COL 3 · EN NEGOCIACIÓN === */}
+                    <div className="va-card" style={{ marginBottom:0 }}>
+                      <div className="va-card-header" style={{ background:'#fef3c7' }}>
+                        <h3><span className="ico" style={{ color:'#92400e' }}>🤝</span> En negociación <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({negociando.length})</span></h3>
+                      </div>
+                      <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8 }}>
+                        {negociando.length === 0
+                          ? <EmptyCol msg="Sin negociaciones activas." />
+                          : negociando.map(alt => (
+                              <AltCard key={alt.id} alt={alt} accent="#92400e" actions={
+                                <>
+                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px' }} onClick={() => alt.ofertas?.ref && navigate('ficha-negociacion', { id: alt.ofertas.ref })}>Ver negociación</button>
+                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--green)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'ganada')}>🏆 Ganada</button>
+                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'perdida')}>✕ Perdida</button>
+                                </>
+                              } />
+                            ))
+                        }
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+                {/* CERRADAS · siempre visible si hay alguna */}
+                {cerradas.length > 0 && (
+                  <div className="va-card" style={{ marginTop:14, marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico" style={{ color:'#475569' }}>✓</span> Cerradas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({cerradas.length})</span></h3>
+                    </div>
+                    <div style={{ padding:'10px 18px 14px', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
+                      {cerradas.map(alt => {
+                        const isWin = alt.estado_alternativa === 'ganada'
+                        return (
+                          <AltCard key={alt.id} alt={alt} accent={isWin ? 'var(--green)' : '#94a3b8'} actions={
+                            <span className={`tag ${isWin ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:9 }}>
+                              {alt.estado_alternativa === 'ganada' ? '🏆 Ganada' : alt.estado_alternativa === 'perdida' ? '✕ Perdida' : '⊘ Descartada'}
+                            </span>
+                          } />
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+              </div></div>
+            )
+          })()}
+          {tab === 'dem-docs' && (() => {
+            const docs = Array.isArray(demanda.documentos) ? demanda.documentos : []
+            const CATEGORIAS = ['Brief','NDA','KYC','Plano','Propuesta económica','Reporte','Contrato','Email','Otro']
+            const ICON_CAT = {
+              Brief:'📋', NDA:'🔒', KYC:'🪪', Plano:'📐',
+              'Propuesta económica':'💰', Reporte:'📊', Contrato:'📜', Email:'📧', Otro:'📎',
+            }
+            const COLOR_CAT = {
+              Brief:'#1d4ed8', NDA:'#7e22ce', KYC:'#0f766e', Plano:'#0891b2',
+              'Propuesta económica':'#15803d', Reporte:'#b45309', Contrato:'#0f172a', Email:'#475569', Otro:'#64748b',
+            }
+
+            const fmtSize = bytes => {
+              if (!bytes) return '—'
+              if (bytes < 1024) return `${bytes} B`
+              if (bytes < 1024*1024) return `${(bytes/1024).toFixed(1)} KB`
+              return `${(bytes/(1024*1024)).toFixed(1)} MB`
+            }
+
+            const persistDocs = async (nuevosDocs) => {
+              const { error } = await supabase
+                .from('demandas')
+                .update({ documentos: nuevosDocs, updated_at: new Date().toISOString() })
+                .eq('id', demanda.id)
+              if (error) { setSaveError(error.message); return }
+              await load()
+            }
+
+            const handleUpload = (fileList) => {
+              const files = Array.from(fileList || [])
+              if (files.length === 0) return
+              const nuevos = files.map(f => ({
+                id: `doc-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+                nombre: f.name,
+                tamano: f.size,
+                etiqueta: 'Otro',
+                fecha: new Date().toISOString(),
+                autor: CURRENT_USER.nombre,
+              }))
+              persistDocs([...docs, ...nuevos])
+            }
+
+            const cambiarEtiqueta = (id, etiqueta) => {
+              persistDocs(docs.map(d => d.id === id ? { ...d, etiqueta } : d))
+            }
+
+            const eliminarDoc = (id) => {
+              if (!window.confirm('¿Eliminar este documento?')) return
+              persistDocs(docs.filter(d => d.id !== id))
+            }
+
+            return (
+              <div className="tab-content active"><div className="info-pad">
+
+                {/* Zona de carga · drag&drop */}
+                <div
+                  className="va-card"
+                  style={{ marginBottom:12 }}
+                  onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--accent)' }}
+                  onDragLeave={e => { e.currentTarget.style.borderColor = '' }}
+                  onDrop={e => {
+                    e.preventDefault()
+                    e.currentTarget.style.borderColor = ''
+                    handleUpload(e.dataTransfer.files)
+                  }}
+                >
+                  <div className="va-card-header">
+                    <h3><span className="ico" style={{ color:'var(--accent)' }}>↑</span> Subir documento</h3>
+                    <span className="hint">Arrastra archivos aquí o pulsa para seleccionar</span>
+                  </div>
+                  <label style={{
+                    display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                    padding:'24px 14px', margin:'10px 18px 16px',
+                    border:'2px dashed var(--border)', borderRadius:8,
+                    background:'var(--surface-2)', cursor:'pointer', textAlign:'center',
+                  }}>
+                    <div style={{ fontSize:32, marginBottom:6 }}>📁</div>
+                    <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', marginBottom:3 }}>Arrastra archivos o haz click</div>
+                    <div style={{ fontSize:11, color:'var(--text4)' }}>Brief · NDA · KYC · Planos · Propuestas · Reportes</div>
+                    <input
+                      type="file"
+                      multiple
+                      style={{ display:'none' }}
+                      onChange={e => handleUpload(e.target.files)}
+                    />
+                  </label>
+                </div>
+
+                {/* Lista de documentos */}
+                <div className="va-card" style={{ marginBottom:0 }}>
+                  <div className="va-card-header">
+                    <h3><span className="ico">▤</span> Documentos cargados <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({docs.length})</span></h3>
+                  </div>
+                  <div style={{ padding:'10px 18px 16px' }}>
+                    {docs.length === 0 ? (
+                      <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', textAlign:'center', padding:'14px 0' }}>
+                        Aún no hay documentos cargados. Arrastra archivos arriba para empezar.
+                      </div>
+                    ) : (
+                      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                        {docs.map(d => {
+                          const cat = d.etiqueta || 'Otro'
+                          return (
+                            <div key={d.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                              <div style={{ width:34, height:34, borderRadius:'50%', background:COLOR_CAT[cat] + '22', color:COLOR_CAT[cat], display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, flexShrink:0 }}>
+                                {ICON_CAT[cat]}
+                              </div>
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <div style={{ fontSize:12, fontWeight:600, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.nombre}</div>
+                                <div style={{ fontSize:10, color:'var(--text3)' }}>
+                                  {fmtSize(d.tamano)} · {fmtDate(d.fecha)} · {d.autor}
+                                </div>
+                              </div>
+                              <select
+                                className="fsel"
+                                value={cat}
+                                onChange={e => cambiarEtiqueta(d.id, e.target.value)}
+                                style={{ fontSize:10, padding:'3px 6px', minWidth:130, borderColor: COLOR_CAT[cat], color: COLOR_CAT[cat], fontWeight:700 }}
+                              >
+                                {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
+                              </select>
+                              <button
+                                onClick={() => eliminarDoc(d.id)}
+                                style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:13, padding:'2px 6px' }}
+                                title="Eliminar"
+                              >✕</button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                    <div style={{ marginTop:10, padding:'8px 10px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:5, fontSize:10, color:'#92400e' }}>
+                      ⚠ Los archivos solo guardan metadata por ahora (storage real pendiente). El nombre, tamaño, fecha, autor y etiqueta sí se persisten.
+                    </div>
+                  </div>
+                </div>
+
+              </div></div>
+            )
+          })()}
           {tab === 'dem-neg'  && <div className="tab-content active"><StubTab label="Negociaciones en curso" /></div>}
           {tab === 'dem-conf'     && (
             <ConfidencialidadPanel
