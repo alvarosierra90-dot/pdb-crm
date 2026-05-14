@@ -124,6 +124,10 @@ export default function FichaDemandaSupabase({ refOrId }) {
   // Vista 360 · alternativas (oferta_demanda con joins a ofertas + activos)
   const [alternativas, setAlternativas] = useState([])
   const [loadingAlt, setLoadingAlt] = useState(false)
+  // Typeahead de búsqueda de Mandato para vincular
+  const [mandatoSearch, setMandatoSearch] = useState('')
+  const [mandatoResults, setMandatoResults] = useState([])
+  const [showMandatoDD, setShowMandatoDD] = useState(false)
 
   const [form, setForm] = useState({
     nombre:'', estatus:'', notas:'', motivo_descarte:'',
@@ -208,6 +212,51 @@ export default function FichaDemandaSupabase({ refOrId }) {
   }, [demanda?.id])
 
   useEffect(() => { loadAlternativas() }, [loadAlternativas])
+
+  // Busca mandatos al escribir en el typeahead · prioriza misma cuenta y tipo buy
+  useEffect(() => {
+    if (!showMandatoDD) return
+    const q = mandatoSearch.trim()
+    if (q.length < 1 && !demanda?.dynamics_account_id) { setMandatoResults([]); return }
+    let cancel = false
+    ;(async () => {
+      let query = supabase
+        .from('mandatos')
+        .select('id, ref, tipo, via, estado, dynamics_account_id, fecha_firma')
+        .order('fecha_firma', { ascending:false })
+        .limit(12)
+      if (q.length >= 1) query = query.ilike('ref', `%${q.toUpperCase()}%`)
+      const { data } = await query
+      if (cancel) return
+      // Ordena: mismos account_id arriba, luego buy, luego resto
+      const acc = demanda?.dynamics_account_id
+      const sorted = (data || []).sort((a,b) => {
+        const sa = (a.dynamics_account_id === acc ? 0 : 2) + (a.tipo === 'buy' ? 0 : 1)
+        const sb = (b.dynamics_account_id === acc ? 0 : 2) + (b.tipo === 'buy' ? 0 : 1)
+        return sa - sb
+      })
+      setMandatoResults(sorted)
+    })()
+    return () => { cancel = true }
+  }, [mandatoSearch, showMandatoDD, demanda?.dynamics_account_id])
+
+  const vincularMandato = async (mandatoId) => {
+    const { error } = await supabase.from('demandas')
+      .update({ mandato_id: mandatoId, updated_at: new Date().toISOString() })
+      .eq('id', demanda.id)
+    if (error) { setSaveError(error.message); return }
+    setMandatoSearch(''); setShowMandatoDD(false); setMandatoResults([])
+    await load()
+  }
+
+  const desvincularMandato = async () => {
+    if (!window.confirm('¿Desvincular el mandato de esta demanda? La demanda volverá a estar sin mandato.')) return
+    const { error } = await supabase.from('demandas')
+      .update({ mandato_id: null, updated_at: new Date().toISOString() })
+      .eq('id', demanda.id)
+    if (error) { setSaveError(error.message); return }
+    await load()
+  }
 
   // Transición de estado de una alternativa (presentada → visita → negociación)
   const cambiarEstadoAlternativa = async (altId, nuevoEstado) => {
@@ -601,9 +650,55 @@ export default function FichaDemandaSupabase({ refOrId }) {
                               <div style={{ fontSize:10, color:'var(--text3)' }}>Mandato vinculado</div>
                             </div>
                             <button className="ab-btn" style={{ fontSize:9, padding:'2px 8px' }} onClick={() => navigate('ficha-mandato', { id: demanda.mandato.ref })}>Ver</button>
+                            <button onClick={desvincularMandato} title="Desvincular mandato" style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:13, padding:'2px 6px' }}>✕</button>
                           </div>
                         ) : (
-                          <div style={{ padding:'8px 10px', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'var(--gray-lt)', fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin mandato firmado todavía</div>
+                          <div style={{ position:'relative' }}>
+                            <input
+                              className="kf-inp"
+                              value={mandatoSearch}
+                              onChange={e => { setMandatoSearch(e.target.value); setShowMandatoDD(true) }}
+                              onFocus={() => setShowMandatoDD(true)}
+                              onBlur={() => setTimeout(() => setShowMandatoDD(false), 200)}
+                              placeholder="🔍 Buscar mandato existente (ej. MAN-2026-)"
+                              style={{ width:'100%', fontFamily:'var(--mono)', fontSize:12, padding:'8px 10px' }}
+                            />
+                            {showMandatoDD && (
+                              <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, zIndex:30, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6, maxHeight:240, overflowY:'auto', boxShadow:'0 6px 20px rgba(0,0,0,0.12)' }}>
+                                {mandatoResults.length === 0 ? (
+                                  <div style={{ padding:'10px 12px', fontSize:11, color:'var(--text4)' }}>
+                                    {mandatoSearch.length < 1 ? 'Escribe para buscar mandatos...' : 'Sin resultados para esa referencia.'}
+                                  </div>
+                                ) : mandatoResults.map(m => {
+                                  const mismaCuenta = m.dynamics_account_id === demanda.dynamics_account_id
+                                  return (
+                                    <div
+                                      key={m.id}
+                                      onMouseDown={() => vincularMandato(m.id)}
+                                      style={{ padding:'8px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8 }}
+                                      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                                      onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
+                                    >
+                                      <div style={{ width:24, height:24, borderRadius:'50%', background:'var(--purple, #7c3aed)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>📜</div>
+                                      <div style={{ flex:1, minWidth:0 }}>
+                                        <div style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)' }}>{m.ref}</div>
+                                        <div style={{ fontSize:10, color:'var(--text4)', display:'flex', gap:6, flexWrap:'wrap' }}>
+                                          <span className={`tag ${m.tipo === 'buy' ? 'tag-blue' : 'tag-amber'}`} style={{ fontSize:8 }}>{m.tipo}</span>
+                                          <span className="tag tag-gray" style={{ fontSize:8 }}>{m.via}</span>
+                                          {mismaCuenta && <span className="tag tag-green" style={{ fontSize:8 }}>✓ misma cuenta</span>}
+                                          <span>· {m.estado}</span>
+                                          {m.fecha_firma && <span>· firma {fmtDate(m.fecha_firma)}</span>}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+                            <div style={{ fontSize:10, color:'var(--text4)', marginTop:4, fontStyle:'italic' }}>
+                              Buscas un mandato existente. Para firmar uno nuevo desde esta demanda, usa <strong>📜 Firmar mandato</strong> arriba.
+                            </div>
+                          </div>
                         )}
                       </div>
 
