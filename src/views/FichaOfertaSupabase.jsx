@@ -334,54 +334,11 @@ export default function FichaOfertaSupabase({ refOrId }) {
                 instruccion={mandatoVinculado?.dynamics_instruction_id ? { id: mandatoVinculado.dynamics_instruction_id, dynamics_id: mandatoVinculado.dynamics_instruction_id } : null}
                 mandato={mandatoVinculado ? { id: mandatoVinculado.id, ref: mandatoVinculado.ref, titulo: mandatoVinculado.titulo } : null}
               />
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1.1fr 1fr 1fr', gap:14 }}>
+                {/* ─ COL 1 · ESTADO (accionable, destacado en accent) ─ */}
                 <div>
-                  <div className="va-meta-card" style={{ marginBottom:14 }}>
-                    <div className="va-meta-head"><span className="dot"/>Activo vinculado · heredado</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div style={{ fontSize:13, fontWeight:600, color:'var(--accent)', marginBottom:6, cursor:'pointer' }} onClick={() => activo && navigate('ficha-activo', { ref: activo.ref })}>
-                        {activo?.nombre || '—'} ↗
-                      </div>
-                      <div className="ir"><span className="ir-k">Referencia</span><span className="ir-v" style={{ fontFamily:'var(--mono)' }}>{activo?.ref || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v" style={{ fontSize:10 }}>{activo?.direccion || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Zona</span><span className="ir-v">{activo?.zona || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Ciudad</span><span className="ir-v">{activo?.ciudad || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Uso</span><span className="ir-v">{activo?.uso || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">SBA total</span><span className="ir-v">{activo?.sba ? `${Number(activo.sba).toLocaleString('es-ES')} m²` : <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                    </div>
-                  </div>
-
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-green"><span className="dot"/>Propietario · heredado de Dynamics</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div style={{ fontSize:13, fontWeight:600, color:'var(--accent)', marginBottom:6 }}>{propietario?.nombre || '—'}</div>
-                      <div className="ir"><span className="ir-k">Tipo</span><span className="ir-v">{propietario?.tipo || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Sector</span><span className="ir-v">{propietario?.sector || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Teléfono</span><span className="ir-v">{propietario?.telefono || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v" style={{ fontSize:10 }}>{propietario?.direccion || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Web</span><span className="ir-v">{propietario?.web || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="va-meta-card" style={{ marginBottom:14 }}>
-                    <div className="va-meta-head"><span className="dot"/>Oportunidad vinculada</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div className="ir">
-                        <span className="ir-k" style={{ display:'flex', alignItems:'center', gap:6 }}>
-                          <span style={{ width:14, height:14, borderRadius:3, background:'#B08D57', color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>D</span>
-                          Oportunidad
-                        </span>
-                        <span className="ir-v">{oportunidad
-                          ? <span style={{ fontWeight:600, fontSize:11 }}>{oportunidad.nombre} <span className="tag tag-blue" style={{ marginLeft:6, fontSize:9 }}>{oportunidad.tipo}</span></span>
-                          : <span style={{ color:'var(--text4)' }}>—</span>}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-purple"><span className="dot"/>Estado</div>
+                  <div className="va-meta-card va-card-primary">
+                    <div className="va-meta-head accent-purple"><span className="dot"/>Estado de la oferta</div>
                     <div style={{ padding:'10px 14px' }}>
                       <div className="ir">
                         <span className="ir-k">Estado oferta</span>
@@ -456,7 +413,33 @@ export default function FichaOfertaSupabase({ refOrId }) {
                   </div>
                 </div>
 
+                {/* ─ COL 2 · DETALLES DEL ACTIVO (tintado bronce, info heredada) ─ */}
                 <div>
+                  <div className="va-meta-card va-card-info-activo">
+                    <div className="va-meta-head"><span className="dot"/>Detalles del activo</div>
+                    <div style={{ padding:'10px 14px' }}>
+                      <div className="ir"><span className="ir-k">Referencia</span><span className="ir-v" style={{ fontFamily:'var(--mono)' }}>{activo?.ref || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
+                      <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v" style={{ fontSize:11 }}>{activo?.direccion || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
+                      <div className="ir"><span className="ir-k">Zona</span><span className="ir-v">{activo?.zona || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
+                      <div className="ir"><span className="ir-k">Ciudad</span><span className="ir-v">{activo?.ciudad || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
+                      <div className="ir"><span className="ir-k">Uso</span><span className="ir-v">{activo?.uso || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
+                      <div className="ir"><span className="ir-k">SBA total</span><span className="ir-v">{activo?.sba ? `${Number(activo.sba).toLocaleString('es-ES')} m²` : <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ─ COL 3 · DETALLES DEL PROPIETARIO + COMENTARIOS ─ */}
+                <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                  <div className="va-meta-card va-card-info-cuenta">
+                    <div className="va-meta-head accent-green"><span className="dot"/>Detalles del propietario</div>
+                    <div style={{ padding:'10px 14px' }}>
+                      <div className="ir"><span className="ir-k">Tipo</span><span className="ir-v">{propietario?.tipo || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
+                      <div className="ir"><span className="ir-k">Sector</span><span className="ir-v">{propietario?.sector || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
+                      <div className="ir"><span className="ir-k">Teléfono</span><span className="ir-v">{propietario?.telefono || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
+                      <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v" style={{ fontSize:11 }}>{propietario?.direccion || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
+                      <div className="ir"><span className="ir-k">Web</span><span className="ir-v">{propietario?.web || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
+                    </div>
+                  </div>
                   <div className="va-meta-card">
                     <div className="va-meta-head accent-red"><span className="dot"/>Comentarios internos</div>
                     <div style={{ padding:'10px 14px' }}>

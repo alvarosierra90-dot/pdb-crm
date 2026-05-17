@@ -1602,3 +1602,23 @@ tr:hover .ra-cell { opacity: 1; }
   opacity: .7;
   margin-left: 2px;
 }
+
+/* ═════════════════════════════════════════════════════════════
+   CARDS TINTADAS · jerarquía visual en fichas
+   - va-card-primary    → accent fuerte (lo accionable: Estado, Workflow)
+   - va-card-info-activo → bronce pálido (info heredada del activo)
+   - va-card-info-cuenta → verde pálido (info heredada del propietario/cuenta)
+   ═════════════════════════════════════════════════════════════ */
+.va-meta-card.va-card-primary {
+  border: 1px solid var(--accent-bd, #d4b87a);
+  background: linear-gradient(180deg, #fdfaf3 0%, #ffffff 60%);
+  box-shadow: 0 1px 3px rgba(176, 141, 87, 0.08);
+}
+.va-meta-card.va-card-info-activo {
+  background: linear-gradient(180deg, #faf7ef 0%, #ffffff 70%);
+  border: 1px solid #ece0c9;
+}
+.va-meta-card.va-card-info-cuenta {
+  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 70%);
+  border: 1px solid #bbf7d0;
+}
