@@ -490,7 +490,7 @@ nav {
 }
 .tab {
   padding: 18px 0;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text4);
   text-transform: uppercase;
@@ -517,7 +517,7 @@ nav {
 
 .rp-sec  { padding: 14px 16px; border-bottom: 1px solid var(--border); }
 .rp-lbl  {
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #8e8e93;
   text-transform: uppercase;
@@ -545,14 +545,14 @@ nav {
   border: 1px solid var(--border);
 }
 .kf-lbl {
-  font-size: 9.5px;
+  font-size: 11px;
   color: #8e8e93;
   margin-bottom: 4px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: .07em;
 }
-.kf-val   { font-size: 13px; font-weight: 600; color: #1d1d1f; }
+.kf-val   { font-size: 14px; font-weight: 600; color: #1d1d1f; }
 .kf-val.amber { color: var(--amber); }
 .kf-sub   { font-size: 10px; color: var(--green); margin-top: 2px; }
 
@@ -611,9 +611,10 @@ nav {
   border-bottom: 1px solid var(--border);
 }
 .ir:last-child { border-bottom: none; }
-.ir-k { font-size: 12px; color: var(--text3); }
-.ir-v { font-size: 12px; color: var(--text); font-weight: 600; text-align: right; }
-.ir-v.link { color: var(--accent); cursor: pointer; }
+.ir-k { font-size: 13px; color: var(--text3); }
+.ir-v { font-size: 13px; color: var(--text); font-weight: 600; text-align: right; }
+.ir-v.link { color: var(--accent); cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px; }
+.ir-v.link:hover { color: var(--bronze-dark); }
 
 /* ─────────────────────────────────────────
    SECTION HEADERS
@@ -1520,4 +1521,84 @@ tr:hover .ra-cell { opacity: 1; }
 .sp-progress-fill { height: 100%; background: var(--pdb-blue); border-radius: 999px; transition: width .4s; }
 .sp-progress-value {
   font-family: var(--mono); font-size: 12px; color: var(--ink-2, #1f2937); min-width: 36px; text-align: right;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   VINCULACIONES · bloque canónico al inicio de "Información general"
+   en TODAS las fichas (Lead, Oportunidad, Propuesta, Mandato,
+   Demanda, Oferta, Negociación, Arrendatario, Propietario)
+   ═════════════════════════════════════════════════════════════ */
+.vinc-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px 16px;
+  margin-bottom: 14px;
+}
+.vinc-head {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text4);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  margin-bottom: 10px;
+}
+.vinc-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 1100px) {
+  .vinc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.vinc-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.vinc-lbl {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text4);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.vinc-dyn {
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #B08D57;
+  background: #faf5ec;
+  border: 1px solid #ece0c9;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.vinc-val {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vinc-val.empty { color: var(--text4); font-weight: 500; }
+.vinc-val.link {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+.vinc-val.link:hover { color: var(--bronze-dark); }
+.vinc-arrow {
+  font-size: 11px;
+  color: var(--accent);
+  opacity: .7;
+  margin-left: 2px;
 }

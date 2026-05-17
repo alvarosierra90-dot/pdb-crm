@@ -6,6 +6,7 @@ import { OFERTAS as MOCK_OFERTAS, ACTIVOS as MOCK_ACTIVOS } from '../data/mockDa
 import { isSupabaseRef } from '../components/FichaPendienteSupabase'
 import FichaOfertaSupabase from './FichaOfertaSupabase'
 import { FileText, Presentation, Link2, Clock } from 'lucide-react'
+import Vinculaciones from '../components/Vinculaciones'
 // IMPORTANTE: Importar el StackingPlan exacto de FichaActivo para garantizar
 // igualdad visual y funcional total entre Activo y Oferta (regla del usuario).
 import { StackingPlan } from './FichaActivo'
@@ -957,7 +958,17 @@ function FichaOfertaMock() {
               {/* ── TAB 1: Información oferta ── */}
               {activeTab==='of-info' && (
                 <div className="tab-content active">
-                  <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1.45fr 1fr',gap:12,alignItems:'start'}}>
+                  <div className="info-pad" style={{padding:'20px 36px 4px'}}>
+                    {/* ── VINCULACIONES (bloque canónico — siempre en este orden y posición) ── */}
+                    <Vinculaciones
+                      cuenta={activoSeleccionado?.propietario ? { id: null, nombre: activoSeleccionado.propietario } : null}
+                      activo={activoSeleccionado ? { ref: activoSeleccionado.ref, nombre: activoSeleccionado.nombre, direccion: activoSeleccionado.direccion } : null}
+                      oportunidad={mandatoAsociado?.dynamics_opportunity_id ? { id: mandatoAsociado.dynamics_opportunity_id, nombre: mandatoAsociado.dynamics_opportunity_id } : null}
+                      instruccion={mandatoAsociado?.dynamics_instruction_id ? { id: mandatoAsociado.dynamics_instruction_id, dynamics_id: mandatoAsociado.dynamics_instruction_id } : null}
+                      mandato={mandatoAsociado ? { id: mandatoAsociado.id, ref: mandatoAsociado.ref, titulo: mandatoAsociado.titulo } : null}
+                    />
+                  </div>
+                  <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1.45fr 1fr',gap:12,alignItems:'start',paddingTop:0}}>
                   <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
 
                     {/* ── ACTIVO VINCULADO ── */}
