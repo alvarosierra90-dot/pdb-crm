@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import { formatRef } from '../lib/formatRef'
 import SeleccionarActivoModal from '../components/SeleccionarActivoModal'
 import { Download, SlidersHorizontal, AlertTriangle } from 'lucide-react'
 
@@ -32,7 +33,7 @@ function isoToDisplay(iso) {
 function mapDbRow(r, activosById = {}) {
   const ac = (r.activo_ref && activosById[r.activo_ref]) || null
   return {
-    id:              r.ref || r.id,
+    id:              formatRef(r.ref || r.id, 'ARR'),
     _dbId:           r.id,
     arrendatario:    r.tenant || r.nombre || '—',
     // Activo · dirección si existe, sino nombre del activo, sino edificio guardado, sino ref
@@ -86,7 +87,9 @@ const COLS = [
   { id:'_chk',         label:'',                   sys:true },
   { id:'id',           label:'ID',                 required:true, type:'text',   getValue:r=>r.id },
   { id:'arrendatario', label:'Arrendatario',        required:true, type:'text',   getValue:r=>r.arrendatario },
-  { id:'activo',       label:'Activo',              required:true, type:'text',   getValue:r=>r.activo },
+  { id:'anyo_firma',   label:'Año firma',                         type:'number', getValue:r=>r.anyo_firma },
+  { id:'trimestre',    label:'Trimestre',                         type:'enum',   getValue:r=>r.trimestre },
+  { id:'activo',       label:'Dirección',           required:true, type:'text',   getValue:r=>r.activo },
   { id:'zona',         label:'Zona',                              type:'enum',   getValue:r=>r.zona },
   { id:'subzona',      label:'Sub-zona',                          type:'enum',   getValue:r=>r.subzona },
   { id:'superficie',   label:'Sup. m²',                           type:'number', getValue:r=>r.superficie },
@@ -95,8 +98,6 @@ const COLS = [
   { id:'tipo_alquiler',label:'Tipo alquiler',                     type:'enum',   getValue:r=>r.tipo_alquiler },
   { id:'area',         label:'Área',                              type:'enum',   getValue:r=>r.area },
   { id:'sector',       label:'Sector',                            type:'enum',   getValue:r=>r.sector },
-  { id:'anyo_firma',   label:'Año firma',                         type:'number', getValue:r=>r.anyo_firma },
-  { id:'trimestre',    label:'Trimestre',                         type:'enum',   getValue:r=>r.trimestre },
   { id:'fecha_inicio', label:'Inicio contrato',                   type:'text',   getValue:r=>r.fecha_inicio },
   { id:'break_option', label:'Break option',                      type:'text',   getValue:r=>r.break_option },
   { id:'fecha_fin',    label:'Fin contrato',                      type:'text',   getValue:r=>r.fecha_fin },
@@ -107,7 +108,7 @@ const COLS = [
   { id:'_act',         label:'',                   sys:true },
 ]
 
-const DEFAULT_VIS = new Set(['_chk','id','arrendatario','activo','zona','superficie','renta_media','propietario','estado','break_option','fecha_fin','responsable','_act'])
+const DEFAULT_VIS = new Set(['_chk','id','arrendatario','anyo_firma','trimestre','activo','zona','superficie','renta_media','propietario','estado','break_option','fecha_fin','responsable','_act'])
 
 export default function ArrendatariosList() {
   const { navigate } = useNav()

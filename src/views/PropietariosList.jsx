@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import { formatRef } from '../lib/formatRef'
 import { exportPDF, exportPPT } from '../utils/exportReport'
 import { supabase } from '../lib/supabase'
 import SeleccionarActivoModal from '../components/SeleccionarActivoModal'
@@ -116,7 +117,7 @@ export default function PropietariosList() {
       setDbRows(list.map(p => {
         const ac = (p.activo_ref && activosById[p.activo_ref]) || null
         return {
-          id:            p.ref || p.id,
+          id:            formatRef(p.ref || p.id, 'PRO'),
           _dbId:         p.id,
           estado:        p.estado || 'Activo',
           fechaBaja:     p.fecha_desactivacion || null,
