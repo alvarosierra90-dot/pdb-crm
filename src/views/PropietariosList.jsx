@@ -64,7 +64,9 @@ const COLS = [
   { id:'_chk',          label:'',                   sys:true },
   { id:'id',            label:'ID',                 required:true, type:'text',   getValue:r=>r.id },
   { id:'propietario',   label:'Propietario',         required:true, type:'text',   getValue:r=>r.propietario },
-  { id:'activo',        label:'Activo',              required:true, type:'text',   getValue:r=>r.activo },
+  { id:'anyo_compra',   label:'Año compra',                        type:'number', getValue:r=>r.anyo_compra },
+  { id:'trimestre',     label:'Trimestre',                         type:'enum',   getValue:r=>r.trimestre },
+  { id:'activo',        label:'Dirección',           required:true, type:'text',   getValue:r=>r.activo },
   { id:'zona',          label:'Zona',                              type:'enum',   getValue:r=>r.zona },
   { id:'subzona',       label:'Sub-zona',                          type:'enum',   getValue:r=>r.subzona },
   { id:'superficie',    label:'Sup. m²',                           type:'number', getValue:r=>r.superficie },
@@ -74,8 +76,6 @@ const COLS = [
   { id:'estado_activo', label:'Estado activo',                     type:'enum',   getValue:r=>r.estado_activo },
   { id:'tipologia',     label:'Tipología op.',                     type:'enum',   getValue:r=>r.tipologia },
   { id:'area',          label:'Área',                              type:'enum',   getValue:r=>r.area },
-  { id:'anyo_compra',   label:'Año compra',                        type:'number', getValue:r=>r.anyo_compra },
-  { id:'trimestre',     label:'Trimestre',                         type:'enum',   getValue:r=>r.trimestre },
   { id:'ltv',           label:'LTV %',                             type:'number', getValue:r=>r.ltv },
   { id:'financiacion',  label:'Financiación %',                    type:'number', getValue:r=>r.financiacion },
   { id:'perfil',        label:'Perfil',                            type:'enum',   getValue:r=>r.perfil },
@@ -84,7 +84,7 @@ const COLS = [
   { id:'_act',          label:'',                   sys:true },
 ]
 
-const DEFAULT_VIS = new Set(['_chk','id','propietario','activo','zona','superficie','precio_compra','cap_rate','yield','estado_activo','tipologia','perfil','responsable','_act'])
+const DEFAULT_VIS = new Set(['_chk','id','propietario','anyo_compra','trimestre','activo','zona','superficie','precio_compra','cap_rate','yield','estado_activo','tipologia','perfil','responsable','_act'])
 
 export default function PropietariosList() {
   const { navigate } = useNav()
