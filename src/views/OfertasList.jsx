@@ -3,6 +3,8 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { OFERTAS as MOCK_OFERTAS } from '../data/mockData'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
+import { formatRef } from '../lib/formatRef'
+import { healRefs } from '../lib/healRefs'
 import { Download, SlidersHorizontal, AlertTriangle } from 'lucide-react'
 
 const estadoTag = { 'En revisión': 'tag-amber', 'Negociando': 'tag-purple', 'Pre-acuerdo': 'tag-green', 'En curso': 'tag-blue', 'Disponible': 'tag-green', 'En negociación': 'tag-amber', 'Cerrada': 'tag-gray', 'Finalista': 'tag-green' }
@@ -51,6 +53,8 @@ export default function OfertasList() {
   const [vista, setVista] = useState('activas') // 'activas' | 'desactivadas'
 
   useEffect(() => {
+    // Auto-limpia refs legacy/UUIDs en ofertas a OFR-NNNNNNN
+    healRefs('ofertas', 'OFR').finally(() => {
     Promise.all([
       supabase.from('ofertas').select('*').order('created_at', { ascending: false }),
       supabase.from('activos').select('ref, nombre, direccion, zona, subzona, ciudad'),
@@ -61,7 +65,7 @@ export default function OfertasList() {
           const act = activosMap[o.activo_ref]
           return {
             id:         o.id,
-            ref:        o.ref || o.id,
+            ref:        formatRef(o.ref || o.id, 'OFR'),
             activo:     act?.nombre || o.activo_ref || (o.activo_ref ? o.activo_ref : 'Pendiente Activo'),
             activo_dir: act?.direccion || '',
             activo_ref: o.activo_ref || '',
@@ -82,6 +86,7 @@ export default function OfertasList() {
       }
       setLoading(false)
     }).catch(() => setLoading(false))
+    })
   }, [])
 
   const [creando, setCreando] = useState(false)
