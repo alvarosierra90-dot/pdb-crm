@@ -324,7 +324,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                 } : null}
               />
 
-              {/* ── EQUIPO DE TRABAJO (justo bajo Vinculaciones, antes era pestaña aparte) ── */}
+              {/* ── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones, idéntica posición que en Oferta) ── */}
               {(() => {
                 const equipo = Array.isArray(propuesta?.equipo_trabajo) ? propuesta.equipo_trabajo : []
                 const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
@@ -334,14 +334,32 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                   onAfter: () => load(),
                   onError: (msg) => setSaveError(msg),
                 })
+                const equipoInterno = equipo.filter(m => m.rol !== 'Colaborador')
+                const colaboradores = equipo.filter(m => m.rol === 'Colaborador')
+                // Remap idx en lista filtrada → idx real en el array completo.
+                // Las refs de los items son las mismas (Array.filter no clona).
+                const mapIdx = (filtered, idx) => equipo.indexOf(filtered[idx])
                 return (
-                  <EquipoTrabajoCard
-                    equipo={equipo}
-                    canManage={canManage}
-                    onAdd={handlers.addMiembro}
-                    onRemove={handlers.removeMiembro}
-                    onUpdateRol={handlers.updateMiembroRol}
-                  />
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+                    {/* Izquierda · Equipo de trabajo (Principal + Soporte) */}
+                    <EquipoTrabajoCard
+                      title="Equipo de trabajo"
+                      equipo={equipoInterno}
+                      canManage={canManage}
+                      onAdd={(nombre, equipoNombre, rol) => handlers.addMiembro(nombre, equipoNombre, rol === 'Colaborador' ? 'Soporte' : rol)}
+                      onRemove={(idx) => handlers.removeMiembro(mapIdx(equipoInterno, idx))}
+                      onUpdateRol={(idx, rol) => handlers.updateMiembroRol(mapIdx(equipoInterno, idx), rol)}
+                    />
+                    {/* Derecha · Colaboradores (rol Colaborador) */}
+                    <EquipoTrabajoCard
+                      title="Colaboradores"
+                      equipo={colaboradores}
+                      canManage={canManage}
+                      onAdd={(nombre, equipoNombre) => handlers.addMiembro(nombre, equipoNombre, 'Colaborador')}
+                      onRemove={(idx) => handlers.removeMiembro(mapIdx(colaboradores, idx))}
+                      onUpdateRol={(idx, rol) => handlers.updateMiembroRol(mapIdx(colaboradores, idx), rol)}
+                    />
+                  </div>
                 )
               })()}
 
