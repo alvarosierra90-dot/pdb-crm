@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import { formatRef } from '../lib/formatRef'
+import { healRefs } from '../lib/healRefs'
 import { exportPDF, exportPPT } from '../utils/exportReport'
 import { supabase } from '../lib/supabase'
 import SeleccionarActivoModal from '../components/SeleccionarActivoModal'
@@ -100,6 +101,10 @@ export default function PropietariosList() {
   useEffect(() => {
     let cancel = false
     ;(async () => {
+      // Auto-limpia refs legacy reasignándolos a PRO-NNNNNNN. Se ejecuta una vez
+      // por carga; las siguientes son no-op porque ya no hay refs malos.
+      await healRefs('propietarios', 'PRO')
+      if (cancel) return
       const { data: props } = await supabase.from('propietarios').select('*').order('created_at', { ascending: false })
       if (cancel) return
       const list = props || []

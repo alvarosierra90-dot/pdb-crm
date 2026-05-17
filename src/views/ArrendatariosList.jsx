@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import { formatRef } from '../lib/formatRef'
+import { healRefs } from '../lib/healRefs'
 import SeleccionarActivoModal from '../components/SeleccionarActivoModal'
 import { Download, SlidersHorizontal, AlertTriangle } from 'lucide-react'
 
@@ -123,6 +124,11 @@ export default function ArrendatariosList() {
   useEffect(() => {
     let cancel = false
     ;(async () => {
+      // Auto-limpia refs legacy (ARR-2501, ARR-1778776088179, etc.) reasignándolos
+      // a ARR-NNNNNNN secuencial. Se ejecuta una sola vez por sesión efectivamente,
+      // porque tras la primera limpieza todos los refs cumplen el patrón.
+      await healRefs('arrendatarios', 'ARR')
+      if (cancel) return
       const { data: arrs } = await supabase.from('arrendatarios').select('*').order('created_at', { ascending: false })
       if (cancel) return
       const list = arrs || []
