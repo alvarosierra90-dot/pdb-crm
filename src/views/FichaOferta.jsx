@@ -959,7 +959,7 @@ function FichaOfertaMock() {
               {activeTab==='of-info' && (
                 <div className="tab-content active">
                   <div className="info-pad" style={{padding:'20px 36px 4px'}}>
-                    {/* ── VINCULACIONES (bloque canónico — siempre en este orden y posición) ── */}
+                    {/* ── 01 · VINCULACIONES (canónico, siempre arriba) ── */}
                     <Vinculaciones
                       cuentaLabel="Propietario (Cuenta)"
                       cuenta={activoSeleccionado?.propietario ? { id: null, nombre: activoSeleccionado.propietario } : null}
@@ -969,6 +969,118 @@ function FichaOfertaMock() {
                       mandato={mandatoAsociado ? { id: mandatoAsociado.id, ref: mandatoAsociado.ref, titulo: mandatoAsociado.titulo } : null}
                     />
                   </div>
+
+                  {/* ── 02 · EQUIPO Y COLABORADORES (50/50, justo bajo Vinculaciones) ── */}
+                  <div className="info-pad" style={{padding:'0 36px 12px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
+                    {/* ─ Equipo de trabajo (izquierda) ─ */}
+                    <div className="va-card">
+                      <div className="va-card-header">
+                        <h3><span className="ico"></span> Equipo de trabajo</h3>
+                        <div style={{display:'flex',gap:5}}>
+                          <button className="ab-btn" onClick={() => setAddingMiembro(true)}>+ Miembro</button>
+                          <button className="ab-btn">+ Equipo</button>
+                        </div>
+                      </div>
+                      <div style={{padding:'4px 20px 16px'}}>
+                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                          {equipoMembers.map((m,i) => (
+                            <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                              <div style={{ width:30, height:30, borderRadius:'50%', background:m.bg, color:m.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>{m.initials}</div>
+                              <div style={{ flex:1 }}>
+                                <div style={{ fontSize:12, fontWeight:600 }}>{m.name}</div>
+                                <div style={{ fontSize:11, color:'var(--text3)' }}>{m.team}</div>
+                              </div>
+                              {m.owner ? <span className="tag tag-blue">Responsable</span>
+                                : <button onClick={() => setEquipoMembers(prev=>prev.filter((_,j)=>j!==i))} style={{ fontSize:11, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }}>✕</button>}
+                            </div>
+                          ))}
+                        </div>
+                        {addingMiembro && (
+                          <div style={{ border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', borderRadius:'var(--r)', padding:12, marginTop:10 }}>
+                            <FieldLbl>Usuario</FieldLbl>
+                            <select className="fsel" style={{ width:'100%', marginBottom:8 }} value={newMiembro} onChange={e => setNewMiembro(e.target.value)}>
+                              <option value="">Seleccionar...</option>
+                              {['GOMEZ Ignacio · Leasing Oficinas MAD','García Marta · Capital Markets MAD','López Carmen · Valoraciones MAD','Martínez Rosa · Retail MAD'].map(u => <option key={u}>{u}</option>)}
+                            </select>
+                            <div style={{ display:'flex', gap:6 }}>
+                              <button className="ab-btn save" onClick={() => {
+                                if(!newMiembro)return
+                                const [nameStr,teamStr]=[newMiembro.split('·')[0].trim(),newMiembro.split('·')[1]?.trim()||'']
+                                const ini=nameStr.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+                                setEquipoMembers(prev=>[...prev,{name:nameStr,team:teamStr,role:'Colaborador',initials:ini,bg:'#f0fdf4',color:'#166534',owner:false}])
+                                setAddingMiembro(false); setNewMiembro('')
+                              }}>Añadir</button>
+                              <button className="ab-btn" onClick={() => { setAddingMiembro(false); setNewMiembro('') }}>Cancelar</button>
+                            </div>
+                          </div>
+                        )}
+                        <div style={{ fontSize:10, color:'var(--amber)', marginTop:10, fontStyle:'italic' }}>Solo editable por creador o manager</div>
+                      </div>
+                    </div>
+
+                    {/* ─ Colaboradores (derecha) ─ */}
+                    <div className="va-card" style={{ overflow:'visible' }}>
+                      <div className="va-card-header">
+                        <h3><span className="ico">◈</span> Colaboradores</h3>
+                        <span className="hint">{tipoComercializacion==='Colaboradores' ? 'Consultora asociada' : 'Inactivo'}</span>
+                      </div>
+                      <div style={{padding:'8px 18px 14px'}}>
+                        {tipoComercializacion!=='Colaboradores' ? (
+                          <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>
+                            Selecciona <strong>“Colaboradores”</strong> en Comercialización para vincular una consultora.
+                          </div>
+                        ) : colaboradorAsociado ? (
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'8px 12px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
+                            <div>
+                              <div style={{ fontWeight:600, fontSize:13, color:'var(--accent)' }}>{colaboradorAsociado.nombre}</div>
+                              {(colaboradorAsociado.sector || colaboradorAsociado.tipo) && (
+                                <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>
+                                  {[colaboradorAsociado.tipo, colaboradorAsociado.sector].filter(Boolean).join(' · ')}
+                                </div>
+                              )}
+                            </div>
+                            <button onClick={() => setColaboradorAsociado(null)} style={{ fontSize:11, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }}>✕ Quitar</button>
+                          </div>
+                        ) : (
+                          <div style={{ position:'relative' }}>
+                            <input
+                              className="of-inp"
+                              placeholder="🔍 Buscar consultora colaboradora..."
+                              value={colaboradorBuscador}
+                              onChange={e => { setColaboradorBuscador(e.target.value); setShowColaboradorDropdown(true) }}
+                              onFocus={() => setShowColaboradorDropdown(true)}
+                              onBlur={() => setTimeout(() => setShowColaboradorDropdown(false), 200)}
+                              style={{ width:'100%' }}
+                            />
+                            {showColaboradorDropdown && colaboradorBuscador.length >= 2 && (
+                              <div style={{ position:'absolute', top:'100%', left:0, right:0, minWidth:340, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 8px 24px rgba(0,0,0,.18)', zIndex:9999, maxHeight:260, overflowY:'auto', textAlign:'left', marginTop:2 }}>
+                                {colaboradoresResults.length === 0 ? (
+                                  <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Sin resultados</div>
+                                ) : (
+                                  colaboradoresResults.map(a => (
+                                    <div key={a.dynamics_id} onMouseDown={() => {
+                                      setColaboradorAsociado(a)
+                                      setColaboradorBuscador('')
+                                      setShowColaboradorDropdown(false)
+                                    }} style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
+                                      <div style={{ fontWeight:600 }}>{a.nombre}</div>
+                                      <div style={{ color:'var(--text4)', fontSize:10, marginTop:2 }}>
+                                        {[a.tipo, a.sector].filter(Boolean).join(' · ') || a.dynamics_id}
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            )}
+                            {colaboradorBuscador.length > 0 && colaboradorBuscador.length < 2 && (
+                              <div style={{ fontSize:10, color:'var(--text4)', marginTop:4 }}>Escribe al menos 2 caracteres para buscar.</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1.45fr 1fr',gap:12,alignItems:'start',paddingTop:0}}>
                   <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
 
@@ -1332,114 +1444,6 @@ function FichaOfertaMock() {
                             {activoSeleccionado ? 'Sin propietario registrado en el activo.' : 'Selecciona un activo para ver el propietario.'}
                           </div>
                         )}
-                      </div>
-                    </div>
-
-                    {/* ── COLABORADORES ── */}
-                    <div className="va-card" style={{ overflow:'visible' }}>
-                      <div className="va-card-header">
-                        <h3><span className="ico">◈</span> Colaboradores</h3>
-                        <span className="hint">{tipoComercializacion==='Colaboradores' ? 'Consultora asociada' : 'Inactivo'}</span>
-                      </div>
-                      <div style={{padding:'8px 18px 14px'}}>
-                        {tipoComercializacion!=='Colaboradores' ? (
-                          <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>
-                            Selecciona <strong>“Colaboradores”</strong> en Comercialización para vincular una consultora.
-                          </div>
-                        ) : colaboradorAsociado ? (
-                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'8px 12px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
-                            <div>
-                              <div style={{ fontWeight:600, fontSize:13, color:'var(--accent)' }}>{colaboradorAsociado.nombre}</div>
-                              {(colaboradorAsociado.sector || colaboradorAsociado.tipo) && (
-                                <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>
-                                  {[colaboradorAsociado.tipo, colaboradorAsociado.sector].filter(Boolean).join(' · ')}
-                                </div>
-                              )}
-                            </div>
-                            <button onClick={() => setColaboradorAsociado(null)} style={{ fontSize:11, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }}>✕ Quitar</button>
-                          </div>
-                        ) : (
-                          <div style={{ position:'relative' }}>
-                            <input
-                              className="of-inp"
-                              placeholder="🔍 Buscar consultora colaboradora..."
-                              value={colaboradorBuscador}
-                              onChange={e => { setColaboradorBuscador(e.target.value); setShowColaboradorDropdown(true) }}
-                              onFocus={() => setShowColaboradorDropdown(true)}
-                              onBlur={() => setTimeout(() => setShowColaboradorDropdown(false), 200)}
-                              style={{ width:'100%' }}
-                            />
-                            {showColaboradorDropdown && colaboradorBuscador.length >= 2 && (
-                              <div style={{ position:'absolute', top:'100%', left:0, right:0, minWidth:340, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 8px 24px rgba(0,0,0,.18)', zIndex:9999, maxHeight:260, overflowY:'auto', textAlign:'left', marginTop:2 }}>
-                                {colaboradoresResults.length === 0 ? (
-                                  <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Sin resultados</div>
-                                ) : (
-                                  colaboradoresResults.map(a => (
-                                    <div key={a.dynamics_id} onMouseDown={() => {
-                                      setColaboradorAsociado(a)
-                                      setColaboradorBuscador('')
-                                      setShowColaboradorDropdown(false)
-                                    }} style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
-                                      <div style={{ fontWeight:600 }}>{a.nombre}</div>
-                                      <div style={{ color:'var(--text4)', fontSize:10, marginTop:2 }}>
-                                        {[a.tipo, a.sector].filter(Boolean).join(' · ') || a.dynamics_id}
-                                      </div>
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            )}
-                            {colaboradorBuscador.length > 0 && colaboradorBuscador.length < 2 && (
-                              <div style={{ fontSize:10, color:'var(--text4)', marginTop:4 }}>Escribe al menos 2 caracteres para buscar.</div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* ── EQUIPOS HÁBILES ── */}
-                    <div className="va-card">
-                      <div className="va-card-header">
-                        <h3><span className="ico"></span> Equipos hábiles</h3>
-                        <div style={{display:'flex',gap:5}}>
-                          <button className="ab-btn" onClick={() => setAddingMiembro(true)}>+ Miembro</button>
-                          <button className="ab-btn">+ Equipo</button>
-                        </div>
-                      </div>
-                      <div style={{padding:'4px 20px 16px'}}>
-                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                          {equipoMembers.map((m,i) => (
-                            <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
-                              <div style={{ width:30, height:30, borderRadius:'50%', background:m.bg, color:m.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>{m.initials}</div>
-                              <div style={{ flex:1 }}>
-                                <div style={{ fontSize:12, fontWeight:600 }}>{m.name}</div>
-                                <div style={{ fontSize:11, color:'var(--text3)' }}>{m.team}</div>
-                              </div>
-                              {m.owner ? <span className="tag tag-blue">Responsable</span>
-                                : <button onClick={() => setEquipoMembers(prev=>prev.filter((_,j)=>j!==i))} style={{ fontSize:11, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }}>✕</button>}
-                            </div>
-                          ))}
-                        </div>
-                        {addingMiembro && (
-                          <div style={{ border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', borderRadius:'var(--r)', padding:12, marginTop:10 }}>
-                            <FieldLbl>Usuario</FieldLbl>
-                            <select className="fsel" style={{ width:'100%', marginBottom:8 }} value={newMiembro} onChange={e => setNewMiembro(e.target.value)}>
-                              <option value="">Seleccionar...</option>
-                              {['GOMEZ Ignacio · Leasing Oficinas MAD','García Marta · Capital Markets MAD','López Carmen · Valoraciones MAD','Martínez Rosa · Retail MAD'].map(u => <option key={u}>{u}</option>)}
-                            </select>
-                            <div style={{ display:'flex', gap:6 }}>
-                              <button className="ab-btn save" onClick={() => {
-                                if(!newMiembro)return
-                                const [nameStr,teamStr]=[newMiembro.split('·')[0].trim(),newMiembro.split('·')[1]?.trim()||'']
-                                const ini=nameStr.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
-                                setEquipoMembers(prev=>[...prev,{name:nameStr,team:teamStr,role:'Colaborador',initials:ini,bg:'#f0fdf4',color:'#166534',owner:false}])
-                                setAddingMiembro(false); setNewMiembro('')
-                              }}>Añadir</button>
-                              <button className="ab-btn" onClick={() => { setAddingMiembro(false); setNewMiembro('') }}>Cancelar</button>
-                            </div>
-                          </div>
-                        )}
-                        <div style={{ fontSize:10, color:'var(--amber)', marginTop:10, fontStyle:'italic' }}>Solo editable por creador o manager</div>
                       </div>
                     </div>
 
