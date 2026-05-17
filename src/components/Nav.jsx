@@ -224,6 +224,14 @@ export default function Nav() {
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 13c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5"/><circle cx="12" cy="5" r="2"/><path d="M14 13c0-1.8-1.3-3-3-3"/></svg>
           Usuarios Savills
         </div>
+        <div className={`nav-item ${isActive('pitch') ? 'active' : ''}`} onClick={() => navigate('pitch')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="9" rx="1.5"/><path d="M6 12v2M10 12v2M5 14h6"/><path d="M5 7l2 2 4-4"/></svg>
+          Pitch
+        </div>
+        <div className={`nav-item ${isActive('nexo') ? 'active' : ''}`} onClick={() => navigate('nexo')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="4" cy="4" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="4" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><path d="M6 4h4M6 12h4M4 6v4M12 6v4"/></svg>
+          NEXO
+        </div>
       </>}
 
       <div className="nav-user">

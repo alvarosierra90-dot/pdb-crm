@@ -181,6 +181,14 @@ export default function Topbar() {
       bc: <><span className="bc-link" onClick={() => navigate('leads')}>Leads</span><Sep /><span className="bc-cur">Ficha lead</span></>,
       right: <><ExportBtn /></>
     },
+    pitch: {
+      bc: <><span className="bc-title">Pitch</span></>,
+      right: <><a href="https://pitch-taupe-sigma.vercel.app/" target="_blank" rel="noopener noreferrer" className="tbtn">Abrir en pestaña nueva</a></>
+    },
+    nexo: {
+      bc: <><span className="bc-title">NEXO</span></>,
+      right: <><a href="https://nexo-omega-nine.vercel.app/" target="_blank" rel="noopener noreferrer" className="tbtn">Abrir en pestaña nueva</a></>
+    },
   }
 
   const cfg = configs[view] || configs.activos
