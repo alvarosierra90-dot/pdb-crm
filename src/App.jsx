@@ -2,6 +2,7 @@ import { NavProvider, useNav } from './context/NavigationContext'
 import { TasksProvider } from './context/TasksContext'
 import Nav from './components/Nav'
 import Topbar from './components/Topbar'
+import TopTabs from './components/TopTabs'
 import ActivosList from './views/ActivosList'
 import FichaActivo from './views/FichaActivo'
 import OfertasList from './views/OfertasList'
@@ -113,18 +114,25 @@ function Router() {
   )
 }
 
-function ConditionalNav() {
+function Shell() {
   const { view } = useNav()
-  if (view === 'mapas') return null
-  return <Nav />
+  if (view === 'mapas') return <Router />
+  return (
+    <div className="app-shell">
+      <TopTabs />
+      <div className="app-below-tabs">
+        <Nav />
+        <Router />
+      </div>
+    </div>
+  )
 }
 
 export default function App() {
   return (
     <TasksProvider>
       <NavProvider>
-        <ConditionalNav />
-        <Router />
+        <Shell />
       </NavProvider>
     </TasksProvider>
   )
