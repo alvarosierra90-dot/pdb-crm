@@ -1010,8 +1010,17 @@ function FichaOfertaMock() {
                                 <div style={{ fontSize:12, fontWeight:600 }}>{m.name}</div>
                                 <div style={{ fontSize:11, color:'var(--text3)' }}>{m.team}</div>
                               </div>
-                              {m.owner ? <span className="tag tag-blue">Responsable</span>
-                                : <button onClick={() => setEquipoMembers(prev=>prev.filter((_,j)=>j!==i))} style={{ fontSize:11, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }}>✕</button>}
+                              {/* Toggle Responsable: click sobre el tag promueve o degrada al miembro.
+                                  Permite varios responsables (no se limita a uno). */}
+                              <span
+                                onClick={() => setEquipoMembers(prev => prev.map((x,j) => j===i ? { ...x, owner: !x.owner } : x))}
+                                className={`tag ${m.owner ? 'tag-blue' : 'tag-gray'}`}
+                                style={{ cursor:'pointer', userSelect:'none' }}
+                                title={m.owner ? 'Click para quitar como Responsable' : 'Click para marcar como Responsable'}
+                              >
+                                {m.owner ? 'Responsable' : 'Hacer responsable'}
+                              </span>
+                              <button onClick={() => setEquipoMembers(prev=>prev.filter((_,j)=>j!==i))} style={{ fontSize:11, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }} title="Quitar del equipo">✕</button>
                             </div>
                           ))}
                         </div>

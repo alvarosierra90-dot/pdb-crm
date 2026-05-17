@@ -4114,6 +4114,22 @@ export default function FichaActivo() {
       })
   }, [params?.ref])
 
+  // ── Pitches sincronizados al activo (desde la app Pitch externa) ─────────
+  const [pitchesActivo, setPitchesActivo] = useState([])
+  useEffect(() => {
+    if (!activo?.id) return
+    supabase
+      .from('documentos')
+      .select('id, nombre, url, fecha, pitch_external_id, autor')
+      .eq('activo_id', activo.id)
+      .eq('categoria', 'Pitch comercial')
+      .order('fecha', { ascending: false })
+      .then(({ data, error }) => {
+        if (error) { console.error('[pitchesActivo]', error); return }
+        setPitchesActivo(data || [])
+      })
+  }, [activo?.id])
+
   // ── Vista 360: carga el histórico comercial del activo ──────────────────
   // Solo se dispara cuando el usuario abre la pestaña Vista 360 y hay un
   // activo cargado. Lanza queries en paralelo para llenar las 6 secciones.
