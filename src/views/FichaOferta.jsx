@@ -972,15 +972,31 @@ function FichaOfertaMock() {
                   <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1.45fr 1fr',gap:12,alignItems:'start',paddingTop:0}}>
                   <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
 
-                    {/* Selector de activo · solo visible mientras no hay activo vinculado
-                        (cuando ya está vinculado se ve y se navega desde Vinculaciones arriba) */}
-                    {!activoSeleccionado && (
-                      <div className="va-card" style={{ overflow:'visible' }}>
-                        <div className="va-card-header">
-                          <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Vincular activo</h3>
-                        </div>
-                        <div style={{ padding:'4px 18px 14px' }}>
-                          <div style={{ position:'relative', maxWidth:340 }}>
+                    {/* ── ACTIVO VINCULADO ── */}
+                    <div className="va-card" style={{ overflow:'visible' }}>
+                      <div className="va-card-header">
+                        <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Activo vinculado</h3>
+                        {activoSeleccionado && <span className="hint">Datos heredados del activo</span>}
+                      </div>
+                      {/* Buscador / chip del activo seleccionado */}
+                      <div style={{ padding:'4px 18px 0' }}>
+                        {activoSeleccionado ? (
+                          <div
+                            onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref })}
+                            title={`Abrir ficha de ${activoSeleccionado.nombre}`}
+                            style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)', marginBottom:8, cursor:'pointer' }}
+                          >
+                            <span></span>
+                            <span style={{ fontWeight:600, color:'var(--accent)', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{activoSeleccionado.nombre}</span>
+                            <span style={{ fontSize:10, fontWeight:700, color:'var(--accent)', padding:'0 2px' }}>↗</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setActivoSeleccionado(null) }}
+                              style={{ fontSize:11, color:'var(--text4)', background:'none', border:'none', cursor:'pointer', padding:'0 2px' }}
+                              title="Quitar"
+                            >✕</button>
+                          </div>
+                        ) : (
+                          <div style={{ position:'relative', maxWidth:340, marginBottom:8 }}>
                             <input className="of-inp" placeholder="🔍 Buscar activo por nombre..." value={activoBuscador}
                               onChange={e => { setActivoBuscador(e.target.value); setShowActivoDropdown(true) }}
                               onFocus={() => setShowActivoDropdown(true)}
@@ -1004,9 +1020,25 @@ function FichaOfertaMock() {
                               </div>
                             )}
                           </div>
-                        </div>
+                        )}
                       </div>
-                    )}
+                      {/* Datos heredados — fila Dirección a ancho completo, resto en 2 col compactas */}
+                      <div style={{ padding:'4px 18px 14px', display:'grid', gridTemplateColumns:'1fr 1fr', columnGap:18, rowGap:4 }}>
+                        {[
+                          { k:'Uso principal',       v: activoSeleccionado?.uso,                   full:false },
+                          { k:'Estado construcción', v: activoSeleccionado?.estado_construccion,   full:false },
+                          { k:'Dirección',           v: activoSeleccionado?.direccion,             full:true  },
+                          { k:'Zona / Subzona',      v: activoSeleccionado?.zona ? `${activoSeleccionado.zona}${activoSeleccionado?.subzona ? ' · ' + activoSeleccionado.subzona : ''}` : null, full:true },
+                        ].map(({k,v,full}) => (
+                          <div key={k} style={{ display:'flex', alignItems:'baseline', gap:8, minWidth:0, borderBottom:'1px solid var(--va-line2)', padding:'5px 0', gridColumn: full ? '1 / -1' : 'auto' }}>
+                            <span style={{ fontSize:11, color:'var(--text3)', fontWeight:500, whiteSpace:'nowrap', flexShrink:0 }}>{k}</span>
+                            <span style={{ fontSize:13, fontWeight:600, color:'var(--text)', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                              {v || <span style={{ color:'var(--text4)', fontWeight:500 }}>—</span>}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
                     {/* ── COMERCIALIZACIÓN + TIPOLOGÍA Y ESTADO ── */}
                     <div className="va-two-col" style={{ overflow:'visible' }}>
