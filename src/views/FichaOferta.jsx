@@ -7,6 +7,7 @@ import { isSupabaseRef } from '../components/FichaPendienteSupabase'
 import FichaOfertaSupabase from './FichaOfertaSupabase'
 import { FileText, Presentation, Link2, Clock } from 'lucide-react'
 import Vinculaciones from '../components/Vinculaciones'
+import { CURRENT_USER } from '../lib/currentUser'
 // IMPORTANTE: Importar el StackingPlan exacto de FichaActivo para garantizar
 // igualdad visual y funcional total entre Activo y Oferta (regla del usuario).
 import { StackingPlan } from './FichaActivo'
@@ -1003,26 +1004,46 @@ function FichaOfertaMock() {
                       </div>
                       <div style={{padding:'4px 20px 16px'}}>
                         <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                          {equipoMembers.map((m,i) => (
-                            <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
-                              <div style={{ width:30, height:30, borderRadius:'50%', background:m.bg, color:m.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>{m.initials}</div>
-                              <div style={{ flex:1 }}>
-                                <div style={{ fontSize:12, fontWeight:600 }}>{m.name}</div>
-                                <div style={{ fontSize:11, color:'var(--text3)' }}>{m.team}</div>
+                          {(() => {
+                            const responsablesActuales = equipoMembers.filter(x => x.owner)
+                            // El usuario puede marcar/desmarcar Responsables solo si:
+                            //  (a) ya es Responsable él mismo en este equipo, o
+                            //  (b) todavía no hay ningún Responsable (caso inicial — alguien tiene que poder asignar al primero)
+                            const yoSoyResponsable = responsablesActuales.some(x => (x.name || '').trim().toLowerCase() === CURRENT_USER.nombre.toLowerCase())
+                            const puedoAsignar = yoSoyResponsable || responsablesActuales.length === 0
+                            return equipoMembers.map((m,i) => (
+                              <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
+                                <div style={{ width:30, height:30, borderRadius:'50%', background:m.bg, color:m.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>{m.initials}</div>
+                                <div style={{ flex:1 }}>
+                                  <div style={{ fontSize:12, fontWeight:600 }}>{m.name}</div>
+                                  <div style={{ fontSize:11, color:'var(--text3)' }}>{m.team}</div>
+                                </div>
+                                {/* Toggle Responsable: solo los Responsables actuales pueden promover/degradar.
+                                    Pueden existir varios Responsables (no hay límite). */}
+                                {puedoAsignar ? (
+                                  <span
+                                    onClick={() => setEquipoMembers(prev => prev.map((x,j) => j===i ? { ...x, owner: !x.owner } : x))}
+                                    className={`tag ${m.owner ? 'tag-blue' : 'tag-gray'}`}
+                                    style={{ cursor:'pointer', userSelect:'none' }}
+                                    title={m.owner ? 'Click para quitar como Responsable' : 'Click para marcar como Responsable'}
+                                  >
+                                    {m.owner ? 'Responsable' : 'Hacer responsable'}
+                                  </span>
+                                ) : (
+                                  m.owner ? (
+                                    <span className="tag tag-blue" style={{ opacity:.85 }}>Responsable</span>
+                                  ) : (
+                                    <span
+                                      className="tag tag-gray"
+                                      style={{ opacity:.5, cursor:'not-allowed' }}
+                                      title="Solo los Responsables del equipo pueden asignar nuevos Responsables"
+                                    >Miembro</span>
+                                  )
+                                )}
+                                <button onClick={() => setEquipoMembers(prev=>prev.filter((_,j)=>j!==i))} style={{ fontSize:11, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }} title="Quitar del equipo">✕</button>
                               </div>
-                              {/* Toggle Responsable: click sobre el tag promueve o degrada al miembro.
-                                  Permite varios responsables (no se limita a uno). */}
-                              <span
-                                onClick={() => setEquipoMembers(prev => prev.map((x,j) => j===i ? { ...x, owner: !x.owner } : x))}
-                                className={`tag ${m.owner ? 'tag-blue' : 'tag-gray'}`}
-                                style={{ cursor:'pointer', userSelect:'none' }}
-                                title={m.owner ? 'Click para quitar como Responsable' : 'Click para marcar como Responsable'}
-                              >
-                                {m.owner ? 'Responsable' : 'Hacer responsable'}
-                              </span>
-                              <button onClick={() => setEquipoMembers(prev=>prev.filter((_,j)=>j!==i))} style={{ fontSize:11, color:'var(--red)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', fontFamily:'inherit' }} title="Quitar del equipo">✕</button>
-                            </div>
-                          ))}
+                            ))
+                          })()}
                         </div>
                         {addingMiembro && (
                           <div style={{ border:'1px solid var(--accent-bd)', background:'var(--accent-lt)', borderRadius:'var(--r)', padding:12, marginTop:10 }}>
