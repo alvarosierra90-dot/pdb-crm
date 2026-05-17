@@ -1404,49 +1404,6 @@ function FichaOfertaMock() {
                       </div>
                     </div>
 
-                    {/* ── VINCULACIÓN · Mandato Savills (solo si aplica) ── */}
-                    {tipoComercializacion === 'Mandato Savills' && (
-                      <div className="va-card">
-                        <div className="va-card-header">
-                          <h3><span className="ico" style={{color:'var(--accent)'}}></span> Vinculación</h3>
-                          <span className="hint">Mandato Savills</span>
-                        </div>
-                        <div style={{ padding:'8px 18px 14px' }}>
-                          {mandatoAsociado ? (
-                            <div style={{ padding:'8px 12px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
-                              <div style={{ fontSize:12, fontWeight:600, color:'var(--accent)' }}>{mandatoAsociado.titulo || mandatoAsociado.ref}</div>
-                              <div style={{ fontSize:10, color:'var(--text3)', marginTop:3, fontFamily:'var(--mono)' }}>Ref: {mandatoAsociado.ref || '—'}</div>
-                            </div>
-                          ) : (
-                            <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin mandato seleccionado — añádelo en Comercialización.</div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ── PROPIETARIOS ── */}
-                    <div className="va-card">
-                      <div className="va-card-header">
-                        <h3><span className="ico"></span> Propietarios</h3>
-                        <span className="hint">Heredado del activo · Solo lectura</span>
-                      </div>
-                      <div style={{padding:'4px 20px 16px'}}>
-                        {activoSeleccionado?.propietario ? (
-                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
-                            <div>
-                              <div style={{ fontSize:13, fontWeight:600, color:'var(--text1)', marginBottom:3 }}>{activoSeleccionado.propietario}</div>
-                              <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Para contacto detallado, consulta la ficha del activo.</div>
-                            </div>
-                            <span className="tag tag-green">ↈ Sincronizado</span>
-                          </div>
-                        ) : (
-                          <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>
-                            {activoSeleccionado ? 'Sin propietario registrado en el activo.' : 'Selecciona un activo para ver el propietario.'}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
                     {/* ── COMENTARIOS INTERNOS ── */}
                     <div className="va-card">
                       <div className="va-card-header">
