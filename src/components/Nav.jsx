@@ -24,12 +24,12 @@ const SECTION_OF_VIEW = {
   leads:'cap', 'ficha-lead':'cap',
   oportunidades:'cap', 'ficha-oportunidad':'cap',
   propuestas:'cap', 'ficha-propuesta':'cap',
-  mandatos:'cap', 'ficha-mandato':'cap',
   // act2
   activos:'act2', 'ficha-activo':'act2',
   arrendatarios:'act2', 'ficha-arrendatario':'act2',
   propietarios:'act2', 'ficha-propietario':'act2',
   // com
+  mandatos:'com', 'ficha-mandato':'com',
   ofertas:'com', 'ficha-oferta':'com',
   demandas:'com', 'ficha-demanda':'com',
   mapas:'com',
@@ -170,10 +170,6 @@ export default function Nav() {
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4M5 8h6M5 11h4"/></svg>
           Propuestas / Proyectos
         </div>
-        <div className={`nav-item ${isActive('mandatos','ficha-mandato') ? 'active' : ''}`} onClick={() => navigate('mandatos')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4M6 9l1.5 1.5L11 7"/></svg>
-          Mandatos
-        </div>
       </>}
 
       {/* ═══════════════════════════════════════════════════════════════
@@ -207,6 +203,10 @@ export default function Nav() {
         Comercialización <ChevronDown collapsed={collapsed.com} />
       </div>
       {open('com') && <>
+        <div className={`nav-item ${isActive('mandatos','ficha-mandato') ? 'active' : ''}`} onClick={() => navigate('mandatos')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4M6 9l1.5 1.5L11 7"/></svg>
+          Mandatos
+        </div>
         <div className={`nav-item ${isActive('ofertas','ficha-oferta') ? 'active' : ''}`} onClick={() => navigate('ofertas')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"/><path d="M2 4l6 5 6-5"/></svg>
           Ofertas
