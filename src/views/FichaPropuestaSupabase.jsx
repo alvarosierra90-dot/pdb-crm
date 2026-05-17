@@ -5,11 +5,12 @@ import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
 import MarcarPropuestaGanadaModal from '../components/MarcarPropuestaGanadaModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
+import Vinculaciones from '../components/Vinculaciones'
 
-// Pestañas (incluye Confidencialidad universal)
+// Pestañas. "Equipos y participantes" eliminada: ahora vive como sección dentro
+// de "Datos del proyecto", justo bajo Vinculaciones (mismo patrón que Oferta).
 const PRY_TABS = [
   ['datos',        'Datos del proyecto'],
-  ['equipos',      'Equipos y participantes'],
   ['trazabilidad', 'Trazabilidad'],
   ['docs',         'Documentación'],
   ['resumen',      'Resumen'],
@@ -308,40 +309,43 @@ export default function FichaPropuestaSupabase({ refOrId }) {
           {/* TAB: Datos del proyecto */}
           {tab === 'datos' && (
             <div className="tab-content active"><div className="info-pad">
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
-                <div>
-                  <div className="va-meta-card" style={{ marginBottom:14 }}>
-                    <div className="va-meta-head"><span className="dot"/>Oportunidad vinculada</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div className="ir">
-                        <span className="ir-k" style={{ display:'flex', alignItems:'center', gap:6 }}>
-                          <span style={{ width:14, height:14, borderRadius:3, background:'#B08D57', color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>D</span>
-                          Oportunidad
-                        </span>
-                        <span className="ir-v" style={{ fontSize:11 }}>
-                          {oportunidad
-                            ? <span style={{ fontWeight:600 }}>{oportunidad.nombre} <span className="tag tag-blue" style={{ marginLeft:6, fontSize:9 }}>{oportunidad.tipo}</span></span>
-                            : <span style={{ color:'var(--text4)' }}>—</span>}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+              {/* ── VINCULACIONES (canónico, siempre arriba) ── */}
+              <Vinculaciones
+                cuentaLabel="Cliente (Cuenta)"
+                cuenta={cuenta ? {
+                  id:     cuenta.dynamics_id || cuenta.id,
+                  nombre: cuenta.nombre,
+                  sub:    cuenta.sector || cuenta.tipo,
+                } : null}
+                oportunidad={oportunidad ? {
+                  id:     oportunidad.dynamics_id || oportunidad.id,
+                  nombre: oportunidad.nombre,
+                  sub:    oportunidad.tipo,
+                } : null}
+              />
 
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-green"><span className="dot"/>Cuenta · heredada de Dynamics</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div style={{ fontSize:13, fontWeight:600, color:'var(--accent)', marginBottom:6 }}>{cuenta?.nombre || '—'}</div>
-                      <div className="ir"><span className="ir-k">Tipo</span><span className="ir-v">{cuenta?.tipo || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Sector</span><span className="ir-v">{cuenta?.sector || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Teléfono</span><span className="ir-v">{cuenta?.telefono || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v" style={{ fontSize:10 }}>{cuenta?.direccion || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">CP / Ciudad</span><span className="ir-v">{[cuenta?.codigo_postal, cuenta?.ciudad].filter(Boolean).join(' · ') || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">País</span><span className="ir-v">🌍 {cuenta?.pais || 'España'}</span></div>
-                      <div className="ir"><span className="ir-k">Web</span><span className="ir-v">{cuenta?.web || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                    </div>
-                  </div>
-                </div>
+              {/* ── EQUIPO DE TRABAJO (justo bajo Vinculaciones, antes era pestaña aparte) ── */}
+              {(() => {
+                const equipo = Array.isArray(propuesta?.equipo_trabajo) ? propuesta.equipo_trabajo : []
+                const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
+                const canManage = userIsPrincipal || equipo.length === 0
+                const handlers = makeEquipoHandlers({
+                  supabase, table:'propuestas', idValue:propuesta?.id, equipo,
+                  onAfter: () => load(),
+                  onError: (msg) => setSaveError(msg),
+                })
+                return (
+                  <EquipoTrabajoCard
+                    equipo={equipo}
+                    canManage={canManage}
+                    onAdd={handlers.addMiembro}
+                    onRemove={handlers.removeMiembro}
+                    onUpdateRol={handlers.updateMiembroRol}
+                  />
+                )
+              })()}
 
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
                 <div>
                   <div className="va-meta-card" style={{ marginBottom:14 }}>
                     <div className="va-meta-head accent-purple"><span className="dot"/>Datos del proyecto</div>
