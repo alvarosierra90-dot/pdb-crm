@@ -3,14 +3,18 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 
-// Patrón de ref nuevo (los creados desde transformación de Lead).
-// Si el ref no encaja con esto, se asume mock antiguo y se devuelve false.
-// IMPORTANTE: mantenemos el regex estricto a propósito para que las ofertas
-// con ref corto OFR-XXXXXXX sigan abriendo la ficha legacy (FichaOferta.jsx),
-// que es donde está todo el contenido completo de las pestañas. La version
-// FichaOfertaSupabase tiene la mayoría como stubs.
+// Decide si la ref abre la ficha Supabase (rediseñada) o la legacy.
+// - DEM y OFE: solo el formato con año (DEM-2026-0004). El resto sigue
+//   abriendo la ficha legacy de Oferta que tiene TODAS las pestañas con
+//   contenido (Stacking, Espacios, Características, Documentos...).
+// - PRY (propuesta): cualquier formato (PRY-2026-0001, PRY-2503,
+//   PRY-0000001, etc.). La ficha Supabase de Propuesta es la unica
+//   completa y rediseñada — la legacy no tiene tabs equivalentes.
 export function isSupabaseRef(ref) {
-  return /^(DEM|OFE|PRY)-\d{4}-\d{4}$/.test(ref || '')
+  const r = ref || ''
+  if (/^(DEM|OFE)-\d{4}-\d{4}$/.test(r)) return true
+  if (/^PRY-\d+(-\d+)?$/.test(r)) return true
+  return false
 }
 
 const ENTITIES = {
