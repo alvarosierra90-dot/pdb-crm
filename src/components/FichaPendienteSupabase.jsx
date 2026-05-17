@@ -3,10 +3,15 @@ import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 
-// Patrón de ref nuevo (los creados desde transformación de Lead).
-// Si el ref no encaja con esto, se asume mock antiguo y se devuelve false.
+// Patrones de ref reales (Supabase). Cualquier ref que encaje aquí
+// debe abrir la versión Supabase de la ficha (FichaOfertaSupabase, etc.)
+// para evitar caer en las fichas legacy que tienen layouts antiguos.
+// Cubre:
+//  - Formato con año:    DEM-2026-0004, OFE-2026-0001, PRY-2026-0001, MAN-2026-0001
+//  - Formato corto nuevo: OFR-0000001, ARR-0000001, PRO-0000001, NEG-0000001
+//  - Formato 4-7 dígitos sin año: LEAD-1234, NEG-0044
 export function isSupabaseRef(ref) {
-  return /^(DEM|OFE|PRY)-\d{4}-\d{4}$/.test(ref || '')
+  return /^(DEM|OFE|OFR|PRY|MAN|LEAD|NEG|ARR|PRO)-\d+(-\d+)?$/i.test(ref || '')
 }
 
 const ENTITIES = {
