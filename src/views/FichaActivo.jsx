@@ -3125,7 +3125,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
               <InlineField label="Año rehabilitación" value={info.anno_rehabilitacion||'—'} onSave={()=>setDirty(true)}>
                 <input type="number" value={info.anno_rehabilitacion} onChange={e=>setI('anno_rehabilitacion',e.target.value)} style={inp} placeholder="—"/>
               </InlineField>
-              <InlineField label="Asset Manager" value={info.asset_manager||'—'} onSave={()=>setDirty(true)}>
+              <InlineField label="Property Manager" value={info.asset_manager||'—'} onSave={()=>setDirty(true)}>
                 <AssetManagerSearch value={info.asset_manager} onChange={v=>setI('asset_manager',v)}/>
               </InlineField>
               <div className="ir">
