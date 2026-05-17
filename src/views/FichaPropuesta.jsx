@@ -4,6 +4,7 @@ import AsignarTareaModal from '../components/AsignarTareaModal'
 import { isSupabaseRef } from '../components/FichaPendienteSupabase'
 import FichaPropuestaSupabase from './FichaPropuestaSupabase'
 import { supabase } from '../lib/supabase'
+import Vinculaciones from '../components/Vinculaciones'
 
 const TABS = ['datos','vista360','docs','resumen']
 const TAB_LABELS = ['Datos del proyecto','Vista 360','Documentación','Resumen']
@@ -11,7 +12,7 @@ const TAB_LABELS = ['Datos del proyecto','Vista 360','Documentación','Resumen']
 const TIPOS = ['Pitch','Valoración','Propuesta de servicios','Mandato comercial','Consultoría','Urbanismo','Proyecto de arquitectura / workplace']
 const ESTADOS = ['Activo','Standby','Cancelado','Adjudicado']
 const LINEAS = ['Oficinas','Capital Markets','Retail','Industrial/Logística','Residencial','Hoteles','Alternativo']
-const ROLES = ['Responsable','Originador','Soporte','Coordinador','Analista']
+const ROLES = ['Responsable','Originador','Soporte','Coordinador','Analista','Colaborador']
 
 const EQUIPOS_DISPONIBLES = [
   'Leasing Oficinas Madrid',
@@ -292,6 +293,93 @@ function FichaPropuestaMock() {
             <div className="tab-content active">
               <div className="info-pad">
 
+                {/* ─── VINCULACIONES (canónico, siempre arriba) ─── */}
+                <Vinculaciones
+                  cuentaLabel="Cliente (Cuenta)"
+                  cuenta={form.empresa ? { id: null, nombre: form.empresa } : null}
+                  activo={activos[0] ? { ref: activos[0].ref, nombre: activos[0].nombre, direccion: activos[0].direccion, sub: [activos[0].zona, activos[0].ciudad].filter(Boolean).join(' · ') || activos[0].uso } : null}
+                  oportunidad={form.oportunidad ? { id: form.oportunidad, nombre: form.oportunidad_nombre || form.oportunidad, sub: 'Pitch' } : null}
+                  mandato={form.convertido_mandato && form.mandato_ref ? { id: form.mandato_ref, ref: form.mandato_ref, titulo: form.mandato_ref } : null}
+                />
+
+                {/* ─── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones, idéntica posición que en Oferta) ─── */}
+                {(() => {
+                  const equipoInterno = equipos.filter(m => m.rol !== 'Colaborador')
+                  const colaboradores = equipos.filter(m => m.rol === 'Colaborador')
+                  const renderList = (list, emptyHint, accent) => list.length === 0 ? (
+                    <div style={{ fontSize:12, color:'var(--text4)', fontStyle:'italic', padding:'10px 4px' }}>{emptyHint}</div>
+                  ) : (
+                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                      {list.map((eq) => {
+                        const i = equipos.indexOf(eq)
+                        return (
+                          <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', borderLeft:`3px solid ${accent}` }}>
+                            <div style={{ width:28, height:28, borderRadius:'50%', background:accent, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>
+                              {(eq.usuario || '?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
+                            </div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontSize:12, fontWeight:600 }}>{eq.usuario}</div>
+                              <div style={{ fontSize:10, color:'var(--text3)' }}>{eq.equipo}</div>
+                            </div>
+                            <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:9, background:`${accent}15`, color:accent, border:`1px solid ${accent}30`, textTransform:'uppercase', letterSpacing:'.04em' }}>{eq.rol}</span>
+                            <button onClick={()=>removeEquipo(i)} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                  return (
+                    <div className="va-two-col" style={{ overflow:'visible', marginBottom:14 }}>
+                      <div className="va-card" style={{ marginBottom:0 }}>
+                        <div className="va-card-header">
+                          <h3><span className="ico"></span> Equipo de trabajo</h3>
+                          <button className="ab-btn" style={{fontSize:10,padding:'3px 10px'}} onClick={()=>setShowAddEquipo(v=>!v)}>+ Añadir</button>
+                        </div>
+                        <div style={{padding:'4px 20px 16px'}}>
+                          {showAddEquipo && (
+                            <div style={{marginBottom:10, padding:10, border:'1px solid var(--border)', borderRadius:6, background:'var(--surface-2)', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, alignItems:'end'}}>
+                              <div>
+                                <div className="rp-lbl">Equipo</div>
+                                <select className="fsel" value={newEq.equipo} onChange={e=>setNewEq(p=>({...p,equipo:e.target.value,usuario:''}))} style={{width:'100%'}}>
+                                  <option value="">Seleccionar...</option>
+                                  {EQUIPOS_DISPONIBLES.filter(eq=>!equipos.find(e=>e.equipo===eq)).map(eq=><option key={eq}>{eq}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <div className="rp-lbl">Usuario</div>
+                                <select className="fsel" value={newEq.usuario} onChange={e=>setNewEq(p=>({...p,usuario:e.target.value}))} disabled={!newEq.equipo} style={{width:'100%'}}>
+                                  <option value="">Seleccionar...</option>
+                                  {(USUARIOS_POR_EQUIPO[newEq.equipo]||[]).map(u=><option key={u}>{u}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <div className="rp-lbl">Rol</div>
+                                <select className="fsel" value={newEq.rol} onChange={e=>setNewEq(p=>({...p,rol:e.target.value}))} style={{width:'100%'}}>
+                                  {ROLES.map(r=><option key={r}>{r}</option>)}
+                                </select>
+                              </div>
+                              <div style={{gridColumn:'1 / -1', display:'flex', gap:6, justifyContent:'flex-end'}}>
+                                <button className="ab-btn save" onClick={addEquipo} disabled={!newEq.equipo||!newEq.usuario}>Añadir</button>
+                                <button className="ab-btn" onClick={()=>setShowAddEquipo(false)}>Cancelar</button>
+                              </div>
+                            </div>
+                          )}
+                          {renderList(equipoInterno, 'Sin equipo asignado todavía.', '#15803d')}
+                        </div>
+                      </div>
+                      <div className="va-card" style={{ marginBottom:0 }}>
+                        <div className="va-card-header">
+                          <h3><span className="ico">◈</span> Colaboradores</h3>
+                          <span className="hint">Rol Colaborador</span>
+                        </div>
+                        <div style={{padding:'4px 20px 16px'}}>
+                          {renderList(colaboradores, 'Sin colaboradores externos vinculados.', '#6b21a8')}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+
                 {/* ─── FILA 1: Identificación | Datos económicos ─── */}
                 <div className="va-two-col">
                   <div className="va-card" style={{ marginBottom:0 }}>
@@ -337,7 +425,10 @@ function FichaPropuestaMock() {
                   </div>
                 </div>
 
-                {/* ─── FILA 2: Vinculaciones | Equipos y participantes ─── */}
+                {/* FILA 2 antigua deshabilitada · contenido movido arriba a Vinculaciones canónica + Equipo de trabajo + Colaboradores.
+                    Se envuelve en {false && ...} para no perder funcionalidad de Oportunidad/Activos/Equipos legacy
+                    en caso de querer recuperarla; React no renderiza nada. */}
+                {false && (<>
                 <div className="va-two-col" style={{ overflow:'visible' }}>
                   <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
                     <div className="va-card-header">
@@ -578,6 +669,7 @@ function FichaPropuestaMock() {
                     </div>
                   </div>
                 </div>
+                </>)}
 
                 {/* ─── FILA 3: Descripción y notas (full width) ─── */}
                 <div className="va-card">
