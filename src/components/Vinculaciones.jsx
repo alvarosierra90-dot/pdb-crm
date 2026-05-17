@@ -7,18 +7,20 @@ import { useNav } from '../context/NavigationContext'
 // no se desplace entre módulos y el usuario siempre encuentre la info en el mismo sitio).
 //
 // Props (todos opcionales, pasa los que tengas):
-//   cuenta:      { id, nombre }                  → navega a ficha-cuenta? (o muestra chip)
+//   cuenta:      { id, nombre }                  → navega a ficha-cuenta
+//   cuentaLabel: string                          → override del label "Cuenta" para reflejar el rol
+//                                                  (Oferta: "Propietario (Cuenta)", Demanda: "Cliente (Cuenta)", etc.)
 //   activo:      { ref, nombre, direccion }      → navega a ficha-activo
 //   oportunidad: { id, nombre }                  → navega a ficha-oportunidad
 //   instruccion: { id, nombre, dynamics_id }     → muestra chip (read-only, vive en Dynamics)
 //   mandato:     { id, ref, titulo }             → navega a ficha-mandato
 //   propuesta:   { id, ref, nombre }             → navega a ficha-propuesta (opcional, algunas fichas la incluyen)
-export default function Vinculaciones({ cuenta, activo, oportunidad, instruccion, mandato, propuesta }) {
+export default function Vinculaciones({ cuenta, cuentaLabel, activo, oportunidad, instruccion, mandato, propuesta }) {
   const { navigate } = useNav()
 
   const items = [
     {
-      label: 'Cuenta',
+      label: cuentaLabel || 'Cuenta',
       value: cuenta?.nombre,
       onClick: cuenta?.id ? () => navigate('cuentas', { id: cuenta.id }) : null,
       dyn: true,

@@ -329,6 +329,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
               {/* ── VINCULACIONES (bloque canónico — siempre en este orden y posición) ── */}
               <Vinculaciones
                 cuenta={propietario ? { id: propietario.id || propietario.dynamics_id, nombre: propietario.nombre } : null}
+                cuentaLabel="Propietario (Cuenta)"
                 activo={activo ? { ref: activo.ref, nombre: activo.nombre, direccion: activo.direccion } : null}
                 oportunidad={oportunidad ? { id: oportunidad.id || oportunidad.dynamics_id, nombre: oportunidad.nombre } : null}
                 instruccion={mandatoVinculado?.dynamics_instruction_id ? { id: mandatoVinculado.dynamics_instruction_id, dynamics_id: mandatoVinculado.dynamics_instruction_id } : null}
@@ -428,18 +429,8 @@ export default function FichaOfertaSupabase({ refOrId }) {
                   </div>
                 </div>
 
-                {/* ─ COL 3 · DETALLES DEL PROPIETARIO + COMENTARIOS ─ */}
-                <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-                  <div className="va-meta-card va-card-info-cuenta">
-                    <div className="va-meta-head accent-green"><span className="dot"/>Detalles del propietario</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div className="ir"><span className="ir-k">Tipo</span><span className="ir-v">{propietario?.tipo || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Sector</span><span className="ir-v">{propietario?.sector || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Teléfono</span><span className="ir-v">{propietario?.telefono || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v" style={{ fontSize:11 }}>{propietario?.direccion || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Web</span><span className="ir-v">{propietario?.web || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                    </div>
-                  </div>
+                {/* ─ COL 3 · COMENTARIOS INTERNOS ─ */}
+                <div>
                   <div className="va-meta-card">
                     <div className="va-meta-head accent-red"><span className="dot"/>Comentarios internos</div>
                     <div style={{ padding:'10px 14px' }}>
