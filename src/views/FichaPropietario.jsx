@@ -343,8 +343,16 @@ export default function FichaPropietario() {
       setSaving(false)
       if (error) { setSaveErr(error.message); return }
     } else {
-      // INSERT · capturamos el uuid real generado por la BD
-      const { data, error } = await supabase.from('propietarios').insert(row).select('id').single()
+      // INSERT · generamos ref corto cliente-side (PRO-XXXXXXX)
+      // La BD tiene un DEFAULT por secuencia como fallback (migración 032),
+      // pero generarlo aquí permite mostrarlo y enlazar al instante.
+      const { nextRef } = await import('../lib/nextRef')
+      const ref = await nextRef('propietarios', 'PRO')
+      const { data, error } = await supabase
+        .from('propietarios')
+        .insert({ ...row, ref })
+        .select('id, ref')
+        .single()
       setSaving(false)
       if (error) { setSaveErr(error.message); return }
       if (data?.id) setDbId(data.id)

@@ -115,7 +115,8 @@ export default function PropietariosList() {
       setDbRows(list.map(p => {
         const ac = (p.activo_ref && activosById[p.activo_ref]) || null
         return {
-          id:            p.id,
+          id:            p.ref || p.id,
+          _dbId:         p.id,
           estado:        p.estado || 'Activo',
           fechaBaja:     p.fecha_desactivacion || null,
           motivoBaja:    p.motivo_desactivacion || null,
@@ -198,12 +199,12 @@ export default function PropietariosList() {
     responsable:   <td key="responsable" style={{fontSize:11}}>{p.responsable}</td>,
     ultima_act:    <td key="ultima_act" style={{fontSize:11,color:'var(--text3)'}}>{p.ultima_act}</td>,
     _act:          <td key="_act"><div className="ra-cell" style={{ display:'flex', gap:4 }}>
-      <button className="ra p" onClick={e=>{e.stopPropagation();navigate('ficha-propietario',{ id: p.id })}}>Ver</button>
+      <button className="ra p" onClick={e=>{e.stopPropagation();navigate('ficha-propietario',{ id: p._dbId || p.id })}}>Ver</button>
       {p._real && p.estado === 'Activo' && (
-        <button className="ra" onClick={e=>{e.stopPropagation(); setDesactivarTarget({ id:p.id, nombre:p.propietario, modo:'desactivar' }) }} style={{ color:'var(--amber)' }}>Desactivar</button>
+        <button className="ra" onClick={e=>{e.stopPropagation(); setDesactivarTarget({ id:p._dbId || p.id, nombre:p.propietario, modo:'desactivar' }) }} style={{ color:'var(--amber)' }}>Desactivar</button>
       )}
       {p._real && p.estado !== 'Activo' && (
-        <button className="ra" onClick={e=>{e.stopPropagation(); setDesactivarTarget({ id:p.id, nombre:p.propietario, modo:'reactivar' }) }} style={{ color:'var(--green)' }}>Reactivar</button>
+        <button className="ra" onClick={e=>{e.stopPropagation(); setDesactivarTarget({ id:p._dbId || p.id, nombre:p.propietario, modo:'reactivar' }) }} style={{ color:'var(--green)' }}>Reactivar</button>
       )}
     </div></td>,
   })
