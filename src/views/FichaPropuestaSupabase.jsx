@@ -198,6 +198,23 @@ export default function FichaPropuestaSupabase({ refOrId }) {
         <button className="ab-btn" onClick={restablecer} disabled={saving}>↺ Restablecer</button>
         <button className="ab-btn" onClick={() => navigate('propuestas')}>← Volver</button>
         <div className="ab-sep"/>
+        <button
+          className="ab-btn"
+          onClick={() => {
+            const activosRefs = Array.isArray(propuesta.activos) ? propuesta.activos.map(a => a?.ref).filter(Boolean) : []
+            navigate('pitch', {
+              propuesta_id:  propuesta.id,
+              propuesta_ref: propuesta.ref,
+              cuenta_id:     propuesta.dynamics_account_id,
+              oportunidad_id:propuesta.dynamics_opportunity_id,
+              activo_ref:    activosRefs[0],
+              activo_refs:   activosRefs,
+            })
+          }}
+          title="Generar un pitch con esta propuesta como contexto (activos, cuenta, oportunidad)"
+        >
+          Crear pitch
+        </button>
         {(() => {
           const yaCerrada = ['ganada','perdida','cancelada'].includes(propuesta.estado)
           const puede     = !yaCerrada && !!propuesta.dynamics_opportunity_id && !!propuesta.dynamics_account_id

@@ -287,6 +287,24 @@ export default function MarcarPropuestaGanadaModal({ propuesta, oportunidad, cue
             <div style={footer}>
               <button className="ab-btn" onClick={onClose} disabled={step === 'submitting'}>Cancelar</button>
               <button
+                className="ab-btn"
+                onClick={() => {
+                  const activosRefs = Array.isArray(propuesta.activos) ? propuesta.activos.map(a => a?.ref).filter(Boolean) : []
+                  const url = new URL('https://pitch-taupe-sigma.vercel.app/')
+                  url.searchParams.set('propuesta_id',  propuesta.id || '')
+                  url.searchParams.set('propuesta_ref', propuesta.ref || '')
+                  if (propuesta.dynamics_account_id)     url.searchParams.set('cuenta_id', propuesta.dynamics_account_id)
+                  if (propuesta.dynamics_opportunity_id) url.searchParams.set('oportunidad_id', propuesta.dynamics_opportunity_id)
+                  if (activosRefs[0]) url.searchParams.set('activo_ref', activosRefs[0])
+                  if (activosRefs.length) url.searchParams.set('activo_refs', activosRefs.join(','))
+                  window.open(url.toString(), '_blank', 'noopener,noreferrer')
+                }}
+                disabled={step === 'submitting'}
+                title="Abrir Pitch en pestaña nueva con el contexto de esta propuesta (mantiene este modal abierto)"
+              >
+                Crear pitch ↗
+              </button>
+              <button
                 className="ab-btn save"
                 onClick={ejecutar}
                 disabled={!valid || step === 'submitting'}
