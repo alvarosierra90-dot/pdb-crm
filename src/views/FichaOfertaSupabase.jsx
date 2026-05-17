@@ -8,11 +8,10 @@ import { Inbox, Building2, MapPin, Wallet, FileText, Globe, Presentation, Clock 
 import Vinculaciones from '../components/Vinculaciones'
 
 // Pestañas de la ficha de oferta. "Crear ficha" eliminada (botones PPT/PDF
-// se exponen en el header). Equipo de trabajo se mantiene por ahora como
-// pestaña; en una iteración posterior se integrará en Información general.
+// se exponen en el header). "Equipo de trabajo" se quitó como pestaña porque
+// ahora vive como sección dentro de "Información oferta".
 const OF_TABS = [
   ['of-info',        'Información oferta'],
-  ['of-equipo',      'Equipo de trabajo'],
   ['of-stacking',    'Stacking plan'],
   ['of-espacios',    'Espacios comerciales'],
   ['of-condiciones', 'Condiciones'],
