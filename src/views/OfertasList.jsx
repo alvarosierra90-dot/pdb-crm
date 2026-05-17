@@ -94,7 +94,8 @@ export default function OfertasList() {
 
   const handleNuevaOferta = async () => {
     setCreando(true)
-    const ref = 'OF-' + Date.now()
+    const { nextRef } = await import('../lib/nextRef')
+    const ref = await nextRef('ofertas', 'OFR')
     const { data, error } = await supabase.from('ofertas').insert({
       ref,
       tipo_comercializacion: 'Mandato Savills',

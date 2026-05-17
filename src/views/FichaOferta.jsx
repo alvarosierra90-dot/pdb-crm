@@ -822,7 +822,8 @@ function FichaOfertaMock() {
     }
 
     // 3. Crear arrendatario
-    const arrRef = 'ARR-' + Date.now()
+    const { nextRef } = await import('../lib/nextRef')
+    const arrRef = await nextRef('arrendatarios', 'ARR')
     const { data: newArr } = await supabase.from('arrendatarios').insert({
       ref: arrRef,
       nombre: tenantName,

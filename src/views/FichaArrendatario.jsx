@@ -492,9 +492,10 @@ export default function FichaArrendatario() {
       // Resolución del activo final: fromActivoRef (navegado desde Oferta/Activo) o
       // linkedActivoRef (vinculado con la lupa desde el formulario)
       const activoRefFinal = params?.fromActivoRef || linkedActivoRef || null
+      const { nextRef } = await import('../lib/nextRef')
       const extRow = {
         ...baseRow,
-        ref:                  'ARR-' + Date.now(),
+        ref:                  await nextRef('arrendatarios', 'ARR'),
         activo_ref:           activoRefFinal,
         tenant:               tenantName,
         tenant_desconocido:   form.tenant_desconocido,
