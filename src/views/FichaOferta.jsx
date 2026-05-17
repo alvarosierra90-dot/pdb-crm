@@ -304,7 +304,7 @@ function FichaOfertaMock() {
   const [supAprox, setSupAprox] = useState(false)
   const [plantaTipo, setPlantaTipo] = useState(2790)
   const [ofertasDesglose, setOfertasDesglose] = useState([
-    { id:1, nombre:'Oferta 1', divisible:true, supMin:null, cargasM2:3.01, ibiM2:0, fechaDisp:'' },
+    { id:1, nombre:'Disp - ', divisible:true, supMin:null, cargasM2:3.01, ibiM2:0, fechaDisp:'' },
   ])
   const [nextOfertaId, setNextOfertaId] = useState(2)
   const [editNombreId, setEditNombreId] = useState(null)
@@ -373,13 +373,33 @@ function FichaOfertaMock() {
     setImagenesOferta(prev => prev.map(i => i.id === id ? { ...i, included: !i.included } : i))
   }
 
+  // Nombre por defecto del desglose: "Disp - {dirección del activo}" si hay activo vinculado
+  // Editable después por el usuario con el lápiz.
+  function defaultOfertaName() {
+    const dir = activoSeleccionado?.direccion || activoSeleccionado?.nombre || ''
+    return dir ? `Disp - ${dir}` : 'Disp - '
+  }
+
   function addOferta() {
     if (pendingNewIds.length > 0) return  // hay una fila pendiente — bloquear hasta que se guarde
     const id = nextOfertaId
-    setOfertasDesglose(prev => [...prev, { id, nombre:`Oferta ${id}`, divisible:divisibleGlobal, supMin:null, cargasM2:parseFloat(gastosComunes)||0, ibiM2:parseFloat(ibi)||0, fechaDisp:fechaDispGlobal||'' }])
+    setOfertasDesglose(prev => [...prev, { id, nombre: defaultOfertaName(), divisible:divisibleGlobal, supMin:null, cargasM2:parseFloat(gastosComunes)||0, ibiM2:parseFloat(ibi)||0, fechaDisp:fechaDispGlobal||'' }])
     setNextOfertaId(id + 1)
     setPendingNewIds(prev => [...prev, id])
   }
+
+  // Cuando se vincula/cambia el activo, refresca el nombre por defecto de las
+  // filas que todavía tienen "Disp - " (sin dirección) o el viejo "Oferta N".
+  // Los nombres editados por el usuario (cualquier cosa distinta) NO se tocan.
+  useEffect(() => {
+    if (!activoSeleccionado) return
+    const newDefault = defaultOfertaName()
+    setOfertasDesglose(prev => prev.map(o => {
+      const isUntouched = o.nombre === 'Disp - ' || o.nombre === 'Disp -' || /^Oferta \d+$/.test(o.nombre)
+      return isUntouched ? { ...o, nombre: newDefault } : o
+    }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activoSeleccionado?.ref])
 
   async function guardarDesglose() {
     const ofertaId = oferta?.id
