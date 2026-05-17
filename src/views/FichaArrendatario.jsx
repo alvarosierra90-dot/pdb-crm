@@ -309,12 +309,24 @@ export default function FichaArrendatario() {
   useEffect(() => {
     if (!params?.arrRef) return
     supabase.from('arrendatarios').select('*').eq('ref', params.arrRef).single()
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         if (!data) return
         setLoadedRef(data.ref)
+        // Cargar la dirección del activo vinculado (no mostrar el ref code al usuario)
+        let activoDireccion = ''
+        if (data.activo_ref) {
+          const { data: ac } = await supabase
+            .from('activos').select('ref, nombre, direccion, propietario, zona, subzona, area, uso')
+            .eq('ref', data.activo_ref).maybeSingle()
+          if (ac) {
+            activoDireccion = ac.direccion || ac.nombre || data.activo_ref
+            setLinkedActivoRef(ac.ref)
+          }
+        }
         setForm(prev => ({
           ...prev,
-          activo:           data.activo_ref || '',
+          activo:           activoDireccion || data.activo_ref || '',
+          activo_direccion: activoDireccion,
           tenant:           data.tenant || data.nombre || '',
           tenant_desconocido: data.tenant_desconocido || false,
           anyo_firma:       data.anyo_firma ? String(data.anyo_firma) : '',
@@ -426,12 +438,22 @@ export default function FichaArrendatario() {
   // ── Load from DB when opened by tenant name click ─────────────
   useEffect(() => {
     if (!params?.tenantName || params?.fromOfertaRef) return
-    supabase.from('arrendatarios').select('*').eq('nombre', params.tenantName).limit(1).then(({ data }) => {
+    supabase.from('arrendatarios').select('*').eq('nombre', params.tenantName).limit(1).then(async ({ data }) => {
       if (!data?.[0]) return
       const r = data[0]
+      let activoDireccion = ''
+      if (r.activo_ref) {
+        const { data: ac } = await supabase
+          .from('activos').select('ref, nombre, direccion')
+          .eq('ref', r.activo_ref).maybeSingle()
+        if (ac) {
+          activoDireccion = ac.direccion || ac.nombre || r.activo_ref
+          setLinkedActivoRef(ac.ref)
+        }
+      }
       setForm(prev => ({
         ...prev,
-        activo:          r.edificio || r.activo_ref || prev.activo,
+        activo:          activoDireccion || r.edificio || r.activo_ref || prev.activo,
         tenant:          r.tenant || r.nombre || prev.tenant,
         persona_fisica:  r.persona_fisica    ?? prev.persona_fisica,
         tenant_desconocido: r.tenant_desconocido ?? prev.tenant_desconocido,
@@ -787,9 +809,14 @@ export default function FichaArrendatario() {
                         {form.activo ? (
                           <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',background:'var(--accent-lt)',width:'100%'}}>
                             <span
-                              onClick={() => navigate('ficha-activo', params?.fromActivoRef ? { ref: params.fromActivoRef } : undefined)}
+                              onClick={() => {
+                                const ref = linkedActivoRef || params?.fromActivoRef
+                                if (ref) navigate('ficha-activo', { ref })
+                                else navigate('ficha-activo')
+                              }}
                               style={{fontWeight:600,color:'var(--accent)',fontSize:12,flex:1,cursor:'pointer',textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}
-                            >{form.activo} ↗</span>
+                              title="Abrir ficha del activo"
+                            >{form.activo_direccion || form.activo} ↗</span>
                             <button onClick={() => { set('activo',''); set('activo_direccion',''); set('propietario',''); set('zona',''); set('subzona',''); set('area',''); set('uso','') }} style={{fontSize:11,color:'var(--text4)',background:'none',border:'none',cursor:'pointer'}} title="Cambiar activo">✕</button>
                           </div>
                         ) : (
