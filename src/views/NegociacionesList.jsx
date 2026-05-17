@@ -110,7 +110,7 @@ export default function NegociacionesList() {
   const [showAdv, setShowAdv] = useState(false)
   const [af, setAf] = useState({ estado:'', equipo:'', parte:'' })
   const [vis, setVis] = useVisibleCols('negociaciones', COLS)
-  const [viewMode, setViewMode] = useState('kanban')
+  const [viewMode, setViewMode] = useState('tabla')
 
   const advCount = Object.values(af).filter(Boolean).length
   const preFiltered = NEGOCIACIONES.filter(n => {
