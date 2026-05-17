@@ -325,17 +325,49 @@ export default function FichaOfertaSupabase({ refOrId }) {
 
           {/* TAB: Información oferta */}
           {tab === 'of-info' && (
-            <div className="tab-content active"><div className="info-pad">
-              {/* ── VINCULACIONES (bloque canónico — siempre en este orden y posición) ── */}
+            <div className="tab-content active"><div className="info-pad fp-tab">
+              {/* ── SECCIÓN 01 · VINCULACIONES ── */}
+              <div className="fp-section-eyebrow">
+                <span className="fp-eyebrow-n">01</span>
+                <span className="fp-eyebrow-l">Vinculaciones</span>
+                <span className="fp-eyebrow-hint">A qué está conectada esta oferta</span>
+              </div>
               <Vinculaciones
-                cuenta={propietario ? { id: propietario.id || propietario.dynamics_id, nombre: propietario.nombre } : null}
+                cuenta={propietario ? {
+                  id: propietario.id || propietario.dynamics_id,
+                  nombre: propietario.nombre,
+                  sub: propietario.sector || propietario.tipo
+                } : null}
                 cuentaLabel="Propietario (Cuenta)"
-                activo={activo ? { ref: activo.ref, nombre: activo.nombre, direccion: activo.direccion } : null}
-                oportunidad={oportunidad ? { id: oportunidad.id || oportunidad.dynamics_id, nombre: oportunidad.nombre } : null}
-                instruccion={mandatoVinculado?.dynamics_instruction_id ? { id: mandatoVinculado.dynamics_instruction_id, dynamics_id: mandatoVinculado.dynamics_instruction_id } : null}
-                mandato={mandatoVinculado ? { id: mandatoVinculado.id, ref: mandatoVinculado.ref, titulo: mandatoVinculado.titulo } : null}
+                activo={activo ? {
+                  ref: activo.ref,
+                  nombre: activo.nombre,
+                  direccion: activo.direccion,
+                  sub: [activo.zona, activo.ciudad].filter(Boolean).join(' · ') || activo.uso
+                } : null}
+                oportunidad={oportunidad ? {
+                  id: oportunidad.id || oportunidad.dynamics_id,
+                  nombre: oportunidad.nombre,
+                  sub: oportunidad.tipo
+                } : null}
+                instruccion={mandatoVinculado?.dynamics_instruction_id ? {
+                  id: mandatoVinculado.dynamics_instruction_id,
+                  dynamics_id: mandatoVinculado.dynamics_instruction_id
+                } : null}
+                mandato={mandatoVinculado ? {
+                  id: mandatoVinculado.id,
+                  ref: mandatoVinculado.ref,
+                  titulo: mandatoVinculado.titulo,
+                  sub: mandatoVinculado.tipo
+                } : null}
               />
-              <div style={{ display:'grid', gridTemplateColumns:'1.1fr 1fr 1fr', gap:14 }}>
+              {/* ── SECCIÓN 02 · ESTADO (lo accionable) + 03 · COMENTARIOS ── */}
+              <div className="fp-section-eyebrow">
+                <span className="fp-eyebrow-n">02</span>
+                <span className="fp-eyebrow-l">Estado y notas</span>
+                <span className="fp-eyebrow-hint">Cambia aquí el estado y deja contexto interno</span>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1.3fr 1fr', gap:14 }}>
                 {/* ─ COL 1 · ESTADO (accionable, destacado en accent) ─ */}
                 <div>
                   <div className="va-meta-card va-card-primary">
@@ -414,22 +446,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
                   </div>
                 </div>
 
-                {/* ─ COL 2 · DETALLES DEL ACTIVO (tintado bronce, info heredada) ─ */}
-                <div>
-                  <div className="va-meta-card va-card-info-activo">
-                    <div className="va-meta-head"><span className="dot"/>Detalles del activo</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div className="ir"><span className="ir-k">Referencia</span><span className="ir-v" style={{ fontFamily:'var(--mono)' }}>{activo?.ref || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v" style={{ fontSize:11 }}>{activo?.direccion || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Zona</span><span className="ir-v">{activo?.zona || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Ciudad</span><span className="ir-v">{activo?.ciudad || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">Uso</span><span className="ir-v">{activo?.uso || <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                      <div className="ir"><span className="ir-k">SBA total</span><span className="ir-v">{activo?.sba ? `${Number(activo.sba).toLocaleString('es-ES')} m²` : <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ─ COL 3 · COMENTARIOS INTERNOS ─ */}
+                {/* ─ COL 2 · COMENTARIOS INTERNOS ─ */}
                 <div>
                   <div className="va-meta-card">
                     <div className="va-meta-head accent-red"><span className="dot"/>Comentarios internos</div>
