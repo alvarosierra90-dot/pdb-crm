@@ -484,10 +484,8 @@ function FichaOfertaMock() {
   }, [tipoComercializacion])
 
   // ── Búsqueda de cuentas para Colaboradores (debounce sobre dynamics_accounts) ──
-  // Ya no se restringe por tipoComercializacion: el usuario siempre puede
-  // vincular consultoras colaboradoras desde la lupa de Cuentas, viva o no
-  // bajo el flujo "Colaboradores" del campo Comercialización.
   useEffect(() => {
+    if (tipoComercializacion !== 'Colaboradores') return
     if (!colaboradorBuscador || colaboradorBuscador.length < 2) {
       setColaboradoresResults([])
       return
@@ -504,7 +502,7 @@ function FichaOfertaMock() {
       if (!cancel) setColaboradoresResults(data || [])
     }, 200)
     return () => { cancel = true; clearTimeout(t) }
-  }, [colaboradorBuscador])
+  }, [colaboradorBuscador, tipoComercializacion])
 
   // ── When returning from FichaArrendatario, add tenant to left panel ──
   useEffect(() => {
@@ -1044,10 +1042,14 @@ function FichaOfertaMock() {
                     <div className="va-card" style={{ overflow:'visible' }}>
                       <div className="va-card-header">
                         <h3><span className="ico">◈</span> Colaboradores</h3>
-                        <span className="hint">Consultoras asociadas</span>
+                        <span className="hint">{tipoComercializacion==='Colaboradores' ? 'Consultora asociada' : 'Inactivo'}</span>
                       </div>
                       <div style={{padding:'8px 18px 14px'}}>
-                        {colaboradorAsociado ? (
+                        {tipoComercializacion!=='Colaboradores' ? (
+                          <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>
+                            Selecciona <strong>“Colaboradores”</strong> en Comercialización para vincular una consultora.
+                          </div>
+                        ) : colaboradorAsociado ? (
                           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'8px 12px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
                             <div>
                               <div style={{ fontWeight:600, fontSize:13, color:'var(--accent)' }}>{colaboradorAsociado.nombre}</div>
@@ -1063,7 +1065,7 @@ function FichaOfertaMock() {
                           <div style={{ position:'relative' }}>
                             <input
                               className="of-inp"
-                              placeholder="🔍 Buscar cuenta colaboradora..."
+                              placeholder="🔍 Buscar consultora colaboradora..."
                               value={colaboradorBuscador}
                               onChange={e => { setColaboradorBuscador(e.target.value); setShowColaboradorDropdown(true) }}
                               onFocus={() => setShowColaboradorDropdown(true)}
