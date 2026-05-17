@@ -2,53 +2,49 @@ import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { LEAD_TIPOS, LEAD_ESTADOS, LEAD_CANALES, LEAD_PRIORIDADES } from '../data/mockLeads'
+import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import BannerInfo from '../components/BannerInfo'
 import NuevoLeadModal from '../components/NuevoLeadModal'
-
-const COLS = [
-  { key:'ref',            label:'ID' },
-  { key:'nombre',         label:'Lead' },
-  { key:'tipo',           label:'Tipo' },
-  { key:'estado',         label:'Estado' },
-  { key:'prioridad',      label:'Prioridad' },
-  { key:'origen_canal',   label:'Canal' },
-  { key:'origen_campana', label:'Campaña / Anuncio' },
-  { key:'cuenta_nombre',  label:'Cuenta' },
-  { key:'contacto_nombre',label:'Contacto' },
-  { key:'created_at',     label:'Entrada' },
-  { key:'responsable',    label:'Responsable' },
-  { key:'ultima_actividad', label:'Última actividad' },
-]
-
-function SortIcon({ active, dir }) {
-  if (!active) return <span style={{ color:'var(--border)', fontSize:10, marginLeft:3 }}>↕</span>
-  return <span style={{ color:'var(--accent)', fontSize:10, marginLeft:3 }}>{dir === 'asc' ? '↑' : '↓'}</span>
-}
 
 function TipoTag({ tipo }) {
   const t = LEAD_TIPOS.find(x => x.key === tipo)
   if (!t) return <span style={{ color:'var(--text4)' }}>—</span>
   return <span className={`tag ${t.tagClass}`} style={{ whiteSpace:'nowrap' }}>{t.label}</span>
 }
-
 function EstadoTag({ estado }) {
   const e = LEAD_ESTADOS.find(x => x.key === estado)
   if (!e) return <span style={{ color:'var(--text4)' }}>—</span>
   return <span className={`tag ${e.tagClass}`} style={{ whiteSpace:'nowrap' }}>{e.label}</span>
 }
-
 function PrioridadTag({ prioridad }) {
   const p = LEAD_PRIORIDADES.find(x => x.key === prioridad)
   if (!p) return <span style={{ color:'var(--text4)' }}>—</span>
   return <span className={`tag ${p.tagClass}`}>{p.label}</span>
 }
+const tipoLabel = k => LEAD_TIPOS.find(x => x.key === k)?.label || k || ''
+const estadoLabel = k => LEAD_ESTADOS.find(x => x.key === k)?.label || k || ''
+const prioridadLabel = k => LEAD_PRIORIDADES.find(x => x.key === k)?.label || k || ''
+
+const COLS = [
+  { id:'ref',              label:'ID',                  type:'text',   getValue: r => r.ref },
+  { id:'nombre',           label:'Lead',                type:'text',   getValue: r => r.nombre },
+  { id:'tipo',             label:'Tipo',                type:'enum',   getValue: r => tipoLabel(r.tipo) },
+  { id:'estado',           label:'Estado',              type:'enum',   getValue: r => estadoLabel(r.estado) },
+  { id:'prioridad',        label:'Prioridad',           type:'enum',   getValue: r => prioridadLabel(r.prioridad) },
+  { id:'origen_canal',     label:'Canal',               type:'enum',   getValue: r => r.origen_canal || '' },
+  { id:'origen_campana',   label:'Campaña / Anuncio',   type:'text',   getValue: r => r.origen_campana || '' },
+  { id:'cuenta_nombre',    label:'Cuenta',              type:'text',   getValue: r => r.cuenta_nombre || '' },
+  { id:'contacto_nombre',  label:'Contacto',            type:'text',   getValue: r => r.contacto_nombre || '' },
+  { id:'created_at',       label:'Entrada',             type:'text',   getValue: r => r.created_at || '' },
+  { id:'responsable',      label:'Responsable',         type:'enum',   getValue: r => r.responsable || '' },
+  { id:'ultima_actividad', label:'Última actividad',    type:'text',   getValue: r => r.ultima_actividad || '' },
+]
 
 function fmtFecha(ts) {
   if (!ts) return '—'
   const d = new Date(ts)
   return d.toLocaleString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })
 }
-
 function fmtRelativa(ts) {
   if (!ts) return '—'
   const diffMs = Date.now() - new Date(ts).getTime()
@@ -66,7 +62,6 @@ export default function LeadsList() {
   const [leads, setLeads] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [sort, setSort]   = useState({ col:'created_at', dir:'desc' })
   const [query, setQuery] = useState('')
   const [fTipo, setFTipo]     = useState('')
   const [fEstado, setFEstado] = useState('')
@@ -107,9 +102,7 @@ export default function LeadsList() {
     return () => { cancelled = true }
   }, [reloadKey])
 
-  const toggleSort = (col) => setSort(s => ({ col, dir: s.col === col && s.dir === 'asc' ? 'desc' : 'asc' }))
-
-  const data = leads
+  const preFiltered = leads
     .filter(r => !query
       || (r.nombre || '').toLowerCase().includes(query.toLowerCase())
       || (r.ref    || '').toLowerCase().includes(query.toLowerCase())
@@ -119,11 +112,8 @@ export default function LeadsList() {
     .filter(r => !fTipo   || r.tipo === fTipo)
     .filter(r => !fEstado || r.estado === fEstado)
     .filter(r => !fCanal  || r.origen_canal === fCanal)
-    .sort((a, b) => {
-      const va = (a[sort.col] || '').toString().toLowerCase()
-      const vb = (b[sort.col] || '').toString().toLowerCase()
-      return sort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
-    })
+
+  const { result: data, sorts, filters, setSort, setFilter, clearFilter, clearAll, activeCount } = useTableFilter(preFiltered, COLS)
 
   const total = leads.length
   const nuevos       = leads.filter(l => l.estado === 'nuevo').length
@@ -187,12 +177,13 @@ export default function LeadsList() {
           <option value="">Todos los canales</option>
           {LEAD_CANALES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
+        <FilterBadge count={activeCount} onClear={clearAll} />
 
         <div className="search-wrap" style={{ marginLeft:'auto' }}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
           <input className="search-inp" placeholder="Buscar leads..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
-        <button className="tbtn prim" onClick={() => setShowNuevo(true)}>+ Nuevo lead 🆕</button>
+        <button className="tbtn prim" onClick={() => setShowNuevo(true)}>+ Nuevo lead</button>
       </div>
 
       {/* Tabla */}
@@ -201,9 +192,7 @@ export default function LeadsList() {
           <thead>
             <tr>
               {COLS.map(c => (
-                <th key={c.key} onClick={() => toggleSort(c.key)} style={{ cursor:'pointer', userSelect:'none', whiteSpace:'nowrap' }}>
-                  {c.label}<SortIcon active={sort.col === c.key} dir={sort.dir} />
-                </th>
+                <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={preFiltered} />
               ))}
             </tr>
           </thead>
@@ -216,7 +205,7 @@ export default function LeadsList() {
                   ? <tr><td colSpan={COLS.length} style={{ textAlign:'center', padding:32, color:'var(--text4)', fontSize:12 }}>No se encontraron leads</td></tr>
                   : data.map(r => (
                     <tr key={r.id} style={{ cursor:'pointer' }} onClick={() => navigate('ficha-lead', { id: r.ref })}>
-                      <td style={{ fontSize:11, fontFamily:'monospace', color:'var(--text3)', whiteSpace:'nowrap' }}>{r.ref}</td>
+                      <td><span className="mono" style={{ fontSize:11, color:'var(--text3)' }}>{r.ref}</span></td>
                       <td style={{ fontWeight:600, fontSize:11, color:'var(--text)' }}>{r.nombre}</td>
                       <td><TipoTag tipo={r.tipo} /></td>
                       <td><EstadoTag estado={r.estado} /></td>
@@ -225,7 +214,7 @@ export default function LeadsList() {
                       <td style={{ fontSize:11, color:'var(--text3)' }}>{r.origen_campana || <span style={{ color:'var(--text4)' }}>—</span>}</td>
                       <td style={{ fontSize:11, color: r.cuenta_nombre ? 'var(--accent)' : 'var(--text4)' }}>{r.cuenta_nombre || '—'}</td>
                       <td style={{ fontSize:11, color:'var(--text3)' }}>{r.contacto_nombre || '—'}</td>
-                      <td style={{ fontSize:10, color:'var(--text3)', whiteSpace:'nowrap' }}>{fmtFecha(r.created_at)}</td>
+                      <td style={{ fontSize:10, color:'var(--text3)' }}><span className="mono">{fmtFecha(r.created_at)}</span></td>
                       <td style={{ fontSize:11 }}>{r.responsable || <span style={{ color:'var(--text4)' }}>—</span>}</td>
                       <td style={{ fontSize:10, color:'var(--text4)' }}>{fmtRelativa(r.ultima_actividad)}</td>
                     </tr>

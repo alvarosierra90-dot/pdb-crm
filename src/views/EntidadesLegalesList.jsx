@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import BannerInfo from '../components/BannerInfo'
 
 const MOCK_ENTIDADES = [
@@ -17,13 +18,15 @@ const MOCK_ENTIDADES = [
 ]
 
 const COLS = [
-  { key:'nombre_legal', label:'Nombre legal' },
-  { key:'cuenta',       label:'Cuenta' },
-  { key:'dir1',         label:'Línea de dirección 1' },
-  { key:'ciudad',       label:'Pueblo / Ciudad' },
-  { key:'pais',         label:'País' },
-  { key:'reg',          label:'Nº registro compañía' },
-  { key:'duns',         label:'Nº DUNS' },
+  { id:'_dyn',         label:'',                            sys:true },
+  { id:'id',           label:'ID',                          type:'text', getValue: r => r.id },
+  { id:'nombre_legal', label:'Nombre legal',                type:'text', getValue: r => r.nombre_legal },
+  { id:'cuenta',       label:'Cuenta',                      type:'enum', getValue: r => r.cuenta },
+  { id:'dir1',         label:'Línea de dirección 1',        type:'text', getValue: r => r.dir1 },
+  { id:'ciudad',       label:'Pueblo / Ciudad',             type:'enum', getValue: r => r.ciudad },
+  { id:'pais',         label:'País',                        type:'enum', getValue: r => r.pais },
+  { id:'reg',          label:'Nº registro compañía',        type:'text', getValue: r => r.reg },
+  { id:'duns',         label:'Nº DUNS',                     type:'text', getValue: r => r.duns },
 ]
 
 function DynIcon() {
@@ -42,69 +45,56 @@ function DynIcon() {
   )
 }
 
-function SortIcon({ active, dir }) {
-  if (!active) return <span style={{ color:'var(--border)', fontSize:10, marginLeft:3 }}>↕</span>
-  return <span style={{ color:'var(--accent)', fontSize:10, marginLeft:3 }}>{dir === 'asc' ? '↑' : '↓'}</span>
-}
-
 export default function EntidadesLegalesList() {
-  const [sort, setSort] = useState({ col:'nombre_legal', dir:'asc' })
   const [query, setQuery] = useState('')
 
-  const toggleSort = (col) => setSort(s => ({ col, dir: s.col === col && s.dir === 'asc' ? 'desc' : 'asc' }))
-
-  const data = [...MOCK_ENTIDADES]
+  const preFiltered = MOCK_ENTIDADES
     .filter(r => !query || r.nombre_legal.toLowerCase().includes(query.toLowerCase()) || r.cuenta.toLowerCase().includes(query.toLowerCase()) || r.ciudad.toLowerCase().includes(query.toLowerCase()))
-    .sort((a, b) => {
-      const va = String(a[sort.col] ?? '').toLowerCase()
-      const vb = String(b[sort.col] ?? '').toLowerCase()
-      return sort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
-    })
+
+  const { result: data, sorts, filters, setSort, setFilter, clearFilter, clearAll, activeCount } = useTableFilter(preFiltered, COLS)
 
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
       <BannerInfo variant="dynamics" title="Solo lectura · Entidades de facturación en Microsoft Dynamics 365" hint="Las entidades legales se definen y controlan exclusivamente en Dynamics" />
 
-      {/* Toolbar */}
       <div style={{ padding:'8px 16px', background:'var(--surface)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
         <div style={{ fontSize:13, fontWeight:700 }}>Entidades Legales</div>
         <span style={{ fontSize:11, color:'var(--text4)', marginLeft:4 }}>{data.length} registros</span>
         <div style={{ fontSize:10, color:'var(--text3)', marginLeft:8, padding:'2px 8px', background:'var(--gray-lt)', borderRadius:8, border:'1px solid var(--border)' }}>
           Sociedad jurídica de facturación
         </div>
+        <FilterBadge count={activeCount} onClear={clearAll} />
         <div className="search-wrap" style={{ marginLeft:'auto' }}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
           <input className="search-inp" placeholder="Buscar entidades legales..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
       </div>
 
-      {/* Tabla */}
       <div className="tbl-wrap">
         <table className="main-tbl">
           <thead>
             <tr>
-              <th style={{ width:30 }}></th>
-              {COLS.map(c => (
-                <th key={c.key} onClick={() => toggleSort(c.key)} style={{ cursor:'pointer', userSelect:'none', whiteSpace:'nowrap' }}>
-                  {c.label}<SortIcon active={sort.col === c.key} dir={sort.dir} />
-                </th>
-              ))}
+              {COLS.map(c => c.sys
+                ? <th key={c.id} style={{ width:30 }}></th>
+                : <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={preFiltered} />
+              )}
             </tr>
           </thead>
           <tbody>
             {data.length === 0
-              ? <tr><td colSpan={COLS.length + 1} style={{ textAlign:'center', padding:32, color:'var(--text4)', fontSize:12 }}>No se encontraron registros</td></tr>
+              ? <tr><td colSpan={COLS.length} style={{ textAlign:'center', padding:32, color:'var(--text4)', fontSize:12 }}>No se encontraron registros</td></tr>
               : data.map(r => (
                 <tr key={r.id} style={{ cursor:'default' }}>
                   <td style={{ padding:'6px 8px' }}><DynIcon /></td>
+                  <td><span className="mono" style={{ fontSize:11, color:'var(--text3)' }}>{r.id}</span></td>
                   <td style={{ fontWeight:600, fontSize:11 }}>{r.nombre_legal}</td>
                   <td style={{ fontSize:11, color:'var(--accent)' }}>{r.cuenta}</td>
                   <td style={{ fontSize:11, color:'var(--text3)' }}>{r.dir1}</td>
                   <td style={{ fontSize:11 }}>{r.ciudad}</td>
                   <td style={{ fontSize:11 }}>{r.pais}</td>
-                  <td style={{ fontSize:11, fontFamily:'var(--mono)', color:'var(--text3)' }}>{r.reg}</td>
-                  <td style={{ fontSize:11, fontFamily:'var(--mono)', color:'var(--text3)' }}>{r.duns}</td>
+                  <td style={{ fontSize:11, color:'var(--text3)' }}><span className="mono">{r.reg}</span></td>
+                  <td style={{ fontSize:11, color:'var(--text3)' }}><span className="mono">{r.duns}</span></td>
                 </tr>
               ))
             }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import BannerInfo from '../components/BannerInfo'
 
 export const MOCK_OPORTUNIDADES = [
@@ -11,28 +12,31 @@ export const MOCK_OPORTUNIDADES = [
   { id:'OPO-2506', fecha:'10/11/2025', marco:'Q1 2027',  etapa:'Calificación',      razon:'Expansión',         sup:'2.800',  lifetime:'62.000',  responsable:'GOMEZ Ignacio',  div_user:'Leasing Of. MAD', nombre:'Oficinas Flexwork — Méndez Álvaro',   cuenta:'Flexwork Solutions Spain SL', contacto:'—',                 remitido:'Idealista',         origen:'Web/Inbound',       notas:'Búsqueda coworking/flex 200–300 puestos.', division:'Oficinas', pitch:'No', pais:'España', creado:'GOMEZ Ignacio', probabilidad:30, descripcion:'Flexwork busca espacio coworking premium en eje Méndez Álvaro. 200-300 puestos.', vinculaciones:{ activos:[], ofertas:[], demandas:[], mandatos:[], negociaciones:[], propuestas:[] } },
 ]
 
+const toNum = v => Number(String(v).replace(/\./g,'').replace(/,/g,'.')) || 0
+
 const COLS = [
-  { key:'fecha',       label:'Fecha' },
-  { key:'marco',       label:'Marco temporal' },
-  { key:'etapa',       label:'Etapa' },
-  { key:'razon',       label:'Razón' },
-  { key:'sup',         label:'Superficie (m²)' },
-  { key:'lifetime',    label:'Lifetime (€)' },
-  { key:'responsable', label:'Responsable' },
-  { key:'div_user',    label:'División (usuario)' },
-  { key:'nombre',      label:'Nombre oportunidad' },
-  { key:'cuenta',      label:'Cuenta' },
-  { key:'contacto',    label:'Contacto' },
-  { key:'remitido',    label:'Remitido por' },
-  { key:'origen',      label:'Origen negocio' },
-  { key:'notas',       label:'Notas' },
-  { key:'division',    label:'División' },
-  { key:'pitch',       label:'Pitch' },
-  { key:'pais',        label:'País' },
-  { key:'creado',      label:'Creado por' },
+  { id:'_dyn',        label:'',                     sys:true },
+  { id:'id',          label:'ID',                   type:'text',   getValue: r => r.id },
+  { id:'fecha',       label:'Fecha',                type:'text',   getValue: r => r.fecha },
+  { id:'marco',       label:'Marco temporal',       type:'enum',   getValue: r => r.marco },
+  { id:'etapa',       label:'Etapa',                type:'enum',   getValue: r => r.etapa },
+  { id:'razon',       label:'Razón',                type:'enum',   getValue: r => r.razon },
+  { id:'sup',         label:'Superficie (m²)',      type:'number', getValue: r => toNum(r.sup) },
+  { id:'lifetime',    label:'Lifetime (€)',         type:'number', getValue: r => toNum(r.lifetime) },
+  { id:'responsable', label:'Responsable',          type:'enum',   getValue: r => r.responsable },
+  { id:'div_user',    label:'División (usuario)',   type:'enum',   getValue: r => r.div_user },
+  { id:'nombre',      label:'Nombre oportunidad',   type:'text',   getValue: r => r.nombre },
+  { id:'cuenta',      label:'Cuenta',               type:'enum',   getValue: r => r.cuenta },
+  { id:'contacto',    label:'Contacto',             type:'text',   getValue: r => r.contacto },
+  { id:'remitido',    label:'Remitido por',         type:'text',   getValue: r => r.remitido },
+  { id:'origen',      label:'Origen negocio',       type:'enum',   getValue: r => r.origen },
+  { id:'notas',       label:'Notas',                type:'text',   getValue: r => r.notas },
+  { id:'division',    label:'División',             type:'enum',   getValue: r => r.division },
+  { id:'pitch',       label:'Pitch',                type:'enum',   getValue: r => r.pitch },
+  { id:'pais',        label:'País',                 type:'enum',   getValue: r => r.pais },
+  { id:'creado',      label:'Creado por',           type:'enum',   getValue: r => r.creado },
 ]
 
-// Mapeo a clases globales — coherencia visual con otros módulos
 export const ETAPA_TAG_CLASS = {
   'Identificación':      'tag-blue',
   'Calificación':        'tag-amber',
@@ -57,27 +61,15 @@ function DynIcon() {
   )
 }
 
-function SortIcon({ active, dir }) {
-  if (!active) return <span style={{ color:'var(--border)', fontSize:10, marginLeft:3 }}>↕</span>
-  return <span style={{ color:'var(--accent)', fontSize:10, marginLeft:3 }}>{dir === 'asc' ? '↑' : '↓'}</span>
-}
-
 export default function OportunidadesList() {
   const { navigate } = useNav()
-  const [sort, setSort] = useState({ col:'fecha', dir:'desc' })
   const [query, setQuery] = useState('')
 
-  const toggleSort = (col) => setSort(s => ({ col, dir: s.col === col && s.dir === 'asc' ? 'desc' : 'asc' }))
-
-  const data = [...MOCK_OPORTUNIDADES]
+  const preFiltered = MOCK_OPORTUNIDADES
     .filter(r => !query || r.nombre.toLowerCase().includes(query.toLowerCase()) || r.cuenta.toLowerCase().includes(query.toLowerCase()) || r.etapa.toLowerCase().includes(query.toLowerCase()))
-    .sort((a, b) => {
-      const va = String(a[sort.col] ?? '').toLowerCase()
-      const vb = String(b[sort.col] ?? '').toLowerCase()
-      return sort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
-    })
 
-  // KPIs
+  const { result: data, sorts, filters, setSort, setFilter, clearFilter, clearAll, activeCount } = useTableFilter(preFiltered, COLS)
+
   const total       = MOCK_OPORTUNIDADES.length
   const identif     = MOCK_OPORTUNIDADES.filter(o => o.etapa === 'Identificación').length
   const negociacion = MOCK_OPORTUNIDADES.filter(o => o.etapa === 'Negociación').length
@@ -89,7 +81,6 @@ export default function OportunidadesList() {
 
       <BannerInfo variant="dynamics" title="Solo lectura · WIP oficial en Microsoft Dynamics 365" hint="Las oportunidades se crean y editan exclusivamente en Dynamics" />
 
-      {/* KPI strip */}
       <div className="kpi-strip" style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', display:'flex', gap:24, flexShrink:0, background:'var(--surface)' }}>
         <div className="ks">
           <div style={{ fontSize:22, fontWeight:800, color:'var(--text)' }}>{total}</div>
@@ -113,54 +104,50 @@ export default function OportunidadesList() {
         </div>
       </div>
 
-      {/* Toolbar */}
       <div style={{ padding:'8px 16px', background:'var(--surface)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
         <div style={{ fontSize:13, fontWeight:700 }}>Oportunidades</div>
         <span style={{ fontSize:11, color:'var(--text4)', marginLeft:4 }}>{data.length} registros</span>
+        <FilterBadge count={activeCount} onClear={clearAll} />
         <div className="search-wrap" style={{ marginLeft:'auto' }}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
           <input className="search-inp" placeholder="Buscar oportunidades..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
       </div>
 
-      {/* Tabla */}
       <div className="tbl-wrap">
         <table className="main-tbl">
           <thead>
             <tr>
-              <th style={{ width:30 }}></th>
-              {COLS.map(c => (
-                <th key={c.key} onClick={() => toggleSort(c.key)} style={{ cursor:'pointer', userSelect:'none', whiteSpace:'nowrap' }}>
-                  {c.label}<SortIcon active={sort.col === c.key} dir={sort.dir} />
-                </th>
-              ))}
+              {COLS.map(c => c.sys
+                ? <th key={c.id} style={{ width:30 }}></th>
+                : <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={preFiltered} />
+              )}
             </tr>
           </thead>
           <tbody>
             {data.length === 0
-              ? <tr><td colSpan={COLS.length + 1} style={{ textAlign:'center', padding:32, color:'var(--text4)', fontSize:12 }}>No se encontraron registros</td></tr>
+              ? <tr><td colSpan={COLS.length} style={{ textAlign:'center', padding:32, color:'var(--text4)', fontSize:12 }}>No se encontraron registros</td></tr>
               : data.map(r => {
                   const tagClass = ETAPA_TAG_CLASS[r.etapa] || 'tag-gray'
                   return (
                     <tr key={r.id} style={{ cursor:'pointer' }} onClick={() => navigate('ficha-oportunidad', { id: r.id })}>
                       <td style={{ padding:'6px 8px' }}><DynIcon /></td>
-                      <td style={{ fontSize:11, color:'var(--text3)', fontFamily:'var(--mono)', whiteSpace:'nowrap' }}>{r.fecha}</td>
+                      <td><span className="mono" style={{ fontSize:11, color:'var(--text3)' }}>{r.id}</span></td>
+                      <td style={{ fontSize:11, color:'var(--text3)' }}><span className="mono">{r.fecha}</span></td>
                       <td style={{ fontSize:11 }}>{r.marco}</td>
-                      <td>
-                        <span className={`tag ${tagClass}`} style={{ whiteSpace:'nowrap' }}>{r.etapa}</span>
-                      </td>
+                      <td><span className={`tag ${tagClass}`}>{r.etapa}</span></td>
                       <td style={{ fontSize:11 }}>{r.razon}</td>
-                      <td style={{ fontSize:11, fontFamily:'var(--mono)', textAlign:'right' }}>{Number(r.sup).toLocaleString('es-ES')} m²</td>
-                      <td style={{ fontSize:11, fontFamily:'var(--mono)', textAlign:'right', color:'var(--green)', fontWeight:600 }}>{Number(r.lifetime).toLocaleString('es-ES')} €</td>
+                      <td style={{ fontSize:11, textAlign:'right' }}><span className="mono">{Number(r.sup).toLocaleString('es-ES')} m²</span></td>
+                      <td style={{ fontSize:11, textAlign:'right', color:'var(--green)', fontWeight:600 }}><span className="mono">{Number(r.lifetime).toLocaleString('es-ES')} €</span></td>
                       <td style={{ fontSize:11, color:'var(--accent)' }}>{r.responsable}</td>
                       <td style={{ fontSize:11 }}>{r.div_user}</td>
-                      <td style={{ fontSize:11, fontWeight:600, maxWidth:220, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.nombre}</td>
+                      <td style={{ fontSize:11, fontWeight:600, minWidth:240, maxWidth:360, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.nombre}</td>
                       <td style={{ fontSize:11, color:'var(--accent)' }}>{r.cuenta}</td>
                       <td style={{ fontSize:11 }}>{r.contacto}</td>
                       <td style={{ fontSize:11, color:'var(--text3)' }}>{r.remitido}</td>
                       <td style={{ fontSize:11, color:'var(--text3)' }}>{r.origen}</td>
-                      <td style={{ fontSize:10, color:'var(--text3)', maxWidth:180, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.notas}</td>
-                      <td><span className={`tag ${r.division === 'Capital Markets' ? 'tag-amber' : 'tag-blue'}`} style={{ fontSize:9 }}>{r.division}</span></td>
+                      <td style={{ fontSize:10, color:'var(--text3)', maxWidth:220, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.notas}</td>
+                      <td><span className={`tag ${r.division === 'Capital Markets' ? 'tag-amber' : 'tag-blue'}`}>{r.division}</span></td>
                       <td style={{ fontSize:11, textAlign:'center' }}>{r.pitch === 'Sí' ? <span style={{ fontSize:9, background:'#f0fdf4', color:'var(--green)', border:'1px solid #bbf7d0', borderRadius:8, padding:'1px 6px', fontWeight:700 }}>Sí</span> : <span style={{ color:'var(--text4)', fontSize:10 }}>—</span>}</td>
                       <td style={{ fontSize:11 }}>{r.pais}</td>
                       <td style={{ fontSize:11, color:'var(--text3)' }}>{r.creado}</td>

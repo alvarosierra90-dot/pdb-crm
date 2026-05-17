@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import BannerInfo from '../components/BannerInfo'
 
 const MOCK_INSTRUCCIONES = [
@@ -10,19 +11,23 @@ const MOCK_INSTRUCCIONES = [
   { id:'INS-2506', pais:'España', nombre:'Parque Empresarial Alcobendas — Capital Ind.',entidad_legal:'Savills Management SL',       razon:'Contrato firmado',   sup:'4.200',  lifetime:'95.000',  oficina:'Madrid · Cap. Markets',division:'Capital Markets',  cuenta:'Capital Industrial Partners', contacto:'Roberto Peña',      fecha:'30/09/2026', responsable:'Sierra Álvaro' },
 ]
 
+const toNum = v => Number(String(v).replace(/\./g,'').replace(/,/g,'.')) || 0
+
 const COLS = [
-  { key:'pais',         label:'País' },
-  { key:'nombre',       label:'Nombre' },
-  { key:'entidad_legal',label:'Entidad legal' },
-  { key:'razon',        label:'Razón / Estado' },
-  { key:'sup',          label:'Superficie (m²)' },
-  { key:'lifetime',     label:'Lifetime Fee (€)' },
-  { key:'oficina',      label:'Oficina y departamento' },
-  { key:'division',     label:'División' },
-  { key:'cuenta',       label:'Cuenta' },
-  { key:'contacto',     label:'Contacto cliente' },
-  { key:'fecha',        label:'Fecha' },
-  { key:'responsable',  label:'Responsable' },
+  { id:'_dyn',         label:'',                          sys:true },
+  { id:'id',           label:'ID',                        type:'text',   getValue: r => r.id },
+  { id:'pais',         label:'País',                      type:'enum',   getValue: r => r.pais },
+  { id:'nombre',       label:'Nombre',                    type:'text',   getValue: r => r.nombre },
+  { id:'entidad_legal',label:'Entidad legal',             type:'enum',   getValue: r => r.entidad_legal },
+  { id:'razon',        label:'Razón / Estado',            type:'enum',   getValue: r => r.razon },
+  { id:'sup',          label:'Superficie (m²)',           type:'number', getValue: r => toNum(r.sup) },
+  { id:'lifetime',     label:'Lifetime Fee (€)',          type:'number', getValue: r => toNum(r.lifetime) },
+  { id:'oficina',      label:'Oficina y departamento',    type:'enum',   getValue: r => r.oficina },
+  { id:'division',     label:'División',                  type:'enum',   getValue: r => r.division },
+  { id:'cuenta',       label:'Cuenta',                    type:'enum',   getValue: r => r.cuenta },
+  { id:'contacto',     label:'Contacto cliente',          type:'text',   getValue: r => r.contacto },
+  { id:'fecha',        label:'Fecha',                     type:'text',   getValue: r => r.fecha },
+  { id:'responsable',  label:'Responsable',               type:'enum',   getValue: r => r.responsable },
 ]
 
 function DynIcon() {
@@ -41,70 +46,57 @@ function DynIcon() {
   )
 }
 
-function SortIcon({ active, dir }) {
-  if (!active) return <span style={{ color:'var(--border)', fontSize:10, marginLeft:3 }}>↕</span>
-  return <span style={{ color:'var(--accent)', fontSize:10, marginLeft:3 }}>{dir === 'asc' ? '↑' : '↓'}</span>
-}
-
 export default function InstruccionesList() {
-  const [sort, setSort] = useState({ col:'fecha', dir:'desc' })
   const [query, setQuery] = useState('')
 
-  const toggleSort = (col) => setSort(s => ({ col, dir: s.col === col && s.dir === 'asc' ? 'desc' : 'asc' }))
-
-  const data = [...MOCK_INSTRUCCIONES]
+  const preFiltered = MOCK_INSTRUCCIONES
     .filter(r => !query || r.nombre.toLowerCase().includes(query.toLowerCase()) || r.cuenta.toLowerCase().includes(query.toLowerCase()))
-    .sort((a, b) => {
-      const va = String(a[sort.col] ?? '').toLowerCase()
-      const vb = String(b[sort.col] ?? '').toLowerCase()
-      return sort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
-    })
+
+  const { result: data, sorts, filters, setSort, setFilter, clearFilter, clearAll, activeCount } = useTableFilter(preFiltered, COLS)
 
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
       <BannerInfo variant="dynamics" title="Solo lectura · Cierre oficial en Microsoft Dynamics 365" hint="Las instrucciones se crean y gestionan exclusivamente en Dynamics" />
 
-      {/* Toolbar */}
       <div style={{ padding:'8px 16px', background:'var(--surface)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
         <div style={{ fontSize:13, fontWeight:700 }}>Transacción / Instrucción</div>
         <span style={{ fontSize:11, color:'var(--text4)', marginLeft:4 }}>{data.length} registros</span>
+        <FilterBadge count={activeCount} onClear={clearAll} />
         <div className="search-wrap" style={{ marginLeft:'auto' }}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
           <input className="search-inp" placeholder="Buscar instrucciones..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
       </div>
 
-      {/* Tabla */}
       <div className="tbl-wrap">
         <table className="main-tbl">
           <thead>
             <tr>
-              <th style={{ width:30 }}></th>
-              {COLS.map(c => (
-                <th key={c.key} onClick={() => toggleSort(c.key)} style={{ cursor:'pointer', userSelect:'none', whiteSpace:'nowrap' }}>
-                  {c.label}<SortIcon active={sort.col === c.key} dir={sort.dir} />
-                </th>
-              ))}
+              {COLS.map(c => c.sys
+                ? <th key={c.id} style={{ width:30 }}></th>
+                : <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={preFiltered} />
+              )}
             </tr>
           </thead>
           <tbody>
             {data.length === 0
-              ? <tr><td colSpan={COLS.length + 1} style={{ textAlign:'center', padding:32, color:'var(--text4)', fontSize:12 }}>No se encontraron registros</td></tr>
+              ? <tr><td colSpan={COLS.length} style={{ textAlign:'center', padding:32, color:'var(--text4)', fontSize:12 }}>No se encontraron registros</td></tr>
               : data.map(r => (
                 <tr key={r.id} style={{ cursor:'default' }}>
                   <td style={{ padding:'6px 8px' }}><DynIcon /></td>
+                  <td><span className="mono" style={{ fontSize:11, color:'var(--text3)' }}>{r.id}</span></td>
                   <td style={{ fontSize:11 }}>{r.pais}</td>
-                  <td style={{ fontWeight:600, fontSize:11, maxWidth:220, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.nombre}</td>
+                  <td style={{ fontWeight:600, fontSize:11, minWidth:240, maxWidth:360, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.nombre}</td>
                   <td style={{ fontSize:11, color:'var(--text3)' }}>{r.entidad_legal}</td>
                   <td><span style={{ fontSize:9, background:'#f0fdf4', color:'var(--green)', border:'1px solid #bbf7d0', borderRadius:8, padding:'2px 8px', fontWeight:700, whiteSpace:'nowrap' }}>{r.razon}</span></td>
-                  <td style={{ fontSize:11, fontFamily:'var(--mono)', textAlign:'right' }}>{Number(r.sup).toLocaleString('es-ES')} m²</td>
-                  <td style={{ fontSize:11, fontFamily:'var(--mono)', textAlign:'right', color:'var(--green)', fontWeight:700 }}>{Number(r.lifetime).toLocaleString('es-ES')} €</td>
+                  <td style={{ fontSize:11, textAlign:'right' }}><span className="mono">{Number(r.sup).toLocaleString('es-ES')} m²</span></td>
+                  <td style={{ fontSize:11, textAlign:'right', color:'var(--green)', fontWeight:700 }}><span className="mono">{Number(r.lifetime).toLocaleString('es-ES')} €</span></td>
                   <td style={{ fontSize:11 }}>{r.oficina}</td>
-                  <td><span className={`tag ${r.division === 'Capital Markets' ? 'tag-amber' : 'tag-blue'}`} style={{ fontSize:9 }}>{r.division}</span></td>
+                  <td><span className={`tag ${r.division === 'Capital Markets' ? 'tag-amber' : 'tag-blue'}`}>{r.division}</span></td>
                   <td style={{ fontSize:11, color:'var(--accent)' }}>{r.cuenta}</td>
                   <td style={{ fontSize:11 }}>{r.contacto}</td>
-                  <td style={{ fontSize:11, color:'var(--text3)', fontFamily:'var(--mono)', whiteSpace:'nowrap' }}>{r.fecha}</td>
+                  <td style={{ fontSize:11, color:'var(--text3)' }}><span className="mono">{r.fecha}</span></td>
                   <td style={{ fontSize:11, color:'var(--accent)' }}>{r.responsable}</td>
                 </tr>
               ))

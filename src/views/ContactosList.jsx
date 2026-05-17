@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import BannerInfo from '../components/BannerInfo'
 import { ExternalLink } from 'lucide-react'
 
@@ -18,23 +19,25 @@ const MOCK_CONTACTOS = [
 ]
 
 const COLS = [
-  { key:'titulo',     label:'Título' },
-  { key:'nombre',     label:'Nombre' },
-  { key:'apellido',   label:'Primer apellido' },
-  { key:'cuenta',     label:'Cuenta' },
-  { key:'cargo',      label:'Cargo' },
-  { key:'anio_rel',   label:'Año inicio relación' },
-  { key:'cat_alumni', label:'Cat. Alumni' },
-  { key:'of_alumni',  label:'Oficina Alumni' },
-  { key:'div_alumni', label:'División Alumni' },
-  { key:'linkedin',   label:'LinkedIn URL (IH)' },
-  { key:'ciudad',     label:'Pueblo / Ciudad' },
-  { key:'pais',       label:'País' },
-  { key:'no_email',   label:'No email' },
-  { key:'no_llamada', label:'No llamadas' },
-  { key:'ap_ant',     label:'Ap. anterior' },
-  { key:'email',      label:'Correo electrónico' },
-  { key:'dir_email',  label:'Dirección de correo' },
+  { id:'_dyn',      label:'',                       sys:true },
+  { id:'id',        label:'ID',                     type:'text',   getValue: r => r.id },
+  { id:'titulo',    label:'Título',                 type:'enum',   getValue: r => r.titulo },
+  { id:'nombre',    label:'Nombre',                 type:'text',   getValue: r => r.nombre },
+  { id:'apellido',  label:'Primer apellido',        type:'text',   getValue: r => r.apellido },
+  { id:'cuenta',    label:'Cuenta',                 type:'enum',   getValue: r => r.cuenta },
+  { id:'cargo',     label:'Cargo',                  type:'text',   getValue: r => r.cargo },
+  { id:'anio_rel',  label:'Año inicio relación',    type:'number', getValue: r => r.anio_rel },
+  { id:'cat_alumni',label:'Cat. Alumni',            type:'enum',   getValue: r => r.cat_alumni },
+  { id:'of_alumni', label:'Oficina Alumni',         type:'enum',   getValue: r => r.of_alumni },
+  { id:'div_alumni',label:'División Alumni',        type:'enum',   getValue: r => r.div_alumni },
+  { id:'linkedin',  label:'LinkedIn URL (IH)',      type:'text',   getValue: r => r.linkedin },
+  { id:'ciudad',    label:'Pueblo / Ciudad',        type:'enum',   getValue: r => r.ciudad },
+  { id:'pais',      label:'País',                   type:'enum',   getValue: r => r.pais },
+  { id:'no_email',  label:'No email',               type:'enum',   getValue: r => r.no_email ? 'Sí' : 'No' },
+  { id:'no_llamada',label:'No llamadas',            type:'enum',   getValue: r => r.no_llamada ? 'Sí' : 'No' },
+  { id:'ap_ant',    label:'Ap. anterior',           type:'text',   getValue: r => r.ap_ant },
+  { id:'email',     label:'Correo electrónico',     type:'text',   getValue: r => r.email },
+  { id:'dir_email', label:'Dirección de correo',    type:'text',   getValue: r => r.dir_email },
 ]
 
 function DynIcon() {
@@ -53,65 +56,52 @@ function DynIcon() {
   )
 }
 
-function SortIcon({ active, dir }) {
-  if (!active) return <span style={{ color:'var(--border)', fontSize:10, marginLeft:3 }}>↕</span>
-  return <span style={{ color:'var(--accent)', fontSize:10, marginLeft:3 }}>{dir === 'asc' ? '↑' : '↓'}</span>
-}
-
 export default function ContactosList() {
-  const [sort, setSort] = useState({ col:'nombre', dir:'asc' })
   const [query, setQuery] = useState('')
 
-  const toggleSort = (col) => setSort(s => ({ col, dir: s.col === col && s.dir === 'asc' ? 'desc' : 'asc' }))
-
-  const data = [...MOCK_CONTACTOS]
+  const preFiltered = MOCK_CONTACTOS
     .filter(r => !query || `${r.nombre} ${r.apellido}`.toLowerCase().includes(query.toLowerCase()) || r.cuenta.toLowerCase().includes(query.toLowerCase()) || r.cargo.toLowerCase().includes(query.toLowerCase()))
-    .sort((a, b) => {
-      const va = String(a[sort.col] ?? '').toLowerCase()
-      const vb = String(b[sort.col] ?? '').toLowerCase()
-      return sort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
-    })
+
+  const { result: data, sorts, filters, setSort, setFilter, clearFilter, clearAll, activeCount } = useTableFilter(preFiltered, COLS)
 
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
       <BannerInfo variant="dynamics" title="Solo lectura · Datos sincronizados desde Microsoft Dynamics 365" hint="Cualquier modificación debe realizarse directamente en Dynamics" />
 
-      {/* Toolbar */}
       <div style={{ padding:'8px 16px', background:'var(--surface)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
         <div style={{ fontSize:13, fontWeight:700 }}>Contactos</div>
         <span style={{ fontSize:11, color:'var(--text4)', marginLeft:4 }}>{data.length} registros</span>
+        <FilterBadge count={activeCount} onClear={clearAll} />
         <div className="search-wrap" style={{ marginLeft:'auto' }}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
           <input className="search-inp" placeholder="Buscar contactos..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
       </div>
 
-      {/* Tabla */}
       <div className="tbl-wrap">
         <table className="main-tbl">
           <thead>
             <tr>
-              <th style={{ width:30 }}></th>
-              {COLS.map(c => (
-                <th key={c.key} onClick={() => toggleSort(c.key)} style={{ cursor:'pointer', userSelect:'none', whiteSpace:'nowrap' }}>
-                  {c.label}<SortIcon active={sort.col === c.key} dir={sort.dir} />
-                </th>
-              ))}
+              {COLS.map(c => c.sys
+                ? <th key={c.id} style={{ width:30 }}></th>
+                : <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={preFiltered} />
+              )}
             </tr>
           </thead>
           <tbody>
             {data.length === 0
-              ? <tr><td colSpan={COLS.length + 1} style={{ textAlign:'center', padding:32, color:'var(--text4)', fontSize:12 }}>No se encontraron registros</td></tr>
+              ? <tr><td colSpan={COLS.length} style={{ textAlign:'center', padding:32, color:'var(--text4)', fontSize:12 }}>No se encontraron registros</td></tr>
               : data.map(r => (
                 <tr key={r.id} style={{ cursor:'default' }}>
                   <td style={{ padding:'6px 8px' }}><DynIcon /></td>
+                  <td><span className="mono" style={{ fontSize:11, color:'var(--text3)' }}>{r.id}</span></td>
                   <td style={{ fontSize:11, color:'var(--text3)' }}>{r.titulo}</td>
                   <td style={{ fontWeight:600, fontSize:11 }}>{r.nombre}</td>
                   <td style={{ fontWeight:600, fontSize:11 }}>{r.apellido}</td>
                   <td style={{ fontSize:11, color:'var(--accent)' }}>{r.cuenta}</td>
                   <td style={{ fontSize:11 }}>{r.cargo}</td>
-                  <td style={{ fontSize:11, fontFamily:'var(--mono)', textAlign:'center' }}>{r.anio_rel}</td>
+                  <td style={{ fontSize:11, textAlign:'center' }}><span className="mono">{r.anio_rel}</span></td>
                   <td style={{ fontSize:10, color:'var(--text3)' }}>{r.cat_alumni}</td>
                   <td style={{ fontSize:10, color:'var(--text3)' }}>{r.of_alumni}</td>
                   <td style={{ fontSize:10, color:'var(--text3)' }}>{r.div_alumni}</td>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import BannerInfo from '../components/BannerInfo'
 
 const MOCK_CUENTAS = [
@@ -20,14 +21,16 @@ const MOCK_CUENTAS = [
 ]
 
 const COLS = [
-  { key:'nombre',    label:'Nombre' },
-  { key:'dir',       label:'Dirección 1' },
-  { key:'ciudad',    label:'Ciudad' },
-  { key:'pais',      label:'País' },
-  { key:'industria', label:'Industria' },
-  { key:'companero', label:'Compañero más conectado' },
-  { key:'principal', label:'Cuenta principal' },
-  { key:'rel_cap',   label:'Relación Cap. (IH)' },
+  { id:'_dyn',     label:'',                          sys:true },
+  { id:'id',       label:'ID',                        type:'text', getValue: r => r.id },
+  { id:'nombre',   label:'Nombre',                    type:'text', getValue: r => r.nombre },
+  { id:'dir',      label:'Dirección 1',               type:'text', getValue: r => r.dir },
+  { id:'ciudad',   label:'Ciudad',                    type:'enum', getValue: r => r.ciudad },
+  { id:'pais',     label:'País',                      type:'enum', getValue: r => r.pais },
+  { id:'industria',label:'Industria',                 type:'enum', getValue: r => r.industria },
+  { id:'companero',label:'Compañero más conectado',   type:'enum', getValue: r => r.companero },
+  { id:'principal',label:'Cuenta principal',          type:'text', getValue: r => r.principal },
+  { id:'rel_cap',  label:'Relación Cap. (IH)',        type:'enum', getValue: r => r.rel_cap },
 ]
 
 function DynIcon() {
@@ -46,59 +49,46 @@ function DynIcon() {
   )
 }
 
-function SortIcon({ active, dir }) {
-  if (!active) return <span style={{ color:'var(--border)', fontSize:10, marginLeft:3 }}>↕</span>
-  return <span style={{ color:'var(--accent)', fontSize:10, marginLeft:3 }}>{dir === 'asc' ? '↑' : '↓'}</span>
-}
-
 export default function CuentasList() {
-  const [sort, setSort] = useState({ col:'nombre', dir:'asc' })
   const [query, setQuery] = useState('')
 
-  const toggleSort = (col) => setSort(s => ({ col, dir: s.col === col && s.dir === 'asc' ? 'desc' : 'asc' }))
-
-  const data = [...MOCK_CUENTAS]
+  const preFiltered = MOCK_CUENTAS
     .filter(r => !query || r.nombre.toLowerCase().includes(query.toLowerCase()) || r.industria.toLowerCase().includes(query.toLowerCase()) || r.ciudad.toLowerCase().includes(query.toLowerCase()))
-    .sort((a, b) => {
-      const va = (a[sort.col] || '').toLowerCase()
-      const vb = (b[sort.col] || '').toLowerCase()
-      return sort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
-    })
+
+  const { result: data, sorts, filters, setSort, setFilter, clearFilter, clearAll, activeCount } = useTableFilter(preFiltered, COLS)
 
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
 
       <BannerInfo variant="dynamics" title="Solo lectura · Datos sincronizados desde Microsoft Dynamics 365" hint="Cualquier modificación debe realizarse directamente en Dynamics" />
 
-      {/* Toolbar */}
       <div style={{ padding:'8px 16px', background:'var(--surface)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
         <div style={{ fontSize:13, fontWeight:700 }}>Cuentas</div>
         <span style={{ fontSize:11, color:'var(--text4)', marginLeft:4 }}>{data.length} registros</span>
+        <FilterBadge count={activeCount} onClear={clearAll} />
         <div className="search-wrap" style={{ marginLeft:'auto' }}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
           <input className="search-inp" placeholder="Buscar cuentas..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
       </div>
 
-      {/* Tabla */}
       <div className="tbl-wrap">
         <table className="main-tbl">
           <thead>
             <tr>
-              <th style={{ width:30 }}></th>
-              {COLS.map(c => (
-                <th key={c.key} onClick={() => toggleSort(c.key)} style={{ cursor:'pointer', userSelect:'none', whiteSpace:'nowrap' }}>
-                  {c.label}<SortIcon active={sort.col === c.key} dir={sort.dir} />
-                </th>
-              ))}
+              {COLS.map(c => c.sys
+                ? <th key={c.id} style={{ width:30 }}></th>
+                : <ColHeader key={c.id} col={c} sorts={sorts} filters={filters} setSort={setSort} setFilter={setFilter} clearFilter={clearFilter} allRows={preFiltered} />
+              )}
             </tr>
           </thead>
           <tbody>
             {data.length === 0
-              ? <tr><td colSpan={COLS.length + 1} style={{ textAlign:'center', padding:32, color:'var(--text4)', fontSize:12 }}>No se encontraron registros</td></tr>
+              ? <tr><td colSpan={COLS.length} style={{ textAlign:'center', padding:32, color:'var(--text4)', fontSize:12 }}>No se encontraron registros</td></tr>
               : data.map(r => (
                 <tr key={r.id} style={{ cursor:'default' }}>
                   <td style={{ padding:'6px 8px' }}><DynIcon /></td>
+                  <td><span className="mono" style={{ fontSize:11, color:'var(--text3)' }}>{r.id}</span></td>
                   <td style={{ fontWeight:600, fontSize:11, color:'var(--text)' }}>{r.nombre}</td>
                   <td style={{ fontSize:11, color:'var(--text3)' }}>{r.dir}</td>
                   <td style={{ fontSize:11 }}>{r.ciudad}</td>

@@ -20,7 +20,7 @@ const estadoTag = e => ESTADO_TAG_MAP[e] || 'tag-gray'
 
 const COLS = [
   { id: '_chk',   label: '',               sys: true },
-  { id: 'ref',    label: 'Código',         required: true, type:'text',   getValue: r => r.ref },
+  { id: 'ref',    label: 'ID',             required: true, type:'text',   getValue: r => r.ref },
   { id: 'cuenta', label: 'Cuenta',         required: true, type:'text',   getValue: r => r.cuenta },
   { id: 'origen', label: 'Origen',                         type:'enum',   getValue: r => r.origen },
   { id: 'created',label: 'Creado el',                      type:'text',   getValue: r => r.created },
