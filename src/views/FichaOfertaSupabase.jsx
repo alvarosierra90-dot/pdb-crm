@@ -5,6 +5,7 @@ import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
 import FirmarMandatoModal from '../components/FirmarMandatoModal'
 import { Inbox, Building2, MapPin, Wallet, FileText, Globe, Presentation, Clock } from 'lucide-react'
+import Vinculaciones from '../components/Vinculaciones'
 
 // Pestañas de la ficha de oferta. "Crear ficha" eliminada (botones PPT/PDF
 // se exponen en el header). Equipo de trabajo se mantiene por ahora como
@@ -325,6 +326,14 @@ export default function FichaOfertaSupabase({ refOrId }) {
           {/* TAB: Información oferta */}
           {tab === 'of-info' && (
             <div className="tab-content active"><div className="info-pad">
+              {/* ── VINCULACIONES (bloque canónico — siempre en este orden y posición) ── */}
+              <Vinculaciones
+                cuenta={propietario ? { id: propietario.id || propietario.dynamics_id, nombre: propietario.nombre } : null}
+                activo={activo ? { ref: activo.ref, nombre: activo.nombre, direccion: activo.direccion } : null}
+                oportunidad={oportunidad ? { id: oportunidad.id || oportunidad.dynamics_id, nombre: oportunidad.nombre } : null}
+                instruccion={mandatoVinculado?.dynamics_instruction_id ? { id: mandatoVinculado.dynamics_instruction_id, dynamics_id: mandatoVinculado.dynamics_instruction_id } : null}
+                mandato={mandatoVinculado ? { id: mandatoVinculado.id, ref: mandatoVinculado.ref, titulo: mandatoVinculado.titulo } : null}
+              />
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
                 <div>
                   <div className="va-meta-card" style={{ marginBottom:14 }}>
