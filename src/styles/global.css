@@ -897,6 +897,23 @@ table.main-tbl tbody td {
   color: var(--text2);
   vertical-align: middle;
 }
+
+/* Celdas que NUNCA deben partirse en dos líneas: identificadores (mono),
+   links principales (asset-link), tags y campos numéricos. Si la tabla
+   comprime una columna, mejor que se vea ellipsis a que rompa el ref. */
+table.main-tbl tbody td .mono,
+table.main-tbl tbody td .asset-link,
+table.main-tbl tbody td .tag,
+table.main-tbl tbody td .num,
+table.main-tbl tbody td.mono,
+table.main-tbl tbody td.num {
+  white-space: nowrap;
+}
+/* Las celdas con fuente monoespaciada inline (style fontFamily mono) también */
+table.main-tbl tbody td > span[style*="mono"] { white-space: nowrap; }
+
+/* ColHeader hover — pista visual de que las cabeceras son clicables (filtro/orden) */
+table.main-tbl thead .col-header-trigger:hover { background: var(--gray-lt) !important; }
 table.main-tbl tbody tr:last-child td { border-bottom: none; }
 table.main-tbl tbody tr:hover td {
   background: var(--gray-lt);

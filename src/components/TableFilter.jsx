@@ -129,13 +129,26 @@ export function ColHeader({ col, sorts, filters, setSort, setFilter, clearFilter
   }
 
   return (
-    <th style={{ position: 'relative', userSelect: 'none' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} onClick={() => setOpen(v => !v)}>
+    <th style={{ position: 'relative', userSelect: 'none' }} className="col-header-th">
+      <div
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer',
+          padding: '2px 6px 2px 4px', margin: '-2px -6px -2px -4px', borderRadius: 5,
+          background: isActive ? 'var(--accent-lt, rgba(176,141,87,.10))' : 'transparent',
+          transition: 'background .12s',
+        }}
+        className="col-header-trigger"
+        onClick={() => setOpen(v => !v)}
+        title="Click para ordenar y filtrar"
+      >
         <span style={{ color: isActive ? 'var(--accent)' : undefined, fontWeight: isActive ? 700 : undefined }}>
           {col.label}
         </span>
-        <span style={{ fontSize: 9, color: isActive ? 'var(--accent)' : 'var(--text4)', marginLeft: 1, lineHeight: 1 }}>
-          {sort?.dir === 'asc' ? '↑' : sort?.dir === 'desc' ? '↓' : hasFilter ? '●' : '▾'}
+        <span style={{
+          fontSize: 11, color: isActive ? 'var(--accent)' : 'var(--text3)',
+          lineHeight: 1, fontWeight: 700, opacity: isActive ? 1 : 0.7,
+        }}>
+          {sort?.dir === 'asc' ? '▲' : sort?.dir === 'desc' ? '▼' : hasFilter ? '●' : '▾'}
         </span>
       </div>
 

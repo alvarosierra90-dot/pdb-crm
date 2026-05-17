@@ -135,7 +135,7 @@ export default function DemandaList() {
     origen: <td key="origen"><span className="tag tag-gray" style={{ fontSize: 9 }}>{d.origen}</span></td>,
     created:<td key="created" style={{ fontSize: 11 }}>{d.created}</td>,
     by:     <td key="by" style={{ fontSize: 11 }}>{d.by}</td>,
-    desc:   <td key="desc" style={{ fontSize: 11, color: 'var(--text3)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.desc}</td>,
+    desc:   <td key="desc" style={{ fontSize: 11, color: 'var(--text3)', minWidth: 280, maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.desc}</td>,
     estado: <td key="estado">
               <span className={`tag ${estadoTag(d.estado)}`} title={d._motivo ? `Motivo: ${d._motivo}` : undefined}>{d.estado}</span>
               {d._motivo && <div style={{ fontSize:10, color:'var(--text4)', marginTop:2, fontStyle:'italic', maxWidth:160, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d._motivo}</div>}
