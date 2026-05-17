@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 
 function ChevronDown({ collapsed }) {
@@ -9,9 +9,81 @@ function ChevronDown({ collapsed }) {
   )
 }
 
+// Mapeo view → key de sección. Cualquier vista de una sección hace que esa sección
+// se auto-expanda al navegar. Mantener en sync con los `toggle('xxx')` del render.
+const SECTION_OF_VIEW = {
+  // work
+  paneles:'work', 'mis-clientes':'work',
+  actividades:'work', 'ficha-actividad':'work',
+  tareas:'work', 'ficha-tarea':'work',
+  visitas:'work', 'ficha-visita':'work',
+  presentaciones:'work', 'ficha-presentacion':'work',
+  // cli
+  cuentas:'cli', contactos:'cli', 'entidades-legales':'cli',
+  // cap
+  leads:'cap', 'ficha-lead':'cap',
+  oportunidades:'cap', 'ficha-oportunidad':'cap',
+  propuestas:'cap', 'ficha-propuesta':'cap',
+  mandatos:'cap', 'ficha-mandato':'cap',
+  // act2
+  activos:'act2', 'ficha-activo':'act2',
+  arrendatarios:'act2', 'ficha-arrendatario':'act2',
+  propietarios:'act2', 'ficha-propietario':'act2',
+  // com
+  ofertas:'com', 'ficha-oferta':'com',
+  demandas:'com', 'ficha-demanda':'com',
+  mapas:'com',
+  // cierre
+  negociaciones:'cierre', 'ficha-negociacion':'cierre',
+  instruccion:'cierre',
+  // int
+  vencimientos:'int', 'inteligencia-comercial':'int', noticias:'int',
+  // ana
+  portfolios:'ana', portfolio:'ana',
+  'informes-mercado':'ana',
+  zonas:'ana', 'ficha-zona':'ana',
+  // adm
+  marketing:'adm',
+  usuarios:'adm', 'ficha-usuario':'adm',
+  pitch:'adm', nexo:'adm',
+}
+
+const STORAGE_KEY = 'pdb.nav.collapsed.v1'
+const ALL_SECTIONS = ['work','cli','cap','act2','com','cierre','int','ana','adm']
+
+// Estado inicial: todas colapsadas excepto la del view actual. Si hay
+// preferencias guardadas en localStorage, prevalecen (pero la sección del
+// view actual siempre se fuerza abierta para que el usuario vea el item activo).
+function initialCollapsed(view) {
+  let saved = null
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) saved = JSON.parse(raw)
+  } catch {}
+  const out = {}
+  for (const s of ALL_SECTIONS) {
+    out[s] = saved && typeof saved[s] === 'boolean' ? saved[s] : true
+  }
+  const active = SECTION_OF_VIEW[view]
+  if (active) out[active] = false
+  return out
+}
+
 export default function Nav() {
   const { view, navigate } = useNav()
-  const [collapsed, setCollapsed] = useState({})
+  const [collapsed, setCollapsed] = useState(() => initialCollapsed(view))
+
+  // Al cambiar de view, auto-expandir su sección (sin tocar las demás).
+  useEffect(() => {
+    const active = SECTION_OF_VIEW[view]
+    if (!active) return
+    setCollapsed(prev => prev[active] === false ? prev : { ...prev, [active]: false })
+  }, [view])
+
+  // Persistir preferencias del usuario.
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(collapsed)) } catch {}
+  }, [collapsed])
 
   const isActive = (...views) => views.includes(view)
   const toggle = (s) => setCollapsed(p => ({ ...p, [s]: !p[s] }))
