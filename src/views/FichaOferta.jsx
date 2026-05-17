@@ -961,6 +961,7 @@ function FichaOfertaMock() {
                   <div className="info-pad" style={{padding:'20px 36px 4px'}}>
                     {/* ── VINCULACIONES (bloque canónico — siempre en este orden y posición) ── */}
                     <Vinculaciones
+                      cuentaLabel="Propietario (Cuenta)"
                       cuenta={activoSeleccionado?.propietario ? { id: null, nombre: activoSeleccionado.propietario } : null}
                       activo={activoSeleccionado ? { ref: activoSeleccionado.ref, nombre: activoSeleccionado.nombre, direccion: activoSeleccionado.direccion } : null}
                       oportunidad={mandatoAsociado?.dynamics_opportunity_id ? { id: mandatoAsociado.dynamics_opportunity_id, nombre: mandatoAsociado.dynamics_opportunity_id } : null}

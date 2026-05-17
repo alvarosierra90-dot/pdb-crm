@@ -361,9 +361,55 @@ export default function FichaOfertaSupabase({ refOrId }) {
                   sub: mandatoVinculado.tipo
                 } : null}
               />
-              {/* ── SECCIÓN 02 · ESTADO (lo accionable) + 03 · COMENTARIOS ── */}
+              {/* ── SECCIÓN 02 · EQUIPO Y COLABORADORES (50/50) ── */}
               <div className="fp-section-eyebrow">
                 <span className="fp-eyebrow-n">02</span>
+                <span className="fp-eyebrow-l">Equipo y colaboradores</span>
+                <span className="fp-eyebrow-hint">Quién está trabajando en esta oferta</span>
+              </div>
+              {(() => {
+                const equipo = Array.isArray(oferta.equipo_trabajo) ? oferta.equipo_trabajo : []
+                const equipoInterno = equipo.filter(m => m.rol === 'Principal' || m.rol === 'Soporte')
+                const colaboradores = equipo.filter(m => m.rol === 'Colaborador')
+                const renderList = (list, emptyHint, accent) => list.length === 0 ? (
+                  <div style={{ fontSize:12, color:'var(--text4)', fontStyle:'italic', padding:'10px 4px' }}>{emptyHint}</div>
+                ) : (
+                  <ul style={{ listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', gap:6 }}>
+                    {list.map((m, i) => (
+                      <li key={`${m.nombre}-${i}`} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 10px', background:'#fff', border:'1px solid var(--border)', borderRadius:8, borderLeft:`3px solid ${accent}` }}>
+                        <div style={{ width:28, height:28, borderRadius:'50%', background:accent, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>
+                          {(m.nombre || '?').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()}
+                        </div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>{m.nombre}</div>
+                          <div style={{ fontSize:11, color:'var(--text3)' }}>{m.equipo || '—'}</div>
+                        </div>
+                        <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:9, background:`${accent}15`, color:accent, border:`1px solid ${accent}30`, textTransform:'uppercase', letterSpacing:'.04em' }}>{m.rol}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )
+                return (
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:8 }}>
+                    <div className="va-meta-card va-card-info-cuenta">
+                      <div className="va-meta-head accent-green"><span className="dot"/>Equipo de trabajo</div>
+                      <div style={{ padding:'10px 14px' }}>
+                        {renderList(equipoInterno, 'Sin Principal ni Soporte asignados aún.', '#15803d')}
+                      </div>
+                    </div>
+                    <div className="va-meta-card">
+                      <div className="va-meta-head accent-purple"><span className="dot"/>Colaboradores</div>
+                      <div style={{ padding:'10px 14px' }}>
+                        {renderList(colaboradores, 'Sin colaboradores externos vinculados.', '#6b21a8')}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* ── SECCIÓN 03 · ESTADO + COMENTARIOS ── */}
+              <div className="fp-section-eyebrow">
+                <span className="fp-eyebrow-n">03</span>
                 <span className="fp-eyebrow-l">Estado y notas</span>
                 <span className="fp-eyebrow-hint">Cambia aquí el estado y deja contexto interno</span>
               </div>

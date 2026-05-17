@@ -82,7 +82,6 @@ export default function Vinculaciones({ cuenta, cuentaLabel, activo, oportunidad
 
   return (
     <div className="vinc-block">
-      <div className="vinc-head">Vinculaciones</div>
       <div className="vinc-grid">
         {items.map((it) => {
           const Icon = it.icon
