@@ -179,55 +179,32 @@ export default function ActivosList() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-      {/* Hero band — KPIs visuales destacados */}
-      <div style={{ padding:'14px 16px 12px', borderBottom:'1px solid var(--border)', background:'linear-gradient(180deg, var(--surface) 0%, var(--gray-lt) 100%)', flexShrink:0 }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-          <div>
-            <div style={{ fontSize:15, fontWeight:700, color:'var(--text)' }}>Activos</div>
-            <div style={{ fontSize:11, color:'var(--text3)', marginTop:1 }}>Estructura inmobiliaria · base maestra del inmueble</div>
-          </div>
-          <div style={{ display:'flex', gap:6 }}>
-            <ColumnEditor cols={COLS} vis={vis} setVis={setVis} />
-            <button className="tbtn"><Download size={14} strokeWidth={1.75} /> Exportar</button>
-            <button className="tbtn prim" onClick={() => navigate('ficha-activo', { new: true })}>+ Nuevo activo</button>
-          </div>
-        </div>
+      {/* KPI strip canónico · 5 cuadritos como en el resto de listas */}
+      <div className="kpi-strip" style={{ gridTemplateColumns: 'repeat(5,1fr)' }}>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Total activos</div><div className="ks-val">{totalActivos}</div><div className="ks-sub">en cartera</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">SBA total</div><div className="ks-val">{sbaTotal > 0 ? `${(sbaTotal/1000).toFixed(0)}k` : '—'}</div><div className="ks-sub">m² brutos</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Ocupación promedio</div><div className="ks-val" style={{color: ocupPromedio>=90?'var(--green)':ocupPromedio>=75?'var(--amber)':'var(--red)'}}>{ocupPromedio}%</div><div className="ks-sub">derivado</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">En comercialización</div><div className="ks-val amber">{enComercializacion}</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Totalmente ocupados</div><div className="ks-val green">{totalmenteOcupados}</div><div className="ks-sub">sin disponibilidad</div></div>
+      </div>
 
-        {/* KPI hero numbers — más grandes que el strip anterior */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:1, background:'var(--border)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
-          {[
-            { lbl:'Total activos',         val: totalActivos.toString(),                                      sub:'en cartera',     color:'var(--text)' },
-            { lbl:'SBA total',             val: sbaTotal > 0 ? `${(sbaTotal/1000).toFixed(0)}k` : '—',          sub:'m² brutos',      color:'var(--text)' },
-            { lbl:'Ocupación promedio',    val: `${ocupPromedio}%`,                                            sub:'derivado',       color: ocupPromedio>=90?'var(--green)':ocupPromedio>=75?'var(--amber)':'var(--red)' },
-            { lbl:'En comercialización',   val: enComercializacion.toString(),                                  sub:'activos',        color:'var(--amber)' },
-            { lbl:'Totalmente ocupados',   val: totalmenteOcupados.toString(),                                  sub:'sin disponibilidad', color:'var(--green)' },
-          ].map(k => (
-            <div key={k.lbl} style={{ background:'var(--surface)', padding:'14px 16px' }}>
-              <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em', marginBottom:5 }}>{k.lbl}</div>
-              <div style={{ fontSize:30, fontWeight:800, fontFamily:'var(--mono)', color:k.color, lineHeight:1 }}>{k.val}</div>
-              <div style={{ fontSize:10, color:'var(--text4)', marginTop:4 }}>{k.sub}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Quick filter chips */}
-        <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:12, alignItems:'center' }}>
-          <span style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginRight:4 }}>Estado</span>
-          {chip('comercializacion','En comercialización', enComercializacion, 'var(--amber)')}
-          {chip('parcial',         'Parcialmente disp.',  parcialDisp,         'var(--amber)')}
-          {chip('ocupado',         'Totalmente ocupado',  totalmenteOcupados,  'var(--green)')}
-          {chip('vacio',           'Vacío al completo',   vacioCompleto,       'var(--red)')}
-          <span style={{ width:1, height:18, background:'var(--border)', margin:'0 6px' }}/>
-          <span style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginRight:4 }}>Uso</span>
-          {chip('oficinas',        'Oficinas',            cntOficinas,         '#5a4828')}
-          {chip('logistico',       'Logístico',           cntLogistico,        '#0f766e')}
-          {chip('retail',          'Retail',              cntRetail,           '#6b5b8e')}
-          {chip('datacenter',      'Data Center',         cntDataCenter,       '#0369a1')}
-          {chip('residencial',     'Residencial',         cntResidencial,      '#c2410c')}
-          {quickFilter && (
-            <button onClick={() => setQuickFilter('')} style={{ marginLeft:'auto', fontSize:10, color:'var(--red)', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>✕ Limpiar filtro</button>
-          )}
-        </div>
+      {/* Quick filter chips · estilo sub-tabs */}
+      <div style={{ padding:'8px 16px', display:'flex', flexWrap:'wrap', gap:6, alignItems:'center', background:'var(--surface)', borderBottom:'1px solid var(--border)', flexShrink:0 }}>
+        <span style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginRight:4 }}>Estado</span>
+        {chip('comercializacion','En comercialización', enComercializacion, 'var(--amber)')}
+        {chip('parcial',         'Parcialmente disp.',  parcialDisp,         'var(--amber)')}
+        {chip('ocupado',         'Totalmente ocupado',  totalmenteOcupados,  'var(--green)')}
+        {chip('vacio',           'Vacío al completo',   vacioCompleto,       'var(--red)')}
+        <span style={{ width:1, height:18, background:'var(--border)', margin:'0 6px' }}/>
+        <span style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginRight:4 }}>Uso</span>
+        {chip('oficinas',        'Oficinas',            cntOficinas,         '#5a4828')}
+        {chip('logistico',       'Logístico',           cntLogistico,        '#0f766e')}
+        {chip('retail',          'Retail',              cntRetail,           '#6b5b8e')}
+        {chip('datacenter',      'Data Center',         cntDataCenter,       '#0369a1')}
+        {chip('residencial',     'Residencial',         cntResidencial,      '#c2410c')}
+        {quickFilter && (
+          <button onClick={() => setQuickFilter('')} style={{ marginLeft:'auto', fontSize:10, color:'var(--red)', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>✕ Limpiar filtro</button>
+        )}
       </div>
 
       <div className="list-toolbar">
@@ -241,16 +218,21 @@ export default function ActivosList() {
         <FilterBadge count={activeCount} onClear={clearAll} />
         <span style={{ fontSize:11, color:'var(--text4)', marginLeft:6 }}>{result.length} de {totalActivos}</span>
 
-        {/* Toggle Tabla / Cards */}
-        <div style={{ marginLeft:'auto', display:'inline-flex', border:'1px solid var(--border)', borderRadius:6, overflow:'hidden' }}>
-          {[['tabla','Tabla'],['cards','Cards']].map(([k,l]) => (
-            <button key={k} onClick={() => setView(k)} style={{
-              padding:'5px 12px', fontSize:11, fontWeight: view === k ? 600 : 500,
-              background: view === k ? 'var(--accent)' : 'var(--surface)',
-              color: view === k ? '#fff' : 'var(--text2)',
-              border:'none', cursor:'pointer', fontFamily:'inherit',
-            }}>{l}</button>
-          ))}
+        <div style={{ marginLeft:'auto', display:'flex', gap:6, alignItems:'center' }}>
+          {/* Toggle Tabla / Cards */}
+          <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:6, overflow:'hidden' }}>
+            {[['tabla','Tabla'],['cards','Cards']].map(([k,l]) => (
+              <button key={k} onClick={() => setView(k)} style={{
+                padding:'5px 12px', fontSize:11, fontWeight: view === k ? 600 : 500,
+                background: view === k ? 'var(--accent)' : 'var(--surface)',
+                color: view === k ? '#fff' : 'var(--text2)',
+                border:'none', cursor:'pointer', fontFamily:'inherit',
+              }}>{l}</button>
+            ))}
+          </div>
+          <ColumnEditor cols={COLS} vis={vis} setVis={setVis} />
+          <button className="tbtn"><Download size={14} strokeWidth={1.75} /> Exportar</button>
+          <button className="tbtn prim" onClick={() => navigate('ficha-activo', { new: true })}>+ Nuevo activo</button>
         </div>
       </div>
       {showAdv && (

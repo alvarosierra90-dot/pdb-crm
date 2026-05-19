@@ -160,10 +160,9 @@ export default function LeadsList() {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div style={{ padding:'8px 16px', background:'var(--surface)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexShrink:0, flexWrap:'wrap' }}>
-        <div style={{ fontSize:13, fontWeight:700 }}>Leads</div>
-        <span style={{ fontSize:11, color:'var(--text4)', marginLeft:4 }}>{data.length} de {total}</span>
+      {/* Toolbar canónico */}
+      <div className="list-toolbar" style={{ flexWrap:'wrap' }}>
+        <span style={{ fontSize:11, color:'var(--text4)' }}>{data.length} de {total}</span>
 
         <select value={fTipo} onChange={e=>setFTipo(e.target.value)} style={{ fontSize:11, padding:'4px 8px', border:'1px solid var(--border)', borderRadius:5, marginLeft:8 }}>
           <option value="">Todos los tipos</option>

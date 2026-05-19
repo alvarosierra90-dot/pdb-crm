@@ -58,17 +58,21 @@ export default function EntidadesLegalesList() {
 
       <BannerInfo variant="dynamics" title="Solo lectura · Entidades de facturación en Microsoft Dynamics 365" hint="Las entidades legales se definen y controlan exclusivamente en Dynamics" />
 
-      <div style={{ padding:'8px 16px', background:'var(--surface)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-        <div style={{ fontSize:13, fontWeight:700 }}>Entidades Legales</div>
-        <span style={{ fontSize:11, color:'var(--text4)', marginLeft:4 }}>{data.length} registros</span>
-        <div style={{ fontSize:10, color:'var(--text3)', marginLeft:8, padding:'2px 8px', background:'var(--gray-lt)', borderRadius:8, border:'1px solid var(--border)' }}>
-          Sociedad jurídica de facturación
-        </div>
-        <FilterBadge count={activeCount} onClear={clearAll} />
-        <div className="search-wrap" style={{ marginLeft:'auto' }}>
+      {/* KPI strip canónico */}
+      <div className="kpi-strip" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Total entidades</div><div className="ks-val">{MOCK_ENTIDADES.length}</div><div className="ks-sub">sociedades jurídicas</div></div>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Cuentas matriz</div><div className="ks-val">{new Set(MOCK_ENTIDADES.map(e => e.cuenta)).size}</div></div>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Ciudades</div><div className="ks-val">{new Set(MOCK_ENTIDADES.map(e => e.ciudad)).size}</div></div>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Países</div><div className="ks-val">{new Set(MOCK_ENTIDADES.map(e => e.pais)).size}</div></div>
+      </div>
+
+      <div className="list-toolbar">
+        <div className="search-wrap">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
           <input className="search-inp" placeholder="Buscar entidades legales..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
+        <FilterBadge count={activeCount} onClear={clearAll} />
+        <span style={{ fontSize:11, color:'var(--text4)' }}>{data.length} registros · Sociedad de facturación</span>
       </div>
 
       <div className="tbl-wrap">

@@ -74,6 +74,9 @@ export default function PortfoliosList() {
 
   const countActivos      = portfolios.filter(p => p.estado === 'Activo').length
   const countDesactivados = portfolios.filter(p => p.estado !== 'Activo').length
+  const totalPropietarios = portfolios.length
+  const totalActivosSum   = portfolios.reduce((s, p) => s + (p.n_activos || 0), 0)
+  const sbaSum            = portfolios.reduce((s, p) => s + (p.sba_total || 0), 0)
 
   const { result, sorts, filters, setSort, setFilter, clearFilter, clearAll, activeCount } = useTableFilter(preFiltered, COLS)
 
@@ -98,6 +101,14 @@ export default function PortfoliosList() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      {/* KPI strip canónico */}
+      <div className="kpi-strip" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Propietarios</div><div className="ks-val">{totalPropietarios}</div><div className="ks-sub">con activos</div></div>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Activos</div><div className="ks-val">{totalActivosSum}</div><div className="ks-sub">en cartera</div></div>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">SBA total</div><div className="ks-val">{sbaSum > 0 ? `${(sbaSum/1000).toFixed(0)}k m²` : '—'}</div></div>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Desactivados</div><div className="ks-val" style={{color:'var(--text3)'}}>{countDesactivados}</div></div>
+      </div>
+
       <div style={{ display:'flex', gap:0, padding:'8px 16px 0', borderBottom:'1px solid var(--border)', background:'var(--surface)' }}>
         {[
           { v:'activos',      label:`Activos (${countActivos})`,         color:'var(--green)' },

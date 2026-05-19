@@ -104,14 +104,13 @@ export default function OportunidadesList() {
         </div>
       </div>
 
-      <div style={{ padding:'8px 16px', background:'var(--surface)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-        <div style={{ fontSize:13, fontWeight:700 }}>Oportunidades</div>
-        <span style={{ fontSize:11, color:'var(--text4)', marginLeft:4 }}>{data.length} registros</span>
-        <FilterBadge count={activeCount} onClear={clearAll} />
-        <div className="search-wrap" style={{ marginLeft:'auto' }}>
+      <div className="list-toolbar">
+        <div className="search-wrap">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
           <input className="search-inp" placeholder="Buscar oportunidades..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
+        <FilterBadge count={activeCount} onClear={clearAll} />
+        <span style={{ fontSize:11, color:'var(--text4)' }}>{data.length} registros</span>
       </div>
 
       <div className="tbl-wrap">

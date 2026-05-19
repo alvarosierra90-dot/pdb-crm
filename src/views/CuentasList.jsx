@@ -62,14 +62,21 @@ export default function CuentasList() {
 
       <BannerInfo variant="dynamics" title="Solo lectura · Datos sincronizados desde Microsoft Dynamics 365" hint="Cualquier modificación debe realizarse directamente en Dynamics" />
 
-      <div style={{ padding:'8px 16px', background:'var(--surface)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-        <div style={{ fontSize:13, fontWeight:700 }}>Cuentas</div>
-        <span style={{ fontSize:11, color:'var(--text4)', marginLeft:4 }}>{data.length} registros</span>
-        <FilterBadge count={activeCount} onClear={clearAll} />
-        <div className="search-wrap" style={{ marginLeft:'auto' }}>
+      {/* KPI strip canónico */}
+      <div className="kpi-strip" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Total cuentas</div><div className="ks-val">{MOCK_CUENTAS.length}</div><div className="ks-sub">en Dynamics</div></div>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Relación IH</div><div className="ks-val">{MOCK_CUENTAS.filter(c => c.rel_cap === 'IH').length}</div><div className="ks-sub">Capital Markets</div></div>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Ciudades</div><div className="ks-val">{new Set(MOCK_CUENTAS.map(c => c.ciudad)).size}</div></div>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Industrias</div><div className="ks-val">{new Set(MOCK_CUENTAS.map(c => c.industria)).size}</div></div>
+      </div>
+
+      <div className="list-toolbar">
+        <div className="search-wrap">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
           <input className="search-inp" placeholder="Buscar cuentas..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
+        <FilterBadge count={activeCount} onClear={clearAll} />
+        <span style={{ fontSize:11, color:'var(--text4)' }}>{data.length} registros</span>
       </div>
 
       <div className="tbl-wrap">
