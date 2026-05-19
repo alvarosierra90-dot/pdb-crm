@@ -118,6 +118,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
   const [cancelando, setCancelando] = useState(false)
   const [cancelMotivo, setCancelMotivo] = useState('')
   const [showNotasModal, setShowNotasModal] = useState(false)
+  const [showFeesModal, setShowFeesModal] = useState(false)
 
   const [form, setForm] = useState({
     titulo:'', tipo:'alquiler', via:'directo', estado:'en_curso',
@@ -429,20 +430,6 @@ export default function FichaMandatoSupabase({ refOrId }) {
         <button className="ab-btn" onClick={restablecer} disabled={saving}>↺ Restablecer</button>
         <button className="ab-btn" onClick={() => navigate('mandatos')}>← Volver</button>
         <div className="ab-sep"/>
-        {(() => {
-          const hasNotas = !!(form.notas?.trim() || form.vision_novedades?.trim())
-          const count = (form.notas?.trim() ? 1 : 0) + (form.vision_novedades?.trim() ? 1 : 0)
-          return (
-            <button
-              className="ab-btn"
-              onClick={() => setShowNotasModal(true)}
-              style={ hasNotas ? { borderColor:'var(--accent)', color:'var(--accent)', background:'var(--accent-lt)', fontWeight:600 } : undefined }
-              title={hasNotas ? `${count} bloque(s) con notas` : 'Sin notas todavía'}
-            >
-              📝 Notas{hasNotas && <span style={{ marginLeft:6, background:'var(--accent)', color:'#fff', borderRadius:9, padding:'1px 7px', fontSize:10, fontWeight:700 }}>{count}</span>}
-            </button>
-          )
-        })()}
         <button className="ab-btn" disabled style={{ opacity:0.45 }}>📄 Generar contrato</button>
         {(() => {
           const vencido = dr !== null && dr < 0
@@ -665,58 +652,115 @@ export default function FichaMandatoSupabase({ refOrId }) {
       <div className="ficha-wrap">
         <div className="ficha-main">
 
-          {/* Header */}
-          <div className="ah">
-            <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
-              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#4d4068,#9333ea)' }}></div>
-              <div style={{ flex:1 }}>
-                <div className="ah-ref">
-                  <span style={{ background:'var(--purple-lt,#f3e8ff)', color:'var(--purple,#9333ea)', border:'1px solid var(--purple-bd,#d8b4fe)', padding:'0 5px', borderRadius:3, fontSize:9, fontWeight:700 }}>MANDATO</span>
-                  <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{mandato.ref}</span>
-                </div>
-                <div className="ah-name">
-                  <input style={{ ...inpFull, fontSize:18, fontWeight:700, padding:'4px 8px' }} value={form.titulo} onChange={e => setF('titulo', e.target.value)} placeholder="Título del mandato" />
-                </div>
-                <div className="ah-addr">
-                  📍 {[cuenta?.direccion, cuenta?.codigo_postal, cuenta?.ciudad].filter(Boolean).join(', ') || 'Cuenta sin dirección'} · Creado: {fmtDate(mandato.created_at)} · {CURRENT_USER.nombre}
-                </div>
-                <div className="ah-tags">
-                  <span className="tag" style={{ background:'var(--green-lt)', color:'var(--green)', border:'1px solid var(--green-bd)' }}>● {estadoUI}</span>
-                  <span className="tag tag-blue">{TIPO_LABEL[form.tipo]}</span>
-                  {/* Exclusividad como tag interactiva (select estilizado) — antes era una card propia ocupando 1/3 del grid */}
-                  <select
-                    value={form.exclusividad_modo}
-                    onChange={e => setF('exclusividad_modo', e.target.value)}
-                    title="Cambiar modo de exclusividad"
-                    style={{
-                      background:'var(--purple-lt)', color:'var(--purple)', border:'1px solid var(--purple-bd)',
-                      padding:'2px 24px 2px 10px', borderRadius:14, fontSize:11, fontWeight:600,
-                      cursor:'pointer', fontFamily:'inherit', appearance:'none', WebkitAppearance:'none', MozAppearance:'none',
-                      backgroundImage:'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2710%27 height=%2710%27 viewBox=%270 0 10 10%27%3e%3cpath d=%27M2 4l3 3 3-3%27 stroke=%27%236b5b8e%27 stroke-width=%271.5%27 fill=%27none%27/%3e%3c/svg%3e")',
-                      backgroundRepeat:'no-repeat', backgroundPosition:'right 8px center',
-                    }}>
-                    <option value="exclusiva">Exclusiva</option>
-                    <option value="coexclusiva">Co-exclusiva</option>
-                  </select>
-                  {form.via && <span className="tag tag-gray">Vía {form.via}</span>}
-                  {dr !== null && dr >= 0 && dr <= 60 && <span className="tag" style={{ background:'var(--amber-lt)', color:'var(--amber)', border:'1px solid var(--amber-bd)', fontWeight:700 }}>⏳ {dr}d</span>}
-                </div>
-              </div>
-              <div style={{ flexShrink:0, display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:1, background:'var(--border)', border:'1px solid var(--border)', borderRadius:'var(--r)', overflow:'hidden', fontSize:10, alignSelf:'flex-start' }}>
-                {[
-                  ['Estado',    estadoUI,                       estadoColor],
-                  ['Activos',   activosLinked.length,           'var(--accent)'],
-                  ['SBA total', sbaTotal ? `${sbaTotal.toLocaleString('es-ES')} m²` : '—', null],
-                  ['Responsable', responsableUI,                'var(--accent)'],
-                ].map(([lbl,val,col]) => (
-                  <div key={lbl} style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
-                    <div style={{ fontSize:9, color:'var(--text4)' }}>{lbl}</div>
-                    <div style={{ fontWeight:600, color:col || 'var(--text)' }}>{val}</div>
+          {/* Header con pills interactivos */}
+          {(() => {
+            const hasNotas = !!(form.notas?.trim() || form.vision_novedades?.trim())
+            const notasCount = (form.notas?.trim() ? 1 : 0) + (form.vision_novedades?.trim() ? 1 : 0)
+            const totalFee = Number(form.fee_eur_fijo) || 0
+            const isCoex = form.exclusividad_modo === 'coexclusiva'
+            return (
+              <div className="ah">
+                <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                  <div className="ah-ico" style={{ background:'linear-gradient(135deg,#4d4068,#9333ea)' }}></div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div className="ah-ref">
+                      <span style={{ background:'var(--purple-lt,#f3e8ff)', color:'var(--purple,#9333ea)', border:'1px solid var(--purple-bd,#d8b4fe)', padding:'0 6px', borderRadius:3, fontSize:9, fontWeight:700 }}>MANDATO</span>
+                      <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{mandato.ref}</span>
+                      <span style={{ color:'var(--text4)', fontSize:11 }}>· {TIPO_LABEL[form.tipo]}{form.via && ` · Vía ${form.via}`}</span>
+                    </div>
+                    <div className="ah-name">
+                      <input style={{ ...inpFull, fontSize:22, fontWeight:700, padding:'4px 8px' }} value={form.titulo} onChange={e => setF('titulo', e.target.value)} placeholder="Título del mandato" />
+                    </div>
+                    <div className="ah-addr">
+                      📍 {[cuenta?.direccion, cuenta?.codigo_postal, cuenta?.ciudad].filter(Boolean).join(', ') || 'Cuenta sin dirección'} · Creado: {fmtDate(mandato.created_at)} · {CURRENT_USER.nombre}
+                    </div>
                   </div>
-                ))}
+
+                  {/* PILLS interactivos · todo lo importante de un vistazo */}
+                  <div style={{ flexShrink:0, display:'flex', gap:8, flexWrap:'wrap', alignSelf:'center', maxWidth:560, justifyContent:'flex-end' }}>
+                    {/* Estado */}
+                    <div style={{
+                      background:'var(--surface)', border:`2px solid ${estadoColor === 'var(--green)' ? 'var(--green-bd)' : estadoColor === 'var(--amber)' ? 'var(--amber-bd)' : estadoColor === 'var(--red)' ? 'var(--red-bd)' : 'var(--border)'}`,
+                      borderRadius:10, padding:'8px 14px', minWidth:110,
+                    }}>
+                      <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em' }}>Estado</div>
+                      <div style={{ fontSize:15, fontWeight:700, color:estadoColor, marginTop:2 }}>● {estadoUI}</div>
+                    </div>
+
+                    {/* Exclusividad interactiva */}
+                    <div style={{
+                      background: isCoex ? 'var(--purple-lt)' : 'var(--accent-lt)',
+                      border:`2px solid ${isCoex ? 'var(--purple-bd)' : 'var(--accent-bd)'}`,
+                      borderRadius:10, padding:'8px 14px', minWidth:130,
+                    }}>
+                      <div style={{ fontSize:10, fontWeight:700, color: isCoex ? 'var(--purple)' : 'var(--accent)', textTransform:'uppercase', letterSpacing:'.05em' }}>Exclusividad</div>
+                      <select
+                        value={form.exclusividad_modo}
+                        onChange={e => setF('exclusividad_modo', e.target.value)}
+                        style={{ fontSize:15, fontWeight:700, color: isCoex ? 'var(--purple)' : 'var(--accent)', border:'none', background:'transparent', padding:0, cursor:'pointer', fontFamily:'inherit', outline:'none', width:'100%', marginTop:2 }}>
+                        <option value="exclusiva">Exclusiva</option>
+                        <option value="coexclusiva">Co-exclusiva</option>
+                      </select>
+                    </div>
+
+                    {/* Fees (botón → modal) */}
+                    <button
+                      onClick={() => setShowFeesModal(true)}
+                      style={{
+                        background: totalFee > 0 ? 'var(--green-lt)' : 'var(--surface)',
+                        border:`2px solid ${totalFee > 0 ? 'var(--green-bd)' : 'var(--border)'}`,
+                        borderRadius:10, padding:'8px 14px', minWidth:130, cursor:'pointer',
+                        fontFamily:'inherit', textAlign:'left',
+                      }}
+                      title="Ver fees y honorarios"
+                    >
+                      <div style={{ fontSize:10, fontWeight:700, color: totalFee > 0 ? 'var(--green)' : 'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em' }}>Fees</div>
+                      <div style={{ fontSize:15, fontWeight:700, color: totalFee > 0 ? 'var(--green)' : 'var(--text3)', marginTop:2 }}>
+                        {totalFee > 0 ? `${totalFee.toLocaleString('es-ES')} €` : 'Sin fee'}
+                      </div>
+                    </button>
+
+                    {/* Notas (botón → modal) */}
+                    <button
+                      onClick={() => setShowNotasModal(true)}
+                      style={{
+                        background: hasNotas ? 'var(--accent-lt)' : 'var(--surface)',
+                        border:`2px solid ${hasNotas ? 'var(--accent-bd)' : 'var(--border)'}`,
+                        borderRadius:10, padding:'8px 14px', minWidth:100, cursor:'pointer',
+                        fontFamily:'inherit', textAlign:'left', position:'relative',
+                      }}
+                      title={hasNotas ? `${notasCount} bloque(s) con notas` : 'Añadir notas'}
+                    >
+                      <div style={{ fontSize:10, fontWeight:700, color: hasNotas ? 'var(--accent)' : 'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em' }}>Notas</div>
+                      <div style={{ fontSize:15, fontWeight:700, color: hasNotas ? 'var(--accent)' : 'var(--text3)', marginTop:2, display:'flex', alignItems:'center', gap:6 }}>
+                        📝 {hasNotas ? <span>{notasCount}</span> : <span style={{ fontSize:13, fontWeight:500 }}>—</span>}
+                      </div>
+                    </button>
+
+                    {/* Activos */}
+                    <div style={{ background:'var(--surface)', border:'2px solid var(--border)', borderRadius:10, padding:'8px 14px', minWidth:100 }}>
+                      <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em' }}>Activos</div>
+                      <div style={{ fontSize:15, fontWeight:700, color:'var(--accent)', marginTop:2 }}>{activosLinked.length} · {sbaTotal ? `${(sbaTotal/1000).toFixed(1)}k m²` : '—'}</div>
+                    </div>
+
+                    {/* Responsable */}
+                    <div style={{ background:'var(--surface)', border:'2px solid var(--border)', borderRadius:10, padding:'8px 14px', minWidth:130 }}>
+                      <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em' }}>Responsable</div>
+                      <div style={{ fontSize:14, fontWeight:700, color:'var(--accent)', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{responsableUI}</div>
+                    </div>
+
+                    {/* Días restantes (solo si alerta) */}
+                    {dr !== null && dr >= 0 && dr <= 60 && (
+                      <div style={{ background:'var(--amber-lt)', border:'2px solid var(--amber-bd)', borderRadius:10, padding:'8px 14px' }}>
+                        <div style={{ fontSize:10, fontWeight:700, color:'var(--amber)', textTransform:'uppercase', letterSpacing:'.05em' }}>Días restantes</div>
+                        <div style={{ fontSize:15, fontWeight:700, color:'var(--amber)', marginTop:2 }}>⏳ {dr}d</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            )
+          })()}
 
           <div className="tabs">
             {MAN_TABS.map(([k, label]) => (
@@ -989,7 +1033,18 @@ export default function FichaMandatoSupabase({ refOrId }) {
                   </div>
                 </div>
 
-                {/* ─── Fees y honorarios (card full) ─── */}
+                {/* Modal Fees y honorarios — accesible vía pill 🏦 del header */}
+                {showFeesModal && (
+                  <div onClick={() => setShowFeesModal(false)} style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:10, width:'min(960px, 96vw)', maxHeight:'92vh', overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 20px 50px rgba(15,23,42,0.25)' }}>
+                      <div style={{ padding:'18px 24px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+                        <div>
+                          <div style={{ fontSize:17, fontWeight:700, color:'var(--text)' }}>Fees y honorarios</div>
+                          <div style={{ fontSize:12, color:'var(--text3)', marginTop:2 }}>{mandato.ref} · Importe total + reparto entre colaboradores</div>
+                        </div>
+                        <button onClick={() => setShowFeesModal(false)} style={{ background:'none', border:'none', fontSize:20, color:'var(--text4)', cursor:'pointer', padding:'4px 8px' }}>×</button>
+                      </div>
+                      <div style={{ flex:1, overflowY:'auto', padding:'4px 24px 18px' }}>
                 {(() => {
                   const reparto      = form.fee_reparto
                   const totalFeeEur  = Number(form.fee_eur_fijo) || 0
@@ -1101,6 +1156,14 @@ export default function FichaMandatoSupabase({ refOrId }) {
                     </div>
                   )
                 })()}
+                      </div>
+                      <div style={{ padding:'14px 24px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'flex-end', gap:8, flexShrink:0 }}>
+                        <button onClick={() => setShowFeesModal(false)} style={{ padding:'8px 16px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background:'#fff', cursor:'pointer', fontWeight:600 }}>Cerrar</button>
+                        <button onClick={() => { saveEdit(); setShowFeesModal(false) }} disabled={saving} style={{ padding:'8px 16px', fontSize:12, border:'none', borderRadius:5, background:'var(--accent)', color:'#fff', cursor:'pointer', fontWeight:600 }}>Guardar</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
               </div></div>
             )
