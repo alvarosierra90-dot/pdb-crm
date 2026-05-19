@@ -5,6 +5,8 @@ import AsignarTareaModal from '../components/AsignarTareaModal'
 import { exportPDF, exportPPT } from '../utils/exportReport'
 import { supabase } from '../lib/supabase'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
+import VinculacionesMaestra from '../components/VinculacionesMaestra'
+import { Building, Building2, ScrollText, Tag } from 'lucide-react'
 import { StackingPlan } from './FichaActivo'
 
 function ExportMenu({ getConfig }) {
@@ -44,8 +46,9 @@ function ExportMenu({ getConfig }) {
 // Tabs (mayo 2026): Condiciones + Análisis unificadas; renombrado el "Histórico
 // propietarios" como "Histórico de activos" (más correcto: el propietario no se
 // historifica a sí mismo, sino los activos que ha tenido).
-const TABS = ['datos','condiciones','stacking','historico','conf']
-const TAB_LABELS = ['Datos del propietario','Condiciones e inversión','Stacking plan','Histórico de activos','Confidencialidad']
+// 5 tabs canónicos · spec mayo 2026. Info → Condiciones inversión → Stacking → Vista 360 → Confidencialidad.
+const TABS = ['info','condiciones','stacking','360','conf']
+const TAB_LABELS = ['Información general','Condiciones de inversión','Stacking plan','Vista 360','Confidencialidad']
 
 const USOS_PROPIETARIO = [
   'Oficinas','Logístico / Industrial','Retail','Centros comerciales',
@@ -73,7 +76,7 @@ export default function FichaPropietario() {
   const isBlankNew = !fromActivo && !params?.id && !params?.ownerData
   // Tratamos blank-new igual que fromActivo en cuanto a borrar todos los defaults
   const noPrefill  = fromActivo || isBlankNew
-  const [tab, setTab] = useState('datos')
+  const [tab, setTab] = useState('info')
   const [hist] = useState(HIST_INIT)
   const [log]  = useState(LOG_INIT)
   const [propConfidential, setPropConfidential] = useState(false)
@@ -540,9 +543,50 @@ export default function FichaPropietario() {
           </div>
 
           {/* TAB: DATOS */}
-          {tab==='datos' && (
+          {tab==='info' && (
             <div className="tab-content active">
-              <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 40px',alignItems:'start',padding:'28px 36px'}}>
+              {/* ── VINCULACIONES MAESTRA (Propietario es entidad maestra) ── */}
+              <div style={{padding:'16px 24px 0'}}>
+                <VinculacionesMaestra items={[
+                  {
+                    key:'cuenta',
+                    icon: Building2,
+                    tone:'green',
+                    label:'Cuenta propietaria',
+                    value: form.propietario || null,
+                    sub: form.tipo_entidad || null,
+                    onClick: form.propietario ? () => navigate('cuentas', { search: form.propietario }) : null,
+                  },
+                  {
+                    key:'activo',
+                    icon: Building,
+                    tone:'bronze',
+                    label: params?.ownerData?.activos > 1 ? 'Activos vinculados' : 'Activo vinculado',
+                    value: params?.fromActivoNombre || null,
+                    sub: params?.ownerSuperficie ? `${Number(params.ownerSuperficie).toLocaleString('es-ES')} m²` : null,
+                    onClick: params?.fromActivoRef ? () => navigate('ficha-activo', { ref: params.fromActivoRef }) : null,
+                  },
+                  {
+                    key:'mandatos',
+                    icon: ScrollText,
+                    tone:'accent',
+                    label:'Mandatos vinculados',
+                    value: null,
+                    sub: null,
+                    onClick: null,
+                  },
+                  {
+                    key:'ofertas',
+                    icon: Tag,
+                    tone:'blue',
+                    label:'Ofertas activas',
+                    value: null,
+                    sub: null,
+                    onClick: null,
+                  },
+                ]} />
+              </div>
+              <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 40px',alignItems:'start',padding:'18px 36px 28px'}}>
 
                 {/* Col 1: Propietario */}
                 <div style={{minWidth:0, overflow:'visible'}}>
@@ -965,7 +1009,7 @@ export default function FichaPropietario() {
           )}
 
           {/* TAB: HISTÓRICO DE ACTIVOS — activos que ha tenido este propietario */}
-          {tab==='historico' && (
+          {tab==='360' && (
             <div className="tab-content active">
               <div style={{marginBottom:12,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <div style={{fontSize:12,color:'var(--text3)'}}>Activos que este propietario ha tenido en cartera — cuando un activo se desinviste, queda registrado aquí.</div>
