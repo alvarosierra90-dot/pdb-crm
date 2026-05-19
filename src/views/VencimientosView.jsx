@@ -305,35 +305,44 @@ export default function VencimientosView() {
   return (
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
 
-      {/* Header */}
-      <div style={{padding:'10px 16px',background:'var(--surface)',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:12,flexShrink:0}}>
-        <div style={{flex:1}}>
-          <div style={{fontSize:13,fontWeight:700}}>⏰ Vencimientos de contratos</div>
-          <div style={{fontSize:11,color:'var(--text3)',marginTop:1}}>
-            Fin de contrato y break options extraídos de Arrendatarios
-            {loadingDB && <span style={{marginLeft:8,color:'var(--text4)'}}>· Cargando datos reales...</span>}
+      {/* KPI strip canónico */}
+      <div className="kpi-strip" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Alertas &lt;90d</div><div className="ks-val red">{alertas}</div><div className="ks-sub">requieren acción inmediata</div></div>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Próximos 12 meses</div><div className="ks-val amber">{proximos}</div></div>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Total vencimientos</div><div className="ks-val">{filtered.length}</div><div className="ks-sub">{loadingDB ? 'Cargando…' : 'Fin contrato + break options'}</div></div>
+        <div className="ks" style={{ padding:'12px 16px' }}><div className="ks-lbl">Fuente</div><div className="ks-val" style={{ fontSize: 15, color:'var(--text3)' }}>Arrendatarios</div><div className="ks-sub">extraído del stacking</div></div>
+      </div>
+
+      {/* Toolbar canónico con filtros */}
+      <div className="list-toolbar" style={{ flexWrap:'wrap' }}>
+        {[
+          {lbl:'Año',     val:fAnio,    set:setFAnio,    opts:[['',''],['2025','2025'],['2026','2026'],['2027','2027'],['2028','2028'],['2029','2029'],['2030','2030']]},
+          {lbl:'Período', val:fPeriod,  set:setFPeriod,  opts:[['',''],['Q1','Q1'],['Q2','Q2'],['Q3','Q3'],['Q4','Q4']]},
+          {lbl:'Línea',   val:fLinea,   set:setFLinea,   opts:[['',''], ...LINEAS.map(l=>[l,l])]},
+          {lbl:'Tipo',    val:fTipo,    set:setFTipo,    opts:[['',''],['Break','Break'],['Fin contrato','Fin contrato']]},
+          {lbl:'Mandato', val:fMandato, set:setFMandato, opts:[['','Todos'],['con','Bajo mandato vivo'],['sin','Sin mandato']]},
+          {lbl:'Stacking',val:fAsig,    set:setFAsig,    opts:[['','Todos'],['asignado','Asignado al stacking'],['huerfano','Sin asignar (huérfano)']]},
+        ].map(({lbl,val,set,opts})=>(
+          <div key={lbl} style={{display:'flex',alignItems:'center',gap:6}}>
+            <span style={{fontSize:11,fontWeight:600,color:'var(--text3)'}}>{lbl}</span>
+            <select className="fsel" value={val} onChange={e=>set(e.target.value)}>
+              {opts.map(([v,l])=><option key={v} value={v}>{l||'Todos'}</option>)}
+            </select>
           </div>
-        </div>
-        <div style={{display:'flex',gap:8}}>
-          <div style={{background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:'var(--r)',padding:'4px 12px',textAlign:'center'}}>
-            <div style={{fontSize:9,color:'#dc2626',fontWeight:700,textTransform:'uppercase'}}>Alertas &lt;90d</div>
-            <div style={{fontSize:18,fontWeight:800,color:'#dc2626',fontFamily:'var(--mono)'}}>{alertas}</div>
-          </div>
-          <div style={{background:'#faf5ec',border:'1px solid #ece0c9',borderRadius:'var(--r)',padding:'4px 12px',textAlign:'center'}}>
-            <div style={{fontSize:9,color:'var(--accent)',fontWeight:700,textTransform:'uppercase'}}>Próximos 12m</div>
-            <div style={{fontSize:18,fontWeight:800,color:'var(--accent)',fontFamily:'var(--mono)'}}>{proximos}</div>
-          </div>
-          <div style={{background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'4px 12px',textAlign:'center'}}>
-            <div style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase'}}>Total</div>
-            <div style={{fontSize:18,fontWeight:800,color:'var(--text)',fontFamily:'var(--mono)'}}>{filtered.length}</div>
-          </div>
-        </div>
+        ))}
+        {(fAnio||fPeriod||fLinea||fTipo||fMandato||fAsig) && (
+          <button onClick={()=>{setFAnio('');setFPeriod('');setFLinea('');setFTipo('');setFMandato('');setFAsig('')}}
+            style={{fontSize:11,padding:'5px 10px',borderRadius:5,border:'1px solid var(--border)',background:'none',cursor:'pointer',color:'var(--red)',fontFamily:'inherit',fontWeight:600}}>
+            ✕ Limpiar filtros
+          </button>
+        )}
+        <span style={{ marginLeft:'auto', fontSize:11, color:'var(--text4)' }}>{filtered.length} vencimientos</span>
       </div>
 
       {/* Toast */}
       {toast && (
         <div style={{
-          padding:'8px 16px',
+          padding:'10px 16px',
           background: toast.type === 'ok' ? '#f0fdf4' : '#fee2e2',
           color:      toast.type === 'ok' ? '#15803d' : '#991b1b',
           borderBottom: '1px solid', borderColor: toast.type === 'ok' ? '#bbf7d0' : '#fca5a5',
@@ -344,39 +353,14 @@ export default function VencimientosView() {
           {toast.ofertaRef && (
             <button
               onClick={() => navigate('ficha-oferta', { id: toast.ofertaRef })}
-              style={{ background:'#15803d', color:'#fff', border:'none', borderRadius:5, padding:'4px 10px', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}
+              style={{ background:'#15803d', color:'#fff', border:'none', borderRadius:5, padding:'5px 12px', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}
             >
               Ver oferta {toast.ofertaRef} →
             </button>
           )}
-          <button onClick={() => setToast(null)} style={{ background:'none', border:'none', color:'inherit', fontSize:14, fontWeight:700, cursor:'pointer', opacity:0.6 }}>×</button>
+          <button onClick={() => setToast(null)} style={{ background:'none', border:'none', color:'inherit', fontSize:16, fontWeight:700, cursor:'pointer', opacity:0.6 }}>×</button>
         </div>
       )}
-
-      {/* Filtros */}
-      <div style={{padding:'8px 16px',background:'var(--surface)',borderBottom:'1px solid var(--border)',display:'flex',gap:10,alignItems:'center',flexShrink:0}}>
-        {[
-          {lbl:'Año',     val:fAnio,    set:setFAnio,    opts:[['',''],['2025','2025'],['2026','2026'],['2027','2027'],['2028','2028'],['2029','2029'],['2030','2030']]},
-          {lbl:'Período', val:fPeriod,  set:setFPeriod,  opts:[['',''],['Q1','Q1'],['Q2','Q2'],['Q3','Q3'],['Q4','Q4']]},
-          {lbl:'Línea',   val:fLinea,   set:setFLinea,   opts:[['',''], ...LINEAS.map(l=>[l,l])]},
-          {lbl:'Tipo',    val:fTipo,    set:setFTipo,    opts:[['',''],['Break','Break'],['Fin contrato','Fin contrato']]},
-          {lbl:'Mandato',  val:fMandato, set:setFMandato, opts:[['','Todos'],['con','Bajo mandato vivo'],['sin','Sin mandato']]},
-          {lbl:'Stacking', val:fAsig,    set:setFAsig,    opts:[['','Todos'],['asignado','Asignado al stacking'],['huerfano','⚠ Sin asignar (huérfano)']]},
-        ].map(({lbl,val,set,opts})=>(
-          <div key={lbl} style={{display:'flex',alignItems:'center',gap:5}}>
-            <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>{lbl}</span>
-            <select className="fsel" style={{fontSize:10}} value={val} onChange={e=>set(e.target.value)}>
-              {opts.map(([v,l])=><option key={v} value={v}>{l||'Todos'}</option>)}
-            </select>
-          </div>
-        ))}
-        {(fAnio||fPeriod||fLinea||fTipo||fMandato||fAsig) && (
-          <button onClick={()=>{setFAnio('');setFPeriod('');setFLinea('');setFTipo('');setFMandato('');setFAsig('')}}
-            style={{fontSize:10,padding:'2px 8px',borderRadius:4,border:'1px solid var(--border)',background:'none',cursor:'pointer',color:'var(--accent)',fontFamily:'inherit',fontWeight:600}}>
-            ✕ Limpiar
-          </button>
-        )}
-      </div>
 
       {/* Tabla */}
       <div className="tbl-wrap">
