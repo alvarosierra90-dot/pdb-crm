@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { MOCK_OPORTUNIDADES, ETAPA_TAG_CLASS } from './OportunidadesList'
+import VinculacionesMaestra from '../components/VinculacionesMaestra'
+import { Building, Building2, Tag, ScrollText, Lightbulb, Search } from 'lucide-react'
 
 function KV({ k, v, mono = false, large = false }) {
   return (
@@ -107,9 +109,9 @@ export default function FichaOportunidad() {
 
           {/* Tabs */}
           <div className="tabs">
-            <div className={`tab ${tab === 'info' ? 'active' : ''}`} onClick={() => setTab('info')}>Información de la oportunidad</div>
+            <div className={`tab ${tab === 'info' ? 'active' : ''}`} onClick={() => setTab('info')}>Información general</div>
             <div className={`tab ${tab === 'vinc' ? 'active' : ''}`} onClick={() => setTab('vinc')}>Vinculaciones operativas</div>
-            <div className={`tab ${tab === 'act' ? 'active' : ''}`} onClick={() => setTab('act')}>Actividades</div>
+            <div className={`tab ${tab === '360' ? 'active' : ''}`} onClick={() => setTab('360')}>Vista 360</div>
           </div>
 
           {/* Content */}
@@ -117,6 +119,46 @@ export default function FichaOportunidad() {
 
             {tab === 'info' && (
               <div className="info-pad">
+
+                {/* ── VINCULACIONES MAESTRA (Oportunidad es entidad maestra · conecta cuenta con propuesta/demanda/oferta) ── */}
+                <VinculacionesMaestra items={[
+                  {
+                    key:'cuenta',
+                    icon: Building2,
+                    tone:'green',
+                    label:'Cuenta',
+                    value: op.cuenta || null,
+                    sub: op.contacto || null,
+                    onClick: op.cuenta ? () => navigate('cuentas', { search: op.cuenta }) : null,
+                  },
+                  {
+                    key:'activos',
+                    icon: Building,
+                    tone:'bronze',
+                    label:'Activos vinculados',
+                    value: v.activos.length > 0 ? (v.activos.length === 1 ? 'activo' : 'activos') : null,
+                    count: v.activos.length > 0 ? v.activos.length : null,
+                    onClick: v.activos.length > 0 ? () => setTab('vinc') : null,
+                  },
+                  {
+                    key:'ofertas',
+                    icon: Tag,
+                    tone:'blue',
+                    label:'Ofertas / Demandas',
+                    value: (v.ofertas.length + v.demandas.length) > 0 ? 'op. comerciales' : null,
+                    count: (v.ofertas.length + v.demandas.length) > 0 ? (v.ofertas.length + v.demandas.length) : null,
+                    onClick: (v.ofertas.length + v.demandas.length) > 0 ? () => setTab('vinc') : null,
+                  },
+                  {
+                    key:'mandato',
+                    icon: ScrollText,
+                    tone:'accent',
+                    label: v.mandatos.length === 1 ? 'Mandato' : 'Mandatos',
+                    value: v.mandatos.length > 0 ? v.mandatos[0] : null,
+                    sub: v.mandatos.length > 1 ? `+${v.mandatos.length - 1} más` : null,
+                    onClick: v.mandatos.length > 0 ? () => navigate('ficha-mandato', { ref: v.mandatos[0] }) : null,
+                  },
+                ]} />
 
                 {/* ── IDENTIFICACIÓN + ESTADO ── */}
                 <div className="va-two-col">
@@ -317,7 +359,7 @@ export default function FichaOportunidad() {
               </>
             )}
 
-            {tab === 'act' && (
+            {tab === '360' && (
               <div>
                 <div className="rp-lbl">Actividades de la oportunidad</div>
                 <table className="main-tbl">
