@@ -884,7 +884,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   if (buildings.length === 0) return (
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'48px 24px',gap:20}}>
       <div style={{fontSize:32}}>🏗</div>
-      <div style={{fontSize:14,fontWeight:600,color:'var(--text1)'}}>Configura el stacking plan</div>
+      <div style={{fontSize:17,fontWeight:700,color:'var(--text)',letterSpacing:'-.005em'}}>Configura el stacking plan</div>
       <div style={{fontSize:12,color:'var(--text3)',marginTop:-10,textAlign:'center'}}>Define la estructura del edificio para empezar a asignar plantas y usos</div>
       <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10,padding:24,width:'100%',maxWidth:420,display:'flex',flexDirection:'column',gap:14}}>
         <div style={{display:'flex',flexDirection:'column',gap:4}}>
@@ -2037,7 +2037,7 @@ function TabMultimedia() {
     <div className="tab-content active"><div className="info-pad">
       {/* Header */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-        <div style={{fontSize:14,fontWeight:600}}>Multimedia</div>
+        <div style={{fontSize:17,fontWeight:700,color:'var(--text)',letterSpacing:'-.005em'}}>Multimedia</div>
         <div style={{display:'flex',gap:8}}>
           {['todos','fotografias','planos'].map(f=>(
             <button key={f} onClick={()=>setFilter(f)}
@@ -4945,7 +4945,7 @@ export default function FichaActivo() {
             <div className="info-pad" style={{paddingTop:24}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:22}}>
                 <div>
-                  <div style={{fontSize:14,fontWeight:600}}>Stacking Plan</div>
+                  <div style={{fontSize:17,fontWeight:700,color:'var(--text)',letterSpacing:'-.005em'}}>Stacking Plan</div>
                   <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Distribución de usos, propietarios y arrendatarios por planta y edificio</div>
                 </div>
                 {params?.ofertaId && (
@@ -5048,7 +5048,7 @@ export default function FichaActivo() {
                     {/* Propietarios (plegable, abierto por defecto) */}
                     <details open style={{border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)'}}>
                       <summary style={{cursor:'pointer', padding:'12px 16px', listStyle:'none', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8}}>
-                        <span style={{fontSize:13, fontWeight:600}}>Propietarios <span style={{color:'var(--text4)', fontWeight:400, marginLeft:6}}>({propietariosReg.length})</span></span>
+                        <span style={{fontSize:15, fontWeight:700, color:'var(--text)'}}>Propietarios <span style={{color:'var(--text4)', fontWeight:500, marginLeft:6, fontSize:13}}>({propietariosReg.length})</span></span>
                         <button className="ab-btn blue" onClick={(e)=>{e.preventDefault(); handleAddOwner()}}>+ Nuevo propietario</button>
                       </summary>
                       <div style={{padding:'0 16px 14px'}}>
@@ -5095,7 +5095,7 @@ export default function FichaActivo() {
                     {/* Arrendatarios (plegable, abierto por defecto) */}
                     <details open style={{border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)'}}>
                       <summary style={{cursor:'pointer', padding:'12px 16px', listStyle:'none', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8}}>
-                        <span style={{fontSize:13, fontWeight:600}}>Arrendatarios <span style={{color:'var(--text4)', fontWeight:400, marginLeft:6}}>({arrendatariosReg.length})</span></span>
+                        <span style={{fontSize:15, fontWeight:700, color:'var(--text)'}}>Arrendatarios <span style={{color:'var(--text4)', fontWeight:500, marginLeft:6, fontSize:13}}>({arrendatariosReg.length})</span></span>
                         <button className="ab-btn blue" onClick={(e)=>{e.preventDefault(); handleAddTenant()}}>+ Nuevo arrendatario</button>
                       </summary>
                       <div style={{padding:'0 16px 14px'}}>
@@ -5138,7 +5138,7 @@ export default function FichaActivo() {
 
               <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14,gap:14}}>
                 <div>
-                  <div style={{fontSize:14,fontWeight:600}}>Principales competidores</div>
+                  <div style={{fontSize:17,fontWeight:700,color:'var(--text)',letterSpacing:'-.005em'}}>Principales competidores</div>
                   <div style={{fontSize:11,color:'var(--text4)',marginTop:2,lineHeight:1.5}}>Sistema de benchmarking entre activos. Compara con activos similares de la PDB y clasifica por motivos. Alimenta los Informes de gestión.</div>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
