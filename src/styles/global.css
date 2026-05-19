@@ -1256,32 +1256,66 @@ tr:hover .ra-cell { opacity: 1; }
   text-transform: uppercase; letter-spacing: .08em;
 }
 
-/* va-kv-list / va-kv — display rows inside cards */
-.va-kv-list { padding: 8px 22px 12px; display: flex; flex-direction: column; }
+/* va-kv-list — contenedor de filas en grid 2 columnas para máxima densidad
+   con sentido: dos campos por fila, label arriba, valor pegado debajo. */
+.va-kv-list {
+  padding: 12px 20px 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 24px;
+}
+
+/* va-kv — fila vertical compacta · eyebrow pequeño + valor grande pegado */
 .va-kv {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 7px 0; border-bottom: 1px dashed var(--va-line2); font-size: 13px; gap: 16px;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 7px 0 6px;
+  border-bottom: 1px solid var(--border);
 }
 .va-kv:last-child { border-bottom: none; }
-.va-kv .k { color: var(--va-muted); flex-shrink: 0; }
-.va-kv .v { color: var(--ink); font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; }
-.va-kv .v.highlight { color: var(--pdb-blue); font-weight: 600; }
-.va-kv .v.muted { color: var(--va-muted); }
+.va-kv .k {
+  font-size: 10.5px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .05em; line-height: 1.2;
+}
+.va-kv .v {
+  font-size: 14px; font-weight: 600; color: var(--text);
+  font-variant-numeric: tabular-nums; line-height: 1.35;
+}
+.va-kv .v.highlight { color: var(--accent); font-weight: 700; }
+.va-kv .v.muted     { color: var(--text4); font-weight: 500; }
 
-/* ir rows — compactas con K | V alineadas y valor más visible */
+/* ir rows — STACK VERTICAL COMPACTO · eyebrow pequeño + valor grande pegado.
+   2 columnas para máxima densidad: cuando el padre es lista (.va-kv-list)
+   los rows se distribuyen en grid 2 columnas. Cada row es una unidad visual
+   compacta (~36px de alto), legible de un vistazo, sin look de ERP. */
 .va-card .ir, .va-meta-card .ir {
-  display: flex; align-items: center;
-  padding: 10px 0; border-bottom: 1px solid var(--border);
-  gap: 12px; font-size: 13px;
+  display: flex; flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  padding: 7px 0 6px;
+  border-bottom: 1px solid var(--border);
 }
 .va-card .ir:last-child, .va-meta-card .ir:last-child { border-bottom: none; }
 .va-card .ir-k, .va-meta-card .ir-k {
-  font-size: 12.5px; color: var(--text3); font-weight: 600;
-  width: 45%; flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  width: auto;
+  flex-shrink: 0;
+  line-height: 1.2;
 }
 .va-card .ir-v, .va-meta-card .ir-v {
-  flex: 1; font-size: 13.5px; font-weight: 600; color: var(--text);
-  text-align: right; font-variant-numeric: tabular-nums;
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  min-height: 20px;
+  display: flex;
+  align-items: center;
 }
 /* Spacing between stacked cards inside info-pad — más respiro entre cards */
 .info-pad > .va-card,
