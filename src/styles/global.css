@@ -81,7 +81,7 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* Headings editoriales · Playfair Display para H1/H2 grandes y page titles */
+/* Headings · todos usan Inter (vía var(--serif), unificado con el resto) */
 h1, .h1, .page-title {
   font-family: var(--serif);
   font-weight: 600;

@@ -145,7 +145,7 @@ export default function PortfolioMap({ activos = [], height = 420, onMarkerClick
               <div style="font-size:12px;font-weight:700;color:#6f5734;margin-bottom:2px">${(a.nombre || a.ref || '—').replace(/</g,'&lt;')}</div>
               <div style="font-size:10px;color:#64748b;margin-bottom:4px">${(a.ciudad || '').replace(/</g,'&lt;')}${a.zona ? ' · ' + String(a.zona).replace(/</g,'&lt;') : ''}</div>
               <div style="display:inline-block;font-size:9px;font-weight:700;background:${color};color:white;padding:2px 8px;border-radius:8px;margin-bottom:4px">${(a.uso || 'Sin uso').replace(/</g,'&lt;')}</div>
-              <div style="font-size:10px;color:#475569;font-family:ui-monospace,monospace">${(a.ref || '').replace(/</g,'&lt;')}</div>
+              <div style="font-size:10px;color:#475569;font-variant-numeric:tabular-nums">${(a.ref || '').replace(/</g,'&lt;')}</div>
             </div>`
           infoWin.current.setContent(html)
           infoWin.current.open({ anchor: m, map: mapObj.current })
