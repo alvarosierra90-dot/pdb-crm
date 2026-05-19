@@ -2,6 +2,8 @@ import { useState, useRef } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
+import Vinculaciones from '../components/Vinculaciones'
+import EquipoTrabajoCard from '../components/EquipoTrabajoCard'
 
 // ─── CONTRACT DRAFTS ─────────────────────────────────────────────────────────
 const CONTRACTS_INIT = [
@@ -172,8 +174,14 @@ function UploadPanel({ onUpload, onClose, nextVersion }) {
   )
 }
 
-const TABS = ['neg-chat','neg-condiciones','neg-docs','neg-historial','neg-colab','neg-conf']
-const TAB_LABELS = ['Negociación','Condiciones acordadas','Documentos contractuales','Historial completo','Equipos colaboradores','Confidencialidad']
+// 5 tabs canónicos · spec mayo 2026.
+// · neg-info: Vinculaciones canónica + Equipo+Colaboradores 50/50 + Condiciones acordadas (resumen) + Notas
+// · neg-chat: Negociación (chat con contraparte + borradores de contrato)
+// · neg-docs: Documentos contractuales
+// · neg-360: Vista 360 (sustituye al antiguo "Historial completo")
+// · neg-conf: Confidencialidad (formato canónico Oferta)
+const TABS = ['neg-info','neg-chat','neg-docs','neg-360','neg-conf']
+const TAB_LABELS = ['Información general','Negociación','Documentos contractuales','Vista 360','Confidencialidad']
 
 const COLAB_INIT_NEG = [
   { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable negociación', initials:'AS', bg:'#f5efe5', color:'#5a4828', principal:true },
@@ -181,14 +189,12 @@ const COLAB_INIT_NEG = [
 
 export default function FichaNegociacion() {
   const { navigate } = useNav()
-  const [activeTab, setActiveTab] = useState('neg-chat')
-  const [colabTeams, setColabTeams] = useState(COLAB_INIT_NEG)
-  const [addingTeam, setAddingTeam] = useState(false)
+  const [activeTab, setActiveTab] = useState('neg-info')
+  const [colabTeams] = useState(COLAB_INIT_NEG)
   const [negConfidential, setNegConfidential] = useState(false)
   const [negAuthUsers, setNegAuthUsers] = useState([
     { name:'Sierra Álvaro', team:'Leasing Oficinas MAD', role:'Principal', initials:'AS', bg:'#f5efe5', color:'#5a4828', owner:true },
   ])
-  const [newTeam, setNewTeam] = useState('')
   const [showTarea, setShowTarea] = useState(false)
   const [contracts, setContracts] = useState(CONTRACTS_INIT)
   const [showUpload, setShowUpload] = useState(false)
@@ -240,21 +246,8 @@ export default function FichaNegociacion() {
               <span className="tag tag-blue">Alquiler oficinas</span>
               <span className="tag tag-gray">1.000 m²</span>
               <span className="dias-pill">📅 20 días</span>
-              <span style={{ background: 'var(--green-lt)', color: 'var(--green)', border: '1px solid var(--green-bd)', padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 600 }}>🔗 Link activo</span>
             </div>
-            {/* ─── Vinculaciones obligatorias · Oportunidad + herencia Cuenta ─── */}
-            <div style={{ marginTop:10, padding:'8px 10px', background:'#faf5ec', border:'1px solid #ece0c9', borderRadius:6, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-              <span style={{ width:18, height:18, borderRadius:3, background:'#B08D57', color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>D</span>
-              <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
-                <span style={{ fontSize:9, fontWeight:700, color:'#1e3a8a', textTransform:'uppercase', letterSpacing:'.04em' }}>Oportunidad ★ obligatorio</span>
-                <span onClick={() => navigate('ficha-oportunidad', { id:'OPO-2501' })} style={{ fontSize:11, fontWeight:700, color:'#5a4828', cursor:'pointer', textDecoration:'underline' }}>OPO-2501 · Albatros D — Oracle Relocation 2026</span>
-              </div>
-              <div style={{ width:1, height:28, background:'#ece0c9' }}/>
-              <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
-                <span style={{ fontSize:9, fontWeight:700, color:'#1e3a8a', textTransform:'uppercase', letterSpacing:'.04em' }}>Cuenta · heredada de Op.</span>
-                <span style={{ fontSize:11, fontWeight:600, color:'#1e3a8a' }}>Oracle Spain SL</span>
-              </div>
-            </div>
+            {/* Vinculaciones canónicas viven en el tab "Información general" (banda <Vinculaciones>) */}
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
             <div style={{ fontSize: 9, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Cierre estimado</div>
@@ -272,6 +265,76 @@ export default function FichaNegociacion() {
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+          {/* TAB: Información general — banda Vinculaciones + Equipo/Colaboradores + Condiciones acordadas */}
+          {activeTab === 'neg-info' && (
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              <div className="info-pad">
+
+                {/* ── VINCULACIONES (canónico, siempre arriba) ── */}
+                <Vinculaciones
+                  cuenta={{ id:'ORACLE', nombre:'Oracle Spain SL', sub:'Cliente · Demanda' }}
+                  activo={{ ref:'MAD-OF-AVALON', nombre:'P.E Avalon', direccion:'Calle Santa Leonor 65, 28037 Madrid', sub:'M-30 · Oficinas' }}
+                  oportunidad={{ id:'OPO-2501', nombre:'OPO-2501 · Albatros D — Oracle Relocation 2026', sub:'Pitch demanda · Leasing' }}
+                />
+
+                {/* ── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones) ── */}
+                {(() => {
+                  const internos = colabTeams.filter(t => t.role !== 'Colaborador')
+                  const colabs   = colabTeams.filter(t => t.role === 'Colaborador')
+                  const toEqArr = (arr) => arr.map(t => ({ nombre: t.name, equipo: t.team, rol: t.principal ? 'Principal' : (t.role || 'Soporte') }))
+                  return (
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+                      <EquipoTrabajoCard
+                        title="Equipo de trabajo"
+                        equipo={toEqArr(internos)}
+                        canManage={false}
+                      />
+                      <EquipoTrabajoCard
+                        title="Colaboradores"
+                        equipo={toEqArr(colabs)}
+                        canManage={false}
+                      />
+                    </div>
+                  )
+                })()}
+
+                {/* ── CONDICIONES ACORDADAS (sub-bloque, era tab aparte) ── */}
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Resumen ronda actual</h3>
+                    <span className="hint">Ronda 3 — actualizado 15/03/2026</span>
+                  </div>
+                  <div style={{padding:'4px 20px 16px',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:24}}>
+                    {[['3','Ronda',null,'var(--text)'],['19,00 €','Renta última','Inicial: 18,00 €','var(--purple)'],['5 años','Duración',null,'var(--text)'],['↔ Negociando','Estado',null,'var(--amber)']].map(([v,l,s,c],i) => (
+                      <div key={i} style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: c || 'var(--text)', fontVariantNumeric:'tabular-nums' }}>{v}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '.04em', marginTop:3 }}>{l}</div>
+                        {s && <div style={{ fontSize: 10, color: 'var(--text3)', marginTop:2, fontStyle:'italic' }}>{s}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="va-card">
+                  <div className="va-card-header">
+                    <h3><span className="ico"></span> Condiciones por ronda</h3>
+                  </div>
+                  <table className="pat-table">
+                    <thead><tr><th>Condición</th><th>Oferta inicial</th><th>Contraoferta 1</th><th>Ajuste 2</th><th>Estado</th></tr></thead>
+                    <tbody>
+                      <tr><td style={{ fontWeight: 500 }}>Renta (€/m²/mes)</td><td>18,00 €</td><td style={{ color: 'var(--amber)' }}>20,00 €</td><td style={{ color: 'var(--purple)', fontWeight: 700 }}>19,00 €</td><td><span className="tag tag-amber">En negociación</span></td></tr>
+                      <tr><td style={{ fontWeight: 500 }}>Superficie (m²)</td><td>1.000</td><td>1.000</td><td style={{ fontWeight: 700 }}>1.000</td><td><span className="tag tag-green">Acordado</span></td></tr>
+                      <tr><td style={{ fontWeight: 500 }}>Duración contrato</td><td>5 años</td><td>5 años</td><td style={{ fontWeight: 700 }}>5 años</td><td><span className="tag tag-green">Acordado</span></td></tr>
+                      <tr><td style={{ fontWeight: 500 }}>Carencia (meses)</td><td>2</td><td>2</td><td style={{ fontWeight: 700, color: 'var(--purple)' }}>3</td><td><span className="tag tag-amber">En negociación</span></td></tr>
+                      <tr><td style={{ fontWeight: 500 }}>Gastos comunes</td><td>3,50 €/m² aparte</td><td>Incluidos en renta</td><td style={{ fontWeight: 700 }}>Incluidos en renta</td><td><span className="tag tag-amber">En negociación</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+              </div>
+            </div>
+          )}
 
           {/* Chat */}
           {activeTab === 'neg-chat' && (
@@ -406,47 +469,6 @@ export default function FichaNegociacion() {
             </div>
           )}
 
-          {/* Condiciones acordadas */}
-          {activeTab === 'neg-condiciones' && (
-            <div style={{ overflowY: 'auto', flex: 1 }}>
-              <div className="info-pad">
-
-                <div className="va-card">
-                  <div className="va-card-header">
-                    <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Resumen ronda actual</h3>
-                    <span className="hint">Ronda 3 — actualizado 15/03/2026</span>
-                  </div>
-                  <div style={{padding:'4px 20px 16px',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:24}}>
-                    {[['3','Ronda',null,'var(--text)'],['19,00 €','Renta última','Inicial: 18,00 €','var(--purple)'],['5 años','Duración',null,'var(--text)'],['↔ Negociando','Estado',null,'var(--amber)']].map(([v,l,s,c],i) => (
-                      <div key={i} style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: c || 'var(--text)', fontFamily:'var(--mono)' }}>{v}</div>
-                        <div style={{ fontSize: 10, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '.04em', marginTop:3 }}>{l}</div>
-                        {s && <div style={{ fontSize: 10, color: 'var(--text3)', marginTop:2, fontStyle:'italic' }}>{s}</div>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="va-card">
-                  <div className="va-card-header">
-                    <h3><span className="ico"></span> Condiciones por ronda</h3>
-                  </div>
-                  <table className="pat-table">
-                    <thead><tr><th>Condición</th><th>Oferta inicial</th><th>Contraoferta 1</th><th>Ajuste 2</th><th>Estado</th></tr></thead>
-                    <tbody>
-                      <tr><td style={{ fontWeight: 500 }}>Renta (€/m²/mes)</td><td>18,00 €</td><td style={{ color: 'var(--amber)' }}>20,00 €</td><td style={{ color: 'var(--purple)', fontWeight: 700 }}>19,00 €</td><td><span className="tag tag-amber">En negociación</span></td></tr>
-                      <tr><td style={{ fontWeight: 500 }}>Superficie (m²)</td><td>1.000</td><td>1.000</td><td style={{ fontWeight: 700 }}>1.000</td><td><span className="tag tag-green">Acordado</span></td></tr>
-                      <tr><td style={{ fontWeight: 500 }}>Duración contrato</td><td>5 años</td><td>5 años</td><td style={{ fontWeight: 700 }}>5 años</td><td><span className="tag tag-green">Acordado</span></td></tr>
-                      <tr><td style={{ fontWeight: 500 }}>Carencia (meses)</td><td>2</td><td>2</td><td style={{ fontWeight: 700, color: 'var(--purple)' }}>3</td><td><span className="tag tag-amber">En negociación</span></td></tr>
-                      <tr><td style={{ fontWeight: 500 }}>Gastos comunes</td><td>3,50 €/m² aparte</td><td>Incluidos en renta</td><td style={{ fontWeight: 700 }}>Incluidos en renta</td><td><span className="tag tag-amber">En negociación</span></td></tr>
-                    </tbody>
-                  </table>
-                </div>
-
-              </div>
-            </div>
-          )}
-
           {/* Documentos contractuales */}
           {activeTab === 'neg-docs' && (
             <div style={{ overflowY: 'auto', flex: 1 }}>
@@ -489,13 +511,13 @@ export default function FichaNegociacion() {
             </div>
           )}
 
-          {/* Historial */}
-          {activeTab === 'neg-historial' && (
+          {/* TAB: Vista 360 — sustituye al antiguo Historial completo */}
+          {activeTab === 'neg-360' && (
             <div style={{ overflowY: 'auto', flex: 1 }}>
               <div className="info-pad">
                 <div className="va-card">
                   <div className="va-card-header">
-                    <h3><span className="ico">◷</span> Historial completo</h3>
+                    <h3><span className="ico">◷</span> Vista 360</h3>
                     <span className="hint">AUDITABLE · 6 eventos</span>
                   </div>
                 <div>
@@ -521,77 +543,6 @@ export default function FichaNegociacion() {
             </div>
           )}
           {/* Colaboración */}
-          {activeTab === 'neg-colab' && (
-            <div style={{overflowY:'auto',flex:1}}>
-              <div className="info-pad">
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-                  <div>
-                    <div style={{fontSize:14,fontWeight:600}}>Equipos colaboradores</div>
-                    <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Gestiona qué equipos y usuarios participan en esta negociación</div>
-                  </div>
-                  <button className="ab-btn blue" onClick={()=>setAddingTeam(true)}>+ Añadir equipo / usuario</button>
-                </div>
-
-                <div style={{marginBottom:16}}>
-                  <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>Participantes actuales</div>
-                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                    {colabTeams.map((t,i)=>(
-                      <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--surface)'}}>
-                        <div style={{width:32,height:32,borderRadius:'50%',background:t.bg,color:t.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,flexShrink:0}}>{t.initials}</div>
-                        <div style={{flex:1}}>
-                          <div style={{fontSize:12,fontWeight:600}}>{t.name}</div>
-                          <div style={{fontSize:10,color:'var(--text3)'}}>{t.team} · {t.role}</div>
-                        </div>
-                        <span className={`tag ${t.principal?'tag-blue':'tag-gray'}`}>{t.principal?'Responsable':'Colaborador'}</span>
-                        {!t.principal && <button onClick={()=>setColabTeams(prev=>prev.filter((_,j)=>j!==i))} style={{fontSize:10,color:'var(--red)',background:'none',border:'none',cursor:'pointer',padding:'2px 6px',fontFamily:'inherit'}}>✕ Quitar</button>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {addingTeam && (
-                  <div style={{border:'1px solid var(--accent-bd)',background:'var(--accent-lt)',borderRadius:'var(--r2)',padding:14,marginBottom:14}}>
-                    <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Añadir equipo o usuario</div>
-                    <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'flex-end'}}>
-                      <div style={{display:'flex',flexDirection:'column',gap:3}}>
-                        <span style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Equipo</span>
-                        <select className="fsel" value={newTeam} onChange={e=>setNewTeam(e.target.value)} style={{minWidth:220}}>
-                          <option value="">Seleccionar equipo...</option>
-                          <option>Arquitectura / Workplace</option>
-                          <option>Capital Markets MAD</option>
-                          <option>Retail MAD</option>
-                          <option>Logístico MAD</option>
-                          <option>Hoteles</option>
-                          <option>Valoraciones MAD</option>
-                          <option>Centros Comerciales</option>
-                          <option>Leasing Oficinas BCN</option>
-                        </select>
-                      </div>
-                      <button className="ab-btn save" onClick={()=>{
-                        if(!newTeam)return
-                        const ini=newTeam.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
-                        setColabTeams(prev=>[...prev,{name:newTeam,team:newTeam,role:'Colaborador',initials:ini,bg:'#f3e8ff',color:'#6b21a8',principal:false}])
-                        setAddingTeam(false);setNewTeam('')
-                      }}>Añadir</button>
-                      <button className="ab-btn" onClick={()=>{setAddingTeam(false);setNewTeam('')}}>Cancelar</button>
-                    </div>
-                  </div>
-                )}
-
-                <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>Historial de colaboración</div>
-                <div style={{border:'1px solid var(--border)',borderRadius:'var(--r)',overflow:'hidden'}}>
-                  {[
-                    {color:'var(--green)',msg:'Negociación creada — responsable: Sierra Álvaro (Transaction Spain)',date:'10/03/2026 · 09:30'},
-                  ].map((e,i,arr)=>(
-                    <div key={i} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'9px 12px',borderBottom:i<arr.length-1?'1px solid var(--border)':'none'}}>
-                      <div style={{width:7,height:7,borderRadius:'50%',background:e.color,flexShrink:0,marginTop:4}}/>
-                      <div><div style={{fontSize:11}}>{e.msg}</div><div style={{fontSize:10,color:'var(--text4)'}}>{e.date}</div></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* TAB: CONFIDENCIALIDAD — formato canónico Oferta */}
           {activeTab === 'neg-conf' && (
