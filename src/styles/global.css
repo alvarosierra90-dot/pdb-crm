@@ -444,9 +444,9 @@ nav {
 .ref-badge-oferta  { background: var(--green-lt); color: var(--green); border: 1px solid var(--green-bd); padding: 3px 9px; border-radius: 3px; font-size: 9px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
 .ref-badge-neg     { background: var(--purple-lt); color: var(--purple); border: 1px solid var(--purple-bd); padding: 3px 9px; border-radius: 3px; font-size: 9px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
 
-.ah-name  { font-family: var(--serif); font-size: 34px; font-weight: 500; letter-spacing: -.015em; color: var(--ink); line-height: 1.1; }
-.ah-addr  { font-size: 12px; font-weight: 400; color: var(--text3); margin-top: 8px; line-height: 1.6; letter-spacing: .01em; }
-.ah-tags  { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+.ah-name  { font-family: var(--sans); font-size: 28px; font-weight: 700; letter-spacing: -.015em; color: var(--text); line-height: 1.15; }
+.ah-addr  { font-size: 12.5px; font-weight: 500; color: var(--text3); margin-top: 6px; line-height: 1.55; letter-spacing: 0; }
+.ah-tags  { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
 
 /* ─────────────────────────────────────────
    KPI STRIP
@@ -466,25 +466,26 @@ nav {
 }
 .ks:last-child { border-right: none; }
 .ks-lbl {
-  font-size: 9.5px;
-  font-weight: 500;
-  color: var(--text4);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text3);
   text-transform: uppercase;
-  letter-spacing: .16em;
+  letter-spacing: .12em;
   margin-bottom: 10px;
 }
 .ks-val {
-  font-family: var(--serif);
+  font-family: var(--sans);
   font-size: 32px;
-  font-weight: 500;
-  color: var(--ink);
+  font-weight: 700;
+  color: var(--text);
   letter-spacing: -.02em;
-  line-height: 1;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 .ks-val.amber { color: var(--amber); }
 .ks-val.green { color: var(--green); }
 .ks-val.red   { color: var(--red); }
-.ks-sub { font-size: 10px; color: var(--text3); margin-top: 3px; font-weight: 400; }
+.ks-sub { font-size: 11px; color: var(--text4); margin-top: 6px; font-weight: 500; }
 
 /* ─────────────────────────────────────────
    TABS
@@ -494,26 +495,27 @@ nav {
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   overflow-x: auto;
-  padding: 0 36px;
+  padding: 0 28px;
   flex-shrink: 0;
-  gap: 24px;
+  gap: 4px;
 }
 .tab {
-  padding: 18px 0;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text4);
-  text-transform: uppercase;
-  letter-spacing: .14em;
+  padding: 16px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: none;
+  letter-spacing: 0;
   cursor: pointer;
-  border-bottom: 1px solid transparent;
+  border-bottom: 3px solid transparent;
   margin-bottom: -1px;
   white-space: nowrap;
-  transition: color .15s;
+  transition: color .15s, border-color .15s, background .15s;
   background: transparent;
+  border-radius: 6px 6px 0 0;
 }
-.tab.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; background: transparent; }
-.tab:hover:not(.active) { color: var(--text2); background: transparent; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; background: transparent; }
+.tab:hover:not(.active) { color: var(--text); background: var(--gray-lt); }
 
 .tab-content { display: none; flex: 1; overflow-y: auto; background: var(--bg); }
 .tab-content.active { display: block; }
@@ -846,21 +848,21 @@ nav {
 .list-toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 11px 24px;
+  gap: 10px;
+  padding: 14px 24px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   flex-wrap: wrap;
 }
-.search-wrap { position: relative; min-width: 240px; }
-.search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--text4); }
+.search-wrap { position: relative; min-width: 280px; }
+.search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--text4); }
 .search-inp {
   width: 100%;
-  padding: 8px 12px 8px 32px;
+  padding: 9px 12px 9px 36px;
   border: 1px solid var(--border2);
-  border-radius: var(--r);
-  font-size: 12px;
+  border-radius: 6px;
+  font-size: 13px;
   font-family: inherit;
   color: var(--text);
   outline: none;
@@ -887,26 +889,29 @@ nav {
 ───────────────────────────────────────── */
 .tbl-wrap { flex: 1; overflow: auto; }
 
-table.main-tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.main-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 table.main-tbl thead { position: sticky; top: 0; z-index: 2; }
 table.main-tbl thead th {
-  padding: 12px 14px;
-  font-size: 9.5px;
-  font-weight: 600;
-  color: var(--text3);
+  padding: 14px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text2);
   text-align: left;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border2);
+  background: var(--gray-lt);
+  border-bottom: 2px solid var(--border2);
   text-transform: uppercase;
-  letter-spacing: .14em;
+  letter-spacing: .08em;
   white-space: nowrap;
   cursor: pointer;
 }
 table.main-tbl tbody td {
-  padding: 11px 14px;
+  padding: 13px 14px;
   border-bottom: 1px solid var(--border);
-  color: var(--text2);
+  color: var(--text);
   vertical-align: middle;
+}
+table.main-tbl tbody tr:hover td {
+  background: var(--gray-lt);
 }
 
 /* Celdas que NUNCA deben partirse en dos líneas: identificadores (mono),
@@ -1219,27 +1224,40 @@ tr:hover .ra-cell { opacity: 1; }
 .va-hero > * { border-radius: var(--r); overflow: hidden; border: 1px solid var(--va-line); box-shadow: 0 1px 4px rgba(11,18,32,.08); position: relative; }
 
 /* — Generic card (Localización, Superficies, Datos Urb., Seguimiento, Ofertas) — */
-/* va-card: minimalista · sin border agresivo, mucho whitespace */
+/* va-card: estilo Salesforce · caja blanca con borde definido + sombra sutil + título prominente */
 .va-card {
   background: #fff;
-  border-radius: 0;
-  border: none;
-  border-top: 1px solid var(--va-line);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
   overflow: hidden;
 }
 .va-card-header {
-  padding: 22px 0 12px; display: flex; align-items: baseline; justify-content: space-between;
+  padding: 20px 22px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #fdfcfa 0%, #ffffff 100%);
 }
 .va-card-header h3 {
-  margin: 0; font-family: var(--serif); font-size: 19px; font-weight: 600;
-  letter-spacing: -.015em; text-transform: none; color: var(--ink);
-  display: flex; align-items: center; gap: 9px;
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.005em;
+  text-transform: none;
+  color: var(--text);
+  display: flex; align-items: center; gap: 10px;
+  line-height: 1.25;
 }
-.va-card-header h3 .ico { color: var(--pdb-blue); }
-.va-card-header .hint { font-size: 12px; color: var(--va-muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+.va-card-header h3 .ico { color: var(--accent); font-size: 14px; }
+.va-card-header .hint {
+  font-size: 11px; color: var(--text4); font-weight: 500;
+  text-transform: uppercase; letter-spacing: .08em;
+}
 
 /* va-kv-list / va-kv — display rows inside cards */
-.va-kv-list { padding: 4px 18px; display: flex; flex-direction: column; }
+.va-kv-list { padding: 8px 22px 12px; display: flex; flex-direction: column; }
 .va-kv {
   display: flex; justify-content: space-between; align-items: center;
   padding: 7px 0; border-bottom: 1px dashed var(--va-line2); font-size: 13px; gap: 16px;
@@ -1253,22 +1271,22 @@ tr:hover .ra-cell { opacity: 1; }
 /* ir rows — compactas con K | V alineadas y valor más visible */
 .va-card .ir, .va-meta-card .ir {
   display: flex; align-items: center;
-  padding: 9px 0; border-bottom: 1px solid var(--va-line2);
+  padding: 10px 0; border-bottom: 1px solid var(--border);
   gap: 12px; font-size: 13px;
 }
 .va-card .ir:last-child, .va-meta-card .ir:last-child { border-bottom: none; }
 .va-card .ir-k, .va-meta-card .ir-k {
-  font-size: 12px; color: var(--va-muted); font-weight: 500;
+  font-size: 12.5px; color: var(--text3); font-weight: 600;
   width: 45%; flex-shrink: 0;
 }
 .va-card .ir-v, .va-meta-card .ir-v {
-  flex: 1; font-size: 14px; font-weight: 600; color: var(--ink);
+  flex: 1; font-size: 13.5px; font-weight: 600; color: var(--text);
   text-align: right; font-variant-numeric: tabular-nums;
 }
-/* Spacing between stacked cards inside info-pad */
+/* Spacing between stacked cards inside info-pad — más respiro entre cards */
 .info-pad > .va-card,
 .info-pad > .va-two-col,
-.info-pad > .va-meta-card { margin-bottom: 12px; }
+.info-pad > .va-meta-card { margin-bottom: 16px; }
 .info-pad > .va-card:last-child,
 .info-pad > .va-two-col:last-child,
 .info-pad > .va-meta-card:last-child { margin-bottom: 0; }
@@ -1318,14 +1336,15 @@ tr:hover .ra-cell { opacity: 1; }
 /* — Main content blocks — */
 .va-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
 .va-meta-card {
-  background: #fff; border-radius: var(--r); border: 1px solid var(--va-line);
-  box-shadow: var(--va-shadow); overflow: hidden;
+  background: #fff; border-radius: 8px; border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05); overflow: hidden;
 }
 .va-meta-head {
-  padding: 10px 18px; border-bottom: 1px solid var(--va-line);
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 8px;
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .1em; color: var(--va-muted);
+  font-size: 13px; font-weight: 700; text-transform: none;
+  letter-spacing: 0; color: var(--text);
+  background: linear-gradient(180deg, #fdfcfa 0%, #ffffff 100%);
 }
 .va-meta-head .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: var(--pdb-blue); }
 .va-meta-head.accent-red    .dot { background: var(--pdb-red); }
