@@ -61,10 +61,10 @@ export default function EquipoTrabajoCard({ equipo = [], canManage = true, onAdd
 
   return (
     <div className="va-card" style={{ marginBottom:14 }}>
-      <div className="va-card-header" style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+      <div className="va-card-header">
         <h3><span className="ico" style={{ color:'var(--accent)' }}>●</span> {title}</h3>
-        <span style={{ fontSize:10, color:'var(--text4)' }}>
-          {equipo.length === 0 ? 'Sin miembros' : `${equipo.length} miembro(s) · ${principales} Principal(es)`}
+        <span className="hint">
+          {equipo.length === 0 ? 'Sin miembros' : `${equipo.length} miembro${equipo.length === 1 ? '' : 's'} · ${principales} Principal${principales === 1 ? '' : 'es'}`}
         </span>
       </div>
 

@@ -483,29 +483,8 @@ export default function FichaPropuestaSupabase({ refOrId }) {
             </div></div>
           )}
 
-          {tab === 'equipos' && (() => {
-            const equipo = Array.isArray(propuesta.equipo_trabajo) ? propuesta.equipo_trabajo : []
-            const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
-            const canManage = userIsPrincipal || equipo.length === 0
-            const handlers = makeEquipoHandlers({
-              supabase, table:'propuestas', idValue:propuesta.id, equipo,
-              onAfter: () => load(),
-              onError: (msg) => setSaveError(msg),
-            })
-            return (
-              <div className="tab-content active"><div className="info-pad">
-                <EquipoTrabajoCard
-                  equipo={equipo}
-                  canManage={canManage}
-                  onAdd={handlers.addMiembro}
-                  onRemove={handlers.removeMiembro}
-                  onUpdateRol={handlers.updateMiembroRol}
-                />
-              </div></div>
-            )
-          })()}
-          {tab === 'trazabilidad' && <div className="tab-content active"><StubTab label="Trazabilidad" /></div>}
-          {tab === 'docs'         && <div className="tab-content active"><StubTab label="Documentación" /></div>}
+          {tab === 'trazabilidad' && <div className="tab-content active"><StubTab label="Vista 360" /></div>}
+          {tab === 'docs'         && <div className="tab-content active"><StubTab label="Documentos" /></div>}
           {tab === 'resumen'      && <div className="tab-content active"><StubTab label="Resumen" /></div>}
           {tab === 'conf' && (
             <ConfidencialidadPanel
