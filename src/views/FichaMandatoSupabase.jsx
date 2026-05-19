@@ -725,8 +725,8 @@ export default function FichaMandatoSupabase({ refOrId }) {
                   />
                 </div>
 
-                {/* ─── FILA 1 (antes 2): Mandato | Vigencia y alertas ─── */}
-                <div className="va-two-col">
+                {/* ─── FILA 1: Mandato | Vigencia y alertas | Exclusividad (3 columnas) ─── */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14 }}>
                   <div className="va-meta-card" style={{ marginBottom:0 }}>
                     <div className="va-meta-head"><span className="dot"/>Mandato</div>
                     <div className="va-kv-list">
@@ -849,10 +849,8 @@ export default function FichaMandatoSupabase({ refOrId }) {
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* ─── FILA 2: Exclusividad | Notas (50/50) — agrupado con FILA 1 para coherencia visual ─── */}
-                <div className="va-two-col">
+                  {/* Tercera columna: Exclusividad */}
                   <div className="va-meta-card" style={{ marginBottom:0 }}>
                     <div className="va-meta-head"><span className="dot"/>Exclusividad</div>
                     <div className="va-kv-list">
@@ -867,7 +865,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
                         <>
                           <div className="ir"><span className="ir-k">Cuenta del agente</span>
                             <span className="ir-v">
-                              <select style={{ ...sel, minWidth:200 }} value={form.cuenta_agente_id} onChange={e => { setF('cuenta_agente_id', e.target.value); setF('contacto_agente_id','') }}>
+                              <select style={{ ...sel, minWidth:160 }} value={form.cuenta_agente_id} onChange={e => { setF('cuenta_agente_id', e.target.value); setF('contacto_agente_id','') }}>
                                 <option value="">Selecciona agencia…</option>
                                 {cuentasCatalog.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>)}
                               </select>
@@ -875,7 +873,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
                           </div>
                           <div className="ir"><span className="ir-k">Contacto del agente</span>
                             <span className="ir-v">
-                              <select style={{ ...sel, minWidth:200 }} value={form.contacto_agente_id} onChange={e => setF('contacto_agente_id', e.target.value)} disabled={!form.cuenta_agente_id}>
+                              <select style={{ ...sel, minWidth:160 }} value={form.contacto_agente_id} onChange={e => setF('contacto_agente_id', e.target.value)} disabled={!form.cuenta_agente_id}>
                                 <option value="">Selecciona contacto…</option>
                                 {contactosAgente.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre} — {c.email || c.telefono || ''}</option>)}
                               </select>
@@ -885,16 +883,21 @@ export default function FichaMandatoSupabase({ refOrId }) {
                       )}
                     </div>
                   </div>
+                </div>
 
-                  <div className="va-card" style={{ marginBottom:0 }}>
-                    <div className="va-card-header">
-                      <h3><span className="ico">▭</span> Notas y novedades</h3>
-                    </div>
-                    <div style={{ padding:'12px 20px 16px' }}>
+                {/* ─── Notas y novedades (full width · textareas necesitan espacio) ─── */}
+                <div className="va-card" style={{ marginBottom:0 }}>
+                  <div className="va-card-header">
+                    <h3><span className="ico">▭</span> Notas y novedades</h3>
+                  </div>
+                  <div style={{ padding:'14px 20px 16px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                    <div>
                       <div className="rp-lbl">Notas internas</div>
-                      <textarea style={{ ...ta, width:'100%', marginTop:3 }} value={form.notas} onChange={e => setF('notas', e.target.value)} placeholder="Notas internas sobre el mandato..." rows={3} />
-                      <div className="rp-lbl" style={{ marginTop:12 }}>Visión y novedades</div>
-                      <textarea style={{ ...ta, width:'100%', marginTop:3 }} value={form.vision_novedades || ''} onChange={e => setF('vision_novedades', e.target.value)} placeholder="Resumen ejecutivo, hitos y próximos pasos..." rows={3} />
+                      <textarea style={{ ...ta, width:'100%', marginTop:4 }} value={form.notas} onChange={e => setF('notas', e.target.value)} placeholder="Notas internas sobre el mandato..." rows={3} />
+                    </div>
+                    <div>
+                      <div className="rp-lbl">Visión y novedades</div>
+                      <textarea style={{ ...ta, width:'100%', marginTop:4 }} value={form.vision_novedades || ''} onChange={e => setF('vision_novedades', e.target.value)} placeholder="Resumen ejecutivo, hitos y próximos pasos..." rows={3} />
                     </div>
                   </div>
                 </div>
