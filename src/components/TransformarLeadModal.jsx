@@ -332,9 +332,9 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
               </div>
               <div style={{ background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:8, padding:12 }}>
                 <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:8 }}>Registros creados</div>
-                <div style={{ fontSize:11, color:'var(--text)', marginBottom:3 }}>⚡ Oportunidad: <strong style={{ fontFamily:'monospace' }}>{submitted.dynOppId}</strong> · tipo {submitted.oppType}</div>
+                <div style={{ fontSize:11, color:'var(--text)', marginBottom:3 }}>⚡ Oportunidad: <strong style={{ fontFamily:'var(--mono)', fontVariantNumeric:'tabular-nums' }}>{submitted.dynOppId}</strong> · tipo {submitted.oppType}</div>
                 {submitted.destino !== 'ninguno' && submitted.destinoRef && (
-                  <div style={{ fontSize:11, color:'var(--text)' }}>📄 {submitted.destino === 'propuesta' ? 'Propuesta' : submitted.destino === 'demanda' ? 'Demanda' : 'Oferta'}: <strong style={{ fontFamily:'monospace' }}>{submitted.destinoRef}</strong></div>
+                  <div style={{ fontSize:11, color:'var(--text)' }}>📄 {submitted.destino === 'propuesta' ? 'Propuesta' : submitted.destino === 'demanda' ? 'Demanda' : 'Oferta'}: <strong style={{ fontFamily:'var(--mono)', fontVariantNumeric:'tabular-nums' }}>{submitted.destinoRef}</strong></div>
                 )}
               </div>
             </div>

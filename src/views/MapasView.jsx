@@ -235,7 +235,7 @@ function ProposalModal({ items, onClose, navigate, data = DATA }) {
           <div style={{background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:16}}>
             <div style={{fontSize:9,fontWeight:700,color:'var(--accent)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>Enlace para el cliente</div>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <div style={{flex:1,fontSize:11,fontWeight:500,background:'#fff',border:'1px solid var(--border)',borderRadius:4,padding:'6px 10px',fontFamily:'monospace',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{url}</div>
+              <div style={{flex:1,fontSize:11,fontWeight:500,background:'#fff',border:'1px solid var(--border)',borderRadius:4,padding:'6px 10px',fontFamily:'var(--mono)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{url}</div>
               <button onClick={()=>{setCopied(true);setTimeout(()=>setCopied(false),2000)}} style={{flexShrink:0,padding:'6px 12px',borderRadius:4,border:'none',background:copied?'var(--green)':'var(--accent)',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'background .2s'}}>
                 {copied?'✓ Copiado':'⎘ Copiar'}
               </button>
@@ -569,9 +569,9 @@ export default function MapasView() {
         <div style={{fontSize:48}}>️</div>
         <div style={{fontSize:18,fontWeight:700,color:'var(--text)'}}>Configurar Google Maps API</div>
         <p style={{maxWidth:480,lineHeight:1.7,fontSize:13,color:'var(--text3)',margin:0}}>
-          Crea el fichero <code style={{background:'var(--gray-lt)',padding:'1px 6px',borderRadius:4,fontFamily:'monospace'}}>.env</code> en la raíz del proyecto:
+          Crea el fichero <code style={{background:'var(--gray-lt)',padding:'1px 6px',borderRadius:4,fontFamily:'var(--mono)'}}>.env</code> en la raíz del proyecto:
         </p>
-        <div style={{background:'#1a1a2e',color:'#e0e0ff',padding:'14px 24px',borderRadius:8,fontFamily:'monospace',fontSize:13}}>
+        <div style={{background:'#1a1a2e',color:'#e0e0ff',padding:'14px 24px',borderRadius:8,fontFamily:'var(--mono)',fontSize:13}}>
           VITE_GOOGLE_MAPS_API_KEY=<span style={{color:'#7fffb2'}}>tu_clave_aqui</span>
         </div>
         <p style={{maxWidth:440,fontSize:11,color:'var(--text4)',lineHeight:1.6,margin:0}}>

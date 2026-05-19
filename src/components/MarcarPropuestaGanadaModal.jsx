@@ -205,8 +205,8 @@ export default function MarcarPropuestaGanadaModal({ propuesta, oportunidad, cue
                 <div style={{ fontSize:13, fontWeight:700, color:'#15803d', marginBottom:6 }}>✓ Cascada completada</div>
                 <div style={{ fontSize:11, color:'#166534', lineHeight:1.6 }}>
                   Propuesta <strong>{propuesta.ref}</strong> marcada como ganada.<br/>
-                  Instrucción <strong style={{ fontFamily:'monospace' }}>{created.instruction_id}</strong> creada en Dynamics (estado <em>kickoff</em>).<br/>
-                  Mandato <strong style={{ fontFamily:'monospace' }}>{created.mandato_ref}</strong> generado en PDB con el equipo de trabajo heredado.
+                  Instrucción <strong style={{ fontFamily:'var(--mono)', fontVariantNumeric:'tabular-nums' }}>{created.instruction_id}</strong> creada en Dynamics (estado <em>kickoff</em>).<br/>
+                  Mandato <strong style={{ fontFamily:'var(--mono)', fontVariantNumeric:'tabular-nums' }}>{created.mandato_ref}</strong> generado en PDB con el equipo de trabajo heredado.
                 </div>
               </div>
               <div style={{ fontSize:11, color:'var(--text3)' }}>

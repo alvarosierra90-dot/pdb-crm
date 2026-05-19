@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   --nav-bg:  #ffffff;
@@ -64,9 +64,19 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,.06);
   --shadow-md: 0 4px 14px rgba(0,0,0,.08);
 
-  --serif: 'Playfair Display', Georgia, serif;
+  /* Tipografía única — toda la herramienta usa Inter.
+     Mantenemos los nombres --serif, --sans y --mono apuntando a Inter
+     para no romper los ~675 usos en JSX/CSS. Las refs (ID en mono)
+     se siguen distinguiendo con font-variant-numeric: tabular-nums. */
+  --serif: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --sans:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --mono:  'JetBrains Mono', monospace;
+  --mono:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Refs / códigos / KPIs numéricos: cifras tabulares para alinear sin usar fuente mono */
+.mono, [class*="ref"], [class*="ksubt-ref"], [style*="var(--mono)"] {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

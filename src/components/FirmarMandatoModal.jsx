@@ -201,8 +201,8 @@ export default function FirmarMandatoModal({ origen, oportunidad, cuenta, onClos
               <div style={{ background:'#dcfce7', border:'1px solid #86efac', borderRadius:8, padding:14 }}>
                 <div style={{ fontSize:13, fontWeight:700, color:'#15803d', marginBottom:6 }}>✓ Mandato firmado</div>
                 <div style={{ fontSize:11, color:'#166534', lineHeight:1.6 }}>
-                  Instrucción <strong style={{ fontFamily:'monospace' }}>{created.instruction_id}</strong> creada en Dynamics.<br/>
-                  Mandato <strong style={{ fontFamily:'monospace' }}>{created.mandato_ref}</strong> generado en PDB con vía <em>directo</em>.<br/>
+                  Instrucción <strong style={{ fontFamily:'var(--mono)', fontVariantNumeric:'tabular-nums' }}>{created.instruction_id}</strong> creada en Dynamics.<br/>
+                  Mandato <strong style={{ fontFamily:'var(--mono)', fontVariantNumeric:'tabular-nums' }}>{created.mandato_ref}</strong> generado en PDB con vía <em>directo</em>.<br/>
                   {tipoLabel} <strong>{r.ref}</strong> ahora cuelga del mandato. Equipo de trabajo heredado.
                 </div>
               </div>
