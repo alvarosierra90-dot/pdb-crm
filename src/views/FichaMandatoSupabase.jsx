@@ -851,6 +851,54 @@ export default function FichaMandatoSupabase({ refOrId }) {
                   </div>
                 </div>
 
+                {/* ─── FILA 2: Exclusividad | Notas (50/50) — agrupado con FILA 1 para coherencia visual ─── */}
+                <div className="va-two-col">
+                  <div className="va-meta-card" style={{ marginBottom:0 }}>
+                    <div className="va-meta-head"><span className="dot"/>Exclusividad</div>
+                    <div className="va-kv-list">
+                      <div className="ir"><span className="ir-k">Modo</span>
+                        <span className="ir-v">
+                          <select style={sel} value={form.exclusividad_modo} onChange={e => setF('exclusividad_modo', e.target.value)}>
+                            {EXCL_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                          </select>
+                        </span>
+                      </div>
+                      {form.exclusividad_modo === 'coexclusiva' && (
+                        <>
+                          <div className="ir"><span className="ir-k">Cuenta del agente</span>
+                            <span className="ir-v">
+                              <select style={{ ...sel, minWidth:200 }} value={form.cuenta_agente_id} onChange={e => { setF('cuenta_agente_id', e.target.value); setF('contacto_agente_id','') }}>
+                                <option value="">Selecciona agencia…</option>
+                                {cuentasCatalog.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>)}
+                              </select>
+                            </span>
+                          </div>
+                          <div className="ir"><span className="ir-k">Contacto del agente</span>
+                            <span className="ir-v">
+                              <select style={{ ...sel, minWidth:200 }} value={form.contacto_agente_id} onChange={e => setF('contacto_agente_id', e.target.value)} disabled={!form.cuenta_agente_id}>
+                                <option value="">Selecciona contacto…</option>
+                                {contactosAgente.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre} — {c.email || c.telefono || ''}</option>)}
+                              </select>
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="va-card" style={{ marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico">▭</span> Notas y novedades</h3>
+                    </div>
+                    <div style={{ padding:'12px 20px 16px' }}>
+                      <div className="rp-lbl">Notas internas</div>
+                      <textarea style={{ ...ta, width:'100%', marginTop:3 }} value={form.notas} onChange={e => setF('notas', e.target.value)} placeholder="Notas internas sobre el mandato..." rows={3} />
+                      <div className="rp-lbl" style={{ marginTop:12 }}>Visión y novedades</div>
+                      <textarea style={{ ...ta, width:'100%', marginTop:3 }} value={form.vision_novedades || ''} onChange={e => setF('vision_novedades', e.target.value)} placeholder="Resumen ejecutivo, hitos y próximos pasos..." rows={3} />
+                    </div>
+                  </div>
+                </div>
+
                 {/* ─── Activos vinculados (multi · card full) ─── */}
                 <div className="va-card" style={{ marginTop:14, marginBottom:0, overflow:'visible' }}>
                   <div className="va-card-header">
@@ -1006,54 +1054,6 @@ export default function FichaMandatoSupabase({ refOrId }) {
                     </div>
                   )
                 })()}
-
-                {/* ─── FILA 3: Exclusividad | Notas + Visión y novedades ─── */}
-                <div className="va-two-col">
-                  <div className="va-meta-card" style={{ marginBottom:0 }}>
-                    <div className="va-meta-head"><span className="dot"/>Exclusividad</div>
-                    <div className="va-kv-list">
-                      <div className="ir"><span className="ir-k" style={{ fontWeight:700 }}>Modo</span>
-                        <span className="ir-v">
-                          <select style={sel} value={form.exclusividad_modo} onChange={e => setF('exclusividad_modo', e.target.value)}>
-                            {EXCL_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                          </select>
-                        </span>
-                      </div>
-                      {form.exclusividad_modo === 'coexclusiva' && (
-                        <>
-                          <div className="ir"><span className="ir-k">Cuenta del agente</span>
-                            <span className="ir-v">
-                              <select style={{ ...sel, minWidth:200 }} value={form.cuenta_agente_id} onChange={e => { setF('cuenta_agente_id', e.target.value); setF('contacto_agente_id','') }}>
-                                <option value="">Selecciona agencia…</option>
-                                {cuentasCatalog.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>)}
-                              </select>
-                            </span>
-                          </div>
-                          <div className="ir"><span className="ir-k">Contacto del agente</span>
-                            <span className="ir-v">
-                              <select style={{ ...sel, minWidth:200 }} value={form.contacto_agente_id} onChange={e => setF('contacto_agente_id', e.target.value)} disabled={!form.cuenta_agente_id}>
-                                <option value="">Selecciona contacto…</option>
-                                {contactosAgente.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre} — {c.email || c.telefono || ''}</option>)}
-                              </select>
-                            </span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="va-card" style={{ marginBottom:0 }}>
-                    <div className="va-card-header">
-                      <h3><span className="ico">▭</span> Notas y novedades</h3>
-                    </div>
-                    <div style={{ padding:'4px 20px 16px' }}>
-                      <div className="rp-lbl">Notas internas</div>
-                      <textarea style={{ ...ta, width:'100%', marginTop:3 }} value={form.notas} onChange={e => setF('notas', e.target.value)} placeholder="Notas internas sobre el mandato..." rows={3} />
-                      <div className="rp-lbl" style={{ marginTop:12 }}>Visión y novedades</div>
-                      <textarea style={{ ...ta, width:'100%', marginTop:3 }} value={form.vision_novedades || ''} onChange={e => setF('vision_novedades', e.target.value)} placeholder="Resumen ejecutivo, hitos y próximos pasos..." rows={3} />
-                    </div>
-                  </div>
-                </div>
 
               </div></div>
             )
