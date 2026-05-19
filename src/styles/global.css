@@ -1259,10 +1259,10 @@ tr:hover .ra-cell { opacity: 1; }
 /* va-kv-list — contenedor de filas en grid 2 columnas para máxima densidad
    con sentido: dos campos por fila, label arriba, valor pegado debajo. */
 .va-kv-list {
-  padding: 12px 18px 14px;
+  padding: 10px 16px 12px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2px 14px;
+  gap: 0 14px;
 }
 
 /* va-kv — fila vertical compacta · eyebrow pequeño + valor grande pegado */
@@ -1283,20 +1283,22 @@ tr:hover .ra-cell { opacity: 1; }
 .va-kv .v.highlight { color: var(--accent); font-weight: 700; }
 .va-kv .v.muted     { color: var(--text4); font-weight: 500; }
 
-/* ir rows — STACK VERTICAL COMPACTO · eyebrow pequeño + valor grande pegado.
-   2 columnas para máxima densidad: cuando el padre es lista (.va-kv-list)
-   los rows se distribuyen en grid 2 columnas. Cada row es una unidad visual
-   compacta (~36px de alto), legible de un vistazo, sin look de ERP. */
+/* ir rows — STACK VERTICAL COMPACTO con tamaños prominentes para SaaS premium.
+   Label eyebrow 11.5px peso 700 + valor 15.5px peso 600 (visible de un vistazo).
+   Padding minimo entre rows. 2 columnas vía .va-kv-list. */
 .va-card .ir, .va-meta-card .ir {
   display: flex; flex-direction: column;
   align-items: stretch;
-  gap: 2px;
-  padding: 7px 0 6px;
+  gap: 3px;
+  padding: 9px 0 8px;
   border-bottom: 1px solid var(--border);
 }
 .va-card .ir:last-child, .va-meta-card .ir:last-child { border-bottom: none; }
+/* Última fila de cada columna del grid 2 cols: sin border-bottom */
+.va-kv-list .ir:nth-last-child(-n+2):nth-child(odd),
+.va-kv-list .ir:nth-last-child(-n+1) { border-bottom: none; }
 .va-card .ir-k, .va-meta-card .ir-k {
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--text3);
   text-transform: uppercase;
@@ -1307,20 +1309,19 @@ tr:hover .ra-cell { opacity: 1; }
 }
 .va-card .ir-v, .va-meta-card .ir-v {
   flex: 1;
-  font-size: 14px;
+  font-size: 15.5px;
   font-weight: 600;
   color: var(--text);
   text-align: left;
   font-variant-numeric: tabular-nums;
-  line-height: 1.35;
-  min-height: 20px;
+  line-height: 1.3;
+  min-height: 24px;
   display: flex;
   align-items: center;
 }
 
 /* Inputs y selects dentro de cuadros de información — override de inline styles
-   antiguos (fontSize:11) para coherencia visual. Tamaño legible alineado con el
-   valor (.ir-v 14px / .va-kv .v 14px). Sin look de formulario ERP. */
+   antiguos. Tamaño legible alineado con el valor (.ir-v 15.5px). */
 .va-kv-list select,
 .va-kv-list input:not([type="checkbox"]):not([type="radio"]),
 .va-kv-list textarea,
@@ -1328,13 +1329,18 @@ tr:hover .ra-cell { opacity: 1; }
 .va-meta-card .ir-v input:not([type="checkbox"]):not([type="radio"]),
 .va-card .ir-v select,
 .va-card .ir-v input:not([type="checkbox"]):not([type="radio"]) {
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  padding: 5px 9px !important;
+  font-size: 14.5px !important;
+  font-weight: 600 !important;
+  padding: 4px 8px !important;
   border-radius: 5px !important;
-  line-height: 1.4 !important;
+  line-height: 1.3 !important;
   font-family: inherit !important;
   color: var(--text) !important;
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 /* Spacing between stacked cards inside info-pad — más respiro entre cards */
 .info-pad > .va-card,
