@@ -5797,8 +5797,8 @@ export default function FichaActivo() {
                 </div>
               )}
 
-              {/* KPI strip — 6 categorías de actividad */}
-              <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:8,marginBottom:14}}>
+              {/* KPI strip — 7 categorías de actividad */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:8,marginBottom:14}}>
                 {[
                   {lbl:'Ofertas',                val:vista360.ofertas.length,       color:'var(--green)'},
                   {lbl:'Cuentas presentadas',    val:vista360.cuentas.length,       color:'var(--accent)'},
@@ -5806,6 +5806,7 @@ export default function FichaActivo() {
                   {lbl:'Transacciones',          val:vista360.transacciones.length, color:'var(--text1)'},
                   {lbl:'Mandatos',               val:vista360.mandatos.length,      color:'var(--amber)'},
                   {lbl:'Propuestas / Proyectos', val:vista360.propuestas.length,    color:'var(--teal)'},
+                  {lbl:'Pitches',                val:pitchesActivo.length,          color:'#0e7490'},
                 ].map(k=>(
                   <div key={k.lbl} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'8px 10px',textAlign:'center'}}>
                     <div style={{fontSize:9,color:'var(--text4)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:3,lineHeight:1.2}}>{k.lbl}</div>
@@ -5990,6 +5991,38 @@ export default function FichaActivo() {
                               </tr>
                             )
                           })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Pitches vinculados */}
+                <div className="va-card" style={{margin:0}}>
+                  <div className="va-card-header">
+                    <h3>Pitches <span style={{fontSize:9,color:'var(--text4)',fontWeight:400,marginLeft:6}}>{pitchesActivo.length} {pitchesActivo.length===1?'pitch':'pitches'}</span></h3>
+                    <button
+                      className="tbtn prim"
+                      style={{ fontSize:11, padding:'5px 12px' }}
+                      onClick={() => navigate('pitch', { activo_ref: activo?.ref, activo_refs: [activo?.ref] })}
+                      title="Generar un nuevo pitch con este activo precargado"
+                    >+ Crear pitch</button>
+                  </div>
+                  <div style={{padding:'4px 0 14px'}}>
+                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                      <thead><tr>{['Nombre','Autor','Fecha',''].map(h=><th key={h} style={{textAlign:'left',padding:'6px 12px',fontSize:9,color:'var(--text4)',fontWeight:600,textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
+                      <tbody>
+                        {pitchesActivo.length === 0
+                          ? <tr><td colSpan={4} style={{padding:'14px',color:'var(--text4)',fontSize:11,textAlign:'center'}}>Sin pitches vinculados — crea uno con el botón superior</td></tr>
+                          : pitchesActivo.map(p => (
+                            <tr key={p.id} style={{borderTop:'1px solid var(--border)',cursor: p.url ? 'pointer' : 'default'}} onClick={() => p.url && window.open(p.url, '_blank', 'noopener')}>
+                              <td style={{padding:'6px 12px',fontSize:10,fontWeight:600,color:'var(--accent)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:180}} title={p.nombre}>{p.nombre || `Pitch ${p.pitch_external_id || p.id}`}</td>
+                              <td style={{padding:'6px 12px',fontSize:10,color:'var(--text3)'}}>{p.autor || '—'}</td>
+                              <td style={{padding:'6px 12px',fontSize:10,color:'var(--text3)',fontFamily:'var(--mono)'}}>{p.fecha ? new Date(p.fecha).toLocaleDateString('es-ES') : '—'}</td>
+                              <td style={{padding:'6px 12px',textAlign:'right'}}>
+                                {p.url ? <span style={{fontSize:10,color:'var(--accent)',fontWeight:600}}>Abrir ↗</span> : <span style={{fontSize:10,color:'var(--text4)'}}>—</span>}
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                   </div>
