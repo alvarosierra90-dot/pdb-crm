@@ -60,7 +60,7 @@ export default function EquipoTrabajoCard({ equipo = [], canManage = true, onAdd
   }
 
   return (
-    <div className="va-card" style={{ marginBottom:14 }}>
+    <div className="va-card">
       <div className="va-card-header">
         <h3><span className="ico" style={{ color:'var(--accent)' }}>●</span> {title}</h3>
         <span className="hint">
@@ -68,13 +68,13 @@ export default function EquipoTrabajoCard({ equipo = [], canManage = true, onAdd
         </span>
       </div>
 
-      <div style={{ padding:'4px 20px 14px' }}>
+      <div style={{ padding:'14px 20px 16px' }}>
         {equipo.length === 0 ? (
-          <div style={{ fontSize:11, color:'var(--text4)', padding:'6px 0' }}>
+          <div style={{ fontSize:12, color:'var(--text4)', padding:'8px 0', fontStyle:'italic' }}>
             Aún no hay equipo de trabajo asignado. Añade al menos un Principal.
           </div>
         ) : (
-          <table className="pat-table" style={{ marginBottom:10 }}>
+          <table className="pat-table" style={{ marginBottom:12 }}>
             <thead>
               <tr>
                 <th>Miembro</th>
