@@ -676,12 +676,12 @@ export default function FichaMandatoSupabase({ refOrId }) {
                     </div>
                   </div>
 
-                  {/* PILLS interactivos · todo lo importante de un vistazo */}
-                  <div style={{ flexShrink:0, display:'flex', gap:8, flexWrap:'wrap', alignSelf:'center', maxWidth:560, justifyContent:'flex-end' }}>
+                  {/* PILLS interactivos · grid con columnas iguales para simetría perfecta */}
+                  <div style={{ flexShrink:0, display:'grid', gridTemplateColumns:'repeat(auto-fill, 150px)', gap:8, alignSelf:'center', maxWidth:'min(640px, 70%)', justifyContent:'flex-end' }}>
                     {/* Estado */}
                     <div style={{
                       background:'var(--surface)', border:`2px solid ${estadoColor === 'var(--green)' ? 'var(--green-bd)' : estadoColor === 'var(--amber)' ? 'var(--amber-bd)' : estadoColor === 'var(--red)' ? 'var(--red-bd)' : 'var(--border)'}`,
-                      borderRadius:10, padding:'8px 14px', minWidth:110,
+                      borderRadius:10, padding:'8px 14px',
                     }}>
                       <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em' }}>Estado</div>
                       <div style={{ fontSize:15, fontWeight:700, color:estadoColor, marginTop:2 }}>● {estadoUI}</div>
@@ -691,17 +691,68 @@ export default function FichaMandatoSupabase({ refOrId }) {
                     <div style={{
                       background: isCoex ? 'var(--purple-lt)' : 'var(--accent-lt)',
                       border:`2px solid ${isCoex ? 'var(--purple-bd)' : 'var(--accent-bd)'}`,
-                      borderRadius:10, padding:'8px 14px', minWidth:130,
+                      borderRadius:10, padding:'8px 14px',
                     }}>
                       <div style={{ fontSize:10, fontWeight:700, color: isCoex ? 'var(--purple)' : 'var(--accent)', textTransform:'uppercase', letterSpacing:'.05em' }}>Exclusividad</div>
                       <select
                         value={form.exclusividad_modo}
-                        onChange={e => setF('exclusividad_modo', e.target.value)}
+                        onChange={async e => {
+                          const nuevoModo = e.target.value
+                          setF('exclusividad_modo', nuevoModo)
+                          // Al pasar a exclusiva: limpiar cuenta/contacto agente y quitar el Agente externo de Colaboradores
+                          if (nuevoModo === 'exclusiva' && mandato?.id) {
+                            setF('cuenta_agente_id','')
+                            setF('contacto_agente_id','')
+                            const eq = Array.isArray(mandato.equipo_trabajo) ? mandato.equipo_trabajo : []
+                            const limpio = eq.filter(m => m.equipo !== 'Agente externo')
+                            if (limpio.length !== eq.length) {
+                              await supabase.from('mandatos').update({ equipo_trabajo: limpio }).eq('id', mandato.id)
+                              load()
+                            }
+                          }
+                        }}
                         style={{ fontSize:15, fontWeight:700, color: isCoex ? 'var(--purple)' : 'var(--accent)', border:'none', background:'transparent', padding:0, cursor:'pointer', fontFamily:'inherit', outline:'none', width:'100%', marginTop:2 }}>
                         <option value="exclusiva">Exclusiva</option>
                         <option value="coexclusiva">Co-exclusiva</option>
                       </select>
                     </div>
+
+                    {/* Pill Agente externo · solo si Co-exclusiva. Al vincular cuenta se añade auto a Colaboradores */}
+                    {isCoex && (
+                      <div style={{
+                        background:'var(--purple-lt)',
+                        border:'2px solid var(--purple-bd)',
+                        borderRadius:10, padding:'8px 14px',
+                      }}>
+                        <div style={{ fontSize:10, fontWeight:700, color:'var(--purple)', textTransform:'uppercase', letterSpacing:'.05em' }}>Agente externo</div>
+                        <select
+                          value={form.cuenta_agente_id}
+                          onChange={async e => {
+                            const newId = e.target.value
+                            setF('cuenta_agente_id', newId)
+                            setF('contacto_agente_id','')
+                            if (!mandato?.id) return
+                            // Sincronizar con Colaboradores (equipo_trabajo jsonb)
+                            const eq = Array.isArray(mandato.equipo_trabajo) ? mandato.equipo_trabajo : []
+                            const sinExterno = eq.filter(m => m.equipo !== 'Agente externo')
+                            let nuevoEquipo = sinExterno
+                            if (newId) {
+                              const cu = cuentasCatalog.find(c => c.dynamics_id === newId)
+                              if (cu) nuevoEquipo = [...sinExterno, { nombre: cu.nombre, equipo: 'Agente externo', rol: 'Colaborador' }]
+                            }
+                            await supabase.from('mandatos').update({
+                              equipo_trabajo: nuevoEquipo,
+                              cuenta_agente_id: newId || null,
+                              contacto_agente_id: null,
+                            }).eq('id', mandato.id)
+                            load()
+                          }}
+                          style={{ fontSize:15, fontWeight:700, color:'var(--purple)', border:'none', background:'transparent', padding:0, cursor:'pointer', fontFamily:'inherit', outline:'none', width:'100%', marginTop:2, overflow:'hidden', textOverflow:'ellipsis' }}>
+                          <option value="">Vincular cuenta…</option>
+                          {cuentasCatalog.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>)}
+                        </select>
+                      </div>
+                    )}
 
                     {/* Fees (botón → modal) */}
                     <button
@@ -709,7 +760,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
                       style={{
                         background: totalFee > 0 ? 'var(--green-lt)' : 'var(--surface)',
                         border:`2px solid ${totalFee > 0 ? 'var(--green-bd)' : 'var(--border)'}`,
-                        borderRadius:10, padding:'8px 14px', minWidth:130, cursor:'pointer',
+                        borderRadius:10, padding:'8px 14px', cursor:'pointer',
                         fontFamily:'inherit', textAlign:'left',
                       }}
                       title="Ver fees y honorarios"
@@ -726,7 +777,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
                       style={{
                         background: hasNotas ? 'var(--accent-lt)' : 'var(--surface)',
                         border:`2px solid ${hasNotas ? 'var(--accent-bd)' : 'var(--border)'}`,
-                        borderRadius:10, padding:'8px 14px', minWidth:100, cursor:'pointer',
+                        borderRadius:10, padding:'8px 14px', cursor:'pointer',
                         fontFamily:'inherit', textAlign:'left', position:'relative',
                       }}
                       title={hasNotas ? `${notasCount} bloque(s) con notas` : 'Añadir notas'}
@@ -738,13 +789,13 @@ export default function FichaMandatoSupabase({ refOrId }) {
                     </button>
 
                     {/* Activos */}
-                    <div style={{ background:'var(--surface)', border:'2px solid var(--border)', borderRadius:10, padding:'8px 14px', minWidth:100 }}>
+                    <div style={{ background:'var(--surface)', border:'2px solid var(--border)', borderRadius:10, padding:'8px 14px' }}>
                       <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em' }}>Activos</div>
                       <div style={{ fontSize:15, fontWeight:700, color:'var(--accent)', marginTop:2 }}>{activosLinked.length} · {sbaTotal ? `${(sbaTotal/1000).toFixed(1)}k m²` : '—'}</div>
                     </div>
 
                     {/* Responsable */}
-                    <div style={{ background:'var(--surface)', border:'2px solid var(--border)', borderRadius:10, padding:'8px 14px', minWidth:130 }}>
+                    <div style={{ background:'var(--surface)', border:'2px solid var(--border)', borderRadius:10, padding:'8px 14px' }}>
                       <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em' }}>Responsable</div>
                       <div style={{ fontSize:14, fontWeight:700, color:'var(--accent)', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{responsableUI}</div>
                     </div>
