@@ -1317,6 +1317,25 @@ tr:hover .ra-cell { opacity: 1; }
   display: flex;
   align-items: center;
 }
+
+/* Inputs y selects dentro de cuadros de información — override de inline styles
+   antiguos (fontSize:11) para coherencia visual. Tamaño legible alineado con el
+   valor (.ir-v 14px / .va-kv .v 14px). Sin look de formulario ERP. */
+.va-kv-list select,
+.va-kv-list input:not([type="checkbox"]):not([type="radio"]),
+.va-kv-list textarea,
+.va-meta-card .ir-v select,
+.va-meta-card .ir-v input:not([type="checkbox"]):not([type="radio"]),
+.va-card .ir-v select,
+.va-card .ir-v input:not([type="checkbox"]):not([type="radio"]) {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding: 5px 9px !important;
+  border-radius: 5px !important;
+  line-height: 1.4 !important;
+  font-family: inherit !important;
+  color: var(--text) !important;
+}
 /* Spacing between stacked cards inside info-pad — más respiro entre cards */
 .info-pad > .va-card,
 .info-pad > .va-two-col,
