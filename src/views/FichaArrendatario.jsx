@@ -3,6 +3,8 @@ import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import BajaArrendatarioModal from '../components/BajaArrendatarioModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
+import VinculacionesMaestra from '../components/VinculacionesMaestra'
+import { Building, Building2, ScrollText, Tag } from 'lucide-react'
 import { StackingPlan } from './FichaActivo'
 import { supabase } from '../lib/supabase'
 
@@ -50,8 +52,9 @@ function diasHasta(fechaStr) {
   return Math.ceil((new Date(y,m-1,d) - new Date())/(1000*60*60*24))
 }
 
-const TABS = ['datos','stacking','condiciones','alertas','historial','conf']
-const TAB_LABELS = ['Datos del arrendatario','Stacking plan','Condiciones económicas','Alertas y break option','Historial','Confidencialidad']
+// 6 tabs canónicos · spec mayo 2026. Orden canónico: Info → Específico → ... → Confidencialidad
+const TABS = ['info','condiciones','stacking','alertas','360','conf']
+const TAB_LABELS = ['Información general','Condiciones económicas','Stacking plan','Alertas y break option','Vista 360','Confidencialidad']
 
 const TIPO_TAG_ARR = { Email:'tag-blue', Llamada:'tag-green', Reunión:'tag-purple', Tarea:'tag-gray', Nota:'tag-gray', Alerta:'tag-red', Modificación:'tag-amber' }
 const TIPO_ICO_ARR = { Email:'📧', Llamada:'', Reunión:'', Tarea:'✅', Nota:'📝', Alerta:'🔔', Modificación:'✏️' }
@@ -70,7 +73,7 @@ const HIST_ACTS = [
 
 export default function FichaArrendatario() {
   const { navigate, params } = useNav()
-  const [tab, setTab] = useState('datos')
+  const [tab, setTab] = useState('info')
   const [showTarea, setShowTarea] = useState(false)
   const [saving, setSaving] = useState(false)
   const [arrConfidential, setArrConfidential] = useState(false)
@@ -797,9 +800,51 @@ export default function FichaArrendatario() {
           </div>
 
           {/* Tab Datos */}
-          {tab==='datos' && (
+          {tab==='info' && (
             <div className="tab-content active">
-              <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 40px',alignItems:'start',padding:'28px 36px'}}>
+              {/* ── VINCULACIONES MAESTRA (Arrendatario es entidad maestra) ── */}
+              <div style={{padding:'16px 24px 0'}}>
+                <VinculacionesMaestra items={[
+                  {
+                    key:'cuenta',
+                    icon: Building2,
+                    tone:'green',
+                    label:'Cuenta arrendataria',
+                    value: form.tenant || null,
+                    sub: form.persona_fisica ? 'Persona física' : null,
+                    onClick: form.tenant ? () => navigate('cuentas', { search: form.tenant }) : null,
+                  },
+                  {
+                    key:'activo',
+                    icon: Building,
+                    tone:'bronze',
+                    label:'Activo donde está',
+                    value: form.activo_direccion || form.activo || null,
+                    sub: [form.zona, form.subzona].filter(Boolean).join(' · ') || null,
+                    onClick: (linkedActivoRef || params?.fromActivoRef) ? () => navigate('ficha-activo', { ref: linkedActivoRef || params.fromActivoRef }) : null,
+                  },
+                  {
+                    key:'mandato',
+                    icon: ScrollText,
+                    tone:'accent',
+                    label:'Mandato origen',
+                    value: null,
+                    sub: null,
+                    onClick: null,
+                  },
+                  {
+                    key:'oferta',
+                    icon: Tag,
+                    tone:'blue',
+                    label:'Oferta cerrada',
+                    value: params?.fromOfertaRef || null,
+                    sub: null,
+                    onClick: params?.fromOfertaRef ? () => navigate('ficha-oferta', { ref: params.fromOfertaRef }) : null,
+                  },
+                ]} />
+              </div>
+
+              <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 40px',alignItems:'start',padding:'18px 36px 28px'}}>
 
                 {/* Columna 1 — Inquilino */}
                 <div style={{minWidth:0}}>
@@ -1338,7 +1383,7 @@ export default function FichaArrendatario() {
           )}
 
           {/* Tab Historial */}
-          {tab==='historial' && (
+          {tab==='360' && (
             <div className="tab-content active">
               <div className="info-pad">
                 {/* KPI strip */}
