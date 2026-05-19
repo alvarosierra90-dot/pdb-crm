@@ -5,6 +5,7 @@ import BajaArrendatarioModal from '../components/BajaArrendatarioModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import AltaPropietarioModal from '../components/AltaPropietarioModal'
 import AltaArrendatarioModal from '../components/AltaArrendatarioModal'
+import VinculacionesMaestra from '../components/VinculacionesMaestra'
 import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
 import { supabase } from '../lib/supabase'
 import {
@@ -12,7 +13,7 @@ import {
   Mail, Phone, Users, FileText, Pencil, CheckSquare,
   MapPin, Search, Upload, Image as ImageIcon, AlertTriangle, ArrowDown, BarChart3, Wallet, ClipboardList,
   Inbox, Clock, FileSpreadsheet, StickyNote, Link2, X as XClose, Download,
-  Folder, Wrench, Target, Compass, Presentation
+  Folder, Wrench, Target, Compass, Presentation, ScrollText, Tag, UserCheck
 } from 'lucide-react'
 
 const USO_PREFIX_FA    = { 'Oficinas':'OF', 'Logístico':'LG', 'Retail':'RT', 'Data Center':'DC', 'Residencial':'RS', 'Hoteles':'HT', 'Suelo':'SU' }
@@ -432,8 +433,10 @@ const NEW_FORM_INIT = {
 //   junto al resto de actividad comercial histórica.
 // - Principales competidores: lista curada por el usuario, alimenta los
 //   Informes de gestión (otros activos considerados como competidores).
-const TABS = ['at-info','at-comp','at-caract','at-stacking','at-prop','at-mediadocs','at-360','at-conf']
-const TAB_LABELS = ['Información general','Principales competidores','Características','Stacking Plan','Propietarios y arrendatarios','Multimedia & Documentos','Vista 360','Confidencialidad']
+// 7 tabs canónicos · spec mayo 2026. "Propietarios y arrendatarios" se
+// absorbió como sub-bloques plegables debajo del Stacking Plan.
+const TABS = ['at-info','at-comp','at-caract','at-stacking','at-mediadocs','at-360','at-conf']
+const TAB_LABELS = ['Información general','Principales competidores','Características','Stacking Plan','Multimedia & Documentos','Vista 360','Confidencialidad']
 
 /* ── PLAZAS DE APARCAMIENTO ── */
 const UBICACIONES  = ['Interior','Exterior']
@@ -2835,7 +2838,7 @@ function AddressField({ value, ciudad, onSave }) {
   )
 }
 
-function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, syncRef, hidden }) {
+function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, syncRef, hidden, vincMaestra, propietariosReg = [], arrendatariosCount = 0, goToTab, liveBuildings }) {
   const INIT_INFO = {
     nombre:'', direccion:'', ciudad:'', pais:'España', cp:'', coordenadas:'',
     area:'', zona:'', subzona:'',
@@ -2982,9 +2985,74 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
   const inp = {padding:'5px 8px',border:'1px solid var(--accent-bd)',borderRadius:5,fontSize:12,fontFamily:'inherit',background:'var(--accent-lt)',color:'var(--text1)',width:'100%',boxSizing:'border-box',outline:'none'}
   const sel = {...inp,cursor:'pointer'}
 
+  // ── Banda Vinculaciones maestra (Activo es entidad maestra) ──
+  // Cards: Propietario · Mandato activo · Ofertas activas · Arrendatarios.
+  // Cada click navega a la entidad relacionada (o al tab donde se gestiona).
+  const blds = liveBuildings || activo?.stacking_data || []
+  const ownerSup = (p) => blds
+    .flatMap(b => b.prop || [])
+    .flatMap(r => r.units || [])
+    .reduce((s, u) => s + ((p.id ? u.prop_id === p.id : (!u.prop_id && u.n === p.propietario)) ? (Number(u.sup) || 0) : 0), 0)
+  const propietarioPrincipal = propietariosReg.length > 0
+    ? [...propietariosReg].sort((a, b) => ownerSup(b) - ownerSup(a))[0]
+    : null
+  const propLabel = propietariosReg.length > 1
+    ? `${propietariosReg.length} propietarios`
+    : (propietarioPrincipal?.propietario || null)
+  const propSub = propietarioPrincipal && ownerSup(propietarioPrincipal) > 0
+    ? `${Number(ownerSup(propietarioPrincipal)).toLocaleString('es-ES')} m²${propietariosReg.length > 1 ? ' · mayoritario' : ''}`
+    : null
+  const mand = vincMaestra?.mandatoActivo
+  const ofCount = vincMaestra?.ofertasActivasCount || 0
+  const vincItems = [
+    {
+      key:   'propietario',
+      icon:  UserCheck,
+      tone:  'green',
+      label: propietariosReg.length > 1 ? 'Propietarios' : 'Propietario',
+      value: propLabel,
+      sub:   propSub,
+      onClick: propietarioPrincipal
+        ? () => navigate('ficha-propietario', { id: propietarioPrincipal.id, ownerData: { ...propietarioPrincipal, superficie: ownerSup(propietarioPrincipal) }, fromActivoRef: activo?.ref, fromActivoTab: 'at-stacking' })
+        : () => goToTab && goToTab('at-stacking'),
+    },
+    {
+      key:   'mandato',
+      icon:  ScrollText,
+      tone:  'accent',
+      label: 'Mandato activo',
+      value: mand?.ref || null,
+      sub:   mand?.tipo || null,
+      onClick: mand ? () => navigate('ficha-mandato', { id: mand.ref }) : null,
+    },
+    {
+      key:   'ofertas',
+      icon:  Tag,
+      tone:  'blue',
+      label: 'Ofertas activas',
+      value: ofCount > 0 ? (ofCount === 1 ? 'oferta' : 'ofertas') : null,
+      count: ofCount > 0 ? ofCount : null,
+      sub:   null,
+      onClick: ofCount > 0 ? () => goToTab && goToTab('at-360') : null,
+    },
+    {
+      key:   'arrendatarios',
+      icon:  Users,
+      tone:  'purple',
+      label: 'Arrendatarios',
+      value: arrendatariosCount > 0 ? (arrendatariosCount === 1 ? 'arrendatario' : 'arrendatarios') : null,
+      count: arrendatariosCount > 0 ? arrendatariosCount : null,
+      sub:   null,
+      onClick: arrendatariosCount > 0 ? () => goToTab && goToTab('at-stacking') : null,
+    },
+  ]
+
   return (
     <div className="tab-content active" style={hidden ? {display:'none'} : undefined}>
       <div className="info-pad">
+
+        {/* ── VINCULACIONES MAESTRA (canónico, siempre arriba) ── */}
+        <VinculacionesMaestra items={vincItems} />
 
         {/* ── Mapa con barra búsqueda integrada + Carrusel ── */}
         <MapaCarrusel activo={activo} direccion={info.direccion}
@@ -4114,6 +4182,36 @@ export default function FichaActivo() {
       })
   }, [params?.ref])
 
+  // ── Vínculos maestros del activo (mandato activo + count ofertas vivas) ──
+  // Alimenta la banda <VinculacionesMaestra> arriba del tab Información general.
+  // Propietarios y arrendatarios se leen de propietariosReg/arrendatariosReg
+  // (ya cargados por otro flujo); aquí solo pedimos lo que no está disponible.
+  const [vincMaestra, setVincMaestra] = useState({ mandatoActivo: null, ofertasActivasCount: 0, loaded: false })
+  useEffect(() => {
+    if (!activo?.id) return
+    let cancelled = false
+    ;(async () => {
+      const [mandRes, ofRes] = await Promise.all([
+        supabase.from('mandato_activos')
+          .select('mandatos:mandato_id(id,ref,tipo,estado)')
+          .eq('activo_id', activo.id),
+        supabase.from('ofertas')
+          .select('id', { count: 'exact', head: true })
+          .eq('activo_id', activo.id)
+          .neq('estado', 'Retirada'),
+      ])
+      if (cancelled) return
+      const mandatos = (mandRes.data || []).map(m => m.mandatos).filter(Boolean)
+      const mandatoActivo = mandatos.find(m => m.estado === 'en_curso') || null
+      setVincMaestra({
+        mandatoActivo,
+        ofertasActivasCount: ofRes.count || 0,
+        loaded: true,
+      })
+    })()
+    return () => { cancelled = true }
+  }, [activo?.id])
+
   // ── Pitches sincronizados al activo (desde la app Pitch externa) ─────────
   const [pitchesActivo, setPitchesActivo] = useState([])
   useEffect(() => {
@@ -4828,6 +4926,11 @@ export default function FichaActivo() {
               saveRef={infoSaveRef}
               syncRef={infoSyncRef}
               hidden={activeTab !== 'at-info'}
+              vincMaestra={vincMaestra}
+              propietariosReg={propietariosReg}
+              arrendatariosCount={arrendatariosReg.length}
+              goToTab={setActiveTab}
+              liveBuildings={liveBuildings}
               onInfoSaved={async ({nombre,direccion})=>{
                 if(nombre!==undefined) setDisplayNombre(nombre||null)
                 if(direccion!==undefined) setDisplayDireccion(direccion||null)
@@ -4903,6 +5006,129 @@ export default function FichaActivo() {
                 })()}
                 initView={params?.newOwnerData ? 'prop' : params?.newTenantData ? 'arr' : (params?.stackingView || 'principal')}
               />
+
+              {/* ── PROPIETARIOS Y ARRENDATARIOS (absorbidos del antiguo tab at-prop) ── */}
+              {(()=>{
+                const blds = liveBuildings || activo?.stacking_data || []
+                const getOwnerSup = (p) => blds
+                  .flatMap(b => b.prop || [])
+                  .flatMap(r => r.units || [])
+                  .reduce((s, u) => {
+                    const match = p.id ? u.prop_id === p.id : (!u.prop_id && u.n === p.propietario)
+                    return s + (match ? (Number(u.sup) || 0) : 0)
+                  }, 0)
+                const goToOwner = (p) => navigate('ficha-propietario', {
+                  id: p.id,
+                  ownerData: { ...p, superficie: getOwnerSup(p) },
+                  ownerSuperficie: getOwnerSup(p),
+                  fromActivoRef: activo?.ref || params?.ref,
+                  fromActivoNombre: activo?.nombre || displayNombre,
+                  fromActivoTab: 'at-stacking',
+                })
+                const getTenantSup = (a) => blds
+                  .flatMap(b => b.arr || [])
+                  .flatMap(r => (r.units || []).filter(u => u.type !== 'ofr' && u.type !== 'ofr_split'))
+                  .reduce((s, u) => {
+                    const match = a.ref ? u.arr_ref === a.ref : (!u.arr_ref && u.n === a.tenant)
+                    return s + (match ? (Number(u.sup) || 0) : 0)
+                  }, 0)
+                const goToArr = (a) => {
+                  const supReal = getTenantSup(a)
+                  navigate('ficha-arrendatario', {
+                    ...(a.ref ? { arrRef: a.ref } : { tenantName: a.tenant }),
+                    tenantSuperficie: supReal,
+                    fromActivoRef: activo?.ref || params?.ref,
+                    fromActivoNombre: activo?.nombre || displayNombre,
+                    fromActivoTab: 'at-stacking',
+                  })
+                }
+                return (
+                  <div style={{marginTop:28, display:'flex', flexDirection:'column', gap:14}}>
+
+                    {/* Propietarios (plegable, abierto por defecto) */}
+                    <details open style={{border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)'}}>
+                      <summary style={{cursor:'pointer', padding:'12px 16px', listStyle:'none', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8}}>
+                        <span style={{fontSize:13, fontWeight:600}}>Propietarios <span style={{color:'var(--text4)', fontWeight:400, marginLeft:6}}>({propietariosReg.length})</span></span>
+                        <button className="ab-btn blue" onClick={(e)=>{e.preventDefault(); handleAddOwner()}}>+ Nuevo propietario</button>
+                      </summary>
+                      <div style={{padding:'0 16px 14px'}}>
+                        <table className="pat-table">
+                          <thead><tr><th>Perfil</th><th>Propietario</th><th>SBA asignada</th><th>Yield</th><th>Precio compra</th><th>Año compra</th><th>Trim.</th><th></th></tr></thead>
+                          <tbody>
+                            {propietariosReg.map(p=>{
+                              const supReal = getOwnerSup(p)
+                              return (
+                              <tr key={p.id} style={{cursor:'pointer'}} onClick={()=>goToOwner(p)}>
+                                <td>{p.perfil||'—'}</td>
+                                <td><span className="pat-link">{p.propietario}</span></td>
+                                <td style={{fontFamily:'var(--mono)', fontVariantNumeric:'tabular-nums'}}>{supReal > 0 ? Number(supReal).toLocaleString('es-ES') : <span style={{color:'var(--text4)',fontStyle:'italic'}}>Pendiente · arrastra al stacking</span>}</td>
+                                <td>{p.yield_pct ? p.yield_pct+'%' : '—'}</td>
+                                <td>{p.precio_compra||'—'}</td>
+                                <td>{p.anyo_compra||'—'}</td>
+                                <td>{p.trimestre && <span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#f5efe5',color:'#5a4828',fontWeight:600}}>{p.trimestre}</span>}</td>
+                                <td><button className="ra" onClick={e=>{e.stopPropagation();goToOwner(p)}}>↗ Ver</button></td>
+                              </tr>
+                            )})}
+                            {propietariosReg.length===0 && <tr><td colSpan={8} style={{textAlign:'center',color:'var(--text4)',fontSize:12,padding:16}}>Sin propietarios — añade uno con el botón</td></tr>}
+                          </tbody>
+                        </table>
+                        {propietariosHist.length > 0 && (
+                          <div style={{marginTop:14}}>
+                            <div style={{fontSize:11,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Histórico</div>
+                            <table className="pat-table">
+                              <thead><tr><th>Propietario</th><th>Fecha salida</th><th>Estado</th></tr></thead>
+                              <tbody>
+                                {propietariosHist.map(h=>(
+                                  <tr key={h.id} style={{opacity:.7}}>
+                                    <td>{h.propietario}</td>
+                                    <td style={{fontFamily:'var(--mono)', fontVariantNumeric:'tabular-nums', fontSize:11}}>{h.fecha_salida||'—'}</td>
+                                    <td><span style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#fee2e2',color:'#dc2626',border:'1px solid #fca5a5',fontWeight:600}}>Anterior</span></td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    </details>
+
+                    {/* Arrendatarios (plegable, abierto por defecto) */}
+                    <details open style={{border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)'}}>
+                      <summary style={{cursor:'pointer', padding:'12px 16px', listStyle:'none', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8}}>
+                        <span style={{fontSize:13, fontWeight:600}}>Arrendatarios <span style={{color:'var(--text4)', fontWeight:400, marginLeft:6}}>({arrendatariosReg.length})</span></span>
+                        <button className="ab-btn blue" onClick={(e)=>{e.preventDefault(); handleAddTenant()}}>+ Nuevo arrendatario</button>
+                      </summary>
+                      <div style={{padding:'0 16px 14px'}}>
+                        <table className="pat-table">
+                          <thead><tr><th>Arrendatario</th><th>Uso</th><th>Sup. asignada</th><th>Renta</th><th>Break option</th><th>Vencimiento</th><th>Año alquiler</th><th>Trim.</th><th></th></tr></thead>
+                          <tbody>
+                            {arrendatariosReg.map(a=>{
+                              const supReal = getTenantSup(a)
+                              return (
+                              <tr key={a.id} style={{cursor:'pointer'}} onClick={()=>goToArr(a)}>
+                                <td><span className="pat-link">{a.tenant}</span></td>
+                                <td>{a.uso||'—'}</td>
+                                <td style={{fontFamily:'var(--mono)', fontVariantNumeric:'tabular-nums'}}>{supReal > 0 ? Number(supReal).toLocaleString('es-ES') : <span style={{color:'var(--text4)',fontStyle:'italic'}}>Pendiente · arrastra al stacking</span>}</td>
+                                <td>{a.closing_rent||'—'}</td>
+                                <td style={{color:'var(--amber)',fontWeight:600}}>{a.break_option||'—'}</td>
+                                <td style={{color:'var(--green)',fontWeight:600}}>{a.fecha_fin||'—'}</td>
+                                <td>{a.anyo_firma||'—'}</td>
+                                <td>{a.trimestre && <span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#f5efe5',color:'#5a4828',fontWeight:600}}>{a.trimestre}</span>}</td>
+                                <td><button className="ra" onClick={e=>{e.stopPropagation();goToArr(a)}}>↗ Ver</button></td>
+                              </tr>
+                            )})}
+                            {arrendatariosReg.length===0 && <tr><td colSpan={9} style={{textAlign:'center',color:'var(--text4)',fontSize:12,padding:16}}>Sin arrendatarios — añade uno con el botón</td></tr>}
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+
+                    <div style={{padding:'10px 14px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:11,color:'var(--text4)'}}>
+                      Las <strong>ofertas activas</strong> y las <strong>transacciones</strong> se gestionan desde sus módulos y se sincronizan automáticamente con este activo.
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           </div>
 
@@ -5500,134 +5726,6 @@ export default function FichaActivo() {
           })()}
 
           {/* ── TAB: Propietarios y arrendatarios ── */}
-          {activeTab==='at-prop' && (
-            <div className="tab-content active">
-              <div className="info-pad">
-
-                {/* PROPIETARIOS */}
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                  <div style={{fontSize:13,fontWeight:700,letterSpacing:'.01em',color:'var(--text1)'}}>PROPIETARIOS</div>
-                  <button className="ab-btn blue" onClick={handleAddOwner}>+ Nuevo propietario</button>
-                </div>
-                {(()=>{
-                  // Calcular superficie real asignada a cada propietario desde el stacking.
-                  // Fuente: liveBuildings (en memoria, tras drag) o activo.stacking_data (persistido).
-                  const blds = liveBuildings || activo?.stacking_data || []
-                  const getOwnerSup = (p) => blds
-                    .flatMap(b => b.prop || [])
-                    .flatMap(r => r.units || [])
-                    .reduce((s, u) => {
-                      const match = p.id ? u.prop_id === p.id : (!u.prop_id && u.n === p.propietario)
-                      return s + (match ? (Number(u.sup) || 0) : 0)
-                    }, 0)
-                  // Navegación con retorno explícito al stacking del activo origen
-                  const goToOwner = (p) => navigate('ficha-propietario', {
-                    id: p.id,
-                    ownerData: { ...p, superficie: getOwnerSup(p) },
-                    ownerSuperficie: getOwnerSup(p),
-                    fromActivoRef: activo?.ref || params?.ref,
-                    fromActivoNombre: activo?.nombre || displayNombre,
-                    fromActivoTab: 'at-prop',
-                  })
-                  return (
-                <table className="pat-table" style={{marginBottom:8}}>
-                  <thead><tr><th>Perfil</th><th>Propietario</th><th>SBA asignada</th><th>Yield</th><th>Precio compra</th><th>Año compra</th><th>Trim.</th><th></th></tr></thead>
-                  <tbody>
-                    {propietariosReg.map(p=>{
-                      const supReal = getOwnerSup(p)
-                      return (
-                      <tr key={p.id} style={{cursor:'pointer'}} onClick={()=>goToOwner(p)}>
-                        <td>{p.perfil||'—'}</td>
-                        <td><span className="pat-link">{p.propietario}</span></td>
-                        <td style={{fontFamily:'var(--mono)'}}>{supReal > 0 ? Number(supReal).toLocaleString('es-ES') : <span style={{color:'var(--text4)',fontStyle:'italic'}}>Pendiente · arrastra al stacking</span>}</td>
-                        <td>{p.yield_pct ? p.yield_pct+'%' : '—'}</td>
-                        <td>{p.precio_compra||'—'}</td>
-                        <td>{p.anyo_compra||'—'}</td>
-                        <td>{p.trimestre && <span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#f5efe5',color:'#5a4828',fontWeight:600}}>{p.trimestre}</span>}</td>
-                        <td><button className="ra" onClick={e=>{e.stopPropagation();goToOwner(p)}}>↗ Ver</button></td>
-                      </tr>
-                    )})}
-                    {propietariosReg.length===0 && <tr><td colSpan={8} style={{textAlign:'center',color:'var(--text4)',fontSize:12,padding:16}}>Sin propietarios — añade uno con el botón</td></tr>}
-                  </tbody>
-                </table>
-                )})()}
-
-                {/* HISTÓRICO PROPIETARIOS */}
-                {propietariosHist.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <div style={{fontSize:11,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:6}}>Histórico</div>
-                    <table className="pat-table">
-                      <thead><tr><th>Propietario</th><th>Fecha salida</th><th>Estado</th></tr></thead>
-                      <tbody>
-                        {propietariosHist.map(h=>(
-                          <tr key={h.id} style={{opacity:.7}}>
-                            <td>{h.propietario}</td>
-                            <td style={{fontFamily:'var(--mono)',fontSize:11}}>{h.fecha_salida||'—'}</td>
-                            <td><span style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'#fee2e2',color:'#dc2626',border:'1px solid #fca5a5',fontWeight:600}}>Anterior</span></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-                {propietariosHist.length === 0 && <div style={{marginBottom:20}}/>}
-
-                {/* ARRENDATARIOS */}
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                  <div style={{fontSize:13,fontWeight:700,letterSpacing:'.01em',color:'var(--text1)'}}>ARRENDATARIOS</div>
-                  <button className="ab-btn blue" onClick={handleAddTenant}>+ Nuevo arrendatario</button>
-                </div>
-                {(()=>{
-                  const blds = liveBuildings || activo?.stacking_data || []
-                  const getTenantSup = (a) => blds
-                    .flatMap(b => b.arr || [])
-                    .flatMap(r => (r.units || []).filter(u => u.type !== 'ofr' && u.type !== 'ofr_split'))
-                    .reduce((s, u) => {
-                      const match = a.ref ? u.arr_ref === a.ref : (!u.arr_ref && u.n === a.tenant)
-                      return s + (match ? (Number(u.sup) || 0) : 0)
-                    }, 0)
-                  const goToArr = (a) => {
-                    const supReal = getTenantSup(a)
-                    navigate('ficha-arrendatario', {
-                      ...(a.ref ? { arrRef: a.ref } : { tenantName: a.tenant }),
-                      tenantSuperficie: supReal,
-                      fromActivoRef: activo?.ref || params?.ref,
-                      fromActivoNombre: activo?.nombre || displayNombre,
-                      fromActivoTab: 'at-prop',
-                    })
-                  }
-                  return (
-                <table className="pat-table" style={{marginBottom:20}}>
-                  <thead><tr><th>Arrendatario</th><th>Uso</th><th>Sup. asignada</th><th>Renta</th><th>Break option</th><th>Vencimiento</th><th>Año alquiler</th><th>Trim.</th><th></th></tr></thead>
-                  <tbody>
-                    {arrendatariosReg.map(a=>{
-                      const supReal = getTenantSup(a)
-                      return (
-                      <tr key={a.id} style={{cursor:'pointer'}} onClick={()=>goToArr(a)}>
-                        <td><span className="pat-link">{a.tenant}</span></td>
-                        <td>{a.uso||'—'}</td>
-                        <td style={{fontFamily:'var(--mono)'}}>{supReal > 0 ? Number(supReal).toLocaleString('es-ES') : <span style={{color:'var(--text4)',fontStyle:'italic'}}>Pendiente · arrastra al stacking</span>}</td>
-                        <td>{a.closing_rent||'—'}</td>
-                        <td style={{color:'var(--amber)',fontWeight:600}}>{a.break_option||'—'}</td>
-                        <td style={{color:'var(--green)',fontWeight:600}}>{a.fecha_fin||'—'}</td>
-                        <td>{a.anyo_firma||'—'}</td>
-                        <td>{a.trimestre && <span style={{fontSize:10,padding:'1px 6px',borderRadius:8,background:'#f5efe5',color:'#5a4828',fontWeight:600}}>{a.trimestre}</span>}</td>
-                        <td><button className="ra" onClick={e=>{e.stopPropagation();goToArr(a)}}>↗ Ver</button></td>
-                      </tr>
-                    )})}
-                    {arrendatariosReg.length===0 && <tr><td colSpan={9} style={{textAlign:'center',color:'var(--text4)',fontSize:12,padding:16}}>Sin arrendatarios — añade uno con el botón</td></tr>}
-                  </tbody>
-                </table>
-                )})()}
-
-                {/* NOTA read-only */}
-                <div style={{padding:'10px 14px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:'var(--r)',fontSize:11,color:'var(--text4)',marginBottom:16}}>
-                  Las <strong>ofertas activas</strong> y las <strong>transacciones</strong> se gestionan desde sus módulos correspondientes y se sincronizan automáticamente con este activo.
-                </div>
-
-              </div>
-            </div>
-          )}
 
           {/* ── TAB: Ofertas ── */}
 
