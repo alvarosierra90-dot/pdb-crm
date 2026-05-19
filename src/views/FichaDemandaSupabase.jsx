@@ -7,12 +7,14 @@ import FirmarMandatoModal from '../components/FirmarMandatoModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
 
+// Orden canónico · Info → Específico → Documentos → Vista 360 → Confidencialidad
+// "Negociaciones" es específico de Demanda (las que salen de ella), va antes de Documentos.
 const DEM_TABS = [
   ['dem-info', 'Información general'],
   ['dem-req',  'Requisitos'],
-  ['dem-360',  'Vista 360'],
-  ['dem-docs', 'Documentos'],
   ['dem-neg',  'Negociaciones'],
+  ['dem-docs', 'Documentos'],
+  ['dem-360',  'Vista 360'],
   ['dem-conf', 'Confidencialidad'],
 ]
 

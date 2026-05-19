@@ -9,11 +9,12 @@ import Vinculaciones from '../components/Vinculaciones'
 
 // Pestañas. "Equipos y participantes" eliminada: ahora vive como sección dentro
 // de "Datos del proyecto", justo bajo Vinculaciones (mismo patrón que Oferta).
+// Tabs canónicos. "Datos del proyecto" → "Información general"; "Trazabilidad" → "Vista 360"; "Documentación" → "Documentos"
 const PRY_TABS = [
-  ['datos',        'Datos del proyecto'],
-  ['trazabilidad', 'Trazabilidad'],
-  ['docs',         'Documentación'],
+  ['datos',        'Información general'],
   ['resumen',      'Resumen'],
+  ['docs',         'Documentos'],
+  ['trazabilidad', 'Vista 360'],
   ['conf',         'Confidencialidad'],
 ]
 

@@ -10,15 +10,16 @@ import Vinculaciones from '../components/Vinculaciones'
 // Pestañas de la ficha de oferta. "Crear ficha" eliminada (botones PPT/PDF
 // se exponen en el header). "Equipo de trabajo" se quitó como pestaña porque
 // ahora vive como sección dentro de "Información oferta".
+// Tabs canónicos · "Información general" + bloques específicos del módulo · "Vista 360" (sustituye Seguimiento comercial)
 const OF_TABS = [
-  ['of-info',        'Información oferta'],
+  ['of-info',        'Información general'],
   ['of-stacking',    'Stacking plan'],
   ['of-espacios',    'Espacios comerciales'],
   ['of-condiciones', 'Condiciones'],
   ['of-caract',      'Características'],
   ['of-docs',        'Documentos'],
   ['of-web',         'Contenido web'],
-  ['of-seg',         'Seguimiento comercial'],
+  ['of-seg',         'Vista 360'],
   ['of-conf',        'Confidencialidad'],
 ]
 

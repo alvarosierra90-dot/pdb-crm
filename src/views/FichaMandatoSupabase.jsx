@@ -12,7 +12,7 @@ import Vinculaciones from '../components/Vinculaciones'
 // de Información del mandato (encima de Equipo de trabajo).
 // Vista 360 sustituye a Actividades.
 const MAN_TABS = [
-  ['man-info', 'Información del mandato'],
+  ['man-info', 'Información general'],
   ['man-docs', 'Documentos'],
   ['man-act',  'Vista 360'],
   ['man-conf', 'Confidencialidad'],
