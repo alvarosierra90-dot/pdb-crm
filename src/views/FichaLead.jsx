@@ -6,6 +6,8 @@ import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import TransformarLeadModal from '../components/TransformarLeadModal'
 import LeadNuloModal from '../components/LeadNuloModal'
 import EquipoTrabajoCard, { isPrincipal as _isPrincipal } from '../components/EquipoTrabajoCard'
+import VinculacionesMaestra from '../components/VinculacionesMaestra'
+import { Building2, User, Target, Lightbulb } from 'lucide-react'
 
 // Lista de equipos para el dropdown legacy "Asignación → Equipo" del
 // lead. El equipo de trabajo (Principal/Soporte/Colaborador) usa los
@@ -28,9 +30,10 @@ const inlineInp = {
 }
 const inlineTa = { ...inlineInp, padding:'6px 8px', resize:'vertical', minHeight:60, lineHeight:1.5 }
 
+// Tabs canónicos · "Información general" + "Vista 360" (sustituye a Trazabilidad)
 const TABS = [
-  ['ld-info',    'Información'],
-  ['ld-traz',    'Trazabilidad'],
+  ['ld-info', 'Información general'],
+  ['ld-360',  'Vista 360'],
 ]
 
 function TipoTag({ tipo }) {
@@ -325,6 +328,46 @@ export default function FichaLead() {
 
             {tab === 'ld-info' && (
               <>
+                {/* ── VINCULACIONES MAESTRA (Lead es entidad maestra · origen del funnel) ── */}
+                <VinculacionesMaestra items={[
+                  {
+                    key:'cuenta',
+                    icon: Building2,
+                    tone:'green',
+                    label:'Cuenta vinculada',
+                    value: lead.cuenta_nombre || null,
+                    sub: lead.cuenta_sector || null,
+                    onClick: lead.dynamics_account_id ? () => navigate('cuentas', { id: lead.dynamics_account_id }) : null,
+                  },
+                  {
+                    key:'contacto',
+                    icon: User,
+                    tone:'blue',
+                    label:'Contacto',
+                    value: [lead.contacto_nombre, lead.contacto_apellidos].filter(Boolean).join(' ') || null,
+                    sub: lead.email || lead.telefono || null,
+                    onClick: null,
+                  },
+                  {
+                    key:'oportunidad',
+                    icon: Target,
+                    tone:'accent',
+                    label:'Oportunidad transformada',
+                    value: lead.dynamics_opportunity_id || null,
+                    sub: null,
+                    onClick: lead.dynamics_opportunity_id ? () => navigate('ficha-oportunidad', { id: lead.dynamics_opportunity_id }) : null,
+                  },
+                  {
+                    key:'propuesta',
+                    icon: Lightbulb,
+                    tone:'amber',
+                    label:'Propuesta generada',
+                    value: lead.propuesta_ref || null,
+                    sub: null,
+                    onClick: lead.propuesta_ref ? () => navigate('ficha-propuesta', { id: lead.propuesta_ref }) : null,
+                  },
+                ]} />
+
                 {/* ─── Contacto del lead — campos obligatorios para capturar
                        al contacto antes de cualificar/vincular a Dynamics ─── */}
                 {(() => {
@@ -581,7 +624,7 @@ export default function FichaLead() {
               </>
             )}
 
-            {tab === 'ld-traz' && (
+            {tab === 'ld-360' && (
               <div className="va-card">
                 <div className="va-card-header">
                   <h3><span className="ico">◷</span> Trazabilidad completa</h3>
