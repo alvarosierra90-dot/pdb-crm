@@ -5,6 +5,7 @@ import { CURRENT_USER } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
 import ActividadesPanel from '../components/ActividadesPanel'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
+import Vinculaciones from '../components/Vinculaciones'
 
 // Mismo formato que Propuestas y Proyectos: una sola pestaña principal
 // que agrupa todos los bloques. Fees y honorarios pasa a estar dentro
@@ -112,9 +113,6 @@ export default function FichaMandatoSupabase({ refOrId }) {
   const [showCierreVencido, setShowCierreVencido] = useState(false)
   const [cerrandoVencido, setCerrandoVencido] = useState(false)
 
-  // ── Form inline para añadir miembros al equipo (estilo Propuestas) ──
-  const [showAddEq, setShowAddEq]     = useState(false)
-  const [newEqDraft, setNewEqDraft]   = useState({ equipo:'', usuario:'', rol:'Soporte' })
   const [ofertasMandato, setOfertasMandato] = useState([])
   const [showCancelar, setShowCancelar] = useState(false)
   const [cancelando, setCancelando] = useState(false)
@@ -416,6 +414,9 @@ export default function FichaMandatoSupabase({ refOrId }) {
   const idsLinked = activosLinked.map(l => l.activos?.id).filter(Boolean)
   const activosDisponibles = activosCatalog.filter(a => !idsLinked.includes(a.id))
   const sbaTotal = activosLinked.reduce((s,l) => s + (Number(l.sba_asignada) || 0), 0)
+  const equipoArr = Array.isArray(mandato.equipo_trabajo) ? mandato.equipo_trabajo : []
+  const principal = equipoArr.find(m => m.rol === 'Principal')
+  const responsableUI = principal?.nombre || form.responsable || '—'
 
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
@@ -636,7 +637,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
                   ['Estado',    estadoUI,                       estadoColor],
                   ['Activos',   activosLinked.length,           'var(--accent)'],
                   ['SBA total', sbaTotal ? `${sbaTotal.toLocaleString('es-ES')} m²` : '—', null],
-                  ['Responsable', form.responsable || '—',      'var(--accent)'],
+                  ['Responsable', responsableUI,                'var(--accent)'],
                 ].map(([lbl,val,col]) => (
                   <div key={lbl} style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
                     <div style={{ fontSize:9, color:'var(--text4)' }}>{lbl}</div>
@@ -663,8 +664,66 @@ export default function FichaMandatoSupabase({ refOrId }) {
               onAfter: () => load(),
               onError: (msg) => setSaveError(msg),
             })
+            const equipoInterno = equipo.filter(m => m.rol !== 'Colaborador')
+            const colaboradores = equipo.filter(m => m.rol === 'Colaborador')
+            const mapIdx = (filtered, idx) => equipo.indexOf(filtered[idx])
+
+            // Activo para la banda canónica de Vinculaciones:
+            // · 1 activo → lo mostramos clicable
+            // · N activos → mostramos el contador (no clicable; el detalle vive en la card de abajo)
+            let activoForVinc = null
+            if (activosLinked.length === 1 && activosLinked[0].activos) {
+              const a = activosLinked[0].activos
+              activoForVinc = {
+                ref:       a.ref,
+                nombre:    a.nombre,
+                direccion: a.ciudad,
+                sub:       a.uso,
+              }
+            } else if (activosLinked.length > 1) {
+              activoForVinc = {
+                nombre: `${activosLinked.length} activos vinculados`,
+                sub:    'Ver listado abajo',
+              }
+            }
+
             return (
               <div className="tab-content active"><div className="info-pad">
+
+                {/* ── VINCULACIONES (canónico, siempre arriba) ── */}
+                <Vinculaciones
+                  cuenta={cuenta ? {
+                    id:     cuenta.dynamics_id || cuenta.id,
+                    nombre: cuenta.nombre,
+                    sub:    cuenta.sector || cuenta.tipo,
+                  } : null}
+                  activo={activoForVinc}
+                  oportunidad={oportunidad ? {
+                    id:     oportunidad.dynamics_id || oportunidad.id,
+                    nombre: oportunidad.nombre,
+                    sub:    oportunidad.tipo,
+                  } : null}
+                />
+
+                {/* ── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones) ── */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+                  <EquipoTrabajoCard
+                    title="Equipo de trabajo"
+                    equipo={equipoInterno}
+                    canManage={canManage}
+                    onAdd={(nombre, equipoNombre, rol) => handlers.addMiembro(nombre, equipoNombre, rol === 'Colaborador' ? 'Soporte' : rol)}
+                    onRemove={(idx) => handlers.removeMiembro(mapIdx(equipoInterno, idx))}
+                    onUpdateRol={(idx, rol) => handlers.updateMiembroRol(mapIdx(equipoInterno, idx), rol)}
+                  />
+                  <EquipoTrabajoCard
+                    title="Colaboradores"
+                    equipo={colaboradores}
+                    canManage={canManage}
+                    onAdd={(nombre, equipoNombre) => handlers.addMiembro(nombre, equipoNombre, 'Colaborador')}
+                    onRemove={(idx) => handlers.removeMiembro(mapIdx(colaboradores, idx))}
+                    onUpdateRol={(idx, rol) => handlers.updateMiembroRol(mapIdx(colaboradores, idx), rol)}
+                  />
+                </div>
 
                 {/* ─── FILA 1 (antes 2): Mandato | Vigencia y alertas ─── */}
                 <div className="va-two-col">
@@ -753,12 +812,6 @@ export default function FichaMandatoSupabase({ refOrId }) {
                       <div className="ir"><span className="ir-k">Zona</span>
                         <span className="ir-v"><input style={{ ...inp, width:140 }} value={form.zona} onChange={e => setF('zona', e.target.value)} placeholder="Zona / submercado" /></span>
                       </div>
-                      <div className="ir"><span className="ir-k">Responsable</span>
-                        <span className="ir-v"><input style={{ ...inp, width:160 }} value={form.responsable} onChange={e => setF('responsable', e.target.value)} placeholder="Nombre" /></span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Equipo legacy</span>
-                        <span className="ir-v"><input style={{ ...inp, width:200 }} value={form.equipo} onChange={e => setF('equipo', e.target.value)} placeholder="Equipo asignado" /></span>
-                      </div>
                     </div>
                   </div>
 
@@ -798,271 +851,161 @@ export default function FichaMandatoSupabase({ refOrId }) {
                   </div>
                 </div>
 
-                {/* ─── FILA 2 (antes 1): Vinculaciones | Fees + Equipo de trabajo ─── */}
-                <div className="va-two-col" style={{ overflow:'visible' }}>
-                  <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
-                    <div className="va-card-header">
-                      <h3><span className="ico"></span> Vinculaciones</h3>
-                    </div>
-                    <div style={{ padding:'4px 20px 16px' }}>
-
-                      {/* Oportunidad */}
-                      <div style={{ marginBottom:12 }}>
-                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Oportunidad</div>
-                        {oportunidad ? (
-                          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>OP</div>
-                            <div style={{ flex:1, minWidth:0 }}>
-                              <div style={{ fontSize:12, fontWeight:600 }}>{oportunidad.nombre || '—'}</div>
-                              {oportunidad.tipo && <div style={{ fontSize:10, color:'var(--text3)' }}>{oportunidad.tipo}</div>}
-                            </div>
-                            <span className="tag tag-blue" style={{ fontSize:9 }}>Dynamics</span>
-                          </div>
-                        ) : (
-                          <div style={{ padding:'8px 10px', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'var(--gray-lt)', fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin oportunidad vinculada</div>
-                        )}
-                      </div>
-
-                      {/* Cuenta */}
-                      <div style={{ marginBottom:12 }}>
-                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Cuenta (heredada de Dynamics)</div>
-                        {cuenta ? (
-                          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}></div>
-                            <div style={{ flex:1, minWidth:0 }}>
-                              <div style={{ fontSize:12, fontWeight:600 }}>{cuenta.nombre || '—'}</div>
-                              <div style={{ fontSize:10, color:'var(--text3)' }}>{[cuenta.tipo, cuenta.sector, cuenta.ciudad].filter(Boolean).join(' · ') || '—'}</div>
-                            </div>
-                            <span className="tag tag-blue" style={{ fontSize:9 }}>Dynamics</span>
-                          </div>
-                        ) : (
-                          <div style={{ padding:'8px 10px', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'var(--gray-lt)', fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin cuenta</div>
-                        )}
-                      </div>
-
-                      {/* Activos vinculados */}
-                      <div style={{ marginBottom:8 }}>
-                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:6, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                          <span>Activos vinculados ({activosLinked.length})</span>
-                          {(form.tipo === 'alquiler' || form.tipo === 'venta') && activosLinked.length === 0 && (
-                            <span style={{ color:'#dc2626', fontSize:9, fontWeight:700, textTransform:'none' }}>* Tipo {TIPO_LABEL[form.tipo]} requiere al menos 1 activo</span>
-                          )}
-                        </div>
-                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                          {activosLinked.length === 0 && (
-                            <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', padding:'6px 0' }}>Sin activos vinculados</div>
-                          )}
-                          {activosLinked.map(l => l.activos && (
-                            <div key={l.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                              <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}></div>
-                              <div style={{ flex:1, minWidth:0 }}>
-                                <div style={{ fontSize:12, fontWeight:600 }}>{l.activos.nombre}</div>
-                                <div style={{ fontSize:10, color:'var(--text3)' }}>
-                                  {[l.activos.ciudad, l.activos.uso, l.activos.sba ? `${Number(l.activos.sba).toLocaleString('es-ES')} m²` : null].filter(Boolean).join(' · ')}
-                                </div>
-                              </div>
-                              <input type="number" style={{ ...inp, width:80, fontSize:10 }} defaultValue={l.sba_asignada ?? ''}
-                                onBlur={e => updateSbaAsignada(l.id, e.target.value)} placeholder="SBA asig." title="SBA asignada" />
-                              <button onClick={() => removeActivo(l.id)} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
-                            </div>
-                          ))}
-                        </div>
-                        <select style={{ ...sel, width:'100%', marginTop:6 }} value="" onChange={e => { if (e.target.value) addActivo(e.target.value) }}>
-                          <option value="">+ Añadir activo al mandato…</option>
-                          {activosDisponibles.map(a => (
-                            <option key={a.id} value={a.id}>{a.nombre} — {a.ciudad || ''} · {a.ref}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                    </div>
+                {/* ─── Activos vinculados (multi · card full) ─── */}
+                <div className="va-card" style={{ marginTop:14, marginBottom:0, overflow:'visible' }}>
+                  <div className="va-card-header">
+                    <h3><span className="ico"></span> Activos vinculados ({activosLinked.length})</h3>
+                    {(form.tipo === 'alquiler' || form.tipo === 'venta') && activosLinked.length === 0 && (
+                      <span className="hint" style={{ color:'#dc2626', fontWeight:700 }}>* Tipo {TIPO_LABEL[form.tipo]} requiere al menos 1 activo</span>
+                    )}
                   </div>
-
-                  {/* Columna derecha: Fees y honorarios (arriba) + Equipo de trabajo (abajo) */}
-                  <div style={{ display:'flex', flexDirection:'column', gap:14, minWidth:0 }}>
-                    {/* ─── FEES Y HONORARIOS ─── (movido desde la pestaña independiente) */}
-                    {(() => {
-                      const reparto      = form.fee_reparto
-                      const totalFeeEur  = Number(form.fee_eur_fijo) || 0
-                      const sumPct       = reparto.reduce((s, r) => s + (Number(r.porcentaje) || 0), 0)
-                      const restante     = 100 - sumPct
-                      const sumOk        = sumPct === 100
-                      const sinTotal     = totalFeeEur <= 0
-                      const updateRow = (idx, key, val) => setF('fee_reparto', reparto.map((r,i) => i === idx ? { ...r, [key]: val } : r))
-                      const addRow = () => setF('fee_reparto', [...reparto, { nombre:'', tipo:'interno', porcentaje:'' }])
-                      const removeRow = idx => setF('fee_reparto', reparto.filter((_,i) => i !== idx))
-                      const fmtEur = n => n ? n.toLocaleString('es-ES', { maximumFractionDigits:2 }) : '0'
-                      const totalEurDistribuido = (sumPct / 100) * totalFeeEur
-                      return (
-                        <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
-                          <div className="va-card-header">
-                            <h3><span className="ico" style={{ color:'var(--green)' }}>●</span> Fees y honorarios</h3>
-                            {totalFeeEur > 0 && <span className="hint" style={{ fontFamily:'var(--mono)', fontWeight:700, color:'var(--green)' }}>{fmtEur(totalFeeEur)} €</span>}
-                          </div>
-                          <div style={{ padding:'4px 18px 16px' }}>
-                            {/* Importe total + KPIs secundarios */}
-                            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:12 }}>
-                              <div>
-                                <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>Total fee (€)</div>
-                                <input type="number" step="100" value={form.fee_eur_fijo} onChange={e => setF('fee_eur_fijo', e.target.value)} placeholder="0"
-                                  style={{ width:'100%', padding:'6px 8px', fontSize:13, fontWeight:700, border:'1px solid var(--border)', borderRadius:5, fontFamily:'var(--mono)', textAlign:'right', color:'var(--green)' }} />
-                              </div>
-                              <div>
-                                <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>% s/ operación</div>
-                                <input type="number" step="0.1" value={form.fee_porcentaje} onChange={e => setF('fee_porcentaje', e.target.value)} placeholder="—"
-                                  style={{ width:'100%', padding:'6px 8px', fontSize:13, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', textAlign:'right' }} />
-                              </div>
-                              <div>
-                                <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>Mín. garantizado</div>
-                                <input type="number" value={form.fee_min_garantizado} onChange={e => setF('fee_min_garantizado', e.target.value)} placeholder="—"
-                                  style={{ width:'100%', padding:'6px 8px', fontSize:13, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', textAlign:'right' }} />
-                              </div>
+                  <div style={{ padding:'4px 20px 16px' }}>
+                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                      {activosLinked.length === 0 && (
+                        <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', padding:'6px 0' }}>Sin activos vinculados</div>
+                      )}
+                      {activosLinked.map(l => l.activos && (
+                        <div
+                          key={l.id}
+                          style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', cursor:'pointer' }}
+                          onClick={() => navigate('ficha-activo', { ref: l.activos.ref })}
+                          title={`Abrir ficha del activo ${l.activos.ref}`}
+                        >
+                          <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}></div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:12, fontWeight:600 }}>{l.activos.nombre} <span style={{ marginLeft:6, fontFamily:'var(--mono)', color:'var(--text4)', fontSize:10, fontWeight:500 }}>{l.activos.ref}</span></div>
+                            <div style={{ fontSize:10, color:'var(--text3)' }}>
+                              {[l.activos.ciudad, l.activos.uso, l.activos.sba ? `${Number(l.activos.sba).toLocaleString('es-ES')} m²` : null].filter(Boolean).join(' · ')}
                             </div>
-
-                            {/* Reparto */}
-                            <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:6, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                              <span>Reparto del fee</span>
-                              {reparto.length > 0 && (
-                                <span style={{ fontSize:10, fontWeight:700, textTransform:'none', color: sumOk ? 'var(--green)' : (sumPct > 100 ? 'var(--red)' : 'var(--amber)') }}>
-                                  {sumPct}% {sumOk ? '✓' : sumPct > 100 ? `· excede ${sumPct-100}%` : `· falta ${restante}%`}
-                                </span>
-                              )}
-                            </div>
-                            {sinTotal && reparto.length > 0 && (
-                              <div style={{ padding:'6px 10px', background:'var(--amber-lt)', border:'1px solid var(--amber-bd)', borderRadius:4, fontSize:10, color:'var(--amber)', marginBottom:6 }}>
-                                Introduce primero el importe total para calcular los € de cada línea.
-                              </div>
-                            )}
-                            {reparto.length === 0 ? (
-                              <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', padding:'6px 0' }}>Sin reparto · 100% para el responsable del mandato.</div>
-                            ) : (
-                              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                                {reparto.map((r, idx) => {
-                                  const pct = Number(r.porcentaje) || 0
-                                  const eur = (pct / 100) * totalFeeEur
-                                  const isInterno = (r.tipo || 'interno') === 'interno'
-                                  const miembrosDisp = isInterno ? (MIEMBROS_POR_EQUIPO[r.equipo] || []) : []
-                                  return (
-                                    <div key={idx} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                                      <select style={{ ...sel, width:90, fontSize:10 }} value={r.tipo || 'interno'}
-                                        onChange={e => {
-                                          const next = e.target.value
-                                          setF('fee_reparto', reparto.map((row,i) => i === idx ? { ...row, tipo:next, ...(next === 'interno' ? { agencia_id:'', contacto:'', nombre:'' } : { equipo:'', miembro:'' }) } : row))
-                                        }}>
-                                        <option value="interno">Interno</option>
-                                        <option value="externo">Externo</option>
-                                      </select>
-                                      {isInterno ? (
-                                        <>
-                                          <select style={{ ...sel, flex:1, fontSize:10, minWidth:0 }} value={r.equipo || ''}
-                                            onChange={e => setF('fee_reparto', reparto.map((row,i) => i === idx ? { ...row, equipo:e.target.value, miembro:'' } : row))}>
-                                            <option value="">Equipo...</option>
-                                            {EQUIPOS_SAVILLS.map(eq => <option key={eq} value={eq}>{eq}</option>)}
-                                          </select>
-                                          <select style={{ ...sel, flex:1, fontSize:10, minWidth:0 }} value={r.miembro || ''}
-                                            onChange={e => updateRow(idx, 'miembro', e.target.value)} disabled={!r.equipo}>
-                                            <option value="">Miembro...</option>
-                                            {miembrosDisp.map(m => <option key={m} value={m}>{m}</option>)}
-                                          </select>
-                                        </>
-                                      ) : (
-                                        <select style={{ ...sel, flex:2, fontSize:10, minWidth:0 }} value={r.agencia_id || ''}
-                                          onChange={e => {
-                                            const cu = cuentasCatalog.find(c => c.dynamics_id === e.target.value)
-                                            setF('fee_reparto', reparto.map((row,i) => i === idx ? { ...row, agencia_id:e.target.value, nombre: cu?.nombre || '' } : row))
-                                          }}>
-                                          <option value="">Agencia externa...</option>
-                                          {cuentasCatalog.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>)}
-                                        </select>
-                                      )}
-                                      <input type="number" step="0.5" min="0" max="100" value={r.porcentaje ?? ''}
-                                        onChange={e => updateRow(idx, 'porcentaje', e.target.value)} placeholder="0"
-                                        style={{ width:50, padding:'4px 6px', fontSize:11, fontWeight:600, border:'1px solid var(--border)', borderRadius:4, fontFamily:'var(--mono)', textAlign:'right' }} />
-                                      <span style={{ fontSize:10, fontWeight:700, color:'var(--text3)' }}>%</span>
-                                      <span style={{ minWidth:70, textAlign:'right', fontFamily:'var(--mono)', fontSize:11, fontWeight:600, color: sinTotal ? 'var(--text4)' : 'var(--text)' }}>
-                                        {sinTotal ? '—' : `${fmtEur(eur)} €`}
-                                      </span>
-                                      <button onClick={() => removeRow(idx)} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:12, padding:'2px 4px' }}>✕</button>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            )}
-                            <button onClick={addRow} style={{ marginTop:8, padding:'5px 10px', fontSize:10, fontWeight:600, border:'1px dashed var(--accent)', color:'var(--accent)', background:'var(--accent-lt)', borderRadius:5, cursor:'pointer', fontFamily:'inherit' }}>
-                              + Añadir colaborador
-                            </button>
                           </div>
+                          <input type="number" style={{ ...inp, width:80, fontSize:10 }} defaultValue={l.sba_asignada ?? ''}
+                            onClick={e => e.stopPropagation()}
+                            onBlur={e => updateSbaAsignada(l.id, e.target.value)} placeholder="SBA asig." title="SBA asignada" />
+                          <button onClick={e => { e.stopPropagation(); removeActivo(l.id) }} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
                         </div>
-                      )
-                    })()}
-
-                    {/* ─── EQUIPO DE TRABAJO — formato Propuestas (inline) ─── */}
-                    <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
-                      <div className="va-card-header">
-                        <h3><span className="ico"></span> Equipo de trabajo</h3>
-                        {canManage && (
-                          <button className="ab-btn" style={{ fontSize:10, padding:'3px 10px' }} onClick={() => setShowAddEq(v => !v)}>+ Añadir</button>
-                        )}
-                      </div>
-                      <div style={{ padding:'4px 20px 16px' }}>
-                        {showAddEq && canManage && (
-                          <div style={{ marginBottom:10, padding:10, border:'1px solid var(--border)', borderRadius:6, background:'var(--surface-2)', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, alignItems:'end' }}>
-                            <div>
-                              <div className="rp-lbl">Equipo</div>
-                              <select className="fsel" value={newEqDraft.equipo} onChange={e => setNewEqDraft(p => ({ ...p, equipo:e.target.value, usuario:'' }))} style={{ width:'100%' }}>
-                                <option value="">Seleccionar...</option>
-                                {EQUIPOS_SAVILLS.filter(eq => !equipo.find(m => m.equipo === eq && m.nombre)).map(eq => <option key={eq}>{eq}</option>)}
-                              </select>
-                            </div>
-                            <div>
-                              <div className="rp-lbl">Miembro</div>
-                              <select className="fsel" value={newEqDraft.usuario} onChange={e => setNewEqDraft(p => ({ ...p, usuario:e.target.value }))} disabled={!newEqDraft.equipo} style={{ width:'100%' }}>
-                                <option value="">Seleccionar...</option>
-                                {(MIEMBROS_POR_EQUIPO[newEqDraft.equipo] || []).map(u => <option key={u}>{u}</option>)}
-                              </select>
-                            </div>
-                            <div>
-                              <div className="rp-lbl">Rol</div>
-                              <select className="fsel" value={newEqDraft.rol} onChange={e => setNewEqDraft(p => ({ ...p, rol:e.target.value }))} style={{ width:'100%' }}>
-                                {['Principal','Soporte','Colaborador'].map(r => <option key={r}>{r}</option>)}
-                              </select>
-                            </div>
-                            <div style={{ gridColumn:'1 / -1', display:'flex', gap:6, justifyContent:'flex-end' }}>
-                              <button className="ab-btn save" disabled={!newEqDraft.equipo || !newEqDraft.usuario}
-                                onClick={() => {
-                                  handlers.addMiembro(newEqDraft.usuario, newEqDraft.equipo, newEqDraft.rol)
-                                  setShowAddEq(false)
-                                  setNewEqDraft({ equipo:'', usuario:'', rol:'Soporte' })
-                                }}>Añadir</button>
-                              <button className="ab-btn" onClick={() => setShowAddEq(false)}>Cancelar</button>
-                            </div>
-                          </div>
-                        )}
-                        {equipo.length === 0 ? (
-                          <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', padding:'8px 0' }}>Sin equipo asignado.</div>
-                        ) : (
-                          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                            {equipo.map((m,i) => (
-                              <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
-                                <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>
-                                  {(m.nombre || '').split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
-                                </div>
-                                <div style={{ flex:1, minWidth:0 }}>
-                                  <div style={{ fontSize:12, fontWeight:600 }}>{m.nombre}</div>
-                                  <div style={{ fontSize:10, color:'var(--text3)' }}>{m.equipo}</div>
-                                </div>
-                                <span className="tag tag-blue" style={{ fontSize:9 }}>{m.rol}</span>
-                                {canManage && (
-                                  <button onClick={() => handlers.removeMiembro(i)} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      ))}
                     </div>
+                    <select style={{ ...sel, width:'100%', marginTop:6 }} value="" onChange={e => { if (e.target.value) addActivo(e.target.value) }}>
+                      <option value="">+ Añadir activo al mandato…</option>
+                      {activosDisponibles.map(a => (
+                        <option key={a.id} value={a.id}>{a.nombre} — {a.ciudad || ''} · {a.ref}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
+
+                {/* ─── Fees y honorarios (card full) ─── */}
+                {(() => {
+                  const reparto      = form.fee_reparto
+                  const totalFeeEur  = Number(form.fee_eur_fijo) || 0
+                  const sumPct       = reparto.reduce((s, r) => s + (Number(r.porcentaje) || 0), 0)
+                  const restante     = 100 - sumPct
+                  const sumOk        = sumPct === 100
+                  const sinTotal     = totalFeeEur <= 0
+                  const updateRow = (idx, key, val) => setF('fee_reparto', reparto.map((r,i) => i === idx ? { ...r, [key]: val } : r))
+                  const addRow = () => setF('fee_reparto', [...reparto, { nombre:'', tipo:'interno', porcentaje:'' }])
+                  const removeRow = idx => setF('fee_reparto', reparto.filter((_,i) => i !== idx))
+                  const fmtEur = n => n ? n.toLocaleString('es-ES', { maximumFractionDigits:2 }) : '0'
+                  return (
+                    <div className="va-card" style={{ marginTop:14, marginBottom:0, overflow:'visible' }}>
+                      <div className="va-card-header">
+                        <h3><span className="ico" style={{ color:'var(--green)' }}>●</span> Fees y honorarios</h3>
+                        {totalFeeEur > 0 && <span className="hint" style={{ fontFamily:'var(--mono)', fontWeight:700, color:'var(--green)' }}>{fmtEur(totalFeeEur)} €</span>}
+                      </div>
+                      <div style={{ padding:'4px 18px 16px' }}>
+                        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:12 }}>
+                          <div>
+                            <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>Total fee (€)</div>
+                            <input type="number" step="100" value={form.fee_eur_fijo} onChange={e => setF('fee_eur_fijo', e.target.value)} placeholder="0"
+                              style={{ width:'100%', padding:'6px 8px', fontSize:13, fontWeight:700, border:'1px solid var(--border)', borderRadius:5, fontFamily:'var(--mono)', textAlign:'right', color:'var(--green)' }} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>% s/ operación</div>
+                            <input type="number" step="0.1" value={form.fee_porcentaje} onChange={e => setF('fee_porcentaje', e.target.value)} placeholder="—"
+                              style={{ width:'100%', padding:'6px 8px', fontSize:13, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', textAlign:'right' }} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:3 }}>Mín. garantizado</div>
+                            <input type="number" value={form.fee_min_garantizado} onChange={e => setF('fee_min_garantizado', e.target.value)} placeholder="—"
+                              style={{ width:'100%', padding:'6px 8px', fontSize:13, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', textAlign:'right' }} />
+                          </div>
+                        </div>
+
+                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:6, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                          <span>Reparto del fee</span>
+                          {reparto.length > 0 && (
+                            <span style={{ fontSize:10, fontWeight:700, textTransform:'none', color: sumOk ? 'var(--green)' : (sumPct > 100 ? 'var(--red)' : 'var(--amber)') }}>
+                              {sumPct}% {sumOk ? '✓' : sumPct > 100 ? `· excede ${sumPct-100}%` : `· falta ${restante}%`}
+                            </span>
+                          )}
+                        </div>
+                        {sinTotal && reparto.length > 0 && (
+                          <div style={{ padding:'6px 10px', background:'var(--amber-lt)', border:'1px solid var(--amber-bd)', borderRadius:4, fontSize:10, color:'var(--amber)', marginBottom:6 }}>
+                            Introduce primero el importe total para calcular los € de cada línea.
+                          </div>
+                        )}
+                        {reparto.length === 0 ? (
+                          <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', padding:'6px 0' }}>Sin reparto · 100% para el responsable del mandato.</div>
+                        ) : (
+                          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                            {reparto.map((r, idx) => {
+                              const pct = Number(r.porcentaje) || 0
+                              const eur = (pct / 100) * totalFeeEur
+                              const isInterno = (r.tipo || 'interno') === 'interno'
+                              const miembrosDisp = isInterno ? (MIEMBROS_POR_EQUIPO[r.equipo] || []) : []
+                              return (
+                                <div key={idx} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
+                                  <select style={{ ...sel, width:90, fontSize:10 }} value={r.tipo || 'interno'}
+                                    onChange={e => {
+                                      const next = e.target.value
+                                      setF('fee_reparto', reparto.map((row,i) => i === idx ? { ...row, tipo:next, ...(next === 'interno' ? { agencia_id:'', contacto:'', nombre:'' } : { equipo:'', miembro:'' }) } : row))
+                                    }}>
+                                    <option value="interno">Interno</option>
+                                    <option value="externo">Externo</option>
+                                  </select>
+                                  {isInterno ? (
+                                    <>
+                                      <select style={{ ...sel, flex:1, fontSize:10, minWidth:0 }} value={r.equipo || ''}
+                                        onChange={e => setF('fee_reparto', reparto.map((row,i) => i === idx ? { ...row, equipo:e.target.value, miembro:'' } : row))}>
+                                        <option value="">Equipo...</option>
+                                        {EQUIPOS_SAVILLS.map(eq => <option key={eq} value={eq}>{eq}</option>)}
+                                      </select>
+                                      <select style={{ ...sel, flex:1, fontSize:10, minWidth:0 }} value={r.miembro || ''}
+                                        onChange={e => updateRow(idx, 'miembro', e.target.value)} disabled={!r.equipo}>
+                                        <option value="">Miembro...</option>
+                                        {miembrosDisp.map(m => <option key={m} value={m}>{m}</option>)}
+                                      </select>
+                                    </>
+                                  ) : (
+                                    <select style={{ ...sel, flex:2, fontSize:10, minWidth:0 }} value={r.agencia_id || ''}
+                                      onChange={e => {
+                                        const cu = cuentasCatalog.find(c => c.dynamics_id === e.target.value)
+                                        setF('fee_reparto', reparto.map((row,i) => i === idx ? { ...row, agencia_id:e.target.value, nombre: cu?.nombre || '' } : row))
+                                      }}>
+                                      <option value="">Agencia externa...</option>
+                                      {cuentasCatalog.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>)}
+                                    </select>
+                                  )}
+                                  <input type="number" step="0.5" min="0" max="100" value={r.porcentaje ?? ''}
+                                    onChange={e => updateRow(idx, 'porcentaje', e.target.value)} placeholder="0"
+                                    style={{ width:50, padding:'4px 6px', fontSize:11, fontWeight:600, border:'1px solid var(--border)', borderRadius:4, fontFamily:'var(--mono)', textAlign:'right' }} />
+                                  <span style={{ fontSize:10, fontWeight:700, color:'var(--text3)' }}>%</span>
+                                  <span style={{ minWidth:70, textAlign:'right', fontFamily:'var(--mono)', fontSize:11, fontWeight:600, color: sinTotal ? 'var(--text4)' : 'var(--text)' }}>
+                                    {sinTotal ? '—' : `${fmtEur(eur)} €`}
+                                  </span>
+                                  <button onClick={() => removeRow(idx)} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:12, padding:'2px 4px' }}>✕</button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                        <button onClick={addRow} style={{ marginTop:8, padding:'5px 10px', fontSize:10, fontWeight:600, border:'1px dashed var(--accent)', color:'var(--accent)', background:'var(--accent-lt)', borderRadius:5, cursor:'pointer', fontFamily:'inherit' }}>
+                          + Añadir colaborador
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })()}
 
                 {/* ─── FILA 3: Exclusividad | Notas + Visión y novedades ─── */}
                 <div className="va-two-col">
@@ -1116,224 +1059,6 @@ export default function FichaMandatoSupabase({ refOrId }) {
             )
           })()}
 
-          {/* TAB Fees · ELIMINADO — el contenido vive ahora dentro de man-info */}
-          {false && tab === 'man-fees' && (() => {
-            const reparto      = form.fee_reparto
-            const totalFeeEur  = Number(form.fee_eur_fijo) || 0
-            const sumPct       = reparto.reduce((s, r) => s + (Number(r.porcentaje) || 0), 0)
-            const restante     = 100 - sumPct
-            const sumOk        = sumPct === 100
-            const sinTotal     = totalFeeEur <= 0
-            const updateRow = (idx, key, val) => {
-              setF('fee_reparto', reparto.map((r,i) => i === idx ? { ...r, [key]: val } : r))
-            }
-            const addRow = () => setF('fee_reparto', [...reparto, { nombre:'', tipo:'interno', porcentaje:'' }])
-            const removeRow = idx => setF('fee_reparto', reparto.filter((_,i) => i !== idx))
-            const fmtEur = n => n ? n.toLocaleString('es-ES', { maximumFractionDigits:2 }) : '0'
-
-            const totalEurDistribuido = (sumPct / 100) * totalFeeEur
-
-            return (
-              <div className="tab-content active"><div className="info-pad" style={{ maxWidth:1100 }}>
-
-                {/* BLOQUE 1: Importe total del fee */}
-                <div style={{ background:'linear-gradient(135deg, var(--accent-lt), #fff)', border:'1px solid var(--accent-bd)', borderRadius:8, padding:'20px 24px', marginBottom:24 }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:20 }}>
-                    <div>
-                      <div style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:6 }}>Importe total del fee</div>
-                      <div style={{ fontSize:11, color:'var(--text3)', marginBottom:10, maxWidth:380 }}>
-                        Total que cobra Savills por este mandato. Sobre este importe se distribuye el reparto entre colaboradores y/o agencias externas.
-                      </div>
-                      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                        <input
-                          type="number"
-                          step="100"
-                          value={form.fee_eur_fijo}
-                          onChange={e => setF('fee_eur_fijo', e.target.value)}
-                          placeholder="0"
-                          style={{ width:240, padding:'12px 16px', fontSize:24, fontWeight:700, border:'2px solid var(--accent)', borderRadius:6, background:'#fff', fontFamily:'inherit', textAlign:'right', color:'var(--accent)' }}
-                        />
-                        <span style={{ fontSize:24, fontWeight:700, color:'var(--accent)' }}>€</span>
-                      </div>
-                    </div>
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, minWidth:260 }}>
-                      <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:6, padding:'10px 12px' }}>
-                        <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:4 }}>% sobre operación</div>
-                        <input type="number" step="0.1" style={{ width:'100%', padding:'4px 6px', fontSize:14, fontWeight:600, border:'1px solid var(--border)', borderRadius:4, fontFamily:'inherit' }} value={form.fee_porcentaje} onChange={e => setF('fee_porcentaje', e.target.value)} placeholder="—" />
-                      </div>
-                      <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:6, padding:'10px 12px' }}>
-                        <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', marginBottom:4 }}>Mínimo garantizado (€)</div>
-                        <input type="number" style={{ width:'100%', padding:'4px 6px', fontSize:14, fontWeight:600, border:'1px solid var(--border)', borderRadius:4, fontFamily:'inherit' }} value={form.fee_min_garantizado} onChange={e => setF('fee_min_garantizado', e.target.value)} placeholder="—" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* BLOQUE 2: Reparto del fee */}
-                <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:24 }}>
-                  <div style={{ background:'var(--gray-lt)', padding:'14px 20px', borderBottom:'1px solid var(--border)' }}>
-                    <div style={{ fontSize:14, fontWeight:700, color:'var(--text)', marginBottom:4 }}>Reparto del fee</div>
-                    <div style={{ fontSize:11, color:'var(--text3)' }}>
-                      El 100% es el importe total del fee. Cada línea indica qué porcentaje se lleva un equipo interno o un colaborador externo. El importe en € se calcula automáticamente.
-                    </div>
-                  </div>
-
-                  {sinTotal && (
-                    <div style={{ padding:'12px 20px', background:'var(--amber-lt)', borderBottom:'1px solid var(--amber-bd)', fontSize:12, color:'var(--amber)', fontWeight:600 }}>
-                      ⚠ Introduce primero el importe total del fee arriba para que se calculen los € de cada colaborador.
-                    </div>
-                  )}
-
-                  <div style={{ padding:'14px 20px' }}>
-                    {reparto.length === 0 ? (
-                      <div style={{ padding:'24px 0', textAlign:'center', color:'var(--text4)', fontSize:13 }}>
-                        <div style={{ fontSize:24, marginBottom:6 }}></div>
-                        Sin reparto definido. El 100% del fee se lo lleva el responsable del mandato.
-                      </div>
-                    ) : (
-                      <table style={{ width:'100%', borderCollapse:'separate', borderSpacing:0 }}>
-                        <thead>
-                          <tr style={{ background:'var(--gray-lt)' }}>
-                            <th style={{ textAlign:'left',  padding:'10px 12px', fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', borderBottom:'1px solid var(--border)' }}>Colaborador / equipo / agencia</th>
-                            <th style={{ textAlign:'left',  padding:'10px 12px', fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', borderBottom:'1px solid var(--border)', width:180 }}>Tipo</th>
-                            <th style={{ textAlign:'right', padding:'10px 12px', fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', borderBottom:'1px solid var(--border)', width:130 }}>Porcentaje</th>
-                            <th style={{ textAlign:'right', padding:'10px 12px', fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', borderBottom:'1px solid var(--border)', width:160 }}>Importe €</th>
-                            <th style={{ borderBottom:'1px solid var(--border)', width:40 }}></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {reparto.map((r, idx) => {
-                            const pct  = Number(r.porcentaje) || 0
-                            const eur  = (pct / 100) * totalFeeEur
-                            const isInterno = (r.tipo || 'interno') === 'interno'
-                            const miembrosDisp = isInterno ? (MIEMBROS_POR_EQUIPO[r.equipo] || []) : []
-                            return (
-                              <tr key={idx} style={{ borderBottom:'1px solid var(--border-lt, #f1f5f9)' }}>
-                                <td style={{ padding:'10px 12px', verticalAlign:'top' }}>
-                                  {isInterno ? (
-                                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                                      <select
-                                        style={{ width:'100%', padding:'8px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', background:'#fff' }}
-                                        value={r.equipo || ''}
-                                        onChange={e => {
-                                          // resetear miembro si cambia el equipo
-                                          setF('fee_reparto', reparto.map((row,i) => i === idx ? { ...row, equipo:e.target.value, miembro:'' } : row))
-                                        }}
-                                      >
-                                        <option value="">Selecciona equipo...</option>
-                                        {EQUIPOS_SAVILLS.map(eq => <option key={eq} value={eq}>{eq}</option>)}
-                                      </select>
-                                      <select
-                                        style={{ width:'100%', padding:'8px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', background: r.equipo ? '#fff' : 'var(--gray-lt)' }}
-                                        value={r.miembro || ''}
-                                        onChange={e => updateRow(idx, 'miembro', e.target.value)}
-                                        disabled={!r.equipo}
-                                      >
-                                        <option value="">{r.equipo ? 'Selecciona miembro...' : '— elige equipo primero —'}</option>
-                                        {miembrosDisp.map(m => <option key={m} value={m}>{m}</option>)}
-                                      </select>
-                                    </div>
-                                  ) : (
-                                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                                      <select
-                                        style={{ width:'100%', padding:'8px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', background:'#fff' }}
-                                        value={r.agencia_id || ''}
-                                        onChange={e => {
-                                          const cuenta = cuentasCatalog.find(c => c.dynamics_id === e.target.value)
-                                          setF('fee_reparto', reparto.map((row,i) => i === idx ? { ...row, agencia_id:e.target.value, nombre: cuenta?.nombre || '' } : row))
-                                        }}
-                                      >
-                                        <option value="">Selecciona agencia externa...</option>
-                                        {cuentasCatalog.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>)}
-                                      </select>
-                                      <input
-                                        style={{ width:'100%', padding:'8px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit' }}
-                                        value={r.contacto || ''}
-                                        onChange={e => updateRow(idx, 'contacto', e.target.value)}
-                                        placeholder="Contacto del agente (opcional)"
-                                      />
-                                    </div>
-                                  )}
-                                </td>
-                                <td style={{ padding:'10px 12px', verticalAlign:'top' }}>
-                                  <select
-                                    style={{ width:'100%', padding:'8px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', background:'#fff' }}
-                                    value={r.tipo || 'interno'}
-                                    onChange={e => {
-                                      // al cambiar tipo, limpiar campos no aplicables
-                                      const next = e.target.value
-                                      setF('fee_reparto', reparto.map((row,i) => i === idx ? {
-                                        ...row, tipo:next,
-                                        ...(next === 'interno' ? { agencia_id:'', contacto:'', nombre:'' } : { equipo:'', miembro:'' }),
-                                      } : row))
-                                    }}
-                                  >
-                                    <option value="interno">Interno (Savills)</option>
-                                    <option value="externo">Externo (otra agencia)</option>
-                                  </select>
-                                </td>
-                                <td style={{ padding:'10px 12px', textAlign:'right', verticalAlign:'top' }}>
-                                  <div style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
-                                    <input
-                                      type="number" step="0.5" min="0" max="100"
-                                      style={{ width:80, padding:'8px 10px', fontSize:14, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', textAlign:'right' }}
-                                      value={r.porcentaje ?? ''}
-                                      onChange={e => updateRow(idx, 'porcentaje', e.target.value)}
-                                      placeholder="0"
-                                    />
-                                    <span style={{ fontSize:13, fontWeight:700, color:'var(--text3)' }}>%</span>
-                                  </div>
-                                </td>
-                                <td style={{ padding:'10px 12px', textAlign:'right', fontFamily:'var(--mono)', fontSize:13, fontWeight:600, color: sinTotal ? 'var(--text4)' : 'var(--text)', verticalAlign:'top' }}>
-                                  {sinTotal ? '—' : `${fmtEur(eur)} €`}
-                                </td>
-                                <td style={{ padding:'10px 4px', textAlign:'right', verticalAlign:'top' }}>
-                                  <button onClick={() => removeRow(idx)} style={{ background:'none', border:'none', color:'var(--text4)', cursor:'pointer', fontSize:18, padding:'4px 8px' }} title="Eliminar">×</button>
-                                </td>
-                              </tr>
-                            )
-                          })}
-                          <tr style={{ background: sumOk ? 'var(--green-lt, #f0fdf4)' : (sumPct > 100 ? 'var(--red-lt)' : 'var(--amber-lt)'), borderTop:'2px solid var(--border)' }}>
-                            <td colSpan="2" style={{ padding:'14px 12px', fontSize:13, fontWeight:700, textAlign:'right', color:'var(--text)' }}>TOTAL</td>
-                            <td style={{ padding:'14px 12px', textAlign:'right' }}>
-                              <div style={{ fontSize:18, fontWeight:800, color: sumOk ? 'var(--green)' : (sumPct > 100 ? 'var(--red)' : 'var(--amber)') }}>{sumPct}%</div>
-                              {!sumOk && <div style={{ fontSize:10, fontWeight:600, color: sumPct > 100 ? 'var(--red)' : 'var(--amber)' }}>
-                                {sumPct > 100 ? `Excede en ${sumPct - 100}%` : `Falta ${restante}%`}
-                              </div>}
-                            </td>
-                            <td style={{ padding:'14px 12px', textAlign:'right', fontFamily:'var(--mono)', fontSize:16, fontWeight:800, color: sumOk ? 'var(--green)' : 'var(--text)' }}>
-                              {sinTotal ? '—' : `${fmtEur(totalEurDistribuido)} €`}
-                            </td>
-                            <td></td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    )}
-
-                    <div style={{ marginTop:14, display:'flex', alignItems:'center', gap:12 }}>
-                      <button
-                        onClick={addRow}
-                        style={{ padding:'8px 14px', fontSize:12, fontWeight:600, border:'1px dashed var(--accent)', color:'var(--accent)', background:'var(--accent-lt)', borderRadius:6, cursor:'pointer', fontFamily:'inherit' }}
-                      >
-                        + Añadir colaborador
-                      </button>
-                      {reparto.length > 0 && !sumOk && (
-                        <span style={{ fontSize:11, color: sumPct > 100 ? '#dc2626' : 'var(--amber)', fontWeight:600 }}>
-                          ⚠ El reparto debe sumar exactamente 100% para ser válido.
-                        </span>
-                      )}
-                      {sumOk && reparto.length > 0 && (
-                        <span style={{ fontSize:11, color:'var(--green)', fontWeight:600 }}>
-                          ✓ Reparto correcto · 100%.
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-              </div></div>
-            )
-          })()}
 
           {tab === 'man-docs' && <StubTab label="Documentos del mandato" />}
           {tab === 'man-act'  && (
