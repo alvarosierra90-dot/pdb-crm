@@ -6,6 +6,7 @@ import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../component
 import MarcarPropuestaGanadaModal from '../components/MarcarPropuestaGanadaModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
+import HeaderPills from '../components/HeaderPills'
 
 // Pestañas. "Equipos y participantes" eliminada: ahora vive como sección dentro
 // de "Datos del proyecto", justo bajo Vinculaciones (mismo patrón que Oferta).
@@ -265,39 +266,32 @@ export default function FichaPropuestaSupabase({ refOrId }) {
         <div className="ficha-main">
 
           <div className="ah">
-            <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14 }}>
               <div className="ah-ico" style={{ background:'linear-gradient(135deg,#6b5b8e,#a78bfa)' }}>📄</div>
-              <div style={{ flex:1 }}>
+              <div style={{ flex:1, minWidth:0 }}>
                 <div className="ah-ref">
-                  <span style={{ background:'#f3e8ff', color:'#6b5b8e', border:'1px solid #d8b4fe', padding:'0 5px', borderRadius:3, fontSize:9, fontWeight:700 }}>PROPUESTA</span>
+                  <span style={{ background:'#f3e8ff', color:'#6b5b8e', border:'1px solid #d8b4fe', padding:'0 6px', borderRadius:3, fontSize:9, fontWeight:700 }}>PROPUESTA</span>
                   <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{propuesta.ref}</span>
+                  {propuesta.linea && <span style={{ color:'var(--text4)', fontSize:11 }}>· {propuesta.linea}</span>}
                 </div>
                 <div className="ah-name">
                   {editing
-                    ? <input style={{ ...inpFull, fontSize:18, fontWeight:700, padding:'4px 8px' }} value={form.nombre} onChange={e => setF('nombre', e.target.value)} placeholder="Nombre de la propuesta" />
+                    ? <input style={{ ...inpFull, fontSize:22, fontWeight:700, padding:'4px 8px' }} value={form.nombre} onChange={e => setF('nombre', e.target.value)} placeholder="Nombre de la propuesta" />
                     : tituloHeader}
                 </div>
                 <div className="ah-addr">📍 {dirHeader} · Creada: {fmtDate(propuesta.created_at)} · {CURRENT_USER.nombre}</div>
-                <div className="ah-tags">
-                  <span className={`tag ${ESTADO_TAG[propuesta.estado] || 'tag-gray'}`}>● {ESTADO_LABEL[propuesta.estado] || propuesta.estado}</span>
-                  {propuesta.tipo && <span className="tag tag-blue">{propuesta.tipo}</span>}
-                  {propuesta.linea && <span className="tag tag-gray">{propuesta.linea}</span>}
-                  {propuesta.fees && <span className="tag tag-amber">{Number(propuesta.fees).toLocaleString('es-ES')} €</span>}
-                </div>
               </div>
-              <div style={{ flexShrink:0, display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:1, background:'var(--border)', border:'1px solid var(--border)', borderRadius:'var(--r)', overflow:'hidden', fontSize:10, alignSelf:'flex-start' }}>
-                {[
-                  ['Estado', ESTADO_LABEL[propuesta.estado] || '—', null],
-                  ['Tipo', propuesta.tipo || '—', null],
-                  ['Fees', propuesta.fees ? `${Number(propuesta.fees).toLocaleString('es-ES')} €` : '—', 'var(--amber)'],
-                  ['Cierre', propuesta.fecha_cierre ? fmtDate(propuesta.fecha_cierre) : '—', 'var(--accent)'],
-                ].map(([lbl,val,col]) => (
-                  <div key={lbl} style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
-                    <div style={{ fontSize:9, color:'var(--text4)' }}>{lbl}</div>
-                    <div style={{ fontWeight:600, color:col || 'var(--text)' }}>{val}</div>
-                  </div>
-                ))}
-              </div>
+              <HeaderPills items={[
+                { key:'estado', type:'info', label:'Estado', value:`● ${ESTADO_LABEL[propuesta.estado] || propuesta.estado}`,
+                  color: propuesta.estado === 'ganada' ? 'green' : propuesta.estado === 'perdida' || propuesta.estado === 'cancelada' ? 'red' : propuesta.estado === 'presentada' ? 'blue' : 'amber',
+                  accent:true,
+                },
+                propuesta.tipo && { key:'tipo', type:'info', label:'Tipo', value: propuesta.tipo, color:'blue', accent:true },
+                { key:'fees', type:'info', label:'Fees', value: propuesta.fees ? `${Number(propuesta.fees).toLocaleString('es-ES')} €` : '—',
+                  color:'green', accent: !!propuesta.fees },
+                { key:'cierre', type:'info', label:'Cierre estim.', value: propuesta.fecha_cierre ? fmtDate(propuesta.fecha_cierre) : '—', color:'accent', accent: !!propuesta.fecha_cierre },
+                { key:'responsable', type:'info', label:'Responsable', value: propuesta.responsable || CURRENT_USER.nombre },
+              ]} />
             </div>
           </div>
 

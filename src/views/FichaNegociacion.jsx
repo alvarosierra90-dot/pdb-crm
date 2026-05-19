@@ -4,6 +4,7 @@ import AsignarTareaModal from '../components/AsignarTareaModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
 import EquipoTrabajoCard from '../components/EquipoTrabajoCard'
+import HeaderPills from '../components/HeaderPills'
 
 // ─── CONTRACT DRAFTS ─────────────────────────────────────────────────────────
 const CONTRACTS_INIT = [
@@ -229,31 +230,27 @@ export default function FichaNegociacion() {
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
       </div>
 
-      {/* Header */}
+      {/* Header con pills interactivos · canon unificado */}
       <div className="ah">
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div className="ah-ico" style={{ background: 'linear-gradient(135deg,#1e3a8a,#6366f1)' }}></div>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth:0 }}>
             <div className="ah-ref">
               <span className="ref-badge-neg">NEGOCIACIÓN</span>
               <span className="asset-link" style={{fontFamily:'var(--mono)'}}>NEG-0044</span>
-              <span style={{ color: 'var(--text3)' }}>· Activo: <span className="pat-link" onClick={() => navigate('ficha-activo')}>P.E Avalon — Santa Leonor 65</span></span>
+              <span style={{ color: 'var(--text4)', fontSize:11 }}>· Alquiler oficinas · 1.000 m²</span>
             </div>
             <div className="ah-name">Empresa XYZ — 1.000 m² · P.E Avalon</div>
             <div className="ah-addr">📍 Calle Santa Leonor 65, 28037 Madrid · M-30 · Iniciada: 10/03/2026 · Última actividad: 15/03/2026</div>
-            <div className="ah-tags">
-              <span className="tag tag-amber">↔ En negociación</span>
-              <span className="tag tag-blue">Alquiler oficinas</span>
-              <span className="tag tag-gray">1.000 m²</span>
-              <span className="dias-pill">📅 20 días</span>
-            </div>
-            {/* Vinculaciones canónicas viven en el tab "Información general" (banda <Vinculaciones>) */}
           </div>
-          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div style={{ fontSize: 9, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Cierre estimado</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--accent)' }}>30/03/2026</div>
-            <div style={{ fontSize: 10, color: 'var(--red)', fontWeight: 600 }}>⚠ Vencido</div>
-          </div>
+          <HeaderPills items={[
+            { key:'estado',  type:'info', label:'Estado',      value:'↔ En negociación',  color:'amber',  accent:true },
+            { key:'ronda',   type:'info', label:'Ronda',       value:'3',                 color:'accent', accent:true },
+            { key:'renta',   type:'info', label:'Renta última', value:'19,00 €/m²',       color:'purple', accent:true },
+            { key:'sup',     type:'info', label:'Superficie',  value:'1.000 m²' },
+            { key:'cierre',  type:'info', label:'Cierre estim.', value:'30/03/2026', color:'red', accent:true, title:'Vencido' },
+            { key:'resp',    type:'info', label:'Responsable', value:'Sierra Álvaro' },
+          ]} />
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal, EQUIPOS_SAVILLS, MI
 import FirmarMandatoModal from '../components/FirmarMandatoModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
+import HeaderPills from '../components/HeaderPills'
 
 // Orden canónico · Info → Específico → Documentos → Vista 360 → Confidencialidad
 // "Negociaciones" es específico de Demanda (las que salen de ella), va antes de Documentos.
@@ -445,68 +446,38 @@ export default function FichaDemandaSupabase({ refOrId }) {
       <div className="ficha-wrap">
         <div className="ficha-main">
 
-          {/* Header */}
+          {/* Header con pills interactivos · canon unificado */}
           <div className="ah">
-            <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14 }}>
               <div className="ah-ico" style={{ background:'linear-gradient(135deg,#1e3a5f,#8a6d40)' }}>🔍</div>
-              <div style={{ flex:1 }}>
+              <div style={{ flex:1, minWidth:0 }}>
                 <div className="ah-ref">
-                  <span style={{ background:'var(--accent-lt)', color:'var(--accent)', border:'1px solid var(--accent-bd)', padding:'0 5px', borderRadius:3, fontSize:9, fontWeight:700 }}>DEMANDA</span>
+                  <span style={{ background:'var(--accent-lt)', color:'var(--accent)', border:'1px solid var(--accent-bd)', padding:'0 6px', borderRadius:3, fontSize:9, fontWeight:700 }}>DEMANDA</span>
                   <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{demanda.ref}</span>
+                  {visTipologia && <span style={{ color:'var(--text4)', fontSize:11 }}>· {visTipologia}</span>}
                 </div>
                 <div className="ah-name">
                   {editing
-                    ? <input style={{ ...inpFull, fontSize:18, fontWeight:700, padding:'4px 8px' }} value={form.nombre} onChange={e => setF('nombre', e.target.value)} placeholder="Nombre de la demanda" />
+                    ? <input style={{ ...inpFull, fontSize:22, fontWeight:700, padding:'4px 8px' }} value={form.nombre} onChange={e => setF('nombre', e.target.value)} placeholder="Nombre de la demanda" />
                     : tituloHeader}
                 </div>
                 <div className="ah-addr">
                   📍 {[cuenta?.direccion, cuenta?.codigo_postal, cuenta?.ciudad].filter(Boolean).join(', ') || 'Dirección no disponible'} · Creada: {fmtDate(demanda.created_at)} · {CURRENT_USER.nombre}
                 </div>
-                <div className="ah-tags">
-                  {(() => {
-                    const ec = ESTADO_COLOR[form.estatus] || ESTADO_COLOR.ongoing
-                    return <span className={`tag ${ec.tag}`}>{ec.icon} {ESTADO_LABEL[form.estatus] || form.estatus || '—'}</span>
-                  })()}
-                  {visNaturaleza && (
-                    visNaturaleza === 'Inversión'
-                      ? <span className="tag" style={{ background:'#fffbeb', color:'var(--amber)', border:'1px solid var(--amber-bd)', fontWeight:700 }}>🏦 Capital Markets</span>
-                      : <span className="tag tag-blue">{visNaturaleza}</span>
-                  )}
-                  {visUso       && <span className="tag tag-blue">{visUso}</span>}
-                  {visTipologia && <span className="tag tag-gray">{visTipologia}</span>}
-                  {(reqs.sup_min || reqs.sup_max) && <span className="tag tag-gray">{reqs.sup_min || '?'}–{reqs.sup_max || '?'} m²</span>}
-                </div>
               </div>
-              <div style={{ flexShrink:0, display:'flex', flexDirection:'column', gap:4, alignSelf:'flex-start' }}>
-                {(() => {
-                  const ec = ESTADO_COLOR[form.estatus] || ESTADO_COLOR.ongoing
-                  const equipoLen = Array.isArray(demanda.equipo_trabajo) ? demanda.equipo_trabajo.length : 0
-                  const equipos = [...new Set((demanda.equipo_trabajo || []).map(m => m.equipo).filter(Boolean))]
-                  return (
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:1, background:'var(--border)', border:'1px solid var(--border)', borderRadius:'var(--r)', overflow:'hidden', fontSize:10 }}>
-                      <div style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
-                        <div style={{ fontSize:9, color:'var(--text4)' }}>Estado</div>
-                        <div style={{ fontWeight:700, color:ec.headerCol }}>{ec.icon} {ESTADO_LABEL[form.estatus] || form.estatus || '—'}</div>
-                      </div>
-                      <div style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
-                        <div style={{ fontSize:9, color:'var(--text4)' }}>Confidencial</div>
-                        <div style={{ fontWeight:600, color: demandaConfidential ? 'var(--amber)' : 'var(--text)' }}>{demandaConfidential ? 'Sí' : 'No'}</div>
-                      </div>
-                      <div style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
-                        <div style={{ fontSize:9, color:'var(--text4)' }}>Equipo</div>
-                        <div style={{ fontWeight:600 }}>{equipos[0] || '—'}{equipoLen > 1 ? ` +${equipoLen-1}` : ''}</div>
-                      </div>
-                      <div style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
-                        <div style={{ fontSize:9, color:'var(--text4)' }}>Responsable</div>
-                        <div style={{ fontWeight:600, color:'var(--accent)' }}>{CURRENT_USER.nombre}</div>
-                      </div>
-                    </div>
-                  )
-                })()}
-                <div style={{ fontSize:9, color:'var(--text4)', textAlign:'right', fontStyle:'italic' }}>
-                  Última modificación: {fmtDate(demanda.updated_at)} · {CURRENT_USER.nombre}
-                </div>
-              </div>
+              {(() => {
+                const ec = ESTADO_COLOR[form.estatus] || ESTADO_COLOR.ongoing
+                const colorMap = { ongoing:'green', potencial:'blue', paralizada:'amber', descartada:'red', cerrada_concedido:'green', cerrada_perdida:'red' }
+                const items = [
+                  { key:'estado', type:'info', label:'Estado', value:`${ec.icon} ${ESTADO_LABEL[form.estatus] || form.estatus || '—'}`,
+                    color: colorMap[form.estatus] || 'amber', accent:true },
+                ]
+                if (visNaturaleza) items.push({ key:'natur', type:'info', label:'Naturaleza', value: visNaturaleza, color: visNaturaleza === 'Inversión' ? 'amber' : 'blue', accent:true })
+                if (visUso) items.push({ key:'uso', type:'info', label:'Uso principal', value: visUso, color:'blue', accent:true })
+                if (reqs.sup_min || reqs.sup_max) items.push({ key:'sup', type:'info', label:'Superficie', value: `${reqs.sup_min || '?'}–${reqs.sup_max || '?'} m²` })
+                items.push({ key:'resp', type:'info', label:'Responsable', value: CURRENT_USER.nombre })
+                return <HeaderPills items={items} />
+              })()}
             </div>
           </div>
 

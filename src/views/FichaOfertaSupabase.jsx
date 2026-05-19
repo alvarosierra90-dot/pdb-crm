@@ -6,6 +6,7 @@ import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../component
 import FirmarMandatoModal from '../components/FirmarMandatoModal'
 import { Inbox, Building2, MapPin, Wallet, FileText, Globe, Presentation, Clock } from 'lucide-react'
 import Vinculaciones from '../components/Vinculaciones'
+import HeaderPills from '../components/HeaderPills'
 
 // Pestañas de la ficha de oferta. "Crear ficha" eliminada (botones PPT/PDF
 // se exponen en el header). "Equipo de trabajo" se quitó como pestaña porque
@@ -269,39 +270,27 @@ export default function FichaOfertaSupabase({ refOrId }) {
       <div className="ficha-wrap">
         <div className="ficha-main">
 
-          {/* Header */}
+          {/* Header con pills interactivos · canon unificado */}
           <div className="ah">
-            <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14 }}>
               <div className="ah-ico" style={{ background:'linear-gradient(135deg,#15803d,#22c55e)', display:'flex', alignItems:'center', justifyContent:'center' }}><Building2 size={20} strokeWidth={1.75} color="#fff" /></div>
-              <div style={{ flex:1 }}>
+              <div style={{ flex:1, minWidth:0 }}>
                 <div className="ah-ref">
-                  <span style={{ background:'#dcfce7', color:'#15803d', border:'1px solid #86efac', padding:'0 5px', borderRadius:3, fontSize:9, fontWeight:700 }}>OFERTA</span>
+                  <span style={{ background:'#dcfce7', color:'#15803d', border:'1px solid #86efac', padding:'0 6px', borderRadius:3, fontSize:9, fontWeight:700 }}>OFERTA</span>
                   <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{oferta.ref}</span>
+                  {oferta.tipologia && <span style={{ color:'var(--text4)', fontSize:11 }}>· {oferta.tipologia}</span>}
                 </div>
-                <div className="ah-name">{tituloHeader}</div>
+                <div className="ah-name" style={{ fontSize:22, fontWeight:700, letterSpacing:'-.015em' }}>{tituloHeader}</div>
                 <div className="ah-addr">{dirHeader} · Creada: {fmtDate(oferta.created_at)} · {CURRENT_USER.nombre}</div>
-                <div className="ah-tags">
-                  <span className="tag tag-green">● {oferta.estado || 'En curso'}</span>
-                  <span className={`tag ${oferta.tipo_mercado === 'off_market' ? 'tag-amber' : 'tag-blue'}`}>
-                    {oferta.tipo_mercado === 'off_market' ? 'Off-market' : 'Mercado'}
-                  </span>
-                  {oferta.tipo_operacion && <span className="tag tag-teal">{oferta.tipo_operacion}</span>}
-                  {oferta.tipologia && <span className="tag tag-gray">{oferta.tipologia}</span>}
-                </div>
               </div>
-              <div style={{ flexShrink:0, display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:1, background:'var(--border)', border:'1px solid var(--border)', borderRadius:'var(--r)', overflow:'hidden', fontSize:10, alignSelf:'flex-start' }}>
-                {[
-                  ['Estado', oferta.estado || '—', 'var(--green)'],
-                  ['Mercado', oferta.tipo_mercado === 'off_market' ? 'Off-market' : 'Mercado', null],
-                  ['Sup. m²', oferta.superficie_disponible || '—', null],
-                  ['Renta €/m²', oferta.renta_m2 || '—', 'var(--accent)'],
-                ].map(([lbl,val,col]) => (
-                  <div key={lbl} style={{ background:'var(--surface)', padding:'6px 10px', textAlign:'center' }}>
-                    <div style={{ fontSize:9, color:'var(--text4)' }}>{lbl}</div>
-                    <div style={{ fontWeight:600, color:col || 'var(--text)' }}>{val}</div>
-                  </div>
-                ))}
-              </div>
+              <HeaderPills items={[
+                { key:'estado', type:'info', label:'Estado', value:`● ${oferta.estado || 'En curso'}`, color:'green', accent:true },
+                { key:'mercado', type:'info', label:'Mercado', value: oferta.tipo_mercado === 'off_market' ? 'Off-market' : 'Mercado', color: oferta.tipo_mercado === 'off_market' ? 'amber' : 'blue', accent:true },
+                oferta.tipo_operacion && { key:'tipo', type:'info', label:'Operación', value: oferta.tipo_operacion, color:'teal', accent:true },
+                { key:'sup', type:'info', label:'Sup. disponible', value: oferta.superficie_disponible ? `${Number(oferta.superficie_disponible).toLocaleString('es-ES')} m²` : '—' },
+                { key:'renta', type:'info', label:'Renta €/m²', value: oferta.renta_m2 ? `${oferta.renta_m2} €` : '—', color:'accent', accent: !!oferta.renta_m2 },
+                { key:'responsable', type:'info', label:'Responsable', value: oferta.responsable || CURRENT_USER.nombre },
+              ]} />
             </div>
 
             {/* Audit + export — debajo de los KPIs, ancho completo */}
