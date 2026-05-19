@@ -3,6 +3,8 @@ import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { isSupabaseRef } from '../components/FichaPendienteSupabase'
 import FichaDemandaSupabase from './FichaDemandaSupabase'
+import Vinculaciones from '../components/Vinculaciones'
+import EquipoTrabajoCard from '../components/EquipoTrabajoCard'
 
 const DEM_USERS_INIT = [
   { name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#f5efe5', color:'#5a4828', granted:'—', owner:true },
@@ -487,80 +489,60 @@ function FichaDemandaMock() {
           {/* ── TAB: Información Demanda ── */}
           {activeTab==='dem-info' && (
             <div className="tab-content active"><div className="info-pad">
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
+
+              {/* ── VINCULACIONES (canónico, siempre arriba) ── */}
+              <Vinculaciones
+                cuentaLabel="Cliente (Cuenta)"
+                cuenta={{ id:'AZUAGA', nombre:'Corporación Financiera Azuaga SL', sub:'Sevilla · Financiero' }}
+                oportunidad={{ id:'OPO-2501', nombre:'OPO-2501 · Albatros D — Oracle Relocation 2026', sub:'Pitch demanda · Leasing' }}
+              />
+
+              {/* ── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones) ── */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+                <EquipoTrabajoCard
+                  title="Equipo de trabajo"
+                  equipo={[
+                    { nombre:'Sierra Álvaro', equipo:'Leasing Oficinas MAD', rol:'Principal' },
+                    { nombre:'GOMEZ Ignacio', equipo:'Leasing Oficinas MAD', rol:'Soporte' },
+                  ]}
+                  canManage={false}
+                />
+                <EquipoTrabajoCard
+                  title="Colaboradores"
+                  equipo={[]}
+                  canManage={false}
+                />
+              </div>
+
+              {/* ── FILA: Estado + Tipo de demanda (1/2) + Partes involucradas (1/2) ── */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
                 <div>
-                  {/* ── Oportunidad vinculada (opcional) ── */}
                   <div className="va-meta-card" style={{marginBottom:14}}>
-                  <div className="va-meta-head"><span className="dot"/>Oportunidad vinculada</div>
-                  <div style={{padding:'10px 14px'}}>
-                    <div className="ir">
-                      <span className="ir-k" style={{display:'flex',alignItems:'center',gap:6}}>
-                        <span style={{width:14,height:14,borderRadius:3,background:'#B08D57',color:'#fff',fontSize:9,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>D</span>
-                        Oportunidad
-                      </span>
-                      <span className="ir-v">
-                        <select className="of-sel" style={{width:'100%',padding:'2px 6px',fontSize:11}} defaultValue="OPO-2501">
-                          <option value="">— Sin oportunidad vinculada</option>
-                          <option value="OPO-2501">OPO-2501 · Albatros D — Oracle Relocation 2026</option>
-                          <option value="OPO-2502">OPO-2502 · Avalon P5 — Generali 2026</option>
-                          <option value="OPO-2503">OPO-2503 · Torre Norte — Grupo Mediática 2027</option>
-                          <option value="OPO-2506">OPO-2506 · Oficinas Flexwork</option>
-                        </select>
-                      </span>
+                    <div className="va-meta-head accent-purple"><span className="dot"/>Estado</div>
+                    <div style={{padding:'10px 14px'}}>
+                      <div className="ir"><span className="ir-k">Motivo del estado</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>En Curso</option><option>Potencial</option><option>Paralizado</option></select></span></div>
+                      <div className="ir"><span className="ir-k">Confidencial</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>No</option><option>Sí</option></select></span></div>
                     </div>
-                    <div style={{fontSize:9,color:'#1e3a8a',marginTop:4,fontStyle:'italic'}}>Si vinculas a una Oportunidad, la Cuenta se hereda automáticamente desde Dynamics</div>
-                  </div>
-                  </div>
-
-                  <div className="va-meta-card" style={{marginBottom:14}}>
-                  <div className="va-meta-head accent-green"><span className="dot"/>Cuenta · heredada de Oportunidad</div>
-                  <div style={{padding:'10px 14px'}}>
-                    <div style={{fontSize:12,fontWeight:600,color:'var(--accent)',marginBottom:10,cursor:'pointer'}}>Corporacion Financiera Azuaga SL ↗</div>
-                    <div className="ir"><span className="ir-k">Teléfono</span><span className="ir-v">—</span></div>
-                    <div className="ir"><span className="ir-k">Dirección</span><span className="ir-v" style={{fontSize:10}}>Avda. Diego Martínez Barrios</span></div>
-                    <div className="ir"><span className="ir-k">Código postal</span><span className="ir-v">41013</span></div>
-                    <div className="ir"><span className="ir-k">Ciudad</span><span className="ir-v">Sevilla</span></div>
-                    <div className="ir"><span className="ir-k">País</span><span className="ir-v link">🌍 Spain</span></div>
-                    <div className="ir"><span className="ir-k">Cía. sustituta</span><span className="ir-v"><input type="checkbox" style={{accentColor:'var(--accent)'}}/></span></div>
-                    <div className="ir"><span className="ir-k">KYC demanda</span><span className="ir-v link">— ↗</span></div>
-                  </div>
                   </div>
 
                   <div className="va-meta-card">
-                  <div className="va-meta-head accent-purple"><span className="dot"/>Tipo de demanda</div>
-                  <div style={{padding:'10px 14px'}}>
-                    <div className="ir"><span className="ir-k">Demanda corporativa</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>No</option><option>Sí</option></select></span></div>
-                    <div className="ir"><span className="ir-k">Confidencial</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>No</option><option>Sí</option></select></span></div>
-                  </div>
+                    <div className="va-meta-head"><span className="dot"/>Tipo de demanda</div>
+                    <div style={{padding:'10px 14px'}}>
+                      <div className="ir"><span className="ir-k">Demanda corporativa</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>No</option><option>Sí</option></select></span></div>
+                      <div className="ir"><span className="ir-k">Persona física</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>No</option><option>Sí</option></select></span></div>
+                      <div className="ir"><span className="ir-k">Contacto mandante</span><span className="ir-v link">— ↗</span></div>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="va-meta-card" style={{marginBottom:14}}>
-                  <div className="va-meta-head"><span className="dot"/>Contacto</div>
-                  <div style={{padding:'10px 14px'}}>
-                    <div className="ir"><span className="ir-k">Persona física</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>No</option><option>Sí</option></select></span></div>
-                    <div className="ir"><span className="ir-k">Contacto mandante</span><span className="ir-v link">— ↗</span></div>
-                  </div>
-                  </div>
 
-                  <div className="va-meta-card">
-                  <div className="va-meta-head accent-purple"><span className="dot"/>Estado</div>
-                  <div style={{padding:'10px 14px'}}>
-                    <div className="ir"><span className="ir-k">Motivo del estado</span><span className="ir-v"><select className="of-sel" style={{width:'auto',padding:'2px 6px',fontSize:11}}><option>En Curso</option><option>Potencial</option><option>Paralizado</option></select></span></div>
-                    <div className="ir"><span className="ir-k">Equipo</span><span className="ir-v">Leasing Oficinas – MAD</span></div>
-                  </div>
-                  </div>
-                </div>
-                <div>
-                  <div className="va-meta-card">
-                  <div className="va-meta-head accent-red"><span className="dot"/>Otros contactos asociados</div>
+                <div className="va-meta-card" style={{ marginBottom:0 }}>
+                  <div className="va-meta-head accent-red"><span className="dot"/>Partes involucradas</div>
                   <div style={{padding:'10px 14px'}}>
                     <table className="pat-table">
                       <thead><tr><th>Nombre com.</th><th>Persona física</th></tr></thead>
                       <tbody><tr><td colSpan={2} style={{textAlign:'center',color:'var(--text4)',padding:16,fontSize:11}}>No se encontró nada para mostrar aquí</td></tr></tbody>
                     </table>
                     <div style={{fontSize:10,color:'var(--text4)',marginTop:5}}>Filas: 0</div>
-                  </div>
                   </div>
                 </div>
               </div>

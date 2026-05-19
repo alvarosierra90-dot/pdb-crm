@@ -5,6 +5,7 @@ import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal, EQUIPOS_SAVILLS, MIEMBROS_POR_EQUIPO } from '../components/EquipoTrabajoCard'
 import FirmarMandatoModal from '../components/FirmarMandatoModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
+import Vinculaciones from '../components/Vinculaciones'
 
 const DEM_TABS = [
   ['dem-info', 'Información general'],
@@ -119,8 +120,6 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [saveError, setSaveError] = useState(null)
   const [showFirmarModal, setShowFirmarModal] = useState(false)
   const [oportunidad, setOportunidad] = useState(null)
-  const [showAddEq, setShowAddEq] = useState(false)
-  const [newEqDraft, setNewEqDraft] = useState({ equipo:'', usuario:'', rol:'Soporte' })
   // Vista 360 · alternativas (oferta_demanda con joins a ofertas + activos)
   const [alternativas, setAlternativas] = useState([])
   const [loadingAlt, setLoadingAlt] = useState(false)
@@ -533,10 +532,54 @@ export default function FichaDemandaSupabase({ refOrId }) {
             const requiereMotivo = form.estatus === 'descartada'
             const sinMotivo      = requiereMotivo && !(form.motivo_descarte || '').trim()
 
+            const equipoInterno = equipo.filter(m => m.rol !== 'Colaborador')
+            const colaboradores = equipo.filter(m => m.rol === 'Colaborador')
+            const mapIdx = (filtered, idx) => equipo.indexOf(filtered[idx])
+
             return (
               <div className="tab-content active"><div className="info-pad">
 
-                {/* ─── FILA 1: Estado (1/2) + Vinculaciones (1/2) · alineado con fila 2 ─── */}
+                {/* ── VINCULACIONES (canónico, siempre arriba) ── */}
+                <Vinculaciones
+                  cuentaLabel="Cliente (Cuenta)"
+                  cuenta={cuenta ? {
+                    id:     cuenta.dynamics_id || cuenta.id,
+                    nombre: cuenta.nombre,
+                    sub:    cuenta.sector || cuenta.tipo,
+                  } : null}
+                  oportunidad={oportunidad ? {
+                    id:     oportunidad.dynamics_id || oportunidad.id,
+                    nombre: oportunidad.nombre,
+                    sub:    oportunidad.tipo,
+                  } : null}
+                  mandato={demanda.mandato_id && demanda.mandato ? {
+                    id:  demanda.mandato.ref,
+                    ref: demanda.mandato.ref,
+                    sub: 'Mandato vinculado',
+                  } : null}
+                />
+
+                {/* ── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones) ── */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+                  <EquipoTrabajoCard
+                    title="Equipo de trabajo"
+                    equipo={equipoInterno}
+                    canManage={canManage}
+                    onAdd={(nombre, equipoNombre, rol) => handlers.addMiembro(nombre, equipoNombre, rol === 'Colaborador' ? 'Soporte' : rol)}
+                    onRemove={(idx) => handlers.removeMiembro(mapIdx(equipoInterno, idx))}
+                    onUpdateRol={(idx, rol) => handlers.updateMiembroRol(mapIdx(equipoInterno, idx), rol)}
+                  />
+                  <EquipoTrabajoCard
+                    title="Colaboradores"
+                    equipo={colaboradores}
+                    canManage={canManage}
+                    onAdd={(nombre, equipoNombre) => handlers.addMiembro(nombre, equipoNombre, 'Colaborador')}
+                    onRemove={(idx) => handlers.removeMiembro(mapIdx(colaboradores, idx))}
+                    onUpdateRol={(idx, rol) => handlers.updateMiembroRol(mapIdx(colaboradores, idx), rol)}
+                  />
+                </div>
+
+                {/* ─── FILA: Estado (1/2) + Partes involucradas (1/2) ─── */}
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
 
                   {/* === ESTADO DE LA DEMANDA · cuadro visual grande === */}
@@ -597,185 +640,6 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     </div>
                   </div>
 
-                  {/* === VINCULACIONES === */}
-                  <div className="va-card" style={{ marginBottom:0 }}>
-                    <div className="va-card-header">
-                      <h3><span className="ico"></span> Vinculaciones</h3>
-                      <span className="hint">Oportunidad · Cuenta · Mandato</span>
-                    </div>
-                    <div style={{ padding:'8px 20px 16px' }}>
-
-                      {/* Oportunidad */}
-                      <div style={{ marginBottom:10 }}>
-                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Oportunidad</div>
-                        {oportunidad ? (
-                          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                            <div style={{ width:28, height:28, borderRadius:'50%', background:'#B08D57', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>D</div>
-                            <div style={{ flex:1, minWidth:0 }}>
-                              <div style={{ fontSize:12, fontWeight:600 }}>{oportunidad.nombre || '—'}</div>
-                              {oportunidad.tipo && <div style={{ fontSize:10, color:'var(--text3)' }}>{oportunidad.tipo}</div>}
-                            </div>
-                            <span className="tag tag-blue" style={{ fontSize:9 }}>Dynamics</span>
-                          </div>
-                        ) : (
-                          <div style={{ padding:'8px 10px', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'var(--gray-lt)', fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin oportunidad vinculada</div>
-                        )}
-                      </div>
-
-                      {/* Cuenta */}
-                      <div style={{ marginBottom:10 }}>
-                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Cuenta (heredada de Dynamics)</div>
-                        {cuenta ? (
-                          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}></div>
-                            <div style={{ flex:1, minWidth:0 }}>
-                              <div style={{ fontSize:12, fontWeight:600 }}>{cuenta.nombre || '—'}</div>
-                              <div style={{ fontSize:10, color:'var(--text3)' }}>{[cuenta.tipo, cuenta.sector, cuenta.ciudad].filter(Boolean).join(' · ') || '—'}</div>
-                            </div>
-                            <span className="tag tag-blue" style={{ fontSize:9 }}>Dynamics</span>
-                          </div>
-                        ) : (
-                          <div style={{ padding:'8px 10px', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'var(--gray-lt)', fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin cuenta vinculada</div>
-                        )}
-                      </div>
-
-                      {/* Mandato */}
-                      <div>
-                        <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.03em', marginBottom:5 }}>Mandato</div>
-                        {demanda.mandato_id && demanda.mandato ? (
-                          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                            <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--purple, #6b5b8e)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}></div>
-                            <div style={{ flex:1, minWidth:0 }}>
-                              <div style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)' }}>{demanda.mandato.ref}</div>
-                              <div style={{ fontSize:10, color:'var(--text3)' }}>Mandato vinculado</div>
-                            </div>
-                            <button className="ab-btn" style={{ fontSize:9, padding:'2px 8px' }} onClick={() => navigate('ficha-mandato', { id: demanda.mandato.ref })}>Ver</button>
-                            <button onClick={desvincularMandato} title="Desvincular mandato" style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:13, padding:'2px 6px' }}>✕</button>
-                          </div>
-                        ) : (
-                          <div style={{ position:'relative' }}>
-                            <input
-                              className="kf-inp"
-                              value={mandatoSearch}
-                              onChange={e => { setMandatoSearch(e.target.value); setShowMandatoDD(true) }}
-                              onFocus={() => setShowMandatoDD(true)}
-                              onBlur={() => setTimeout(() => setShowMandatoDD(false), 200)}
-                              placeholder="🔍 Buscar mandato existente (ej. MAN-2026-)"
-                              style={{ width:'100%', fontFamily:'var(--mono)', fontSize:12, padding:'8px 10px' }}
-                            />
-                            {showMandatoDD && (
-                              <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, zIndex:30, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6, maxHeight:240, overflowY:'auto', boxShadow:'0 6px 20px rgba(0,0,0,0.12)' }}>
-                                {mandatoResults.length === 0 ? (
-                                  <div style={{ padding:'10px 12px', fontSize:11, color:'var(--text4)' }}>
-                                    {mandatoSearch.length < 1 ? 'Escribe para buscar mandatos...' : 'Sin resultados para esa referencia.'}
-                                  </div>
-                                ) : mandatoResults.map(m => {
-                                  const mismaCuenta = m.dynamics_account_id === demanda.dynamics_account_id
-                                  return (
-                                    <div
-                                      key={m.id}
-                                      onMouseDown={() => vincularMandato(m.id)}
-                                      style={{ padding:'8px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8 }}
-                                      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
-                                      onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
-                                    >
-                                      <div style={{ width:24, height:24, borderRadius:'50%', background:'var(--purple, #6b5b8e)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}></div>
-                                      <div style={{ flex:1, minWidth:0 }}>
-                                        <div style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)' }}>{m.ref}</div>
-                                        <div style={{ fontSize:10, color:'var(--text4)', display:'flex', gap:6, flexWrap:'wrap' }}>
-                                          <span className={`tag ${m.tipo === 'buy' ? 'tag-blue' : 'tag-amber'}`} style={{ fontSize:8 }}>{m.tipo}</span>
-                                          <span className="tag tag-gray" style={{ fontSize:8 }}>{m.via}</span>
-                                          {mismaCuenta && <span className="tag tag-green" style={{ fontSize:8 }}>✓ misma cuenta</span>}
-                                          <span>· {m.estado}</span>
-                                          {m.fecha_firma && <span>· firma {fmtDate(m.fecha_firma)}</span>}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            )}
-                            <div style={{ fontSize:10, color:'var(--text4)', marginTop:4, fontStyle:'italic' }}>
-                              Buscas un mandato existente. Para firmar uno nuevo desde esta demanda, usa <strong>Firmar mandato</strong> arriba.
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* ─── FILA 2: Equipo de trabajo (1/2) + Partes involucradas (1/2) ─── */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
-
-                  {/* === EQUIPO DE TRABAJO · formato Propuestas/Mandato (inline) === */}
-                  <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
-                    <div className="va-card-header">
-                      <h3><span className="ico"></span> Equipo de trabajo</h3>
-                      {canManage && (
-                        <button className="ab-btn" style={{ fontSize:10, padding:'3px 10px' }} onClick={() => setShowAddEq(v => !v)}>+ Añadir</button>
-                      )}
-                    </div>
-                    <div style={{ padding:'8px 20px 16px' }}>
-                      {showAddEq && canManage && (
-                        <div style={{ marginBottom:10, padding:10, border:'1px solid var(--border)', borderRadius:6, background:'var(--surface-2)', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, alignItems:'end' }}>
-                          <div>
-                            <div className="rp-lbl">Equipo</div>
-                            <select className="fsel" value={newEqDraft.equipo} onChange={e => setNewEqDraft(p => ({ ...p, equipo:e.target.value, usuario:'' }))} style={{ width:'100%' }}>
-                              <option value="">Seleccionar...</option>
-                              {EQUIPOS_SAVILLS.filter(eq => !equipo.find(m => m.equipo === eq && m.nombre)).map(eq => <option key={eq}>{eq}</option>)}
-                            </select>
-                          </div>
-                          <div>
-                            <div className="rp-lbl">Miembro</div>
-                            <select className="fsel" value={newEqDraft.usuario} onChange={e => setNewEqDraft(p => ({ ...p, usuario:e.target.value }))} disabled={!newEqDraft.equipo} style={{ width:'100%' }}>
-                              <option value="">Seleccionar...</option>
-                              {(MIEMBROS_POR_EQUIPO[newEqDraft.equipo] || []).map(u => <option key={u}>{u}</option>)}
-                            </select>
-                          </div>
-                          <div>
-                            <div className="rp-lbl">Rol</div>
-                            <select className="fsel" value={newEqDraft.rol} onChange={e => setNewEqDraft(p => ({ ...p, rol:e.target.value }))} style={{ width:'100%' }}>
-                              {['Principal','Soporte','Colaborador'].map(r => <option key={r}>{r}</option>)}
-                            </select>
-                          </div>
-                          <div style={{ gridColumn:'1 / -1', display:'flex', gap:6, justifyContent:'flex-end' }}>
-                            <button className="ab-btn save" disabled={!newEqDraft.equipo || !newEqDraft.usuario}
-                              onClick={() => {
-                                handlers.addMiembro(newEqDraft.usuario, newEqDraft.equipo, newEqDraft.rol)
-                                setShowAddEq(false)
-                                setNewEqDraft({ equipo:'', usuario:'', rol:'Soporte' })
-                              }}>Añadir</button>
-                            <button className="ab-btn" onClick={() => setShowAddEq(false)}>Cancelar</button>
-                          </div>
-                        </div>
-                      )}
-                      {equipo.length === 0 ? (
-                        <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', padding:'8px 0' }}>Sin equipo asignado.</div>
-                      ) : (
-                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                          {equipo.map((m,i) => (
-                            <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
-                              <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>
-                                {(m.nombre || '').split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
-                              </div>
-                              <div style={{ flex:1, minWidth:0 }}>
-                                <div style={{ fontSize:12, fontWeight:600 }}>{m.nombre}</div>
-                                <div style={{ fontSize:10, color:'var(--text3)' }}>{m.equipo}</div>
-                              </div>
-                              <span className="tag tag-blue" style={{ fontSize:9 }}>{m.rol}</span>
-                              {canManage && (
-                                <button onClick={() => handlers.removeMiembro(i)} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
                   {/* === PARTES INVOLUCRADAS === */}
                   <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
                     <div className="va-card-header">
@@ -821,7 +685,60 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
                 </div>
 
-                {/* ─── FILA 3: Notas (full-width) ─── */}
+                {/* ─── Vincular Mandato (solo si no hay vinculado · alternativa al botón "Firmar mandato") ─── */}
+                {!(demanda.mandato_id && demanda.mandato) && (
+                  <div className="va-card" style={{ marginBottom:12, overflow:'visible' }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico"></span> Vincular mandato existente</h3>
+                      <span className="hint">Opcional · usa "Firmar mandato" arriba para crear uno nuevo</span>
+                    </div>
+                    <div style={{ padding:'8px 20px 16px', position:'relative' }}>
+                      <input
+                        className="kf-inp"
+                        value={mandatoSearch}
+                        onChange={e => { setMandatoSearch(e.target.value); setShowMandatoDD(true) }}
+                        onFocus={() => setShowMandatoDD(true)}
+                        onBlur={() => setTimeout(() => setShowMandatoDD(false), 200)}
+                        placeholder="🔍 Buscar mandato existente (ej. MAN-2026-)"
+                        style={{ width:'100%', fontFamily:'var(--mono)', fontSize:12, padding:'8px 10px' }}
+                      />
+                      {showMandatoDD && (
+                        <div style={{ position:'absolute', top:'calc(100% + 2px)', left:20, right:20, zIndex:30, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6, maxHeight:240, overflowY:'auto', boxShadow:'0 6px 20px rgba(0,0,0,0.12)' }}>
+                          {mandatoResults.length === 0 ? (
+                            <div style={{ padding:'10px 12px', fontSize:11, color:'var(--text4)' }}>
+                              {mandatoSearch.length < 1 ? 'Escribe para buscar mandatos...' : 'Sin resultados para esa referencia.'}
+                            </div>
+                          ) : mandatoResults.map(m => {
+                            const mismaCuenta = m.dynamics_account_id === demanda.dynamics_account_id
+                            return (
+                              <div
+                                key={m.id}
+                                onMouseDown={() => vincularMandato(m.id)}
+                                style={{ padding:'8px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8 }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
+                              >
+                                <div style={{ width:24, height:24, borderRadius:'50%', background:'var(--purple, #6b5b8e)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}></div>
+                                <div style={{ flex:1, minWidth:0 }}>
+                                  <div style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)' }}>{m.ref}</div>
+                                  <div style={{ fontSize:10, color:'var(--text4)', display:'flex', gap:6, flexWrap:'wrap' }}>
+                                    <span className={`tag ${m.tipo === 'buy' ? 'tag-blue' : 'tag-amber'}`} style={{ fontSize:8 }}>{m.tipo}</span>
+                                    <span className="tag tag-gray" style={{ fontSize:8 }}>{m.via}</span>
+                                    {mismaCuenta && <span className="tag tag-green" style={{ fontSize:8 }}>✓ misma cuenta</span>}
+                                    <span>· {m.estado}</span>
+                                    {m.fecha_firma && <span>· firma {fmtDate(m.fecha_firma)}</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── Notas (full-width) ─── */}
                 <div className="va-card" style={{ marginBottom:0 }}>
                   <div className="va-card-header">
                     <h3><span className="ico">▭</span> Notas internas</h3>
