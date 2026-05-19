@@ -117,6 +117,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
   const [showCancelar, setShowCancelar] = useState(false)
   const [cancelando, setCancelando] = useState(false)
   const [cancelMotivo, setCancelMotivo] = useState('')
+  const [showNotasModal, setShowNotasModal] = useState(false)
 
   const [form, setForm] = useState({
     titulo:'', tipo:'alquiler', via:'directo', estado:'en_curso',
@@ -428,6 +429,20 @@ export default function FichaMandatoSupabase({ refOrId }) {
         <button className="ab-btn" onClick={restablecer} disabled={saving}>↺ Restablecer</button>
         <button className="ab-btn" onClick={() => navigate('mandatos')}>← Volver</button>
         <div className="ab-sep"/>
+        {(() => {
+          const hasNotas = !!(form.notas?.trim() || form.vision_novedades?.trim())
+          const count = (form.notas?.trim() ? 1 : 0) + (form.vision_novedades?.trim() ? 1 : 0)
+          return (
+            <button
+              className="ab-btn"
+              onClick={() => setShowNotasModal(true)}
+              style={ hasNotas ? { borderColor:'var(--accent)', color:'var(--accent)', background:'var(--accent-lt)', fontWeight:600 } : undefined }
+              title={hasNotas ? `${count} bloque(s) con notas` : 'Sin notas todavía'}
+            >
+              📝 Notas{hasNotas && <span style={{ marginLeft:6, background:'var(--accent)', color:'#fff', borderRadius:9, padding:'1px 7px', fontSize:10, fontWeight:700 }}>{count}</span>}
+            </button>
+          )
+        })()}
         <button className="ab-btn" disabled style={{ opacity:0.45 }}>📄 Generar contrato</button>
         {(() => {
           const vencido = dr !== null && dr < 0
@@ -605,6 +620,47 @@ export default function FichaMandatoSupabase({ refOrId }) {
           </div>
         )
       })()}
+
+      {/* Modal Notas y novedades — accesible vía botón 📝 del action-bar */}
+      {showNotasModal && (
+        <div onClick={() => setShowNotasModal(false)} style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:10, width:'min(720px, 94vw)', maxHeight:'90vh', overflowY:'auto', boxShadow:'0 20px 50px rgba(15,23,42,0.25)' }}>
+            <div style={{ padding:'18px 24px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div>
+                <div style={{ fontSize:17, fontWeight:700, color:'var(--text)' }}>Notas y novedades</div>
+                <div style={{ fontSize:12, color:'var(--text3)', marginTop:2 }}>Notas internas + visión y novedades · {mandato.ref}</div>
+              </div>
+              <button onClick={() => setShowNotasModal(false)} style={{ background:'none', border:'none', fontSize:20, color:'var(--text4)', cursor:'pointer', padding:'4px 8px' }}>×</button>
+            </div>
+            <div style={{ padding:'20px 24px', display:'grid', gap:18 }}>
+              <div>
+                <label style={{ fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.05em', display:'block', marginBottom:6 }}>Notas internas</label>
+                <textarea
+                  value={form.notas}
+                  onChange={e => setF('notas', e.target.value)}
+                  placeholder="Notas internas sobre el mandato..."
+                  rows={5}
+                  style={{ width:'100%', padding:'10px 12px', fontSize:13, fontFamily:'inherit', border:'1px solid var(--border)', borderRadius:6, resize:'vertical', lineHeight:1.5 }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.05em', display:'block', marginBottom:6 }}>Visión y novedades</label>
+                <textarea
+                  value={form.vision_novedades || ''}
+                  onChange={e => setF('vision_novedades', e.target.value)}
+                  placeholder="Resumen ejecutivo, hitos y próximos pasos..."
+                  rows={5}
+                  style={{ width:'100%', padding:'10px 12px', fontSize:13, fontFamily:'inherit', border:'1px solid var(--border)', borderRadius:6, resize:'vertical', lineHeight:1.5 }}
+                />
+              </div>
+            </div>
+            <div style={{ padding:'14px 24px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'flex-end', gap:8 }}>
+              <button onClick={() => setShowNotasModal(false)} style={{ padding:'8px 16px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background:'#fff', cursor:'pointer', fontWeight:600 }}>Cerrar</button>
+              <button onClick={() => { saveEdit(); setShowNotasModal(false) }} disabled={saving} style={{ padding:'8px 16px', fontSize:12, border:'none', borderRadius:5, background:'var(--accent)', color:'#fff', cursor:'pointer', fontWeight:600 }}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="ficha-wrap">
         <div className="ficha-main">
@@ -888,22 +944,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
                   </div>
                 )}
 
-                {/* ─── Notas y novedades (full width · textareas necesitan espacio) ─── */}
-                <div className="va-card" style={{ marginBottom:0 }}>
-                  <div className="va-card-header">
-                    <h3><span className="ico">▭</span> Notas y novedades</h3>
-                  </div>
-                  <div style={{ padding:'14px 20px 16px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-                    <div>
-                      <div className="rp-lbl">Notas internas</div>
-                      <textarea style={{ ...ta, width:'100%', marginTop:4 }} value={form.notas} onChange={e => setF('notas', e.target.value)} placeholder="Notas internas sobre el mandato..." rows={3} />
-                    </div>
-                    <div>
-                      <div className="rp-lbl">Visión y novedades</div>
-                      <textarea style={{ ...ta, width:'100%', marginTop:4 }} value={form.vision_novedades || ''} onChange={e => setF('vision_novedades', e.target.value)} placeholder="Resumen ejecutivo, hitos y próximos pasos..." rows={3} />
-                    </div>
-                  </div>
-                </div>
+                {/* Notas y novedades vive ahora en el modal accesible vía botón del action-bar (📝 Notas) */}
 
                 {/* ─── Activos vinculados (multi · card full) ─── */}
                 <div className="va-card" style={{ marginTop:14, marginBottom:0, overflow:'visible' }}>
