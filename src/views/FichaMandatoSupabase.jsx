@@ -627,7 +627,21 @@ export default function FichaMandatoSupabase({ refOrId }) {
                 <div className="ah-tags">
                   <span className="tag" style={{ background:'var(--green-lt)', color:'var(--green)', border:'1px solid var(--green-bd)' }}>● {estadoUI}</span>
                   <span className="tag tag-blue">{TIPO_LABEL[form.tipo]}</span>
-                  <span className="tag tag-purple">{form.exclusividad_modo === 'coexclusiva' ? 'Co-exclusiva' : 'Exclusiva'}</span>
+                  {/* Exclusividad como tag interactiva (select estilizado) — antes era una card propia ocupando 1/3 del grid */}
+                  <select
+                    value={form.exclusividad_modo}
+                    onChange={e => setF('exclusividad_modo', e.target.value)}
+                    title="Cambiar modo de exclusividad"
+                    style={{
+                      background:'var(--purple-lt)', color:'var(--purple)', border:'1px solid var(--purple-bd)',
+                      padding:'2px 24px 2px 10px', borderRadius:14, fontSize:11, fontWeight:600,
+                      cursor:'pointer', fontFamily:'inherit', appearance:'none', WebkitAppearance:'none', MozAppearance:'none',
+                      backgroundImage:'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2710%27 height=%2710%27 viewBox=%270 0 10 10%27%3e%3cpath d=%27M2 4l3 3 3-3%27 stroke=%27%236b5b8e%27 stroke-width=%271.5%27 fill=%27none%27/%3e%3c/svg%3e")',
+                      backgroundRepeat:'no-repeat', backgroundPosition:'right 8px center',
+                    }}>
+                    <option value="exclusiva">Exclusiva</option>
+                    <option value="coexclusiva">Co-exclusiva</option>
+                  </select>
                   {form.via && <span className="tag tag-gray">Vía {form.via}</span>}
                   {dr !== null && dr >= 0 && dr <= 60 && <span className="tag" style={{ background:'var(--amber-lt)', color:'var(--amber)', border:'1px solid var(--amber-bd)', fontWeight:700 }}>⏳ {dr}d</span>}
                 </div>
@@ -725,8 +739,8 @@ export default function FichaMandatoSupabase({ refOrId }) {
                   />
                 </div>
 
-                {/* ─── FILA 1: Mandato | Vigencia y alertas | Exclusividad (3 columnas) ─── */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14 }}>
+                {/* ─── FILA 1: Mandato | Vigencia y alertas (50/50) — Exclusividad vive en el header como tag interactiva ─── */}
+                <div className="va-two-col">
                   <div className="va-meta-card" style={{ marginBottom:0 }}>
                     <div className="va-meta-head"><span className="dot"/>Mandato</div>
                     <div className="va-kv-list">
@@ -850,40 +864,29 @@ export default function FichaMandatoSupabase({ refOrId }) {
                     </div>
                   </div>
 
-                  {/* Tercera columna: Exclusividad */}
-                  <div className="va-meta-card" style={{ marginBottom:0 }}>
-                    <div className="va-meta-head"><span className="dot"/>Exclusividad</div>
-                    <div className="va-kv-list">
-                      <div className="ir"><span className="ir-k">Modo</span>
-                        <span className="ir-v">
-                          <select style={sel} value={form.exclusividad_modo} onChange={e => setF('exclusividad_modo', e.target.value)}>
-                            {EXCL_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                          </select>
-                        </span>
-                      </div>
-                      {form.exclusividad_modo === 'coexclusiva' && (
-                        <>
-                          <div className="ir"><span className="ir-k">Cuenta del agente</span>
-                            <span className="ir-v">
-                              <select style={{ ...sel, minWidth:160 }} value={form.cuenta_agente_id} onChange={e => { setF('cuenta_agente_id', e.target.value); setF('contacto_agente_id','') }}>
-                                <option value="">Selecciona agencia…</option>
-                                {cuentasCatalog.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>)}
-                              </select>
-                            </span>
-                          </div>
-                          <div className="ir"><span className="ir-k">Contacto del agente</span>
-                            <span className="ir-v">
-                              <select style={{ ...sel, minWidth:160 }} value={form.contacto_agente_id} onChange={e => setF('contacto_agente_id', e.target.value)} disabled={!form.cuenta_agente_id}>
-                                <option value="">Selecciona contacto…</option>
-                                {contactosAgente.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre} — {c.email || c.telefono || ''}</option>)}
-                              </select>
-                            </span>
-                          </div>
-                        </>
-                      )}
+                </div>
+
+                {/* ─── Agente externo (solo si co-exclusiva) — mini-fila compacta ─── */}
+                {form.exclusividad_modo === 'coexclusiva' && (
+                  <div style={{ marginTop:14, padding:'12px 16px', background:'var(--purple-lt)', border:'1px solid var(--purple-bd)', borderRadius:8, display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, alignItems:'center' }}>
+                    <div>
+                      <div className="ir-k" style={{ fontSize:10.5, fontWeight:700, color:'var(--purple)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:4 }}>Cuenta del agente externo</div>
+                      <select value={form.cuenta_agente_id} onChange={e => { setF('cuenta_agente_id', e.target.value); setF('contacto_agente_id','') }}
+                        style={{ width:'100%', padding:'6px 10px', fontSize:13, fontWeight:500, border:'1px solid var(--purple-bd)', borderRadius:5, background:'#fff', fontFamily:'inherit' }}>
+                        <option value="">Selecciona agencia…</option>
+                        {cuentasCatalog.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <div className="ir-k" style={{ fontSize:10.5, fontWeight:700, color:'var(--purple)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:4 }}>Contacto del agente</div>
+                      <select value={form.contacto_agente_id} onChange={e => setF('contacto_agente_id', e.target.value)} disabled={!form.cuenta_agente_id}
+                        style={{ width:'100%', padding:'6px 10px', fontSize:13, fontWeight:500, border:'1px solid var(--purple-bd)', borderRadius:5, background: form.cuenta_agente_id ? '#fff' : 'var(--gray-lt)', fontFamily:'inherit' }}>
+                        <option value="">Selecciona contacto…</option>
+                        {contactosAgente.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre} — {c.email || c.telefono || ''}</option>)}
+                      </select>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* ─── Notas y novedades (full width · textareas necesitan espacio) ─── */}
                 <div className="va-card" style={{ marginBottom:0 }}>
