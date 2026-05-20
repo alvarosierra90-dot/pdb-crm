@@ -9,6 +9,7 @@ import EquipoTrabajoCard, { isPrincipal as _isPrincipal } from '../components/Eq
 import VinculacionesMaestra from '../components/VinculacionesMaestra'
 import HeaderPills from '../components/HeaderPills'
 import FunnelTracker from '../components/FunnelTracker'
+import FunnelStepCards from '../components/FunnelStepCards'
 import { Building2, User, Target, Lightbulb } from 'lucide-react'
 
 // Lista de equipos para el dropdown legacy "Asignación → Equipo" del
@@ -264,14 +265,7 @@ export default function FichaLead() {
             )}
             <button className="ab-btn" onClick={() => navigate('leads')}>← Volver</button>
             <div className="ab-sep"/>
-            <button
-              className="ab-btn"
-              style={{ background:'#B08D57', color:'#fff', border:'none', fontWeight:700, opacity: cerrado ? 0.5 : 1, cursor: cerrado ? 'not-allowed' : 'pointer' }}
-              disabled={cerrado}
-              onClick={() => !cerrado && setShowTransformar(true)}
-            >
-              ⚡ Transformar
-            </button>
+            {/* "Transformar" vive ahora como CTA en la card Oportunidad (paso actual del funnel). */}
             <button
               className="ab-btn"
               style={{ background:'#dc2626', color:'#fff', border:'none', fontWeight:700, opacity: cerrado ? 0.5 : 1, cursor: cerrado ? 'not-allowed' : 'pointer' }}
@@ -360,45 +354,99 @@ export default function FichaLead() {
 
             {tab === 'ld-info' && (
               <>
-                {/* ── VINCULACIONES MAESTRA (Lead es entidad maestra · origen del funnel) ── */}
-                <VinculacionesMaestra items={[
-                  {
-                    key:'cuenta',
-                    icon: Building2,
-                    tone:'green',
-                    label:'Cuenta vinculada',
-                    value: lead.cuenta_nombre || null,
-                    sub: lead.cuenta_sector || null,
-                    onClick: lead.dynamics_account_id ? () => navigate('cuentas', { id: lead.dynamics_account_id }) : null,
-                  },
-                  {
-                    key:'contacto',
-                    icon: User,
-                    tone:'blue',
-                    label:'Contacto',
-                    value: [lead.contacto_nombre, lead.contacto_apellidos].filter(Boolean).join(' ') || null,
-                    sub: lead.email || lead.telefono || null,
-                    onClick: null,
-                  },
-                  {
-                    key:'oportunidad',
-                    icon: Target,
-                    tone:'accent',
-                    label:'Oportunidad transformada',
-                    value: lead.dynamics_opportunity_id || null,
-                    sub: null,
-                    onClick: lead.dynamics_opportunity_id ? () => navigate('ficha-oportunidad', { id: lead.dynamics_opportunity_id }) : null,
-                  },
-                  {
-                    key:'propuesta',
-                    icon: Lightbulb,
-                    tone:'amber',
-                    label:'Propuesta generada',
-                    value: lead.propuesta_ref || null,
-                    sub: null,
-                    onClick: lead.propuesta_ref ? () => navigate('ficha-propuesta', { id: lead.propuesta_ref }) : null,
-                  },
-                ]} />
+                {/* ── FUNNEL STEP CARDS · cada vinculación es un paso con su CTA ── */}
+                {(() => {
+                  const hasContacto   = !!(lead.contacto_nombre || lead.contacto_apellidos)
+                  const hasCuenta     = !!lead.dynamics_account_id
+                  const hasOportunidad= !!lead.dynamics_opportunity_id
+                  const hasPropuesta  = !!lead.propuesta_ref
+                  const cerradoLocal  = lead.estado === 'no_cualificado'
+
+                  // Contacto del lead se rellena editando arriba (campos obligatorios).
+                  // Por eso aquí su CTA es "completar contacto" → activar editing.
+                  const contactoStatus = hasContacto ? 'done' : 'current'
+
+                  // Cuenta y Contacto Dynamics → se vinculan al TRANSFORMAR
+                  // (el modal te pide ambos). Mientras no haya contacto, ambos locked.
+                  const cuentaStatus = hasCuenta ? 'done'
+                    : hasContacto ? 'current' : 'locked'
+
+                  // Oportunidad · current cuando hay contacto pero aún no transformado.
+                  // Si ya transformado → done. Sin contacto → locked.
+                  const oportunidadStatus = hasOportunidad ? 'done'
+                    : hasContacto ? 'current' : 'locked'
+
+                  // Propuesta · solo se genera vía pitch al transformar.
+                  // Done si existe. Current si transformado por pitch y aún no creada (caso raro).
+                  // Locked en cualquier otro caso.
+                  const propuestaStatus = hasPropuesta ? 'done'
+                    : (hasOportunidad && lead.via === 'pitch') ? 'current' : 'locked'
+
+                  return (
+                    <FunnelStepCards steps={[
+                      {
+                        key:'contacto',
+                        icon: User,
+                        tone:'blue',
+                        label:'Contacto del lead',
+                        value: [lead.contacto_nombre, lead.contacto_apellidos].filter(Boolean).join(' ') || null,
+                        sub: lead.email || lead.telefono || null,
+                        status: contactoStatus,
+                        onOpen: null,
+                        action: contactoStatus === 'current'
+                          ? { label:'✎ Completar contacto', onClick: () => canEdit && startEdit(), primary: true }
+                          : null,
+                        lockedHint: null,
+                      },
+                      {
+                        key:'cuenta',
+                        icon: Building2,
+                        tone:'green',
+                        label:'Cuenta (Dynamics)',
+                        value: lead.cuenta_nombre || null,
+                        sub: lead.cuenta_sector || null,
+                        status: cuentaStatus,
+                        onOpen: hasCuenta ? () => navigate('cuentas', { id: lead.dynamics_account_id }) : null,
+                        action: cuentaStatus === 'current'
+                          ? { label:'⚡ Transformar y vincular cuenta', onClick: () => !cerradoLocal && setShowTransformar(true), primary: true }
+                          : null,
+                        lockedHint:'Completa antes el contacto del lead.',
+                        dyn: true,
+                      },
+                      {
+                        key:'oportunidad',
+                        icon: Target,
+                        tone:'accent',
+                        label:'Oportunidad (Dynamics)',
+                        value: oportunidadNombre || lead.dynamics_opportunity_id || null,
+                        sub: lead.via ? `Vía ${lead.via}` : null,
+                        status: oportunidadStatus,
+                        onOpen: hasOportunidad ? () => navigate('ficha-oportunidad', { id: lead.dynamics_opportunity_id }) : null,
+                        action: oportunidadStatus === 'current'
+                          ? { label:'⚡ Transformar lead', onClick: () => !cerradoLocal && setShowTransformar(true), primary: true }
+                          : null,
+                        lockedHint:'Completa antes el contacto del lead.',
+                        dyn: true,
+                      },
+                      {
+                        key:'propuesta',
+                        icon: Lightbulb,
+                        tone:'amber',
+                        label:'Propuesta',
+                        value: lead.propuesta_ref || null,
+                        sub: null,
+                        status: propuestaStatus,
+                        onOpen: hasPropuesta ? () => navigate('ficha-propuesta', { id: lead.propuesta_ref }) : null,
+                        action: propuestaStatus === 'current'
+                          ? { label:'Ir a generar propuesta', onClick: () => navigate('propuestas'), primary: false }
+                          : null,
+                        lockedHint: hasOportunidad
+                          ? 'Solo aplica si se transformó por la vía Pitch.'
+                          : 'Transforma el lead primero (vía Pitch).',
+                      },
+                    ]} />
+                  )
+                })()}
 
                 {/* ─── Contacto del lead — campos obligatorios para capturar
                        al contacto antes de cualificar/vincular a Dynamics ─── */}
