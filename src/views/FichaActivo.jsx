@@ -651,6 +651,13 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   const [view, setView]                 = useState(initView)
   const [expanded, setExpanded]         = useState(false)
   const [dragging, setDragging]         = useState(null)
+  // Hover sobre un chip del sidebar → resalta las units del grid que le
+  // corresponden. Convención de claves:
+  //   · 'uso:<usoId>'      para chips de Usos principales / adicionales
+  //   · 'owner:<id|name>'  para propietarios
+  //   · 'ten:<ref|name>'   para arrendatarios
+  //   · 'ofr:<nombre>'     para ofertas
+  const [hoverKey, setHoverKey]         = useState(null)
   const [dragTarget, setDragTarget]     = useState(null)
   const [editFloor, setEditFloor]       = useState(null) // {floorId, idx, layer}
   const [editSup, setEditSup]           = useState('')
@@ -4729,7 +4736,7 @@ export default function FichaActivo() {
   useEffect(() => {
     const ref = params?.ref
     if (!ref || params?.new) return
-    supabase.from('propietarios').select('*').eq('activo_ref', ref).order('created_at', { ascending: false })
+    supabase.from('propietarios').select('*').eq('activo_ref', ref).is('motivo_salida', null).order('created_at', { ascending: false })
       .then(({ data }) => {
         if (data?.length) {
           const mapped = data.map(p => ({
@@ -4765,7 +4772,7 @@ export default function FichaActivo() {
           })
         }
       })
-    supabase.from('arrendatarios').select('*').eq('activo_ref', ref).order('created_at', { ascending: false })
+    supabase.from('arrendatarios').select('*').eq('activo_ref', ref).is('motivo_salida', null).order('created_at', { ascending: false })
       .then(({ data }) => {
         if (data?.length) {
           const mapped = data.map(a => ({
@@ -6383,6 +6390,12 @@ export default function FichaActivo() {
           onClose={() => setSalidaArr(null)}
           onSuccess={() => {
             try { salidaArr.doRemove() } catch (e) {}
+            // Quita el chip del panel lateral al instante (no esperar reload)
+            setArrendatariosReg(prev => prev.filter(a =>
+              salidaArr.unit.arr_ref
+                ? a.ref !== salidaArr.unit.arr_ref
+                : a.tenant !== salidaArr.unit.n
+            ))
             setSalidaArr(null)
           }}
         />
@@ -6398,6 +6411,12 @@ export default function FichaActivo() {
           onClose={() => setSalidaProp(null)}
           onSuccess={() => {
             try { salidaProp.doRemove() } catch (e) {}
+            // Quita el chip del panel lateral al instante
+            setPropietariosReg(prev => prev.filter(p =>
+              salidaProp.unit.prop_id
+                ? p.id !== salidaProp.unit.prop_id
+                : p.propietario !== salidaProp.unit.n
+            ))
             setSalidaProp(null)
           }}
         />

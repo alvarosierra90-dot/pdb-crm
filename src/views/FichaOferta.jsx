@@ -448,9 +448,9 @@ function FichaOfertaMock() {
   useEffect(() => {
     const ref = activoSeleccionado?.ref
     if (!ref) { setPropietariosReg([]); setArrendatariosReg([]); return }
-    supabase.from('propietarios').select('*').eq('activo_ref', ref)
+    supabase.from('propietarios').select('*').eq('activo_ref', ref).is('motivo_salida', null)
       .then(({ data }) => setPropietariosReg(data || []))
-    supabase.from('arrendatarios').select('*').eq('activo_ref', ref)
+    supabase.from('arrendatarios').select('*').eq('activo_ref', ref).is('motivo_salida', null)
       .then(({ data }) => setArrendatariosReg((data || []).map(a => ({
         id: a.id, ref: a.ref, tenant: a.tenant || a.nombre,
       }))))
