@@ -4169,6 +4169,7 @@ export default function FichaActivo() {
   const [newForm, setNewForm]           = useState(NEW_FORM_INIT)
   const [saving,  setSaving]            = useState(false)
   const [saveErr, setSaveErr]           = useState('')
+  const [saveOk,  setSaveOk]            = useState(false)
   const [submitted, setSubmitted]       = useState(false)
   const setNF = (k, v) => setNewForm(p => ({ ...p, [k]: v }))
 
@@ -4651,7 +4652,13 @@ export default function FichaActivo() {
     if (missing.length) { setSaveErr(`Campos obligatorios: ${missing.join(', ')}`); return }
     const nombre = newForm.nombre || newForm.direccion.split(',')[0].trim()
     setSaving(true); setSaveErr('')
-    const ref = genRefFA(newForm.ciudad, newForm.uso)
+    // Generar ref garantizando unicidad (genRefFA usa Math.random — posible colisión)
+    let ref = genRefFA(newForm.ciudad, newForm.uso)
+    for (let i = 0; i < 5; i++) {
+      const { data: existing } = await supabase.from('activos').select('ref').eq('ref', ref).maybeSingle()
+      if (!existing) break
+      ref = genRefFA(newForm.ciudad, newForm.uso)
+    }
     // Only insert columns guaranteed to exist in migration 001 schema
     const payload = {
       ref, nombre,
@@ -4670,6 +4677,7 @@ export default function FichaActivo() {
       dias_comercializacion: 0,
     }
     // Add extra columns if migration 002 has been run (fail silently if not)
+    let insertOk = false
     try {
       const { error } = await supabase.from('activos').insert({
         ...payload,
@@ -4688,27 +4696,34 @@ export default function FichaActivo() {
         ratio_perdida:       newForm.ratio_perdida ? parseFloat(newForm.ratio_perdida) : null,
         cp:                  newForm.cp                || null,
       })
-      setSaving(false)
       if (error) {
         // If extra columns don't exist yet, retry with base payload
         if (error.message?.includes('column') || error.code === '42703') {
           const { error: e2 } = await supabase.from('activos').insert(payload)
-          if (e2) { setSaveErr(e2.message); return }
+          if (e2) { setSaving(false); setSaveErr(`No se pudo crear el activo: ${e2.message}`); return }
+          insertOk = true
         } else {
-          setSaveErr(error.message); return
+          setSaving(false); setSaveErr(`No se pudo crear el activo: ${error.message}${error.details ? ` · ${error.details}` : ''}${error.hint ? ` · ${error.hint}` : ''}`); return
         }
+      } else {
+        insertOk = true
       }
     } catch(e) {
       setSaving(false)
-      setSaveErr(String(e)); return
+      // eslint-disable-next-line no-console
+      console.error('Crear activo · excepción:', e)
+      setSaveErr(`Error al crear el activo: ${e?.message || e}`); return
     }
-    setSaving(false)
+    if (!insertOk) { setSaving(false); return }
     // Save stacking plan if the user created buildings while on the new activo form
     const stackBlds = liveStackingRef.current
     if (stackBlds && stackBlds.length > 0) {
       await supabase.from('activos').update({ stacking_data: stackBlds }).eq('ref', ref)
     }
-    navigate('ficha-activo', { ref })
+    setSaving(false)
+    setSaveOk(true)
+    // Pequeña espera para que el usuario vea "Activo guardado" antes de navegar
+    setTimeout(() => navigate('ficha-activo', { ref }), 600)
   }
 
   const saveStackingData = async () => {
@@ -4763,7 +4778,8 @@ export default function FichaActivo() {
           <>
             <button className="ab-btn save" onClick={handleCreateActivo} disabled={saving}>{saving ? 'Guardando...' : '💾 Crear activo'}</button>
             <button className="ab-btn" onClick={() => navigate('activos')}>Cancelar</button>
-            {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
+            {saveOk  && <span style={{fontSize:11,color:'var(--green)',marginLeft:8,fontWeight:600}}>✓ Activo creado · redirigiendo…</span>}
+            {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8,fontWeight:600}}>{saveErr}</span>}
           </>
         ) : (
           <>

@@ -372,31 +372,41 @@ function FichaOfertaMock() {
     setImagenesOferta(prev => prev.map(i => i.id === id ? { ...i, included: !i.included } : i))
   }
 
-  // Nombre por defecto del desglose: "Disp - {dirección del activo}" si hay activo vinculado
-  // Editable después por el usuario con el lápiz.
-  function defaultOfertaName() {
+  // Nombre por defecto del desglose: "Disp N - {dirección del activo}" — N
+  // es el número de la línea (1, 2, 3…) para diferenciar visualmente cuando
+  // hay varias espacios sobre el mismo activo. Editable con el lápiz.
+  function defaultOfertaName(n) {
     const dir = activoSeleccionado?.direccion || activoSeleccionado?.nombre || ''
-    return dir ? `Disp - ${dir}` : 'Disp - '
+    const prefix = `Disp ${n}`
+    return dir ? `${prefix} - ${dir}` : `${prefix} - `
   }
+
+  // Patrones de nombre auto-generado (incluye legacy sin número y "Oferta N").
+  // Se usan para detectar nombres que el usuario NO ha tocado y reescribirlos
+  // cuando cambia el activo o se reordena la lista.
+  const isAutoName = (name) =>
+    name === 'Disp - ' || name === 'Disp -' ||
+    /^Disp \d+ - /.test(name) || /^Disp \d+ -$/.test(name) || /^Disp \d+ - $/.test(name) ||
+    /^Oferta \d+$/.test(name)
 
   function addOferta() {
     if (pendingNewIds.length > 0) return  // hay una fila pendiente — bloquear hasta que se guarde
     const id = nextOfertaId
-    setOfertasDesglose(prev => [...prev, { id, nombre: defaultOfertaName(), divisible:divisibleGlobal, supMin:null, cargasM2:parseFloat(gastosComunes)||0, ibiM2:parseFloat(ibi)||0, fechaDisp:fechaDispGlobal||'' }])
+    setOfertasDesglose(prev => {
+      const n = prev.length + 1
+      return [...prev, { id, nombre: defaultOfertaName(n), divisible:divisibleGlobal, supMin:null, cargasM2:parseFloat(gastosComunes)||0, ibiM2:parseFloat(ibi)||0, fechaDisp:fechaDispGlobal||'' }]
+    })
     setNextOfertaId(id + 1)
     setPendingNewIds(prev => [...prev, id])
   }
 
   // Cuando se vincula/cambia el activo, refresca el nombre por defecto de las
-  // filas que todavía tienen "Disp - " (sin dirección) o el viejo "Oferta N".
-  // Los nombres editados por el usuario (cualquier cosa distinta) NO se tocan.
+  // filas auto-generadas, manteniendo la numeración por posición.
   useEffect(() => {
     if (!activoSeleccionado) return
-    const newDefault = defaultOfertaName()
-    setOfertasDesglose(prev => prev.map(o => {
-      const isUntouched = o.nombre === 'Disp - ' || o.nombre === 'Disp -' || /^Oferta \d+$/.test(o.nombre)
-      return isUntouched ? { ...o, nombre: newDefault } : o
-    }))
+    setOfertasDesglose(prev => prev.map((o, i) =>
+      isAutoName(o.nombre) ? { ...o, nombre: defaultOfertaName(i + 1) } : o
+    ))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activoSeleccionado?.ref])
 
@@ -578,6 +588,7 @@ function FichaOfertaMock() {
         if (data.origen_oferta)         setOrigenOferta(data.origen_oferta)
         if (data.modalidad_visita)      setModalidadVisita(data.modalidad_visita)
         if (data.confidencial != null)  setConfidential(data.confidencial)
+        if (data.gastos_comunes != null) setGastosComunes(data.gastos_comunes)
         // Cuando la oferta nace de una transformación de lead, el equipo viene
         // en `equipo_trabajo` con shape { nombre, equipo, rol }. Lo mapeamos al
         // shape interno { name, team, role, initials, bg, color, owner }.
@@ -708,6 +719,10 @@ function FichaOfertaMock() {
         estado:                 oferta.estado           || 'En curso',
         superficie_disponible:  supDisp || null,
         renta_m2:               rentaM2,
+        // Gastos comunes / IBI: persistir el valor que el broker rellenó.
+        // Sin esto, la columna gastos_comunes en la BD queda NULL y la lista
+        // de Ofertas no muestra los gastos pese a haberlos rellenado en ficha.
+        gastos_comunes:         parseFloat(gastosComunes) || null,
       }).eq('ref', oferta.ref))
       if (error) { setSaveErr(error.message); return }
 
@@ -1609,11 +1624,11 @@ function FichaOfertaMock() {
                       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
                         {/* Desglose de ofertas */}
                         <div className="info-block" style={{ padding:0, overflow:'hidden' }}>
-                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderBottom:'1px solid var(--border)', background:'var(--gray-lt)' }}>
-                            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                              <div style={{ fontSize:11, fontWeight:700 }}>Desglose de ofertas</div>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px', borderBottom:'1px solid var(--border)', background:'var(--gray-lt)' }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                              <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>Desglose de ofertas</div>
                               {pendingNewIds.length > 0 && (
-                                <span style={{ fontSize:9, color:'var(--orange,#c97a00)', fontWeight:600, background:'rgba(201,122,0,0.08)', padding:'2px 6px', borderRadius:8 }}>Sin guardar</span>
+                                <span style={{ fontSize:11, color:'var(--orange,#c97a00)', fontWeight:700, background:'rgba(201,122,0,0.08)', padding:'3px 9px', borderRadius:10 }}>Sin guardar</span>
                               )}
                             </div>
                             <div style={{ display:'flex', gap:6 }}>
@@ -1634,10 +1649,10 @@ function FichaOfertaMock() {
                               >+ Agregar</button>
                             </div>
                           </div>
-                          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
                             <thead><tr>
                               {['Nombre área','Sup. asignada','Divisible','Sup. mín.','Gastos €/m²','IBI €/m²','Fecha disp.','Plantas asignadas',''].map(h =>
-                                <th key={h} style={{ padding:'6px 12px', fontSize:9, fontWeight:600, color:'var(--text4)', textAlign:'left', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap' }}>{h}</th>
+                                <th key={h} style={{ padding:'10px 14px', fontSize:10.5, fontWeight:700, color:'var(--text4)', textAlign:'left', borderBottom:'1px solid var(--border)', textTransform:'uppercase', whiteSpace:'nowrap', letterSpacing:'.04em' }}>{h}</th>
                               )}
                             </tr></thead>
                             <tbody>
@@ -1647,62 +1662,62 @@ function FichaOfertaMock() {
                                 const assignedSup = assignedSpaces.reduce((s,e) => s + e.sup, 0)
                                 return (
                                   <tr key={o.id} style={{ borderBottom:'1px solid var(--border)' }}>
-                                    <td style={{ padding:'7px 12px' }}>
+                                    <td style={{ padding:'10px 14px' }}>
                                       {editNombreId===o.id
                                         ? <input autoFocus value={editNombreVal} onChange={e => setEditNombreVal(e.target.value)}
                                             onBlur={() => { renameOferta(o.id, o.nombre, editNombreVal); setEditNombreId(null) }}
                                             onKeyDown={e => { if(e.key==='Enter'){ renameOferta(o.id, o.nombre, editNombreVal); setEditNombreId(null) } }}
-                                            style={{ fontSize:11, border:'1px solid var(--accent)', borderRadius:3, padding:'2px 6px', fontFamily:'inherit', width:120 }} />
-                                        : <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                                            <div style={{ width:8, height:8, borderRadius:'50%', background:col.dot, flexShrink:0 }} />
-                                            <span className="pat-link" onClick={() => { setEditNombreId(o.id); setEditNombreVal(o.nombre) }}>{o.nombre}</span>
+                                            style={{ fontSize:13, border:'1px solid var(--accent)', borderRadius:4, padding:'4px 8px', fontFamily:'inherit', width:200 }} />
+                                        : <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                                            <div style={{ width:10, height:10, borderRadius:'50%', background:col.dot, flexShrink:0 }} />
+                                            <span className="pat-link" style={{ fontSize:13, fontWeight:600 }} onClick={() => { setEditNombreId(o.id); setEditNombreVal(o.nombre) }}>{o.nombre}</span>
                                           </div>
                                       }
                                     </td>
-                                    <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600 }}>{assignedSup>0?assignedSup.toLocaleString()+' m²':<span style={{ color:'var(--text4)' }}>—</span>}</td>
-                                    <td style={{ padding:'7px 12px' }}>
-                                      <label style={{ display:'flex', alignItems:'center', gap:5, cursor:'pointer' }}>
-                                        <input type="checkbox" checked={!!o.divisible} onChange={() => setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,divisible:!x.divisible,supMin:!x.divisible?x.supMin:null}:x))} style={{ accentColor:'var(--accent)', cursor:'pointer' }} />
-                                        <span style={{ fontSize:10, fontWeight:600, color:o.divisible?'var(--green)':'var(--text4)' }}>{o.divisible?'Sí':'No'}</span>
+                                    <td style={{ padding:'10px 14px', fontFamily:'var(--mono)', fontWeight:700, fontSize:13 }}>{assignedSup>0?assignedSup.toLocaleString()+' m²':<span style={{ color:'var(--text4)' }}>—</span>}</td>
+                                    <td style={{ padding:'10px 14px' }}>
+                                      <label style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer' }}>
+                                        <input type="checkbox" checked={!!o.divisible} onChange={() => setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,divisible:!x.divisible,supMin:!x.divisible?x.supMin:null}:x))} style={{ accentColor:'var(--accent)', cursor:'pointer', width:14, height:14 }} />
+                                        <span style={{ fontSize:12, fontWeight:600, color:o.divisible?'var(--green)':'var(--text4)' }}>{o.divisible?'Sí':'No'}</span>
                                       </label>
                                     </td>
-                                    <td style={{ padding:'6px 12px' }}>
+                                    <td style={{ padding:'10px 14px' }}>
                                       {o.divisible
                                         ? <input type="number" value={o.supMin||''} onChange={e => setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,supMin:parseFloat(e.target.value)||null}:x))}
-                                            placeholder="m² mín." style={{ width:72, padding:'3px 6px', fontSize:10, border:'1px solid var(--border)', borderRadius:4, fontFamily:'var(--mono)', background:'var(--surface)' }} />
-                                        : <span style={{ color:'var(--text4)', fontSize:10 }}>Total</span>
+                                            placeholder="m² mín." style={{ width:84, padding:'5px 8px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, fontFamily:'var(--mono)', background:'var(--surface)' }} />
+                                        : <span style={{ color:'var(--text4)', fontSize:12 }}>Total</span>
                                       }
                                     </td>
-                                    <td style={{ padding:'5px 8px' }}>
+                                    <td style={{ padding:'8px 10px' }}>
                                       <input type="number" step="0.01" value={o.cargasM2||''} onChange={e => setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,cargasM2:parseFloat(e.target.value)||0}:x))}
-                                        placeholder="0,00" style={{ width:68, padding:'3px 6px', fontSize:10, border:'1px solid var(--border)', borderRadius:4, fontFamily:'var(--mono)', background:'var(--surface)' }} />
+                                        placeholder="0,00" style={{ width:80, padding:'5px 8px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, fontFamily:'var(--mono)', background:'var(--surface)' }} />
                                     </td>
-                                    <td style={{ padding:'5px 8px' }}>
+                                    <td style={{ padding:'8px 10px' }}>
                                       <input type="number" step="0.01" value={o.ibiM2||''} onChange={e => setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,ibiM2:parseFloat(e.target.value)||0}:x))}
-                                        placeholder="0,00" style={{ width:68, padding:'3px 6px', fontSize:10, border:'1px solid var(--border)', borderRadius:4, fontFamily:'var(--mono)', background:'var(--surface)' }} />
+                                        placeholder="0,00" style={{ width:80, padding:'5px 8px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, fontFamily:'var(--mono)', background:'var(--surface)' }} />
                                     </td>
-                                    <td style={{ padding:'5px 8px' }}>
+                                    <td style={{ padding:'8px 10px' }}>
                                       <input type="date" value={o.fechaDisp||''} onChange={e => setOfertasDesglose(prev=>prev.map(x=>x.id===o.id?{...x,fechaDisp:e.target.value}:x))}
-                                        style={{ fontSize:10, padding:'3px 6px', border:'1px solid var(--border)', borderRadius:4, fontFamily:'inherit', background:'var(--surface)', color: o.fechaDisp?'var(--text2)':'var(--text4)' }} />
+                                        style={{ fontSize:12, padding:'5px 8px', border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', background:'var(--surface)', color: o.fechaDisp?'var(--text2)':'var(--text4)' }} />
                                     </td>
-                                    <td style={{ padding:'7px 12px' }}>
+                                    <td style={{ padding:'10px 14px' }}>
                                       {assignedSpaces.length>0
-                                        ? <div style={{ display:'flex', gap:3, flexWrap:'wrap' }}>
-                                            {assignedSpaces.map(e=><span key={e.modulo} style={{ fontSize:9, background:col.bg, color:col.text, border:`1px solid ${col.border}`, borderRadius:8, padding:'1px 6px', fontWeight:600 }}>{e.planta}</span>)}
+                                        ? <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+                                            {assignedSpaces.map(e=><span key={e.modulo} style={{ fontSize:11, background:col.bg, color:col.text, border:`1px solid ${col.border}`, borderRadius:10, padding:'2px 8px', fontWeight:700 }}>{e.planta}</span>)}
                                           </div>
-                                        : <span style={{ fontSize:10, color:'var(--text4)', fontStyle:'italic' }}>Sin asignar</span>
+                                        : <span style={{ fontSize:12, color:'var(--text4)', fontStyle:'italic' }}>Sin asignar</span>
                                       }
                                     </td>
-                                    <td style={{ padding:'7px 12px' }}>
-                                      <div style={{ display:'flex', gap:4 }}>
-                                        <button className="ra p" onClick={() => { setEditNombreId(o.id); setEditNombreVal(o.nombre) }}>✎</button>
-                                        <button className="ra" onClick={() => { setOfertasDesglose(prev=>prev.filter(x=>x.id!==o.id)); setPendingNewIds(prev => prev.filter(x => x !== o.id)) }} style={{ color:'var(--red)' }}>✕</button>
+                                    <td style={{ padding:'10px 14px' }}>
+                                      <div style={{ display:'flex', gap:5 }}>
+                                        <button className="ra p" style={{ fontSize:13 }} onClick={() => { setEditNombreId(o.id); setEditNombreVal(o.nombre) }}>✎</button>
+                                        <button className="ra" style={{ fontSize:13 }} onClick={() => { setOfertasDesglose(prev=>prev.filter(x=>x.id!==o.id)); setPendingNewIds(prev => prev.filter(x => x !== o.id)) }}>✕</button>
                                       </div>
                                     </td>
                                   </tr>
                                 )
                               })}
-                              {ofertasDesglose.length===0 && <tr><td colSpan={9} style={{ padding:18, textAlign:'center', color:'var(--text4)', fontSize:11, fontStyle:'italic' }}>Sin áreas. Pulsa "+ Agregar".</td></tr>}
+                              {ofertasDesglose.length===0 && <tr><td colSpan={9} style={{ padding:24, textAlign:'center', color:'var(--text4)', fontSize:13, fontStyle:'italic' }}>Sin áreas. Pulsa "+ Agregar".</td></tr>}
                             </tbody>
                           </table>
                           <div style={{ padding:'7px 14px', background:'var(--accent-lt)', borderTop:'1px solid var(--accent-bd)', fontSize:10, color:'var(--accent)' }}>

@@ -75,7 +75,7 @@ export default function OfertasList() {
             subzona:    act?.subzona  || '—',
             m2:         o.superficie_disponible || 0,
             renta:      o.renta_m2 ? `${o.renta_m2} €/m²/mes` : '—',
-            gastos:     o.gastos_medios ?? null,
+            gastos:     o.gastos_comunes ?? o.gastos_medios ?? null,
             ibi:        o.ibi_medio ?? null,
             tipo:       o.tipo_operacion || '—',
             origen:     o.origen_oferta  || '—',

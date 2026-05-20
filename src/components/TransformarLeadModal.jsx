@@ -122,6 +122,8 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
   const [error, setError]           = useState(null)
   const [warnings, setWarnings]     = useState([])     // [{ key, msg }]
   const [warningsOK, setWarningsOK] = useState(false)  // el broker ha aceptado los avisos
+  // Ofertas vivas sobre el activo seleccionado · driver del aviso "ya existe oferta".
+  const [ofertasEnActivo, setOfertasEnActivo] = useState([])
 
   useEffect(() => {
     async function loadAll() {
@@ -216,14 +218,30 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
           })
         }
       }
+      // 3. Oferta activa ya existente sobre el activo seleccionado (lead → oferta directa).
+      //    Crítico: el broker debe decidir si crear una nueva o ir a la existente.
+      let ofertasActivo = []
+      if (activoPick?.id && esquema?.destino === 'oferta') {
+        const { data } = await supabase
+          .from('ofertas')
+          .select('id, ref, estado, tipo_operacion, renta_m2')
+          .eq('activo_id', activoPick.id)
+          .neq('estado', 'Retirada')
+          .limit(5)
+        if (data && data.length) {
+          ofertasActivo = data
+          // No empujo a warnings — el banner se muestra inline más visual con CTA
+        }
+      }
       if (!cancel) {
         setWarnings(w)
+        setOfertasEnActivo(ofertasActivo)
         setWarningsOK(false)
       }
     }
     detectar()
     return () => { cancel = true }
-  }, [cuentaPick?.dynamics_id, contactoPick?.dynamics_id, lead.id, lead.email, lead.telefono, lead.tipo])
+  }, [cuentaPick?.dynamics_id, contactoPick?.dynamics_id, lead.id, lead.email, lead.telefono, lead.tipo, activoPick?.id, esquema?.destino])
 
   const handleTransformar = async () => {
     if (!puedeTransformar) return
@@ -561,6 +579,34 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
                   {activoPick ? (
                     <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                       <div style={{ fontSize:10, color:'#15803d' }}>✓ Activo seleccionado: {activoPick.nombre} ({activoPick.ref})</div>
+                      {ofertasEnActivo.length > 0 && (
+                        <div style={{ padding:'10px 12px', background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:6 }}>
+                          <div style={{ fontSize:11, fontWeight:700, color:'#9a3412', marginBottom:6 }}>
+                            ⚠ Ya existe {ofertasEnActivo.length === 1 ? 'una oferta activa' : `${ofertasEnActivo.length} ofertas activas`} sobre este activo
+                          </div>
+                          <div style={{ display:'flex', flexDirection:'column', gap:4, marginBottom:8 }}>
+                            {ofertasEnActivo.map(o => (
+                              <div key={o.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'5px 8px', background:'#fff', border:'1px solid #fed7aa', borderRadius:4, fontSize:11, color:'#7c2d12' }}>
+                                <span>
+                                  <strong style={{ fontFamily:'var(--mono)' }}>{o.ref}</strong>
+                                  {o.tipo_operacion ? ` · ${o.tipo_operacion}` : ''}
+                                  {o.renta_m2 ? ` · ${o.renta_m2} €/m²` : ''}
+                                  {o.estado ? ` · ${o.estado}` : ''}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => { navigate('ficha-oferta', { ofertaRef: o.ref }); onClose?.() }}
+                                  style={{ padding:'3px 9px', fontSize:10, fontWeight:700, border:'1px solid #c2410c', borderRadius:3, background:'#c2410c', color:'#fff', cursor:'pointer', fontFamily:'inherit' }}>
+                                  Ir a oferta →
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <div style={{ fontSize:10, color:'#9a3412', fontStyle:'italic' }}>
+                            Si tu intención era seguir trabajando una oferta existente, ábrela arriba. Si vas a crear una nueva (otra operación, otro inquilino), continúa con el formulario.
+                          </div>
+                        </div>
+                      )}
                       {(() => {
                         // El propietario del activo es quien aparecerá en la banda
                         // Vinculaciones de la oferta — no la cuenta del lead.
