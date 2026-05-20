@@ -10,6 +10,7 @@ import VinculacionesMaestra from '../components/VinculacionesMaestra'
 import HeaderPills from '../components/HeaderPills'
 import FunnelTracker from '../components/FunnelTracker'
 import FunnelStepCards from '../components/FunnelStepCards'
+import EditarContactoLeadModal from '../components/EditarContactoLeadModal'
 import { Building2, User, Target, Lightbulb } from 'lucide-react'
 
 // Lista de equipos para el dropdown legacy "Asignación → Equipo" del
@@ -65,6 +66,7 @@ export default function FichaLead() {
   const [tab, setTab] = useState('ld-info')
   const [showTransformar, setShowTransformar] = useState(false)
   const [showNulo, setShowNulo] = useState(false)
+  const [showEditarContacto, setShowEditarContacto] = useState(false)
   const [lead, setLead] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -382,70 +384,91 @@ export default function FichaLead() {
                   const propuestaStatus = hasPropuesta ? 'done'
                     : (hasOportunidad && lead.via === 'pitch') ? 'current' : 'locked'
 
-                  return (
-                    <FunnelStepCards steps={[
-                      {
-                        key:'contacto',
-                        icon: User,
-                        tone:'blue',
-                        label:'Contacto del lead',
-                        value: [lead.contacto_nombre, lead.contacto_apellidos].filter(Boolean).join(' ') || null,
-                        sub: lead.email || lead.telefono || null,
-                        status: contactoStatus,
-                        onOpen: null,
-                        action: contactoStatus === 'current'
-                          ? { label:'✎ Completar contacto', onClick: () => canEdit && startEdit(), primary: true }
-                          : null,
-                        lockedHint: null,
-                      },
-                      {
-                        key:'cuenta',
-                        icon: Building2,
-                        tone:'green',
-                        label:'Cuenta (Dynamics)',
-                        value: lead.cuenta_nombre || null,
-                        sub: lead.cuenta_sector || null,
-                        status: cuentaStatus,
-                        onOpen: hasCuenta ? () => navigate('cuentas', { id: lead.dynamics_account_id }) : null,
-                        action: cuentaStatus === 'current'
-                          ? { label:'⚡ Transformar y vincular cuenta', onClick: () => !cerradoLocal && setShowTransformar(true), primary: true }
-                          : null,
-                        lockedHint:'Completa antes el contacto del lead.',
-                        dyn: true,
-                      },
-                      {
-                        key:'oportunidad',
-                        icon: Target,
-                        tone:'accent',
-                        label:'Oportunidad (Dynamics)',
-                        value: oportunidadNombre || lead.dynamics_opportunity_id || null,
-                        sub: lead.via ? `Vía ${lead.via}` : null,
-                        status: oportunidadStatus,
-                        onOpen: hasOportunidad ? () => navigate('ficha-oportunidad', { id: lead.dynamics_opportunity_id }) : null,
-                        action: oportunidadStatus === 'current'
-                          ? { label:'⚡ Transformar lead', onClick: () => !cerradoLocal && setShowTransformar(true), primary: true }
-                          : null,
-                        lockedHint:'Completa antes el contacto del lead.',
-                        dyn: true,
-                      },
-                      {
-                        key:'propuesta',
-                        icon: Lightbulb,
-                        tone:'amber',
-                        label:'Propuesta',
-                        value: lead.propuesta_ref || null,
-                        sub: null,
-                        status: propuestaStatus,
-                        onOpen: hasPropuesta ? () => navigate('ficha-propuesta', { id: lead.propuesta_ref }) : null,
-                        action: propuestaStatus === 'current'
-                          ? { label:'Ir a generar propuesta', onClick: () => navigate('propuestas'), primary: false }
-                          : null,
-                        lockedHint: hasOportunidad
-                          ? 'Solo aplica si se transformó por la vía Pitch.'
-                          : 'Transforma el lead primero (vía Pitch).',
-                      },
-                    ]} />
-                  )
+                  // Construyo los steps primero y luego inyecto editAction +
+                  // nextAction post-hoc para que cada step DONE pueda saltar
+                  // a la acción de la siguiente card CURRENT (wizard).
+                  const baseSteps = [
+                    {
+                      key:'contacto',
+                      icon: User,
+                      tone:'blue',
+                      label:'Contacto del lead',
+                      value: [lead.contacto_nombre, lead.contacto_apellidos].filter(Boolean).join(' ') || null,
+                      sub: lead.email || lead.telefono || null,
+                      status: contactoStatus,
+                      action: contactoStatus === 'current'
+                        ? { label:'✎ Completar contacto', onClick: () => setShowEditarContacto(true), primary: true }
+                        : null,
+                      editTarget: () => setShowEditarContacto(true),
+                      lockedHint: null,
+                    },
+                    {
+                      key:'cuenta',
+                      icon: Building2,
+                      tone:'green',
+                      label:'Cuenta (Dynamics)',
+                      value: lead.cuenta_nombre || null,
+                      sub: lead.cuenta_sector || null,
+                      status: cuentaStatus,
+                      action: cuentaStatus === 'current'
+                        ? { label:'⚡ Transformar y vincular cuenta', onClick: () => !cerradoLocal && setShowTransformar(true), primary: true }
+                        : null,
+                      editTarget: () => !cerradoLocal && setShowTransformar(true),
+                      openTarget: hasCuenta ? () => navigate('cuentas', { id: lead.dynamics_account_id }) : null,
+                      lockedHint:'Completa antes el contacto del lead.',
+                      dyn: true,
+                    },
+                    {
+                      key:'oportunidad',
+                      icon: Target,
+                      tone:'accent',
+                      label:'Oportunidad (Dynamics)',
+                      value: oportunidadNombre || lead.dynamics_opportunity_id || null,
+                      sub: lead.via ? `Vía ${lead.via}` : null,
+                      status: oportunidadStatus,
+                      action: oportunidadStatus === 'current'
+                        ? { label:'⚡ Transformar lead', onClick: () => !cerradoLocal && setShowTransformar(true), primary: true }
+                        : null,
+                      editTarget: () => !cerradoLocal && setShowTransformar(true),
+                      openTarget: hasOportunidad ? () => navigate('ficha-oportunidad', { id: lead.dynamics_opportunity_id }) : null,
+                      lockedHint:'Completa antes el contacto del lead.',
+                      dyn: true,
+                    },
+                    {
+                      key:'propuesta',
+                      icon: Lightbulb,
+                      tone:'amber',
+                      label:'Propuesta',
+                      value: lead.propuesta_ref || null,
+                      sub: null,
+                      status: propuestaStatus,
+                      action: propuestaStatus === 'current'
+                        ? { label:'Ir a generar propuesta', onClick: () => navigate('propuestas'), primary: false }
+                        : null,
+                      editTarget: null,
+                      openTarget: hasPropuesta ? () => navigate('ficha-propuesta', { id: lead.propuesta_ref }) : null,
+                      lockedHint: hasOportunidad
+                        ? 'Solo aplica si se transformó por la vía Pitch.'
+                        : 'Transforma el lead primero (vía Pitch).',
+                    },
+                  ]
+                  // Calcular nextAction: del primer paso DONE en adelante, busca
+                  // el primer paso CURRENT a su derecha y reusa su action.
+                  const findNextCurrentAction = (idx) => {
+                    for (let i = idx + 1; i < baseSteps.length; i++) {
+                      if (baseSteps[i].status === 'current' && baseSteps[i].action) {
+                        return { label: baseSteps[i].action.label.replace(/^[⚡✎]\s*/, ''), onClick: baseSteps[i].action.onClick }
+                      }
+                    }
+                    return null
+                  }
+                  const finalSteps = baseSteps.map((s, i) => ({
+                    ...s,
+                    editAction: s.status === 'done' && s.editTarget ? { label:'Editar', onClick: s.editTarget } : null,
+                    openAction: s.status === 'done' && s.openTarget ? { label:'Abrir ficha', onClick: s.openTarget } : null,
+                    nextAction: s.status === 'done' ? findNextCurrentAction(i) : null,
+                  }))
+                  return <FunnelStepCards steps={finalSteps} />
                 })()}
 
                 {/* ─── Contacto del lead — campos obligatorios para capturar
@@ -761,8 +784,9 @@ export default function FichaLead() {
         </div>
       </div>
 
-      {showTransformar && <TransformarLeadModal lead={lead} onClose={() => setShowTransformar(false)} onSuccess={() => { setShowTransformar(false); loadLead() }} />}
-      {showNulo        && <LeadNuloModal       lead={lead} onClose={() => setShowNulo(false)}       onSuccess={() => { setShowNulo(false); loadLead() }} />}
+      {showTransformar     && <TransformarLeadModal     lead={lead} onClose={() => setShowTransformar(false)}     onSuccess={() => { setShowTransformar(false); loadLead() }} />}
+      {showNulo            && <LeadNuloModal            lead={lead} onClose={() => setShowNulo(false)}            onSuccess={() => { setShowNulo(false); loadLead() }} />}
+      {showEditarContacto  && <EditarContactoLeadModal  lead={lead} onClose={() => setShowEditarContacto(false)}  onSaved={() => { setShowEditarContacto(false); loadLead() }} />}
     </div>
   )
 }

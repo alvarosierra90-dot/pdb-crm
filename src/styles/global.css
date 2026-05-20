@@ -1962,6 +1962,42 @@ tr:hover .ra-cell { opacity: 1; }
   box-shadow: 0 4px 14px rgba(43, 89, 156, .35);
 }
 
+/* Acciones de la card DONE · ✎ Editar · ↗ Abrir · → Siguiente paso */
+.step-card-actions {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.step-mini-btn {
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .12s ease;
+  line-height: 1.3;
+}
+.step-mini-btn:hover {
+  border-color: currentColor;
+  color: var(--ink);
+  background: var(--gray-lt, #f4f4f5);
+}
+.step-mini-btn.is-next {
+  border-color: var(--accent-bd);
+  color: var(--accent);
+  background: var(--accent-lt);
+  font-weight: 700;
+}
+.step-mini-btn.is-next:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
 /* ═════════════════════════════════════════════════════════════
    CARDS TINTADAS · jerarquía visual en fichas
    - va-card-primary    → accent fuerte (lo accionable: Estado, Workflow)

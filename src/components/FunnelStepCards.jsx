@@ -3,28 +3,28 @@
  * Sustituye a <Vinculaciones> y <VinculacionesMaestra> en las fichas del funnel,
  * convirtiendo cada vínculo en un paso visible con CTA propio.
  *
- * Filosofía:
- *  · El usuario no tiene que ir al action-bar para encontrar "qué hago ahora".
- *    El CTA vive en la card del paso actual.
- *  · Pasos vacíos a la izquierda del actual se ven como "done" (rellenos).
- *  · Pasos a la derecha del actual son "locked" hasta que el actual se complete.
- *  · Cada card sigue siendo clicable hacia su ficha si ya está rellena.
+ * Filosofía wizard paso-a-paso:
+ *  · Card CURRENT  → muestra CTA primary grande que abre el modal del paso.
+ *  · Card DONE     → muestra los datos + dos acciones: [✎ Editar] [→ Siguiente paso].
+ *                    El botón "Editar" reabre el mismo modal; "Siguiente" lleva
+ *                    el foco a la siguiente card current.
+ *  · Card LOCKED   → gris, sin acciones, hint "completa el paso anterior".
  *
- * Props:
- *   steps: Array<{
- *     key:         string                    // id único del paso ('cuenta','oportunidad'...)
- *     icon:        LucideIcon                // del paquete lucide-react
- *     tone:        'green'|'bronze'|'blue'|'purple'|'accent'|'amber'
- *     label:       string                    // 'Cuenta', 'Oportunidad'...
- *     value:       string|null               // 'Acme Spain SL' o null si vacío
- *     sub:         string|null               // contexto secundario
- *     status:      'done'|'current'|'locked' // estado del paso
- *     onOpen:      () => void|null           // navega a la ficha del registro vinculado
- *     action:      { label, onClick, primary } | null  // CTA cuando status === 'current'
- *     lockedHint:  string|null               // texto cuando locked ("rellena el paso anterior")
- *     dyn:         boolean                   // badge "D" (Dynamics)
- *     count:       number|null               // para colecciones (maestras: "3 ofertas activas")
- *   }>
+ * Props por step:
+ *   key:         string
+ *   icon:        LucideIcon
+ *   tone:        'green'|'bronze'|'blue'|'purple'|'accent'|'amber'
+ *   label:       string
+ *   value:       string|null            // contenido principal (nombre, ref, etc.)
+ *   sub:         string|null
+ *   status:      'done'|'current'|'locked'
+ *   action:      { label, onClick, primary } | null   // CTA cuando current
+ *   editAction:  { label, onClick } | null            // ✎ Editar cuando done (reabre el modal)
+ *   nextAction:  { label, onClick } | null            // → Siguiente paso cuando done
+ *   openAction:  { label, onClick } | null            // ↗ Abrir ficha del registro (opcional)
+ *   lockedHint:  string|null
+ *   dyn:         boolean
+ *   count:       number|null
  */
 export default function FunnelStepCards({ steps }) {
   return (
@@ -38,25 +38,23 @@ export default function FunnelStepCards({ steps }) {
   )
 }
 
-function StepCard({ icon: Icon, tone = 'accent', label, value, sub, status, onOpen, action, lockedHint, dyn, count, index, total }) {
+function StepCard({
+  icon: Icon, tone = 'accent', label, value, sub,
+  status, action, editAction, nextAction, openAction, lockedHint,
+  dyn, count, index, total,
+}) {
   const isDone    = status === 'done'
   const isCurrent = status === 'current'
   const isLocked  = status === 'locked'
 
-  const stepBadge = `${index + 1}/${total}`
-
   return (
-    <div
-      className={`step-card tone-${tone} step-${status} ${isDone && onOpen ? 'is-clickable' : ''}`}
-      onClick={(isDone && onOpen) ? onOpen : undefined}
-      title={(isDone && onOpen) ? `Abrir ${label.toLowerCase()}` : undefined}
-    >
+    <div className={`step-card tone-${tone} step-${status}`}>
       <div className="step-card-ico">
         <Icon size={16} strokeWidth={1.75} />
       </div>
       <div className="step-card-body">
         <div className="step-card-lbl">
-          <span className="step-num">{stepBadge}</span>
+          <span className="step-num">{index + 1}/{total}</span>
           {label}
           {dyn && <span className="vinc-dyn">D</span>}
           {isCurrent && <span className="step-pill-current">PASO ACTUAL</span>}
@@ -67,10 +65,38 @@ function StepCard({ icon: Icon, tone = 'accent', label, value, sub, status, onOp
         {isDone && (
           <>
             <div className="step-card-val">
-              {count != null ? <>{count} {value || ''}</> : value}
-              {onOpen && <span className="vinc-arrow">↗</span>}
+              {count != null ? <>{count} {value || ''}</> : (value || '—')}
             </div>
             {sub && <div className="step-card-sub">{sub}</div>}
+            <div className="step-card-actions">
+              {editAction && (
+                <button
+                  className="step-mini-btn"
+                  onClick={(e) => { e.stopPropagation(); editAction.onClick?.() }}
+                  title={editAction.label || 'Editar este paso'}
+                >
+                  ✎ {editAction.label || 'Editar'}
+                </button>
+              )}
+              {openAction && (
+                <button
+                  className="step-mini-btn"
+                  onClick={(e) => { e.stopPropagation(); openAction.onClick?.() }}
+                  title={openAction.label || 'Abrir ficha'}
+                >
+                  ↗ {openAction.label || 'Abrir'}
+                </button>
+              )}
+              {nextAction && (
+                <button
+                  className="step-mini-btn is-next"
+                  onClick={(e) => { e.stopPropagation(); nextAction.onClick?.() }}
+                  title={nextAction.label || 'Ir al siguiente paso'}
+                >
+                  {nextAction.label || 'Siguiente paso'} →
+                </button>
+              )}
+            </div>
           </>
         )}
 
