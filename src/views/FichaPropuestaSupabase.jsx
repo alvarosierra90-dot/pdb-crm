@@ -4,12 +4,13 @@ import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
 import MarcarPropuestaGanadaModal from '../components/MarcarPropuestaGanadaModal'
+import MarcarPropuestaPerdidaModal from '../components/MarcarPropuestaPerdidaModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
 import HeaderPills from '../components/HeaderPills'
 import FunnelTracker from '../components/FunnelTracker'
 import FunnelStepCards from '../components/FunnelStepCards'
-import { Building2, Target, Building, Presentation } from 'lucide-react'
+import { Building2, Target, Building, Presentation, Trophy, X as XClose } from 'lucide-react'
 
 // Pestañas. "Equipos y participantes" eliminada: ahora vive como sección dentro
 // de "Datos del proyecto", justo bajo Vinculaciones (mismo patrón que Oferta).
@@ -87,6 +88,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [showGanadaModal, setShowGanadaModal] = useState(false)
+  const [showPerdidaModal, setShowPerdidaModal] = useState(false)
   // Activos vinculados (pitch oferta multi-activo) · jsonb propuestas.activos
   const [activosDB, setActivosDB] = useState([])
   const [activoQuery, setActivoQuery] = useState('')
@@ -252,26 +254,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
             Ver pitch ↗
           </button>
         )}
-        {(() => {
-          const yaCerrada = ['ganada','perdida','cancelada'].includes(propuesta.estado)
-          const puede     = !yaCerrada && !!propuesta.dynamics_opportunity_id && !!propuesta.dynamics_account_id
-          const tip = yaCerrada
-            ? `Propuesta ya cerrada (${ESTADO_LABEL[propuesta.estado]})`
-            : !propuesta.dynamics_opportunity_id ? 'Falta oportunidad Dynamics'
-            : !propuesta.dynamics_account_id     ? 'Falta cuenta'
-            : 'Crear instrucción + mandato'
-          return (
-            <button
-              className="ab-btn"
-              onClick={() => setShowGanadaModal(true)}
-              disabled={!puede}
-              title={tip}
-              style={{ background: puede ? 'var(--green)' : undefined, color: puede ? '#fff' : undefined, border: puede ? '1px solid var(--green)' : undefined, opacity: puede ? 1 : 0.45 }}
-            >
-              Marcar como ganada
-            </button>
-          )
-        })()}
+        {/* "Marcar como ganada / perdida" viven ahora como step cards al final del wizard. */}
         {saveError && <span style={{ marginLeft:12, fontSize:11, color:'#991b1b', fontWeight:600 }}>{saveError}</span>}
       </div>
 
@@ -282,6 +265,14 @@ export default function FichaPropuestaSupabase({ refOrId }) {
           cuenta={cuenta}
           onClose={() => setShowGanadaModal(false)}
           onSuccess={() => { setShowGanadaModal(false); load() }}
+        />
+      )}
+      {showPerdidaModal && (
+        <MarcarPropuestaPerdidaModal
+          propuesta={propuesta}
+          oportunidad={oportunidad}
+          onClose={() => setShowPerdidaModal(false)}
+          onSuccess={() => { setShowPerdidaModal(false); load() }}
         />
       )}
 
@@ -472,6 +463,9 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                       sub: pitchAplica ? 'Salta al paso 5 con propuesta + activos pre-rellenados.' : null,
                       status: pitchStatus,
                       optional: true,
+                      // Slot extra: input para pegar URL del pitch externo (Drive/OneDrive/SharePoint)
+                      // si el broker lo hizo fuera de la app.
+                      extraBody: pitchAplica ? <PitchUrlInput propuesta={propuesta} onSaved={load} /> : null,
                       action: pitchStatus === 'current'
                         ? { label:'⚡ Pitch automático (paso 5)', onClick: () => navigate('pitch', autoParams), primary: true }
                         : null,
@@ -481,6 +475,56 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                       openAction: tienePitch ? { label:'Ver pitch', onClick: () => window.open(propuesta.pitch_url, '_blank', 'noopener') } : null,
                       lockedHint:'Solo aplica si la oportunidad es pitch_oferta o pitch_demanda.',
                     },
+                    // Card Ganado · ejecuta MarcarPropuestaGanadaModal (Mandato + Oferta(s)/Demanda)
+                    (() => {
+                      const yaGanada  = propuesta.estado === 'ganada'
+                      const yaPerdida = ['perdida','cancelada'].includes(propuesta.estado)
+                      const puede     = !yaGanada && !yaPerdida && hasOportunidad && hasCuenta
+                      const status    = yaGanada ? 'done' : yaPerdida ? 'locked' : puede ? 'current' : 'locked'
+                      return {
+                        key:'ganada',
+                        icon: Trophy,
+                        tone:'green',
+                        label:'Propuesta ganada',
+                        value: yaGanada ? 'Marcada como ganada' : null,
+                        sub: yaGanada
+                          ? 'Mandato + ofertas/demanda generados automáticamente.'
+                          : 'Crea Mandato (exclusiva) + Oferta(s)/Demanda en cascada.',
+                        status,
+                        action: status === 'current'
+                          ? { label:'✓ Marcar como ganada', onClick: () => setShowGanadaModal(true), primary: true }
+                          : null,
+                        lockedHint: yaPerdida
+                          ? 'La propuesta ya está marcada como perdida.'
+                          : !hasOportunidad ? 'Vincula la oportunidad.'
+                          : !hasCuenta ? 'Vincula la cuenta.'
+                          : 'En proceso.',
+                      }
+                    })(),
+                    // Card Perdido · opción de crear oferta igualmente
+                    (() => {
+                      const yaPerdida = ['perdida','cancelada'].includes(propuesta.estado)
+                      const yaGanada  = propuesta.estado === 'ganada'
+                      const puede     = !yaGanada && !yaPerdida
+                      const status    = yaPerdida ? 'done' : yaGanada ? 'locked' : puede ? 'current' : 'locked'
+                      return {
+                        key:'perdida',
+                        icon: XClose,
+                        tone:'red',
+                        label:'Propuesta perdida',
+                        value: yaPerdida ? (propuesta.motivo_descarte || 'Marcada como perdida') : null,
+                        sub: yaPerdida
+                          ? null
+                          : 'Cierra la propuesta. Opcionalmente crea oferta(s) igualmente (off-market, otra consultora…).',
+                        status,
+                        action: status === 'current'
+                          ? { label:'✗ Marcar como perdida', onClick: () => setShowPerdidaModal(true), primary: false }
+                          : null,
+                        lockedHint: yaGanada
+                          ? 'La propuesta ya está marcada como ganada.'
+                          : 'En proceso.',
+                      }
+                    })(),
                   ]} />
                 )
               })()}
@@ -667,6 +711,60 @@ export default function FichaPropuestaSupabase({ refOrId }) {
 
         </div>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Input inline para adjuntar la URL del pitch externo (Drive, OneDrive,
+ * SharePoint…) cuando el broker hizo el pitch fuera de la app.
+ * Guarda en propuestas.pitch_url y recarga.
+ */
+function PitchUrlInput({ propuesta, onSaved }) {
+  const [url, setUrl] = useState(propuesta.pitch_url || '')
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState(null)
+  const dirty = url.trim() !== (propuesta.pitch_url || '')
+
+  const save = async () => {
+    setSaving(true); setErr(null)
+    const v = url.trim()
+    const { error: e } = await supabase.from('propuestas').update({ pitch_url: v || null }).eq('id', propuesta.id)
+    setSaving(false)
+    if (e) { setErr(e.message); return }
+    onSaved?.()
+  }
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+      <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em' }}>
+        ¿Pitch hecho fuera? Pega la URL
+      </div>
+      <div style={{ display:'flex', gap:5 }}>
+        <input
+          type="url"
+          value={url}
+          onChange={e => setUrl(e.target.value)}
+          placeholder="https://drive.google.com/… o SharePoint…"
+          style={{
+            flex:1, padding:'5px 8px', fontSize:11, border:'1px solid var(--border)',
+            borderRadius:5, fontFamily:'inherit', background:'#fff', outline:'none',
+          }}
+        />
+        <button
+          onClick={save}
+          disabled={!dirty || saving}
+          style={{
+            padding:'5px 10px', fontSize:11, fontWeight:700, border:'none', borderRadius:5,
+            background: (!dirty || saving) ? 'var(--gray-lt, #f4f4f5)' : 'var(--accent)',
+            color: (!dirty || saving) ? 'var(--text4)' : '#fff',
+            cursor: (!dirty || saving) ? 'not-allowed' : 'pointer',
+            fontFamily:'inherit',
+          }}>
+          {saving ? '…' : '💾'}
+        </button>
+      </div>
+      {err && <div style={{ fontSize:10, color:'#dc2626' }}>{err}</div>}
     </div>
   )
 }
