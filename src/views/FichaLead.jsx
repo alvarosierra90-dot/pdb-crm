@@ -11,7 +11,7 @@ import HeaderPills from '../components/HeaderPills'
 import FunnelTracker from '../components/FunnelTracker'
 import FunnelStepCards from '../components/FunnelStepCards'
 import EditarContactoLeadModal from '../components/EditarContactoLeadModal'
-import { Building2, User, Target, Lightbulb } from 'lucide-react'
+import { Building2, User, Target, Lightbulb, ScrollText } from 'lucide-react'
 
 // Lista de equipos para el dropdown legacy "Asignación → Equipo" del
 // lead. El equipo de trabajo (Principal/Soporte/Colaborador) usa los
@@ -106,19 +106,40 @@ export default function FichaLead() {
       return
     }
 
-    // Carga opcional de propuesta/demanda/oferta vinculadas
+    // Carga opcional de propuesta/demanda/oferta + mandato derivados del lead
     const enriched = { ...data }
     if (data.propuesta_id) {
       const { data: p } = await supabase.from('propuestas').select('id, ref, nombre, estado').eq('id', data.propuesta_id).maybeSingle()
       if (p) enriched.propuestas = p
     }
     if (data.demanda_id) {
-      const { data: d } = await supabase.from('demandas').select('id, ref, nombre, estatus').eq('id', data.demanda_id).maybeSingle()
+      const { data: d } = await supabase.from('demandas').select('id, ref, nombre, estatus, mandato_id').eq('id', data.demanda_id).maybeSingle()
       if (d) enriched.demandas = d
     }
     if (data.oferta_id) {
-      const { data: o } = await supabase.from('ofertas').select('id, ref').eq('id', data.oferta_id).maybeSingle()
+      const { data: o } = await supabase.from('ofertas').select('id, ref, mandato_id').eq('id', data.oferta_id).maybeSingle()
       if (o) enriched.ofertas = o
+    }
+
+    // Mandato vinculado: por la propuesta (pitch) o por la oportunidad (directo)
+    let mandatoRow = null
+    if (enriched.propuestas?.id) {
+      const { data: m } = await supabase.from('mandatos').select('id, ref, tipo, estado, exclusividad_modo').eq('propuesta_id', enriched.propuestas.id).maybeSingle()
+      if (m) mandatoRow = m
+    }
+    if (!mandatoRow && data.dynamics_opportunity_id) {
+      const { data: m } = await supabase.from('mandatos').select('id, ref, tipo, estado, exclusividad_modo').eq('dynamics_opportunity_id', data.dynamics_opportunity_id).maybeSingle()
+      if (m) mandatoRow = m
+    }
+    if (mandatoRow) {
+      enriched.mandato = mandatoRow
+      // Ofertas/demandas creadas en cascada al ganar la propuesta
+      const [{ data: ofs = [] }, { data: dms = [] }] = await Promise.all([
+        supabase.from('ofertas').select('id, ref').eq('mandato_id', mandatoRow.id),
+        supabase.from('demandas').select('id, ref').eq('mandato_id', mandatoRow.id),
+      ])
+      enriched.ofertas_cascada  = ofs || []
+      enriched.demandas_cascada = dms || []
     }
 
     setLead(enriched)
@@ -372,37 +393,46 @@ export default function FichaLead() {
               <>
                 {/* ── FUNNEL STEP CARDS · cada vinculación es un paso con su CTA ── */}
                 {(() => {
-                  const hasContacto   = !!(lead.contacto_nombre || lead.contacto_apellidos)
-                  const hasCuenta     = !!lead.dynamics_account_id
-                  const hasOportunidad= !!lead.dynamics_opportunity_id
-                  const hasPropuesta  = !!(lead.propuesta_ref || lead.propuesta_id)
-                  const hasOferta     = !!lead.oferta_id
-                  const hasDemanda    = !!lead.demanda_id
-                  const ofertaRef     = lead.ofertas?.ref || null
-                  const demandaRef    = lead.demandas?.ref || null
-                  const propuestaRef  = lead.propuesta_ref || lead.propuestas?.ref || null
-                  const cerradoLocal  = lead.estado === 'no_cualificado'
+                  const hasContacto    = !!(lead.contacto_nombre || lead.contacto_apellidos)
+                  const hasCuenta      = !!lead.dynamics_account_id
+                  const hasOportunidad = !!lead.dynamics_opportunity_id
+                  const hasPropuesta   = !!(lead.propuesta_ref || lead.propuesta_id)
+                  const hasOfertaDir   = !!lead.oferta_id            // rama directa
+                  const hasDemandaDir  = !!lead.demanda_id           // rama directa
+                  const hasMandato     = !!lead.mandato?.ref
+                  const ofertasCasc    = lead.ofertas_cascada  || []
+                  const demandasCasc   = lead.demandas_cascada || []
+                  const hasOfertasCasc = ofertasCasc.length > 0
+                  const hasDemandasCasc= demandasCasc.length > 0
 
-                  // Card final dinámica: según tipo + vía sabemos el destino.
-                  //  pitch_*           → propuesta
-                  //  directo_oferta    → oferta
-                  //  directo_demanda   → demanda
-                  //  directo_generico  → ninguna card final
-                  let destino = null
-                  if (lead.via === 'pitch') destino = 'propuesta'
-                  else if (lead.via === 'directo') {
-                    if (lead.tipo === 'oferta')  destino = 'oferta'
-                    if (lead.tipo === 'demanda') destino = 'demanda'
-                  } else {
-                    // Sin vía decidida (lead nuevo / en cualificación): adelantamos
-                    // qué destino tendrá según el tipo del lead — más útil que ocultarlo.
-                    if (lead.tipo === 'oferta')  destino = 'oferta'
-                    if (lead.tipo === 'demanda') destino = 'demanda'
-                    if (lead.tipo === 'generico') destino = 'propuesta'  // genérico solo aplica vía pitch
-                  }
-                  const destinoDone = (destino === 'propuesta' && hasPropuesta) ||
-                                      (destino === 'oferta'    && hasOferta)    ||
-                                      (destino === 'demanda'   && hasDemanda)
+                  const ofertaRef      = lead.ofertas?.ref || null
+                  const demandaRef     = lead.demandas?.ref || null
+                  const propuestaRef   = lead.propuesta_ref || lead.propuestas?.ref || null
+                  const cerradoLocal   = lead.estado === 'no_cualificado'
+
+                  // El wizard muestra TODAS las cards del funnel siempre, incluso
+                  // las que no aplican a esta rama (gris locked) — el broker ve el
+                  // proceso completo de un vistazo y entiende dónde está.
+                  //
+                  //  Contacto → Cuenta → Oportunidad → Propuesta? → Mandato → Oferta/Demanda
+                  //
+                  // Aplicabilidad según rama (via + tipo):
+                  //  · pitch_*           : Propuesta sí · destino final = Oferta(s) o Demanda según tipo
+                  //  · directo_oferta    : Propuesta NO (locked) · destino final = Oferta
+                  //  · directo_demanda   : Propuesta NO (locked) · destino final = Demanda
+                  //  · directo_generico  : Propuesta NO · ningún destino comercial
+                  const esPitch    = lead.via === 'pitch'
+                  const esDirecto  = lead.via === 'directo'
+                  // El destino comercial final (Oferta o Demanda) depende solo del tipo
+                  const destinoFinal = lead.tipo === 'oferta' ? 'oferta'
+                    : lead.tipo === 'demanda' ? 'demanda' : null  // generico no tiene destino comercial
+                  // Done del destino final: en rama directa viene del lead.oferta_id/demanda_id;
+                  // en rama pitch viene de la cascada (ofertas_cascada / demandas_cascada del mandato).
+                  const destinoDone = destinoFinal === 'oferta'
+                    ? (hasOfertaDir || hasOfertasCasc)
+                    : destinoFinal === 'demanda'
+                    ? (hasDemandaDir || hasDemandasCasc)
+                    : false
 
                   // Contacto del lead se rellena editando arriba (campos obligatorios).
                   // Por eso aquí su CTA es "completar contacto" → activar editing.
@@ -418,11 +448,21 @@ export default function FichaLead() {
                   const oportunidadStatus = hasOportunidad ? 'done'
                     : hasContacto ? 'current' : 'locked'
 
-                  // Destino final (Propuesta · Oferta · Demanda) según rama.
-                  // Done si ya creado. Current si transformado por la vía
-                  // correcta pero aún sin destino. Locked en otro caso.
+                  // Status por card del funnel:
+                  // Propuesta: solo aplica via pitch
+                  const propuestaStatus = hasPropuesta ? 'done'
+                    : (hasOportunidad && esPitch) ? 'current'
+                    : 'locked'
+                  // Mandato: para pitch → al "Marcar ganada" en propuesta. Para directo
+                  // → no aplica directamente desde Lead (se crea en otra ruta).
+                  const mandatoStatus = hasMandato ? 'done'
+                    : (hasPropuesta && esPitch) ? 'current'
+                    : 'locked'
+                  // Destino comercial (Oferta/Demanda): done si ya creado por cualquier rama
                   const destinoStatus = destinoDone ? 'done'
-                    : hasOportunidad ? 'current' : 'locked'
+                    : (esDirecto && hasOportunidad) ? 'current'        // directo: se crea al transformar
+                    : (esPitch && hasMandato)         ? 'current'      // pitch: se creó con ganar propuesta
+                    : 'locked'
 
                   // Construyo los steps primero y luego inyecto editAction +
                   // nextAction post-hoc para que cada step DONE pueda saltar
@@ -474,44 +514,91 @@ export default function FichaLead() {
                       lockedHint:'Completa antes el contacto del lead.',
                       dyn: true,
                     },
-                    // Card final dinámica · destino del lead según rama
-                    destino && (() => {
-                      const destinoMeta = destino === 'oferta' ? {
+                    // Propuesta · solo aplica vía pitch
+                    {
+                      key:'propuesta',
+                      icon: Lightbulb,
+                      tone:'amber',
+                      label:'Propuesta',
+                      value: propuestaRef,
+                      sub: hasPropuesta ? 'Completa el proyecto desde la ficha de propuesta.' : null,
+                      status: propuestaStatus,
+                      action: propuestaStatus === 'current'
+                        ? { label:'Ir a generar propuesta', onClick: () => propuestaRef ? navigate('ficha-propuesta', { id: propuestaRef }) : navigate('propuestas'), primary: false }
+                        : null,
+                      editTarget: null,
+                      openTarget: hasPropuesta && propuestaRef ? () => navigate('ficha-propuesta', { id: propuestaRef }) : null,
+                      lockedHint: !hasOportunidad
+                        ? 'Transforma el lead primero.'
+                        : !esPitch
+                          ? 'Solo aplica vía Pitch. Tu rama es directa.'
+                          : 'En proceso.',
+                    },
+                    // Mandato · creado al marcar la Propuesta como ganada
+                    {
+                      key:'mandato',
+                      icon: ScrollText,
+                      tone:'accent',
+                      label:'Mandato',
+                      value: lead.mandato?.ref || null,
+                      sub: hasMandato ? `${lead.mandato.tipo || 'mandato'} · ${lead.mandato.exclusividad_modo || 'exclusiva'}` : null,
+                      status: mandatoStatus,
+                      action: mandatoStatus === 'current' && propuestaRef
+                        ? { label:'Marcar propuesta como ganada', onClick: () => navigate('ficha-propuesta', { id: propuestaRef }), primary: true }
+                        : null,
+                      openTarget: hasMandato ? () => navigate('ficha-mandato', { ref: lead.mandato.ref }) : null,
+                      lockedHint: !hasPropuesta
+                        ? 'Se crea al ganar la propuesta.'
+                        : 'En proceso.',
+                    },
+                    // Destino comercial final (Oferta o Demanda según tipo)
+                    destinoFinal && (() => {
+                      const meta = destinoFinal === 'oferta' ? {
                         icon: Building2, tone:'green', label:'Oferta',
-                        value: ofertaRef,
-                        sub: hasOferta ? 'Completa stacking, fotos, condiciones desde la ficha de oferta.' : null,
-                        openTarget: hasOferta && ofertaRef ? () => navigate('ficha-oferta', { ofertaRef }) : null,
-                        currentHint:'Transforma el lead como Oferta directa.',
-                        lockedHint:'Transforma el lead primero.',
-                      } : destino === 'demanda' ? {
-                        icon: Target, tone:'purple', label:'Demanda',
-                        value: demandaRef,
-                        sub: hasDemanda ? 'Completa requisitos y arranca el matching desde la ficha de demanda.' : null,
-                        openTarget: hasDemanda && demandaRef ? () => navigate('ficha-demanda', { id: demandaRef }) : null,
-                        currentHint:'Transforma el lead como Demanda directa.',
-                        lockedHint:'Transforma el lead primero.',
+                        value: hasOfertasCasc
+                          ? `${ofertasCasc.length} ${ofertasCasc.length === 1 ? 'oferta' : 'ofertas'}`
+                          : ofertaRef,
+                        sub: hasOfertasCasc
+                          ? ofertasCasc.map(o => o.ref).join(' · ')
+                          : hasOfertaDir
+                            ? 'Completa stacking, fotos, condiciones desde la ficha.'
+                            : null,
+                        openTarget: hasOfertaDir && ofertaRef
+                          ? () => navigate('ficha-oferta', { ofertaRef })
+                          : hasOfertasCasc
+                            ? () => navigate('ficha-oferta', { ofertaRef: ofertasCasc[0].ref })
+                            : null,
                       } : {
-                        icon: Lightbulb, tone:'amber', label:'Propuesta',
-                        value: propuestaRef,
-                        sub: hasPropuesta ? 'Completa el proyecto desde la ficha de propuesta.' : null,
-                        openTarget: hasPropuesta && propuestaRef ? () => navigate('ficha-propuesta', { id: propuestaRef }) : null,
-                        currentHint:'Transforma el lead vía Pitch.',
-                        lockedHint:'Transforma el lead primero (vía Pitch).',
+                        icon: Target, tone:'purple', label:'Demanda',
+                        value: hasDemandasCasc
+                          ? demandasCasc[0].ref
+                          : demandaRef,
+                        sub: hasDemandasCasc || hasDemandaDir
+                          ? 'Completa requisitos y arranca el matching desde la ficha.'
+                          : null,
+                        openTarget: hasDemandaDir && demandaRef
+                          ? () => navigate('ficha-demanda', { id: demandaRef })
+                          : hasDemandasCasc
+                            ? () => navigate('ficha-demanda', { id: demandasCasc[0].ref })
+                            : null,
                       }
                       return {
                         key:'destino',
-                        icon: destinoMeta.icon,
-                        tone: destinoMeta.tone,
-                        label: destinoMeta.label,
-                        value: destinoMeta.value,
-                        sub:   destinoMeta.sub,
+                        icon: meta.icon,
+                        tone: meta.tone,
+                        label: meta.label,
+                        value: meta.value,
+                        sub:   meta.sub,
                         status: destinoStatus,
-                        action: destinoStatus === 'current'
-                          ? { label: destinoMeta.currentHint, onClick: () => !cerradoLocal && setShowTransformar(true), primary: true }
+                        action: destinoStatus === 'current' && esDirecto
+                          ? { label: `Transformar como ${meta.label} directa`, onClick: () => !cerradoLocal && setShowTransformar(true), primary: true }
                           : null,
-                        editTarget: null,
-                        openTarget: destinoMeta.openTarget,
-                        lockedHint: destinoMeta.lockedHint,
+                        openTarget: meta.openTarget,
+                        lockedHint: !hasOportunidad
+                          ? 'Transforma el lead primero.'
+                          : (esPitch && !hasMandato)
+                            ? `Se crea al ganar la propuesta (1 ${meta.label.toLowerCase()} por activo si es pitch_oferta).`
+                            : 'En proceso.',
                       }
                     })(),
                   ].filter(Boolean)

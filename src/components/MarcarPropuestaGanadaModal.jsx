@@ -162,7 +162,65 @@ export default function MarcarPropuestaGanadaModal({ propuesta, oportunidad, cue
         }
       }
 
-      // 3) Cerrar la propuesta como ganada
+      // 3) Cascada hasta el destino comercial según el tipo de oportunidad.
+      //    pitch_oferta  → crea 1 Oferta por activo vinculado al mandato.
+      //    pitch_demanda → crea 1 Demanda vinculada al mandato.
+      //    El usuario completa requisitos / stacking desde sus fichas.
+      const oppTipo = oportunidad?.tipo
+      const ofertasCreadas = []
+      let demandaCreada = null
+      const propuestaActivosOK = Array.isArray(propuesta.activos) ? propuesta.activos : []
+
+      if (oppTipo === 'pitch_oferta') {
+        // Una oferta por cada activo. Hereda mandato + oportunidad + cuenta (propietario).
+        const refsAct = propuestaActivosOK.map(a => a?.ref).filter(Boolean)
+        if (refsAct.length > 0) {
+          const { data: rowsAct = [] } = await supabase.from('activos').select('id, ref').in('ref', refsAct)
+          const yearOfe = new Date().getFullYear()
+          // Calcular próximas refs OFE-YYYY-NNNN secuencialmente.
+          const { data: lastOfe } = await supabase
+            .from('ofertas').select('ref').like('ref', `OFE-${yearOfe}-%`)
+            .order('ref', { ascending: false }).limit(1).maybeSingle()
+          let n = lastOfe?.ref ? parseInt(String(lastOfe.ref).split('-').pop(), 10) : 0
+          n = isNaN(n) ? 0 : n
+          for (const a of rowsAct) {
+            n += 1
+            const ofeRef = `OFE-${yearOfe}-${String(n).padStart(4, '0')}`
+            const { data: ofe, error: eOfe } = await supabase.from('ofertas').insert({
+              ref:                     ofeRef,
+              activo_id:               a.id,
+              mandato_id:              mand.id,
+              dynamics_opportunity_id: propuesta.dynamics_opportunity_id,
+              dynamics_account_id:     propuesta.dynamics_account_id,
+              equipo_trabajo:          equipoHeredado,
+              tipo_comercializacion:   'Mandato Savills',
+              estado:                  'En curso',
+            }).select('id, ref').single()
+            if (eOfe) throw new Error(`Oferta ${ofeRef}: ${eOfe.message}`)
+            ofertasCreadas.push(ofe.ref)
+          }
+        }
+      } else if (oppTipo === 'pitch_demanda') {
+        const yearDem = new Date().getFullYear()
+        const { data: lastDem } = await supabase
+          .from('demandas').select('ref').like('ref', `DEM-${yearDem}-%`)
+          .order('ref', { ascending: false }).limit(1).maybeSingle()
+        const nDem = lastDem?.ref ? parseInt(String(lastDem.ref).split('-').pop(), 10) : 0
+        const demRef = `DEM-${yearDem}-${String((isNaN(nDem) ? 0 : nDem) + 1).padStart(4, '0')}`
+        const { data: dem, error: eDem } = await supabase.from('demandas').insert({
+          ref:                     demRef,
+          nombre:                  propuesta.nombre || cuenta?.nombre || null,
+          mandato_id:              mand.id,
+          dynamics_opportunity_id: propuesta.dynamics_opportunity_id,
+          dynamics_account_id:     propuesta.dynamics_account_id,
+          equipo_trabajo:          equipoHeredado,
+          estatus:                 'ongoing',
+        }).select('id, ref').single()
+        if (eDem) throw new Error(`Demanda ${demRef}: ${eDem.message}`)
+        demandaCreada = dem.ref
+      }
+
+      // 4) Cerrar la propuesta como ganada
       const { error: e3 } = await supabase.from('propuestas').update({
         estado:           'ganada',
         fecha_cierre:     today,
@@ -171,7 +229,12 @@ export default function MarcarPropuestaGanadaModal({ propuesta, oportunidad, cue
       }).eq('id', propuesta.id)
       if (e3) throw new Error(`Propuesta: ${e3.message}`)
 
-      setCreated({ instruction_id: dynInsId, mandato_ref: mand.ref })
+      setCreated({
+        instruction_id: dynInsId,
+        mandato_ref:    mand.ref,
+        ofertas:        ofertasCreadas,
+        demanda:        demandaCreada,
+      })
       setStep('done')
     } catch (e) {
       setError(e.message)
@@ -206,11 +269,19 @@ export default function MarcarPropuestaGanadaModal({ propuesta, oportunidad, cue
                 <div style={{ fontSize:11, color:'#166534', lineHeight:1.6 }}>
                   Propuesta <strong>{propuesta.ref}</strong> marcada como ganada.<br/>
                   Instrucción <strong style={{ fontFamily:'var(--mono)', fontVariantNumeric:'tabular-nums' }}>{created.instruction_id}</strong> creada en Dynamics (estado <em>kickoff</em>).<br/>
-                  Mandato <strong style={{ fontFamily:'var(--mono)', fontVariantNumeric:'tabular-nums' }}>{created.mandato_ref}</strong> generado en PDB con el equipo de trabajo heredado.
+                  Mandato <strong style={{ fontFamily:'var(--mono)', fontVariantNumeric:'tabular-nums' }}>{created.mandato_ref}</strong> generado en PDB (exclusiva) con el equipo de trabajo heredado.
+                  {created.ofertas?.length > 0 && (
+                    <><br/>{created.ofertas.length === 1 ? 'Oferta' : `${created.ofertas.length} ofertas`} {created.ofertas.length === 1 ? 'generada' : 'generadas'}: <strong style={{ fontFamily:'var(--mono)' }}>{created.ofertas.join(', ')}</strong> (1 por activo del pitch).</>
+                  )}
+                  {created.demanda && (
+                    <><br/>Demanda <strong style={{ fontFamily:'var(--mono)' }}>{created.demanda}</strong> generada para arrancar el matching.</>
+                  )}
                 </div>
               </div>
               <div style={{ fontSize:11, color:'var(--text3)' }}>
-                Completa en la ficha del mandato: vigencia detallada, exclusividad/co-exclusiva, reparto del fee y activos vinculados (si aplica).
+                Completa en la ficha del mandato: vigencia, exclusividad/co-exclusiva, reparto del fee.
+                {created.ofertas?.length > 0 && ' En cada oferta: stacking plan, fotos, condiciones de comercialización.'}
+                {created.demanda && ' En la demanda: requisitos completos para arrancar el matching contra el pool de ofertas.'}
               </div>
             </div>
             <div style={footer}>
