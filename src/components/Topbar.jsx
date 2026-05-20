@@ -29,6 +29,7 @@ const VIEW_LABEL = {
   'informes-mercado':'Informes de mercado',
   'leads':'Leads', 'ficha-lead':'Lead',
   'pitch':'Pitch', 'nexo':'NEXO',
+  'formacion-interna':'Formación interna',
 }
 
 const ICO = 14
@@ -218,6 +219,10 @@ export default function Topbar() {
     nexo: {
       bc: <><span className="bc-title">NEXO</span></>,
       right: <><a href="https://nexo-omega-nine.vercel.app/" target="_blank" rel="noopener noreferrer" className="tbtn">Abrir en pestaña nueva</a></>
+    },
+    'formacion-interna': {
+      bc: <><span className="bc-title">Formación interna</span><Sep /><span className="bc-cur">Capital Markets Inmobiliario</span></>,
+      right: <></>
     },
   }
 
