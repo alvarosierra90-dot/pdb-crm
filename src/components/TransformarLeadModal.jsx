@@ -310,14 +310,23 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
         // (no el cliente del lead). Si el activo ya tiene dynamics_account_id
         // (propietario en Dynamics), lo usamos. Si no, fallback al cuentaPick.
         const cuentaOferta = activoPick?.dynamics_account_id || cuentaId
-        const { data: ofe, error: e2 } = await supabase.from('ofertas').insert({
+        // Pre-rellenamos SOLO los FKs y el equipo. El resto (tipologia, renta,
+        // condiciones, stacking, espacios, fotos…) queda vacío. El broker
+        // rellena la oferta desde cero en su propia ficha. La BD aplicará sus
+        // DEFAULTs (estado='En curso', tipo_mercado='mercado', etc.).
+        const insertPayload = {
           ref,
           activo_id:               activoPick.id,
           dynamics_opportunity_id: dynOppId,
           dynamics_account_id:     cuentaOferta,
           equipo_trabajo:          equipoHeredado,
-        }).select('id, ref').single()
-        if (e2) throw new Error(`Oferta: ${e2.message}`)
+        }
+        const { data: ofe, error: e2 } = await supabase.from('ofertas').insert(insertPayload).select('id, ref').single()
+        if (e2) {
+          // eslint-disable-next-line no-console
+          console.error('TransformarLead · insert oferta falló', { payload: insertPayload, error: e2 })
+          throw new Error(`Oferta: ${e2.message}${e2.details ? ` · ${e2.details}` : ''}${e2.hint ? ` · ${e2.hint}` : ''}`)
+        }
         leadUpdate.oferta_id = ofe.id
         out.destinoRef = ofe.ref
         destinoView = 'ficha-oferta'
