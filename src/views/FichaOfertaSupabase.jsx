@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
@@ -8,6 +8,8 @@ import { Inbox, Building2, MapPin, Wallet, FileText, Globe, Presentation, Clock 
 import Vinculaciones from '../components/Vinculaciones'
 import HeaderPills from '../components/HeaderPills'
 import FunnelTracker from '../components/FunnelTracker'
+// Stacking compartido con FichaActivo · misma lógica/diseño, solo cambia initView.
+import { StackingPlan } from './FichaActivo'
 
 // Pestañas de la ficha de oferta. "Crear ficha" eliminada (botones PPT/PDF
 // se exponen en el header). "Equipo de trabajo" se quitó como pestaña porque
@@ -84,6 +86,10 @@ export default function FichaOfertaSupabase({ refOrId }) {
   const [saveError, setSaveError] = useState(null)
   const [showFirmarModal, setShowFirmarModal] = useState(false)
   const [mandatoVinculado, setMandatoVinculado] = useState(null)
+  // Live stacking del activo · refleja edits en tiempo real para el tab Espacios.
+  const [liveBuildings, setLiveBuildings] = useState(null)
+  const liveBuildingsRef = useRef(null)
+  const stackingAutoSave = useRef(null)
 
   const [form, setForm] = useState({
     tipo_operacion:'', tipo_comercializacion:'', tipologia:'', tipo_mercado:'mercado', estado:'',
@@ -606,8 +612,136 @@ export default function FichaOfertaSupabase({ refOrId }) {
               </div></div>
             )
           })()}
-          {tab === 'of-stacking' && <div className="tab-content active"><StubTab label="Stacking plan" /></div>}
-          {tab === 'of-espacios' && <div className="tab-content active"><StubTab label="Espacios comerciales" /></div>}
+          {tab === 'of-stacking' && (
+            <div className="tab-content active">
+              {!activo ? (
+                <StubTab label="Stacking plan" />
+              ) : (
+                <div style={{ padding:'8px 16px 16px' }}>
+                  <div style={{ marginBottom:10, padding:'8px 12px', background:'var(--accent-lt)', border:'1px solid var(--accent-bd)', borderRadius:6, fontSize:11, color:'var(--accent)' }}>
+                    Stacking del activo <strong>{activo.nombre || activo.ref}</strong>. Arrastra la oferta <strong>{oferta.ref}</strong> a las plantas para definir los espacios comerciales. Los cambios se guardan automáticamente en el activo.
+                  </div>
+                  <StackingPlan
+                    key={oferta.ref}
+                    initBuildings={activo.stacking_data?.length > 0 ? activo.stacking_data : []}
+                    defaultLabel={activo.nombre || activo.direccion || ''}
+                    defaultSupPlantaTipo={activo.sup_planta_tipo || undefined}
+                    activoPropietario={activo.propietario || ''}
+                    activoRef={activo.ref || ''}
+                    activoNombre={activo.nombre || ''}
+                    extraOfertas={[{
+                      id: oferta.id,
+                      ref: oferta.ref,
+                      nombre: oferta.ref,
+                      tipoOperacion: oferta.tipo_operacion || 'Alquiler',
+                    }]}
+                    initView="arr"
+                    allowCreate={false}
+                    onBuildingsChange={(blds) => {
+                      liveBuildingsRef.current = blds
+                      setLiveBuildings(blds)
+                      // Auto-save al activo (no a la oferta · el stacking pertenece al activo).
+                      if (activo.ref) {
+                        clearTimeout(stackingAutoSave.current)
+                        stackingAutoSave.current = setTimeout(() => {
+                          supabase.from('activos').update({ stacking_data: blds }).eq('ref', activo.ref)
+                        }, 1500)
+                      }
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          {tab === 'of-espacios' && (
+            <div className="tab-content active">
+              {(() => {
+                // Derivamos los espacios desde el stacking en vivo (o el persistido)
+                // filtrando las unidades tipo 'vac' (oferta) cuya etiqueta sea esta oferta.
+                const blds = liveBuildings || activo?.stacking_data || []
+                const espacios = blds.flatMap(b =>
+                  (b.arr || []).flatMap(row =>
+                    (row.units || [])
+                      .filter(u => u.type === 'vac' && u.oferta === oferta.ref)
+                      .map(u => ({
+                        edificio: b.label || b.id,
+                        planta:   row.p,
+                        sup:      u.sup || 0,
+                        renta:    u.renta || 0,
+                        precio_total: u.precio_total || 0,
+                      }))
+                  )
+                )
+                const totalSup   = espacios.reduce((s,e) => s + (e.sup || 0), 0)
+                const totalRenta = espacios.filter(e => e.renta > 0).reduce((s,e) => s + e.renta * e.sup, 0)
+                if (!activo) {
+                  return <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>Sin activo vinculado.</div>
+                }
+                if (espacios.length === 0) {
+                  return (
+                    <div style={{ padding:'24px 20px', textAlign:'center' }}>
+                      <Inbox size={32} strokeWidth={1.5} style={{ color:'var(--text4)', marginBottom:8 }} />
+                      <div style={{ fontSize:13, fontWeight:600, marginBottom:6 }}>Sin espacios comerciales todavía</div>
+                      <div style={{ fontSize:11, color:'var(--text3)', marginBottom:14, maxWidth:480, marginLeft:'auto', marginRight:'auto', lineHeight:1.5 }}>
+                        Los espacios de esta oferta se crean arrastrando la oferta a las plantas del activo en el <strong>Stacking plan</strong>. Cuando los asignes, aparecerán aquí automáticamente con su superficie y renta.
+                      </div>
+                      <button
+                        onClick={() => setTab('of-stacking')}
+                        style={{ padding:'8px 16px', fontSize:12, fontWeight:700, border:'1px solid var(--accent)', borderRadius:6, background:'var(--accent)', color:'#fff', cursor:'pointer', fontFamily:'inherit' }}>
+                        Ir al Stacking plan →
+                      </button>
+                    </div>
+                  )
+                }
+                return (
+                  <div style={{ padding:'14px 18px' }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                      <div style={{ fontSize:12, fontWeight:700, color:'var(--text)' }}>
+                        Espacios asignados <span style={{ marginLeft:6, padding:'1px 7px', background:'var(--accent-lt)', color:'var(--accent)', borderRadius:9, fontSize:10 }}>{espacios.length}</span>
+                      </div>
+                      <button onClick={() => setTab('of-stacking')} style={{ padding:'5px 12px', fontSize:11, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, background:'var(--surface)', cursor:'pointer', fontFamily:'inherit' }}>
+                        ✎ Editar en Stacking →
+                      </button>
+                    </div>
+                    <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12, border:'1px solid var(--border)', borderRadius:6, overflow:'hidden' }}>
+                      <thead>
+                        <tr style={{ background:'var(--gray-lt)' }}>
+                          {['Edificio','Planta','Superficie (m²)', oferta.tipo_operacion === 'Venta' ? 'Precio €/m²' : 'Renta €/m²/mes', oferta.tipo_operacion === 'Venta' ? 'Precio total' : 'Renta mensual'].map(h =>
+                            <th key={h} style={{ padding:'8px 12px', fontSize:10, fontWeight:700, color:'var(--text4)', textAlign:'left', textTransform:'uppercase', letterSpacing:'.04em', borderBottom:'1px solid var(--border)' }}>{h}</th>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {espacios.map((e, i) => (
+                          <tr key={i} style={{ borderBottom:'1px solid var(--border)' }}>
+                            <td style={{ padding:'7px 12px' }}>{e.edificio}</td>
+                            <td style={{ padding:'7px 12px' }}><span className="tag tag-gray" style={{ fontSize:10 }}>{e.planta}</span></td>
+                            <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600 }}>{e.sup.toLocaleString('es-ES')}</td>
+                            <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', color: e.renta ? 'var(--text2)' : 'var(--text4)', fontStyle: e.renta ? 'normal' : 'italic' }}>
+                              {e.renta ? `${e.renta} €` : '— por completar'}
+                            </td>
+                            <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600, color:'var(--green)' }}>
+                              {oferta.tipo_operacion === 'Venta'
+                                ? (e.precio_total ? `${Number(e.precio_total).toLocaleString('es-ES')} €` : (e.renta && e.sup ? `${Math.round(e.renta * e.sup).toLocaleString('es-ES')} €` : '—'))
+                                : (e.renta && e.sup ? `${Math.round(e.renta * e.sup).toLocaleString('es-ES')} €` : '—')}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr style={{ background:'var(--gray-lt)', borderTop:'2px solid var(--border)' }}>
+                          <td colSpan={2} style={{ padding:'8px 12px', fontSize:10, fontWeight:700, color:'var(--text3)', textTransform:'uppercase' }}>Total</td>
+                          <td style={{ padding:'8px 12px', fontFamily:'var(--mono)', fontWeight:800 }}>{totalSup.toLocaleString('es-ES')}</td>
+                          <td></td>
+                          <td style={{ padding:'8px 12px', fontFamily:'var(--mono)', fontWeight:800, color:'var(--green)' }}>
+                            {totalRenta > 0 ? `${Math.round(totalRenta).toLocaleString('es-ES')} €` : '—'}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              })()}
+            </div>
+          )}
           {tab === 'of-caract'   && <div className="tab-content active"><StubTab label="Características" /></div>}
           {tab === 'of-docs'     && <div className="tab-content active"><StubTab label="Documentos" /></div>}
           {tab === 'of-seg'      && <div className="tab-content active"><StubTab label="Seguimiento comercial" /></div>}
