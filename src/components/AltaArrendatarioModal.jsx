@@ -33,28 +33,12 @@ export default function AltaArrendatarioModal({ onClose, onSave, activoRef }) {
     anios_obligado: '',
     closing_rent: '',
     renta_mensual: '',
-    break_option: '',
-    fecha_fin: '',
     notas: '',
   })
-  // Auto-calcula fecha_fin cuando hay fecha_inicio + años de obligado cumplimiento.
-  // El usuario puede sobreescribir luego manualmente.
-  const set = (k, v) => setForm(prev => {
-    const next = { ...prev, [k]: v }
-    if (k === 'fecha_inicio' || k === 'anios_obligado') {
-      const inicio = k === 'fecha_inicio' ? v : prev.fecha_inicio
-      const anios  = k === 'anios_obligado' ? v : prev.anios_obligado
-      const aniosNum = parseFloat(anios)
-      if (inicio && aniosNum > 0) {
-        const [y, m, d] = inicio.split('-').map(Number)
-        if (y && m && d) {
-          const dt = new Date(y + Math.floor(aniosNum), m - 1, d)
-          next.fecha_fin = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
-        }
-      }
-    }
-    return next
-  })
+  // Setter simple — break_option y fecha_fin se rellenan ya en la ficha del
+  // arrendatario, no aquí (el modal es alta rápida para empezar a arrastrar
+  // al stacking; el resto lo completa el agente más tarde).
+  const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
 
   const [submitted, setSubmitted] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -223,23 +207,13 @@ export default function AltaArrendatarioModal({ onClose, onSave, activoRef }) {
               {lbl('Renta mensual (€)')}
               <input type="number" style={inpBase} placeholder="Pendiente de completar" value={form.renta_mensual} onChange={e=>set('renta_mensual', e.target.value)}/>
             </div>
-            <div>
-              {lbl('Break option')}
-              <input type="date" style={inpBase} value={form.break_option} onChange={e=>set('break_option', e.target.value)}/>
-            </div>
-            <div>
-              {lbl('Fecha fin contrato')}
-              <input type="date" style={inpBase} value={form.fecha_fin} onChange={e=>set('fecha_fin', e.target.value)}/>
-              {form.anios_obligado && form.fecha_inicio && (
-                <div style={{ fontSize:10, color:'var(--text4)', marginTop:4, fontStyle:'italic' }}>
-                  Auto-calculada · puedes sobreescribirla.
-                </div>
-              )}
-            </div>
             <div style={{gridColumn:'1 / span 2'}}>
               {lbl('Notas')}
               <textarea style={{...inpBase,minHeight:60,resize:'vertical'}} placeholder="Pendiente de completar" value={form.notas} onChange={e=>set('notas', e.target.value)}/>
             </div>
+          </div>
+          <div style={{marginTop:10,fontSize:10,color:'var(--text4)',fontStyle:'italic'}}>
+            Break option y fecha fin de contrato se rellenan en la ficha del arrendatario.
           </div>
 
           {error && (

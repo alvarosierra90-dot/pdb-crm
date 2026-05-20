@@ -4125,10 +4125,41 @@ export default function FichaActivo() {
     setShowAltaArrendatario(true)
   }
 
-  const handleArrendatarioCreado = (arr) => {
+  const handleArrendatarioCreado = async (arr) => {
+    // 1) Persistir en Supabase para que se sincronice con FichaArrendatario
+    //    La columna `ref` tiene DEFAULT generate_arrendatario_ref() en Postgres
+    //    (migración 032), así que NO la enviamos — la genera el servidor.
+    const payload = {
+      tenant: arr.tenant,
+      tenant_desconocido: !!arr.tenant_desconocido,
+      activo_ref: arr.activo_ref || activo?.ref || null,
+      anyo_firma: arr.anyo_firma ? Number(arr.anyo_firma) : null,
+      trimestre: arr.trimestre || null,
+      closing_rent: arr.closing_rent !== '' && arr.closing_rent != null ? Number(arr.closing_rent) : null,
+      anios_obligado: arr.anios_obligado !== '' && arr.anios_obligado != null ? Number(arr.anios_obligado) : null,
+    }
+    let savedRef = null
+    let savedId  = null
+    try {
+      const { data, error } = await supabase
+        .from('arrendatarios')
+        .insert(payload)
+        .select()
+        .single()
+      if (error) {
+        console.error('Error guardando arrendatario:', error)
+      } else if (data) {
+        savedRef = data.ref || null
+        savedId  = data.id  || null
+      }
+    } catch (e) {
+      console.error('Exception guardando arrendatario:', e)
+    }
+
+    // 2) Añadir al estado local (panel del stacking) con la ref real de Supabase
     setArrendatariosReg(prev => [...prev, {
-      id: arr.id,
-      ref: arr.id,
+      id: savedId || arr.id,
+      ref: savedRef || arr.id,
       tenant: arr.tenant,
       nombre: arr.tenant,
       dynamics_id: arr.dynamics_id,
@@ -4140,8 +4171,6 @@ export default function FichaActivo() {
       closing_rent: arr.closing_rent,
       renta_m2: arr.closing_rent,
       renta_mensual: arr.renta_mensual,
-      break_option: arr.break_option,
-      fecha_fin: arr.fecha_fin,
       notas: arr.notas,
       activo_ref: arr.activo_ref,
     }])
