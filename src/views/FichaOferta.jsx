@@ -86,11 +86,14 @@ const TIPOLOGIA_MAP = {
   'Data Center':['Hyperscale','Colocation','Edge computing'],
 }
 
+// Paleta de colores para Disp / ofertas. DEBE coincidir con OCOLS del
+// StackingPlan (FichaActivo.jsx) — si en el stacking sale verde, en el
+// desglose también sale verde (mismo índice = mismo color).
 const OFERTA_COLORS = [
-  { bg:'#dcfce7', border:'#86efac', text:'#166534', dot:'#16a34a' },
-  { bg:'#f5efe5', border:'#93c5fd', text:'#5a4828', dot:'#B08D57' },
-  { bg:'#fef3c7', border:'#fcd34d', text:'#92400e', dot:'#f59e0b' },
-  { bg:'#f3e8ff', border:'#d8b4fe', text:'#6b21a8', dot:'#a855f7' },
+  { bg:'#dcfce7', border:'#86efac', text:'#166534', dot:'#16a34a' }, // verde
+  { bg:'#f5efe5', border:'#d4c2a0', text:'#5a4828', dot:'#8a6d40' }, // marrón
+  { bg:'#fef3c7', border:'#fcd34d', text:'#92400e', dot:'#d97706' }, // ámbar
+  { bg:'#f3e8ff', border:'#d8b4fe', text:'#6b21a8', dot:'#6b5b8e' }, // morado
 ]
 
 const USERS_INIT = [{ name:'Sierra Álvaro', team:'Transaction Spain', role:'Responsable', initials:'AS', bg:'#f5efe5', color:'#5a4828', granted:'—', owner:true }]
@@ -339,6 +342,9 @@ function FichaOfertaMock() {
 
   // Arrendatarios añadidos vía conversión de oferta (aparecen en panel lateral del stacking)
   const [stackingExtraTenants, setStackingExtraTenants] = useState([])
+  // Todas las ofertas del activo (esta + las hermanas) para que el StackingPlan
+  // muestre TODO el contenido del activo cuando se ve desde una oferta.
+  const [allOfertasActivo, setAllOfertasActivo] = useState([])
 
   // Multimedia de la oferta (subconjunto del activo — borrar aquí no afecta al activo)
   // Los items sincronizados llevan { synced:true, included:bool, principal:bool }
@@ -379,19 +385,19 @@ function FichaOfertaMock() {
     setImagenesOferta(prev => prev.map(i => i.id === id ? { ...i, included: !i.included } : i))
   }
 
-  // Nombre por defecto del desglose: "Disp N - {dirección del activo}" — N
-  // es el número de la línea (1, 2, 3…) para diferenciar visualmente cuando
-  // hay varias espacios sobre el mismo activo. Editable con el lápiz.
+  // Nombre por defecto del desglose: "{OFR-XXXXXXX} - Disp N" — N es el número
+  // de la línea (1, 2, 3…). El código de la oferta padre va primero para
+  // distinguir disps cuando hay varias ofertas sobre el mismo activo.
   function defaultOfertaName(n) {
-    const dir = activoSeleccionado?.direccion || activoSeleccionado?.nombre || ''
-    const prefix = `Disp ${n}`
-    return dir ? `${prefix} - ${dir}` : `${prefix} - `
+    const code = oferta?.ref || 'OFR'
+    return `${code} - Disp ${n}`
   }
 
-  // Patrones de nombre auto-generado (incluye legacy sin número y "Oferta N").
-  // Se usan para detectar nombres que el usuario NO ha tocado y reescribirlos
-  // cuando cambia el activo o se reordena la lista.
+  // Patrones de nombre auto-generado. Detecta tanto el formato nuevo
+  // "{REF} - Disp N" como los legacy ("Disp N - dirección", "Oferta N").
   const isAutoName = (name) =>
+    /^OFR-\d+ - Disp \d+$/.test(name) ||
+    /^OFR - Disp \d+$/.test(name) ||
     name === 'Disp - ' || name === 'Disp -' ||
     /^Disp \d+ - /.test(name) || /^Disp \d+ -$/.test(name) || /^Disp \d+ - $/.test(name) ||
     /^Oferta \d+$/.test(name)
@@ -415,7 +421,24 @@ function FichaOfertaMock() {
       isAutoName(o.nombre) ? { ...o, nombre: defaultOfertaName(i + 1) } : o
     ))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activoSeleccionado?.ref])
+  }, [activoSeleccionado?.ref, oferta?.ref])
+
+  // Carga TODAS las ofertas del activo (excluyendo la actual). Estas son las que
+  // alimentan el panel lateral del StackingPlan cuando se ve desde una oferta,
+  // para que el usuario vea todo el contenido del activo (no solo la oferta
+  // actual) — mismo comportamiento que en FichaActivo.
+  useEffect(() => {
+    const ref = activoSeleccionado?.ref
+    if (!ref) { setAllOfertasActivo([]); return }
+    supabase.from('ofertas').select('id, ref, nombre, tipo_operacion, activa')
+      .eq('activo_ref', ref)
+      .then(({ data }) => {
+        const list = (data || [])
+          .filter(o => o.activa !== false)
+          .filter(o => o.ref !== oferta?.ref) // excluye la oferta actual (sus disps van como ofertasDesglose)
+        setAllOfertasActivo(list)
+      })
+  }, [activoSeleccionado?.ref, oferta?.ref])
 
   async function guardarDesglose() {
     const ofertaId = oferta?.id
@@ -1560,7 +1583,18 @@ function FichaOfertaMock() {
                       initBuildings={liveBuildings.current?.length > 0 ? liveBuildings.current : (activoSeleccionado.stacking_data?.length > 0 ? activoSeleccionado.stacking_data : [])}
                       initView='arr'
                       allowCreate={true}
-                      extraOfertas={ofertasDesglose.map(o => ({ ...o, tipoOperacion }))}
+                      extraOfertas={[
+                        // Disps de la oferta actual — cada uno hereda el ref de la oferta padre
+                        // para que el click del panel lateral navegue a la ficha correcta.
+                        ...ofertasDesglose.map(o => ({ ...o, ref: oferta?.ref, tipoOperacion })),
+                        // Resto de ofertas del activo (hermanas) — con su propio ref.
+                        ...allOfertasActivo.map(o => ({
+                          id: o.id,
+                          ref: o.ref,
+                          nombre: o.nombre || o.ref,
+                          tipoOperacion: o.tipo_operacion || 'Alquiler',
+                        })),
+                      ]}
                       activoPropietario={activoSeleccionado.propietario || ''}
                       extraOwners={[activoSeleccionado.propietario].filter(Boolean)}
                       extraTenants={stackingExtraTenants}
