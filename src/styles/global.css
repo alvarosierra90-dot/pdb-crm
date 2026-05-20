@@ -183,10 +183,20 @@ nav {
 .nav-section-arrow.collapsed { transform: rotate(-90deg); }
 
 /* ═════════════════════════════════════════════════════════════
-   FICHA OFERTA · modo vista (sin flechas, datos como texto plano)
-   Cuando NO está en modo edición, los <select>, <input> y <textarea>
-   se renderizan como texto sin bordes ni affordance de edición.
+   FICHAS · modo vista vs edición (sin flechas, datos como texto plano)
+   Cuando una ficha lleva la clase .ficha-viewing (o la legacy
+   .oferta-viewing), los <select>, <input> y <textarea> se renderizan
+   como texto sin bordes ni affordance de edición. Para volver a editar,
+   el usuario pulsa "Editar" y el wrapper cambia a .ficha-editing.
    ═════════════════════════════════════════════════════════════ */
+.ficha-viewing select,
+.ficha-viewing input[type="text"],
+.ficha-viewing input[type="number"],
+.ficha-viewing input[type="date"],
+.ficha-viewing input[type="email"],
+.ficha-viewing input[type="tel"],
+.ficha-viewing input[type="url"],
+.ficha-viewing textarea,
 .oferta-viewing select,
 .oferta-viewing input[type="text"],
 .oferta-viewing input[type="number"],
@@ -211,6 +221,7 @@ nav {
   resize: none !important;
 }
 /* Quitar la flecha nativa del select en Firefox y otros navegadores */
+.ficha-viewing select,
 .oferta-viewing select {
   -moz-appearance: none !important;
   text-overflow: clip !important;
@@ -218,12 +229,16 @@ nav {
 }
 /* Checkboxes y radios siguen visibles para mostrar estado actual,
    pero no clicables. */
+.ficha-viewing input[type="checkbox"],
+.ficha-viewing input[type="radio"],
 .oferta-viewing input[type="checkbox"],
 .oferta-viewing input[type="radio"] {
   pointer-events: none !important;
   opacity: .85 !important;
 }
 /* Los inputs de las tablas (desglose, espacios) también */
+.ficha-viewing table input,
+.ficha-viewing table select,
 .oferta-viewing table input,
 .oferta-viewing table select {
   background: transparent !important;

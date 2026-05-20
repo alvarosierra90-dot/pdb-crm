@@ -120,9 +120,9 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [otrosContactosFull, setOtrosContactosFull] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  // editing siempre true: los campos son inputs reales desde el primer
-  // segundo. Se mantiene la variable para no tocar el resto del JSX.
-  const editing = true
+  // Modo edición · default vista. Pulsa "Editar" para activar inputs/selects.
+  // Tras guardar OK, vuelve a vista automáticamente.
+  const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [showFirmarModal, setShowFirmarModal] = useState(false)
@@ -355,6 +355,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
     const { error } = await supabase.from('demandas').update(payload).eq('id', demanda.id)
     setSaving(false)
     if (error) { setSaveError(error.message); return }
+    setEditing(false)  // tras guardar OK, vuelve a modo vista
     await load()
   }
 
@@ -397,13 +398,20 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const tituloHeader = demanda.nombre || cuenta?.nombre || '(Sin nombre)'
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
+    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}
+      className={editing ? 'ficha-editing' : 'ficha-viewing'}>
 
       <div className="action-bar">
-        <button className="ab-btn save" onClick={saveEdit} disabled={saving}>
-          {saving ? 'Guardando…' : '💾 Guardar cambios'}
-        </button>
-        <button className="ab-btn" onClick={restablecer} disabled={saving}>↺ Restablecer</button>
+        {!editing ? (
+          <button className="ab-btn save" onClick={() => setEditing(true)}>✎ Editar</button>
+        ) : (
+          <>
+            <button className="ab-btn save" onClick={saveEdit} disabled={saving}>
+              {saving ? 'Guardando…' : '💾 Guardar cambios'}
+            </button>
+            <button className="ab-btn" onClick={() => { setEditing(false); restablecer() }} disabled={saving}>Cancelar</button>
+          </>
+        )}
         <button className="ab-btn" onClick={() => navigate('demandas')}>← Volver</button>
         <div className="ab-sep"/>
         {(() => {

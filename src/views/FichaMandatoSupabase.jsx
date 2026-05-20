@@ -108,7 +108,8 @@ export default function FichaMandatoSupabase({ refOrId }) {
   const [contactosAgente, setContactosAgente] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const editing = true
+  // Modo edición · default vista. Pulsa "Editar" para activar inputs/selects.
+  const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [showCierreVencido, setShowCierreVencido] = useState(false)
@@ -306,6 +307,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
     const { error } = await supabase.from('mandatos').update(payload).eq('id', mandato.id)
     setSaving(false)
     if (error) { setSaveError(error.message); return }
+    setEditing(false)  // tras guardar OK, vuelve a modo vista
     await load()
   }
 
@@ -422,13 +424,20 @@ export default function FichaMandatoSupabase({ refOrId }) {
   const responsableUI = principal?.nombre || form.responsable || '—'
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
+    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}
+      className={editing ? 'ficha-editing' : 'ficha-viewing'}>
 
       <div className="action-bar">
-        <button className="ab-btn save" onClick={saveEdit} disabled={saving}>
-          {saving ? 'Guardando…' : '💾 Guardar cambios'}
-        </button>
-        <button className="ab-btn" onClick={restablecer} disabled={saving}>↺ Restablecer</button>
+        {!editing ? (
+          <button className="ab-btn save" onClick={() => setEditing(true)}>✎ Editar</button>
+        ) : (
+          <>
+            <button className="ab-btn save" onClick={saveEdit} disabled={saving}>
+              {saving ? 'Guardando…' : '💾 Guardar cambios'}
+            </button>
+            <button className="ab-btn" onClick={() => { setEditing(false); restablecer() }} disabled={saving}>Cancelar</button>
+          </>
+        )}
         <button className="ab-btn" onClick={() => navigate('mandatos')}>← Volver</button>
         <div className="ab-sep"/>
         <button className="ab-btn" disabled style={{ opacity:0.45 }}>📄 Generar contrato</button>

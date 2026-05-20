@@ -84,7 +84,10 @@ export default function FichaPropuestaSupabase({ refOrId }) {
   const [oportunidad, setOportunidad] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const editing = true
+  // Modo edición · por defecto la ficha se abre en modo vista (sin flechas
+  // ni inputs editables). Pulsa "Editar" para activar. Tras guardar OK,
+  // vuelve a vista automáticamente.
+  const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [showGanadaModal, setShowGanadaModal] = useState(false)
@@ -215,6 +218,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
     }).eq('id', propuesta.id)
     setSaving(false)
     if (error) { setSaveError(error.message); return }
+    setEditing(false)  // tras guardar OK, vuelve a modo vista
     await load()
   }
 
@@ -236,11 +240,18 @@ export default function FichaPropuestaSupabase({ refOrId }) {
     : '—'
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
+    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}
+      className={editing ? 'ficha-editing' : 'ficha-viewing'}>
 
       <div className="action-bar">
-        <button className="ab-btn save" onClick={saveEdit} disabled={saving}>{saving ? 'Guardando…' : '💾 Guardar cambios'}</button>
-        <button className="ab-btn" onClick={restablecer} disabled={saving}>↺ Restablecer</button>
+        {!editing ? (
+          <button className="ab-btn save" onClick={() => setEditing(true)}>✎ Editar</button>
+        ) : (
+          <>
+            <button className="ab-btn save" onClick={saveEdit} disabled={saving}>{saving ? 'Guardando…' : '💾 Guardar cambios'}</button>
+            <button className="ab-btn" onClick={() => { setEditing(false); restablecer() }} disabled={saving}>Cancelar</button>
+          </>
+        )}
         <button className="ab-btn" onClick={() => navigate('propuestas')}>← Volver</button>
         <div className="ab-sep"/>
         {/* "Crear pitch" y "Pitch automático" viven ahora como step card opcional dentro del wizard. */}
