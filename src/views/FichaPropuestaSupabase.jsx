@@ -85,6 +85,11 @@ export default function FichaPropuestaSupabase({ refOrId }) {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [showGanadaModal, setShowGanadaModal] = useState(false)
+  // Activos vinculados (pitch oferta multi-activo) · jsonb propuestas.activos
+  const [activosDB, setActivosDB] = useState([])
+  const [activoQuery, setActivoQuery] = useState('')
+  const [activoFocused, setActivoFocused] = useState(false)
+  const [savingActivo, setSavingActivo] = useState(false)
 
   const [form, setForm] = useState({
     nombre:'', tipo:'', linea:'', estado:'',
@@ -124,6 +129,38 @@ export default function FichaPropuestaSupabase({ refOrId }) {
   }, [refOrId])
 
   useEffect(() => { load() }, [load])
+
+  // Catálogo de activos para typeahead del bloque "Activos pitcheados".
+  useEffect(() => {
+    let cancel = false
+    supabase.from('activos').select('id, ref, nombre, direccion, ciudad, uso, sba')
+      .order('nombre').limit(500).then(({ data }) => { if (!cancel) setActivosDB(data || []) })
+    return () => { cancel = true }
+  }, [])
+
+  // Helpers para vincular/desvincular activos a la propuesta.
+  const activosVinculados = Array.isArray(propuesta?.activos) ? propuesta.activos : []
+  const addActivo = async (a) => {
+    if (!propuesta || activosVinculados.some(x => x.ref === a.ref)) return
+    setSavingActivo(true)
+    const item = { ref: a.ref, nombre: a.nombre, direccion: a.direccion, ciudad: a.ciudad, uso: a.uso, sba: a.sba }
+    const next = [...activosVinculados, item]
+    const { error } = await supabase.from('propuestas').update({ activos: next }).eq('id', propuesta.id)
+    setSavingActivo(false)
+    setActivoQuery('')
+    if (error) setSaveError(`No se pudo vincular el activo: ${error.message}`)
+    else load()
+  }
+  const removeActivo = async (ref) => {
+    if (!propuesta) return
+    setSavingActivo(true)
+    const next = activosVinculados.filter(a => a.ref !== ref)
+    const { error } = await supabase.from('propuestas').update({ activos: next }).eq('id', propuesta.id)
+    setSavingActivo(false)
+    if (error) setSaveError(`No se pudo desvincular el activo: ${error.message}`)
+    else load()
+  }
+  const esPitchOferta = oportunidad?.tipo === 'pitch_oferta'
 
   useEffect(() => {
     if (!propuesta) return
@@ -211,25 +248,51 @@ export default function FichaPropuestaSupabase({ refOrId }) {
           >
             Ver pitch ↗
           </button>
-        ) : (
-          <button
-            className="ab-btn"
-            onClick={() => {
-              const activosRefs = Array.isArray(propuesta.activos) ? propuesta.activos.map(a => a?.ref).filter(Boolean) : []
-              navigate('pitch', {
-                propuesta_id:  propuesta.id,
-                propuesta_ref: propuesta.ref,
-                cuenta_id:     propuesta.dynamics_account_id,
-                oportunidad_id:propuesta.dynamics_opportunity_id,
-                activo_ref:    activosRefs[0],
-                activo_refs:   activosRefs,
-              })
-            }}
-            title="Generar un pitch con esta propuesta como contexto (activos, cuenta, oportunidad)"
-          >
-            Crear pitch
-          </button>
-        )}
+        ) : (() => {
+          const activosRefs = Array.isArray(propuesta.activos) ? propuesta.activos.map(a => a?.ref).filter(Boolean) : []
+          const baseParams = {
+            propuesta_id:  propuesta.id,
+            propuesta_ref: propuesta.ref,
+            cuenta_id:     propuesta.dynamics_account_id,
+            oportunidad_id:propuesta.dynamics_opportunity_id,
+            activo_ref:    activosRefs[0],
+            activo_refs:   activosRefs,
+          }
+          // Pitch automático · salta a paso 5 con datos pre-rellenados.
+          // En pitch_oferta el target es Propietario; en pitch_demanda sería Tenant.
+          const targetSegm = esPitchOferta ? 'propietario' : oportunidad?.tipo === 'pitch_demanda' ? 'tenant' : null
+          const autoParams = {
+            ...baseParams,
+            step: 5,
+            auto: 1,
+            oficina:   propuesta.equipo?.includes('Madrid') ? 'madrid' : propuesta.equipo?.includes('Barcelona') ? 'barcelona' : null,
+            equipo:    propuesta.equipo || propuesta.linea || null,
+            linea:     propuesta.linea || null,
+            target:    targetSegm,
+            // pitch_demanda pitchea servicio al inquilino; pitch_oferta al propietario
+          }
+          return (
+            <>
+              <button
+                className="ab-btn"
+                onClick={() => navigate('pitch', baseParams)}
+                title="Generar un pitch desde el paso 1 con esta propuesta como contexto"
+              >
+                Crear pitch
+              </button>
+              {(esPitchOferta || oportunidad?.tipo === 'pitch_demanda') && (
+                <button
+                  className="ab-btn"
+                  style={{ background:'#2563EB', color:'#fff', border:'1px solid #2563EB', fontWeight:700 }}
+                  onClick={() => navigate('pitch', autoParams)}
+                  title="Salta al paso 5 con oficina, equipo, línea y target pre-rellenados desde la propuesta"
+                >
+                  ⚡ Pitch automático (paso 5)
+                </button>
+              )}
+            </>
+          )
+        })()}
         {(() => {
           const yaCerrada = ['ganada','perdida','cancelada'].includes(propuesta.estado)
           const puede     = !yaCerrada && !!propuesta.dynamics_opportunity_id && !!propuesta.dynamics_account_id
@@ -316,6 +379,93 @@ export default function FichaPropuestaSupabase({ refOrId }) {
           {/* TAB: Datos del proyecto */}
           {tab === 'datos' && (
             <div className="tab-content active"><div className="info-pad">
+
+              {/* ── ACTIVOS PITCHEADOS · multi-activo · solo si pitch oferta o ya hay activos vinculados ── */}
+              {(esPitchOferta || activosVinculados.length > 0) && (() => {
+                const q = activoQuery.trim().toLowerCase()
+                const matches = !q
+                  ? activosDB.filter(a => !activosVinculados.some(v => v.ref === a.ref)).slice(0, 8)
+                  : activosDB.filter(a =>
+                      !activosVinculados.some(v => v.ref === a.ref) &&
+                      ((a.nombre || '').toLowerCase().includes(q) ||
+                       (a.direccion || '').toLowerCase().includes(q) ||
+                       (a.ref || '').toLowerCase().includes(q))
+                    ).slice(0, 8)
+                return (
+                  <div style={{ marginBottom:14, padding:'12px 14px', background:'#f3e8ff', border:'1px solid #d8b4fe', borderRadius:8 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom: activosVinculados.length > 0 ? 10 : 6 }}>
+                      <span style={{ fontSize:10, fontWeight:700, color:'#6b5b8e', textTransform:'uppercase', letterSpacing:'.05em' }}>
+                        Activos del pitch
+                      </span>
+                      <span style={{ fontSize:10, fontWeight:700, color:'#fff', background:'#6b5b8e', borderRadius:9, padding:'1px 7px' }}>
+                        {activosVinculados.length}
+                      </span>
+                      {esPitchOferta && (
+                        <span style={{ fontSize:10, color:'#6b5b8e', fontStyle:'italic' }}>
+                          · Pitch de oferta · vincula uno o varios edificios al propietario al que pitcheas.
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Chips de activos vinculados */}
+                    {activosVinculados.length > 0 && (
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
+                        {activosVinculados.map(a => (
+                          <div key={a.ref} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'5px 8px 5px 10px', background:'#fff', border:'1px solid #d8b4fe', borderRadius:20, fontSize:11 }}>
+                            <span
+                              onClick={() => navigate('ficha-activo', { ref: a.ref })}
+                              style={{ cursor:'pointer', fontWeight:600, color:'#6b5b8e' }}
+                              title="Ir a la ficha del activo"
+                            >
+                              {a.nombre || a.ref}
+                            </span>
+                            {a.ciudad && <span style={{ color:'var(--text4)', fontSize:10 }}>· {a.ciudad}</span>}
+                            {a.sba && <span style={{ color:'var(--text4)', fontSize:10, fontFamily:'var(--mono)' }}>· {Number(a.sba).toLocaleString('es-ES')} m²</span>}
+                            <button
+                              onClick={() => removeActivo(a.ref)}
+                              disabled={savingActivo}
+                              title="Desvincular"
+                              style={{ marginLeft:2, background:'transparent', border:'none', cursor:'pointer', color:'var(--text4)', fontSize:13, lineHeight:1, padding:'0 2px' }}>×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Typeahead para añadir activo */}
+                    <div style={{ position:'relative' }}>
+                      <input
+                        placeholder="Buscar activo por nombre, dirección o ref…"
+                        value={activoQuery}
+                        onChange={e => setActivoQuery(e.target.value)}
+                        onFocus={() => setActivoFocused(true)}
+                        onBlur={() => setTimeout(() => setActivoFocused(false), 150)}
+                        style={{ width:'100%', padding:'7px 10px', fontSize:12, border:'1px solid #d8b4fe', borderRadius:6, background:'#fff', boxSizing:'border-box', outline:'none' }}
+                      />
+                      {activoFocused && matches.length > 0 && (
+                        <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, zIndex:10, background:'#fff', border:'1px solid #d8b4fe', borderRadius:6, maxHeight:220, overflowY:'auto', boxShadow:'0 6px 20px rgba(0,0,0,0.08)' }}>
+                          {matches.map(a => (
+                            <div key={a.ref}
+                              onMouseDown={() => addActivo(a)}
+                              style={{ padding:'7px 10px', fontSize:12, cursor:'pointer', borderBottom:'1px solid var(--border)' }}
+                              onMouseEnter={e => e.currentTarget.style.background = '#faf5ff'}
+                              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                            >
+                              <div style={{ fontWeight:600 }}>{a.nombre}</div>
+                              <div style={{ fontSize:10, color:'var(--text4)' }}>{[a.ref, a.direccion, a.ciudad, a.uso].filter(Boolean).join(' · ')}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {activoFocused && q && matches.length === 0 && (
+                        <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, zIndex:10, background:'#fff', border:'1px solid var(--border)', borderRadius:6, padding:'8px 10px', fontSize:11, color:'var(--text4)' }}>
+                          Sin coincidencias. Crea el activo en el módulo Activos y vuelve a vincularlo aquí.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* ── VINCULACIONES (canónico, siempre arriba) ── */}
               <Vinculaciones
                 cuentaLabel="Cliente (Cuenta)"
