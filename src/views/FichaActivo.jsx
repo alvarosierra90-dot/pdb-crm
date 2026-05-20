@@ -682,6 +682,23 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   }
 
   const removePropUnit = (floorId, idx) => {
+    // Regla de negocio: no se puede quitar un propietario si la misma planta
+    // tiene oferta o arrendatario asignados — primero hay que quitarlos.
+    const bldNow = buildings.find(b => b.id === edifId)
+    const arrRow = bldNow?.arr?.find(r => r.p === floorId)
+    const blockingUnits = (arrRow?.units || []).filter(u =>
+      u.type === 'ten' || u.type === 'vac' || u.type === 'rt' || u.type === 'pk'
+    )
+    if (blockingUnits.length > 0) {
+      const hasOferta = blockingUnits.some(u => u.type === 'vac')
+      const hasArr    = blockingUnits.some(u => u.type === 'ten')
+      const lbl = hasOferta && hasArr ? 'una oferta y un arrendatario'
+                : hasOferta            ? 'una oferta'
+                : hasArr               ? 'un arrendatario'
+                : 'otra ocupación'
+      window.alert(`No se puede quitar el propietario de la planta ${floorId}: hay ${lbl} asignado. Primero retira lo que está encima y luego podrás quitar el propietario.`)
+      return
+    }
     updBuilding(b=>({...b, prop:(b.prop||[]).map(r=>r.p!==floorId?r:{...r,units:r.units.filter((_,i)=>i!==idx)})}))
   }
   const removeArrUnit = (floorId, idx) => {
@@ -1418,10 +1435,18 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                 return (
                   <div key={floor.id}
                     onClick={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
-                    onDragOver={e=>{e.preventDefault();setDragTarget(floor.id)}}
+                    onDragOver={e=>{
+                      if(floor.principal.length===0){e.dataTransfer.dropEffect='none';return}
+                      e.preventDefault();setDragTarget(floor.id)
+                    }}
                     onDragLeave={()=>setDragTarget(null)}
                     onDrop={e=>{
                       e.preventDefault();setDragTarget(null)
+                      // Regla de negocio: hay que asignar uso principal antes
+                      // de poder colocar un propietario.
+                      if(floor.principal.length===0){
+                        setDropWarning(floor.id); setTimeout(()=>setDropWarning(null),3000); setDragging(null); return
+                      }
                       const dropOwner = ownerSet.find(o => o.key === dragging)
                       if(!dragging || !dropOwner) return
                       const targets = selectedFloors.length > 1 ? selectedFloors : [floor.id]
@@ -1447,8 +1472,8 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     className="sp-row"
                     style={{
                       borderBottom: floor.id==='PB' ? '3px solid var(--ink-2)' : undefined,
-                      background:isTgt?'var(--pdb-blue-50)':isSel?'#f0f9ff':isEmpty?'var(--bg)':'var(--surface)',
-                      outline:isSel||isTgt?'1.5px solid var(--pdb-blue)':'none', cursor:'pointer',
+                      background:dropWarning===floor.id?'#fff1f2':isTgt?'var(--pdb-blue-50)':isSel?'#f0f9ff':isEmpty?'var(--bg)':'var(--surface)',
+                      outline:dropWarning===floor.id?'1.5px solid #fca5a5':isSel||isTgt?'1.5px solid var(--pdb-blue)':'none', cursor:'pointer',
                       // Ancho proporcional (capa Propietarios)
                       width: `${Math.max((floor.sup / maxFloorSup) * 100, 30)}%`,
                       minWidth: 280,
@@ -1457,6 +1482,11 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     <div className={`sp-row-floor${isEmpty?' empty':''}`} style={{color:isSel?'var(--pdb-blue)':undefined}}>{floor.id}</div>
 
                     <div className="sp-row-blocks" style={{flexDirection:'column',gap:3,padding:'6px 0',alignItems:'stretch'}}>
+                      {dropWarning===floor.id && (
+                        <div style={{display:'flex',alignItems:'center',gap:5,padding:'4px 8px',background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:4,fontSize:10,color:'#dc2626',fontWeight:600}}>
+                          <span style={{display:'inline-flex',alignItems:'center',gap:4}}><AlertTriangle size={11} strokeWidth={1.75}/> Asigna primero un uso principal en esta planta</span>
+                        </div>
+                      )}
                       {/* Referencia uso principal (gris tenue) */}
                       {floor.principal.length>0 && (
                         <div style={{display:'flex',gap:1,height:4,borderRadius:2,overflow:'hidden',opacity:.3}}>
@@ -1672,14 +1702,16 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                   <div key={floor.id}
                     onClick={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
                     onDragOver={e=>{
-                      if(dragging?.startsWith('ofr:') && floor.principal.length===0){e.dataTransfer.dropEffect='none';return}
+                      // Regla: uso principal es el primer hito. Sin él no se
+                      // puede agregar oferta ni arrendatario.
+                      if(floor.principal.length===0){e.dataTransfer.dropEffect='none';return}
                       e.preventDefault();setDragTarget(floor.id)
                     }}
                     onDragLeave={()=>setDragTarget(null)}
                     onDrop={e=>{
                       e.preventDefault();setDragTarget(null)
                       if(!dragging) return
-                      if(dragging.startsWith('ofr:') && floor.principal.length===0) {
+                      if(floor.principal.length===0) {
                         setDropWarning(floor.id); setTimeout(()=>setDropWarning(null),3000); setDragging(null); return
                       }
                       const targets = selectedFloors.length > 1 ? selectedFloors : [floor.id]
@@ -1692,7 +1724,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                         targets.forEach(fId=>{
                           const f=edif.floors.find(fl=>fl.id===fId)
                           if(!f) return
-                          if(dragging.startsWith('ofr:') && f.principal.length===0) return
+                          if(f.principal.length===0) return
                           const newUnit = dragging.startsWith('ten:')
                             ? {type:'ten', arr_ref: dropTenant.ref, n: dropTenant.name}
                             : {type:'vac',oferta:dragging.slice(4),renta:0}
