@@ -98,9 +98,15 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
   const [activoQuery, setActivoQuery]     = useState('')
   const [activoPick, setActivoPick]       = useState(null)
 
+  // Oportunidad existente · opcional. Si el broker vincula una, se reutiliza
+  // su dynamics_id en lugar de crear una nueva (evita oportunidades huérfanas
+  // en Dynamics cuando ya hay una abierta para la misma cuenta).
+  const [oportunidadQuery, setOportunidadQuery] = useState('')
+  const [oportunidadPick,  setOportunidadPick]  = useState(null)
   const [accounts, setAccounts] = useState([])
   const [contacts, setContacts] = useState([])
   const [activos, setActivos]   = useState([])
+  const [oportunidades, setOportunidades] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted]   = useState(null)
   const [error, setError]           = useState(null)
@@ -109,17 +115,36 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
 
   useEffect(() => {
     async function loadAll() {
-      const [{ data: accs }, { data: cts }, { data: acts }] = await Promise.all([
+      const [{ data: accs }, { data: cts }, { data: acts }, { data: opps }] = await Promise.all([
         supabase.from('dynamics_accounts').select('dynamics_id, nombre, tipo').order('nombre'),
         supabase.from('dynamics_contacts').select('dynamics_id, nombre, email, cuenta_dynamics_id').order('nombre'),
         supabase.from('activos').select('id, ref, nombre, ciudad, zona, uso').order('nombre'),
+        supabase.from('dynamics_opportunities')
+          .select('dynamics_id, nombre, tipo, cuenta_dynamics_id, estado')
+          .eq('estado', 'abierta')
+          .order('nombre'),
       ])
       setAccounts(accs || [])
       setContacts(cts || [])
       setActivos((acts || []).map(a => ({ ...a, _label: `${a.nombre} · ${a.zona || ''} ${a.ciudad || ''}`.trim() })))
+      setOportunidades(opps || [])
     }
     loadAll()
   }, [])
+
+  // Si el broker elige una cuenta, filtramos las oportunidades por esa cuenta.
+  // Si no, mostramos todas las abiertas.
+  const oportunidadesFiltradas = cuentaPick?.dynamics_id
+    ? oportunidades.filter(o => o.cuenta_dynamics_id === cuentaPick.dynamics_id)
+    : oportunidades
+
+  // Si cambian la cuenta y la oportunidad elegida ya no pertenece a ella, la limpiamos
+  useEffect(() => {
+    if (oportunidadPick && cuentaPick?.dynamics_id && oportunidadPick.cuenta_dynamics_id !== cuentaPick.dynamics_id) {
+      setOportunidadPick(null)
+      setOportunidadQuery('')
+    }
+  }, [cuentaPick?.dynamics_id])
 
   // Determina el esquema según pitch + lead.tipo
   const esquemaKey = pitch === null
@@ -187,14 +212,19 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
     setSubmitting(true)
     setError(null)
 
-    const dynOppId = `dyn-opp-${Date.now().toString(36)}`
+    // Si el broker vinculó una oportunidad existente, la reutilizamos.
+    // En caso contrario creamos una nueva con el oppType del esquema.
+    const reuseOpp = !!oportunidadPick
+    const dynOppId = reuseOpp ? oportunidadPick.dynamics_id : `dyn-opp-${Date.now().toString(36)}`
+    const oppTypeFinal = reuseOpp ? oportunidadPick.tipo : esquema.oppType
     // Auto-deriva Cuenta desde Contacto si no se eligió una
     const cuentaId = cuentaPick?.dynamics_id
       || contactoPick?.cuenta_dynamics_id
+      || oportunidadPick?.cuenta_dynamics_id
       || null
     const contactoId = contactoPick?.dynamics_id || null
     const ahora = new Date().toISOString()
-    const out = { dynOppId, oppType: esquema.oppType, destino: esquema.destino, destinoRef: null }
+    const out = { dynOppId, oppType: oppTypeFinal, destino: esquema.destino, destinoRef: null, reused: reuseOpp }
 
     // Demanda exige cuenta (NOT NULL en BD)
     if (esquema.destino === 'demanda' && !cuentaId) {
@@ -204,17 +234,19 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
     }
 
     try {
-      // 1) Crear Oportunidad en dynamics_opportunities
-      const { error: e1 } = await supabase.from('dynamics_opportunities').insert({
-        dynamics_id:          dynOppId,
-        nombre:               lead.nombre,
-        tipo:                 esquema.oppType,
-        cuenta_dynamics_id:   cuentaId,
-        contacto_dynamics_id: contactoId,
-        estado:               'abierta',
-        fecha_creacion:       ahora,
-      })
-      if (e1) throw new Error(`Oportunidad: ${e1.message}`)
+      // 1) Crear Oportunidad en dynamics_opportunities (solo si no se reutiliza una existente)
+      if (!reuseOpp) {
+        const { error: e1 } = await supabase.from('dynamics_opportunities').insert({
+          dynamics_id:          dynOppId,
+          nombre:               lead.nombre,
+          tipo:                 oppTypeFinal,
+          cuenta_dynamics_id:   cuentaId,
+          contacto_dynamics_id: contactoId,
+          estado:               'abierta',
+          fecha_creacion:       ahora,
+        })
+        if (e1) throw new Error(`Oportunidad: ${e1.message}`)
+      }
 
       const leadUpdate = {
         estado:                  'cualificado',
@@ -325,7 +357,9 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
               <div style={{ background:'#dcfce7', border:'1px solid #86efac', borderRadius:8, padding:14, display:'flex', flexDirection:'column', gap:6 }}>
                 <div style={{ fontSize:13, fontWeight:700, color:'#15803d' }}>✓ Lead transformado correctamente</div>
                 <div style={{ fontSize:11, color:'#166534' }}>
-                  Oportunidad <strong>{submitted.oppType}</strong> creada en Dynamics.
+                  {submitted.reused
+                    ? <>Vinculado a la oportunidad existente <strong>{submitted.oppType}</strong> en Dynamics.</>
+                    : <>Oportunidad <strong>{submitted.oppType}</strong> creada en Dynamics.</>}
                   {submitted.destino !== 'ninguno' && <> Se ha generado además una <strong>{submitted.destino}</strong> ({submitted.destinoRef}).</>}
                   {' '}El lead pasa a <strong>cualificado</strong>.
                 </div>
@@ -407,6 +441,35 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
               {contactoPick && (
                 <div style={{ fontSize:10, color:'#15803d' }}>✓ Contacto seleccionado: {contactoPick.nombre}</div>
               )}
+
+              {/* Oportunidad existente · OPCIONAL. Si se elige, se reutiliza
+                  en lugar de crear una nueva. */}
+              <div>
+                <Typeahead
+                  label={`Oportunidad existente (opcional) · ${oportunidadesFiltradas.length} disponibles${cuentaPick ? ` para ${cuentaPick.nombre}` : ''}`}
+                  placeholder={oportunidadesFiltradas.length === 0
+                    ? 'Sin oportunidades abiertas — se creará una nueva al transformar'
+                    : 'Buscar oportunidad existente para vincular...'}
+                  value={oportunidadQuery}
+                  onChange={v => { setOportunidadQuery(v); setOportunidadPick(null) }}
+                  onPick={o => { setOportunidadPick(o); setOportunidadQuery(o.nombre) }}
+                  options={oportunidadesFiltradas}
+                  secondaryKey="tipo"
+                  tertiaryKey="dynamics_id"
+                />
+                {oportunidadPick ? (
+                  <div style={{ marginTop:6, padding:'8px 10px', background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:6, display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:11, color:'#1e3a8a', flex:1 }}>
+                      ✓ Se vinculará a la oportunidad <strong>{oportunidadPick.nombre}</strong> ({oportunidadPick.dynamics_id}) · tipo <strong>{oportunidadPick.tipo}</strong>. No se creará una nueva.
+                    </span>
+                    <button onClick={() => { setOportunidadPick(null); setOportunidadQuery('') }} style={{ background:'none', border:'1px solid #bfdbfe', color:'#1e3a8a', fontSize:10, padding:'3px 8px', borderRadius:4, cursor:'pointer' }}>Quitar</button>
+                  </div>
+                ) : (
+                  <div style={{ marginTop:6, fontSize:10, color:'var(--text4)' }}>
+                    Déjalo en blanco para crear una oportunidad nueva en Dynamics.
+                  </div>
+                )}
+              </div>
 
               {!tieneVinculo && (
                 <div style={{ fontSize:11, color:'#dc2626', fontWeight:600 }}>
