@@ -64,9 +64,11 @@ export default function ActivosList() {
     Promise.all([
       supabase.from('activos').select('*').order('nombre'),
       supabase.from('ofertas').select('activo_ref, superficie_disponible, activa'),
-    ]).then(([actRes, ofRes]) => {
+      supabase.from('propietarios').select('activo_ref, precio_compra'),
+    ]).then(([actRes, ofRes, propRes]) => {
       const activosData = actRes.data || []
       const ofertasData = ofRes.data || []
+      const propData    = propRes.data || []
       // Agrupar disponibilidades por activo_ref (sólo ofertas activas)
       const dispByActivo = {}
       for (const o of ofertasData) {
@@ -74,6 +76,14 @@ export default function ActivosList() {
         const k = o.activo_ref
         if (!k) continue
         dispByActivo[k] = (dispByActivo[k] || 0) + (Number(o.superficie_disponible) || 0)
+      }
+      // Mapa activo_ref → precio_compra (del propietario asignado en stacking).
+      // Si hay co-propiedad concatenamos con ' · '.
+      const precioByActivo = {}
+      for (const p of propData) {
+        if (!p.activo_ref || p.precio_compra == null || p.precio_compra === '') continue
+        const cur = precioByActivo[p.activo_ref]
+        precioByActivo[p.activo_ref] = cur ? `${cur} · ${p.precio_compra}` : String(p.precio_compra)
       }
       if (!actRes.error) {
         const mapped = activosData.map(a => {
@@ -97,7 +107,7 @@ export default function ActivosList() {
             sba,
             occ,
             renta:  a.renta_zona     || 0,
-            valor:  a.valor  || '—',
+            valor:  precioByActivo[a.ref] || a.valor || '—',
             estado: a.estado || '',
             dias:   a.dias_comercializacion || 0,
             uso_secundario: a.uso_secundario || '',
