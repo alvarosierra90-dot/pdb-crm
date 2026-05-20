@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { MOCK_OPORTUNIDADES, ETAPA_TAG_CLASS } from './OportunidadesList'
 import VinculacionesMaestra from '../components/VinculacionesMaestra'
+import HeaderPills from '../components/HeaderPills'
 import { Building, Building2, Tag, ScrollText, Lightbulb, Search } from 'lucide-react'
 
 function KV({ k, v, mono = false, large = false }) {
@@ -84,26 +85,39 @@ export default function FichaOportunidad() {
       <div className="ficha-wrap">
         <div className="ficha-main">
 
-          {/* Header */}
+          {/* Header con pills interactivos · canon unificado */}
           <div className="ah">
-            <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14 }}>
               <div style={{ width:50, height:50, borderRadius:10, background:'#f5efe5', border:'1px solid #93c5fd', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>
                 ⚡
               </div>
               <div style={{ flex:1, minWidth:0 }}>
+                <div className="ah-ref">
+                  <span style={{ background:'#fef3c7', color:'#92400e', border:'1px solid #fde68a', padding:'0 6px', borderRadius:3, fontSize:9, fontWeight:700 }}>OPORTUNIDAD</span>
+                  <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{op.id}</span>
+                  {op.marco && <span style={{ color:'var(--text4)', fontSize:11 }}>· {op.marco}</span>}
+                </div>
                 <div className="ah-name">{op.nombre}</div>
                 <div className="ah-addr">
-                  {op.id} · {op.cuenta} · {op.contacto || '—'} · Resp. {op.responsable}
-                </div>
-                <div className="ah-tags" style={{ marginTop:8, display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' }}>
-                  <span className={`tag ${tagClass}`}>{op.etapa}</span>
-                  <span className={`tag ${op.division === 'Capital Markets' ? 'tag-amber' : 'tag-blue'}`}>{op.division}</span>
-                  <span className="tag tag-gray">{op.marco}</span>
-                  {op.pitch === 'Sí' && <span className="tag tag-green">Pitch</span>}
-                  <span style={{ fontSize:11, fontWeight:700, color:'#15803d', marginLeft:'auto' }}>{Number(op.lifetime).toLocaleString('es-ES')} €</span>
-                  <span style={{ fontSize:11, color:'var(--text4)' }}>· {op.probabilidad || 50}% probabilidad</span>
+                  {op.cuenta} · {op.contacto || '—'} · Resp. {op.responsable}
                 </div>
               </div>
+              {(() => {
+                const prob = parseInt(op.probabilidad) || 50
+                const probColor = prob >= 75 ? 'green' : prob >= 50 ? 'amber' : prob >= 25 ? 'default' : 'red'
+                const lifetime = Number(op.lifetime || 0)
+                const etapaColor = tagClass?.includes('green') ? 'green' : tagClass?.includes('red') ? 'red' : tagClass?.includes('amber') ? 'amber' : tagClass?.includes('blue') ? 'blue' : tagClass?.includes('purple') ? 'purple' : 'default'
+                return (
+                  <HeaderPills items={[
+                    { key:'etapa', type:'info', label:'Etapa', value: op.etapa || '—', color: etapaColor, accent: !!op.etapa },
+                    { key:'division', type:'info', label:'División', value: op.division || '—', color: op.division === 'Capital Markets' ? 'amber' : 'blue', accent: !!op.division },
+                    op.pitch === 'Sí' && { key:'pitch', type:'info', label:'Vía', value:'Pitch', color:'green', accent:true },
+                    { key:'prob', type:'info', label:'Probabilidad', value: `${prob}%`, color: probColor, accent: true },
+                    { key:'lifetime', type:'info', label:'Lifetime', value: lifetime > 0 ? `${lifetime.toLocaleString('es-ES')} €` : '—', color:'green', accent: lifetime > 0 },
+                    { key:'resp', type:'info', label:'Responsable', value: op.responsable || '—' },
+                  ]} />
+                )
+              })()}
             </div>
           </div>
 

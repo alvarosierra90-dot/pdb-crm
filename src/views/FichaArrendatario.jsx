@@ -4,6 +4,7 @@ import AsignarTareaModal from '../components/AsignarTareaModal'
 import BajaArrendatarioModal from '../components/BajaArrendatarioModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import VinculacionesMaestra from '../components/VinculacionesMaestra'
+import HeaderPills from '../components/HeaderPills'
 import { Building, Building2, ScrollText, Tag } from 'lucide-react'
 import { StackingPlan } from './FichaActivo'
 import { supabase } from '../lib/supabase'
@@ -741,57 +742,43 @@ export default function FichaArrendatario() {
             </div>
           )}
 
-          {/* Header */}
+          {/* Header con pills interactivos · canon unificado */}
           <div className="ah">
-            <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+            <div style={{display:'flex',alignItems:'center',gap:14}}>
               <div className="ah-ico" style={{background:'linear-gradient(135deg,#0f766e,#14b8a6)',fontSize:18}}></div>
-              <div style={{flex:1}}>
+              <div style={{flex:1,minWidth:0}}>
                 <div className="ah-ref">
-                  <span style={{background:'var(--teal-lt)',color:'var(--teal)',border:'1px solid var(--teal-bd)',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>ARRENDATARIO</span>
+                  <span style={{background:'var(--teal-lt)',color:'var(--teal)',border:'1px solid var(--teal-bd)',padding:'0 6px',borderRadius:3,fontSize:9,fontWeight:700}}>ARRENDATARIO</span>
                   <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{isNew ? 'NUEVO' : fromTenantClick ? params.tenantName : 'ARR-2501'}</span>
-                  <span className={`tag ${form.estado==='Activo'?'tag-green':form.estado==='Próximo a vencimiento'?'tag-red':form.estado==='En negociación'?'tag-purple':'tag-gray'}`}>{form.estado}</span>
-                  {isNew && <span style={{background:'#f5efe5',color:'#5a4828',border:'1px solid #ece0c9',padding:'0 6px',borderRadius:3,fontSize:9,fontWeight:700}}>DESDE OFERTA</span>}
+                  {form.sector && <span style={{color:'var(--text4)',fontSize:11}}>· {form.sector}</span>}
+                  {isNew && <span style={{background:'#f5efe5',color:'#5a4828',border:'1px solid #ece0c9',padding:'0 6px',borderRadius:3,fontSize:9,fontWeight:700,marginLeft:6}}>DESDE OFERTA</span>}
                 </div>
                 <div className="ah-name">{form.tenant_desconocido ? 'Arrendatario desconocido' : (form.tenant || <span style={{color:'var(--text4)',fontStyle:'italic'}}>Sin nombre</span>)} {form.activo ? `— ${form.activo}` : ''}</div>
                 <div className="ah-addr">📍 {form.zona} · {form.subzona} · Inicio: {form.fecha_inicio} · Break: {form.break_option} · Fin: {form.fecha_fin}</div>
-                <div className="ah-tags">
-                  <span className="tag tag-teal">{form.sector}</span>
-                  <span className="tag tag-blue">{form.area}</span>
-                  <span className="tag tag-gray">{parseFloat(form.superficie||0).toLocaleString('es-ES')} m²</span>
-                  <span className="tag tag-green">{form.closing_rent} €/m²/mes</span>
-                  {diasBreak !== null && diasBreak <= 90 && (
-                    <span style={{background:'var(--red-lt)',color:'var(--red)',border:'1px solid var(--red-bd)',padding:'2px 8px',borderRadius:20,fontSize:10,fontWeight:700}}>
-                      ⚠ Break option {diasBreak < 0 ? `vencida ${Math.abs(diasBreak)}d` : `en ${diasBreak}d`}
-                    </span>
-                  )}
-                </div>
               </div>
-              {/* KPIs económicos a la derecha del título */}
-              <div style={{ display:'flex', alignItems:'stretch', gap:0, flexShrink:0, border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', background:'var(--surface)' }}>
-                {(() => {
-                  const sup       = parseFloat(form.superficie || 0)
-                  const closing   = parseFloat(form.closing_rent || 0)
-                  const rentaMes  = sup && closing ? sup * closing : 0
-                  const rentaAno  = rentaMes * 12
-                  const carencia  = parseInt(form.meses_carencia || 0)
-                  const aportTot  = parseFloat(String(aportacionTotal).replace(/[^0-9.]/g,'')) || 0
-                  const items = [
-                    { lbl:'Closing rent', val: closing > 0 ? closing.toFixed(2) : '—',                                            sub:'€/m²/mes',  color:'var(--accent)' },
-                    { lbl:'Renta mensual',val: rentaMes > 0 ? Math.round(rentaMes).toLocaleString('es-ES') : '—',                  sub:'€/mes',     color:'var(--green)' },
-                    { lbl:'Renta anual',  val: rentaAno > 0 ? `${(rentaAno/1000).toFixed(0)}k` : '—',                              sub:'€/año',     color:'var(--green)' },
-                    { lbl:'Superficie',   val: sup > 0 ? sup.toLocaleString('es-ES') : '—',                                       sub:'m²',         color:'var(--text1)' },
-                    { lbl:'Carencia',     val: carencia > 0 ? `${carencia}m` : '—',                                                sub:'meses',      color:'var(--text1)' },
-                    { lbl:'Aportación',   val: aportTot > 0 ? `${(aportTot/1000).toFixed(0)}k` : '—',                              sub:'€ obras',    color: aportTot > 0 ? 'var(--accent)' : 'var(--text4)' },
-                  ]
-                  return items.map((k, i) => (
-                    <div key={k.lbl} style={{ padding:'10px 14px', textAlign:'center', minWidth:80, borderLeft: i === 0 ? 'none' : '1px solid var(--border)' }}>
-                      <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4 }}>{k.lbl}</div>
-                      <div style={{ fontSize:22, fontWeight:800, fontFamily:'var(--mono)', color:k.color, lineHeight:1 }}>{k.val}</div>
-                      <div style={{ fontSize:9, color:'var(--text4)', marginTop:3 }}>{k.sub}</div>
-                    </div>
-                  ))
-                })()}
-              </div>
+              {(() => {
+                const sup      = parseFloat(form.superficie || 0)
+                const closing  = parseFloat(form.closing_rent || 0)
+                const rentaAno = sup && closing ? sup * closing * 12 : 0
+                const principal = arrAuthUsers.find(u => u.role === 'Principal') || arrAuthUsers[0]
+                const breakColor = diasBreak == null ? 'default' : diasBreak < 0 ? 'red' : diasBreak <= 90 ? 'amber' : 'default'
+                const breakLabel = !form.break_option ? '—'
+                  : diasBreak == null ? form.break_option
+                  : diasBreak < 0 ? `Vencida ${Math.abs(diasBreak)}d`
+                  : `${diasBreak}d`
+                return (
+                  <HeaderPills items={[
+                    { key:'estado', type:'info', label:'Estado', value: form.estado || '—',
+                      color: form.estado === 'Activo' ? 'green' : form.estado === 'Próximo a vencimiento' ? 'red' : form.estado === 'En negociación' ? 'purple' : form.estado === 'Renovado' ? 'accent' : 'default',
+                      accent: !!form.estado },
+                    { key:'closing', type:'info', label:'Closing rent', value: closing > 0 ? `${closing.toFixed(2)} €/m²` : '—', color:'accent', accent: closing > 0 },
+                    { key:'rentaAno', type:'info', label:'Renta anual', value: rentaAno > 0 ? `${(rentaAno/1000).toFixed(0)}k €` : '—', color:'green', accent: rentaAno > 0 },
+                    { key:'sup', type:'info', label:'Superficie', value: sup > 0 ? `${sup.toLocaleString('es-ES')} m²` : '—' },
+                    { key:'break', type:'info', label:'Break option', value: breakLabel, color: breakColor, accent: breakColor !== 'default', title: form.break_option || undefined },
+                    { key:'resp', type:'info', label:'Responsable', value: principal?.name || '—' },
+                  ]} />
+                )
+              })()}
             </div>
           </div>
 

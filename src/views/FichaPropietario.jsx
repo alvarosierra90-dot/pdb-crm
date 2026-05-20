@@ -6,6 +6,7 @@ import { exportPDF, exportPPT } from '../utils/exportReport'
 import { supabase } from '../lib/supabase'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import VinculacionesMaestra from '../components/VinculacionesMaestra'
+import HeaderPills from '../components/HeaderPills'
 import { Building, Building2, ScrollText, Tag } from 'lucide-react'
 import { StackingPlan } from './FichaActivo'
 
@@ -498,40 +499,33 @@ export default function FichaPropietario() {
           )}
 
           <div className="ah">
-            <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+            <div style={{display:'flex',alignItems:'center',gap:14}}>
               <div className="ah-ico" style={{background:'linear-gradient(135deg,#5a4828,#B08D57)',fontSize:18}}></div>
-              <div style={{flex:1}}>
+              <div style={{flex:1,minWidth:0}}>
                 <div className="ah-ref">
-                  <span style={{background:'#faf5ec',color:'#6f5734',border:'1px solid #ece0c9',padding:'0 5px',borderRadius:3,fontSize:9,fontWeight:700}}>PROPIETARIO</span>
+                  <span style={{background:'#faf5ec',color:'#6f5734',border:'1px solid #ece0c9',padding:'0 6px',borderRadius:3,fontSize:9,fontWeight:700}}>PROPIETARIO</span>
                   <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{form.id}</span>
-                  <span className="tag" style={{fontSize:9,background:PERFIL_COLOR[form.perfil]+'22',color:PERFIL_COLOR[form.perfil],border:`1px solid ${PERFIL_COLOR[form.perfil]}44`}}>{form.perfil}</span>
-                  <span className="tag" style={{fontSize:9,background:ESTADO_COLOR[form.estado]+'22',color:ESTADO_COLOR[form.estado],border:`1px solid ${ESTADO_COLOR[form.estado]}44`}}>{form.estado}</span>
+                  {form.tipo_entidad && <span style={{color:'var(--text4)',fontSize:11}}>· {form.tipo_entidad}</span>}
                 </div>
                 <div className="ah-name">{form.propietario}</div>
                 <div className="ah-sub">{form.activo} · {form.zona} · {form.superficie} m² · {form.anyo_compra}/{form.trimestre}</div>
               </div>
-
-              {/* KPIs económicos a la derecha del título */}
-              <div style={{ display:'flex', alignItems:'stretch', gap:0, flexShrink:0, border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', background:'var(--surface)' }}>
-                {(() => {
-                  const ltvNum = parseFloat(form.ltv) || 0
-                  const items = [
-                    { lbl:'Precio compra',  val: form.precio_compra || '—',                                     sub:'€',          color:'var(--text1)' },
-                    { lbl:'Valoración',     val: form.valoracion_actual || '—',                                 sub:'€ actual',   color:'var(--green)' },
-                    { lbl:'Plusvalía',      val: plusvaliaNum || '—',                                            sub:'latente',    color: plusvaliaNum.startsWith('+') ? 'var(--green)' : 'var(--red)' },
-                    { lbl:'Cap Rate',       val: form.cap_rate ? `${form.cap_rate}%` : '—',                     sub:'actual',     color:'var(--accent)' },
-                    { lbl:'Yield',          val: form.yield ? `${form.yield}%` : '—',                            sub:'NOI/V',      color:'var(--purple)' },
-                    { lbl:'LTV',            val: form.ltv ? `${form.ltv}%` : '—',                                sub:'leverage',   color: ltvNum > 55 ? 'var(--amber)' : 'var(--text1)' },
-                  ]
-                  return items.map((k, i) => (
-                    <div key={k.lbl} style={{ padding:'10px 14px', textAlign:'center', minWidth:88, borderLeft: i === 0 ? 'none' : '1px solid var(--border)' }}>
-                      <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4 }}>{k.lbl}</div>
-                      <div style={{ fontSize:20, fontWeight:800, fontFamily:'var(--mono)', color:k.color, lineHeight:1 }}>{k.val}</div>
-                      <div style={{ fontSize:9, color:'var(--text4)', marginTop:3 }}>{k.sub}</div>
-                    </div>
-                  ))
-                })()}
-              </div>
+              {(() => {
+                const ltvNum = parseFloat(form.ltv) || 0
+                const plusvaliaUp = plusvaliaNum && plusvaliaNum.startsWith('+')
+                return (
+                  <HeaderPills items={[
+                    { key:'estado', type:'info', label:'Estado', value: form.estado || '—',
+                      color: form.estado === 'Activo' ? 'green' : form.estado === 'Inactivo' ? 'red' : 'default',
+                      accent: !!form.estado },
+                    { key:'perfil', type:'info', label:'Perfil', value: form.perfil || '—', color:'purple', accent: !!form.perfil },
+                    { key:'valoracion', type:'info', label:'Valoración', value: form.valoracion_actual || '—', color:'green', accent: !!form.valoracion_actual },
+                    { key:'plusvalia', type:'info', label:'Plusvalía', value: plusvaliaNum || '—', color: plusvaliaUp ? 'green' : 'red', accent: !!plusvaliaNum && plusvaliaNum !== '—' },
+                    { key:'cap', type:'info', label:'Cap rate', value: form.cap_rate ? `${form.cap_rate}%` : '—', color:'accent', accent: !!form.cap_rate },
+                    { key:'ltv', type:'info', label:'LTV', value: form.ltv ? `${form.ltv}%` : '—', color: ltvNum > 55 ? 'amber' : 'default', accent: ltvNum > 55 },
+                  ]} />
+                )
+              })()}
             </div>
           </div>
 

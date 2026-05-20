@@ -7,6 +7,7 @@ import TransformarLeadModal from '../components/TransformarLeadModal'
 import LeadNuloModal from '../components/LeadNuloModal'
 import EquipoTrabajoCard, { isPrincipal as _isPrincipal } from '../components/EquipoTrabajoCard'
 import VinculacionesMaestra from '../components/VinculacionesMaestra'
+import HeaderPills from '../components/HeaderPills'
 import { Building2, User, Target, Lightbulb } from 'lucide-react'
 
 // Lista de equipos para el dropdown legacy "Asignación → Equipo" del
@@ -294,25 +295,44 @@ export default function FichaLead() {
       <div className="ficha-wrap">
         <div className="ficha-main">
 
-          {/* Header */}
+          {/* Header con pills interactivos · canon unificado */}
           <div className="ah">
-            <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14 }}>
               <div style={{ width:50, height:50, borderRadius:10, background:'#fef3c7', border:'1px solid #fde68a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>
-                
+
               </div>
               <div style={{ flex:1, minWidth:0 }}>
+                <div className="ah-ref">
+                  <span style={{ background:'#fef3c7', color:'#92400e', border:'1px solid #fde68a', padding:'0 6px', borderRadius:3, fontSize:9, fontWeight:700 }}>LEAD</span>
+                  <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{lead.ref}</span>
+                  {(lead.origen_canal || lead.fuente) && <span style={{ color:'var(--text4)', fontSize:11 }}>· {lead.origen_canal || lead.fuente}</span>}
+                </div>
                 <div className="ah-name">{lead.nombre}</div>
                 <div className="ah-addr">
-                  {lead.ref} · Origen: {lead.origen_canal || lead.fuente || '—'} · Entrada: {fmtFecha(lead.created_at)} · Responsable: {lead.responsable || '—'}
-                </div>
-                <div className="ah-tags" style={{ marginTop:8, display:'flex', gap:6, flexWrap:'wrap' }}>
-                  <TipoTag tipo={lead.tipo} />
-                  <EstadoTag estado={lead.estado} />
-                  <PrioridadTag prioridad={lead.prioridad} />
-                  {cuentaNombre && <span className="tag tag-blue">{cuentaNombre}</span>}
-                  {oportunidadId && <span className="tag tag-teal">⚡ Oportunidad: {oportunidadNombre}</span>}
+                  Entrada: {fmtFecha(lead.created_at)} · Responsable: {lead.responsable || '—'}
                 </div>
               </div>
+              {(() => {
+                const tipo = LEAD_TIPOS.find(x => x.key === lead.tipo)
+                const estado = LEAD_ESTADOS.find(x => x.key === lead.estado)
+                const prioridad = LEAD_PRIORIDADES.find(x => x.key === lead.prioridad)
+                const estadoColor = lead.estado === 'cualificado' ? 'green'
+                  : lead.estado === 'no_cualificado' ? 'red'
+                  : lead.estado === 'en_cualificacion' ? 'amber'
+                  : lead.estado === 'nuevo' ? 'blue' : 'default'
+                const tipoColor = lead.tipo === 'demanda' ? 'purple' : lead.tipo === 'oferta' ? 'green' : lead.tipo === 'generico' ? 'amber' : 'default'
+                const prioridadColor = lead.prioridad === 'alta' ? 'red' : lead.prioridad === 'media' ? 'amber' : lead.prioridad === 'baja' ? 'default' : 'default'
+                return (
+                  <HeaderPills items={[
+                    { key:'estado', type:'info', label:'Estado', value: estado?.label || '—', color: estadoColor, accent: !!estado },
+                    { key:'tipo', type:'info', label:'Tipo', value: tipo?.label || '—', color: tipoColor, accent: !!tipo },
+                    { key:'prioridad', type:'info', label:'Prioridad', value: prioridad?.label || '—', color: prioridadColor, accent: lead.prioridad === 'alta' || lead.prioridad === 'media' },
+                    cuentaNombre && { key:'cuenta', type:'info', label:'Cuenta', value: cuentaNombre, color:'blue', accent:true },
+                    oportunidadId && { key:'oportunidad', type:'info', label:'Oportunidad', value: oportunidadNombre || oportunidadId, color:'teal', accent:true },
+                    { key:'resp', type:'info', label:'Responsable', value: lead.responsable || '—' },
+                  ]} />
+                )
+              })()}
             </div>
           </div>
 
