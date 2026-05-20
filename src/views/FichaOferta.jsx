@@ -291,6 +291,8 @@ function FichaOfertaMock() {
   const [dbForm, setDbForm] = useState({ tenant:'', tenant_desconocido:false, anyo_firma:String(new Date().getFullYear()), trimestre:'Q1', fecha_inicio:'', anios_obligado:'', anios_obligado_2:'', closing_rent:'' })
   const [dbSaving, setDbSaving] = useState(false)
   const [dbErrors, setDbErrors] = useState([])
+  // Motivo de baja · 'cierre' (alquilada → crea arrendatario) | 'error' (eliminar)
+  const [dbMode, setDbMode] = useState(null)
   const setDbF = (k,v) => setDbForm(p => {
     const n = {...p,[k]:v}
     if (k==='fecha_inicio'||k==='anios_obligado') {
@@ -829,6 +831,38 @@ function FichaOfertaMock() {
     }
   }
 
+  // Eliminar la oferta por completo: la fila de Supabase + las unidades vac
+  // del stacking. Se usa cuando la oferta fue introducida por error.
+  const handleEliminarOferta = async () => {
+    setDbErrors([]); setDbSaving(true)
+    const ofertaNombres = ofertasDesglose.map(o => o.nombre)
+    try {
+      // 1. Limpiar stacking: quitar units 'vac' que pertenezcan a esta oferta
+      if (activoSeleccionado?.ref) {
+        const { data: acData } = await supabase.from('activos').select('stacking_data').eq('ref', activoSeleccionado.ref).single()
+        if (acData?.stacking_data) {
+          const updated = acData.stacking_data.map(b => ({
+            ...b,
+            arr: (b.arr||[]).map(row => ({
+              ...row,
+              units: row.units.filter(u => !(u.type==='vac' && (ofertaNombres.includes(u.oferta) || u.prop_id === oferta?.ref)))
+            }))
+          }))
+          await supabase.from('activos').update({ stacking_data: updated }).eq('ref', activoSeleccionado.ref)
+        }
+      }
+      // 2. Borrar la fila de la oferta
+      await supabase.from('ofertas').delete().eq('ref', oferta.ref)
+    } catch (e) {
+      setDbErrors([e.message || 'Error eliminando oferta'])
+      setDbSaving(false)
+      return
+    }
+    setDbSaving(false)
+    setShowDarBaja(false)
+    navigate('ofertas')
+  }
+
   const handleDarBaja = async () => {
     const errs = []
     if (!dbForm.tenant_desconocido && !dbForm.tenant.trim()) errs.push('Tenant o marca "Desconocido"')
@@ -918,7 +952,7 @@ function FichaOfertaMock() {
         {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
         <button className="ab-btn">Nuevo</button>
         {!isMock && oferta?.ref && oferta?.activa !== false && (
-          <button className="ab-btn" style={{color:'var(--red)',borderColor:'var(--red)'}} onClick={()=>{ setDbForm(p=>({...p,closing_rent:oferta?.renta_m2?String(oferta.renta_m2):''})); setShowDarBaja(true) }}>Dar de baja</button>
+          <button className="ab-btn" style={{color:'var(--red)',borderColor:'var(--red)'}} onClick={()=>{ setDbMode(null); setDbErrors([]); setDbForm(p=>({...p,closing_rent:oferta?.renta_m2?String(oferta.renta_m2):''})); setShowDarBaja(true) }}>Dar de baja</button>
         )}
         <div className="ab-sep" />
         <button className="ab-btn">Recalcular</button>
@@ -2692,9 +2726,61 @@ function FichaOfertaMock() {
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'var(--surface)',borderRadius:12,padding:28,width:480,maxWidth:'95vw',boxShadow:'0 8px 40px rgba(0,0,0,.25)',display:'flex',flexDirection:'column',gap:16}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <div><div style={{fontSize:15,fontWeight:700,color:'var(--text1)'}}>Dar de baja oferta</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Se creará un arrendatario y se actualizará el stacking plan</div></div>
+              <div>
+                <div style={{fontSize:15,fontWeight:700,color:'var(--text1)'}}>Dar de baja oferta</div>
+                <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>
+                  {dbMode==='cierre' && 'Se creará un arrendatario y se actualizará el stacking plan'}
+                  {dbMode==='error'  && 'Se eliminará la oferta por completo'}
+                  {!dbMode             && 'Selecciona el motivo'}
+                </div>
+              </div>
               <button onClick={()=>setShowDarBaja(false)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,color:'var(--text3)',lineHeight:1}}>✕</button>
             </div>
+
+            {/* Paso 1: elegir motivo */}
+            {!dbMode && (
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                <button onClick={()=>setDbMode('cierre')}
+                  style={{textAlign:'left',padding:'14px 16px',border:'1px solid var(--border)',borderRadius:8,background:'var(--surface)',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',gap:4}}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+                  <span style={{fontSize:13,fontWeight:700,color:'var(--text1)'}}>Oferta cerrada (alquilada)</span>
+                  <span style={{fontSize:11,color:'var(--text3)',lineHeight:1.5}}>El espacio queda como ocupado · se crea un arrendatario en el stacking y la oferta se desactiva.</span>
+                </button>
+                <button onClick={()=>setDbMode('error')}
+                  style={{textAlign:'left',padding:'14px 16px',border:'1px solid var(--border)',borderRadius:8,background:'var(--surface)',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',gap:4}}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor='var(--red)'}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+                  <span style={{fontSize:13,fontWeight:700,color:'var(--red)'}}>Introducida por error</span>
+                  <span style={{fontSize:11,color:'var(--text3)',lineHeight:1.5}}>La oferta no debería haberse creado · se elimina la fila y se limpian las unidades del stacking. No queda registro.</span>
+                </button>
+                <div style={{display:'flex',justifyContent:'flex-end',marginTop:4}}>
+                  <button onClick={()=>setShowDarBaja(false)} style={{padding:'8px 16px',background:'none',border:'1px solid var(--border)',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>Cancelar</button>
+                </div>
+              </div>
+            )}
+
+            {/* Paso 2A: introducida por error → confirmación */}
+            {dbMode==='error' && (
+              <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                <div style={{padding:'12px 14px',background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:8,fontSize:12,color:'#7f1d1d',lineHeight:1.55}}>
+                  Se va a <strong>eliminar la oferta {oferta?.ref}</strong> por completo: la fila en Supabase + las unidades vacantes del stacking asociadas. <strong>No es reversible.</strong>
+                </div>
+                {dbErrors.length>0 && <div style={{padding:'8px 12px',background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:6,fontSize:11,color:'var(--red)'}}>{dbErrors.map((e,i)=><div key={i}>• {e}</div>)}</div>}
+                <div style={{display:'flex',gap:8,justifyContent:'space-between',marginTop:4}}>
+                  <button onClick={()=>setDbMode(null)} style={{padding:'8px 16px',background:'none',border:'1px solid var(--border)',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>← Atrás</button>
+                  <div style={{display:'flex',gap:8}}>
+                    <button onClick={()=>setShowDarBaja(false)} style={{padding:'8px 16px',background:'none',border:'1px solid var(--border)',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>Cancelar</button>
+                    <button onClick={handleEliminarOferta} disabled={dbSaving} style={{padding:'8px 16px',background:'var(--red)',color:'#fff',border:'none',borderRadius:6,fontSize:12,fontWeight:600,cursor:dbSaving?'wait':'pointer',fontFamily:'inherit',opacity:dbSaving?.6:1}}>
+                      {dbSaving ? 'Eliminando...' : 'Eliminar oferta'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Paso 2B: cierre normal (arrendatario) — formulario completo */}
+            {dbMode==='cierre' && (<>
 
             {/* Tenant */}
             <div style={{display:'flex',flexDirection:'column',gap:6}}>
@@ -2754,12 +2840,16 @@ function FichaOfertaMock() {
 
             {dbErrors.length>0 && <div style={{padding:'8px 12px',background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:6,fontSize:11,color:'var(--red)'}}>{dbErrors.map((e,i)=><div key={i}>• {e}</div>)}</div>}
 
-            <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:4}}>
-              <button onClick={()=>setShowDarBaja(false)} style={{padding:'8px 16px',background:'none',border:'1px solid var(--border)',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>Cancelar</button>
-              <button onClick={handleDarBaja} disabled={dbSaving} style={{padding:'8px 16px',background:'var(--red)',color:'#fff',border:'none',borderRadius:6,fontSize:12,fontWeight:600,cursor:dbSaving?'wait':'pointer',fontFamily:'inherit',opacity:dbSaving?.6:1}}>
-                {dbSaving ? 'Procesando...' : 'Confirmar baja'}
-              </button>
+            <div style={{display:'flex',gap:8,justifyContent:'space-between',marginTop:4}}>
+              <button onClick={()=>setDbMode(null)} style={{padding:'8px 16px',background:'none',border:'1px solid var(--border)',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>← Atrás</button>
+              <div style={{display:'flex',gap:8}}>
+                <button onClick={()=>setShowDarBaja(false)} style={{padding:'8px 16px',background:'none',border:'1px solid var(--border)',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>Cancelar</button>
+                <button onClick={handleDarBaja} disabled={dbSaving} style={{padding:'8px 16px',background:'var(--red)',color:'#fff',border:'none',borderRadius:6,fontSize:12,fontWeight:600,cursor:dbSaving?'wait':'pointer',fontFamily:'inherit',opacity:dbSaving?.6:1}}>
+                  {dbSaving ? 'Procesando...' : 'Confirmar baja'}
+                </button>
+              </div>
             </div>
+            </>)}
           </div>
         </div>
       )}
