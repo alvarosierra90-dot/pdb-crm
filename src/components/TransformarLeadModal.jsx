@@ -118,7 +118,10 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
       const [{ data: accs }, { data: cts }, { data: acts }, { data: opps }] = await Promise.all([
         supabase.from('dynamics_accounts').select('dynamics_id, nombre, tipo').order('nombre'),
         supabase.from('dynamics_contacts').select('dynamics_id, nombre, email, cuenta_dynamics_id').order('nombre'),
-        supabase.from('activos').select('id, ref, nombre, ciudad, zona, uso').order('nombre'),
+        // Cargamos dynamics_account_id (propietario en Dynamics) y propietario (texto)
+        // para que en flujo oferta-directa la oferta herede automáticamente la cuenta
+        // del propietario del activo (lo que aparece en Vinculaciones).
+        supabase.from('activos').select('id, ref, nombre, ciudad, zona, uso, dynamics_account_id, propietario').order('nombre'),
         supabase.from('dynamics_opportunities')
           .select('dynamics_id, nombre, tipo, cuenta_dynamics_id, estado')
           .eq('estado', 'abierta')
@@ -303,11 +306,15 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
         destinoView = 'ficha-demanda'
       } else if (esquema.destino === 'oferta') {
         const ref = await nextRef('OFE')
+        // En una oferta, la cuenta de Vinculaciones es el PROPIETARIO del activo
+        // (no el cliente del lead). Si el activo ya tiene dynamics_account_id
+        // (propietario en Dynamics), lo usamos. Si no, fallback al cuentaPick.
+        const cuentaOferta = activoPick?.dynamics_account_id || cuentaId
         const { data: ofe, error: e2 } = await supabase.from('ofertas').insert({
           ref,
           activo_id:               activoPick.id,
           dynamics_opportunity_id: dynOppId,
-          dynamics_account_id:     cuentaId,
+          dynamics_account_id:     cuentaOferta,
           equipo_trabajo:          equipoHeredado,
         }).select('id, ref').single()
         if (e2) throw new Error(`Oferta: ${e2.message}`)
@@ -513,7 +520,35 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
                     tertiaryKey="ciudad"
                   />
                   {activoPick ? (
-                    <div style={{ fontSize:10, color:'#15803d' }}>✓ Activo seleccionado: {activoPick.nombre} ({activoPick.ref})</div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                      <div style={{ fontSize:10, color:'#15803d' }}>✓ Activo seleccionado: {activoPick.nombre} ({activoPick.ref})</div>
+                      {(() => {
+                        // El propietario del activo es quien aparecerá en la banda
+                        // Vinculaciones de la oferta — no la cuenta del lead.
+                        const propAcc = activoPick.dynamics_account_id
+                          ? accounts.find(a => a.dynamics_id === activoPick.dynamics_account_id)
+                          : null
+                        if (propAcc) {
+                          return (
+                            <div style={{ padding:'8px 10px', background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:6, fontSize:11, color:'#1e3a8a' }}>
+                              ✓ La oferta se vinculará al <strong>propietario del activo</strong>: <strong>{propAcc.nombre}</strong>{propAcc.tipo ? ` · ${propAcc.tipo}` : ''}.
+                            </div>
+                          )
+                        }
+                        if (activoPick.propietario) {
+                          return (
+                            <div style={{ padding:'8px 10px', background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:6, fontSize:11, color:'#7c2d12' }}>
+                              ⚠ El activo tiene propietario textual <strong>{activoPick.propietario}</strong> pero sin cuenta Dynamics vinculada. La oferta usará la cuenta del lead como respaldo.
+                            </div>
+                          )
+                        }
+                        return (
+                          <div style={{ padding:'8px 10px', background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:6, fontSize:11, color:'#7c2d12' }}>
+                            ⚠ El activo no tiene propietario asignado. La oferta usará la cuenta del lead. Después podrás asignar el propietario desde la ficha del activo.
+                          </div>
+                        )
+                      })()}
+                    </div>
                   ) : (
                     <div style={{ fontSize:11, color:'#dc2626', fontWeight:600 }}>
                       ✗ Necesitas seleccionar el activo. Si no existe aún, créalo primero en el módulo Activos y vuelve aquí.
