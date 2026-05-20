@@ -1,3 +1,5 @@
+import { useState, useRef, useEffect } from 'react'
+
 /**
  * Barra de pills interactivos para el header de fichas.
  * Todos los pills tienen la misma anchura (150px) para simetría perfecta.
@@ -5,13 +7,26 @@
  * (peso 700), border 2px del color del estado y radius 10px.
  *
  * Cada pill puede ser:
- *  · Estático: { type:'info', label, value, color, accent }
- *  · Interactivo: { type:'select', label, value, options, onChange, color }
- *  · Botón: { type:'button', label, value, onClick, color, badge }
+ *  · Estático:    { type:'info',    label, value, color, accent }
+ *  · Select clásico (chevron, dispara onChange): { type:'select', label, value, options, onChange, color }
+ *  · Botón:       { type:'button',  label, value, onClick, color, badge }
+ *  · Popover editable (recomendado): { type:'popover', label, value, color, accent,
+ *      popover: {
+ *        type: 'select' | 'text' | 'textarea' | 'date' | 'number',
+ *        options: [{ value, label }] | undefined,   // solo type='select'
+ *        rows: 4 | undefined,                       // solo textarea
+ *        placeholder: string | undefined,
+ *        onSave: async (newValue) => void,          // se llama al guardar
+ *      },
+ *    }
+ *
+ * Solo un popover puede estar abierto a la vez (coordinado por openKey).
  *
  * @param {Array} items  Array de pills
  */
 export default function HeaderPills({ items = [] }) {
+  const [openKey, setOpenKey] = useState(null)
+
   return (
     <div style={{
       flexShrink: 0,
@@ -22,12 +37,20 @@ export default function HeaderPills({ items = [] }) {
       maxWidth: 'min(640px, 70%)',
       justifyContent: 'flex-end',
     }}>
-      {items.filter(Boolean).map((it, i) => <Pill key={it.key || i} {...it} />)}
+      {items.filter(Boolean).map((it, i) => (
+        <Pill
+          key={it.key || i}
+          {...it}
+          isOpen={openKey === (it.key || i)}
+          onOpen={() => setOpenKey(it.key || i)}
+          onClose={() => setOpenKey(null)}
+        />
+      ))}
     </div>
   )
 }
 
-function Pill({ type = 'info', label, value, color, accent, options, onChange, onClick, badge, icon, title }) {
+function Pill({ type = 'info', label, value, color, accent, options, onChange, onClick, badge, icon, title, popover, isOpen, onOpen, onClose }) {
   const palette = palettes[color] || palettes.default
   const baseStyle = {
     background: accent ? palette.bg : 'var(--surface)',
@@ -37,6 +60,7 @@ function Pill({ type = 'info', label, value, color, accent, options, onChange, o
     fontFamily: 'inherit',
     textAlign: 'left',
     boxSizing: 'border-box',
+    position: 'relative',
   }
   const labelStyle = {
     fontSize: 10,
@@ -96,11 +120,152 @@ function Pill({ type = 'info', label, value, color, accent, options, onChange, o
     )
   }
 
+  if (type === 'popover') {
+    return (
+      <div style={baseStyle} title={title}>
+        <button
+          onClick={() => isOpen ? onClose?.() : onOpen?.()}
+          style={{
+            all: 'unset', display: 'block', width: '100%',
+            cursor: 'pointer', boxSizing: 'border-box',
+          }}>
+          <div style={labelStyle}>
+            {label}
+            <span style={{ float:'right', fontSize:9, fontWeight:700, opacity:.55 }}>{isOpen ? '▴' : '▾'}</span>
+          </div>
+          <div style={{ ...valueStyle, color: value ? (accent ? palette.fg : 'var(--text)') : 'var(--text4)', fontStyle: value ? 'normal' : 'italic', fontWeight: value ? 700 : 500 }}>
+            {value || '— pendiente'}
+          </div>
+        </button>
+        {isOpen && (
+          <PillPopover popover={popover} currentValue={value} onClose={onClose} palette={palette} />
+        )}
+      </div>
+    )
+  }
+
   // type === 'info'
   return (
     <div style={baseStyle} title={title}>
       <div style={labelStyle}>{label}</div>
       <div style={valueStyle}>{value}</div>
+    </div>
+  )
+}
+
+function PillPopover({ popover, currentValue, onClose, palette }) {
+  const ref = useRef(null)
+  const [draft, setDraft] = useState(currentValue ?? '')
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState(null)
+
+  // Cerrar al perder foco fuera del popover
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onClose?.()
+    }
+    const onEsc = (e) => { if (e.key === 'Escape') onClose?.() }
+    setTimeout(() => document.addEventListener('mousedown', onDocClick), 0)
+    document.addEventListener('keydown', onEsc)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('keydown', onEsc)
+    }
+  }, [onClose])
+
+  const persist = async (newVal) => {
+    setSaving(true); setErr(null)
+    try {
+      await popover.onSave?.(newVal)
+      onClose?.()
+    } catch (e) {
+      setErr(e?.message || 'Error al guardar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Estilos comunes
+  const panelStyle = {
+    position: 'absolute',
+    top: 'calc(100% + 6px)',
+    left: 0,
+    minWidth: 220,
+    maxWidth: 320,
+    zIndex: 100,
+    background: '#fff',
+    border: `1px solid ${palette.bd}`,
+    borderRadius: 8,
+    boxShadow: '0 12px 32px rgba(0,0,0,0.16)',
+    padding: 6,
+    fontFamily: 'inherit',
+  }
+  const inpStyle = { width:'100%', padding:'7px 9px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', boxSizing:'border-box', outline:'none' }
+
+  // SELECT · clic en opción guarda y cierra (estilo Linear)
+  if (popover.type === 'select') {
+    return (
+      <div ref={ref} style={panelStyle}>
+        {popover.options?.map(opt => {
+          const isCur = opt.value === currentValue || opt.label === currentValue
+          return (
+            <button
+              key={opt.value}
+              onClick={() => persist(opt.value)}
+              disabled={saving}
+              style={{
+                display:'flex', width:'100%', alignItems:'center', gap:8,
+                padding:'7px 10px', fontSize:12, border:'none',
+                borderRadius:5, cursor:'pointer', textAlign:'left',
+                background: isCur ? palette.bg : 'transparent',
+                color: isCur ? palette.fg : 'var(--text)',
+                fontWeight: isCur ? 700 : 500,
+                fontFamily:'inherit',
+              }}
+              onMouseEnter={e => { if (!isCur) e.currentTarget.style.background = '#f4f4f5' }}
+              onMouseLeave={e => { if (!isCur) e.currentTarget.style.background = 'transparent' }}
+            >
+              {isCur && <span style={{ fontSize:10, color: palette.fg }}>●</span>}
+              <span style={{ flex:1 }}>{opt.label}</span>
+            </button>
+          )
+        })}
+        {err && <div style={{ padding:'6px 10px', fontSize:11, color:'#dc2626' }}>{err}</div>}
+      </div>
+    )
+  }
+
+  // TEXT / DATE / NUMBER / TEXTAREA · input + botones
+  const isMultiline = popover.type === 'textarea'
+  return (
+    <div ref={ref} style={panelStyle}>
+      {isMultiline ? (
+        <textarea
+          autoFocus
+          rows={popover.rows || 4}
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          placeholder={popover.placeholder}
+          style={{ ...inpStyle, resize:'vertical', lineHeight:1.5 }}
+        />
+      ) : (
+        <input
+          autoFocus
+          type={popover.type === 'number' ? 'number' : popover.type === 'date' ? 'date' : 'text'}
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') persist(draft) }}
+          placeholder={popover.placeholder}
+          style={inpStyle}
+        />
+      )}
+      {err && <div style={{ padding:'4px 2px', fontSize:11, color:'#dc2626' }}>{err}</div>}
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:6, marginTop:6 }}>
+        <button onClick={onClose} style={{ padding:'5px 10px', fontSize:11, border:'1px solid var(--border)', borderRadius:4, background:'#fff', cursor:'pointer', fontFamily:'inherit' }}>Cancelar</button>
+        <button onClick={() => persist(draft)} disabled={saving} style={{ padding:'5px 12px', fontSize:11, border:'none', borderRadius:4, background: palette.fg, color:'#fff', cursor:saving?'wait':'pointer', fontWeight:700, fontFamily:'inherit' }}>
+          {saving ? 'Guardando…' : 'Guardar'}
+        </button>
+      </div>
     </div>
   )
 }
