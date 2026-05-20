@@ -1301,12 +1301,13 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                                 style={{width:wpct,background:info.bg,border:`1px solid ${isHL?info.color:info.bd}`,flex:'unset',flexShrink:0,boxShadow:isHL?`0 0 0 2px ${info.color}, 0 2px 12px ${info.color}66`:undefined,transform:isHL?'scale(1.02)':undefined,zIndex:isHL?2:undefined,position:'relative',transition:'box-shadow 120ms ease, transform 120ms ease'}}
                               >
                                 {isEd ? (
-                                  <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
+                                  <div style={{display:'flex',gap:5,padding:'6px 8px',alignItems:'center',background:'#fff',border:`1.5px solid ${info.color}`,borderRadius:6,boxShadow:`0 4px 14px ${info.color}33`}} onClick={e=>e.stopPropagation()}>
                                     <input type="number" value={editSup} onChange={e=>setEditSup(e.target.value)} autoFocus
                                       onKeyDown={e=>{if(e.key==='Enter')saveSup();if(e.key==='Escape')setEditFloor(null)}}
-                                      style={{width:52,padding:'2px 4px',fontSize:9,border:`1px solid ${info.color}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
-                                    <button onClick={saveSup} style={{padding:'2px 4px',background:info.color,color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓</button>
-                                    <button onClick={()=>removeItem(floor.id,i,'principal')} style={{padding:'2px 4px',background:'#fee2e2',color:'#dc2626',border:'1px solid #fca5a5',borderRadius:3,fontSize:8,cursor:'pointer'}}>✕</button>
+                                      style={{width:90,padding:'6px 8px',fontSize:13,fontWeight:600,border:`1px solid ${info.color}`,borderRadius:4,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                    <span style={{fontSize:11,color:info.color,fontWeight:600}}>m²</span>
+                                    <button onClick={saveSup} style={{padding:'6px 10px',background:info.color,color:'#fff',border:'none',borderRadius:4,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',marginLeft:4}}>✓</button>
+                                    <button onClick={()=>removeItem(floor.id,i,'principal')} style={{padding:'6px 10px',background:'#fee2e2',color:'#dc2626',border:'1px solid #fca5a5',borderRadius:4,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
                                   </div>
                                 ) : (
                                   <div className="sp-block-content">
@@ -1613,11 +1614,12 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                                   style={{width:wpct,background:col+(isHL?'2E':'18'),border:`1px solid ${isHL?col:col+'88'}`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible',boxShadow:isHL?`0 0 0 2px ${col}, 0 2px 12px ${col}66`:undefined,transform:isHL?'scale(1.02)':undefined,zIndex:isHL?2:undefined,transition:'box-shadow 120ms ease, transform 120ms ease'}}
                                 >
                                   {isEd ? (
-                                    <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
+                                    <div style={{display:'flex',gap:5,padding:'6px 8px',alignItems:'center',background:'#fff',border:`1.5px solid ${col}`,borderRadius:6,boxShadow:`0 4px 14px ${col}33`}} onClick={e=>e.stopPropagation()}>
                                       <input type="number" value={editPASup} onChange={e=>setEditPASup(e.target.value)} autoFocus
                                         onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
-                                        style={{width:58,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
-                                      <button onClick={savePASup} style={{padding:'2px 4px',background:col,color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓</button>
+                                        style={{width:90,padding:'6px 8px',fontSize:13,fontWeight:600,border:`1px solid ${col}`,borderRadius:4,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                      <span style={{fontSize:11,color:col,fontWeight:600}}>m²</span>
+                                      <button onClick={savePASup} style={{padding:'6px 10px',background:col,color:'#fff',border:'none',borderRadius:4,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',marginLeft:4}}>✓</button>
                                     </div>
                                   ) : (
                                     <>
@@ -1928,12 +1930,12 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                                   style={{width:wpct,background:isHL?col+'33':bg,border:`1px solid ${isHL?col:bd}`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible',flexDirection:'column',minHeight:barH,justifyContent:'center',boxShadow:isHL?`0 0 0 2px ${col}, 0 2px 12px ${col}66`:undefined,transform:isHL?'scale(1.02)':undefined,zIndex:isHL?2:undefined,transition:'box-shadow 120ms ease, transform 120ms ease'}}
                                 >
                                   {isEd ? (
-                                    <div style={{display:'flex',flexDirection:'column',gap:3,padding:'2px 4px'}} onClick={e=>e.stopPropagation()}>
-                                      <div style={{display:'flex',gap:2,alignItems:'center'}}>
+                                    <div style={{display:'flex',flexDirection:'column',gap:6,padding:'6px 8px',background:'#fff',border:`1.5px solid ${col}`,borderRadius:6,boxShadow:`0 4px 14px ${col}33`}} onClick={e=>e.stopPropagation()}>
+                                      <div style={{display:'flex',gap:5,alignItems:'center'}}>
                                         <input type="number" value={editPASup} onChange={e=>setEditPASup(e.target.value)} autoFocus
                                           onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
-                                          style={{width:56,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
-                                        <span style={{fontSize:8,color:col}}>m²</span>
+                                          style={{width:90,padding:'6px 8px',fontSize:13,fontWeight:600,border:`1px solid ${col}`,borderRadius:4,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                        <span style={{fontSize:11,color:col,fontWeight:600}}>m²</span>
                                       </div>
                                       {u.type==='vac'&&u.oferta&&(()=>{
                                         const ofMeta = extraOfertas.find(o => o.nombre === u.oferta)
@@ -1941,26 +1943,26 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                                         const unitLabel = isVenta ? '€/m²' : '€/m²/mes'
                                         return (
                                           <>
-                                            <div style={{display:'flex',gap:2,alignItems:'center'}}>
+                                            <div style={{display:'flex',gap:5,alignItems:'center'}}>
                                               <input type="number" step="0.01" value={editPARenta} onChange={e=>setEditPARenta(e.target.value)}
                                                 onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
                                                 placeholder={unitLabel}
-                                                style={{width:60,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
-                                              <span style={{fontSize:8,color:col}}>{unitLabel}</span>
+                                                style={{width:100,padding:'6px 8px',fontSize:13,fontWeight:600,border:`1px solid ${col}`,borderRadius:4,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                              <span style={{fontSize:11,color:col,fontWeight:600}}>{unitLabel}</span>
                                             </div>
                                             {isVenta && (
-                                              <div style={{display:'flex',gap:2,alignItems:'center'}}>
+                                              <div style={{display:'flex',gap:5,alignItems:'center'}}>
                                                 <input type="number" step="1" value={editPATotal} onChange={e=>setEditPATotal(e.target.value)}
                                                   onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
                                                   placeholder="Total €"
-                                                  style={{width:72,padding:'2px 4px',fontSize:9,border:`1px solid ${col}`,borderRadius:3,fontFamily:'var(--mono)',textAlign:'right'}}/>
-                                                <span style={{fontSize:8,color:col}}>€ total</span>
+                                                  style={{width:120,padding:'6px 8px',fontSize:13,fontWeight:600,border:`1px solid ${col}`,borderRadius:4,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                                <span style={{fontSize:11,color:col,fontWeight:600}}>€ total</span>
                                               </div>
                                             )}
                                           </>
                                         )
                                       })()}
-                                      <button onClick={savePASup} style={{padding:'2px 4px',background:col,color:'#fff',border:'none',borderRadius:3,fontSize:8,cursor:'pointer'}}>✓ Guardar</button>
+                                      <button onClick={savePASup} style={{padding:'6px 10px',background:col,color:'#fff',border:'none',borderRadius:4,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>✓ Guardar</button>
                                     </div>
                                   ) : (
                                     <>
