@@ -61,27 +61,50 @@ export default function ActivosList() {
   const [quickFilter, setQuickFilter] = useState('') // chip activo: '', 'comercializacion', 'ocupado', 'parcial', 'vacio', 'oficinas', 'logistico', 'retail'
 
   useEffect(() => {
-    supabase.from('activos').select('*').order('nombre').then(({ data, error }) => {
-      if (!error && data) {
-        const mapped = data.map(a => ({
-          ref:    a.ref,
-          name:      a.nombre,
-          direccion: a.direccion || '',
-          propietario: a.propietario || '—',
-          zona:   a.zona   || '',
-          subzona:a.subzona|| '',
-          ciudad: a.ciudad || '',
-          uso:    a.uso    || '',
-          sba:    a.sba    || 0,
-          occ:    a.occupancy_rate || 0,
-          renta:  a.renta_zona     || 0,
-          valor:  a.valor  || '—',
-          estado: a.estado || '',
-          dias:   a.dias_comercializacion || 0,
-          uso_secundario: a.uso_secundario || '',
-          sup_planta_tipo: a.sup_planta_tipo || 0,
-          sup_neta: (a.sba && a.ratio_perdida) ? Math.round(a.sba * (1 - a.ratio_perdida / 100)) : null,
-        }))
+    Promise.all([
+      supabase.from('activos').select('*').order('nombre'),
+      supabase.from('ofertas').select('activo_ref, superficie_disponible, activa'),
+    ]).then(([actRes, ofRes]) => {
+      const activosData = actRes.data || []
+      const ofertasData = ofRes.data || []
+      // Agrupar disponibilidades por activo_ref (sólo ofertas activas)
+      const dispByActivo = {}
+      for (const o of ofertasData) {
+        if (o.activa === false) continue
+        const k = o.activo_ref
+        if (!k) continue
+        dispByActivo[k] = (dispByActivo[k] || 0) + (Number(o.superficie_disponible) || 0)
+      }
+      if (!actRes.error) {
+        const mapped = activosData.map(a => {
+          const sba = a.sba || 0
+          const sumDisp = dispByActivo[a.ref] || 0
+          // Ocupación derivada: si no hay ofertas activas → 100%.
+          // Si hay, occ = 100 − (sumDisp / sba) · 100 (clamp 0–100).
+          let occ = 100
+          if (sumDisp > 0 && sba > 0) {
+            occ = Math.max(0, Math.min(100, Math.round(100 - (sumDisp / sba) * 100)))
+          }
+          return {
+            ref:    a.ref,
+            name:      a.nombre,
+            direccion: a.direccion || '',
+            propietario: a.propietario || '—',
+            zona:   a.zona   || '',
+            subzona:a.subzona|| '',
+            ciudad: a.ciudad || '',
+            uso:    a.uso    || '',
+            sba,
+            occ,
+            renta:  a.renta_zona     || 0,
+            valor:  a.valor  || '—',
+            estado: a.estado || '',
+            dias:   a.dias_comercializacion || 0,
+            uso_secundario: a.uso_secundario || '',
+            sup_planta_tipo: a.sup_planta_tipo || 0,
+            sup_neta: (a.sba && a.ratio_perdida) ? Math.round(a.sba * (1 - a.ratio_perdida / 100)) : null,
+          }
+        })
         // Si venimos de "Guardar y cerrar", poner ese activo primero
         if (highlightRef) {
           const idx = mapped.findIndex(a => a.ref === highlightRef)
