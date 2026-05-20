@@ -1815,10 +1815,22 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                 <div>Arrendatario · oferta</div>
                 <div style={{textAlign:'right'}}>Sup.</div>
               </div>
-              {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
+              {(()=>{
+                const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1)
+                // Set de nombres válidos de oferta (los que sí están en BD).
+                // Sirve para FILTRAR vac units huérfanas del render: el caso
+                // 'Disp 2 en Albatros' que aparecía sin card en sidebar
+                // porque su oferta no existe en la tabla ofertas.
+                const validOfertaNames = new Set((extraOfertas || []).map(o => o.nombre).filter(Boolean))
+                const filterUnits = (us) => (us || []).filter(u => {
+                  if (u.type !== 'vac') return true
+                  if (!u.oferta) return false
+                  return validOfertaNames.has(u.oferta)
+                })
+                return edif.floors.map(floor=>{
                 const barH = Math.max(38, Math.round((floor.sup / maxFloorSup) * 58))
                 const arrRow  = (edif.arr||[]).find(r=>r.p===floor.id)
-                const units   = arrRow?.units || []
+                const units   = filterUnits(arrRow?.units)
                 const rowSup  = arrRow?.sup ?? floor.sup
                 const assigned = units.reduce((s,u)=>s+u.sup,0)
                 const isEmpty = units.length===0
