@@ -1195,7 +1195,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
 
             {(()=>{ const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1); return edif.floors.map((floor, floorIdx)=>{
               // barH reducido ~30% para que torres con muchas plantas (15-30+) entren sin scroll infinito.
-              const barH = Math.max(22, Math.round((floor.sup / maxFloorSup) * 38))
+              const barH = Math.max(34, Math.round((floor.sup / maxFloorSup) * 52))
               const used  = floor.principal.reduce((s,u)=>s+u.sup,0)
               const avail = floor.sup-used
               const isTgt = dragTarget===floor.id
@@ -1518,7 +1518,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                 <div style={{textAlign:'right'}}>Sup.</div>
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
-                const barH = Math.max(22, Math.round((floor.sup / maxFloorSup) * 40))
+                const barH = Math.max(34, Math.round((floor.sup / maxFloorSup) * 54))
                 const propRow = (edif.prop||[]).find(r=>r.p===floor.id)
                 const units    = propRow?.units || []
                 const rowSup   = propRow?.sup ?? floor.sup
@@ -1814,7 +1814,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                 <div style={{textAlign:'right'}}>Sup.</div>
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
-                const barH = Math.max(26, Math.round((floor.sup / maxFloorSup) * 46))
+                const barH = Math.max(38, Math.round((floor.sup / maxFloorSup) * 58))
                 const arrRow  = (edif.arr||[]).find(r=>r.p===floor.id)
                 const units   = arrRow?.units || []
                 const rowSup  = arrRow?.sup ?? floor.sup

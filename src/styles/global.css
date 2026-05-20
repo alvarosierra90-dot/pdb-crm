@@ -1885,17 +1885,19 @@ tr:hover .ra-cell { opacity: 1; }
 .sp-row-blocks { display: flex; gap: 3px; min-height: 40px; }
 
 .sp-block {
-  border-radius: 6px; padding: 9px 12px; display: flex; align-items: center;
-  justify-content: space-between; gap: 8px; min-width: 0; flex: 1; cursor: pointer;
+  border-radius: 6px; padding: 10px 14px; display: flex; align-items: center;
+  justify-content: space-between; gap: 10px; min-width: 0; flex: 1; cursor: pointer;
   transition: filter 120ms ease; overflow: hidden;
 }
 .sp-block:hover { filter: brightness(0.97); }
-.sp-block-content { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; flex: 1; }
-.sp-block-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sp-block-meta { font-family: var(--mono); font-size: 10px; flex-shrink: 0; opacity: .8; }
+.sp-block-content { display: flex; align-items: center; gap: 10px; min-width: 0; overflow: hidden; flex: 1; }
+/* Tipografía dentro de los bloques del stacking: nombre y meta más grandes
+   para que se lean cómodos al asignar (antes eran 12 / 10 px → enanos). */
+.sp-block-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-block-meta { font-family: var(--mono); font-size: 12px; font-weight: 600; flex-shrink: 0; opacity: .85; }
 .sp-block-badge {
-  font-size: 9px; font-weight: 500; background: rgba(255,255,255,.6);
-  padding: 2px 7px; border-radius: 999px; letter-spacing: .05em; flex-shrink: 0;
+  font-size: 10px; font-weight: 600; background: rgba(255,255,255,.7);
+  padding: 3px 9px; border-radius: 999px; letter-spacing: .04em; flex-shrink: 0;
 }
 .sp-block-avatar {
   width: 22px; height: 22px; border-radius: 50%; color: #fff;
