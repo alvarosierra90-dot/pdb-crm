@@ -1572,6 +1572,71 @@ tr:hover .ra-cell { opacity: 1; }
 
 .sp-body { display: grid; grid-template-columns: 220px 1fr; gap: 20px; align-items: start; }
 
+/* Layout vertical para la vista 'principal': toolbar arriba, plantas debajo
+   a ancho completo. Elimina el sidebar comprimido y deja respirar las
+   plantas y los chips de uso. */
+.sp-principal-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.sp-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: var(--radius, 10px);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 4px rgba(11, 18, 32, 0.04);
+}
+.sp-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 30px;
+}
+.sp-toolbar-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted, #6b7280);
+  font-weight: 600;
+  flex-shrink: 0;
+  width: 130px;
+}
+.sp-toolbar-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+/* Variante horizontal de los chips — más anchos para que se lean cómodos
+   en una fila, no apilados en columna estrecha como el antiguo sidebar. */
+.sp-chip-h {
+  margin-bottom: 0 !important;
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+}
+.sp-chip-h .sp-chip-label {
+  font-size: 12px !important;
+}
+.sp-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--accent-lt);
+  border: 1px solid var(--accent-bd);
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+
 /* Sidebar sticky: queda visible aunque hagas scroll en plantas. Soluciona el
    problema de 'no puedo arrastrar un uso de abajo a una planta de arriba'. */
 .sp-sidebar { position: sticky; top: 12px; align-self: start; max-height: calc(100vh - 100px); overflow-y: auto; padding-right: 4px; }
