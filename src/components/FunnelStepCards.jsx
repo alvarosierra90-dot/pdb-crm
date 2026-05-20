@@ -40,8 +40,8 @@ export default function FunnelStepCards({ steps }) {
 
 function StepCard({
   icon: Icon, tone = 'accent', label, value, sub,
-  status, action, editAction, nextAction, openAction, lockedHint,
-  dyn, count, index, total,
+  status, action, secondaryAction, editAction, nextAction, openAction, lockedHint,
+  dyn, count, index, total, extraBody, optional,
 }) {
   const isDone    = status === 'done'
   const isCurrent = status === 'current'
@@ -56,7 +56,8 @@ function StepCard({
         <div className="step-card-lbl">
           <span className="step-num">{index + 1}/{total}</span>
           {label}
-          {dyn && <span className="vinc-dyn">D</span>}
+          {dyn      && <span className="vinc-dyn">D</span>}
+          {optional && <span className="step-pill-optional">OPCIONAL</span>}
           {isCurrent && <span className="step-pill-current">PASO ACTUAL</span>}
           {isDone    && <span className="step-pill-done">✓</span>}
           {isLocked  && <span className="step-pill-locked">🔒</span>}
@@ -68,6 +69,7 @@ function StepCard({
               {count != null ? <>{count} {value || ''}</> : (value || '—')}
             </div>
             {sub && <div className="step-card-sub">{sub}</div>}
+            {extraBody && <div className="step-card-extra">{extraBody}</div>}
             <div className="step-card-actions">
               {editAction && (
                 <button
@@ -103,6 +105,7 @@ function StepCard({
         {isCurrent && (
           <>
             {value && <div className="step-card-val">{value}</div>}
+            {extraBody && <div className="step-card-extra">{extraBody}</div>}
             <div className="step-card-cta">
               {action ? (
                 <button
@@ -112,7 +115,16 @@ function StepCard({
                   {action.label}
                 </button>
               ) : (
-                <div className="step-card-empty">Pendiente · sigue aquí.</div>
+                !extraBody && <div className="step-card-empty">Pendiente · sigue aquí.</div>
+              )}
+              {secondaryAction && (
+                <button
+                  className="step-cta-btn"
+                  style={{ marginTop:6 }}
+                  onClick={(e) => { e.stopPropagation(); secondaryAction.onClick?.() }}
+                >
+                  {secondaryAction.label}
+                </button>
               )}
             </div>
           </>

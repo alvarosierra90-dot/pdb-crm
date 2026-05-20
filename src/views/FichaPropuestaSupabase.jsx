@@ -8,6 +8,8 @@ import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
 import HeaderPills from '../components/HeaderPills'
 import FunnelTracker from '../components/FunnelTracker'
+import FunnelStepCards from '../components/FunnelStepCards'
+import { Building2, Target, Building, Presentation } from 'lucide-react'
 
 // Pestañas. "Equipos y participantes" eliminada: ahora vive como sección dentro
 // de "Datos del proyecto", justo bajo Vinculaciones (mismo patrón que Oferta).
@@ -239,7 +241,8 @@ export default function FichaPropuestaSupabase({ refOrId }) {
         <button className="ab-btn" onClick={restablecer} disabled={saving}>↺ Restablecer</button>
         <button className="ab-btn" onClick={() => navigate('propuestas')}>← Volver</button>
         <div className="ab-sep"/>
-        {propuesta.pitch_url ? (
+        {/* "Crear pitch" y "Pitch automático" viven ahora como step card opcional dentro del wizard. */}
+        {propuesta.pitch_url && (
           <button
             className="ab-btn"
             style={{ background:'#2563EB', color:'#fff', border:'1px solid #2563EB' }}
@@ -248,51 +251,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
           >
             Ver pitch ↗
           </button>
-        ) : (() => {
-          const activosRefs = Array.isArray(propuesta.activos) ? propuesta.activos.map(a => a?.ref).filter(Boolean) : []
-          const baseParams = {
-            propuesta_id:  propuesta.id,
-            propuesta_ref: propuesta.ref,
-            cuenta_id:     propuesta.dynamics_account_id,
-            oportunidad_id:propuesta.dynamics_opportunity_id,
-            activo_ref:    activosRefs[0],
-            activo_refs:   activosRefs,
-          }
-          // Pitch automático · salta a paso 5 con datos pre-rellenados.
-          // En pitch_oferta el target es Propietario; en pitch_demanda sería Tenant.
-          const targetSegm = esPitchOferta ? 'propietario' : oportunidad?.tipo === 'pitch_demanda' ? 'tenant' : null
-          const autoParams = {
-            ...baseParams,
-            step: 5,
-            auto: 1,
-            oficina:   propuesta.equipo?.includes('Madrid') ? 'madrid' : propuesta.equipo?.includes('Barcelona') ? 'barcelona' : null,
-            equipo:    propuesta.equipo || propuesta.linea || null,
-            linea:     propuesta.linea || null,
-            target:    targetSegm,
-            // pitch_demanda pitchea servicio al inquilino; pitch_oferta al propietario
-          }
-          return (
-            <>
-              <button
-                className="ab-btn"
-                onClick={() => navigate('pitch', baseParams)}
-                title="Generar un pitch desde el paso 1 con esta propuesta como contexto"
-              >
-                Crear pitch
-              </button>
-              {(esPitchOferta || oportunidad?.tipo === 'pitch_demanda') && (
-                <button
-                  className="ab-btn"
-                  style={{ background:'#2563EB', color:'#fff', border:'1px solid #2563EB', fontWeight:700 }}
-                  onClick={() => navigate('pitch', autoParams)}
-                  title="Salta al paso 5 con oficina, equipo, línea y target pre-rellenados desde la propuesta"
-                >
-                  ⚡ Pitch automático (paso 5)
-                </button>
-              )}
-            </>
-          )
-        })()}
+        )}
         {(() => {
           const yaCerrada = ['ganada','perdida','cancelada'].includes(propuesta.estado)
           const puede     = !yaCerrada && !!propuesta.dynamics_opportunity_id && !!propuesta.dynamics_account_id
@@ -380,8 +339,42 @@ export default function FichaPropuestaSupabase({ refOrId }) {
           {tab === 'datos' && (
             <div className="tab-content active"><div className="info-pad">
 
-              {/* ── ACTIVOS PITCHEADOS · multi-activo · solo si pitch oferta o ya hay activos vinculados ── */}
-              {(esPitchOferta || activosVinculados.length > 0) && (() => {
+              {/* ── FUNNEL STEP CARDS · wizard del proyecto ── */}
+              {(() => {
+                const hasCuenta      = !!cuenta?.dynamics_id
+                const hasOportunidad = !!(oportunidad?.dynamics_id || propuesta.dynamics_opportunity_id)
+                const tieneActivos   = activosVinculados.length > 0
+                const debeTenerActivos = esPitchOferta
+                const activosStatus = tieneActivos ? 'done'
+                  : (debeTenerActivos && hasOportunidad) ? 'current' : 'locked'
+                // Pitch · opcional para pitch_oferta / pitch_demanda
+                const tieneOportunidadPitch = oportunidad?.tipo === 'pitch_oferta' || oportunidad?.tipo === 'pitch_demanda'
+                const tienePitch = !!propuesta.pitch_url
+                const pitchAplica = tieneOportunidadPitch
+                const pitchStatus = tienePitch ? 'done'
+                  : pitchAplica ? 'current' : 'locked'
+
+                // Params para navegar a Pitch
+                const activosRefs = activosVinculados.map(a => a?.ref).filter(Boolean)
+                const baseParams = {
+                  propuesta_id:  propuesta.id,
+                  propuesta_ref: propuesta.ref,
+                  cuenta_id:     propuesta.dynamics_account_id,
+                  oportunidad_id:propuesta.dynamics_opportunity_id,
+                  activo_ref:    activosRefs[0],
+                  activo_refs:   activosRefs,
+                }
+                const targetSegm = esPitchOferta ? 'propietario' : oportunidad?.tipo === 'pitch_demanda' ? 'tenant' : null
+                const autoParams = {
+                  ...baseParams,
+                  step: 5, auto: 1,
+                  oficina:  propuesta.equipo?.includes('Madrid') ? 'madrid' : propuesta.equipo?.includes('Barcelona') ? 'barcelona' : null,
+                  equipo:   propuesta.equipo || propuesta.linea || null,
+                  linea:    propuesta.linea || null,
+                  target:   targetSegm,
+                }
+
+                // Body custom para la card "Activos" · typeahead + chips
                 const q = activoQuery.trim().toLowerCase()
                 const matches = !q
                   ? activosDB.filter(a => !activosVinculados.some(v => v.ref === a.ref)).slice(0, 8)
@@ -391,47 +384,19 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                        (a.direccion || '').toLowerCase().includes(q) ||
                        (a.ref || '').toLowerCase().includes(q))
                     ).slice(0, 8)
-                return (
-                  <div style={{ marginBottom:14, padding:'12px 14px', background:'#f3e8ff', border:'1px solid #d8b4fe', borderRadius:8 }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom: activosVinculados.length > 0 ? 10 : 6 }}>
-                      <span style={{ fontSize:10, fontWeight:700, color:'#6b5b8e', textTransform:'uppercase', letterSpacing:'.05em' }}>
-                        Activos del pitch
-                      </span>
-                      <span style={{ fontSize:10, fontWeight:700, color:'#fff', background:'#6b5b8e', borderRadius:9, padding:'1px 7px' }}>
-                        {activosVinculados.length}
-                      </span>
-                      {esPitchOferta && (
-                        <span style={{ fontSize:10, color:'#6b5b8e', fontStyle:'italic' }}>
-                          · Pitch de oferta · vincula uno o varios edificios al propietario al que pitcheas.
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Chips de activos vinculados */}
+                const activosBody = (
+                  <div>
                     {activosVinculados.length > 0 && (
-                      <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginBottom:8 }}>
                         {activosVinculados.map(a => (
-                          <div key={a.ref} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'5px 8px 5px 10px', background:'#fff', border:'1px solid #d8b4fe', borderRadius:20, fontSize:11 }}>
-                            <span
-                              onClick={() => navigate('ficha-activo', { ref: a.ref })}
-                              style={{ cursor:'pointer', fontWeight:600, color:'#6b5b8e' }}
-                              title="Ir a la ficha del activo"
-                            >
-                              {a.nombre || a.ref}
-                            </span>
-                            {a.ciudad && <span style={{ color:'var(--text4)', fontSize:10 }}>· {a.ciudad}</span>}
-                            {a.sba && <span style={{ color:'var(--text4)', fontSize:10, fontFamily:'var(--mono)' }}>· {Number(a.sba).toLocaleString('es-ES')} m²</span>}
-                            <button
-                              onClick={() => removeActivo(a.ref)}
-                              disabled={savingActivo}
-                              title="Desvincular"
-                              style={{ marginLeft:2, background:'transparent', border:'none', cursor:'pointer', color:'var(--text4)', fontSize:13, lineHeight:1, padding:'0 2px' }}>×</button>
+                          <div key={a.ref} style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'3px 6px 3px 9px', background:'#fff', border:'1px solid #d8b4fe', borderRadius:20, fontSize:10.5 }}>
+                            <span onClick={() => navigate('ficha-activo', { ref: a.ref })} style={{ cursor:'pointer', fontWeight:600, color:'#6b5b8e' }} title="Abrir ficha">{a.nombre || a.ref}</span>
+                            {a.ciudad && <span style={{ color:'var(--text4)', fontSize:9.5 }}>· {a.ciudad}</span>}
+                            <button onClick={(e) => { e.stopPropagation(); removeActivo(a.ref) }} disabled={savingActivo} title="Desvincular" style={{ marginLeft:1, background:'transparent', border:'none', cursor:'pointer', color:'var(--text4)', fontSize:12, lineHeight:1, padding:'0 2px' }}>×</button>
                           </div>
                         ))}
                       </div>
                     )}
-
-                    {/* Typeahead para añadir activo */}
                     <div style={{ position:'relative' }}>
                       <input
                         placeholder="Buscar activo por nombre, dirección o ref…"
@@ -439,47 +404,86 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                         onChange={e => setActivoQuery(e.target.value)}
                         onFocus={() => setActivoFocused(true)}
                         onBlur={() => setTimeout(() => setActivoFocused(false), 150)}
-                        style={{ width:'100%', padding:'7px 10px', fontSize:12, border:'1px solid #d8b4fe', borderRadius:6, background:'#fff', boxSizing:'border-box', outline:'none' }}
+                        onClick={e => e.stopPropagation()}
+                        style={{ width:'100%', padding:'6px 9px', fontSize:11.5, border:'1px solid #d8b4fe', borderRadius:5, background:'#fff', boxSizing:'border-box', outline:'none', fontFamily:'inherit' }}
                       />
                       {activoFocused && matches.length > 0 && (
-                        <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, zIndex:10, background:'#fff', border:'1px solid #d8b4fe', borderRadius:6, maxHeight:220, overflowY:'auto', boxShadow:'0 6px 20px rgba(0,0,0,0.08)' }}>
+                        <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, zIndex:50, background:'#fff', border:'1px solid #d8b4fe', borderRadius:5, maxHeight:200, overflowY:'auto', boxShadow:'0 6px 20px rgba(0,0,0,0.12)' }}>
                           {matches.map(a => (
-                            <div key={a.ref}
-                              onMouseDown={() => addActivo(a)}
-                              style={{ padding:'7px 10px', fontSize:12, cursor:'pointer', borderBottom:'1px solid var(--border)' }}
+                            <div key={a.ref} onMouseDown={() => addActivo(a)}
+                              style={{ padding:'6px 9px', fontSize:11.5, cursor:'pointer', borderBottom:'1px solid var(--border)' }}
                               onMouseEnter={e => e.currentTarget.style.background = '#faf5ff'}
-                              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
-                            >
+                              onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
                               <div style={{ fontWeight:600 }}>{a.nombre}</div>
-                              <div style={{ fontSize:10, color:'var(--text4)' }}>{[a.ref, a.direccion, a.ciudad, a.uso].filter(Boolean).join(' · ')}</div>
+                              <div style={{ fontSize:9.5, color:'var(--text4)' }}>{[a.ref, a.direccion, a.ciudad, a.uso].filter(Boolean).join(' · ')}</div>
                             </div>
                           ))}
-                        </div>
-                      )}
-                      {activoFocused && q && matches.length === 0 && (
-                        <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, zIndex:10, background:'#fff', border:'1px solid var(--border)', borderRadius:6, padding:'8px 10px', fontSize:11, color:'var(--text4)' }}>
-                          Sin coincidencias. Crea el activo en el módulo Activos y vuelve a vincularlo aquí.
                         </div>
                       )}
                     </div>
                   </div>
                 )
-              })()}
 
-              {/* ── VINCULACIONES (canónico, siempre arriba) ── */}
-              <Vinculaciones
-                cuentaLabel="Cliente (Cuenta)"
-                cuenta={cuenta ? {
-                  id:     cuenta.dynamics_id || cuenta.id,
-                  nombre: cuenta.nombre,
-                  sub:    cuenta.sector || cuenta.tipo,
-                } : null}
-                oportunidad={oportunidad ? {
-                  id:     oportunidad.dynamics_id || oportunidad.id,
-                  nombre: oportunidad.nombre,
-                  sub:    oportunidad.tipo,
-                } : null}
-              />
+                return (
+                  <FunnelStepCards steps={[
+                    {
+                      key:'cuenta',
+                      icon: Building2,
+                      tone:'green',
+                      label:'Cliente (Cuenta)',
+                      value: cuenta?.nombre || null,
+                      sub:   cuenta?.sector || cuenta?.tipo || null,
+                      status: hasCuenta ? 'done' : 'current',
+                      openAction: hasCuenta ? { label:'Abrir cuenta', onClick: () => navigate('cuentas', { id: cuenta.dynamics_id || cuenta.id }) } : null,
+                      lockedHint: null,
+                      dyn: true,
+                    },
+                    {
+                      key:'oportunidad',
+                      icon: Target,
+                      tone:'accent',
+                      label:'Oportunidad',
+                      value: oportunidad?.nombre || propuesta.dynamics_opportunity_id || null,
+                      sub:   oportunidad?.tipo || null,
+                      status: hasOportunidad ? 'done' : 'locked',
+                      openAction: hasOportunidad ? { label:'Abrir oportunidad', onClick: () => navigate('ficha-oportunidad', { id: oportunidad?.dynamics_id || propuesta.dynamics_opportunity_id }) } : null,
+                      lockedHint:'Sin oportunidad vinculada.',
+                      dyn: true,
+                    },
+                    {
+                      key:'activos',
+                      icon: Building,
+                      tone:'purple',
+                      label:'Activos del pitch',
+                      value: tieneActivos
+                        ? `${activosVinculados.length} ${activosVinculados.length === 1 ? 'activo' : 'activos'}`
+                        : null,
+                      sub: esPitchOferta ? 'Pitch de oferta · vincula los edificios del propietario al que pitcheas.' : null,
+                      status: activosStatus,
+                      extraBody: hasOportunidad ? activosBody : null,
+                      lockedHint:'Vincula primero la oportunidad.',
+                    },
+                    {
+                      key:'pitch',
+                      icon: Presentation,
+                      tone:'blue',
+                      label:'Pitch',
+                      value: tienePitch ? 'Pitch sincronizado' : null,
+                      sub: pitchAplica ? 'Salta al paso 5 con propuesta + activos pre-rellenados.' : null,
+                      status: pitchStatus,
+                      optional: true,
+                      action: pitchStatus === 'current'
+                        ? { label:'⚡ Pitch automático (paso 5)', onClick: () => navigate('pitch', autoParams), primary: true }
+                        : null,
+                      secondaryAction: pitchStatus === 'current'
+                        ? { label:'Crear desde paso 1', onClick: () => navigate('pitch', baseParams) }
+                        : null,
+                      openAction: tienePitch ? { label:'Ver pitch', onClick: () => window.open(propuesta.pitch_url, '_blank', 'noopener') } : null,
+                      lockedHint:'Solo aplica si la oportunidad es pitch_oferta o pitch_demanda.',
+                    },
+                  ]} />
+                )
+              })()}
 
               {/* ── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones, idéntica posición que en Oferta) ── */}
               {(() => {
