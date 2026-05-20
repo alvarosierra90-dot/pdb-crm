@@ -610,8 +610,8 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   const [newBldg, setNewBldg]           = useState({label:'',sup:'',sobre:'',bajo:''})
   const [splitModal, setSplitModal]     = useState(null) // {floorId, usoId}
   const [splitSup, setSplitSup]         = useState('')
-  const [ppOpen, setPpOpen]             = useState(true)
-  const [uaOpen, setUaOpen]             = useState(true)
+  const [ppOpen, setPpOpen]             = useState(false)
+  const [uaOpen, setUaOpen]             = useState(false)
   const [editPA, setEditPA]             = useState(null)  // {layer:'prop'|'arr', rowP, idx}
   const [editPASup, setEditPASup]       = useState('')
   const [editPARenta, setEditPARenta]   = useState('')
@@ -1007,52 +1007,74 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
       {view==='principal' && (
         <div className="sp-principal-layout">
 
-          {/* ── TOOLBAR superior: usos principales + adicionales en horizontal ── */}
+          {/* ── TOOLBAR superior: usos principales + adicionales colapsables ── */}
           <div className="sp-toolbar">
             <div className="sp-toolbar-row">
-              <div className="sp-toolbar-label">Usos principales</div>
-              <div className="sp-toolbar-chips">
-                {USOS_PPAL.map(u=>(
-                  <div key={u.id} draggable className="sp-chip sp-chip-h"
-                    onDragStart={()=>setDragging(u.id)}
-                    onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                    style={{
-                      border:`1px solid ${dragging===u.id?u.color:u.bd}`,background:u.bg,
-                      opacity:dragging&&dragging!==u.id?.4:1,
-                      boxShadow:dragging===u.id?`0 2px 8px ${u.color}55`:'none',
-                      transform:dragging===u.id?'scale(1.04)':'scale(1)',
-                    }}
-                  >
-                    <span className="sp-chip-dot" style={{background:u.color}}/>
-                    <span className="sp-chip-label" style={{color:u.color,fontWeight:600}}>{u.label}</span>
-                  </div>
-                ))}
-              </div>
+              <button
+                type="button"
+                className="sp-toolbar-toggle"
+                onClick={()=>setPpOpen(v=>!v)}
+                aria-expanded={ppOpen}
+              >
+                <span style={{display:'inline-block',transition:'transform .2s',transform:ppOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
+                <span className="sp-toolbar-label" style={{marginBottom:0}}>Usos principales</span>
+                <span className="sp-toolbar-count">{USOS_PPAL.length}</span>
+              </button>
+              {ppOpen && (
+                <div className="sp-toolbar-chips">
+                  {USOS_PPAL.map(u=>(
+                    <div key={u.id} draggable className="sp-chip sp-chip-h"
+                      onDragStart={()=>setDragging(u.id)}
+                      onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                      style={{
+                        border:`1px solid ${dragging===u.id?u.color:u.bd}`,background:u.bg,
+                        opacity:dragging&&dragging!==u.id?.4:1,
+                        boxShadow:dragging===u.id?`0 2px 8px ${u.color}55`:'none',
+                        transform:dragging===u.id?'scale(1.04)':'scale(1)',
+                      }}
+                    >
+                      <span className="sp-chip-dot" style={{background:u.color}}/>
+                      <span className="sp-chip-label" style={{color:u.color,fontWeight:600}}>{u.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="sp-toolbar-row">
-              <div className="sp-toolbar-label">Usos adicionales</div>
-              <div className="sp-toolbar-chips">
-                {availableUA.length===0 ? (
-                  <div style={{fontSize:11,color:'var(--muted)',padding:'4px 0',lineHeight:1.4,fontStyle:'italic'}}>
-                    Asigna primero usos principales en alguna planta
-                  </div>
-                ) : availableUA.map(ua=>(
-                  <div key={ua.id} draggable className="sp-chip sp-chip-h"
-                    onDragStart={()=>setDragging(ua.id)}
-                    onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                    style={{
-                      border:`1px solid ${dragging===ua.id?ua.color:ua.bd}`,background:ua.bg,
-                      opacity:dragging&&dragging!==ua.id?.4:1,
-                      boxShadow:dragging===ua.id?`0 2px 8px ${ua.color}44`:'none',
-                    }}
-                  >
-                    <span className="sp-chip-dot" style={{background:ua.color}}/>
-                    <span className="sp-chip-label" style={{color:ua.color,fontWeight:600}}>{ua.label}</span>
-                    <span className={`sp-chip-tag ${ua.attr?'tag-a':'tag-s'}`}>{ua.attr?'A':'S'}</span>
-                  </div>
-                ))}
-              </div>
+              <button
+                type="button"
+                className="sp-toolbar-toggle"
+                onClick={()=>setUaOpen(v=>!v)}
+                aria-expanded={uaOpen}
+              >
+                <span style={{display:'inline-block',transition:'transform .2s',transform:uaOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
+                <span className="sp-toolbar-label" style={{marginBottom:0}}>Usos adicionales</span>
+                <span className="sp-toolbar-count">{availableUA.length}</span>
+              </button>
+              {uaOpen && (
+                <div className="sp-toolbar-chips">
+                  {availableUA.length===0 ? (
+                    <div style={{fontSize:11,color:'var(--muted)',padding:'4px 0',lineHeight:1.4,fontStyle:'italic'}}>
+                      Asigna primero usos principales en alguna planta
+                    </div>
+                  ) : availableUA.map(ua=>(
+                    <div key={ua.id} draggable className="sp-chip sp-chip-h"
+                      onDragStart={()=>setDragging(ua.id)}
+                      onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                      style={{
+                        border:`1px solid ${dragging===ua.id?ua.color:ua.bd}`,background:ua.bg,
+                        opacity:dragging&&dragging!==ua.id?.4:1,
+                        boxShadow:dragging===ua.id?`0 2px 8px ${ua.color}44`:'none',
+                      }}
+                    >
+                      <span className="sp-chip-dot" style={{background:ua.color}}/>
+                      <span className="sp-chip-label" style={{color:ua.color,fontWeight:600}}>{ua.label}</span>
+                      <span className={`sp-chip-tag ${ua.attr?'tag-a':'tag-s'}`}>{ua.attr?'A':'S'}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Asignación masiva — popover horizontal cuando hay plantas seleccionadas */}

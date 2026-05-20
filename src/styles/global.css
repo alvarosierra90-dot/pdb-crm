@@ -1595,7 +1595,7 @@ tr:hover .ra-cell { opacity: 1; }
 }
 .sp-toolbar-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   min-height: 30px;
 }
@@ -1607,7 +1607,41 @@ tr:hover .ra-cell { opacity: 1; }
   color: var(--muted, #6b7280);
   font-weight: 600;
   flex-shrink: 0;
-  width: 130px;
+}
+.sp-toolbar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  margin: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--muted, #6b7280);
+  font-size: 11px;
+  width: 200px;
+  flex-shrink: 0;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.sp-toolbar-toggle:hover {
+  background: var(--gray-lt, #f3f4f6);
+  border-color: var(--line, #e5e7eb);
+}
+.sp-toolbar-toggle[aria-expanded="true"] {
+  background: var(--gray-lt, #f3f4f6);
+}
+.sp-toolbar-count {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-weight: 700;
+  color: var(--text3, #6b7280);
 }
 .sp-toolbar-chips {
   display: flex;
