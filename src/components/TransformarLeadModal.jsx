@@ -97,6 +97,8 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
   const [contactoPick, setContactoPick]   = useState(lead.dynamics_contact_id ? { dynamics_id: lead.dynamics_contact_id, nombre: lead.dynamics_contacts?.nombre } : null)
   const [activoQuery, setActivoQuery]     = useState('')
   const [activoPick, setActivoPick]       = useState(null)
+  // Pitch oferta admite varios activos (un mismo pitch puede cubrir N edificios).
+  const [activosPitch, setActivosPitch]   = useState([])
 
   // Oportunidad existente · opcional. Si el broker vincula una, se reutiliza
   // su dynamics_id en lugar de crear una nueva (evita oportunidades huérfanas
@@ -155,7 +157,12 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
     : `${pitch ? 'pitch' : 'directo'}_${lead.tipo}`
   const esquema = esquemaKey ? ESQUEMAS[esquemaKey] : null
 
+  // Activo obligatorio en directo_oferta (1 activo concreto).
   const necesitaActivo = esquema?.destino === 'oferta'
+  // En pitch_oferta el broker PUEDE vincular varios activos al pitch (no es
+  // obligatorio porque a veces se pitchea servicio sin activos identificados,
+  // pero si los hay, se trasladan a la propuesta automáticamente).
+  const esPitchOferta  = esquema?.oppType === 'pitch_oferta'
   // Spec: Cuenta + Contacto SIEMPRE obligatorios (gate de cualificación)
   const tieneVinculo   = !!cuentaPick && !!contactoPick
   const activoOk       = !necesitaActivo || !!activoPick
@@ -276,6 +283,19 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
       if (esquema.destino === 'propuesta') {
         const ref = await nextRef('PRY')
         const nombreDerivado = cuentaPick?.nombre || null
+        // Si es pitch_oferta y el broker vinculó activos en este modal,
+        // los trasladamos a propuestas.activos (jsonb) para que la ficha
+        // de Propuesta los muestre ya vinculados.
+        const activosJsonb = (esPitchOferta && activosPitch.length > 0)
+          ? activosPitch.map(a => ({
+              ref:       a.ref,
+              nombre:    a.nombre,
+              direccion: a.direccion || null,
+              ciudad:    a.ciudad || null,
+              uso:       a.uso || null,
+              sba:       a.sba || null,
+            }))
+          : []
         const { data: prop, error: e2 } = await supabase.from('propuestas').insert({
           ref,
           nombre:                  nombreDerivado,
@@ -283,6 +303,7 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
           dynamics_account_id:     cuentaId,
           lead_id:                 lead.id,
           equipo_trabajo:          equipoHeredado,
+          activos:                 activosJsonb,
         }).select('id, ref').single()
         if (e2) throw new Error(`Propuesta: ${e2.message}`)
         leadUpdate.propuesta_id = prop.id
@@ -564,6 +585,54 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
                     </div>
                   )}
                 </>
+              )}
+
+              {/* Pitch_oferta · activos del pitch (opcional, multi). Se trasladan
+                  a propuestas.activos para que la ficha de Propuesta los muestre
+                  ya vinculados sin tener que añadirlos otra vez. */}
+              {esPitchOferta && (
+                <div style={{ background:'#f3e8ff', border:'1px solid #d8b4fe', borderRadius:8, padding:12 }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#6b5b8e', marginBottom:6 }}>
+                    Activos del pitch (opcional · pitch_oferta)
+                    <span style={{ marginLeft:6, padding:'1px 6px', background:'#6b5b8e', color:'#fff', borderRadius:9, fontSize:10 }}>{activosPitch.length}</span>
+                  </div>
+                  <div style={{ fontSize:11, color:'#6b5b8e', marginBottom:10, lineHeight:1.5 }}>
+                    Pitcheas el servicio de comercializar uno o varios edificios del propietario. Los activos vinculados aquí se trasladan a la propuesta automáticamente.
+                  </div>
+
+                  {/* Chips de activos ya añadidos */}
+                  {activosPitch.length > 0 && (
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginBottom:10 }}>
+                      {activosPitch.map(a => (
+                        <div key={a.ref} style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 8px 4px 10px', background:'#fff', border:'1px solid #d8b4fe', borderRadius:20, fontSize:11 }}>
+                          <span style={{ fontWeight:600, color:'#6b5b8e' }}>{a.nombre || a.ref}</span>
+                          {a.ciudad && <span style={{ color:'var(--text4)', fontSize:10 }}>· {a.ciudad}</span>}
+                          <button
+                            onClick={() => setActivosPitch(prev => prev.filter(x => x.ref !== a.ref))}
+                            title="Quitar"
+                            style={{ marginLeft:2, background:'transparent', border:'none', cursor:'pointer', color:'var(--text4)', fontSize:13, lineHeight:1, padding:'0 2px' }}>×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <Typeahead
+                    label=""
+                    placeholder="Buscar activo por nombre, dirección o ref..."
+                    value={activoQuery}
+                    onChange={v => { setActivoQuery(v) }}
+                    onPick={a => {
+                      if (!activosPitch.some(x => x.ref === a.ref)) {
+                        setActivosPitch(prev => [...prev, a])
+                      }
+                      setActivoQuery('')
+                    }}
+                    options={activos.filter(a => !activosPitch.some(x => x.ref === a.ref))}
+                    fieldKey="nombre"
+                    secondaryKey="zona"
+                    tertiaryKey="ciudad"
+                  />
+                </div>
               )}
 
               {/* Resumen */}
