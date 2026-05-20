@@ -9,7 +9,8 @@ import { Search, X, AlertCircle } from 'lucide-react'
  * - Lupa autocomplete sobre `dynamics_accounts`. No texto libre.
  * - Campos vacíos por defecto. "Pendiente de completar" en placeholders.
  * - Obligatorios: Cuenta (o desconocido), Año firma, Trimestre,
- *   Fecha inicio contrato, Recordatorio.
+ *   Fecha inicio contrato. Años obligado cumplimiento opcional pero,
+ *   si se rellena, auto-calcula Fecha fin = inicio + años.
  * - La superficie viene del stacking (drag&drop).
  *
  * Props
@@ -29,14 +30,31 @@ export default function AltaArrendatarioModal({ onClose, onSave, activoRef }) {
     anyo_firma: '',
     trimestre: '',
     fecha_inicio: '',
-    recordatorio: '',
-    renta_m2: '',
+    anios_obligado: '',
+    closing_rent: '',
     renta_mensual: '',
     break_option: '',
     fecha_fin: '',
     notas: '',
   })
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
+  // Auto-calcula fecha_fin cuando hay fecha_inicio + años de obligado cumplimiento.
+  // El usuario puede sobreescribir luego manualmente.
+  const set = (k, v) => setForm(prev => {
+    const next = { ...prev, [k]: v }
+    if (k === 'fecha_inicio' || k === 'anios_obligado') {
+      const inicio = k === 'fecha_inicio' ? v : prev.fecha_inicio
+      const anios  = k === 'anios_obligado' ? v : prev.anios_obligado
+      const aniosNum = parseFloat(anios)
+      if (inicio && aniosNum > 0) {
+        const [y, m, d] = inicio.split('-').map(Number)
+        if (y && m && d) {
+          const dt = new Date(y + Math.floor(aniosNum), m - 1, d)
+          next.fecha_fin = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
+        }
+      }
+    }
+    return next
+  })
 
   const [submitted, setSubmitted] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -61,8 +79,7 @@ export default function AltaArrendatarioModal({ onClose, onSave, activoRef }) {
   const missingAnyoFirma    = !form.anyo_firma || !/^\d{4}$/.test(form.anyo_firma.trim())
   const missingTrimestre    = !form.trimestre
   const missingFechaInicio  = !form.fecha_inicio
-  const missingRecordatorio = !form.recordatorio
-  const hasErrors = missingCuenta || missingAnyoFirma || missingTrimestre || missingFechaInicio || missingRecordatorio
+  const hasErrors = missingCuenta || missingAnyoFirma || missingTrimestre || missingFechaInicio
 
   const handleSave = () => {
     setSubmitted(true)
@@ -183,9 +200,13 @@ export default function AltaArrendatarioModal({ onClose, onSave, activoRef }) {
                 value={form.fecha_inicio} onChange={e=>set('fecha_inicio', e.target.value)}/>
             </div>
             <div>
-              {lbl('Recordatorio', true, missingRecordatorio)}
-              <input type="date" style={submitted && missingRecordatorio ? inpError : inpBase}
-                value={form.recordatorio} onChange={e=>set('recordatorio', e.target.value)}/>
+              {lbl('Años obligado cumplimiento')}
+              <input type="number" step="0.5" min="0" style={inpBase}
+                placeholder="Ej. 5"
+                value={form.anios_obligado} onChange={e=>set('anios_obligado', e.target.value)}/>
+              <div style={{ fontSize:10, color:'var(--text4)', marginTop:4 }}>
+                Auto-calcula la fecha fin a partir de la fecha inicio.
+              </div>
             </div>
           </div>
 
@@ -195,8 +216,8 @@ export default function AltaArrendatarioModal({ onClose, onSave, activoRef }) {
 
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
             <div>
-              {lbl('Renta €/m²/mes')}
-              <input type="number" style={inpBase} placeholder="Pendiente de completar" value={form.renta_m2} onChange={e=>set('renta_m2', e.target.value)}/>
+              {lbl('Renta de cierre (€/m²/mes)')}
+              <input type="number" step="0.01" style={inpBase} placeholder="Pendiente de completar" value={form.closing_rent} onChange={e=>set('closing_rent', e.target.value)}/>
             </div>
             <div>
               {lbl('Renta mensual (€)')}
@@ -209,6 +230,11 @@ export default function AltaArrendatarioModal({ onClose, onSave, activoRef }) {
             <div>
               {lbl('Fecha fin contrato')}
               <input type="date" style={inpBase} value={form.fecha_fin} onChange={e=>set('fecha_fin', e.target.value)}/>
+              {form.anios_obligado && form.fecha_inicio && (
+                <div style={{ fontSize:10, color:'var(--text4)', marginTop:4, fontStyle:'italic' }}>
+                  Auto-calculada · puedes sobreescribirla.
+                </div>
+              )}
             </div>
             <div style={{gridColumn:'1 / span 2'}}>
               {lbl('Notas')}

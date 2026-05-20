@@ -1807,7 +1807,23 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                                       <button onClick={e=>{e.stopPropagation();removeArrUnit(floor.id,i)}}
                                         style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
                                       <div className="sp-block-content">
-                                        <span className="sp-block-name" style={{color:col}}>{label}</span>
+                                        {u.type==='ten' && u.arr_ref ? (
+                                          <span className="sp-block-name"
+                                            title="Ir a la ficha del arrendatario"
+                                            onClick={e=>{
+                                              e.stopPropagation()
+                                              spNavigate('ficha-arrendatario', {
+                                                arrRef: u.arr_ref,
+                                                tenantName: u.n,
+                                                fromActivoRef: activoRef,
+                                                fromActivoNombre: activoNombre,
+                                                fromActivoTab: 'at-stacking',
+                                              })
+                                            }}
+                                            style={{color:col, textDecoration:'underline', cursor:'pointer'}}>{label}</span>
+                                        ) : (
+                                          <span className="sp-block-name" style={{color:col}}>{label}</span>
+                                        )}
                                         <span className="sp-block-meta" style={{color:col}}>{(()=>{
                                           const ofMeta = u.type==='vac' ? extraOfertas.find(o => o.nombre === u.oferta) : null
                                           const isVenta = ofMeta?.tipoOperacion === 'Venta'
@@ -4120,8 +4136,9 @@ export default function FichaActivo() {
       anyo_firma: arr.anyo_firma,
       trimestre: arr.trimestre,
       fecha_inicio: arr.fecha_inicio,
-      recordatorio: arr.recordatorio,
-      renta_m2: arr.renta_m2,
+      anios_obligado: arr.anios_obligado,
+      closing_rent: arr.closing_rent,
+      renta_m2: arr.closing_rent,
       renta_mensual: arr.renta_mensual,
       break_option: arr.break_option,
       fecha_fin: arr.fecha_fin,
