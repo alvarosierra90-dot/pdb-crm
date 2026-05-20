@@ -182,6 +182,54 @@ nav {
 }
 .nav-section-arrow.collapsed { transform: rotate(-90deg); }
 
+/* ═════════════════════════════════════════════════════════════
+   FICHA OFERTA · modo vista (sin flechas, datos como texto plano)
+   Cuando NO está en modo edición, los <select>, <input> y <textarea>
+   se renderizan como texto sin bordes ni affordance de edición.
+   ═════════════════════════════════════════════════════════════ */
+.oferta-viewing select,
+.oferta-viewing input[type="text"],
+.oferta-viewing input[type="number"],
+.oferta-viewing input[type="date"],
+.oferta-viewing input[type="email"],
+.oferta-viewing input[type="tel"],
+.oferta-viewing input[type="url"],
+.oferta-viewing textarea {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-bottom: 1px dotted transparent !important;
+  padding: 4px 0 !important;
+  pointer-events: none !important;
+  color: var(--text) !important;
+  font-weight: 600 !important;
+  cursor: default !important;
+  box-shadow: none !important;
+  outline: none !important;
+  resize: none !important;
+}
+/* Quitar la flecha nativa del select en Firefox y otros navegadores */
+.oferta-viewing select {
+  -moz-appearance: none !important;
+  text-overflow: clip !important;
+  padding-right: 0 !important;
+}
+/* Checkboxes y radios siguen visibles para mostrar estado actual,
+   pero no clicables. */
+.oferta-viewing input[type="checkbox"],
+.oferta-viewing input[type="radio"] {
+  pointer-events: none !important;
+  opacity: .85 !important;
+}
+/* Los inputs de las tablas (desglose, espacios) también */
+.oferta-viewing table input,
+.oferta-viewing table select {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
 .nav-subhead {
   font-size: 8.5px;
   font-weight: 700;

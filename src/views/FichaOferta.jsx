@@ -148,6 +148,11 @@ function FichaOfertaMock() {
   const [saving, setSaving]     = useState(false)
   const [saveOk, setSaveOk]     = useState(false)
   const [saveErr, setSaveErr]   = useState('')
+  // Modo edición: por defecto se entra a la ficha en modo "vista" (datos
+  // como texto plano, sin flechas ni inputs). El usuario pulsa "✎ Editar"
+  // para activar el modo edición. Tras guardar OK, vuelve a vista.
+  // Patrón pensado para que el broker vea claramente qué está guardado.
+  const [editing, setEditing]   = useState(false)
 
   // Tab 1
   // Comercialización: 3 opciones canónicas. Migramos valores legacy en el load.
@@ -761,7 +766,7 @@ function FichaOfertaMock() {
       const { data: refreshed } = await dbCall(supabase.from('ofertas').select('*').eq('ref', oferta.ref).single())
       if (refreshed) setOferta(refreshed)
       const ofertaId = refreshed?.id || oferta?.id
-      if (!ofertaId) { setSaveOk(true); setTimeout(() => setSaveOk(false), 3000); return }
+      if (!ofertaId) { setSaveOk(true); setEditing(false); setTimeout(() => setSaveOk(false), 3000); return }
 
       // 4. Sub-tablas
       await dbCall(supabase.from('desglose_ofertas').delete().eq('oferta_id', ofertaId)).catch(() => {})
@@ -816,7 +821,7 @@ function FichaOfertaMock() {
       }
 
       setPendingNewIds([])
-      setSaveOk(true); setTimeout(() => setSaveOk(false), 3000)
+      setSaveOk(true); setEditing(false); setTimeout(() => setSaveOk(false), 3000)
     } catch (e) {
       setSaveErr(e.message || 'Error inesperado al guardar')
     } finally {
@@ -891,13 +896,23 @@ function FichaOfertaMock() {
   }
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
+    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}
+      className={editing ? 'oferta-editing' : 'oferta-viewing'}>
       {/* Action bar */}
       <div className="action-bar">
         <button className="ab-btn" onClick={() => navigate('ofertas')} style={{ color:'var(--text3)' }}>← Volver</button>
         <div className="ab-sep" />
         {isMock && <span style={{fontSize:11,color:'var(--amber)',background:'var(--amber-lt)',border:'1px solid var(--amber-bd)',borderRadius:'var(--r)',padding:'3px 8px',marginRight:6}}>Oferta de ejemplo · sólo lectura</span>}
-        <button className="ab-btn save" onClick={handleSave} disabled={saving || isMock}>{saving ? 'Guardando...' : '💾 Guardar'}</button>
+        {/* Modo edición vs vista · cuando NO editas, los selects/inputs se ven como
+            texto plano sin flechas. Pulsa "Editar" para modificar. */}
+        {!editing ? (
+          <button className="ab-btn save" onClick={() => setEditing(true)} disabled={isMock}>✎ Editar</button>
+        ) : (
+          <>
+            <button className="ab-btn save" onClick={handleSave} disabled={saving || isMock}>{saving ? 'Guardando...' : '💾 Guardar'}</button>
+            <button className="ab-btn" onClick={() => setEditing(false)} disabled={saving}>Cancelar</button>
+          </>
+        )}
         <button className="ab-btn" onClick={async () => { try { if (!isMock) await handleSave() } catch(e) {} navigate('ofertas') }}>Guardar y cerrar</button>
         {saveOk  && <span style={{fontSize:11,color:'var(--green)',marginLeft:8}}>✓ Guardado</span>}
         {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
