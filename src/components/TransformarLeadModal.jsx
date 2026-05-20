@@ -455,11 +455,11 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
 
               {/* Pitch yes/no */}
               <div>
-                <label style={lbl}>¿Hay pitch? *</label>
+                <label style={lbl}>¿Se solicita propuesta? *</label>
                 <div style={{ display:'flex', gap:8, marginTop:4 }}>
                   {[
-                    { v:true,  label:'Sí, hay pitch',  desc:'Vamos a competir → se generará una Propuesta/Proyecto.' },
-                    { v:false, label:'No, directo',    desc:'Mandato directo → se generará Demanda u Oferta directamente (según tipo).' },
+                    { v:true,  label:'Se solicita propuesta',  desc:'Vamos a competir → se generará una Propuesta/Proyecto.' },
+                    { v:false, label:'Sin propuesta',          desc:'Mandato directo → se generará Demanda u Oferta directamente (según tipo).' },
                   ].map(opt => (
                     <div
                       key={String(opt.v)}
