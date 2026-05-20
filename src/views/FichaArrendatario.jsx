@@ -696,7 +696,10 @@ export default function FichaArrendatario() {
       <div className="action-bar">
         <button className="ab-btn save" onClick={(fromDarBaja || loadedRef) ? handleSaveUpdate : handleSave} disabled={saving}>{saving ? 'Guardando...' : (loadedRef ? '💾 Guardar cambios' : '💾 Guardar')}</button>
         {!isNew && !fromDarBaja && <button className="ab-btn">Nuevo</button>}
-        {!isNew && !fromDarBaja && loadedRef && (
+        {/* 'Dar de baja' visible siempre que haya un arrendatario cargado en la
+            ficha (incluido el caso normal de venir desde el listado, donde
+            fromDarBaja=true). El nombre fromDarBaja es legacy y NO bloquea. */}
+        {loadedRef && form.estado !== 'Finalizado' && (
           <button
             className="ab-btn"
             style={{color:'var(--red)',borderColor:'var(--red)'}}

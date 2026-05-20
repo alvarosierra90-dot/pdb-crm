@@ -97,7 +97,7 @@ export default function FichaPropietario() {
     if (!params?.id) { setPropietarioReal(null); return }
     let cancel = false
     supabase.from('propietarios')
-      .select('id, nombre, estado, fecha_desactivacion, motivo_desactivacion')
+      .select('id, ref, nombre, propietario, activo_ref, activo, estado, fecha_desactivacion, motivo_desactivacion, fecha_salida, motivo_salida, destino_activo_ref')
       .eq('id', params.id)
       .maybeSingle()
       .then(({ data }) => { if (!cancel) setPropietarioReal(data || null) })
@@ -386,7 +386,11 @@ export default function FichaPropietario() {
           <>
             <button className="ab-btn save">💾 Guardar</button>
             <button className="ab-btn">Nuevo</button>
-            {propietarioReal?.estado === 'Activo' && propietarioReal?.activo_ref && !propietarioReal?.motivo_salida && (
+            {/* Baja del propietario en este activo concreto. El propietarioReal
+                no siempre trae activo_ref (depende del registro). Si no lo tiene,
+                permitimos abrir el modal igualmente — el modal lee/escribe por
+                propietarioReal.id que es la PK de la fila concreta. */}
+            {propietarioReal && !propietarioReal?.motivo_salida && (
               <button
                 className="ab-btn"
                 style={{color:'var(--red)',borderColor:'var(--red)'}}
