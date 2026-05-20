@@ -116,11 +116,9 @@ function ReadonlyPill({ value }) {
 
 
 export default function FichaOferta() {
-  const { params } = useNav()
-  const ref = params.id || params.ofertaRef
-  if (isSupabaseRef(ref)) {
-    return <FichaOfertaSupabase refOrId={ref} />
-  }
+  // Patron unificado: TODAS las ofertas pasan por el mismo render (FichaOfertaMock)
+  // independientemente de si la ref viene del mock legacy o de Supabase (OFE-YYYY-NNNN).
+  // La carga de datos discrimina la fuente dentro del componente; la vista es la misma.
   return <FichaOfertaMock />
 }
 
@@ -518,13 +516,16 @@ function FichaOfertaMock() {
   }, [params?.newTenantName])
 
   // ── Load oferta from Supabase (chained: oferta → sub-tables) ──
+  // ref puede venir como `ofertaRef` (link clásico desde listado) o `id` (cuando
+  // se navega desde TransformarLeadModal o el StackingPlan tras crear una oferta).
   useEffect(() => {
-    if (!params?.ofertaRef) return
-    supabase.from('ofertas').select('*').eq('ref', params.ofertaRef).single()
+    const refToLoad = params?.ofertaRef || params?.id
+    if (!refToLoad) return
+    supabase.from('ofertas').select('*').eq('ref', refToLoad).single()
       .then(({ data }) => {
         if (!data) {
           // Fallback: check mock OFERTAS
-          const mock = MOCK_OFERTAS.find(o => o.ref === params.ofertaRef)
+          const mock = MOCK_OFERTAS.find(o => o.ref === refToLoad)
           if (mock) {
             setIsMock(true)
             setOferta({ ref: mock.ref, id: null })
@@ -673,7 +674,7 @@ function FichaOfertaMock() {
             }
           })
       })
-  }, [params?.ofertaRef])
+  }, [params?.ofertaRef, params?.id])
 
   // ── Sync planta tipo from activo ──────────────────────────────
   useEffect(() => {

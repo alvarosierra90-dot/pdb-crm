@@ -338,6 +338,7 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
         const insertPayload = {
           ref,
           activo_id:               activoPick.id,
+          activo_ref:              activoPick.ref,    // para que OfertasList resuelva el nombre del activo
           dynamics_opportunity_id: dynOppId,
           dynamics_account_id:     cuentaOferta,
           equipo_trabajo:          equipoHeredado,
