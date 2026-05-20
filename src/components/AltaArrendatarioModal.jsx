@@ -120,27 +120,47 @@ export default function AltaArrendatarioModal({ onClose, onSave, activoRef }) {
                   <input
                     autoFocus
                     style={{...(submitted && missingCuenta ? inpError : inpBase), paddingLeft:32}}
-                    placeholder="Buscar cuenta en la PDB…"
+                    placeholder="Buscar cuenta o escribir nombre…"
                     value={search}
                     onChange={e=>setSearch(e.target.value)}
                   />
                 </div>
-                {results.length > 0 && (
-                  <div style={{position:'absolute',top:'100%',left:0,right:0,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,marginTop:4,maxHeight:240,overflowY:'auto',zIndex:10,boxShadow:'0 4px 14px rgba(0,0,0,0.08)'}}>
-                    {results.map(r => (
-                      <div key={r.dynamics_id} onClick={()=>{ setSelected(r); setSearch(''); setResults([]) }}
-                        style={{padding:'9px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:12}}
-                        onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
-                        onMouseLeave={e=>e.currentTarget.style.background=''}>
-                        <div style={{fontWeight:600}}>{r.nombre}</div>
-                        <div style={{fontSize:10,color:'var(--text3)'}}>{[r.tipo, r.sector].filter(Boolean).join(' · ') || 'Cuenta Dynamics'}</div>
+                {/* Dropdown · resultados de Dynamics + opción 'usar como texto libre' */}
+                {search.length >= 2 && (
+                  <div style={{position:'absolute',top:'100%',left:0,right:0,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,marginTop:4,maxHeight:280,overflowY:'auto',zIndex:10,boxShadow:'0 4px 14px rgba(0,0,0,0.08)'}}>
+                    {results.length > 0 ? (
+                      results.map(r => (
+                        <div key={r.dynamics_id} onClick={()=>{ setSelected(r); setSearch(''); setResults([]) }}
+                          style={{padding:'9px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:12}}
+                          onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
+                          onMouseLeave={e=>e.currentTarget.style.background=''}>
+                          <div style={{fontWeight:600}}>{r.nombre}</div>
+                          <div style={{fontSize:10,color:'var(--text3)'}}>{[r.tipo, r.sector].filter(Boolean).join(' · ') || 'Cuenta Dynamics'}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{padding:'9px 12px',fontSize:11,color:'var(--text4)',fontStyle:'italic'}}>
+                        Sin coincidencias en Dynamics.
                       </div>
-                    ))}
+                    )}
+                    {/* Opción libre: usar el texto tecleado como nombre. Útil cuando la cuenta
+                        aún no está en Dynamics (legacy / pendiente sync). */}
+                    <div
+                      onClick={() => {
+                        setSelected({ dynamics_id: null, nombre: search.trim(), tipo: null, sector: null, _custom: true })
+                        setSearch('')
+                        setResults([])
+                      }}
+                      style={{padding:'9px 12px',cursor:'pointer',fontSize:12,background:'var(--accent-lt)',borderTop:'1px solid var(--accent-bd)',color:'var(--accent)',fontWeight:600}}
+                      onMouseEnter={e=>e.currentTarget.style.background='var(--accent)'}
+                      onMouseLeave={e=>e.currentTarget.style.background='var(--accent-lt)'}>
+                      + Usar "{search.trim()}" como nombre libre
+                    </div>
                   </div>
                 )}
                 {submitted && missingCuenta && (
                   <div style={{display:'inline-flex',alignItems:'center',gap:4,marginTop:6,fontSize:10,color:'var(--red)',fontWeight:600}}>
-                    <AlertCircle size={11} strokeWidth={2}/> Selecciona una cuenta de la PDB o marca "Arrendatario desconocido".
+                    <AlertCircle size={11} strokeWidth={2}/> Selecciona una cuenta o marca "Arrendatario desconocido".
                   </div>
                 )}
               </div>
