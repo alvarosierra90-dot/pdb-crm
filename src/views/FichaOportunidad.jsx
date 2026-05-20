@@ -4,7 +4,8 @@ import { MOCK_OPORTUNIDADES, ETAPA_TAG_CLASS } from './OportunidadesList'
 import VinculacionesMaestra from '../components/VinculacionesMaestra'
 import HeaderPills from '../components/HeaderPills'
 import FunnelTracker from '../components/FunnelTracker'
-import { Building, Building2, Tag, ScrollText, Lightbulb, Search } from 'lucide-react'
+import FunnelStepCards from '../components/FunnelStepCards'
+import { Building, Building2, Tag, ScrollText, Lightbulb, Search, User, Trophy, Inbox } from 'lucide-react'
 
 function KV({ k, v, mono = false, large = false }) {
   return (
@@ -146,45 +147,120 @@ export default function FichaOportunidad() {
             {tab === 'info' && (
               <div className="info-pad">
 
-                {/* ── VINCULACIONES MAESTRA (Oportunidad es entidad maestra · conecta cuenta con propuesta/demanda/oferta) ── */}
-                <VinculacionesMaestra items={[
-                  {
-                    key:'cuenta',
-                    icon: Building2,
-                    tone:'green',
-                    label:'Cuenta',
-                    value: op.cuenta || null,
-                    sub: op.contacto || null,
-                    onClick: op.cuenta ? () => navigate('cuentas', { search: op.cuenta }) : null,
-                  },
-                  {
-                    key:'activos',
-                    icon: Building,
-                    tone:'bronze',
-                    label:'Activos vinculados',
-                    value: v.activos.length > 0 ? (v.activos.length === 1 ? 'activo' : 'activos') : null,
-                    count: v.activos.length > 0 ? v.activos.length : null,
-                    onClick: v.activos.length > 0 ? () => setTab('vinc') : null,
-                  },
-                  {
-                    key:'ofertas',
-                    icon: Tag,
-                    tone:'blue',
-                    label:'Ofertas / Demandas',
-                    value: (v.ofertas.length + v.demandas.length) > 0 ? 'op. comerciales' : null,
-                    count: (v.ofertas.length + v.demandas.length) > 0 ? (v.ofertas.length + v.demandas.length) : null,
-                    onClick: (v.ofertas.length + v.demandas.length) > 0 ? () => setTab('vinc') : null,
-                  },
-                  {
-                    key:'mandato',
-                    icon: ScrollText,
-                    tone:'accent',
-                    label: v.mandatos.length === 1 ? 'Mandato' : 'Mandatos',
-                    value: v.mandatos.length > 0 ? v.mandatos[0] : null,
-                    sub: v.mandatos.length > 1 ? `+${v.mandatos.length - 1} más` : null,
-                    onClick: v.mandatos.length > 0 ? () => navigate('ficha-mandato', { ref: v.mandatos[0] }) : null,
-                  },
-                ]} />
+                {/* ── FUNNEL STEP CARDS · cadena de la oportunidad (read-only, Dynamics manda) ── */}
+                {(() => {
+                  const hasCuenta      = !!op.cuenta
+                  const hasContacto    = !!op.contacto
+                  const hasPropuesta   = v.propuestas.length > 0
+                  const hasMandato     = v.mandatos.length > 0
+                  const hasComercial   = (v.ofertas.length + v.demandas.length) > 0
+                  const etapaCerradaG  = /ganada|acuerdo/i.test(op.etapa)
+                  const etapaCerradaP  = /perdida|cancelada/i.test(op.etapa)
+                  const etapaAbierta   = !etapaCerradaG && !etapaCerradaP
+
+                  return (
+                    <FunnelStepCards steps={[
+                      {
+                        key:'origen',
+                        icon: Inbox,
+                        tone:'amber',
+                        label:'Origen del negocio',
+                        value: op.origen || null,
+                        sub: op.remitido && op.remitido !== '—' ? `Remitido por ${op.remitido}` : 'Definido al captar la oportunidad',
+                        status: op.origen ? 'done' : 'locked',
+                        lockedHint:'Sin origen registrado en Dynamics.',
+                        // Card informativa · sin openTarget directo (no hay ficha de origen).
+                      },
+                      {
+                        key:'cuenta',
+                        icon: Building2,
+                        tone:'green',
+                        label:'Cuenta (Dynamics)',
+                        value: op.cuenta || null,
+                        sub: op.contacto ? `Contacto: ${op.contacto}` : null,
+                        status: hasCuenta ? 'done' : 'locked',
+                        openAction: hasCuenta ? { label:'Abrir cuenta', onClick: () => navigate('cuentas', { search: op.cuenta }) } : null,
+                        lockedHint:'Sin cuenta vinculada en Dynamics.',
+                        dyn: true,
+                      },
+                      {
+                        key:'contacto',
+                        icon: User,
+                        tone:'blue',
+                        label:'Contacto (Dynamics)',
+                        value: op.contacto || null,
+                        sub: hasContacto ? 'Persona de referencia en la cuenta' : null,
+                        status: hasContacto ? 'done' : 'locked',
+                        lockedHint:'Sin contacto vinculado en Dynamics.',
+                        dyn: true,
+                      },
+                      {
+                        key:'propuesta',
+                        icon: Lightbulb,
+                        tone:'purple',
+                        label: v.propuestas.length === 1 ? 'Propuesta' : 'Propuestas',
+                        value: hasPropuesta
+                          ? (v.propuestas.length === 1 ? v.propuestas[0] : `${v.propuestas.length} propuestas`)
+                          : null,
+                        sub: hasPropuesta && v.propuestas.length > 1
+                          ? v.propuestas.join(' · ')
+                          : (op.pitch === 'Sí' ? 'Pitch con propuesta competitiva' : null),
+                        status: hasPropuesta ? 'done' : op.pitch === 'Sí' ? 'current' : 'locked',
+                        openAction: hasPropuesta
+                          ? { label:'Abrir propuesta', onClick: () => navigate('ficha-propuesta', { id: v.propuestas[0] }) }
+                          : null,
+                        lockedHint: op.pitch === 'Sí'
+                          ? 'Pitcheas pero aún sin propuesta registrada.'
+                          : 'Sin propuesta (rama directa).',
+                      },
+                      {
+                        key:'mandato',
+                        icon: ScrollText,
+                        tone:'accent',
+                        label: v.mandatos.length === 1 ? 'Mandato' : 'Mandatos',
+                        value: hasMandato
+                          ? (v.mandatos.length === 1 ? v.mandatos[0] : `${v.mandatos.length} mandatos`)
+                          : null,
+                        sub: hasMandato && v.mandatos.length > 1 ? v.mandatos.join(' · ') : null,
+                        status: hasMandato ? 'done' : (hasPropuesta || hasCuenta) ? 'current' : 'locked',
+                        openAction: hasMandato
+                          ? { label:'Abrir mandato', onClick: () => navigate('ficha-mandato', { ref: v.mandatos[0] }) }
+                          : null,
+                        lockedHint:'Se firma tras ganar propuesta o desde lead directo.',
+                      },
+                      {
+                        key:'comercial',
+                        icon: Tag,
+                        tone:'bronze',
+                        label:'Ofertas / Demandas',
+                        value: hasComercial ? `${v.ofertas.length + v.demandas.length} registros` : null,
+                        sub: hasComercial
+                          ? `${v.ofertas.length} oferta(s) · ${v.demandas.length} demanda(s)${v.activos.length > 0 ? ` · ${v.activos.length} activo(s)` : ''}`
+                          : 'Generadas tras firmar mandato o vía directa.',
+                        status: hasComercial ? 'done' : hasMandato ? 'current' : 'locked',
+                        openAction: hasComercial
+                          ? { label:'Ver vinculaciones', onClick: () => setTab('vinc') }
+                          : null,
+                        lockedHint:'Se generan al firmar el mandato.',
+                      },
+                      {
+                        key:'etapa',
+                        icon: Trophy,
+                        tone: etapaCerradaG ? 'green' : etapaCerradaP ? 'red' : 'accent',
+                        label:'Etapa actual (Dynamics)',
+                        value: op.etapa || null,
+                        sub: etapaAbierta
+                          ? `${op.probabilidad || 50}% probabilidad · Lifetime ${Number(op.lifetime).toLocaleString('es-ES')} €`
+                          : etapaCerradaG ? 'Oportunidad ganada' : 'Oportunidad cerrada',
+                        status: etapaAbierta ? 'current' : 'done',
+                        action: etapaAbierta
+                          ? { label:'Editar en Dynamics ↗', onClick: () => alert('En producción, abrirá el registro directamente en Microsoft Dynamics 365.'), primary: false }
+                          : null,
+                        dyn: true,
+                      },
+                    ]} />
+                  )
+                })()}
 
                 {/* ── IDENTIFICACIÓN + ESTADO ── */}
                 <div className="va-two-col">
