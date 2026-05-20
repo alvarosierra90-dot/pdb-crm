@@ -80,20 +80,21 @@ export default function MarcarPropuestaPerdidaModal({ propuesta, oportunidad, on
         const refsAct = activos.map(a => a?.ref).filter(Boolean)
         const { data: rowsAct = [] } = await supabase.from('activos').select('id, ref, dynamics_account_id').in('ref', refsAct)
 
-        const yearOfe = new Date().getFullYear()
+        // Refs canónicas OFR-NNNNNNN (mismo formato que OfertasList espera).
         const { data: lastOfe } = await supabase
-          .from('ofertas').select('ref').like('ref', `OFE-${yearOfe}-%`)
+          .from('ofertas').select('ref').like('ref', 'OFR-%')
           .order('ref', { ascending: false }).limit(1).maybeSingle()
         let n = lastOfe?.ref ? parseInt(String(lastOfe.ref).split('-').pop(), 10) : 0
         n = isNaN(n) ? 0 : n
 
         for (const act of rowsAct) {
           n += 1
-          const ofeRef = `OFE-${yearOfe}-${String(n).padStart(4, '0')}`
+          const ofeRef = `OFR-${String(n).padStart(7, '0')}`
           const cuentaOferta = act.dynamics_account_id || propuesta.dynamics_account_id
           const { data: ofe, error: eOfe } = await supabase.from('ofertas').insert({
             ref:                     ofeRef,
             activo_id:               act.id,
+            activo_ref:              act.ref,   // para OfertasList
             dynamics_opportunity_id: propuesta.dynamics_opportunity_id,
             dynamics_account_id:     cuentaOferta,
             equipo_trabajo:          equipoHeredado,

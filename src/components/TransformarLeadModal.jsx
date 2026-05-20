@@ -63,16 +63,24 @@ function Typeahead({ label, placeholder, value, onChange, onPick, options, field
   )
 }
 
+// Refs por entidad. Ofertas usan formato canonico 'OFR-NNNNNNN' (7 digitos
+// zero-padded) porque OfertasList aplica formatRef(ref, 'OFR') — cualquier
+// otra forma se hashea y la oferta se vuelve inalcanzable. Propuestas y
+// demandas mantienen formato 'PRY-YYYY-NNNN' / 'DEM-YYYY-NNNN' (sus listas
+// no aplican formatRef y la BD ya tiene refs en ese formato).
 async function nextRef(prefix) {
+  if (prefix === 'OFR') {
+    const { data } = await supabase
+      .from('ofertas')
+      .select('ref').like('ref', 'OFR-%').order('ref', { ascending: false }).limit(1).maybeSingle()
+    const last = data?.ref ? parseInt(String(data.ref).split('-').pop(), 10) : 0
+    return `OFR-${String((isNaN(last) ? 0 : last) + 1).padStart(7, '0')}`
+  }
   const year = new Date().getFullYear()
   const fullPrefix = `${prefix}-${year}-`
   const { data } = await supabase
-    .from(prefix === 'PRY' ? 'propuestas' : prefix === 'DEM' ? 'demandas' : 'ofertas')
-    .select('ref')
-    .like('ref', `${fullPrefix}%`)
-    .order('ref', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .from(prefix === 'PRY' ? 'propuestas' : 'demandas')
+    .select('ref').like('ref', `${fullPrefix}%`).order('ref', { ascending: false }).limit(1).maybeSingle()
   const last = data?.ref ? parseInt(String(data.ref).split('-').pop(), 10) : 0
   return `${fullPrefix}${String((isNaN(last) ? 0 : last) + 1).padStart(4, '0')}`
 }
@@ -326,7 +334,7 @@ export default function TransformarLeadModal({ lead, onClose, onSuccess }) {
         out.destinoRef = dem.ref
         destinoView = 'ficha-demanda'
       } else if (esquema.destino === 'oferta') {
-        const ref = await nextRef('OFE')
+        const ref = await nextRef('OFR')
         // En una oferta, la cuenta de Vinculaciones es el PROPIETARIO del activo
         // (no el cliente del lead). Si el activo ya tiene dynamics_account_id
         // (propietario en Dynamics), lo usamos. Si no, fallback al cuentaPick.
