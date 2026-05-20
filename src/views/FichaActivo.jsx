@@ -5,6 +5,7 @@ import BajaArrendatarioModal from '../components/BajaArrendatarioModal'
 import SalidaArrendatarioModal from '../components/SalidaArrendatarioModal'
 import SalidaPropietarioModal  from '../components/SalidaPropietarioModal'
 import SalidaOfertaModal       from '../components/SalidaOfertaModal'
+import HistoricoEdificio       from '../components/HistoricoEdificio'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import AltaPropietarioModal from '../components/AltaPropietarioModal'
 import AltaArrendatarioModal from '../components/AltaArrendatarioModal'
@@ -3013,7 +3014,7 @@ function AddressField({ value, ciudad, onSave }) {
   )
 }
 
-function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, syncRef, hidden, vincMaestra, propietariosReg = [], arrendatariosCount = 0, goToTab, liveBuildings }) {
+function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, syncRef, hidden, vincMaestra, propietariosReg = [], arrendatariosCount = 0, goToTab, liveBuildings, activoRef, activoNombre }) {
   const INIT_INFO = {
     nombre:'', direccion:'', ciudad:'', pais:'España', cp:'', coordenadas:'',
     area:'', zona:'', subzona:'',
@@ -3426,6 +3427,11 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
           Ofertas activas — eliminadas de Información general. Existe ya la
           pestaña Ofertas (lista completa) y la sección en Vista 360.
         */}
+
+        {/* ── HISTÓRICO DEL EDIFICIO ── */}
+        {activoRef && (
+          <HistoricoEdificio activoRef={activoRef} activoNombre={activoNombre || ''} />
+        )}
 
       </div>
     </div>
@@ -5176,6 +5182,8 @@ export default function FichaActivo() {
               arrendatariosCount={arrendatariosReg.length}
               goToTab={setActiveTab}
               liveBuildings={liveBuildings}
+              activoRef={activo?.ref || params?.ref}
+              activoNombre={displayNombre ?? activo?.nombre ?? ''}
               onInfoSaved={async ({nombre,direccion})=>{
                 if(nombre!==undefined) setDisplayNombre(nombre||null)
                 if(direccion!==undefined) setDisplayDireccion(direccion||null)
