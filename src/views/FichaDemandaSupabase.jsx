@@ -8,6 +8,9 @@ import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
 import HeaderPills from '../components/HeaderPills'
 import FunnelTracker from '../components/FunnelTracker'
+import FunnelStepCards from '../components/FunnelStepCards'
+import MarcarDemandaCierreModal from '../components/MarcarDemandaCierreModal'
+import { Building2, Target, ScrollText, Trophy, X as XClose } from 'lucide-react'
 
 // Orden canónico · Info → Específico → Documentos → Vista 360 → Confidencialidad
 // "Negociaciones" es específico de Demanda (las que salen de ella), va antes de Documentos.
@@ -123,6 +126,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [showFirmarModal, setShowFirmarModal] = useState(false)
+  const [showCierreModal, setShowCierreModal] = useState(null) // 'ganada' | 'perdida' | null
   const [oportunidad, setOportunidad] = useState(null)
   // Vista 360 · alternativas (oferta_demanda con joins a ofertas + activos)
   const [alternativas, setAlternativas] = useState([])
@@ -443,6 +447,14 @@ export default function FichaDemandaSupabase({ refOrId }) {
           onSuccess={() => { setShowFirmarModal(false); load() }}
         />
       )}
+      {showCierreModal && (
+        <MarcarDemandaCierreModal
+          tipo={showCierreModal}
+          demanda={demanda}
+          onClose={() => setShowCierreModal(null)}
+          onSuccess={() => { setShowCierreModal(null); load() }}
+        />
+      )}
 
       <div className="ficha-wrap">
         <div className="ficha-main">
@@ -524,25 +536,86 @@ export default function FichaDemandaSupabase({ refOrId }) {
             return (
               <div className="tab-content active"><div className="info-pad">
 
-                {/* ── VINCULACIONES (canónico, siempre arriba) ── */}
-                <Vinculaciones
-                  cuentaLabel="Cliente (Cuenta)"
-                  cuenta={cuenta ? {
-                    id:     cuenta.dynamics_id || cuenta.id,
-                    nombre: cuenta.nombre,
-                    sub:    cuenta.sector || cuenta.tipo,
-                  } : null}
-                  oportunidad={oportunidad ? {
-                    id:     oportunidad.dynamics_id || oportunidad.id,
-                    nombre: oportunidad.nombre,
-                    sub:    oportunidad.tipo,
-                  } : null}
-                  mandato={demanda.mandato_id && demanda.mandato ? {
-                    id:  demanda.mandato.ref,
-                    ref: demanda.mandato.ref,
-                    sub: 'Mandato vinculado',
-                  } : null}
-                />
+                {/* ── FUNNEL STEP CARDS · wizard del proceso de demanda ── */}
+                {(() => {
+                  const hasCuenta      = !!(cuenta?.dynamics_id || cuenta?.id)
+                  const hasOportunidad = !!(oportunidad?.dynamics_id || demanda.dynamics_opportunity_id)
+                  const hasMandato     = !!demanda.mandato_id
+                  const yaGanada       = form.estatus === 'cerrada_concedido'
+                  const yaPerdida      = ['cerrada_perdida','descartada'].includes(form.estatus)
+                  const enCurso        = !yaGanada && !yaPerdida && hasOportunidad
+                  return (
+                    <FunnelStepCards steps={[
+                      {
+                        key:'cuenta',
+                        icon: Building2,
+                        tone:'green',
+                        label:'Cliente (Cuenta)',
+                        value: cuenta?.nombre || null,
+                        sub:   cuenta?.sector || cuenta?.tipo || null,
+                        status: hasCuenta ? 'done' : 'current',
+                        openAction: hasCuenta ? { label:'Abrir cuenta', onClick: () => navigate('cuentas', { id: cuenta.dynamics_id || cuenta.id }) } : null,
+                        dyn: true,
+                      },
+                      {
+                        key:'oportunidad',
+                        icon: Target,
+                        tone:'accent',
+                        label:'Oportunidad',
+                        value: oportunidad?.nombre || demanda.dynamics_opportunity_id || null,
+                        sub:   oportunidad?.tipo || null,
+                        status: hasOportunidad ? 'done' : 'locked',
+                        openAction: hasOportunidad ? { label:'Abrir oportunidad', onClick: () => navigate('ficha-oportunidad', { id: oportunidad?.dynamics_id || demanda.dynamics_opportunity_id }) } : null,
+                        lockedHint:'Sin oportunidad vinculada.',
+                        dyn: true,
+                      },
+                      {
+                        key:'mandato',
+                        icon: ScrollText,
+                        tone:'purple',
+                        label:'Mandato',
+                        value: demanda.mandato?.ref || null,
+                        sub: hasMandato ? 'Mandato vinculado a esta demanda.' : null,
+                        status: hasMandato ? 'done' : 'locked',
+                        openAction: hasMandato ? { label:'Abrir mandato', onClick: () => navigate('ficha-mandato', { ref: demanda.mandato.ref }) } : null,
+                        lockedHint:'Las demandas pueden o no llevar mandato. Si no hay, se hace matching directo desde el pool de ofertas.',
+                        optional: !hasMandato,
+                      },
+                      // Card Ganado
+                      {
+                        key:'ganada',
+                        icon: Trophy,
+                        tone:'green',
+                        label:'Demanda ganada',
+                        value: yaGanada ? 'Concedido' : null,
+                        sub: yaGanada
+                          ? 'Cuenta firmó con un activo del pool.'
+                          : 'Cuando la cuenta firme con un activo, marca aquí el cierre concedido.',
+                        status: yaGanada ? 'done' : yaPerdida ? 'locked' : enCurso ? 'current' : 'locked',
+                        action: enCurso
+                          ? { label:'✓ Marcar como ganada', onClick: () => setShowCierreModal('ganada'), primary: true }
+                          : null,
+                        lockedHint: yaPerdida ? 'La demanda ya está marcada como perdida/descartada.' : 'Vincula la oportunidad.',
+                      },
+                      // Card Perdido
+                      {
+                        key:'perdida',
+                        icon: XClose,
+                        tone:'red',
+                        label:'Demanda perdida',
+                        value: yaPerdida ? (demanda.motivo_descarte || ESTADO_LABEL[form.estatus]) : null,
+                        sub: yaPerdida
+                          ? null
+                          : 'Si la cuenta no firma o cierra sin éxito, indica el motivo aquí.',
+                        status: yaPerdida ? 'done' : yaGanada ? 'locked' : enCurso ? 'current' : 'locked',
+                        action: enCurso
+                          ? { label:'✗ Marcar como perdida', onClick: () => setShowCierreModal('perdida'), primary: false }
+                          : null,
+                        lockedHint: yaGanada ? 'La demanda ya está marcada como ganada.' : 'Vincula la oportunidad.',
+                      },
+                    ]} />
+                  )
+                })()}
 
                 {/* ── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones) ── */}
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
