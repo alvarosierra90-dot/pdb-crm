@@ -612,6 +612,11 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   const [splitSup, setSplitSup]         = useState('')
   const [ppOpen, setPpOpen]             = useState(false)
   const [uaOpen, setUaOpen]             = useState(false)
+  // Toggles para los toolbars de las vistas 'prop' y 'arr'.
+  // Mismo patrón: colapsado por defecto, expande al click.
+  const [propPanelOpen, setPropPanelOpen]     = useState(false)
+  const [tenPanelOpen, setTenPanelOpen]       = useState(false)
+  const [ofrPanelOpen, setOfrPanelOpen]       = useState(false)
   const [editPA, setEditPA]             = useState(null)  // {layer:'prop'|'arr', rowP, idx}
   const [editPASup, setEditPASup]       = useState('')
   const [editPARenta, setEditPARenta]   = useState('')
@@ -1360,69 +1365,74 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
           return PROP_COLORS[(i >= 0 ? i : 0) % PROP_COLORS.length]
         }
         return (
-          <div className="sp-body">
+          <div className="sp-principal-layout">
 
-            {/* ── SIDEBAR PROPIETARIOS ── */}
-            <div className="sp-sidebar">
-              <div className="sp-section-label">Propietarios</div>
-              <div style={{maxHeight:320,overflowY:'auto',paddingRight:2}}>
-                {ownerSet.length===0 ? (
-                  <div style={{fontSize:10,color:'var(--muted)',lineHeight:1.5,padding:'4px 0'}}>Aún no hay propietarios</div>
-                ) : ownerSet.map((o,i)=>{
-                  const col = PROP_COLORS[i%PROP_COLORS.length]
-                  const dragKey = o.key
-                  const dupName = ownerSet.filter(x => x.name === o.name).length > 1
-                  // Suma m² del propietario usando prop_id si está disponible,
-                  // fallback por nombre para units legacy.
-                  const m2 = (edif.prop||[]).flatMap(r => r.units || []).reduce((s,u) => {
-                    const match = o.id ? u.prop_id === o.id : (!u.prop_id && u.n === o.name)
-                    return s + (match ? (Number(u.sup)||0) : 0)
-                  }, 0)
-                  return (
-                    <div key={o.key} draggable className="sp-chip"
-                      onDragStart={()=>setDragging(dragKey)}
-                      onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                      onClick={(e) => {
-                        // Click sin drag → navega a la ficha del propietario.
-                        // Pasa m2 real, id, y refs de retorno para que el botón
-                        // 'Volver al activo' vuelva al stacking exacto del origen.
-                        if (dragging) return
-                        spNavigate('ficha-propietario', {
-                          id: o.id,
-                          ownerData: { id: o.id, propietario: o.name, superficie: m2 },
-                          ownerSuperficie: m2,
-                          fromOwnerStacking: true,
-                          fromActivoRef: activoRef,
-                          fromActivoNombre: activoNombre,
-                          fromActivoTab: 'at-stacking',
-                        })
-                      }}
-                      title={`Ver ficha de ${o.name}`}
-                      style={{
-                        border:`1px solid ${dragging===dragKey?col:col+'88'}`,background:col+'18',
-                        opacity:dragging&&dragging!==dragKey?.4:1,
-                        boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <span className="sp-chip-handle">⋮⋮</span>
-                      <span className="sp-chip-dot" style={{background:col}}/>
-                      <div className="sp-chip-detail">
-                        <span className="sp-chip-label" style={{color:col,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>
-                          {o.name}
-                          {dupName && o.id && <span style={{ marginLeft:4, fontSize:8, color:col, opacity:0.7, fontWeight:500, textDecoration:'none' }}>· {o.id.slice(-6)}</span>}
-                        </span>
-                        <div className="sp-chip-meta">{m2 ? m2.toLocaleString('es-ES') : 0} m²</div>
-                      </div>
-                    </div>
-                  )
-                })}
+            {/* ── TOOLBAR PROPIETARIOS ── */}
+            <div className="sp-toolbar">
+              <div className="sp-toolbar-row">
+                <button
+                  type="button"
+                  className="sp-toolbar-toggle"
+                  onClick={()=>setPropPanelOpen(v=>!v)}
+                  aria-expanded={propPanelOpen}
+                >
+                  <span style={{display:'inline-block',transition:'transform .2s',transform:propPanelOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
+                  <span className="sp-toolbar-label" style={{marginBottom:0}}>Propietarios</span>
+                  <span className="sp-toolbar-count">{ownerSet.length}</span>
+                </button>
+                <button onClick={onAddOwner} className="sp-toolbar-action">+ Añadir propietario</button>
               </div>
-              <button onClick={onAddOwner} className="sp-add-btn">+ Añadir propietario</button>
+              {propPanelOpen && (
+                <div className="sp-toolbar-chips sp-toolbar-chips-scroll">
+                  {ownerSet.length===0 ? (
+                    <div style={{fontSize:11,color:'var(--muted)',padding:'4px 0',fontStyle:'italic'}}>Aún no hay propietarios</div>
+                  ) : ownerSet.map((o,i)=>{
+                    const col = PROP_COLORS[i%PROP_COLORS.length]
+                    const dragKey = o.key
+                    const dupName = ownerSet.filter(x => x.name === o.name).length > 1
+                    const m2 = (edif.prop||[]).flatMap(r => r.units || []).reduce((s,u) => {
+                      const match = o.id ? u.prop_id === o.id : (!u.prop_id && u.n === o.name)
+                      return s + (match ? (Number(u.sup)||0) : 0)
+                    }, 0)
+                    return (
+                      <div key={o.key} draggable className="sp-chip sp-chip-h"
+                        onDragStart={()=>setDragging(dragKey)}
+                        onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                        onClick={(e) => {
+                          if (dragging) return
+                          spNavigate('ficha-propietario', {
+                            id: o.id,
+                            ownerData: { id: o.id, propietario: o.name, superficie: m2 },
+                            ownerSuperficie: m2,
+                            fromOwnerStacking: true,
+                            fromActivoRef: activoRef,
+                            fromActivoNombre: activoNombre,
+                            fromActivoTab: 'at-stacking',
+                          })
+                        }}
+                        title={`${o.name} · ${m2 ? m2.toLocaleString('es-ES') : 0} m²`}
+                        style={{
+                          border:`1px solid ${dragging===dragKey?col:col+'88'}`,background:col+'18',
+                          opacity:dragging&&dragging!==dragKey?.4:1,
+                          boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <span className="sp-chip-dot" style={{background:col}}/>
+                        <span className="sp-chip-label" style={{color:col,fontWeight:600,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>
+                          {o.name}
+                          {dupName && o.id && <span style={{ marginLeft:4, fontSize:9, color:col, opacity:0.7, fontWeight:500, textDecoration:'none' }}>· {o.id.slice(-6)}</span>}
+                        </span>
+                        <span className="sp-chip-tag" style={{background:col+'22',color:col,marginLeft:4}}>{m2 ? Math.round(m2/1000)+'k' : '0'} m²</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {/* ── GRID PLANTAS (driven by edif.floors) ── */}
-            <div style={{flex:1,minWidth:0}}>
+            <div style={{minWidth:0}}>
               <div className="sp-table-head">
                 <div>Planta</div>
                 <div>Propietario · arrastra desde el panel</div>
@@ -1606,90 +1616,118 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
           return u.n
         }
         return (
-          <div className="sp-body">
+          <div className="sp-principal-layout">
 
-            {/* ── SIDEBAR ARRENDATARIOS ── */}
-            <div className="sp-sidebar">
-              <div className="sp-section-label">Arrendatarios</div>
-              <div style={{maxHeight:200,overflowY:'auto',paddingRight:2}}>
-                {tenantSet.length===0 ? (
-                  <div style={{fontSize:10,color:'var(--muted)',lineHeight:1.5,padding:'4px 0'}}>Aún no hay arrendatarios</div>
-                ) : tenantSet.map((t,i)=>{
-                  const col = ARR_COLORS[i%ARR_COLORS.length]
-                  const dragKey = 'ten:'+t.key
-                  // Disambiguación visual cuando hay varios chips con el mismo
-                  // nombre (típicamente 'Desconocido'): mostrar el ref.
-                  const dupName = tenantSet.filter(x => x.name === t.name).length > 1
-                  return (
-                    <div key={t.key} draggable className="sp-chip"
-                      onDragStart={()=>setDragging(dragKey)}
-                      onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                      onClick={(e) => {
-                        if (dragging) return
-                        spNavigate('ficha-arrendatario', {
-                          tenantName: t.name,
-                          arrRef: t.ref,
-                          fromActivoRef: activoRef,
-                          fromActivoNombre: activoNombre,
-                          fromActivoTab: 'at-stacking',
-                        })
-                      }}
-                      title={`Ver ficha de ${t.name}`}
-                      style={{
-                        border:`1px solid ${col}88`,background:col+'18',
-                        opacity:dragging&&dragging!==dragKey?.4:1,
-                        boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <span className="sp-chip-handle">⋮⋮</span>
-                      <span className="sp-chip-dot" style={{background:col}}/>
-                      <span className="sp-chip-label" style={{color:col,fontWeight:600,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>
-                        {t.name}
-                        {dupName && t.ref && <span style={{ marginLeft:4, fontSize:8, color:col, opacity:0.7, fontWeight:500, textDecoration:'none' }}>· {t.ref.slice(-6)}</span>}
-                      </span>
-                    </div>
-                  )
-                })}
+            {/* ── TOOLBAR ARRENDATARIOS + OFERTAS ── */}
+            <div className="sp-toolbar">
+              <div className="sp-toolbar-row">
+                <button
+                  type="button"
+                  className="sp-toolbar-toggle"
+                  onClick={()=>setTenPanelOpen(v=>!v)}
+                  aria-expanded={tenPanelOpen}
+                >
+                  <span style={{display:'inline-block',transition:'transform .2s',transform:tenPanelOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
+                  <span className="sp-toolbar-label" style={{marginBottom:0}}>Arrendatarios</span>
+                  <span className="sp-toolbar-count">{tenantSet.length}</span>
+                </button>
+                <button onClick={onAddTenant} className="sp-toolbar-action">+ Añadir arrendatario</button>
               </div>
-              <button onClick={onAddTenant} className="sp-add-btn">+ Añadir arrendatario</button>
-              <div style={{borderTop:'1px solid var(--line-2)',marginTop:10,paddingTop:4}}>
-                <div className="sp-section-label">Ofertas activas</div>
-                {extraOfertas.length === 0
-                  ? <div style={{fontSize:10,color:'var(--muted)',fontStyle:'italic',padding:'4px 0'}}>Sin ofertas. Créalas desde Desglose de ofertas.</div>
-                  : extraOfertas.map((ofr,idx)=>{
-                      const COLS=['#16a34a','#8a6d40','#d97706','#6b5b8e']
-                      const col=COLS[idx%COLS.length]
-                      const dragKey='ofr:'+ofr.nombre
-                      return (
-                        <div key={ofr.id} draggable
-                          className="sp-offer-card"
-                          style={{borderLeftColor:col,opacity:dragging&&dragging!==dragKey?0.4:1,cursor:'pointer'}}
-                          onDragStart={()=>setDragging(dragKey)}
-                          onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                          onClick={(e) => {
-                            if (dragging) return
-                            spNavigate('ficha-oferta', {
-                              ofertaRef: ofr.ref || ofr.id || ofr.nombre,
-                              tab: 'of-espacios',
-                              fromActivoRef: activoRef,
-                              fromActivoNombre: activoNombre,
-                              fromActivoTab: 'at-stacking',
-                            })
-                          }}
-                          title={`Ver ficha de ${ofr.nombre}`}
-                        >
-                          <div className="sp-offer-name" style={{color:col,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>{ofr.nombre}</div>
-                          <div className="sp-offer-meta">Click para ver · arrastra para asignar plantas</div>
-                        </div>
-                      )
-                    })
-                }
+              {tenPanelOpen && (
+                <div className="sp-toolbar-chips sp-toolbar-chips-scroll">
+                  {tenantSet.length===0 ? (
+                    <div style={{fontSize:11,color:'var(--muted)',padding:'4px 0',fontStyle:'italic'}}>Aún no hay arrendatarios</div>
+                  ) : tenantSet.map((t,i)=>{
+                    const col = ARR_COLORS[i%ARR_COLORS.length]
+                    const dragKey = 'ten:'+t.key
+                    const dupName = tenantSet.filter(x => x.name === t.name).length > 1
+                    return (
+                      <div key={t.key} draggable className="sp-chip sp-chip-h"
+                        onDragStart={()=>setDragging(dragKey)}
+                        onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                        onClick={(e) => {
+                          if (dragging) return
+                          spNavigate('ficha-arrendatario', {
+                            tenantName: t.name,
+                            arrRef: t.ref,
+                            fromActivoRef: activoRef,
+                            fromActivoNombre: activoNombre,
+                            fromActivoTab: 'at-stacking',
+                          })
+                        }}
+                        title={`Ver ficha de ${t.name}`}
+                        style={{
+                          border:`1px solid ${col}88`,background:col+'18',
+                          opacity:dragging&&dragging!==dragKey?.4:1,
+                          boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <span className="sp-chip-dot" style={{background:col}}/>
+                        <span className="sp-chip-label" style={{color:col,fontWeight:600,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>
+                          {t.name}
+                          {dupName && t.ref && <span style={{ marginLeft:4, fontSize:9, color:col, opacity:0.7, fontWeight:500, textDecoration:'none' }}>· {t.ref.slice(-6)}</span>}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              <div className="sp-toolbar-row" style={{borderTop:'1px solid var(--line-2)',paddingTop:8}}>
+                <button
+                  type="button"
+                  className="sp-toolbar-toggle"
+                  onClick={()=>setOfrPanelOpen(v=>!v)}
+                  aria-expanded={ofrPanelOpen}
+                >
+                  <span style={{display:'inline-block',transition:'transform .2s',transform:ofrPanelOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
+                  <span className="sp-toolbar-label" style={{marginBottom:0}}>Ofertas activas</span>
+                  <span className="sp-toolbar-count">{extraOfertas.length}</span>
+                </button>
               </div>
+              {ofrPanelOpen && (
+                <div className="sp-toolbar-chips sp-toolbar-chips-scroll">
+                  {extraOfertas.length === 0
+                    ? <div style={{fontSize:11,color:'var(--muted)',padding:'4px 0',fontStyle:'italic'}}>Sin ofertas. Créalas desde Desglose de ofertas.</div>
+                    : extraOfertas.map((ofr,idx)=>{
+                        const COLS=['#16a34a','#8a6d40','#d97706','#6b5b8e']
+                        const col=COLS[idx%COLS.length]
+                        const dragKey='ofr:'+ofr.nombre
+                        return (
+                          <div key={ofr.id} draggable className="sp-chip sp-chip-h"
+                            onDragStart={()=>setDragging(dragKey)}
+                            onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                            onClick={(e) => {
+                              if (dragging) return
+                              spNavigate('ficha-oferta', {
+                                ofertaRef: ofr.ref || ofr.id || ofr.nombre,
+                                tab: 'of-espacios',
+                                fromActivoRef: activoRef,
+                                fromActivoNombre: activoNombre,
+                                fromActivoTab: 'at-stacking',
+                              })
+                            }}
+                            title={`Ver ficha de ${ofr.nombre}`}
+                            style={{
+                              border:`1px solid ${col}88`,background:col+'18',
+                              opacity:dragging&&dragging!==dragKey?.4:1,
+                              boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <span className="sp-chip-dot" style={{background:col}}/>
+                            <span className="sp-chip-label" style={{color:col,fontWeight:600,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>{ofr.nombre}</span>
+                          </div>
+                        )
+                      })
+                  }
+                </div>
+              )}
             </div>
 
             {/* ── GRID PLANTAS (driven by edif.floors) ── */}
-            <div style={{flex:1,minWidth:0}}>
+            <div style={{minWidth:0}}>
               <div className="sp-table-head">
                 <div>Planta</div>
                 <div>Arrendatario · oferta</div>

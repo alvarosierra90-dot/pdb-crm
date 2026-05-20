@@ -1650,6 +1650,33 @@ tr:hover .ra-cell { opacity: 1; }
   flex: 1;
   min-width: 0;
 }
+/* Cuando la lista puede tener muchos items (propietarios, 30 arrendatarios,
+   etc.), cap de altura con scroll interno para que el grid de plantas no
+   se desplace excesivamente al expandir. */
+.sp-toolbar-chips-scroll {
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 2px;
+  align-content: flex-start;
+}
+.sp-toolbar-action {
+  margin-left: auto;
+  padding: 5px 11px;
+  background: var(--surface, #fff);
+  border: 1px dashed var(--muted-3, #d1d5db);
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--muted, #6b7280);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+}
+.sp-toolbar-action:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-lt, rgba(0, 0, 0, 0.02));
+}
 /* Variante horizontal de los chips — más anchos para que se lean cómodos
    en una fila, no apilados en columna estrecha como el antiguo sidebar. */
 .sp-chip-h {
