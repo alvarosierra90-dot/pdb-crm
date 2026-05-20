@@ -5269,33 +5269,10 @@ export default function FichaActivo() {
                   const extras = (params?.ofertasFromOferta || []).filter(p =>
                     !fromDB.some(d => (p.ref && d.ref === p.ref) || d.nombre === p.nombre)
                   )
-                  // Rescata ofertas 'huérfanas' del stacking_data: vac units cuyo
-                  // 'oferta' no matchea ninguna fila en BD ni en extras. Sin
-                  // este rescate, una vac queda visible en plantas pero el
-                  // sidebar aparece vacío (caso 'Castellana 43').
-                  const stackingSrc = liveBuildings || activo?.stacking_data || []
-                  const orphans = []
-                  const seen = new Set([
-                    ...fromDB.map(d => d.nombre),
-                    ...extras.map(e => e.nombre),
-                  ])
-                  for (const b of stackingSrc) {
-                    for (const r of (b.arr || [])) {
-                      for (const u of (r.units || [])) {
-                        if (u.type === 'vac' && u.oferta && !seen.has(u.oferta)) {
-                          seen.add(u.oferta)
-                          orphans.push({
-                            id:            'stk-' + u.oferta,
-                            ref:           null,
-                            nombre:        u.oferta,
-                            tipoOperacion: 'Alquiler',
-                            _orphan:       true,
-                          })
-                        }
-                      }
-                    }
-                  }
-                  return [...fromDB, ...extras, ...orphans]
+                  // Sidebar = SOLO ofertas reales en BD. Si una vac unit del
+                  // stacking no tiene fila en ofertas, es data corrupta y se
+                  // limpia en otro lado (no se inventan cards fantasma).
+                  return [...fromDB, ...extras]
                 })()}
                 initView={params?.newOwnerData ? 'prop' : params?.newTenantData ? 'arr' : (params?.stackingView || 'principal')}
               />
