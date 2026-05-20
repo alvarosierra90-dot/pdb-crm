@@ -307,6 +307,8 @@ export default function FichaArrendatario() {
   const [stackingActivo, setStackingActivo] = useState(null) // { id, ref, nombre, stacking_data, ... }
   const [arrTodosActivo, setArrTodosActivo] = useState([])    // arrendatarios del mismo activo (sidebar)
   const [bajaArr, setBajaArr] = useState(null)
+  // Modal de Salida del arrendatario (Baja / Fin de contrato → Traslado)
+  const [showSalida, setShowSalida] = useState(false)
   const stackingAutoSaveTimer = useRef(null)
 
   // Load from arrRef (coming from dar de baja)
@@ -694,7 +696,16 @@ export default function FichaArrendatario() {
       <div className="action-bar">
         <button className="ab-btn save" onClick={(fromDarBaja || loadedRef) ? handleSaveUpdate : handleSave} disabled={saving}>{saving ? 'Guardando...' : (loadedRef ? '💾 Guardar cambios' : '💾 Guardar')}</button>
         {!isNew && !fromDarBaja && <button className="ab-btn">Nuevo</button>}
-        {!isNew && !fromDarBaja && <button className="ab-btn">Desactivar</button>}
+        {!isNew && !fromDarBaja && loadedRef && (
+          <button
+            className="ab-btn"
+            style={{color:'var(--red)',borderColor:'var(--red)'}}
+            onClick={()=>setShowSalida(true)}
+            title="Baja / Fin de contrato (traslado)"
+          >
+            Dar de baja
+          </button>
+        )}
         <div className="ab-sep"/>
         {(params?.fromActivoRef || fromDarBaja || fromActivo) && <button className="ab-btn blue" onClick={()=>navigate('ficha-activo',{ref:params?.fromActivoRef||(fromDarBaja?(form.activo||params?.arrRef):undefined)})}>Ver activo</button>}
         {!isNew && !fromDarBaja && !params?.fromActivoRef && <button className="ab-btn blue" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>}
@@ -1489,6 +1500,23 @@ export default function FichaArrendatario() {
         </div>
       </div>
       {showTarea && <AsignarTareaModal refTipo="Arrendatario" refNombre="Oracle Spain SL · ARR-2501" onClose={() => setShowTarea(false)} />}
+      {showSalida && loadedRef && (
+        <SalidaArrendatarioModal
+          arrendatario={{
+            ref:           loadedRef,
+            nombre:        form.tenant_desconocido ? 'Desconocido' : form.tenant,
+            activo_ref:    stackingActivo?.ref || null,
+            activo_nombre: stackingActivo?.nombre || form.activo || '',
+          }}
+          onClose={() => setShowSalida(false)}
+          onSuccess={({ motivo, destinoRef }) => {
+            setShowSalida(false)
+            // Tras la baja: lleva al usuario al listado de arrendatarios
+            // (el arrendatario sigue ahí con su nuevo estado: Baja o Traslado)
+            navigate('arrendatarios')
+          }}
+        />
+      )}
       {bajaArr && stackingActivo && (
         <BajaArrendatarioModal
           arrendatario={{
