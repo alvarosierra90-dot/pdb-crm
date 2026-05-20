@@ -1572,67 +1572,108 @@ tr:hover .ra-cell { opacity: 1; }
 
 .sp-body { display: grid; grid-template-columns: 220px 1fr; gap: 20px; align-items: start; }
 
-/* Layout vertical para la vista 'principal': toolbar arriba, plantas debajo
-   a ancho completo. Elimina el sidebar comprimido y deja respirar las
-   plantas y los chips de uso. */
-.sp-principal-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+/* ── Stacking V2: sidebar lateral 300px plegable a 60px ───────────── */
+.sp-body-v2 {
+  grid-template-columns: 300px 1fr;
+  transition: grid-template-columns 180ms ease;
 }
-.sp-toolbar {
+.sp-body-v2.is-collapsed {
+  grid-template-columns: 60px 1fr;
+}
+.sp-sidebar-v2 {
   position: sticky;
-  top: 0;
-  z-index: 5;
+  top: 12px;
+  align-self: start;
   background: var(--surface, #fff);
   border: 1px solid var(--line, #e5e7eb);
   border-radius: var(--radius, 10px);
-  padding: 10px 14px;
+  padding: 10px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
   box-shadow: 0 1px 4px rgba(11, 18, 32, 0.04);
 }
-.sp-toolbar-row {
+.sp-body-v2.is-collapsed .sp-sidebar-v2 {
+  padding: 8px 4px;
+  align-items: center;
+}
+.sp-sidebar-toggle {
+  align-self: flex-end;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--gray-lt, #f3f4f6);
+  border: 1px solid var(--line, #e5e7eb);
+  color: var(--text3, #6b7280);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+.sp-sidebar-toggle:hover {
+  background: var(--surface, #fff);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.sp-body-v2.is-collapsed .sp-sidebar-toggle {
+  align-self: center;
+}
+
+/* Secciones del sidebar */
+.sp-sidebar-section { display: flex; flex-direction: column; gap: 8px; }
+.sp-sidebar-section + .sp-sidebar-section {
+  border-top: 1px solid var(--line-2, #f3f4f6);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+.sp-sidebar-section-head {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  min-height: 30px;
+  align-items: center;
+  gap: 6px;
 }
-.sp-toolbar-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--muted, #6b7280);
-  font-weight: 600;
-  flex-shrink: 0;
-}
-.sp-toolbar-toggle {
+.sp-sidebar-section-toggle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 8px;
-  margin: 0;
+  flex: 1;
+  padding: 5px 6px;
   background: none;
   border: 1px solid transparent;
   border-radius: 5px;
   cursor: pointer;
   font-family: inherit;
-  color: var(--muted, #6b7280);
+  color: var(--text2, #1f2937);
   font-size: 11px;
-  width: 200px;
-  flex-shrink: 0;
   transition: background-color 120ms ease, border-color 120ms ease;
 }
-.sp-toolbar-toggle:hover {
-  background: var(--gray-lt, #f3f4f6);
-  border-color: var(--line, #e5e7eb);
-}
-.sp-toolbar-toggle[aria-expanded="true"] {
+.sp-sidebar-section-toggle:hover {
   background: var(--gray-lt, #f3f4f6);
 }
-.sp-toolbar-count {
+.sp-sidebar-section-toggle[aria-expanded="true"] {
+  background: var(--gray-lt, #f3f4f6);
+}
+.sp-sidebar-section-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sp-sidebar-section-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text2, #1f2937);
+  font-weight: 700;
+  text-align: left;
+}
+.sp-sidebar-section-count {
   margin-left: auto;
   font-family: var(--mono);
   font-size: 10px;
@@ -1643,59 +1684,127 @@ tr:hover .ra-cell { opacity: 1; }
   font-weight: 700;
   color: var(--text3, #6b7280);
 }
-.sp-toolbar-chips {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  flex: 1;
-  min-width: 0;
-}
-/* Cuando la lista puede tener muchos items (propietarios, 30 arrendatarios,
-   etc.), cap de altura con scroll interno para que el grid de plantas no
-   se desplace excesivamente al expandir. */
-.sp-toolbar-chips-scroll {
-  max-height: 140px;
-  overflow-y: auto;
-  padding: 2px;
-  align-content: flex-start;
-}
-.sp-toolbar-action {
-  margin-left: auto;
-  padding: 5px 11px;
+.sp-sidebar-section-action {
+  padding: 4px 9px;
   background: var(--surface, #fff);
   border: 1px dashed var(--muted-3, #d1d5db);
   border-radius: 5px;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--muted, #6b7280);
   cursor: pointer;
   flex-shrink: 0;
   transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
 }
-.sp-toolbar-action:hover {
+.sp-sidebar-section-action:hover {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-lt, rgba(0, 0, 0, 0.02));
 }
-/* Variante horizontal de los chips — más anchos para que se lean cómodos
-   en una fila, no apilados en columna estrecha como el antiguo sidebar. */
-.sp-chip-h {
-  margin-bottom: 0 !important;
-  padding: 6px 10px !important;
-  font-size: 12px !important;
+.sp-sidebar-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
-.sp-chip-h .sp-chip-label {
-  font-size: 12px !important;
+.sp-sidebar-empty {
+  font-size: 11px;
+  color: var(--muted, #6b7280);
+  font-style: italic;
+  padding: 4px 0;
+  line-height: 1.4;
 }
-.sp-bulk-bar {
+
+/* Icon-rail (cuando sidebar está plegado): un dot por sección con su contador */
+.sp-sidebar-rail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 0;
+  width: 100%;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 120ms ease;
+}
+.sp-sidebar-rail-item:hover {
+  background: var(--gray-lt, #f3f4f6);
+}
+.sp-sidebar-rail-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+}
+.sp-sidebar-rail-count {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text3, #6b7280);
+}
+
+/* Chip "grande": dot 16px + label + badge opcional, una sola línea. */
+.sp-chip-big {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--accent-lt);
-  border: 1px solid var(--accent-bd);
+  gap: 10px;
+  padding: 8px 10px;
   border-radius: 6px;
-  flex-wrap: wrap;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 120ms ease, transform 120ms ease;
+  font-size: 12px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #e5e7eb);
+}
+.sp-chip-big:hover {
+  box-shadow: 0 1px 4px rgba(11,18,32,.08);
+}
+.sp-chip-big:active {
+  cursor: grabbing;
+}
+.sp-chip-big-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.sp-chip-big-label {
+  font-size: 12px;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sp-chip-big-tag {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  letter-spacing: .03em;
+  flex-shrink: 0;
+}
+.sp-chip-big-tag.tag-a { color: #5b21b6; background: var(--pdb-purple-50, #f3effe); }
+.sp-chip-big-tag.tag-s { color: #065f46; background: var(--pdb-green-50, #ecfdf5); }
+
+/* Asignación masiva embebida en el sidebar (vista Principal) */
+.sp-bulk-panel {
+  border-top: 1px solid var(--line-2, #f3f4f6);
+  margin-top: 4px;
+  padding-top: 8px;
+}
+.sp-bulk-panel-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 6px;
+  padding: 0 4px;
 }
 
 /* Sidebar sticky: queda visible aunque hagas scroll en plantas. Soluciona el

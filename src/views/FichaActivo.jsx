@@ -586,6 +586,53 @@ const INIT_BUILDINGS = [
 ]
 
 
+// Sección del sidebar lateral del StackingPlan. Patrón único compartido por
+// las 3 capas (Principal, Propietarios, Arrendatarios). Cabecera clicable +
+// badge con contador + opcional botón de acción. Cuando el sidebar está
+// plegado (sidebarCollapsed=true), muestra solo el dot como icono.
+function SidebarSection({ label, count, open, onToggle, collapsed, dot, actionLabel, onAction, children }) {
+  if (collapsed) {
+    return (
+      <div
+        className="sp-sidebar-rail-item"
+        onClick={onToggle}
+        title={`${label} (${count})`}
+        role="button"
+      >
+        <span className="sp-sidebar-rail-dot" style={{background:dot || 'var(--accent)'}}/>
+        <span className="sp-sidebar-rail-count">{count}</span>
+      </div>
+    )
+  }
+  return (
+    <div className="sp-sidebar-section">
+      <div className="sp-sidebar-section-head">
+        <button
+          type="button"
+          className="sp-sidebar-section-toggle"
+          onClick={onToggle}
+          aria-expanded={open}
+        >
+          <span style={{display:'inline-block',transition:'transform .2s',transform:open?'rotate(0deg)':'rotate(-90deg)',width:10,textAlign:'center'}}>▾</span>
+          <span className="sp-sidebar-section-dot" style={{background:dot || 'var(--accent)'}}/>
+          <span className="sp-sidebar-section-label">{label}</span>
+          <span className="sp-sidebar-section-count">{count}</span>
+        </button>
+        {actionLabel && onAction && (
+          <button type="button" className="sp-sidebar-section-action" onClick={onAction}>
+            {actionLabel}
+          </button>
+        )}
+      </div>
+      {open && (
+        <div className="sp-sidebar-section-body">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Exportado para que FichaOferta consuma EXACTAMENTE el mismo componente.
 // La regla del usuario: el Stacking Plan debe ser un único componente reutilizable,
 // no varios componentes replicados. (Ver memoria project_stacking_compartido.md)
@@ -612,11 +659,12 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   const [splitSup, setSplitSup]         = useState('')
   const [ppOpen, setPpOpen]             = useState(false)
   const [uaOpen, setUaOpen]             = useState(false)
-  // Toggles para los toolbars de las vistas 'prop' y 'arr'.
-  // Mismo patrón: colapsado por defecto, expande al click.
+  // Toggles para los sidebars de las vistas 'prop' y 'arr'.
   const [propPanelOpen, setPropPanelOpen]     = useState(false)
   const [tenPanelOpen, setTenPanelOpen]       = useState(false)
   const [ofrPanelOpen, setOfrPanelOpen]       = useState(false)
+  // Sidebar lateral: 300px desplegado / 60px plegado (icon-rail).
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [editPA, setEditPA]             = useState(null)  // {layer:'prop'|'arr', rowP, idx}
   const [editPASup, setEditPASup]       = useState('')
   const [editPARenta, setEditPARenta]   = useState('')
@@ -1010,104 +1058,95 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
 
       {/* ══ USO PRINCIPAL ══ */}
       {view==='principal' && (
-        <div className="sp-principal-layout">
+        <div className={`sp-body sp-body-v2 ${sidebarCollapsed?'is-collapsed':''}`}>
 
-          {/* ── TOOLBAR superior: usos principales + adicionales colapsables ── */}
-          <div className="sp-toolbar">
-            <div className="sp-toolbar-row">
-              <button
-                type="button"
-                className="sp-toolbar-toggle"
-                onClick={()=>setPpOpen(v=>!v)}
-                aria-expanded={ppOpen}
-              >
-                <span style={{display:'inline-block',transition:'transform .2s',transform:ppOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
-                <span className="sp-toolbar-label" style={{marginBottom:0}}>Usos principales</span>
-                <span className="sp-toolbar-count">{USOS_PPAL.length}</span>
-              </button>
-              {ppOpen && (
-                <div className="sp-toolbar-chips">
-                  {USOS_PPAL.map(u=>(
-                    <div key={u.id} draggable className="sp-chip sp-chip-h"
-                      onDragStart={()=>setDragging(u.id)}
-                      onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                      style={{
-                        border:`1px solid ${dragging===u.id?u.color:u.bd}`,background:u.bg,
-                        opacity:dragging&&dragging!==u.id?.4:1,
-                        boxShadow:dragging===u.id?`0 2px 8px ${u.color}55`:'none',
-                        transform:dragging===u.id?'scale(1.04)':'scale(1)',
-                      }}
-                    >
-                      <span className="sp-chip-dot" style={{background:u.color}}/>
-                      <span className="sp-chip-label" style={{color:u.color,fontWeight:600}}>{u.label}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          {/* ── SIDEBAR lateral: 300px desplegado / 60px plegado ── */}
+          <aside className="sp-sidebar-v2">
+            <button
+              type="button"
+              className="sp-sidebar-toggle"
+              onClick={()=>setSidebarCollapsed(v=>!v)}
+              title={sidebarCollapsed?'Desplegar panel':'Plegar panel'}
+            >
+              {sidebarCollapsed ? '›' : '‹'}
+            </button>
 
-            <div className="sp-toolbar-row">
-              <button
-                type="button"
-                className="sp-toolbar-toggle"
-                onClick={()=>setUaOpen(v=>!v)}
-                aria-expanded={uaOpen}
-              >
-                <span style={{display:'inline-block',transition:'transform .2s',transform:uaOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
-                <span className="sp-toolbar-label" style={{marginBottom:0}}>Usos adicionales</span>
-                <span className="sp-toolbar-count">{availableUA.length}</span>
-              </button>
-              {uaOpen && (
-                <div className="sp-toolbar-chips">
-                  {availableUA.length===0 ? (
-                    <div style={{fontSize:11,color:'var(--muted)',padding:'4px 0',lineHeight:1.4,fontStyle:'italic'}}>
-                      Asigna primero usos principales en alguna planta
-                    </div>
-                  ) : availableUA.map(ua=>(
-                    <div key={ua.id} draggable className="sp-chip sp-chip-h"
-                      onDragStart={()=>setDragging(ua.id)}
-                      onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                      style={{
-                        border:`1px solid ${dragging===ua.id?ua.color:ua.bd}`,background:ua.bg,
-                        opacity:dragging&&dragging!==ua.id?.4:1,
-                        boxShadow:dragging===ua.id?`0 2px 8px ${ua.color}44`:'none',
-                      }}
-                    >
-                      <span className="sp-chip-dot" style={{background:ua.color}}/>
-                      <span className="sp-chip-label" style={{color:ua.color,fontWeight:600}}>{ua.label}</span>
-                      <span className={`sp-chip-tag ${ua.attr?'tag-a':'tag-s'}`}>{ua.attr?'A':'S'}</span>
-                    </div>
-                  ))}
+            {/* SECCIÓN: Usos principales */}
+            <SidebarSection
+              label="Usos principales"
+              count={USOS_PPAL.length}
+              open={ppOpen}
+              onToggle={()=>setPpOpen(v=>!v)}
+              collapsed={sidebarCollapsed}
+              dot={USOS_PPAL[0]?.color}
+            >
+              {USOS_PPAL.map(u=>(
+                <div key={u.id} draggable className="sp-chip-big"
+                  onDragStart={()=>setDragging(u.id)}
+                  onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                  style={{
+                    border:`1px solid ${dragging===u.id?u.color:u.bd}`,background:u.bg,
+                    opacity:dragging&&dragging!==u.id?.4:1,
+                    boxShadow:dragging===u.id?`0 2px 8px ${u.color}55`:'none',
+                  }}
+                >
+                  <span className="sp-chip-big-dot" style={{background:u.color}}/>
+                  <span className="sp-chip-big-label" style={{color:u.color}}>{u.label}</span>
                 </div>
-              )}
-            </div>
+              ))}
+            </SidebarSection>
 
-            {/* Asignación masiva — popover horizontal cuando hay plantas seleccionadas */}
-            {selectedFloors.length>0 && (
-              <div className="sp-bulk-bar">
-                <span style={{fontSize:11,fontWeight:700,color:'var(--accent)'}}>
-                  {selectedFloors.length} planta{selectedFloors.length>1?'s':''} seleccionada{selectedFloors.length>1?'s':''}
-                </span>
-                <span style={{fontSize:10,color:'var(--text3)'}}>· Asignar a todas:</span>
-                <div style={{display:'flex',gap:5,flexWrap:'wrap',flex:1}}>
-                  {USOS_PPAL.map(u=>(
-                    <button key={u.id} onClick={()=>bulkAssign(u.id)}
-                      style={{padding:'4px 10px',
-                        background:u.bg,color:u.color,border:`1px solid ${u.bd}`,
-                        borderRadius:4,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
-                      {u.label}
-                    </button>
-                  ))}
+            {/* SECCIÓN: Usos adicionales */}
+            <SidebarSection
+              label="Usos adicionales"
+              count={availableUA.length}
+              open={uaOpen}
+              onToggle={()=>setUaOpen(v=>!v)}
+              collapsed={sidebarCollapsed}
+              dot="#a855f7"
+            >
+              {availableUA.length===0 ? (
+                <div className="sp-sidebar-empty">Asigna primero usos principales</div>
+              ) : availableUA.map(ua=>(
+                <div key={ua.id} draggable className="sp-chip-big"
+                  onDragStart={()=>setDragging(ua.id)}
+                  onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                  style={{
+                    border:`1px solid ${dragging===ua.id?ua.color:ua.bd}`,background:ua.bg,
+                    opacity:dragging&&dragging!==ua.id?.4:1,
+                    boxShadow:dragging===ua.id?`0 2px 8px ${ua.color}44`:'none',
+                  }}
+                >
+                  <span className="sp-chip-big-dot" style={{background:ua.color}}/>
+                  <span className="sp-chip-big-label" style={{color:ua.color}}>{ua.label}</span>
+                  <span className={`sp-chip-big-tag ${ua.attr?'tag-a':'tag-s'}`}>{ua.attr?'A':'S'}</span>
                 </div>
+              ))}
+            </SidebarSection>
+
+            {/* Asignación masiva — solo si hay plantas seleccionadas y sidebar abierto */}
+            {selectedFloors.length>0 && !sidebarCollapsed && (
+              <div className="sp-bulk-panel">
+                <div className="sp-bulk-panel-title">
+                  {selectedFloors.length} planta{selectedFloors.length>1?'s':''} sel.
+                </div>
+                {USOS_PPAL.map(u=>(
+                  <button key={u.id} onClick={()=>bulkAssign(u.id)}
+                    style={{display:'block',width:'100%',padding:'5px 10px',marginBottom:4,
+                      background:u.bg,color:u.color,border:`1px solid ${u.bd}`,
+                      borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',textAlign:'left',fontWeight:600}}>
+                    {u.label}
+                  </button>
+                ))}
                 <button onClick={()=>setSelectedFloors([])}
-                  style={{padding:'4px 10px',background:'none',color:'var(--text4)',
-                    border:'1px solid var(--border)',borderRadius:4,fontSize:11,
-                    cursor:'pointer',fontFamily:'inherit'}}>
+                  style={{display:'block',width:'100%',padding:'5px 10px',marginTop:4,
+                    background:'none',color:'var(--text4)',border:'1px solid var(--border)',
+                    borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',textAlign:'center'}}>
                   Cancelar
                 </button>
               </div>
             )}
-          </div>
+          </aside>
 
           {/* ── GRID PLANTAS a ancho completo ── */}
           <div style={{minWidth:0}}>
@@ -1365,71 +1404,74 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
           return PROP_COLORS[(i >= 0 ? i : 0) % PROP_COLORS.length]
         }
         return (
-          <div className="sp-principal-layout">
+          <div className={`sp-body sp-body-v2 ${sidebarCollapsed?'is-collapsed':''}`}>
 
-            {/* ── TOOLBAR PROPIETARIOS ── */}
-            <div className="sp-toolbar">
-              <div className="sp-toolbar-row">
-                <button
-                  type="button"
-                  className="sp-toolbar-toggle"
-                  onClick={()=>setPropPanelOpen(v=>!v)}
-                  aria-expanded={propPanelOpen}
-                >
-                  <span style={{display:'inline-block',transition:'transform .2s',transform:propPanelOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
-                  <span className="sp-toolbar-label" style={{marginBottom:0}}>Propietarios</span>
-                  <span className="sp-toolbar-count">{ownerSet.length}</span>
-                </button>
-                <button onClick={onAddOwner} className="sp-toolbar-action">+ Añadir propietario</button>
-              </div>
-              {propPanelOpen && (
-                <div className="sp-toolbar-chips sp-toolbar-chips-scroll">
-                  {ownerSet.length===0 ? (
-                    <div style={{fontSize:11,color:'var(--muted)',padding:'4px 0',fontStyle:'italic'}}>Aún no hay propietarios</div>
-                  ) : ownerSet.map((o,i)=>{
-                    const col = PROP_COLORS[i%PROP_COLORS.length]
-                    const dragKey = o.key
-                    const dupName = ownerSet.filter(x => x.name === o.name).length > 1
-                    const m2 = (edif.prop||[]).flatMap(r => r.units || []).reduce((s,u) => {
-                      const match = o.id ? u.prop_id === o.id : (!u.prop_id && u.n === o.name)
-                      return s + (match ? (Number(u.sup)||0) : 0)
-                    }, 0)
-                    return (
-                      <div key={o.key} draggable className="sp-chip sp-chip-h"
-                        onDragStart={()=>setDragging(dragKey)}
-                        onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                        onClick={(e) => {
-                          if (dragging) return
-                          spNavigate('ficha-propietario', {
-                            id: o.id,
-                            ownerData: { id: o.id, propietario: o.name, superficie: m2 },
-                            ownerSuperficie: m2,
-                            fromOwnerStacking: true,
-                            fromActivoRef: activoRef,
-                            fromActivoNombre: activoNombre,
-                            fromActivoTab: 'at-stacking',
-                          })
-                        }}
-                        title={`${o.name} · ${m2 ? m2.toLocaleString('es-ES') : 0} m²`}
-                        style={{
-                          border:`1px solid ${dragging===dragKey?col:col+'88'}`,background:col+'18',
-                          opacity:dragging&&dragging!==dragKey?.4:1,
-                          boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <span className="sp-chip-dot" style={{background:col}}/>
-                        <span className="sp-chip-label" style={{color:col,fontWeight:600,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>
-                          {o.name}
-                          {dupName && o.id && <span style={{ marginLeft:4, fontSize:9, color:col, opacity:0.7, fontWeight:500, textDecoration:'none' }}>· {o.id.slice(-6)}</span>}
-                        </span>
-                        <span className="sp-chip-tag" style={{background:col+'22',color:col,marginLeft:4}}>{m2 ? Math.round(m2/1000)+'k' : '0'} m²</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+            {/* ── SIDEBAR PROPIETARIOS ── */}
+            <aside className="sp-sidebar-v2">
+              <button
+                type="button"
+                className="sp-sidebar-toggle"
+                onClick={()=>setSidebarCollapsed(v=>!v)}
+                title={sidebarCollapsed?'Desplegar panel':'Plegar panel'}
+              >
+                {sidebarCollapsed ? '›' : '‹'}
+              </button>
+
+              <SidebarSection
+                label="Propietarios"
+                count={ownerSet.length}
+                open={propPanelOpen}
+                onToggle={()=>setPropPanelOpen(v=>!v)}
+                collapsed={sidebarCollapsed}
+                dot={PROP_COLORS[0]}
+                actionLabel="+ Añadir"
+                onAction={onAddOwner}
+              >
+                {ownerSet.length===0 ? (
+                  <div className="sp-sidebar-empty">Aún no hay propietarios</div>
+                ) : ownerSet.map((o,i)=>{
+                  const col = PROP_COLORS[i%PROP_COLORS.length]
+                  const dragKey = o.key
+                  const dupName = ownerSet.filter(x => x.name === o.name).length > 1
+                  const m2 = (edif.prop||[]).flatMap(r => r.units || []).reduce((s,u) => {
+                    const match = o.id ? u.prop_id === o.id : (!u.prop_id && u.n === o.name)
+                    return s + (match ? (Number(u.sup)||0) : 0)
+                  }, 0)
+                  return (
+                    <div key={o.key} draggable className="sp-chip-big"
+                      onDragStart={()=>setDragging(dragKey)}
+                      onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                      onClick={() => {
+                        if (dragging) return
+                        spNavigate('ficha-propietario', {
+                          id: o.id,
+                          ownerData: { id: o.id, propietario: o.name, superficie: m2 },
+                          ownerSuperficie: m2,
+                          fromOwnerStacking: true,
+                          fromActivoRef: activoRef,
+                          fromActivoNombre: activoNombre,
+                          fromActivoTab: 'at-stacking',
+                        })
+                      }}
+                      title={`${o.name} · ${m2 ? m2.toLocaleString('es-ES') : 0} m²`}
+                      style={{
+                        border:`1px solid ${dragging===dragKey?col:col+'88'}`,background:col+'18',
+                        opacity:dragging&&dragging!==dragKey?.4:1,
+                        boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span className="sp-chip-big-dot" style={{background:col}}/>
+                      <span className="sp-chip-big-label" style={{color:col,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>
+                        {o.name}
+                        {dupName && o.id && <span style={{ marginLeft:4, fontSize:9, color:col, opacity:0.7, fontWeight:500, textDecoration:'none' }}>· {o.id.slice(-6)}</span>}
+                      </span>
+                      <span className="sp-chip-big-tag" style={{background:col+'22',color:col}}>{m2 ? (m2>=1000?Math.round(m2/1000)+'k':m2) : '0'} m²</span>
+                    </div>
+                  )
+                })}
+              </SidebarSection>
+            </aside>
 
             {/* ── GRID PLANTAS (driven by edif.floors) ── */}
             <div style={{minWidth:0}}>
@@ -1616,115 +1658,111 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
           return u.n
         }
         return (
-          <div className="sp-principal-layout">
+          <div className={`sp-body sp-body-v2 ${sidebarCollapsed?'is-collapsed':''}`}>
 
-            {/* ── TOOLBAR ARRENDATARIOS + OFERTAS ── */}
-            <div className="sp-toolbar">
-              <div className="sp-toolbar-row">
-                <button
-                  type="button"
-                  className="sp-toolbar-toggle"
-                  onClick={()=>setTenPanelOpen(v=>!v)}
-                  aria-expanded={tenPanelOpen}
-                >
-                  <span style={{display:'inline-block',transition:'transform .2s',transform:tenPanelOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
-                  <span className="sp-toolbar-label" style={{marginBottom:0}}>Arrendatarios</span>
-                  <span className="sp-toolbar-count">{tenantSet.length}</span>
-                </button>
-                <button onClick={onAddTenant} className="sp-toolbar-action">+ Añadir arrendatario</button>
-              </div>
-              {tenPanelOpen && (
-                <div className="sp-toolbar-chips sp-toolbar-chips-scroll">
-                  {tenantSet.length===0 ? (
-                    <div style={{fontSize:11,color:'var(--muted)',padding:'4px 0',fontStyle:'italic'}}>Aún no hay arrendatarios</div>
-                  ) : tenantSet.map((t,i)=>{
-                    const col = ARR_COLORS[i%ARR_COLORS.length]
-                    const dragKey = 'ten:'+t.key
-                    const dupName = tenantSet.filter(x => x.name === t.name).length > 1
-                    return (
-                      <div key={t.key} draggable className="sp-chip sp-chip-h"
-                        onDragStart={()=>setDragging(dragKey)}
-                        onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                        onClick={(e) => {
-                          if (dragging) return
-                          spNavigate('ficha-arrendatario', {
-                            tenantName: t.name,
-                            arrRef: t.ref,
-                            fromActivoRef: activoRef,
-                            fromActivoNombre: activoNombre,
-                            fromActivoTab: 'at-stacking',
-                          })
-                        }}
-                        title={`Ver ficha de ${t.name}`}
-                        style={{
-                          border:`1px solid ${col}88`,background:col+'18',
-                          opacity:dragging&&dragging!==dragKey?.4:1,
-                          boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <span className="sp-chip-dot" style={{background:col}}/>
-                        <span className="sp-chip-label" style={{color:col,fontWeight:600,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>
-                          {t.name}
-                          {dupName && t.ref && <span style={{ marginLeft:4, fontSize:9, color:col, opacity:0.7, fontWeight:500, textDecoration:'none' }}>· {t.ref.slice(-6)}</span>}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+            {/* ── SIDEBAR ARRENDATARIOS + OFERTAS ── */}
+            <aside className="sp-sidebar-v2">
+              <button
+                type="button"
+                className="sp-sidebar-toggle"
+                onClick={()=>setSidebarCollapsed(v=>!v)}
+                title={sidebarCollapsed?'Desplegar panel':'Plegar panel'}
+              >
+                {sidebarCollapsed ? '›' : '‹'}
+              </button>
 
-              <div className="sp-toolbar-row" style={{borderTop:'1px solid var(--line-2)',paddingTop:8}}>
-                <button
-                  type="button"
-                  className="sp-toolbar-toggle"
-                  onClick={()=>setOfrPanelOpen(v=>!v)}
-                  aria-expanded={ofrPanelOpen}
-                >
-                  <span style={{display:'inline-block',transition:'transform .2s',transform:ofrPanelOpen?'rotate(0deg)':'rotate(-90deg)'}}>▾</span>
-                  <span className="sp-toolbar-label" style={{marginBottom:0}}>Ofertas activas</span>
-                  <span className="sp-toolbar-count">{extraOfertas.length}</span>
-                </button>
-              </div>
-              {ofrPanelOpen && (
-                <div className="sp-toolbar-chips sp-toolbar-chips-scroll">
-                  {extraOfertas.length === 0
-                    ? <div style={{fontSize:11,color:'var(--muted)',padding:'4px 0',fontStyle:'italic'}}>Sin ofertas. Créalas desde Desglose de ofertas.</div>
-                    : extraOfertas.map((ofr,idx)=>{
-                        const COLS=['#16a34a','#8a6d40','#d97706','#6b5b8e']
-                        const col=COLS[idx%COLS.length]
-                        const dragKey='ofr:'+ofr.nombre
-                        return (
-                          <div key={ofr.id} draggable className="sp-chip sp-chip-h"
-                            onDragStart={()=>setDragging(dragKey)}
-                            onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
-                            onClick={(e) => {
-                              if (dragging) return
-                              spNavigate('ficha-oferta', {
-                                ofertaRef: ofr.ref || ofr.id || ofr.nombre,
-                                tab: 'of-espacios',
-                                fromActivoRef: activoRef,
-                                fromActivoNombre: activoNombre,
-                                fromActivoTab: 'at-stacking',
-                              })
-                            }}
-                            title={`Ver ficha de ${ofr.nombre}`}
-                            style={{
-                              border:`1px solid ${col}88`,background:col+'18',
-                              opacity:dragging&&dragging!==dragKey?.4:1,
-                              boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <span className="sp-chip-dot" style={{background:col}}/>
-                            <span className="sp-chip-label" style={{color:col,fontWeight:600,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>{ofr.nombre}</span>
-                          </div>
-                        )
-                      })
-                  }
-                </div>
-              )}
-            </div>
+              <SidebarSection
+                label="Arrendatarios"
+                count={tenantSet.length}
+                open={tenPanelOpen}
+                onToggle={()=>setTenPanelOpen(v=>!v)}
+                collapsed={sidebarCollapsed}
+                dot={ARR_COLORS[0]}
+                actionLabel="+ Añadir"
+                onAction={onAddTenant}
+              >
+                {tenantSet.length===0 ? (
+                  <div className="sp-sidebar-empty">Aún no hay arrendatarios</div>
+                ) : tenantSet.map((t,i)=>{
+                  const col = ARR_COLORS[i%ARR_COLORS.length]
+                  const dragKey = 'ten:'+t.key
+                  const dupName = tenantSet.filter(x => x.name === t.name).length > 1
+                  return (
+                    <div key={t.key} draggable className="sp-chip-big"
+                      onDragStart={()=>setDragging(dragKey)}
+                      onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                      onClick={() => {
+                        if (dragging) return
+                        spNavigate('ficha-arrendatario', {
+                          tenantName: t.name,
+                          arrRef: t.ref,
+                          fromActivoRef: activoRef,
+                          fromActivoNombre: activoNombre,
+                          fromActivoTab: 'at-stacking',
+                        })
+                      }}
+                      title={`Ver ficha de ${t.name}`}
+                      style={{
+                        border:`1px solid ${col}88`,background:col+'18',
+                        opacity:dragging&&dragging!==dragKey?.4:1,
+                        boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span className="sp-chip-big-dot" style={{background:col}}/>
+                      <span className="sp-chip-big-label" style={{color:col,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>
+                        {t.name}
+                        {dupName && t.ref && <span style={{ marginLeft:4, fontSize:9, color:col, opacity:0.7, fontWeight:500, textDecoration:'none' }}>· {t.ref.slice(-6)}</span>}
+                      </span>
+                    </div>
+                  )
+                })}
+              </SidebarSection>
+
+              <SidebarSection
+                label="Ofertas activas"
+                count={extraOfertas.length}
+                open={ofrPanelOpen}
+                onToggle={()=>setOfrPanelOpen(v=>!v)}
+                collapsed={sidebarCollapsed}
+                dot="#16a34a"
+              >
+                {extraOfertas.length === 0
+                  ? <div className="sp-sidebar-empty">Sin ofertas. Créalas desde Desglose.</div>
+                  : extraOfertas.map((ofr,idx)=>{
+                      const COLS=['#16a34a','#8a6d40','#d97706','#6b5b8e']
+                      const col=COLS[idx%COLS.length]
+                      const dragKey='ofr:'+ofr.nombre
+                      return (
+                        <div key={ofr.id} draggable className="sp-chip-big"
+                          onDragStart={()=>setDragging(dragKey)}
+                          onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                          onClick={() => {
+                            if (dragging) return
+                            spNavigate('ficha-oferta', {
+                              ofertaRef: ofr.ref || ofr.id || ofr.nombre,
+                              tab: 'of-espacios',
+                              fromActivoRef: activoRef,
+                              fromActivoNombre: activoNombre,
+                              fromActivoTab: 'at-stacking',
+                            })
+                          }}
+                          title={`Ver ficha de ${ofr.nombre}`}
+                          style={{
+                            border:`1px solid ${col}88`,background:col+'18',
+                            opacity:dragging&&dragging!==dragKey?.4:1,
+                            boxShadow:dragging===dragKey?`0 2px 8px ${col}44`:'none',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span className="sp-chip-big-dot" style={{background:col}}/>
+                          <span className="sp-chip-big-label" style={{color:col,textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>{ofr.nombre}</span>
+                        </div>
+                      )
+                    })
+                }
+              </SidebarSection>
+            </aside>
 
             {/* ── GRID PLANTAS (driven by edif.floors) ── */}
             <div style={{minWidth:0}}>
