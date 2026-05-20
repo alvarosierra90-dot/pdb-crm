@@ -6,6 +6,7 @@ import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../component
 import ActividadesPanel from '../components/ActividadesPanel'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
+import FunnelTracker from '../components/FunnelTracker'
 
 // Mismo formato que Propuestas y Proyectos: una sola pestaña principal
 // que agrupa todos los bloques. Fees y honorarios pasa a estar dentro
@@ -651,6 +652,15 @@ export default function FichaMandatoSupabase({ refOrId }) {
 
       <div className="ficha-wrap">
         <div className="ficha-main">
+
+          {/* Funnel tracker · hilo conductor entre fases */}
+          <FunnelTracker steps={[
+            { key:'opo',  label:'Oportunidad', ref: oportunidad?.dynamics_id || mandato.dynamics_opportunity_id || null,
+              onClick: (oportunidad?.dynamics_id || mandato.dynamics_opportunity_id) ? () => navigate('ficha-oportunidad', { id: oportunidad?.dynamics_id || mandato.dynamics_opportunity_id }) : null },
+            { key:'pry',  label:'Propuesta', ref: mandato.propuesta_ref || null,
+              onClick: mandato.propuesta_ref ? () => navigate('ficha-propuesta', { id: mandato.propuesta_ref }) : null },
+            { key:'man',  label:'Mandato', ref: mandato.ref, current: true, onClick: null },
+          ]} />
 
           {/* Header con pills interactivos */}
           {(() => {

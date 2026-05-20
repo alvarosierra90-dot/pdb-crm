@@ -3,6 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import { MOCK_OPORTUNIDADES, ETAPA_TAG_CLASS } from './OportunidadesList'
 import VinculacionesMaestra from '../components/VinculacionesMaestra'
 import HeaderPills from '../components/HeaderPills'
+import FunnelTracker from '../components/FunnelTracker'
 import { Building, Building2, Tag, ScrollText, Lightbulb, Search } from 'lucide-react'
 
 function KV({ k, v, mono = false, large = false }) {
@@ -84,6 +85,17 @@ export default function FichaOportunidad() {
 
       <div className="ficha-wrap">
         <div className="ficha-main">
+
+          {/* Funnel tracker · hilo conductor entre fases */}
+          <FunnelTracker steps={[
+            { key:'lead', label:'Lead', ref: op.lead_ref || null,
+              onClick: op.lead_ref ? () => navigate('ficha-lead', { ref: op.lead_ref }) : null },
+            { key:'opo',  label:'Oportunidad', ref: op.id, current: true, onClick: null },
+            { key:'pry',  label:'Propuesta', ref: v.propuestas?.[0] || null,
+              onClick: v.propuestas?.[0] ? () => navigate('ficha-propuesta', { id: v.propuestas[0] }) : null },
+            { key:'man',  label:'Mandato', ref: v.mandatos?.[0] || null,
+              onClick: v.mandatos?.[0] ? () => navigate('ficha-mandato', { ref: v.mandatos[0] }) : null },
+          ]} />
 
           {/* Header con pills interactivos · canon unificado */}
           <div className="ah">

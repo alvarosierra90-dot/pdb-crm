@@ -8,6 +8,7 @@ import LeadNuloModal from '../components/LeadNuloModal'
 import EquipoTrabajoCard, { isPrincipal as _isPrincipal } from '../components/EquipoTrabajoCard'
 import VinculacionesMaestra from '../components/VinculacionesMaestra'
 import HeaderPills from '../components/HeaderPills'
+import FunnelTracker from '../components/FunnelTracker'
 import { Building2, User, Target, Lightbulb } from 'lucide-react'
 
 // Lista de equipos para el dropdown legacy "Asignación → Equipo" del
@@ -294,6 +295,17 @@ export default function FichaLead() {
 
       <div className="ficha-wrap">
         <div className="ficha-main">
+
+          {/* Funnel tracker · hilo conductor entre fases */}
+          <FunnelTracker steps={[
+            { key:'lead', label:'Lead', ref: lead.ref, current: true, onClick: null },
+            { key:'opo',  label:'Oportunidad', ref: lead.dynamics_opportunity_id || null,
+              onClick: lead.dynamics_opportunity_id ? () => navigate('ficha-oportunidad', { id: lead.dynamics_opportunity_id }) : null },
+            { key:'pry',  label:'Propuesta', ref: lead.propuesta_ref || null,
+              onClick: lead.propuesta_ref ? () => navigate('ficha-propuesta', { id: lead.propuesta_ref }) : null },
+            { key:'man',  label:'Mandato', ref: lead.mandato_ref || null,
+              onClick: lead.mandato_ref ? () => navigate('ficha-mandato', { ref: lead.mandato_ref }) : null },
+          ]} />
 
           {/* Header con pills interactivos · canon unificado */}
           <div className="ah">

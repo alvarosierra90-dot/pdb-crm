@@ -7,6 +7,7 @@ import MarcarPropuestaGanadaModal from '../components/MarcarPropuestaGanadaModal
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
 import HeaderPills from '../components/HeaderPills'
+import FunnelTracker from '../components/FunnelTracker'
 
 // Pestañas. "Equipos y participantes" eliminada: ahora vive como sección dentro
 // de "Datos del proyecto", justo bajo Vinculaciones (mismo patrón que Oferta).
@@ -264,6 +265,17 @@ export default function FichaPropuestaSupabase({ refOrId }) {
 
       <div className="ficha-wrap">
         <div className="ficha-main">
+
+          {/* Funnel tracker · hilo conductor entre fases */}
+          <FunnelTracker steps={[
+            { key:'lead', label:'Lead', ref: propuesta.lead_ref || null,
+              onClick: propuesta.lead_ref ? () => navigate('ficha-lead', { ref: propuesta.lead_ref }) : null },
+            { key:'opo',  label:'Oportunidad', ref: oportunidad?.dynamics_id || propuesta.dynamics_opportunity_id || null,
+              onClick: (oportunidad?.dynamics_id || propuesta.dynamics_opportunity_id) ? () => navigate('ficha-oportunidad', { id: oportunidad?.dynamics_id || propuesta.dynamics_opportunity_id }) : null },
+            { key:'pry',  label:'Propuesta', ref: propuesta.ref, current: true, onClick: null },
+            { key:'man',  label:'Mandato', ref: propuesta.mandato_ref || null,
+              onClick: propuesta.mandato_ref ? () => navigate('ficha-mandato', { ref: propuesta.mandato_ref }) : null },
+          ]} />
 
           <div className="ah">
             <div style={{ display:'flex', alignItems:'center', gap:14 }}>

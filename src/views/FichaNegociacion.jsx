@@ -5,6 +5,7 @@ import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
 import EquipoTrabajoCard from '../components/EquipoTrabajoCard'
 import HeaderPills from '../components/HeaderPills'
+import FunnelTracker from '../components/FunnelTracker'
 
 // ─── CONTRACT DRAFTS ─────────────────────────────────────────────────────────
 const CONTRACTS_INIT = [
@@ -229,6 +230,18 @@ export default function FichaNegociacion() {
         <div className="ab-sep" />
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
       </div>
+
+      {/* Funnel tracker · hilo conductor entre fases */}
+      <FunnelTracker steps={[
+        { key:'opo', label:'Oportunidad', ref:'OPP-2024-0042',
+          onClick: () => navigate('ficha-oportunidad', { id:'OPP-2024-0042' }) },
+        { key:'man', label:'Mandato', ref:'MAN-0014',
+          onClick: () => navigate('ficha-mandato', { ref:'MAN-0014' }) },
+        { key:'ofr', label:'Oferta', ref:'OFR-0027',
+          onClick: () => navigate('ficha-oferta', { ofertaRef:'OFR-0027' }) },
+        { key:'neg', label:'Negociación', ref:'NEG-0044', current: true, onClick: null },
+        { key:'ins', label:'Instrucción', ref: null, onClick: null },
+      ]} />
 
       {/* Header con pills interactivos · canon unificado */}
       <div className="ah">

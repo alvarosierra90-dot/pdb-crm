@@ -7,6 +7,7 @@ import FirmarMandatoModal from '../components/FirmarMandatoModal'
 import { Inbox, Building2, MapPin, Wallet, FileText, Globe, Presentation, Clock } from 'lucide-react'
 import Vinculaciones from '../components/Vinculaciones'
 import HeaderPills from '../components/HeaderPills'
+import FunnelTracker from '../components/FunnelTracker'
 
 // Pestañas de la ficha de oferta. "Crear ficha" eliminada (botones PPT/PDF
 // se exponen en el header). "Equipo de trabajo" se quitó como pestaña porque
@@ -269,6 +270,17 @@ export default function FichaOfertaSupabase({ refOrId }) {
 
       <div className="ficha-wrap">
         <div className="ficha-main">
+
+          {/* Funnel tracker · hilo conductor entre fases */}
+          <FunnelTracker steps={[
+            { key:'opo', label:'Oportunidad', ref: oportunidad?.dynamics_id || oferta.dynamics_opportunity_id || null,
+              onClick: (oportunidad?.dynamics_id || oferta.dynamics_opportunity_id) ? () => navigate('ficha-oportunidad', { id: oportunidad?.dynamics_id || oferta.dynamics_opportunity_id }) : null },
+            { key:'man', label:'Mandato', ref: mandatoVinculado?.ref || null,
+              onClick: mandatoVinculado?.ref ? () => navigate('ficha-mandato', { ref: mandatoVinculado.ref }) : null },
+            { key:'ofr', label:'Oferta', ref: oferta.ref, current: true, onClick: null },
+            { key:'neg', label:'Negociación', ref: oferta.negociacion_ref || null,
+              onClick: oferta.negociacion_ref ? () => navigate('ficha-negociacion', { ref: oferta.negociacion_ref }) : null },
+          ]} />
 
           {/* Header con pills interactivos · canon unificado */}
           <div className="ah">

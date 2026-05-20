@@ -7,6 +7,7 @@ import FirmarMandatoModal from '../components/FirmarMandatoModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
 import HeaderPills from '../components/HeaderPills'
+import FunnelTracker from '../components/FunnelTracker'
 
 // Orden canónico · Info → Específico → Documentos → Vista 360 → Confidencialidad
 // "Negociaciones" es específico de Demanda (las que salen de ella), va antes de Documentos.
@@ -445,6 +446,17 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
       <div className="ficha-wrap">
         <div className="ficha-main">
+
+          {/* Funnel tracker · hilo conductor entre fases */}
+          <FunnelTracker steps={[
+            { key:'opo', label:'Oportunidad', ref: oportunidad?.dynamics_id || demanda.dynamics_opportunity_id || null,
+              onClick: (oportunidad?.dynamics_id || demanda.dynamics_opportunity_id) ? () => navigate('ficha-oportunidad', { id: oportunidad?.dynamics_id || demanda.dynamics_opportunity_id }) : null },
+            { key:'man', label:'Mandato', ref: demanda.mandato?.ref || null,
+              onClick: demanda.mandato?.ref ? () => navigate('ficha-mandato', { ref: demanda.mandato.ref }) : null },
+            { key:'dem', label:'Demanda', ref: demanda.ref, current: true, onClick: null },
+            { key:'neg', label:'Negociación', ref: demanda.negociacion_ref || null,
+              onClick: demanda.negociacion_ref ? () => navigate('ficha-negociacion', { ref: demanda.negociacion_ref }) : null },
+          ]} />
 
           {/* Header con pills interactivos · canon unificado */}
           <div className="ah">
