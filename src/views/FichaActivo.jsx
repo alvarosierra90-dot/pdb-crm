@@ -4,6 +4,7 @@ import AsignarTareaModal from '../components/AsignarTareaModal'
 import BajaArrendatarioModal from '../components/BajaArrendatarioModal'
 import SalidaArrendatarioModal from '../components/SalidaArrendatarioModal'
 import SalidaPropietarioModal  from '../components/SalidaPropietarioModal'
+import SalidaOfertaModal       from '../components/SalidaOfertaModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import AltaPropietarioModal from '../components/AltaPropietarioModal'
 import AltaArrendatarioModal from '../components/AltaArrendatarioModal'
@@ -638,7 +639,7 @@ function SidebarSection({ label, count, open, onToggle, collapsed, dot, actionLa
 // Exportado para que FichaOferta consuma EXACTAMENTE el mismo componente.
 // La regla del usuario: el Stacking Plan debe ser un único componente reutilizable,
 // no varios componentes replicados. (Ver memoria project_stacking_compartido.md)
-export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', activoRef='', activoNombre='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, onRemoveTenant, onRemoveOwner, onTenantClick, extraOfertas=[], initView='principal', defaultLabel='', defaultSupPlantaTipo, allowCreate=true, noDataMessage=null }) {
+export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', activoRef='', activoNombre='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, onRemoveTenant, onRemoveOwner, onRemoveOferta, onTenantClick, extraOfertas=[], initView='principal', defaultLabel='', defaultSupPlantaTipo, allowCreate=true, noDataMessage=null }) {
   const { navigate: spNavigate } = useNav()
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
@@ -782,30 +783,37 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
     const esOferta = unit && unit.type === 'vac'
 
     if (esOferta) {
-      // Si es una oferta, preguntar si se quiere convertir en arrendatario.
-      // Mismo flujo que tenía la versión anterior del Stacking Plan.
+      // Para mantener el formato consistente con la baja de arrendatario
+      // (ventana central, no window.confirm), delegamos al padre vía
+      // onRemoveOferta. El padre abre un modal central con 2 opciones:
+      // 'Cerrar oferta (alquilada)' o 'Introducida por error'.
+      const doRemove = () => updBuilding(b => ({ ...b, arr: (b.arr || []).map(r => r.p !== floorId ? r : { ...r, units: r.units.filter((_, i) => i !== idx) }) }))
+      if (typeof onRemoveOferta === 'function') {
+        onRemoveOferta({ unit, floorId, idx, doRemove })
+        return
+      }
+      // Fallback (sin padre que abra modal): convertir directamente en
+      // arrendatario, navegando con activoRef/activoNombre para que la
+      // nueva ficha herede el vínculo (issue: 'tendría que vincularse al
+      // activo directamente').
       const ofertaLabel = unit.oferta || `${unit.sup || 0} m²`
-      const msg = `Has eliminado la oferta "${ofertaLabel}" de la planta ${floorId}.\n\n¿Quieres convertir esta oferta en un nuevo Arrendatario?\n\n• Aceptar: abre el formulario de Arrendatario con los datos prerrellenados.\n• Cancelar: la oferta queda simplemente eliminada del stacking.`
-      if (window.confirm(msg)) {
-        // Eliminar la unidad del stacking (se persistirá vía onBuildingsChange)
-        updBuilding(b => ({ ...b, arr: (b.arr || []).map(r => r.p !== floorId ? r : { ...r, units: r.units.filter((_, i) => i !== idx) }) }))
-        // Si el padre proporciona el callback, dejar que él gestione la navegación
-        // (FichaOferta lo hace con datos del activo seleccionado y de la oferta original)
+      if (window.confirm(`Eliminar la oferta "${ofertaLabel}" de la planta ${floorId}?`)) {
+        doRemove()
         if (typeof onConvertToTenant === 'function') {
           onConvertToTenant(unit, floorId, idx)
           return
         }
-        // Fallback: navegar directamente a ficha-arrendatario con los datos disponibles
         spNavigate('ficha-arrendatario', {
           prefilledTenant: unit.oferta || '',
           prefilledSup:    String(unit.sup || ''),
           prefilledRenta:  String(unit.renta || ''),
           fromFloorId:     floorId,
           fromOfertaName:  unit.oferta || '',
+          fromActivoRef:   activoRef,
+          fromActivoNombre: activoNombre,
         })
         return
       }
-      // Si declina, eliminar igualmente sin convertir.
     }
 
     // Bloque de arrendatario / parking / retail-tenant: delegar al padre
@@ -1105,6 +1113,8 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                 <div key={u.id} draggable className="sp-chip-big"
                   onDragStart={()=>setDragging(u.id)}
                   onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                  onMouseEnter={()=>setHoverKey('uso:'+u.id)}
+                  onMouseLeave={()=>setHoverKey(null)}
                   style={{
                     border:`1px solid ${dragging===u.id?u.color:u.bd}`,background:u.bg,
                     opacity:dragging&&dragging!==u.id?.4:1,
@@ -1132,6 +1142,8 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                 <div key={ua.id} draggable className="sp-chip-big"
                   onDragStart={()=>setDragging(ua.id)}
                   onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                  onMouseEnter={()=>setHoverKey('uso:'+ua.id)}
+                  onMouseLeave={()=>setHoverKey(null)}
                   style={{
                     border:`1px solid ${dragging===ua.id?ua.color:ua.bd}`,background:ua.bg,
                     opacity:dragging&&dragging!==ua.id?.4:1,
@@ -1279,12 +1291,13 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                             const info = usoInfo(u.uso)
                             const wpct = `${(u.sup/floor.sup)*100}%`
                             const isEd = editFloor?.floorId===floor.id && editFloor?.idx===i && editFloor?.layer==='principal'
+                            const isHL = hoverKey === 'uso:'+u.uso
                             return (
                               <div key={i}
                                 title={`${info.label} · ${u.sup.toLocaleString('es-ES')} m²`}
                                 onClick={e=>{e.stopPropagation();if(isEd)setEditFloor(null);else{setEditFloor({floorId:floor.id,idx:i,layer:'principal'});setEditSup(String(u.sup))}}}
-                                className="sp-block"
-                                style={{width:wpct,background:info.bg,border:`1px solid ${info.bd}`,flex:'unset',flexShrink:0}}
+                                className={`sp-block${isHL?' sp-block-hl':''}`}
+                                style={{width:wpct,background:info.bg,border:`1px solid ${isHL?info.color:info.bd}`,flex:'unset',flexShrink:0,boxShadow:isHL?`0 0 0 2px ${info.color}, 0 2px 12px ${info.color}66`:undefined,transform:isHL?'scale(1.02)':undefined,zIndex:isHL?2:undefined,position:'relative',transition:'box-shadow 120ms ease, transform 120ms ease'}}
                               >
                                 {isEd ? (
                                   <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
@@ -1462,6 +1475,8 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     <div key={o.key} draggable className="sp-chip-big"
                       onDragStart={()=>setDragging(dragKey)}
                       onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                      onMouseEnter={()=>setHoverKey('owner:'+(o.id || o.name))}
+                      onMouseLeave={()=>setHoverKey(null)}
                       onClick={() => {
                         if (dragging) return
                         spNavigate('ficha-propietario', {
@@ -1588,12 +1603,13 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                               const wpct = `${(u.sup/rowSup)*100}%`
                               const isEd = editPA?.layer==='prop' && editPA?.rowP===floor.id && editPA?.idx===i
                               const initials = u.n.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()
+                              const isHL = hoverKey === 'owner:'+(u.prop_id || u.n)
                               return (
                                 <div key={i}
                                   title={`${u.n} · ${u.sup.toLocaleString('es-ES')} m²`}
                                   onClick={e=>{e.stopPropagation();if(isEd)setEditPA(null);else{setEditPA({layer:'prop',rowP:floor.id,idx:i});setEditPASup(String(u.sup))}}}
-                                  className="sp-block"
-                                  style={{width:wpct,background:col+'18',border:`1px solid ${col}88`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible'}}
+                                  className={`sp-block${isHL?' sp-block-hl':''}`}
+                                  style={{width:wpct,background:col+(isHL?'2E':'18'),border:`1px solid ${isHL?col:col+'88'}`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible',boxShadow:isHL?`0 0 0 2px ${col}, 0 2px 12px ${col}66`:undefined,transform:isHL?'scale(1.02)':undefined,zIndex:isHL?2:undefined,transition:'box-shadow 120ms ease, transform 120ms ease'}}
                                 >
                                   {isEd ? (
                                     <div style={{display:'flex',gap:3,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
@@ -1712,6 +1728,8 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     <div key={t.key} draggable className="sp-chip-big"
                       onDragStart={()=>setDragging(dragKey)}
                       onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                      onMouseEnter={()=>setHoverKey('ten:'+(t.ref || t.name))}
+                      onMouseLeave={()=>setHoverKey(null)}
                       onClick={() => {
                         if (dragging) return
                         spNavigate('ficha-arrendatario', {
@@ -1758,6 +1776,8 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                         <div key={ofr.id} draggable className="sp-chip-big"
                           onDragStart={()=>setDragging(dragKey)}
                           onDragEnd={()=>{setDragging(null);setDragTarget(null)}}
+                          onMouseEnter={()=>setHoverKey('ofr:'+ofr.nombre)}
+                          onMouseLeave={()=>setHoverKey(null)}
                           onClick={() => {
                             if (dragging) return
                             spNavigate('ficha-oferta', {
@@ -1895,12 +1915,16 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                                 const tc=TYPE_COLORS[u.type]||TYPE_COLORS.ten; bg=tc.bg; bd=tc.bd; col=tc.col
                               }
                               const label = typeLabel(u)
+                              // Hover highlight: ten matches 'ten:<ref|name>',
+                              // vac matches 'ofr:<oferta>'.
+                              const isHL = (u.type==='ten' && hoverKey === 'ten:'+(u.arr_ref || u.n))
+                                        || (u.type==='vac' && hoverKey === 'ofr:'+u.oferta)
                               return (
                                 <div key={i}
                                   title={`${label} · ${u.sup.toLocaleString('es-ES')} m²${u.brk?` · break ${u.brk}`:''}`}
                                   onClick={e=>{e.stopPropagation();if(isEd)setEditPA(null);else{setEditPA({layer:'arr',rowP:floor.id,idx:i});setEditPASup(String(u.sup));setEditPARenta(String(u.renta??''));setEditPATotal(String(u.precio_total??''))}}}
-                                  className="sp-block"
-                                  style={{width:wpct,background:bg,border:`1px solid ${bd}`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible',flexDirection:'column',minHeight:barH,justifyContent:'center'}}
+                                  className={`sp-block${isHL?' sp-block-hl':''}`}
+                                  style={{width:wpct,background:isHL?col+'33':bg,border:`1px solid ${isHL?col:bd}`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible',flexDirection:'column',minHeight:barH,justifyContent:'center',boxShadow:isHL?`0 0 0 2px ${col}, 0 2px 12px ${col}66`:undefined,transform:isHL?'scale(1.02)':undefined,zIndex:isHL?2:undefined,transition:'box-shadow 120ms ease, transform 120ms ease'}}
                                 >
                                   {isEd ? (
                                     <div style={{display:'flex',flexDirection:'column',gap:3,padding:'2px 4px'}} onClick={e=>e.stopPropagation()}>
@@ -4208,6 +4232,7 @@ export default function FichaActivo() {
   // Modales de salida v2 disparados desde la X del stacking
   const [salidaArr,  setSalidaArr]  = useState(null) // { unit, doRemove }
   const [salidaProp, setSalidaProp] = useState(null) // { unit, doRemove }
+  const [salidaOfr,  setSalidaOfr]  = useState(null) // { unit, floorId, doRemove }
   const [showAltaPropietario, setShowAltaPropietario] = useState(false)
 
   const navigateToFichaProp = (substituteOwner = false) => {
@@ -4772,21 +4797,41 @@ export default function FichaActivo() {
           })
         }
       })
+    // Set de refs de arrendatarios que SÍ están asignados a alguna planta del
+    // stacking. Evita el caso 'zombie': fila en BD pero ningún drag-drop hecho
+    // → 5 chips inútiles en el sidebar sin presencia en plantas.
+    const stackingArrSet = new Set(
+      (activo?.stacking_data || [])
+        .flatMap(b => b.arr || [])
+        .flatMap(r => r.units || [])
+        .filter(u => u.type === 'ten' && u.arr_ref)
+        .map(u => u.arr_ref)
+    )
     supabase.from('arrendatarios').select('*').eq('activo_ref', ref).is('motivo_salida', null).order('created_at', { ascending: false })
       .then(({ data }) => {
         if (data?.length) {
-          const mapped = data.map(a => ({
-            id: a.id, ref: a.ref, tenant: a.tenant || a.nombre,
-            activo: a.edificio || a.activo_ref,
-            activo_ref: a.activo_ref,
-            uso: a.uso || a.sector,
-            sup: a.superficie,
-            closing_rent: a.closing_rent,
-            break_option: a.break_option,
-            fecha_fin: a.vencimiento,
-            anyo_firma: a.anyo_firma,
-            trimestre: a.trimestre,
-          }))
+          // Solo incluimos arrendatarios que tienen una unit en el stacking
+          // O fueron creados muy recientemente (últimos 10 min, pendientes
+          // de drag-drop). Filtra los zombies del prototipo.
+          const recentCutoff = Date.now() - 10 * 60 * 1000
+          const mapped = data
+            .filter(a => {
+              const inStacking = stackingArrSet.has(a.ref)
+              const recent = a.created_at && new Date(a.created_at).getTime() > recentCutoff
+              return inStacking || recent
+            })
+            .map(a => ({
+              id: a.id, ref: a.ref, tenant: a.tenant || a.nombre,
+              activo: a.edificio || a.activo_ref,
+              activo_ref: a.activo_ref,
+              uso: a.uso || a.sector,
+              sup: a.superficie,
+              closing_rent: a.closing_rent,
+              break_option: a.break_option,
+              fecha_fin: a.vencimiento,
+              anyo_firma: a.anyo_firma,
+              trimestre: a.trimestre,
+            }))
           setArrendatariosReg(prev => {
             const dbIds = new Set(mapped.map(a => a.id).filter(Boolean))
             const extras = prev.filter(a => !dbIds.has(a.id))
@@ -5197,6 +5242,9 @@ export default function FichaActivo() {
                 }}
                 onRemoveOwner={({ unit, doRemove }) => {
                   setSalidaProp({ unit, doRemove })
+                }}
+                onRemoveOferta={({ unit, floorId, doRemove }) => {
+                  setSalidaOfr({ unit, floorId, doRemove })
                 }}
                 extraOfertas={(() => {
                   // Fuente persistente: ofertas en DB ligadas a este activo.
@@ -6418,6 +6466,49 @@ export default function FichaActivo() {
                 : p.propietario !== salidaProp.unit.n
             ))
             setSalidaProp(null)
+          }}
+        />
+      )}
+      {salidaOfr && (
+        <SalidaOfertaModal
+          oferta={{
+            nombre: salidaOfr.unit.oferta,
+            sup:    salidaOfr.unit.sup,
+            renta:  salidaOfr.unit.renta,
+          }}
+          activo={activo ? {
+            ref:    activo.ref,
+            nombre: activo.nombre || displayNombre || '',
+            uso:    activo.uso,
+          } : null}
+          onClose={() => setSalidaOfr(null)}
+          onSuccess={({ motivo, arrendatario }) => {
+            try { salidaOfr.doRemove() } catch (e) {}
+            // Si fue 'cierre', el nuevo arrendatario se añade al panel y
+            // se reemplaza la unit 'vac' por una 'ten' en el stacking.
+            if (motivo === 'cierre' && arrendatario) {
+              setArrendatariosReg(prev => [...prev, {
+                id: arrendatario.id,
+                ref: arrendatario.ref,
+                tenant: arrendatario.tenant,
+                activo_ref: arrendatario.activo_ref,
+              }])
+              // Re-inyecta una unit 'ten' en la planta exacta donde estaba
+              // la oferta — mejor que perderla.
+              setLiveBuildings(prev => (prev || []).map(b => ({
+                ...b,
+                arr: (b.arr || []).map(row => row.p !== salidaOfr.floorId ? row : ({
+                  ...row,
+                  units: [...row.units, {
+                    type: 'ten',
+                    arr_ref: arrendatario.ref,
+                    n: arrendatario.tenant,
+                    sup: salidaOfr.unit.sup,
+                  }],
+                })),
+              })))
+            }
+            setSalidaOfr(null)
           }}
         />
       )}
