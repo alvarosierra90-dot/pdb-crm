@@ -696,19 +696,9 @@ export default function FichaArrendatario() {
       <div className="action-bar">
         <button className="ab-btn save" onClick={(fromDarBaja || loadedRef) ? handleSaveUpdate : handleSave} disabled={saving}>{saving ? 'Guardando...' : (loadedRef ? '💾 Guardar cambios' : '💾 Guardar')}</button>
         {!isNew && !fromDarBaja && <button className="ab-btn">Nuevo</button>}
-        {/* 'Dar de baja' visible siempre que haya un arrendatario cargado en la
-            ficha (incluido el caso normal de venir desde el listado, donde
-            fromDarBaja=true). El nombre fromDarBaja es legacy y NO bloquea. */}
-        {loadedRef && form.estado !== 'Finalizado' && (
-          <button
-            className="ab-btn"
-            style={{color:'var(--red)',borderColor:'var(--red)'}}
-            onClick={()=>setShowSalida(true)}
-            title="Baja / Fin de contrato (traslado)"
-          >
-            Dar de baja
-          </button>
-        )}
+        {/* 'Dar de baja' NO va en el header — solo se inicia desde el stacking
+            plan con la X. Evita que cualquiera entre en el listado y dé de baja
+            arrendatarios accidentalmente. */}
         <div className="ab-sep"/>
         {(params?.fromActivoRef || fromDarBaja || fromActivo) && <button className="ab-btn blue" onClick={()=>navigate('ficha-activo',{ref:params?.fromActivoRef||(fromDarBaja?(form.activo||params?.arrRef):undefined)})}>Ver activo</button>}
         {!isNew && !fromDarBaja && !params?.fromActivoRef && <button className="ab-btn blue" onClick={()=>navigate('ficha-demanda')}>🔍 Crear demanda</button>}

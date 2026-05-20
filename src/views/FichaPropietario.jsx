@@ -386,20 +386,9 @@ export default function FichaPropietario() {
           <>
             <button className="ab-btn save">💾 Guardar</button>
             <button className="ab-btn">Nuevo</button>
-            {/* Baja del propietario en este activo concreto. El propietarioReal
-                no siempre trae activo_ref (depende del registro). Si no lo tiene,
-                permitimos abrir el modal igualmente — el modal lee/escribe por
-                propietarioReal.id que es la PK de la fila concreta. */}
-            {propietarioReal && !propietarioReal?.motivo_salida && (
-              <button
-                className="ab-btn"
-                style={{color:'var(--red)',borderColor:'var(--red)'}}
-                onClick={() => setShowSalida(true)}
-                title="El propietario ha vendido este activo · queda en el histórico del edificio"
-              >
-                Dar de baja
-              </button>
-            )}
+            {/* 'Dar de baja' NO va en el header — solo se inicia desde el stacking
+                plan con la X del bloque del propietario. Evita que cualquiera
+                entre en la lista y baje propietarios accidentalmente. */}
             {propietarioReal?.estado === 'Activo' && (
               <button className="ab-btn" style={{color:'var(--amber)'}} onClick={() => { setDesactivarMode('desactivar'); setShowDesactivar(true) }} title="Desactiva la cuenta del propietario a nivel global (todas sus operaciones)">⏸ Desactivar cuenta</button>
             )}

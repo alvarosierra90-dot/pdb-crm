@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, Fragment } from 'react'
 import { useNav } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import BajaArrendatarioModal from '../components/BajaArrendatarioModal'
+import SalidaArrendatarioModal from '../components/SalidaArrendatarioModal'
+import SalidaPropietarioModal  from '../components/SalidaPropietarioModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import AltaPropietarioModal from '../components/AltaPropietarioModal'
 import AltaArrendatarioModal from '../components/AltaArrendatarioModal'
@@ -636,7 +638,7 @@ function SidebarSection({ label, count, open, onToggle, collapsed, dot, actionLa
 // Exportado para que FichaOferta consuma EXACTAMENTE el mismo componente.
 // La regla del usuario: el Stacking Plan debe ser un único componente reutilizable,
 // no varios componentes replicados. (Ver memoria project_stacking_compartido.md)
-export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', activoRef='', activoNombre='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, onRemoveTenant, onTenantClick, extraOfertas=[], initView='principal', defaultLabel='', defaultSupPlantaTipo, allowCreate=true, noDataMessage=null }) {
+export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', activoRef='', activoNombre='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, onRemoveTenant, onRemoveOwner, onTenantClick, extraOfertas=[], initView='principal', defaultLabel='', defaultSupPlantaTipo, allowCreate=true, noDataMessage=null }) {
   const { navigate: spNavigate } = useNav()
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
@@ -752,7 +754,19 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
       window.alert(`No se puede quitar el propietario de la planta ${floorId}: hay ${lbl} asignado. Primero retira lo que está encima y luego podrás quitar el propietario.`)
       return
     }
-    updBuilding(b=>({...b, prop:(b.prop||[]).map(r=>r.p!==floorId?r:{...r,units:r.units.filter((_,i)=>i!==idx)})}))
+    const propRow = bldNow?.prop?.find(r => r.p === floorId)
+    const unit = propRow?.units?.[idx]
+    const doRemove = () => updBuilding(b => ({
+      ...b,
+      prop: (b.prop || []).map(r => r.p !== floorId ? r : { ...r, units: r.units.filter((_, i) => i !== idx) }),
+    }))
+    // Si el padre maneja la baja del propietario (FichaActivo abre el modal de
+    // salida), delegamos. Si no, eliminamos directamente.
+    if (unit && typeof onRemoveOwner === 'function') {
+      onRemoveOwner({ unit, floorId, idx, doRemove })
+      return
+    }
+    doRemove()
   }
   const removeArrUnit = (floorId, idx) => {
     // Localiza la unidad antes de eliminar para detectar si es una oferta.
@@ -4183,7 +4197,10 @@ export default function FichaActivo() {
 
   const [ofertas, setOfertas] = useState([])
   const [loadingOfertas, setLoadingOfertas] = useState(false)
-  const [bajaArr, setBajaArr] = useState(null) // { unit, doRemove, activo }
+  const [bajaArr, setBajaArr] = useState(null) // { unit, doRemove, activo } — legacy modal (Vencimientos)
+  // Modales de salida v2 disparados desde la X del stacking
+  const [salidaArr,  setSalidaArr]  = useState(null) // { unit, doRemove }
+  const [salidaProp, setSalidaProp] = useState(null) // { unit, doRemove }
   const [showAltaPropietario, setShowAltaPropietario] = useState(false)
 
   const navigateToFichaProp = (substituteOwner = false) => {
@@ -5161,7 +5178,18 @@ export default function FichaActivo() {
                 onAddOwner={handleAddOwner}
                 onAddTenant={handleAddTenant}
                 onRemoveTenant={({ unit, doRemove }) => {
-                  setBajaArr({ unit, doRemove })
+                  // Si el unit está persistido (arr_ref) y no es legacy/desconocido,
+                  // abrimos el modal v2 (Baja / Fin de contrato → Traslado).
+                  // Si no hay ref, caemos al modal legacy (BajaArrendatarioModal)
+                  // que sabe manejar units sin DB row.
+                  if (unit?.arr_ref) {
+                    setSalidaArr({ unit, doRemove })
+                  } else {
+                    setBajaArr({ unit, doRemove })
+                  }
+                }}
+                onRemoveOwner={({ unit, doRemove }) => {
+                  setSalidaProp({ unit, doRemove })
                 }}
                 extraOfertas={(() => {
                   // Fuente persistente: ofertas en DB ligadas a este activo.
@@ -6341,6 +6369,36 @@ export default function FichaActivo() {
           onSuccess={() => {
             try { bajaArr.doRemove() } catch (e) {}
             setBajaArr(null)
+          }}
+        />
+      )}
+      {salidaArr && (
+        <SalidaArrendatarioModal
+          arrendatario={{
+            ref:           salidaArr.unit.arr_ref,
+            nombre:        salidaArr.unit.n,
+            activo_ref:    activo?.ref,
+            activo_nombre: activo?.nombre || displayNombre || '',
+          }}
+          onClose={() => setSalidaArr(null)}
+          onSuccess={() => {
+            try { salidaArr.doRemove() } catch (e) {}
+            setSalidaArr(null)
+          }}
+        />
+      )}
+      {salidaProp && (
+        <SalidaPropietarioModal
+          propietario={{
+            id:            salidaProp.unit.prop_id || null,
+            propietario:   salidaProp.unit.n,
+            activo_ref:    activo?.ref,
+            activo_nombre: activo?.nombre || displayNombre || '',
+          }}
+          onClose={() => setSalidaProp(null)}
+          onSuccess={() => {
+            try { salidaProp.doRemove() } catch (e) {}
+            setSalidaProp(null)
           }}
         />
       )}

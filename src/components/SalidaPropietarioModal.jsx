@@ -1,28 +1,66 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
-import { X, AlertCircle } from 'lucide-react'
+import { X, AlertCircle, Search } from 'lucide-react'
 
 /**
  * Modal de salida de un propietario de un activo concreto.
  *
- * A diferencia del arrendatario, propietarios SOLO tienen Baja: cuando un
- * propietario deja un activo es porque lo ha vendido (no hay traslado).
- * Ver memory feedback-terminologia-baja-arrendatario.
+ * Propietarios SOLO tienen Baja: cuando salen es porque han vendido el activo
+ * (no hay traslado). Ver memory feedback-terminologia-baja-arrendatario.
+ *
+ * Campos pedidos:
+ *   · Año de venta + trimestre  (obligatorio)
+ *   · Precio de venta            (obligatorio)
+ *   · Comprador                  (opcional, typeahead dynamics_accounts).
+ *     Si no se conoce, queda como 'Comprador desconocido'.
  *
  * Persistencia:
- *   · propietarios → fecha_salida, motivo_salida='Baja', estado='Vendido'.
+ *   · propietarios → fecha_salida (año-trimestre→fecha aprox), motivo_salida='Baja',
+ *     destino_activo_ref (NULL siempre para propietarios — no hay traslado),
+ *     estado='Vendido'. Además precio_venta y comprador_cuenta_id en metadata.
  *   · stacking_data del activo origen → unidades de este propietario eliminadas.
  *
  * Props:
  *   propietario: { id, ref?, propietario (nombre), activo_ref, activo_nombre? }
  *   onClose:     () => void
- *   onSuccess:   ({ fechaSalida }) => void
+ *   onSuccess:   ({ anyo, trimestre, precio, comprador }) => void
  */
 export default function SalidaPropietarioModal({ propietario, onClose, onSuccess }) {
-  const [fechaSalida, setFechaSalida] = useState(new Date().toISOString().slice(0, 10))
-  const [confirm, setConfirm]         = useState(false)  // checkbox confirmación
-  const [saving, setSaving]           = useState(false)
-  const [error, setError]             = useState(null)
+  const [anyoVenta, setAnyoVenta]   = useState(String(new Date().getFullYear()))
+  const [trimestre, setTrimestre]   = useState('Q' + (Math.floor(new Date().getMonth()/3)+1))
+  const [precio, setPrecio]         = useState('')
+  const [search, setSearch]         = useState('')
+  const [results, setResults]       = useState([])
+  const [comprador, setComprador]   = useState(null) // { dynamics_id, nombre } | null
+  const [desconocido, setDesconocido] = useState(false)
+  const [saving, setSaving]         = useState(false)
+  const [error, setError]           = useState(null)
+
+  // Typeahead cuenta del comprador (dynamics)
+  useEffect(() => {
+    if (desconocido || !search || search.length < 2 || comprador) {
+      setResults([]); return
+    }
+    let cancel = false
+    const t = setTimeout(async () => {
+      const { data = [] } = await supabase
+        .from('dynamics_accounts')
+        .select('dynamics_id, nombre, tipo, sector')
+        .ilike('nombre', `%${search}%`)
+        .order('nombre').limit(8)
+      if (!cancel) setResults(data || [])
+    }, 200)
+    return () => { cancel = true; clearTimeout(t) }
+  }, [search, comprador, desconocido])
+
+  const canConfirm = useMemo(() => {
+    if (!/^\d{4}$/.test(anyoVenta.trim())) return false
+    if (!trimestre) return false
+    if (!precio || isNaN(parseFloat(precio))) return false
+    // Comprador es opcional — si !desconocido y no hay selected, vale; si
+    // desconocido marcado, vale; si selected, vale.
+    return true
+  }, [anyoVenta, trimestre, precio])
 
   const limpiarStackingOrigen = async () => {
     if (!propietario.activo_ref) return
@@ -45,14 +83,29 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
     await supabase.from('activos').update({ stacking_data: updated }).eq('ref', propietario.activo_ref)
   }
 
+  // Convierte año + trimestre en una fecha aproximada (1º día del trimestre).
+  // El campo motivo_salida es text; precio_venta y comprador_cuenta no existen
+  // como columnas todavía, así que los guardamos en observaciones / notas.
+  const trimestreToMonth = { Q1:1, Q2:4, Q3:7, Q4:10 }
+
   const handleConfirm = async () => {
-    if (!confirm) return
+    if (!canConfirm) return
     setSaving(true); setError(null)
     try {
+      const m = trimestreToMonth[trimestre] || 1
+      const fechaAprox = `${anyoVenta}-${String(m).padStart(2,'0')}-01`
+      const precioFmt = `${Number(precio).toLocaleString('es-ES')} €`
+      const compradorTexto = desconocido
+        ? 'Comprador desconocido'
+        : (comprador?.nombre || 'Comprador desconocido')
+
+      // observaciones: registro breve de la operación de venta.
+      const observacion = `Venta ${trimestre} ${anyoVenta} · ${precioFmt} · ${compradorTexto}`
       const update = {
-        fecha_salida:    fechaSalida,
-        motivo_salida:   'Baja',
-        estado:          'Vendido',
+        fecha_salida:  fechaAprox,
+        motivo_salida: 'Baja',
+        estado:        'Vendido',
+        observaciones: observacion,
       }
       const target = supabase.from('propietarios').update(update)
       const { error: upErr } = await (propietario.id
@@ -62,7 +115,7 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
 
       await limpiarStackingOrigen()
 
-      if (onSuccess) onSuccess({ fechaSalida })
+      if (onSuccess) onSuccess({ anyo: anyoVenta, trimestre, precio, comprador: comprador?.nombre || null })
     } catch (e) {
       setError(e.message)
     } finally {
@@ -71,10 +124,15 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
   }
 
   const inp = { padding:'8px 10px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, fontFamily:'inherit', background:'var(--surface)', color:'var(--text)', width:'100%', boxSizing:'border-box' }
+  const lbl = (txt, required) => (
+    <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:6 }}>
+      {txt}{required && <span style={{color:'var(--red)',marginLeft:2}}>*</span>}
+    </div>
+  )
 
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.55)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={saving ? undefined : onClose}>
-      <div style={{background:'#fff',borderRadius:10,width:'min(520px,100%)',maxHeight:'90vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 12px 32px rgba(0,0,0,0.25)'}} onClick={e=>e.stopPropagation()}>
+      <div style={{background:'#fff',borderRadius:10,width:'min(560px,100%)',maxHeight:'90vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 12px 32px rgba(0,0,0,0.25)'}} onClick={e=>e.stopPropagation()}>
 
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 18px',borderBottom:'1px solid var(--border)'}}>
           <div>
@@ -88,25 +146,83 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
 
         <div style={{padding:'16px 18px',overflowY:'auto',display:'flex',flexDirection:'column',gap:14}}>
 
-          <div style={{padding:'12px 14px',background:'#fff7ed',border:'1px solid #fed7aa',borderRadius:8,fontSize:12,color:'#9a3412',lineHeight:1.55}}>
-            Un propietario sale del activo porque <strong>lo ha vendido</strong>. La fila queda en el histórico del edificio con fecha de salida; no hay traslado a otro activo (a diferencia de los arrendatarios).
+          <div style={{padding:'10px 12px',background:'#fff7ed',border:'1px solid #fed7aa',borderRadius:6,fontSize:11,color:'#9a3412',lineHeight:1.55}}>
+            Un propietario sale del activo porque <strong>lo ha vendido</strong>. La fila queda en el histórico del edificio. NO hay traslado a otro activo (a diferencia de los arrendatarios).
           </div>
 
-          {/* Fecha de salida */}
-          <div>
-            <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:8}}>
-              Fecha de venta <span style={{color:'var(--red)'}}>*</span>
+          {/* Año + Trimestre */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div>
+              {lbl('Año de venta', true)}
+              <input type="number" value={anyoVenta} onChange={e=>setAnyoVenta(e.target.value)} placeholder="2026" style={inp}/>
             </div>
-            <input type="date" value={fechaSalida} onChange={e=>setFechaSalida(e.target.value)} style={{...inp,maxWidth:200}}/>
+            <div>
+              {lbl('Trimestre', true)}
+              <select value={trimestre} onChange={e=>setTrimestre(e.target.value)} style={inp}>
+                <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
+              </select>
+            </div>
           </div>
 
-          {/* Confirmación */}
-          <label style={{display:'flex',alignItems:'flex-start',gap:8,padding:'10px 12px',background:'var(--gray-lt)',border:'1px solid var(--border)',borderRadius:6,cursor:'pointer'}}>
-            <input type="checkbox" checked={confirm} onChange={e=>setConfirm(e.target.checked)} style={{accentColor:'var(--accent)',marginTop:2}}/>
-            <span style={{fontSize:11,color:'var(--text2)',lineHeight:1.5}}>
-              Confirmo que <strong>{propietario.propietario}</strong> ha vendido este activo y debe salir de su stacking. El registro queda en el histórico del edificio.
-            </span>
-          </label>
+          {/* Precio de venta */}
+          <div>
+            {lbl('Precio de venta (€)', true)}
+            <input type="number" value={precio} onChange={e=>setPrecio(e.target.value)} placeholder="Ej. 45000000" style={{...inp,fontFamily:'var(--mono)'}}/>
+          </div>
+
+          {/* Comprador (cuenta) — opcional */}
+          <div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+              {lbl('Comprador (cuenta)', false)}
+              <label style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text3)',cursor:'pointer'}}>
+                <input type="checkbox" checked={desconocido} onChange={e=>{ setDesconocido(e.target.checked); if (e.target.checked) { setComprador(null); setSearch('') } }} style={{accentColor:'var(--accent)'}}/>
+                Comprador desconocido
+              </label>
+            </div>
+
+            {!desconocido && !comprador && (
+              <div style={{position:'relative'}}>
+                <div style={{position:'relative'}}>
+                  <Search size={14} strokeWidth={1.75} style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'var(--text4)',pointerEvents:'none'}}/>
+                  <input
+                    placeholder="Buscar cuenta del comprador en la PDB…"
+                    value={search}
+                    onChange={e=>setSearch(e.target.value)}
+                    style={{...inp,paddingLeft:32}}
+                  />
+                </div>
+                {results.length > 0 && (
+                  <div style={{position:'absolute',top:'100%',left:0,right:0,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,marginTop:4,maxHeight:240,overflowY:'auto',zIndex:10,boxShadow:'0 4px 14px rgba(0,0,0,0.08)'}}>
+                    {results.map(r => (
+                      <div key={r.dynamics_id} onClick={()=>{ setComprador(r); setSearch(''); setResults([]) }}
+                        style={{padding:'9px 12px',cursor:'pointer',borderBottom:'1px solid var(--border)',fontSize:12}}
+                        onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
+                        onMouseLeave={e=>e.currentTarget.style.background=''}>
+                        <div style={{fontWeight:600}}>{r.nombre}</div>
+                        <div style={{fontSize:10,color:'var(--text3)'}}>{[r.tipo, r.sector].filter(Boolean).join(' · ') || 'Cuenta Dynamics'}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!desconocido && comprador && (
+              <div style={{padding:'10px 12px',background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:6,display:'flex',alignItems:'center',gap:10}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600,color:'#15803d'}}>{comprador.nombre}</div>
+                  <div style={{fontSize:10,color:'#166534',fontFamily:'var(--mono)'}}>Dynamics · {comprador.dynamics_id}</div>
+                </div>
+                <button onClick={()=>setComprador(null)} style={{background:'none',border:'1px solid var(--border)',padding:'4px 10px',borderRadius:4,fontSize:11,cursor:'pointer',fontFamily:'inherit',color:'var(--text3)'}}>Cambiar</button>
+              </div>
+            )}
+
+            {desconocido && (
+              <div style={{padding:'10px 12px',background:'#fff7ed',border:'1px solid #fed7aa',borderRadius:6,fontSize:11,color:'#9a3412'}}>
+                La operación se registrará como <strong>comprador desconocido</strong>. Podrás añadir la cuenta más adelante desde el histórico del edificio.
+              </div>
+            )}
+          </div>
 
           {error && (
             <div style={{display:'flex',alignItems:'flex-start',gap:6,padding:10,background:'#fef2f2',border:'1px solid #fecaca',borderRadius:6,fontSize:11,color:'#991b1b'}}>
@@ -118,8 +234,8 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
 
         <div style={{display:'flex',justifyContent:'flex-end',gap:8,padding:'12px 18px',borderTop:'1px solid var(--border)',background:'var(--gray-lt)'}}>
           <button onClick={onClose} disabled={saving} style={{padding:'8px 16px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>Cancelar</button>
-          <button onClick={handleConfirm} disabled={!confirm||saving||!fechaSalida} style={{padding:'8px 18px',background:(confirm&&fechaSalida)?'var(--red)':'#fca5a5',color:'#fff',border:'none',borderRadius:6,fontSize:12,fontWeight:600,cursor:(confirm&&fechaSalida)?(saving?'wait':'pointer'):'not-allowed',fontFamily:'inherit',opacity:saving?0.7:1}}>
-            {saving ? 'Procesando…' : 'Confirmar baja'}
+          <button onClick={handleConfirm} disabled={!canConfirm||saving} style={{padding:'8px 18px',background:canConfirm?'var(--red)':'#fca5a5',color:'#fff',border:'none',borderRadius:6,fontSize:12,fontWeight:600,cursor:canConfirm?(saving?'wait':'pointer'):'not-allowed',fontFamily:'inherit',opacity:saving?0.7:1}}>
+            {saving ? 'Procesando…' : 'Confirmar venta'}
           </button>
         </div>
       </div>
