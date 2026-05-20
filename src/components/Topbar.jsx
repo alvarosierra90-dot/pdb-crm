@@ -1,6 +1,35 @@
 import { useNav } from '../context/NavigationContext'
 import LanguageToggle from './LanguageToggle'
-import { Download, Lock, Mail, ArrowUp, Plus, Share2, ArrowLeftRight, ChevronRight } from 'lucide-react'
+import { Download, Lock, Mail, ArrowUp, Plus, Share2, ArrowLeftRight, ChevronRight, ArrowLeft } from 'lucide-react'
+
+// Etiqueta legible por vista para el botón "← Volver a X".
+const VIEW_LABEL = {
+  'activos':'Activos', 'ficha-activo':'Activo',
+  'ofertas':'Ofertas', 'ficha-oferta':'Oferta',
+  'negociaciones':'Negociaciones', 'ficha-negociacion':'Negociación',
+  'portfolios':'Portfolios', 'portfolio':'Portfolio',
+  'demandas':'Demandas', 'ficha-demanda':'Demanda',
+  'actividades':'Actividades', 'ficha-actividad':'Actividad',
+  'visitas':'Visitas', 'ficha-visita':'Visita',
+  'tareas':'Tareas', 'ficha-tarea':'Tarea',
+  'mandatos':'Mandatos', 'ficha-mandato':'Mandato',
+  'mapas':'Mapas',
+  'zonas':'Zonas', 'ficha-zona':'Zona',
+  'usuarios':'Usuarios', 'ficha-usuario':'Usuario',
+  'cuentas':'Cuentas', 'contactos':'Contactos',
+  'propuestas':'Propuestas', 'ficha-propuesta':'Propuesta',
+  'presentaciones':'Presentaciones',
+  'propietarios':'Propietarios', 'ficha-propietario':'Propietario',
+  'arrendatarios':'Arrendatarios', 'ficha-arrendatario':'Arrendatario',
+  'mis-clientes':'Mis Cuentas', 'paneles':'Paneles',
+  'oportunidades':'Oportunidades', 'ficha-oportunidad':'Oportunidad',
+  'instruccion':'Instrucciones', 'entidades-legales':'Entidades legales',
+  'vencimientos':'Vencimientos', 'inteligencia-comercial':'Inteligencia comercial',
+  'noticias':'Noticias', 'marketing':'Marketing',
+  'informes-mercado':'Informes de mercado',
+  'leads':'Leads', 'ficha-lead':'Lead',
+  'pitch':'Pitch', 'nexo':'NEXO',
+}
 
 const ICO = 14
 const ICO_SM = 12
@@ -14,7 +43,8 @@ const NewBtn = ({ label, onClick }) => (
 )
 
 export default function Topbar() {
-  const { view, navigate } = useNav()
+  const { view, navigate, goBack, canGoBack, prev } = useNav()
+  const prevLabel = prev ? (VIEW_LABEL[prev.view] || prev.view) : null
 
   const configs = {
     activos: {
@@ -195,7 +225,28 @@ export default function Topbar() {
 
   return (
     <div className="topbar">
-      <div className="bc">{cfg.bc}</div>
+      <div className="bc" style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
+        {canGoBack && (
+          <button
+            onClick={goBack}
+            title={prevLabel ? `Volver a ${prevLabel}` : 'Volver atrás'}
+            style={{
+              display:'inline-flex', alignItems:'center', gap:4,
+              padding:'4px 10px', fontSize:11, fontWeight:600,
+              border:'1px solid var(--border)', borderRadius:6,
+              background:'var(--surface)', color:'var(--text2)',
+              cursor:'pointer', fontFamily:'inherit',
+              flexShrink:0, maxWidth:200,
+              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray-lt, #f4f4f5)'; e.currentTarget.style.borderColor = 'var(--text3)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)';        e.currentTarget.style.borderColor = 'var(--border)' }}
+          >
+            <ArrowLeft size={12} strokeWidth={2}/> {prevLabel ? `Volver a ${prevLabel}` : 'Atrás'}
+          </button>
+        )}
+        <div style={{display:'flex',alignItems:'center',minWidth:0,flex:1}}>{cfg.bc}</div>
+      </div>
       <div className="topbar-right" style={{display:'flex',alignItems:'center',gap:6}}>
         {cfg.right}
         <div style={{width:1,height:20,background:'var(--border)',flexShrink:0,marginLeft:2}}/>

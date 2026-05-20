@@ -68,7 +68,11 @@ function initialCollapsed(view) {
 }
 
 export default function Nav() {
-  const { view, navigate } = useNav()
+  const { view, resetTo } = useNav()
+  // El sidebar siempre limpia el historial al saltar de sección: cuando el
+  // usuario clica un módulo del menú está abandonando el flujo actual.
+  // Eso evita acumular pasos extraños en la pila de "Atrás".
+  const navigate = (v, p) => resetTo(v, p)
   const [collapsed, setCollapsed] = useState(() => initialCollapsed(view))
 
   // Al cambiar de view, auto-expandir su sección (sin tocar las demás).
