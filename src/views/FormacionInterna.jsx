@@ -333,8 +333,8 @@ function ModuloDetalle({ modulo, progress, setProgress, onVolver, onAbrirTest })
                 {isOpen ? <ChevronDown size={14} strokeWidth={2} color="var(--text4)"/> : <ChevronRight size={14} strokeWidth={2} color="var(--text4)"/>}
               </div>
               {isOpen && (
-                <div style={{ padding:'0 14px 14px 14px', fontSize:12.5, color:'var(--text2)', lineHeight:1.65 }}>
-                  {c.resumen}
+                <div style={{ padding:'4px 18px 18px 18px' }}>
+                  <ConceptoRender concepto={c} onAbrirCalc={() => {}}/>
                 </div>
               )}
             </div>
@@ -876,3 +876,153 @@ function TestRunner({ modId, progress, setProgress, onVolver }) {
     </div>
   )
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// CONCEPTO RENDER · motor genérico para tabs + bloques tipados
+// ═══════════════════════════════════════════════════════════════════
+function ConceptoRender({ concepto }) {
+  const [tabActivo, setTabActivo] = useState(concepto.tabs?.[0]?.id || null)
+  if (concepto.tabs) {
+    const tab = concepto.tabs.find(t => t.id === tabActivo) || concepto.tabs[0]
+    return (
+      <div>
+        <div style={{ display:'flex', gap:4, borderBottom:'1px solid var(--border)', marginBottom:14 }}>
+          {concepto.tabs.map(t => (
+            <button key={t.id} onClick={() => setTabActivo(t.id)}
+              style={{ padding:'7px 14px', fontSize:12, fontWeight:600, background:'none', border:'none', borderBottom: t.id === tabActivo ? '2px solid var(--accent)' : '2px solid transparent', color: t.id === tabActivo ? 'var(--accent)' : 'var(--text3)', cursor:'pointer', fontFamily:'inherit', marginBottom:-1 }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <BloquesRender bloques={tab.bloques}/>
+        {concepto.related && <RelatedTerms terms={concepto.related}/>}
+      </div>
+    )
+  }
+  return (
+    <div>
+      <BloquesRender bloques={concepto.bloques || []}/>
+      {concepto.related && <RelatedTerms terms={concepto.related}/>}
+    </div>
+  )
+}
+
+function BloquesRender({ bloques }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+      {bloques.map((b, i) => <Bloque key={i} b={b}/>)}
+    </div>
+  )
+}
+
+function Bloque({ b }) {
+  if (b.t === 'p') {
+    return <p style={{ fontSize:13, color:'var(--text2)', lineHeight:1.65, margin:0 }} dangerouslySetInnerHTML={{ __html: b.x }}/>
+  }
+  if (b.t === 'info') {
+    const styles = {
+      tip:     { bg:'rgba(168,85,247,.06)', bd:'rgba(168,85,247,.25)', col:'#6b21a8' },
+      warning: { bg:'#fff7ed',              bd:'#fed7aa',              col:'#9a3412' },
+      insight: { bg:'#f0fdf4',              bd:'#bbf7d0',              col:'#15803d' },
+      law:     { bg:'var(--accent-lt)',     bd:'var(--accent-bd)',     col:'var(--accent)' },
+    }
+    const s = styles[b.v] || styles.tip
+    return (
+      <div style={{ padding:'12px 14px', background:s.bg, border:`1px solid ${s.bd}`, borderRadius:5, display:'flex', gap:10, alignItems:'flex-start' }}>
+        <span style={{ fontSize:16, flexShrink:0, marginTop:1 }}>{b.icon}</span>
+        <div style={{ fontSize:12.5, color:s.col, lineHeight:1.55 }} dangerouslySetInnerHTML={{ __html: b.x }}/>
+      </div>
+    )
+  }
+  if (b.t === 'tabla') {
+    return (
+      <div style={{ overflowX:'auto' }}>
+        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12, border:'1px solid var(--border)', borderRadius:5, overflow:'hidden' }}>
+          <thead>
+            <tr style={{ background:'var(--gray-lt,#f4f4f5)' }}>
+              {b.cols.map((c, i) => <th key={i} style={{ padding:'8px 10px', fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', textAlign:'left', borderBottom:'1px solid var(--border)' }} dangerouslySetInnerHTML={{ __html: c }}/>)}
+            </tr>
+          </thead>
+          <tbody>
+            {b.rows.map((row, i) => (
+              <tr key={i} style={{ borderBottom: i < b.rows.length-1 ? '1px solid var(--border)' : 'none' }}>
+                {row.map((cell, j) => <td key={j} style={{ padding:'7px 10px', color:'var(--text2)', verticalAlign:'top', lineHeight:1.5 }} dangerouslySetInnerHTML={{ __html: cell }}/>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+  if (b.t === 'formula') {
+    return (
+      <div style={{ padding:'14px 16px', background:'var(--gray-lt,#f4f4f5)', border:'1px solid var(--border)', borderLeft:'3px solid var(--accent)', borderRadius:5, fontFamily:'var(--mono)' }}>
+        <div style={{ fontSize:10, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:6 }}>{b.label}</div>
+        <div style={{ fontSize:14, fontWeight:600, color:'var(--text)' }} dangerouslySetInnerHTML={{ __html: b.main }}/>
+        {b.sub && <div style={{ fontSize:11, color:'var(--text3)', marginTop:4 }} dangerouslySetInnerHTML={{ __html: b.sub }}/>}
+      </div>
+    )
+  }
+  if (b.t === 'ejemplo') {
+    return (
+      <div style={{ padding:'12px 14px', background:'var(--accent-lt)', border:'1px solid var(--accent-bd)', borderRadius:5 }}>
+        <div style={{ fontSize:10, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:10 }}>{b.titulo}</div>
+        {b.pasos.map((p, i) => (
+          <div key={i} style={{ display:'flex', gap:10, marginBottom:6, fontSize:12 }}>
+            <span style={{ fontSize:11, fontFamily:'var(--mono)', color:'var(--accent)', flexShrink:0, minWidth:22 }}>{p.num}</span>
+            <span style={{ color:'var(--text2)', lineHeight:1.5 }} dangerouslySetInnerHTML={{ __html: p.texto }}/>
+          </div>
+        ))}
+        {b.resultado && (
+          <div style={{ fontSize:12.5, fontWeight:700, color:'var(--green)', padding:'8px 12px', background:'var(--green-lt)', border:'1px solid var(--green-bd)', borderRadius:4, marginTop:10 }} dangerouslySetInnerHTML={{ __html: b.resultado }}/>
+        )}
+      </div>
+    )
+  }
+  if (b.t === 'spectrum') {
+    return (
+      <div style={{ display:'grid', gridTemplateColumns:`repeat(${b.bands.length}, 1fr)`, gap:0, borderRadius:5, overflow:'hidden', border:'1px solid var(--border)' }}>
+        {b.bands.map((band, i) => {
+          const colors = ['rgba(0,212,255,.10)','rgba(0,212,255,.06)','rgba(255,157,0,.10)','rgba(255,71,87,.10)']
+          return (
+            <div key={i} style={{ padding:'14px 10px', textAlign:'center', background: colors[i] || colors[0] }}>
+              <div style={{ fontSize:13, fontWeight:700, color:'var(--text)', marginBottom:5 }}>{band.nombre}</div>
+              <div style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--accent)', marginBottom:3 }}>{band.irr}</div>
+              <div style={{ fontSize:10, color:'var(--text4)' }}>{band.lev}</div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+  if (b.t === 'cycle') {
+    return (
+      <div style={{ display:'flex', alignItems:'center', gap:0, flexWrap:'wrap', overflowX:'auto' }}>
+        {b.steps.map((s, i) => (
+          <div key={i} style={{ display:'flex', alignItems:'center' }}>
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', minWidth:80, padding:'0 6px' }}>
+              <div style={{ width:40, height:40, borderRadius:'50%', background: s.activo ? 'var(--accent-lt)' : 'var(--surface)', border:`2px solid ${s.activo ? 'var(--accent)' : 'var(--border)'}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, marginBottom:6 }}>
+                {s.icon}
+              </div>
+              <div style={{ fontSize:11, fontWeight:600, color:'var(--text2)', textAlign:'center' }}>{s.label}</div>
+            </div>
+            {i < b.steps.length - 1 && <div style={{ width:24, height:2, background:'var(--border)', flexShrink:0 }}/>}
+          </div>
+        ))}
+      </div>
+    )
+  }
+  return null
+}
+
+function RelatedTerms({ terms }) {
+  return (
+    <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:14, paddingTop:12, borderTop:'1px dashed var(--border)' }}>
+      <span style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em', fontWeight:700, alignSelf:'center' }}>Términos relacionados:</span>
+      {terms.map(t => (
+        <span key={t} style={{ padding:'3px 9px', fontSize:11, fontFamily:'var(--mono)', border:'1px solid var(--border)', borderRadius:3, color:'var(--text3)' }}>{t}</span>
+      ))}
+    </div>
+  )
+}
+
