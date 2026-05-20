@@ -20,25 +20,23 @@ const SECTION_OF_VIEW = {
   presentaciones:'work', 'ficha-presentacion':'work',
   // cli
   cuentas:'cli', contactos:'cli', 'entidades-legales':'cli',
-  // cap
-  leads:'cap', 'ficha-lead':'cap',
-  oportunidades:'cap', 'ficha-oportunidad':'cap',
-  propuestas:'cap', 'ficha-propuesta':'cap',
+  // funnel (consolidado: captacion + ejecucion + cierre)
+  leads:'funnel', 'ficha-lead':'funnel',
+  oportunidades:'funnel', 'ficha-oportunidad':'funnel',
+  propuestas:'funnel', 'ficha-propuesta':'funnel',
+  mandatos:'funnel', 'ficha-mandato':'funnel',
+  ofertas:'funnel', 'ficha-oferta':'funnel',
+  demandas:'funnel', 'ficha-demanda':'funnel',
+  negociaciones:'funnel', 'ficha-negociacion':'funnel',
+  instruccion:'funnel',
   // act2
   activos:'act2', 'ficha-activo':'act2',
   arrendatarios:'act2', 'ficha-arrendatario':'act2',
   propietarios:'act2', 'ficha-propietario':'act2',
-  // com
-  mandatos:'com', 'ficha-mandato':'com',
-  ofertas:'com', 'ficha-oferta':'com',
-  demandas:'com', 'ficha-demanda':'com',
-  mapas:'com',
-  // cierre
-  negociaciones:'cierre', 'ficha-negociacion':'cierre',
-  instruccion:'cierre',
   // int
   vencimientos:'int', 'inteligencia-comercial':'int', noticias:'int',
-  // ana
+  // ana (incluye Mapas)
+  mapas:'ana',
   portfolios:'ana', portfolio:'ana',
   'informes-mercado':'ana',
   zonas:'ana', 'ficha-zona':'ana',
@@ -48,8 +46,8 @@ const SECTION_OF_VIEW = {
   pitch:'adm', nexo:'adm',
 }
 
-const STORAGE_KEY = 'pdb.nav.collapsed.v1'
-const ALL_SECTIONS = ['work','cli','cap','act2','com','cierre','int','ana','adm']
+const STORAGE_KEY = 'pdb.nav.collapsed.v2'
+const ALL_SECTIONS = ['work','cli','funnel','act2','int','ana','adm']
 
 // Estado inicial: todas colapsadas excepto la del view actual. Si hay
 // preferencias guardadas en localStorage, prevalecen (pero la sección del
@@ -151,13 +149,16 @@ export default function Nav() {
       </>}
 
       {/* ═══════════════════════════════════════════════════════════════
-          3. CAPTACIÓN — origen del funnel comercial
-             Lead → Oportunidad (Dynamics) → Propuesta · Mandato
+          3. FUNNEL COMERCIAL — todo el hilo conductor en una sola sección
+             CAPTACIÓN: Lead → Oportunidad (Dynamics) → Propuesta
+             EJECUCIÓN: Mandato · Oferta · Demanda
+             CIERRE:    Negociación → Instrucción (Dynamics)
          ═══════════════════════════════════════════════════════════════ */}
-      <div className="nav-section" onClick={() => toggle('cap')}>
-        Captación <ChevronDown collapsed={collapsed.cap} />
+      <div className="nav-section" onClick={() => toggle('funnel')}>
+        Funnel comercial <ChevronDown collapsed={collapsed.funnel} />
       </div>
-      {open('cap') && <>
+      {open('funnel') && <>
+        <div className="nav-subhead">Captación</div>
         <div className={`nav-item ${isActive('leads','ficha-lead') ? 'active' : ''}`} onClick={() => navigate('leads')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></svg>
           Leads <span className="nav-badge" style={{background:'#fef3c7',color:'#92400e'}}>15</span>
@@ -169,6 +170,28 @@ export default function Nav() {
         <div className={`nav-item ${isActive('propuestas','ficha-propuesta') ? 'active' : ''}`} onClick={() => navigate('propuestas')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4M5 8h6M5 11h4"/></svg>
           Propuestas / Proyectos
+        </div>
+        <div className="nav-subhead">Ejecución</div>
+        <div className={`nav-item ${isActive('mandatos','ficha-mandato') ? 'active' : ''}`} onClick={() => navigate('mandatos')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4M6 9l1.5 1.5L11 7"/></svg>
+          Mandatos
+        </div>
+        <div className={`nav-item ${isActive('ofertas','ficha-oferta') ? 'active' : ''}`} onClick={() => navigate('ofertas')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"/><path d="M2 4l6 5 6-5"/></svg>
+          Ofertas
+        </div>
+        <div className={`nav-item ${isActive('demandas','ficha-demanda') ? 'active' : ''}`} onClick={() => navigate('demandas')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
+          Demandas
+        </div>
+        <div className="nav-subhead">Cierre</div>
+        <div className={`nav-item ${isActive('negociaciones','ficha-negociacion') ? 'active' : ''}`} onClick={() => navigate('negociaciones')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 3h12v7a1 1 0 01-1 1H3a1 1 0 01-1-1V3z"/><path d="M5 13l1-2h4l1 2"/><path d="M5 7h6M5 9.5h4"/></svg>
+          Negociaciones <span className="nav-badge">4</span>
+        </div>
+        <div className={`nav-item ${isActive('instruccion') ? 'active' : ''}`} onClick={() => navigate('instruccion')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4M6 11l1.5 1.5L11 9"/></svg>
+          Instrucciones <span className="nav-dyn">Dynamics</span>
         </div>
       </>}
 
@@ -196,50 +219,6 @@ export default function Nav() {
       </>}
 
       {/* ═══════════════════════════════════════════════════════════════
-          5. COMERCIALIZACIÓN — capa comercial sobre el activo
-             Oferta (disponibilidad) + Demanda (búsqueda) + Mapas (cruce)
-         ═══════════════════════════════════════════════════════════════ */}
-      <div className="nav-section" onClick={() => toggle('com')}>
-        Comercialización <ChevronDown collapsed={collapsed.com} />
-      </div>
-      {open('com') && <>
-        <div className={`nav-item ${isActive('mandatos','ficha-mandato') ? 'active' : ''}`} onClick={() => navigate('mandatos')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4M6 9l1.5 1.5L11 7"/></svg>
-          Mandatos
-        </div>
-        <div className={`nav-item ${isActive('ofertas','ficha-oferta') ? 'active' : ''}`} onClick={() => navigate('ofertas')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"/><path d="M2 4l6 5 6-5"/></svg>
-          Ofertas
-        </div>
-        <div className={`nav-item ${isActive('demandas','ficha-demanda') ? 'active' : ''}`} onClick={() => navigate('demandas')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
-          Demandas
-        </div>
-        <div className={`nav-item ${isActive('mapas') ? 'active' : ''}`} onClick={() => navigate('mapas')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M6 2L2 4v10l4-2 4 2 4-2V2l-4 2-4-2z"/></svg>
-          Mapas
-        </div>
-      </>}
-
-      {/* ═══════════════════════════════════════════════════════════════
-          6. CIERRE — formalización y facturación
-             Negociación → Instrucción (Dynamics, factura E.Legal)
-         ═══════════════════════════════════════════════════════════════ */}
-      <div className="nav-section" onClick={() => toggle('cierre')}>
-        Cierre <ChevronDown collapsed={collapsed.cierre} />
-      </div>
-      {open('cierre') && <>
-        <div className={`nav-item ${isActive('negociaciones','ficha-negociacion') ? 'active' : ''}`} onClick={() => navigate('negociaciones')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 3h12v7a1 1 0 01-1 1H3a1 1 0 01-1-1V3z"/><path d="M5 13l1-2h4l1 2"/><path d="M5 7h6M5 9.5h4"/></svg>
-          Negociaciones <span className="nav-badge">4</span>
-        </div>
-        <div className={`nav-item ${isActive('instruccion') ? 'active' : ''}`} onClick={() => navigate('instruccion')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4M6 11l1.5 1.5L11 9"/></svg>
-          Instrucciones <span className="nav-dyn">Dynamics</span>
-        </div>
-      </>}
-
-      {/* ═══════════════════════════════════════════════════════════════
           7. INTELIGENCIA — radar comercial
          ═══════════════════════════════════════════════════════════════ */}
       <div className="nav-section" onClick={() => toggle('int')}>
@@ -261,12 +240,16 @@ export default function Nav() {
       </>}
 
       {/* ═══════════════════════════════════════════════════════════════
-          8. ANÁLISIS — reporting y consolidación
+          8. ANÁLISIS — reporting, consolidación y cartografía
          ═══════════════════════════════════════════════════════════════ */}
       <div className="nav-section" onClick={() => toggle('ana')}>
         Análisis <ChevronDown collapsed={collapsed.ana} />
       </div>
       {open('ana') && <>
+        <div className={`nav-item ${isActive('mapas') ? 'active' : ''}`} onClick={() => navigate('mapas')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M6 2L2 4v10l4-2 4 2 4-2V2l-4 2-4-2z"/></svg>
+          Mapas
+        </div>
         <div className={`nav-item ${isActive('portfolios','portfolio') ? 'active' : ''}`} onClick={() => navigate('portfolios')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="3" width="14" height="11" rx="1.5"/><path d="M5 3V2a1 1 0 012 0v1M9 3V2a1 1 0 012 0v1"/></svg>
           Portfolios institucionales
