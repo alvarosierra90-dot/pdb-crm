@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import DesactivarPropietarioModal from '../components/DesactivarPropietarioModal'
+import SalidaPropietarioModal from '../components/SalidaPropietarioModal'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { exportPDF, exportPPT } from '../utils/exportReport'
 import { supabase } from '../lib/supabase'
@@ -88,6 +89,7 @@ export default function FichaPropietario() {
   const [saveErr, setSaveErr] = useState('')
   const [showDesactivar, setShowDesactivar] = useState(false)
   const [desactivarMode, setDesactivarMode] = useState('desactivar')
+  const [showSalida, setShowSalida] = useState(false)
   const [propietarioReal, setPropietarioReal] = useState(null) // { id, nombre, estado }
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -384,8 +386,18 @@ export default function FichaPropietario() {
           <>
             <button className="ab-btn save">💾 Guardar</button>
             <button className="ab-btn">Nuevo</button>
+            {propietarioReal?.estado === 'Activo' && propietarioReal?.activo_ref && !propietarioReal?.motivo_salida && (
+              <button
+                className="ab-btn"
+                style={{color:'var(--red)',borderColor:'var(--red)'}}
+                onClick={() => setShowSalida(true)}
+                title="El propietario ha vendido este activo · queda en el histórico del edificio"
+              >
+                Dar de baja
+              </button>
+            )}
             {propietarioReal?.estado === 'Activo' && (
-              <button className="ab-btn" style={{color:'var(--amber)'}} onClick={() => { setDesactivarMode('desactivar'); setShowDesactivar(true) }}>⏸ Desactivar</button>
+              <button className="ab-btn" style={{color:'var(--amber)'}} onClick={() => { setDesactivarMode('desactivar'); setShowDesactivar(true) }} title="Desactiva la cuenta del propietario a nivel global (todas sus operaciones)">⏸ Desactivar cuenta</button>
             )}
             {propietarioReal && propietarioReal.estado !== 'Activo' && (
               <button className="ab-btn" style={{color:'var(--green)'}} onClick={() => { setDesactivarMode('reactivar'); setShowDesactivar(true) }}>🔄 Reactivar</button>
@@ -1251,6 +1263,21 @@ export default function FichaPropietario() {
           modo={desactivarMode}
           onClose={() => setShowDesactivar(false)}
           onSuccess={() => { setShowDesactivar(false); setReloadKey(k => k + 1) }}
+        />
+      )}
+      {showSalida && propietarioReal && (
+        <SalidaPropietarioModal
+          propietario={{
+            id:            propietarioReal.id,
+            propietario:   propietarioReal.propietario || propietarioReal.nombre,
+            activo_ref:    propietarioReal.activo_ref || null,
+            activo_nombre: propietarioReal.activo || null,
+          }}
+          onClose={() => setShowSalida(false)}
+          onSuccess={() => {
+            setShowSalida(false)
+            navigate('propietarios')
+          }}
         />
       )}
     </div>

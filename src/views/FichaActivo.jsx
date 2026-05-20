@@ -6324,6 +6324,7 @@ export default function FichaActivo() {
       {bajaArr && (
         <BajaArrendatarioModal
           arrendatario={{
+            ref:        bajaArr.unit.arr_ref || null,
             nombre:     bajaArr.unit.n,
             sup:        bajaArr.unit.sup,
             activo_ref: activo?.ref,

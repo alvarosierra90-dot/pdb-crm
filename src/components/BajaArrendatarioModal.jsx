@@ -53,13 +53,32 @@ export default function BajaArrendatarioModal({ arrendatario, activo, onClose, o
     async function lookup() {
       let arr = arrendatario
       let act = activo
-      // Resolver arrendatario si falta ref pero tenemos nombre + activo_ref
+      // Resolver arrendatario por ref si lo tenemos (camino directo y fiable).
+      if (arr?.ref) {
+        const { data } = await supabase
+          .from('arrendatarios')
+          .select('ref, tenant, nombre, activo_ref, superficie, vencimiento, break_option, fecha_salida, estado_arr')
+          .eq('ref', arr.ref)
+          .maybeSingle()
+        if (data) {
+          arr = {
+            ref:        data.ref,
+            nombre:     data.tenant || data.nombre,
+            activo_ref: data.activo_ref,
+            sup:        arr.sup ?? data.superficie,
+            fecha:      arr.fecha ?? (data.vencimiento || data.break_option || new Date().toISOString().slice(0,10)),
+          }
+        }
+      }
+      // Fallback: si solo tenemos nombre + activo_ref, buscar por (activo_ref, tenant).
+      // La columna canónica es `tenant` (mig 007); algunas filas legacy usan
+      // `nombre`. Probamos ambas con un OR.
       if (!arr?.ref && arr?.nombre && arr?.activo_ref) {
         const { data } = await supabase
           .from('arrendatarios')
-          .select('ref, nombre, activo_ref, sup, vencimiento, break_option, fecha_salida, estado_arr')
+          .select('ref, tenant, nombre, activo_ref, superficie, vencimiento, break_option, fecha_salida, estado_arr')
           .eq('activo_ref', arr.activo_ref)
-          .eq('nombre', arr.nombre)
+          .or(`tenant.eq.${arr.nombre},nombre.eq.${arr.nombre}`)
           .neq('estado_arr', 'Finalizado')
           .order('vencimiento', { ascending: true })
           .limit(1)
@@ -67,9 +86,9 @@ export default function BajaArrendatarioModal({ arrendatario, activo, onClose, o
         if (data) {
           arr = {
             ref:        data.ref,
-            nombre:     data.nombre,
+            nombre:     data.tenant || data.nombre,
             activo_ref: data.activo_ref,
-            sup:        arr.sup ?? data.sup,
+            sup:        arr.sup ?? data.superficie,
             fecha:      arr.fecha ?? (data.vencimiento || data.break_option || new Date().toISOString().slice(0,10)),
           }
         }

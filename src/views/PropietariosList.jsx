@@ -73,6 +73,7 @@ const COLS = [
   { id:'precio_compra', label:'Precio compra',                     type:'text',   getValue:r=>r.precio_compra },
   { id:'cap_rate',      label:'Cap rate %',                        type:'number', getValue:r=>r.cap_rate },
   { id:'yield',         label:'Yield %',                           type:'number', getValue:r=>r.yield },
+  { id:'estado',        label:'Estado',                            type:'enum',   getValue:r=>r.estado },
   { id:'estado_activo', label:'Estado activo',                     type:'enum',   getValue:r=>r.estado_activo },
   { id:'tipologia',     label:'Tipología op.',                     type:'enum',   getValue:r=>r.tipologia },
   { id:'area',          label:'Área',                              type:'enum',   getValue:r=>r.area },
@@ -84,7 +85,7 @@ const COLS = [
   { id:'_act',          label:'',                   sys:true },
 ]
 
-const DEFAULT_VIS = new Set(['_chk','id','propietario','anyo_compra','trimestre','activo','zona','superficie','precio_compra','cap_rate','yield','estado_activo','tipologia','perfil','responsable','_act'])
+const DEFAULT_VIS = new Set(['_chk','id','propietario','anyo_compra','trimestre','activo','zona','superficie','precio_compra','cap_rate','yield','estado','tipologia','perfil','responsable','_act'])
 
 export default function PropietariosList() {
   const { navigate } = useNav()
@@ -94,7 +95,7 @@ export default function PropietariosList() {
   const [vis, setVis] = useVisibleCols('propietarios', COLS, DEFAULT_VIS)
   const [dbRows, setDbRows] = useState([])
   const [showNuevo, setShowNuevo] = useState(false)
-  const [vista, setVista] = useState('activos')      // 'activos' | 'desactivados'
+  const [vista, setVista] = useState('vigentes')      // 'vigentes' | 'bajas'
   const [desactivarTarget, setDesactivarTarget] = useState(null) // { id, nombre, modo }
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -121,14 +122,24 @@ export default function PropietariosList() {
       }
       setDbRows(list.map(p => {
         const ac = (p.activo_ref && activosById[p.activo_ref]) || null
+        // Estado canónico para listado:
+        //   · 'Baja'    si motivo_salida está set (vendió este activo)
+        //   · 'Vigente' si no
+        // El campo `estado` de la cuenta (Activo/Inactivo/Vendido…) sigue
+        // disponible como estadoCuenta para filtros avanzados / tags.
+        const estadoCanon = p.motivo_salida ? 'Baja' : 'Vigente'
         return {
           id:            formatRef(p.ref || p.id, 'PRO'),
           _dbId:         p.id,
-          estado:        p.estado || 'Activo',
-          fechaBaja:     p.fecha_desactivacion || null,
+          estado:        estadoCanon,
+          estadoCuenta:  p.estado || 'Activo',                   // legacy mig 025
+          fechaBaja:     p.fecha_desactivacion || null,          // baja de cuenta (mig 025)
           motivoBaja:    p.motivo_desactivacion || null,
+          fechaSalida:   p.fecha_salida ? new Date(p.fecha_salida).toLocaleDateString('es-ES') : null,
+          motivoSalida:  p.motivo_salida || null,                // mig 035: solo 'Baja' (no Traslado)
           propietario:   p.propietario || p.nombre,
           activo:        ac?.direccion || ac?.nombre || p.activo || '—',
+          activo_ref:    p.activo_ref || null,
           zona:          ac?.zona || p.zona || '—',
           subzona:       ac?.subzona || p.subzona || '—',
           superficie:    p.superficie || 0,
@@ -155,7 +166,16 @@ export default function PropietariosList() {
   }, [reloadKey])
 
   const allRows = [...dbRows, ...PROPIETARIOS.filter(m => !dbRows.some(d => d.id === m.id))]
-    .map(r => ({ ...r, estado: r.estado || 'Activo' }))
+    .map(r => {
+      // Mocks vienen con estado='Activo'. Normalizamos al canon Vigente/Baja
+      // y preservamos el legacy como estadoCuenta para los botones de fila.
+      if (r._real) return r
+      return {
+        ...r,
+        estado:       'Vigente',
+        estadoCuenta: r.estado || 'Activo',
+      }
+    })
 
   const advCount = Object.values(af).filter(Boolean).length
 
@@ -168,13 +188,15 @@ export default function PropietariosList() {
     if (af.estado_activo&& p.estado_activo !== af.estado_activo) return false
     if (af.area         && p.area !== af.area) return false
     if (af.responsable  && p.responsable !== af.responsable) return false
-    if (vista === 'activos'      && p.estado !== 'Activo') return false
-    if (vista === 'desactivados' && p.estado === 'Activo') return false
+    // Vigentes (sin motivo_salida) vs Bajas (motivo_salida = 'Baja').
+    // Propietarios NO tienen Traslado: cuando salen es porque venden.
+    if (vista === 'vigentes' && p.estado !== 'Vigente') return false
+    if (vista === 'bajas'    && p.estado !== 'Baja')    return false
     return true
   })
 
-  const countActivos      = allRows.filter(r => r.estado === 'Activo').length
-  const countDesactivados = allRows.filter(r => r.estado !== 'Activo').length
+  const countVigentes = allRows.filter(r => r.estado === 'Vigente').length
+  const countBajas    = allRows.filter(r => r.estado === 'Baja').length
 
   const { result, sorts, filters, setSort, setFilter, clearFilter, clearAll, activeCount } = useTableFilter(preFiltered, COLS)
   const visibleCols = COLS.filter(c => vis.has(c.id))
@@ -195,6 +217,12 @@ export default function PropietariosList() {
     precio_compra: <td key="precio_compra" className="mono" style={{fontWeight:600}}>{p.precio_compra}</td>,
     cap_rate:      <td key="cap_rate"><span style={{fontSize:12,fontWeight:700,color:p.cap_rate>=6?'var(--green)':p.cap_rate>=5?'var(--accent)':'var(--text3)'}}>{p.cap_rate}%</span></td>,
     yield:         <td key="yield"><span style={{fontSize:12,fontWeight:700,color:p.yield>=6.5?'var(--green)':p.yield>=5.5?'var(--accent)':'var(--text3)'}}>{p.yield}%</span></td>,
+    estado:        <td key="estado">
+                     <span className={`tag ${p.estado==='Vigente'?'tag-green':'tag-gray'}`}>{p.estado}</span>
+                     {p.estado === 'Baja' && p.fechaSalida && (
+                       <span style={{marginLeft:6,fontSize:10,color:'var(--text4)'}}>· {p.fechaSalida}</span>
+                     )}
+                   </td>,
     estado_activo: <td key="estado_activo"><span className={`tag ${ESTADO_TAG[p.estado_activo]||'tag-gray'}`}>{p.estado_activo}</span></td>,
     tipologia:     <td key="tipologia"><span className={`tag ${TIP_TAG[p.tipologia]||'tag-gray'}`} style={{fontSize:9}}>{p.tipologia}</span></td>,
     area:          <td key="area"><span className="tag tag-blue" style={{fontSize:9}}>{p.area}</span></td>,
@@ -207,10 +235,12 @@ export default function PropietariosList() {
     ultima_act:    <td key="ultima_act" style={{fontSize:11,color:'var(--text3)'}}>{p.ultima_act}</td>,
     _act:          <td key="_act"><div className="ra-cell" style={{ display:'flex', gap:4 }}>
       <button className="ra p" onClick={e=>{e.stopPropagation();navigate('ficha-propietario',{ id: p._dbId || p.id })}}>Ver</button>
-      {p._real && p.estado === 'Activo' && (
-        <button className="ra" onClick={e=>{e.stopPropagation(); setDesactivarTarget({ id:p._dbId || p.id, nombre:p.propietario, modo:'desactivar' }) }} style={{ color:'var(--amber)' }}>Desactivar</button>
+      {/* Desactivar/Reactivar la CUENTA (mig 025) — distinto de la baja
+          per-activo (mig 035). Usa estadoCuenta, no estado canónico. */}
+      {p._real && p.estadoCuenta === 'Activo' && (
+        <button className="ra" onClick={e=>{e.stopPropagation(); setDesactivarTarget({ id:p._dbId || p.id, nombre:p.propietario, modo:'desactivar' }) }} style={{ color:'var(--amber)' }}>Desactivar cuenta</button>
       )}
-      {p._real && p.estado !== 'Activo' && (
+      {p._real && p.estadoCuenta && p.estadoCuenta !== 'Activo' && (
         <button className="ra" onClick={e=>{e.stopPropagation(); setDesactivarTarget({ id:p._dbId || p.id, nombre:p.propietario, modo:'reactivar' }) }} style={{ color:'var(--green)' }}>Reactivar</button>
       )}
     </div></td>,
@@ -220,8 +250,8 @@ export default function PropietariosList() {
     <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
       <div style={{ display:'flex', gap:0, padding:'8px 16px 0', borderBottom:'1px solid var(--border)', background:'var(--surface)' }}>
         {[
-          { v:'activos',      label:`Activos (${countActivos})`,         color:'var(--green)' },
-          { v:'desactivados', label:`Desactivados (${countDesactivados})`, color:'var(--text4)' },
+          { v:'vigentes', label:`Vigentes (${countVigentes})`, color:'var(--green)' },
+          { v:'bajas',    label:`Bajas (${countBajas})`,        color:'var(--text4)' },
         ].map(t => {
           const active = vista === t.v
           return (
@@ -238,10 +268,15 @@ export default function PropietariosList() {
           )
         })}
       </div>
-      <div className="kpi-strip" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
-        <div className="ks"><div className="ks-lbl">Total activos</div><div className="ks-val">{allRows.length}</div></div>
-        <div className="ks"><div className="ks-lbl">Propietarios únicos</div><div className="ks-val" style={{color:'var(--accent)'}}>{nPropietarios}</div></div>
-        <div className="ks"><div className="ks-lbl">Sup. total gestionada</div><div className="ks-val">{(totalSup/1000).toFixed(0)}k m²</div></div>
+      <div className="kpi-strip" style={{gridTemplateColumns:'repeat(6,1fr)'}}>
+        <div className="ks"><div className="ks-lbl">Total filas</div><div className="ks-val">{allRows.length}</div><div className="ks-sub">propietario × activo</div></div>
+        <div className="ks" style={{cursor:'pointer'}} onClick={()=>setVista('vigentes')}>
+          <div className="ks-lbl">Vigentes</div><div className="ks-val green">{countVigentes}</div>
+        </div>
+        <div className="ks" style={{cursor:'pointer'}} onClick={()=>setVista('bajas')}>
+          <div className="ks-lbl">Bajas</div><div className="ks-val" style={{color:'var(--text3)'}}>{countBajas}</div><div className="ks-sub">vendidos</div>
+        </div>
+        <div className="ks"><div className="ks-lbl">Sup. gestionada</div><div className="ks-val">{(totalSup/1000).toFixed(0)}k m²</div></div>
         <div className="ks"><div className="ks-lbl">Cap rate medio</div><div className="ks-val green">{avgCapRate}%</div></div>
         <div className="ks"><div className="ks-lbl">Yield medio</div><div className="ks-val" style={{color:'var(--purple)'}}>{avgYield}%</div></div>
       </div>
