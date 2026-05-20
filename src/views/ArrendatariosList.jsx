@@ -27,12 +27,28 @@ function isoToDisplay(iso) {
   return `${d}/${m}/${y}`
 }
 
+// Deriva el estado canónico de operación a partir de los nuevos campos de
+// salida (motivo_salida + destino_activo_ref). 3 estados según spec:
+//   · Baja      → motivo_salida = 'Baja' (sin destino conocido)
+//   · Traslado  → motivo_salida = 'Fin de contrato' (con destino_activo_ref)
+//   · Vigente   → default (no hay motivo de salida)
+// Estados contractuales secundarios (Próximo a vencimiento, En negociación,
+// Renovado) se conservan si el arrendatario está Vigente.
+function deriveEstado(r) {
+  if (r.motivo_salida === 'Baja') return 'Baja'
+  if (r.motivo_salida === 'Fin de contrato') return 'Traslado'
+  const raw = r.estado_arr || r.estado
+  if (raw && raw !== 'Activo' && raw !== 'Finalizado') return raw  // Próximo a vencimiento, etc.
+  return 'Vigente'
+}
+
 // activosById: { [ref]: { nombre, direccion, zona, subzona, area, uso, propietario } }
 // Se usa para enriquecer cada arrendatario con los datos reales del activo
 // vinculado. Así la vista principal muestra dirección, zona, propietario, etc.
 // aunque la fila de arrendatario no los tenga duplicados en columnas.
 function mapDbRow(r, activosById = {}) {
   const ac = (r.activo_ref && activosById[r.activo_ref]) || null
+  const destinoAc = (r.destino_activo_ref && activosById[r.destino_activo_ref]) || null
   return {
     id:              formatRef(r.ref || r.id, 'ARR'),
     _dbId:           r.id,
@@ -54,7 +70,11 @@ function mapDbRow(r, activosById = {}) {
     break_option:    r.break_option ? isoToDisplay(r.break_option) : '—',
     fecha_fin:       r.vencimiento ? isoToDisplay(r.vencimiento) : '—',
     fecha_recordatorio: '—',
-    estado:          r.estado_arr || r.estado || 'Activo',
+    estado:          deriveEstado(r),
+    motivo_salida:   r.motivo_salida || null,
+    fecha_salida:    r.fecha_salida ? isoToDisplay(r.fecha_salida) : null,
+    destino_activo_ref: r.destino_activo_ref || null,
+    destino_activo_nombre: destinoAc?.direccion || destinoAc?.nombre || r.destino_activo_ref || null,
     responsable:     r.agente_activo || r.responsable || '—',
     ultima_act:      r.updated_at ? isoToDisplay(r.updated_at.split('T')[0]) : isoToDisplay(r.created_at?.split('T')[0]),
     planta:          r.planta || null,
@@ -66,7 +86,16 @@ function mapDbRow(r, activosById = {}) {
 // Exported for compatibility (mock data only — real data via Supabase)
 export const ARRENDATARIOS = MOCK_ARRENDATARIOS
 
-const ESTADO_TAG = { 'Activo':'tag-green', 'Próximo a vencimiento':'tag-red', 'En negociación':'tag-purple', 'Renovado':'tag-blue', 'Finalizado':'tag-gray', 'Vigente':'tag-green' }
+const ESTADO_TAG = {
+  'Activo':'tag-green',                  // legacy mocks
+  'Vigente':'tag-green',                 // canónico operación
+  'Baja':'tag-gray',                     // salida sin destino
+  'Traslado':'tag-blue',                 // fin de contrato a otro activo
+  'Próximo a vencimiento':'tag-red',
+  'En negociación':'tag-purple',
+  'Renovado':'tag-blue',
+  'Finalizado':'tag-gray',
+}
 
 function diasHastaFecha(fechaStr) {
   if (!fechaStr || fechaStr === '—') return null
@@ -132,8 +161,12 @@ export default function ArrendatariosList() {
       const { data: arrs } = await supabase.from('arrendatarios').select('*').order('created_at', { ascending: false })
       if (cancel) return
       const list = arrs || []
-      // JOIN manual con activos · cogemos las refs únicas y traemos sus datos
-      const refs = [...new Set(list.map(a => a.activo_ref).filter(Boolean))]
+      // JOIN manual con activos · cogemos las refs únicas (origen + destino
+      // de traslados) y traemos sus datos
+      const refs = [...new Set([
+        ...list.map(a => a.activo_ref).filter(Boolean),
+        ...list.map(a => a.destino_activo_ref).filter(Boolean),
+      ])]
       let activosById = {}
       if (refs.length > 0) {
         const { data: activos } = await supabase
@@ -171,7 +204,11 @@ export default function ArrendatariosList() {
 
   const totalSup   = allRows.reduce((s,a)=>s+(a.superficie||0),0)
   const rentaAnual = allRows.reduce((s,a)=>s+(a.superficie||0)*(a.renta_media||0)*12,0)
-  const nActivos   = allRows.filter(a=>a.estado==='Activo'||a.estado==='Vigente').length
+  // 'Vigente' incluye los activos sin motivo de salida + legacy 'Activo'.
+  // Próximo a vencimiento y Renovado también son operaciones vigentes.
+  const nVigentes  = allRows.filter(a=>a.estado==='Vigente'||a.estado==='Activo'||a.estado==='Próximo a vencimiento'||a.estado==='Renovado'||a.estado==='En negociación').length
+  const nBajas     = allRows.filter(a=>a.estado==='Baja').length
+  const nTraslados = allRows.filter(a=>a.estado==='Traslado').length
   const nAlertas   = allRows.filter(a=>a.estado==='Próximo a vencimiento').length
 
   const handleRowClick = (a) => {
@@ -204,7 +241,20 @@ export default function ArrendatariosList() {
     break_option: <td key="break_option"><BreakPill fecha={a.break_option}/></td>,
     fecha_fin:    <td key="fecha_fin" style={{fontSize:11,fontWeight:500}}>{a.fecha_fin}</td>,
     recordatorio: <td key="recordatorio" style={{fontSize:11,color:'var(--text3)'}}>{a.fecha_recordatorio}</td>,
-    estado:       <td key="estado"><span className={`tag ${ESTADO_TAG[a.estado]||'tag-gray'}`}>{a.estado}</span></td>,
+    estado:       <td key="estado">
+                    <span className={`tag ${ESTADO_TAG[a.estado]||'tag-gray'}`}>{a.estado}</span>
+                    {a.estado === 'Traslado' && a.destino_activo_ref && (
+                      <a
+                        onClick={e => { e.stopPropagation(); navigate('ficha-activo', { ref: a.destino_activo_ref }) }}
+                        title={`Ver activo destino · ${a.destino_activo_nombre || a.destino_activo_ref}`}
+                        style={{marginLeft:6,fontSize:10,color:'var(--accent)',cursor:'pointer',textDecoration:'underline',textDecorationStyle:'dotted',textUnderlineOffset:2}}>
+                        → {a.destino_activo_nombre || a.destino_activo_ref}
+                      </a>
+                    )}
+                    {a.estado === 'Baja' && a.fecha_salida && (
+                      <span style={{marginLeft:6,fontSize:10,color:'var(--text4)'}}>· {a.fecha_salida}</span>
+                    )}
+                  </td>,
     responsable:  <td key="responsable" style={{fontSize:11}}>{a.responsable}</td>,
     ultima_act:   <td key="ultima_act" style={{fontSize:11,color:'var(--text3)'}}>{a.ultima_act}</td>,
     _act:         <td key="_act"><div className="ra-cell"><button className="ra p" onClick={e=>{e.stopPropagation();handleRowClick(a)}}>Ver</button></div></td>,
@@ -223,12 +273,19 @@ export default function ArrendatariosList() {
         </div>
       )}
 
-      <div className="kpi-strip" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
+      <div className="kpi-strip" style={{gridTemplateColumns:'repeat(6,1fr)'}}>
         <div className="ks"><div className="ks-lbl">Total arrendatarios</div><div className="ks-val">{allRows.length}</div><div className="ks-sub">{dbRows.length} reales · {MOCK_ARRENDATARIOS.length} demo</div></div>
-        <div className="ks"><div className="ks-lbl">Activos / Vigentes</div><div className="ks-val green">{nActivos}</div></div>
-        <div className="ks"><div className="ks-lbl">Próx. vencimiento</div><div className="ks-val red">{nAlertas}</div><div className="ks-sub">Break option activa</div></div>
-        <div className="ks"><div className="ks-lbl">Sup. total ocupada</div><div className="ks-val">{(totalSup/1000).toFixed(1)}k m²</div></div>
-        <div className="ks"><div className="ks-lbl">Renta anual total</div><div className="ks-val" style={{color:'var(--accent)'}}>{(rentaAnual/1000000).toFixed(2)} M€</div></div>
+        <div className="ks" style={{cursor:'pointer'}} onClick={()=>setAf(p=>({...p,estado:'Vigente'}))}>
+          <div className="ks-lbl">Vigentes</div><div className="ks-val green">{nVigentes}</div>
+        </div>
+        <div className="ks" style={{cursor:'pointer'}} onClick={()=>setAf(p=>({...p,estado:'Baja'}))}>
+          <div className="ks-lbl">Bajas</div><div className="ks-val" style={{color:'var(--text3)'}}>{nBajas}</div>
+        </div>
+        <div className="ks" style={{cursor:'pointer'}} onClick={()=>setAf(p=>({...p,estado:'Traslado'}))}>
+          <div className="ks-lbl">Traslados</div><div className="ks-val" style={{color:'var(--accent)'}}>{nTraslados}</div>
+        </div>
+        <div className="ks"><div className="ks-lbl">Sup. ocupada</div><div className="ks-val">{(totalSup/1000).toFixed(1)}k m²</div></div>
+        <div className="ks"><div className="ks-lbl">Renta anual</div><div className="ks-val" style={{color:'var(--accent)'}}>{(rentaAnual/1000000).toFixed(2)} M€</div></div>
       </div>
 
       <div className="list-toolbar">
@@ -251,7 +308,15 @@ export default function ArrendatariosList() {
         <div style={{padding:'10px 16px',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)',display:'flex',flexWrap:'wrap',gap:10,alignItems:'flex-end'}}>
           <Field label="Estado">
             <select className="fsel" value={af.estado} onChange={e=>setAf(p=>({...p,estado:e.target.value}))}>
-              <option value="">Todos</option><option>Activo</option><option>Vigente</option><option>Próximo a vencimiento</option><option>En negociación</option><option>Renovado</option><option>Finalizado</option>
+              <option value="">Todos</option>
+              <option>Vigente</option>
+              <option>Baja</option>
+              <option>Traslado</option>
+              <option>Próximo a vencimiento</option>
+              <option>En negociación</option>
+              <option>Renovado</option>
+              <option>Activo</option>
+              <option>Finalizado</option>
             </select>
           </Field>
           <Field label="Propietario">
