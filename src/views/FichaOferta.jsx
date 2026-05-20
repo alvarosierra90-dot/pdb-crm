@@ -342,9 +342,15 @@ function FichaOfertaMock() {
 
   // Arrendatarios añadidos vía conversión de oferta (aparecen en panel lateral del stacking)
   const [stackingExtraTenants, setStackingExtraTenants] = useState([])
-  // Todas las ofertas del activo (esta + las hermanas) para que el StackingPlan
+  // Todas las ofertas del activo (la actual + hermanas) para que el StackingPlan
   // muestre TODO el contenido del activo cuando se ve desde una oferta.
   const [allOfertasActivo, setAllOfertasActivo] = useState([])
+  // Propietarios persistidos del activo (mismo formato que FichaActivo) —
+  // necesario para que el panel lateral del stacking muestre los propietarios
+  // REALES (matcheo por prop_id), no solo el campo legacy `activo.propietario`.
+  const [propietariosReg, setPropietariosReg] = useState([])
+  // Arrendatarios persistidos del activo — análogo a propietariosReg
+  const [arrendatariosReg, setArrendatariosReg] = useState([])
 
   // Multimedia de la oferta (subconjunto del activo — borrar aquí no afecta al activo)
   // Los items sincronizados llevan { synced:true, included:bool, principal:bool }
@@ -423,22 +429,32 @@ function FichaOfertaMock() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activoSeleccionado?.ref, oferta?.ref])
 
-  // Carga TODAS las ofertas del activo (excluyendo la actual). Estas son las que
-  // alimentan el panel lateral del StackingPlan cuando se ve desde una oferta,
-  // para que el usuario vea todo el contenido del activo (no solo la oferta
-  // actual) — mismo comportamiento que en FichaActivo.
+  // Carga TODAS las ofertas activas del activo (incluida la actual). El panel
+  // lateral del StackingPlan debe ser idéntico al de FichaActivo: una card por
+  // oferta real del activo. Los disps NO se decomponen en el panel — eso vive
+  // en la pestaña Desglose. Aquí queremos paridad visual con FichaActivo.
   useEffect(() => {
     const ref = activoSeleccionado?.ref
     if (!ref) { setAllOfertasActivo([]); return }
     supabase.from('ofertas').select('id, ref, nombre, tipo_operacion, activa')
       .eq('activo_ref', ref)
       .then(({ data }) => {
-        const list = (data || [])
-          .filter(o => o.activa !== false)
-          .filter(o => o.ref !== oferta?.ref) // excluye la oferta actual (sus disps van como ofertasDesglose)
+        const list = (data || []).filter(o => o.activa !== false)
         setAllOfertasActivo(list)
       })
-  }, [activoSeleccionado?.ref, oferta?.ref])
+  }, [activoSeleccionado?.ref])
+
+  // Carga propietarios y arrendatarios del activo (mismo flujo que FichaActivo)
+  useEffect(() => {
+    const ref = activoSeleccionado?.ref
+    if (!ref) { setPropietariosReg([]); setArrendatariosReg([]); return }
+    supabase.from('propietarios').select('*').eq('activo_ref', ref)
+      .then(({ data }) => setPropietariosReg(data || []))
+    supabase.from('arrendatarios').select('*').eq('activo_ref', ref)
+      .then(({ data }) => setArrendatariosReg((data || []).map(a => ({
+        id: a.id, ref: a.ref, tenant: a.tenant || a.nombre,
+      }))))
+  }, [activoSeleccionado?.ref])
 
   async function guardarDesglose() {
     const ofertaId = oferta?.id
@@ -1583,21 +1599,21 @@ function FichaOfertaMock() {
                       initBuildings={liveBuildings.current?.length > 0 ? liveBuildings.current : (activoSeleccionado.stacking_data?.length > 0 ? activoSeleccionado.stacking_data : [])}
                       initView='arr'
                       allowCreate={true}
-                      extraOfertas={[
-                        // Disps de la oferta actual — cada uno hereda el ref de la oferta padre
-                        // para que el click del panel lateral navegue a la ficha correcta.
-                        ...ofertasDesglose.map(o => ({ ...o, ref: oferta?.ref, tipoOperacion })),
-                        // Resto de ofertas del activo (hermanas) — con su propio ref.
-                        ...allOfertasActivo.map(o => ({
-                          id: o.id,
-                          ref: o.ref,
-                          nombre: o.nombre || o.ref,
-                          tipoOperacion: o.tipo_operacion || 'Alquiler',
-                        })),
-                      ]}
+                      extraOfertas={allOfertasActivo.map(o => ({
+                        id: o.id,
+                        ref: o.ref,
+                        nombre: o.nombre || o.ref,
+                        tipoOperacion: o.tipo_operacion || 'Alquiler',
+                      }))}
                       activoPropietario={activoSeleccionado.propietario || ''}
-                      extraOwners={[activoSeleccionado.propietario].filter(Boolean)}
-                      extraTenants={stackingExtraTenants}
+                      extraOwners={propietariosReg.length > 0
+                        ? propietariosReg.map(p => ({ id: p.id, name: p.propietario }))
+                        : [activoSeleccionado.propietario].filter(Boolean)
+                      }
+                      extraTenants={[
+                        ...arrendatariosReg.map(a => ({ ref: a.ref, name: a.tenant })),
+                        ...stackingExtraTenants,
+                      ]}
                       defaultLabel={activoSeleccionado.nombre || ''}
                       defaultSupPlantaTipo={activoSeleccionado.sup_planta_tipo || undefined}
                       onAddOwner={handleStackingAddOwner}
