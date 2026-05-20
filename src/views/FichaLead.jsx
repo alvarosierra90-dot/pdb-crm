@@ -375,8 +375,34 @@ export default function FichaLead() {
                   const hasContacto   = !!(lead.contacto_nombre || lead.contacto_apellidos)
                   const hasCuenta     = !!lead.dynamics_account_id
                   const hasOportunidad= !!lead.dynamics_opportunity_id
-                  const hasPropuesta  = !!lead.propuesta_ref
+                  const hasPropuesta  = !!(lead.propuesta_ref || lead.propuesta_id)
+                  const hasOferta     = !!lead.oferta_id
+                  const hasDemanda    = !!lead.demanda_id
+                  const ofertaRef     = lead.ofertas?.ref || null
+                  const demandaRef    = lead.demandas?.ref || null
+                  const propuestaRef  = lead.propuesta_ref || lead.propuestas?.ref || null
                   const cerradoLocal  = lead.estado === 'no_cualificado'
+
+                  // Card final dinámica: según tipo + vía sabemos el destino.
+                  //  pitch_*           → propuesta
+                  //  directo_oferta    → oferta
+                  //  directo_demanda   → demanda
+                  //  directo_generico  → ninguna card final
+                  let destino = null
+                  if (lead.via === 'pitch') destino = 'propuesta'
+                  else if (lead.via === 'directo') {
+                    if (lead.tipo === 'oferta')  destino = 'oferta'
+                    if (lead.tipo === 'demanda') destino = 'demanda'
+                  } else {
+                    // Sin vía decidida (lead nuevo / en cualificación): adelantamos
+                    // qué destino tendrá según el tipo del lead — más útil que ocultarlo.
+                    if (lead.tipo === 'oferta')  destino = 'oferta'
+                    if (lead.tipo === 'demanda') destino = 'demanda'
+                    if (lead.tipo === 'generico') destino = 'propuesta'  // genérico solo aplica vía pitch
+                  }
+                  const destinoDone = (destino === 'propuesta' && hasPropuesta) ||
+                                      (destino === 'oferta'    && hasOferta)    ||
+                                      (destino === 'demanda'   && hasDemanda)
 
                   // Contacto del lead se rellena editando arriba (campos obligatorios).
                   // Por eso aquí su CTA es "completar contacto" → activar editing.
@@ -392,11 +418,11 @@ export default function FichaLead() {
                   const oportunidadStatus = hasOportunidad ? 'done'
                     : hasContacto ? 'current' : 'locked'
 
-                  // Propuesta · solo se genera vía pitch al transformar.
-                  // Done si existe. Current si transformado por pitch y aún no creada (caso raro).
-                  // Locked en cualquier otro caso.
-                  const propuestaStatus = hasPropuesta ? 'done'
-                    : (hasOportunidad && lead.via === 'pitch') ? 'current' : 'locked'
+                  // Destino final (Propuesta · Oferta · Demanda) según rama.
+                  // Done si ya creado. Current si transformado por la vía
+                  // correcta pero aún sin destino. Locked en otro caso.
+                  const destinoStatus = destinoDone ? 'done'
+                    : hasOportunidad ? 'current' : 'locked'
 
                   // Construyo los steps primero y luego inyecto editAction +
                   // nextAction post-hoc para que cada step DONE pueda saltar
@@ -448,24 +474,47 @@ export default function FichaLead() {
                       lockedHint:'Completa antes el contacto del lead.',
                       dyn: true,
                     },
-                    {
-                      key:'propuesta',
-                      icon: Lightbulb,
-                      tone:'amber',
-                      label:'Propuesta',
-                      value: lead.propuesta_ref || null,
-                      sub: null,
-                      status: propuestaStatus,
-                      action: propuestaStatus === 'current'
-                        ? { label:'Ir a generar propuesta', onClick: () => navigate('propuestas'), primary: false }
-                        : null,
-                      editTarget: null,
-                      openTarget: hasPropuesta ? () => navigate('ficha-propuesta', { id: lead.propuesta_ref }) : null,
-                      lockedHint: hasOportunidad
-                        ? 'Solo aplica si se transformó por la vía Pitch.'
-                        : 'Transforma el lead primero (vía Pitch).',
-                    },
-                  ]
+                    // Card final dinámica · destino del lead según rama
+                    destino && (() => {
+                      const destinoMeta = destino === 'oferta' ? {
+                        icon: Building2, tone:'green', label:'Oferta',
+                        value: ofertaRef,
+                        sub: hasOferta ? 'Completa stacking, fotos, condiciones desde la ficha de oferta.' : null,
+                        openTarget: hasOferta && ofertaRef ? () => navigate('ficha-oferta', { ofertaRef }) : null,
+                        currentHint:'Transforma el lead como Oferta directa.',
+                        lockedHint:'Transforma el lead primero.',
+                      } : destino === 'demanda' ? {
+                        icon: Target, tone:'purple', label:'Demanda',
+                        value: demandaRef,
+                        sub: hasDemanda ? 'Completa requisitos y arranca el matching desde la ficha de demanda.' : null,
+                        openTarget: hasDemanda && demandaRef ? () => navigate('ficha-demanda', { id: demandaRef }) : null,
+                        currentHint:'Transforma el lead como Demanda directa.',
+                        lockedHint:'Transforma el lead primero.',
+                      } : {
+                        icon: Lightbulb, tone:'amber', label:'Propuesta',
+                        value: propuestaRef,
+                        sub: hasPropuesta ? 'Completa el proyecto desde la ficha de propuesta.' : null,
+                        openTarget: hasPropuesta && propuestaRef ? () => navigate('ficha-propuesta', { id: propuestaRef }) : null,
+                        currentHint:'Transforma el lead vía Pitch.',
+                        lockedHint:'Transforma el lead primero (vía Pitch).',
+                      }
+                      return {
+                        key:'destino',
+                        icon: destinoMeta.icon,
+                        tone: destinoMeta.tone,
+                        label: destinoMeta.label,
+                        value: destinoMeta.value,
+                        sub:   destinoMeta.sub,
+                        status: destinoStatus,
+                        action: destinoStatus === 'current'
+                          ? { label: destinoMeta.currentHint, onClick: () => !cerradoLocal && setShowTransformar(true), primary: true }
+                          : null,
+                        editTarget: null,
+                        openTarget: destinoMeta.openTarget,
+                        lockedHint: destinoMeta.lockedHint,
+                      }
+                    })(),
+                  ].filter(Boolean)
                   // Calcular nextAction: del primer paso DONE en adelante, busca
                   // el primer paso CURRENT a su derecha y reusa su action.
                   const findNextCurrentAction = (idx) => {
