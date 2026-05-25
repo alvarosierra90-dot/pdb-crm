@@ -431,7 +431,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                     {
                       key:'cuenta',
                       icon: Building2,
-                      tone:'green',
+                      tone:'blue', // canon: Cuenta = blue (Dynamics)
                       label:'Cliente (Cuenta)',
                       value: cuenta?.nombre || null,
                       sub:   cuenta?.sector || cuenta?.tipo || null,
@@ -443,7 +443,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                     {
                       key:'oportunidad',
                       icon: Target,
-                      tone:'accent',
+                      tone:'blue', // canon: Oportunidad = blue (Dynamics)
                       label:'Oportunidad',
                       value: oportunidad?.nombre || propuesta.dynamics_opportunity_id || null,
                       sub:   oportunidad?.tipo || null,
@@ -455,7 +455,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                     {
                       key:'activos',
                       icon: Building,
-                      tone:'purple',
+                      tone:'bronze', // canon: Activo = bronze
                       label:'Activos del pitch',
                       value: tieneActivos
                         ? `${activosVinculados.length} ${activosVinculados.length === 1 ? 'activo' : 'activos'}`
@@ -468,7 +468,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                     {
                       key:'pitch',
                       icon: Presentation,
-                      tone:'blue',
+                      tone:'purple', // canon: Pitch ≈ Propuesta = purple
                       label:'Pitch',
                       value: tienePitch ? 'Pitch sincronizado' : null,
                       sub: pitchAplica ? 'Salta al paso 5 con propuesta + activos pre-rellenados.' : null,

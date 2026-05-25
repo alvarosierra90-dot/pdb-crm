@@ -11,6 +11,7 @@ import FunnelTracker from '../components/FunnelTracker'
 import FunnelStepCards from '../components/FunnelStepCards'
 import MarcarDemandaCierreModal from '../components/MarcarDemandaCierreModal'
 import NotasModal from '../components/NotasModal'
+import { cardTone } from '../lib/cardTones'
 import { Building2, Target, ScrollText, Trophy, X as XClose, Briefcase, Tag, FileSearch, Handshake, MessageSquare } from 'lucide-react'
 
 // Orden canónico · Info → Documentos → Vista 360 → Confidencialidad.
@@ -875,7 +876,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
                   const steps = [
                     {
-                      key:'cuenta', icon: Building2, tone:'green',
+                      key:'cuenta', icon: Building2, tone: cardTone('Cuenta'),
                       label:'Cuenta', value: cuenta?.nombre || null,
                       sub: cuenta?.sector || cuenta?.tipo || null,
                       status: hasCuenta ? 'done' : 'current',
@@ -883,7 +884,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       dyn: true,
                     },
                     {
-                      key:'oportunidad', icon: Target, tone:'accent',
+                      key:'oportunidad', icon: Target, tone: cardTone('Oportunidad'),
                       label:'Oportunidad', value: oportunidad?.nombre || demanda.dynamics_opportunity_id || null,
                       sub: oportunidad?.tipo || null,
                       status: hasOportunidad ? 'done' : 'locked',
@@ -892,7 +893,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       dyn: true,
                     },
                     {
-                      key:'mandato', icon: ScrollText, tone:'purple',
+                      key:'mandato', icon: ScrollText, tone: cardTone('Mandato'),
                       label:'Mandato',
                       value: demanda.mandato?.ref || null,
                       sub: hasMandato ? 'Mandato vinculado a esta demanda.' : 'Opcional · vincula uno existente o pasa sin mandato.',
@@ -903,7 +904,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       optional: !hasMandato,
                     },
                     {
-                      key:'oferta', icon: Tag, tone:'blue',
+                      key:'oferta', icon: Tag, tone: cardTone('Oferta'),
                       label:'Oferta',
                       value: hasOferta ? ofertaActiva.ref : null,
                       sub: ofertaSub,
@@ -914,7 +915,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       optional: !hasOferta && !enNegociacion,
                     },
                     {
-                      key:'estado', icon: Briefcase, tone: ec.headerCol === 'var(--green)' ? 'green' : ec.headerCol === 'var(--amber)' ? 'amber' : ec.headerCol === 'var(--purple)' ? 'purple' : ec.headerCol === '#dc2626' ? 'red' : 'accent',
+                      key:'estado', icon: Briefcase, tone: cardTone('Demanda'),
                       label:'Estado de la demanda',
                       value: null,
                       sub: null,
@@ -926,7 +927,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   // Card Instrucción aparece cuando estado = en_negociacion (o ya hay instrucción)
                   if (enNegociacion || hasInstruccion) {
                     steps.push({
-                      key:'instruccion', icon: FileSearch, tone:'amber',
+                      key:'instruccion', icon: FileSearch, tone: cardTone('Instrucción'),
                       label:'Instrucción',
                       value: demanda.instruccion_ref || null,
                       sub: hasInstruccion ? 'Instrucción de Dynamics vinculada.' : 'Vincula la instrucción para arrancar la negociación.',
@@ -942,7 +943,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   // Click → info general de la negociación en el módulo de Negociaciones.
                   if (enNegociacion && !yaGanada && !yaPerdida && !yaDescartada) {
                     steps.push({
-                      key:'negociacion', icon: MessageSquare, tone:'purple',
+                      key:'negociacion', icon: MessageSquare, tone: cardTone('Negociación'),
                       label:'Negociación',
                       value: 'En curso',
                       sub: hasOferta

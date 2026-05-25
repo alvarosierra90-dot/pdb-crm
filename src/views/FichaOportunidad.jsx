@@ -163,7 +163,7 @@ export default function FichaOportunidad() {
                       {
                         key:'origen',
                         icon: Inbox,
-                        tone:'amber',
+                        tone:'amber', // canon: Lead/Origen = amber
                         label:'Origen del negocio',
                         value: op.origen || null,
                         sub: op.remitido && op.remitido !== '—' ? `Remitido por ${op.remitido}` : 'Definido al captar la oportunidad',
@@ -174,7 +174,7 @@ export default function FichaOportunidad() {
                       {
                         key:'cuenta',
                         icon: Building2,
-                        tone:'green',
+                        tone:'blue', // canon: Cuenta = blue (Dynamics)
                         label:'Cuenta (Dynamics)',
                         value: op.cuenta || null,
                         sub: op.contacto ? `Contacto: ${op.contacto}` : null,
@@ -197,7 +197,7 @@ export default function FichaOportunidad() {
                       {
                         key:'propuesta',
                         icon: Lightbulb,
-                        tone:'purple',
+                        tone:'purple', // canon: Propuesta = purple
                         label: v.propuestas.length === 1 ? 'Propuesta' : 'Propuestas',
                         value: hasPropuesta
                           ? (v.propuestas.length === 1 ? v.propuestas[0] : `${v.propuestas.length} propuestas`)
@@ -216,7 +216,7 @@ export default function FichaOportunidad() {
                       {
                         key:'mandato',
                         icon: ScrollText,
-                        tone:'accent',
+                        tone:'accent', // canon: Mandato = accent (bronze gold)
                         label: v.mandatos.length === 1 ? 'Mandato' : 'Mandatos',
                         value: hasMandato
                           ? (v.mandatos.length === 1 ? v.mandatos[0] : `${v.mandatos.length} mandatos`)
@@ -231,7 +231,7 @@ export default function FichaOportunidad() {
                       {
                         key:'comercial',
                         icon: Tag,
-                        tone:'bronze',
+                        tone:'green', // canon: Oferta = green
                         label:'Ofertas / Demandas',
                         value: hasComercial ? `${v.ofertas.length + v.demandas.length} registros` : null,
                         sub: hasComercial
@@ -246,7 +246,8 @@ export default function FichaOportunidad() {
                       {
                         key:'etapa',
                         icon: Trophy,
-                        tone: etapaCerradaG ? 'green' : etapaCerradaP ? 'red' : 'accent',
+                        // canon: Etapa de Oportunidad = blue (Dynamics) excepto outcome final
+                        tone: etapaCerradaG ? 'green' : etapaCerradaP ? 'red' : 'blue',
                         label:'Etapa actual (Dynamics)',
                         value: op.etapa || null,
                         sub: etapaAbierta

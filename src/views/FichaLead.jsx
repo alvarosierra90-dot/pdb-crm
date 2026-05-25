@@ -471,7 +471,7 @@ export default function FichaLead() {
                     {
                       key:'contacto',
                       icon: User,
-                      tone:'blue',
+                      tone:'blue', // canon: Contacto = blue (Dynamics)
                       label:'Contacto del lead',
                       value: [lead.contacto_nombre, lead.contacto_apellidos].filter(Boolean).join(' ') || null,
                       sub: lead.email || lead.telefono || null,
@@ -485,7 +485,7 @@ export default function FichaLead() {
                     {
                       key:'cuenta',
                       icon: Building2,
-                      tone:'green',
+                      tone:'blue', // canon: Cuenta = blue (Dynamics)
                       label:'Cuenta (Dynamics)',
                       value: lead.cuenta_nombre || null,
                       sub: lead.cuenta_sector || null,
@@ -501,7 +501,7 @@ export default function FichaLead() {
                     {
                       key:'oportunidad',
                       icon: Target,
-                      tone:'accent',
+                      tone:'blue', // canon: Oportunidad = blue (Dynamics)
                       label:'Oportunidad (Dynamics)',
                       value: oportunidadNombre || lead.dynamics_opportunity_id || null,
                       sub: lead.via ? `Vía ${lead.via}` : null,
@@ -518,7 +518,7 @@ export default function FichaLead() {
                     {
                       key:'propuesta',
                       icon: Lightbulb,
-                      tone:'amber',
+                      tone:'purple', // canon: Propuesta = purple
                       label:'Propuesta',
                       value: propuestaRef,
                       sub: hasPropuesta ? 'Completa el proyecto desde la ficha de propuesta.' : null,
@@ -554,7 +554,7 @@ export default function FichaLead() {
                     // Destino comercial final (Oferta o Demanda según tipo)
                     destinoFinal && (() => {
                       const meta = destinoFinal === 'oferta' ? {
-                        icon: Building2, tone:'green', label:'Oferta',
+                        icon: Building2, tone:'green', label:'Oferta', // canon: Oferta = green
                         value: hasOfertasCasc
                           ? `${ofertasCasc.length} ${ofertasCasc.length === 1 ? 'oferta' : 'ofertas'}`
                           : ofertaRef,
@@ -569,7 +569,7 @@ export default function FichaLead() {
                             ? () => navigate('ficha-oferta', { ofertaRef: ofertasCasc[0].ref })
                             : null,
                       } : {
-                        icon: Target, tone:'purple', label:'Demanda',
+                        icon: Target, tone:'amber', label:'Demanda', // canon: Demanda = amber
                         value: hasDemandasCasc
                           ? demandasCasc[0].ref
                           : demandaRef,
