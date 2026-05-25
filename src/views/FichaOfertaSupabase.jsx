@@ -16,16 +16,16 @@ import { StackingPlan } from './FichaActivo'
 // se exponen en el header). "Equipo de trabajo" se quitó como pestaña porque
 // ahora vive como sección dentro de "Información oferta".
 // Tabs canónicos · "Información general" + bloques específicos del módulo · "Vista 360" (sustituye Seguimiento comercial)
+// 'Condiciones' fusionado dentro de 'Espacios comerciales' (regla del usuario).
 const OF_TABS = [
-  ['of-info',        'Información general'],
-  ['of-stacking',    'Stacking plan'],
-  ['of-espacios',    'Espacios comerciales'],
-  ['of-condiciones', 'Condiciones'],
-  ['of-caract',      'Características'],
-  ['of-docs',        'Documentos'],
-  ['of-web',         'Contenido web'],
-  ['of-seg',         'Vista 360'],
-  ['of-conf',        'Confidencialidad'],
+  ['of-info',     'Información general'],
+  ['of-stacking', 'Stacking plan'],
+  ['of-espacios', 'Espacios comerciales'],
+  ['of-caract',   'Características'],
+  ['of-docs',     'Documentos'],
+  ['of-web',      'Contenido web'],
+  ['of-seg',      'Vista 360'],
+  ['of-conf',     'Confidencialidad'],
 ]
 
 const TIPO_OPERACION = ['Alquiler','Venta','Inversión','Sale & Leaseback']
@@ -536,9 +536,17 @@ export default function FichaOfertaSupabase({ refOrId }) {
             </div></div>
           )}
 
-          {/* TAB: Condiciones */}
-          {tab === 'of-condiciones' && (
+          {/* Condiciones · fusionado dentro de Espacios comerciales
+              (regla del usuario · ya no es un tab independiente). */}
+          {tab === 'of-espacios' && (
             <div className="tab-content active"><div className="info-pad">
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14, paddingBottom:10, borderBottom:'2px solid var(--border)' }}>
+                <div style={{ width:28, height:28, borderRadius:8, background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, flexShrink:0 }}>€</div>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>Condiciones de la oferta</div>
+                  <div style={{ fontSize:11, color:'var(--text3)', marginTop:1 }}>Comercialización, tipología y estado · vinculado a los espacios de arriba</div>
+                </div>
+              </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
                 <div>
                   <div className="of-section">📑 COMERCIALIZACIÓN</div>

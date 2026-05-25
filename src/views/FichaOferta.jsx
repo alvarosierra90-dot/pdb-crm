@@ -13,8 +13,9 @@ import { CURRENT_USER } from '../lib/currentUser'
 // igualdad visual y funcional total entre Activo y Oferta (regla del usuario).
 import { StackingPlan } from './FichaActivo'
 
-const TABS = ['of-info','of-stacking','of-espacios','of-condiciones','of-caract','of-docs','of-web','of-seg','of-conf']
-const TAB_LABELS = ['Información oferta','Stacking plan','Espacios comerciales','Condiciones','Características','Documentos','Contenido web','Vista 360','Confidencialidad']
+// 'Condiciones' fusionado dentro de 'Espacios comerciales' (regla del usuario)
+const TABS = ['of-info','of-stacking','of-espacios','of-caract','of-docs','of-web','of-seg','of-conf']
+const TAB_LABELS = ['Información oferta','Stacking plan','Espacios comerciales','Características','Documentos','Contenido web','Vista 360','Confidencialidad']
 
 const ASSET = {
   nombre: 'Albatros — C. Anabel Segura 9-11, Alcobendas',
@@ -540,9 +541,10 @@ function FichaOfertaMock() {
       })
   }, [tipoComercializacion])
 
-  // ── Búsqueda de cuentas para Colaboradores (debounce sobre dynamics_accounts) ──
+  // ── Búsqueda de cuentas para Colaboradores (debounce sobre dynamics_accounts).
+  // Disponible siempre · un colaborador es típicamente competencia o un gestor
+  // exclusivo del activo (no depende del tipo de comercialización).
   useEffect(() => {
-    if (tipoComercializacion !== 'Colaboradores') return
     if (!colaboradorBuscador || colaboradorBuscador.length < 2) {
       setColaboradoresResults([])
       return
@@ -559,7 +561,7 @@ function FichaOfertaMock() {
       if (!cancel) setColaboradoresResults(data || [])
     }, 200)
     return () => { cancel = true; clearTimeout(t) }
-  }, [colaboradorBuscador, tipoComercializacion])
+  }, [colaboradorBuscador])
 
   // ── When returning from FichaArrendatario, add tenant to left panel ──
   useEffect(() => {
@@ -1186,14 +1188,10 @@ function FichaOfertaMock() {
                     <div className="va-card" style={{ overflow:'visible' }}>
                       <div className="va-card-header">
                         <h3><span className="ico">◈</span> Colaboradores</h3>
-                        <span className="hint">{tipoComercializacion==='Colaboradores' ? 'Consultora asociada' : 'Inactivo'}</span>
+                        <span className="hint">Consultora colaboradora (cuenta de competencia o gestor exclusivo)</span>
                       </div>
                       <div style={{padding:'8px 18px 14px'}}>
-                        {tipoComercializacion!=='Colaboradores' ? (
-                          <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>
-                            Selecciona <strong>“Colaboradores”</strong> en Comercialización para vincular una consultora.
-                          </div>
-                        ) : colaboradorAsociado ? (
+                        {colaboradorAsociado ? (
                           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'8px 12px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)' }}>
                             <div>
                               <div style={{ fontWeight:600, fontSize:13, color:'var(--accent)' }}>{colaboradorAsociado.nombre}</div>
@@ -1248,30 +1246,16 @@ function FichaOfertaMock() {
                   <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1.45fr 1fr',gap:12,alignItems:'start',paddingTop:0}}>
                   <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
 
-                    {/* ── ACTIVO VINCULADO ── */}
-                    <div className="va-card" style={{ overflow:'visible' }}>
-                      <div className="va-card-header">
-                        <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Activo vinculado</h3>
-                        {activoSeleccionado && <span className="hint">Datos heredados del activo</span>}
-                      </div>
-                      {/* Buscador / chip del activo seleccionado */}
-                      <div style={{ padding:'4px 18px 0' }}>
-                        {activoSeleccionado ? (
-                          <div
-                            onClick={() => navigate('ficha-activo', { ref: activoSeleccionado.ref })}
-                            title={`Abrir ficha de ${activoSeleccionado.nombre}`}
-                            style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', background:'var(--accent-lt)', marginBottom:8, cursor:'pointer' }}
-                          >
-                            <span></span>
-                            <span style={{ fontWeight:600, color:'var(--accent)', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}>{activoSeleccionado.nombre}</span>
-                            <span style={{ fontSize:10, fontWeight:700, color:'var(--accent)', padding:'0 2px' }}>↗</span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setActivoSeleccionado(null) }}
-                              style={{ fontSize:11, color:'var(--text4)', background:'none', border:'none', cursor:'pointer', padding:'0 2px' }}
-                              title="Quitar"
-                            >✕</button>
-                          </div>
-                        ) : (
+                    {/* ── VINCULAR ACTIVO · solo si aún no hay activo asignado.
+                        Cuando hay activo, el chip del header arriba ya navega a su
+                        ficha y muestra todos sus datos heredados (regla del usuario). ── */}
+                    {!activoSeleccionado && (
+                      <div className="va-card" style={{ overflow:'visible' }}>
+                        <div className="va-card-header">
+                          <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Vincular activo</h3>
+                          <span className="hint">Esta oferta necesita un activo asignado</span>
+                        </div>
+                        <div style={{ padding:'4px 18px 14px' }}>
                           <div style={{ position:'relative', maxWidth:340, marginBottom:8 }}>
                             <input className="of-inp" placeholder="🔍 Buscar activo por nombre..." value={activoBuscador}
                               onChange={e => { setActivoBuscador(e.target.value); setShowActivoDropdown(true) }}
@@ -1296,25 +1280,9 @@ function FichaOfertaMock() {
                               </div>
                             )}
                           </div>
-                        )}
+                        </div>
                       </div>
-                      {/* Datos heredados — fila Dirección a ancho completo, resto en 2 col compactas */}
-                      <div style={{ padding:'4px 18px 14px', display:'grid', gridTemplateColumns:'1fr 1fr', columnGap:18, rowGap:4 }}>
-                        {[
-                          { k:'Uso principal',       v: activoSeleccionado?.uso,                   full:false },
-                          { k:'Estado construcción', v: activoSeleccionado?.estado_construccion,   full:false },
-                          { k:'Dirección',           v: activoSeleccionado?.direccion,             full:true  },
-                          { k:'Zona / Subzona',      v: activoSeleccionado?.zona ? `${activoSeleccionado.zona}${activoSeleccionado?.subzona ? ' · ' + activoSeleccionado.subzona : ''}` : null, full:true },
-                        ].map(({k,v,full}) => (
-                          <div key={k} style={{ display:'flex', alignItems:'baseline', gap:8, minWidth:0, borderBottom:'1px solid var(--va-line2)', padding:'5px 0', gridColumn: full ? '1 / -1' : 'auto' }}>
-                            <span style={{ fontSize:11, color:'var(--text3)', fontWeight:500, whiteSpace:'nowrap', flexShrink:0 }}>{k}</span>
-                            <span style={{ fontSize:13, fontWeight:600, color:'var(--text)', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                              {v || <span style={{ color:'var(--text4)', fontWeight:500 }}>—</span>}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    )}
 
                     {/* ── COMERCIALIZACIÓN + TIPOLOGÍA Y ESTADO ── */}
                     <div className="va-two-col" style={{ overflow:'visible' }}>
@@ -1962,9 +1930,17 @@ function FichaOfertaMock() {
                 </div>
               )}
 
-              {/* Condiciones */}
-              {activeTab==='of-condiciones' && (
+              {/* Condiciones · integrado dentro de Espacios comerciales
+                  (regla del usuario · ya no es un tab independiente). */}
+              {activeTab==='of-espacios' && (
                 <div className="tab-content active"><div className="info-pad">
+                  <div style={{ display:'flex', alignItems:'center', gap:10, margin:'4px 0 16px', paddingTop:14, borderTop:'2px solid var(--border)' }}>
+                    <div style={{ width:28, height:28, borderRadius:8, background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, flexShrink:0 }}>€</div>
+                    <div>
+                      <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>Condiciones de la oferta</div>
+                      <div style={{ fontSize:11, color:'var(--text3)', marginTop:1 }}>Económicas, contractuales e incentivos · derivado de los espacios comerciales de arriba</div>
+                    </div>
+                  </div>
                   {(()=>{
                     const isVenta   = tipoOperacion === 'Venta'
                     const isAlquiler = tipoOperacion === 'Alquiler' || tipoOperacion === 'Alquiler / Venta'
@@ -2640,24 +2616,22 @@ function FichaOfertaMock() {
               )}
             </div>
 
-            {/* ── Colaboradores (sólo si aplica) ── */}
-            {tipoComercializacion === 'Colaboradores' && (
-              <div className="rp-sec">
-                <div className="rp-lbl">Colaboradores</div>
-                {colaboradorAsociado ? (
-                  <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-                    <div style={{ fontSize:11, fontWeight:600, color:'var(--accent)' }}>{colaboradorAsociado.nombre}</div>
-                    {(colaboradorAsociado.tipo || colaboradorAsociado.sector) && (
-                      <div style={{ fontSize:10, color:'var(--text3)' }}>
-                        {[colaboradorAsociado.tipo, colaboradorAsociado.sector].filter(Boolean).join(' · ')}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div style={{ fontSize:10, color:'var(--text4)', fontStyle:'italic' }}>Sin colaborador asociado.</div>
-                )}
-              </div>
-            )}
+            {/* ── Colaboradores · siempre disponible (cuenta competencia / gestor exclusivo) ── */}
+            <div className="rp-sec">
+              <div className="rp-lbl">Colaboradores</div>
+              {colaboradorAsociado ? (
+                <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                  <div style={{ fontSize:11, fontWeight:600, color:'var(--accent)' }}>{colaboradorAsociado.nombre}</div>
+                  {(colaboradorAsociado.tipo || colaboradorAsociado.sector) && (
+                    <div style={{ fontSize:10, color:'var(--text3)' }}>
+                      {[colaboradorAsociado.tipo, colaboradorAsociado.sector].filter(Boolean).join(' · ')}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ fontSize:10, color:'var(--text4)', fontStyle:'italic' }}>Sin colaborador asociado.</div>
+              )}
+            </div>
 
             {/* ── Superficie mínima alquilable ── */}
             {/*
