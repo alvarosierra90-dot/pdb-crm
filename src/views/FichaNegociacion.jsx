@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
+import { supabase } from '../lib/supabase'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
@@ -190,7 +191,7 @@ const COLAB_INIT_NEG = [
 ]
 
 export default function FichaNegociacion() {
-  const { navigate } = useNav()
+  const { navigate, params } = useNav()
   const [activeTab, setActiveTab] = useState('neg-info')
   const [colabTeams] = useState(COLAB_INIT_NEG)
   const [negConfidential, setNegConfidential] = useState(false)
@@ -200,6 +201,79 @@ export default function FichaNegociacion() {
   const [showTarea, setShowTarea] = useState(false)
   const [contracts, setContracts] = useState(CONTRACTS_INIT)
   const [showUpload, setShowUpload] = useState(false)
+
+  // Cargar la negociación real de Supabase si la ref/id viene del flujo nuevo
+  // (NEG-XXXXXXX con 7 dígitos · generado por nextRef). Si no, queda neg=null
+  // y se muestra el ejemplo NEG-0044 hardcoded como demo.
+  const [neg, setNeg] = useState(null)
+  const refOrId = params?.ref || params?.id || null
+  const looksLikeSupabaseRef = typeof refOrId === 'string' && /^NEG-\d{7}$/.test(refOrId)
+
+  useEffect(() => {
+    if (!looksLikeSupabaseRef) { setNeg(null); return }
+    let cancel = false
+    ;(async () => {
+      const { data } = await supabase
+        .from('negociaciones')
+        .select(`
+          id, ref, estado, ronda, fecha_inicio, ultima_actividad, cierre_estimado,
+          superficie, renta_inicial, renta_ultima, duracion_anos,
+          parte_nombre, parte_equipo,
+          contraparte_nombre, contraparte_empresa, contraparte_email, contraparte_telefono,
+          demanda_id, oferta_id, activo_id, portfolio_id,
+          cuenta_inquilina_id, cuenta_propietaria_id,
+          demanda:demanda_id ( id, ref, nombre, dynamics_opportunity_id,
+            dynamics_accounts:dynamics_account_id ( dynamics_id, nombre, sector ),
+            dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo ),
+            mandato:mandato_id ( id, ref )
+          ),
+          oferta:oferta_id ( id, ref, tipo_operacion, estado ),
+          activo:activo_id ( id, ref, nombre, direccion, ciudad, zona, uso ),
+          cuenta_inquilina:cuenta_inquilina_id ( dynamics_id, nombre, sector ),
+          cuenta_propietaria:cuenta_propietaria_id ( dynamics_id, nombre, sector )
+        `)
+        .eq('ref', refOrId)
+        .maybeSingle()
+      if (!cancel) setNeg(data || null)
+    })()
+    return () => { cancel = true }
+  }, [refOrId, looksLikeSupabaseRef])
+
+  // Helpers · valor real o fallback al demo hardcoded
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES') : null
+  const hdr = {
+    ref:         neg?.ref || 'NEG-0044',
+    badge:       neg ? `${neg.oferta?.tipo_operacion || 'Negociación'}${neg.superficie ? ` · ${Number(neg.superficie).toLocaleString('es-ES')} m²` : ''}` : 'Alquiler oficinas · 1.000 m²',
+    name:        neg
+      ? `${neg.contraparte_empresa || neg.cuenta_inquilina?.nombre || '(sin contraparte)'}${neg.superficie ? ` — ${Number(neg.superficie).toLocaleString('es-ES')} m²` : ''}${neg.activo?.nombre ? ` · ${neg.activo.nombre}` : ''}`
+      : 'Empresa XYZ — 1.000 m² · P.E Avalon',
+    addr:        neg
+      ? `📍 ${[neg.activo?.direccion, neg.activo?.ciudad].filter(Boolean).join(', ') || 'Dirección no disponible'}${neg.activo?.zona ? ` · ${neg.activo.zona}` : ''} · Iniciada: ${fmtDate(neg.fecha_inicio) || '—'}${neg.ultima_actividad ? ` · Última actividad: ${fmtDate(neg.ultima_actividad)}` : ''}`
+      : '📍 Calle Santa Leonor 65, 28037 Madrid · M-30 · Iniciada: 10/03/2026 · Última actividad: 15/03/2026',
+    estado:      neg?.estado || 'En negociación',
+    ronda:       neg?.ronda != null ? String(neg.ronda) : '3',
+    renta:       neg?.renta_ultima != null ? `${neg.renta_ultima} €/m²` : (neg?.renta_inicial != null ? `${neg.renta_inicial} €/m²` : '19,00 €/m²'),
+    sup:         neg?.superficie != null ? `${Number(neg.superficie).toLocaleString('es-ES')} m²` : '1.000 m²',
+    cierre:      fmtDate(neg?.cierre_estimado) || '30/03/2026',
+    responsable: neg?.parte_nombre || 'Sierra Álvaro',
+  }
+  const funnel = {
+    opo: neg?.demanda?.dynamics_opportunities?.dynamics_id || 'OPP-2024-0042',
+    man: neg?.demanda?.mandato?.ref || 'MAN-0014',
+    ofr: neg?.oferta?.ref || 'OFR-0027',
+  }
+  const vinc = {
+    cuenta:      neg ? (neg.cuenta_inquilina?.nombre || neg.contraparte_empresa) : 'Oracle Spain SL',
+    cuentaId:    neg?.cuenta_inquilina?.dynamics_id || 'ORACLE',
+    cuentaSub:   neg ? (neg.cuenta_inquilina?.sector || 'Cliente · Demanda') : 'Cliente · Demanda',
+    activoRef:   neg?.activo?.ref || 'MAD-OF-AVALON',
+    activoNombre:neg?.activo?.nombre || 'P.E Avalon',
+    activoDir:   neg?.activo?.direccion || 'Calle Santa Leonor 65, 28037 Madrid',
+    activoSub:   neg ? `${neg.activo?.zona || ''}${neg.activo?.uso ? ` · ${neg.activo.uso}` : ''}` || 'M-30 · Oficinas' : 'M-30 · Oficinas',
+    opoId:       neg?.demanda?.dynamics_opportunities?.dynamics_id || 'OPO-2501',
+    opoNombre:   neg?.demanda?.dynamics_opportunities?.nombre || 'OPO-2501 · Albatros D — Oracle Relocation 2026',
+    opoSub:      neg ? `${neg.demanda?.dynamics_opportunities?.tipo || 'Pitch demanda'} · Leasing` : 'Pitch demanda · Leasing',
+  }
 
   function handleUpload(file, note) {
     const nextV = contracts.length + 1
@@ -233,13 +307,13 @@ export default function FichaNegociacion() {
 
       {/* Funnel tracker · hilo conductor entre fases */}
       <FunnelTracker steps={[
-        { key:'opo', label:'Oportunidad', ref:'OPP-2024-0042',
-          onClick: () => navigate('ficha-oportunidad', { id:'OPP-2024-0042' }) },
-        { key:'man', label:'Mandato', ref:'MAN-0014',
-          onClick: () => navigate('ficha-mandato', { ref:'MAN-0014' }) },
-        { key:'ofr', label:'Oferta', ref:'OFR-0027',
-          onClick: () => navigate('ficha-oferta', { ofertaRef:'OFR-0027' }) },
-        { key:'neg', label:'Negociación', ref:'NEG-0044', current: true, onClick: null },
+        { key:'opo', label:'Oportunidad', ref: funnel.opo,
+          onClick: () => navigate('ficha-oportunidad', { id: funnel.opo }) },
+        { key:'man', label:'Mandato', ref: funnel.man,
+          onClick: () => navigate('ficha-mandato', { ref: funnel.man }) },
+        { key:'ofr', label:'Oferta', ref: funnel.ofr,
+          onClick: () => navigate('ficha-oferta', { ofertaRef: funnel.ofr }) },
+        { key:'neg', label:'Negociación', ref: hdr.ref, current: true, onClick: null },
         { key:'ins', label:'Instrucción', ref: null, onClick: null },
       ]} />
 
@@ -250,19 +324,19 @@ export default function FichaNegociacion() {
           <div style={{ flex: 1, minWidth:0 }}>
             <div className="ah-ref">
               <span className="ref-badge-neg">NEGOCIACIÓN</span>
-              <span className="asset-link" style={{fontFamily:'var(--mono)'}}>NEG-0044</span>
-              <span style={{ color: 'var(--text4)', fontSize:11 }}>· Alquiler oficinas · 1.000 m²</span>
+              <span className="asset-link" style={{fontFamily:'var(--mono)'}}>{hdr.ref}</span>
+              <span style={{ color: 'var(--text4)', fontSize:11 }}>· {hdr.badge}</span>
             </div>
-            <div className="ah-name">Empresa XYZ — 1.000 m² · P.E Avalon</div>
-            <div className="ah-addr">📍 Calle Santa Leonor 65, 28037 Madrid · M-30 · Iniciada: 10/03/2026 · Última actividad: 15/03/2026</div>
+            <div className="ah-name">{hdr.name}</div>
+            <div className="ah-addr">{hdr.addr}</div>
           </div>
           <HeaderPills items={[
-            { key:'estado',  type:'info', label:'Estado',      value:'↔ En negociación',  color:'amber',  accent:true },
-            { key:'ronda',   type:'info', label:'Ronda',       value:'3',                 color:'accent', accent:true },
-            { key:'renta',   type:'info', label:'Renta última', value:'19,00 €/m²',       color:'purple', accent:true },
-            { key:'sup',     type:'info', label:'Superficie',  value:'1.000 m²' },
-            { key:'cierre',  type:'info', label:'Cierre estim.', value:'30/03/2026', color:'red', accent:true, title:'Vencido' },
-            { key:'resp',    type:'info', label:'Responsable', value:'Sierra Álvaro' },
+            { key:'estado',  type:'info', label:'Estado',      value:`↔ ${hdr.estado}`,  color:'amber',  accent:true },
+            { key:'ronda',   type:'info', label:'Ronda',       value: hdr.ronda,         color:'accent', accent:true },
+            { key:'renta',   type:'info', label:'Renta última', value: hdr.renta,        color:'purple', accent:true },
+            { key:'sup',     type:'info', label:'Superficie',  value: hdr.sup },
+            { key:'cierre',  type:'info', label:'Cierre estim.', value: hdr.cierre, color:'red', accent:true, title:'Vencido' },
+            { key:'resp',    type:'info', label:'Responsable', value: hdr.responsable },
           ]} />
         </div>
       </div>
@@ -283,9 +357,9 @@ export default function FichaNegociacion() {
 
                 {/* ── VINCULACIONES (canónico, siempre arriba) ── */}
                 <Vinculaciones
-                  cuenta={{ id:'ORACLE', nombre:'Oracle Spain SL', sub:'Cliente · Demanda' }}
-                  activo={{ ref:'MAD-OF-AVALON', nombre:'P.E Avalon', direccion:'Calle Santa Leonor 65, 28037 Madrid', sub:'M-30 · Oficinas' }}
-                  oportunidad={{ id:'OPO-2501', nombre:'OPO-2501 · Albatros D — Oracle Relocation 2026', sub:'Pitch demanda · Leasing' }}
+                  cuenta={{ id: vinc.cuentaId, nombre: vinc.cuenta, sub: vinc.cuentaSub }}
+                  activo={{ ref: vinc.activoRef, nombre: vinc.activoNombre, direccion: vinc.activoDir, sub: vinc.activoSub }}
+                  oportunidad={{ id: vinc.opoId, nombre: vinc.opoNombre, sub: vinc.opoSub }}
                 />
 
                 {/* ── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones) ── */}

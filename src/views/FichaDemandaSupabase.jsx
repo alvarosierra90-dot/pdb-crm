@@ -145,6 +145,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [showNotasModal, setShowNotasModal] = useState(false)
   const [showNegociacionModal, setShowNegociacionModal] = useState(false)
   const [oportunidad, setOportunidad] = useState(null)
+  // Negociación vinculada a esta demanda (si existe en BD)
+  const [negociacionVinculada, setNegociacionVinculada] = useState(null)
   // Vista 360 · alternativas (oferta_demanda con joins a ofertas + activos)
   const [alternativas, setAlternativas] = useState([])
   const [loadingAlt, setLoadingAlt] = useState(false)
@@ -246,6 +248,21 @@ export default function FichaDemandaSupabase({ refOrId }) {
       setOtrosContactosFull(full || [])
     } else {
       setOtrosContactosFull([])
+    }
+
+    // Negociación vinculada (si existe) · permite que la card de Negociación
+    // abra directamente la ficha de la NEG en lugar de la lista.
+    if (data?.id) {
+      const { data: neg } = await supabase
+        .from('negociaciones')
+        .select('id, ref, estado, ronda, fecha_inicio')
+        .eq('demanda_id', data.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      setNegociacionVinculada(neg || null)
+    } else {
+      setNegociacionVinculada(null)
     }
 
     setError(null)
@@ -966,16 +983,23 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   // Card Negociación · aparece cuando el estado es 'en_negociacion'.
                   // Click → info general de la negociación en el módulo de Negociaciones.
                   if (enNegociacion && !yaGanada && !yaPerdida && !yaDescartada) {
+                    const negRef = negociacionVinculada?.ref || null
+                    // Click directo → ficha de la negociación con todos los datos vinculados
+                    const irANegociacion = () => negRef
+                      ? navigate('ficha-negociacion', { ref: negRef })
+                      : navigate('negociaciones', { demanda: demanda.ref })
                     steps.push({
                       key:'negociacion', icon: MessageSquare, tone: cardTone('Negociación'),
                       label:'Negociación',
-                      value: 'En curso',
-                      sub: hasOferta
-                        ? `Negociando sobre la oferta ${ofertaActiva.ref}. Abre para ver el detalle en el módulo de Negociaciones.`
-                        : 'Negociación activa. Abre para ver el detalle en el módulo de Negociaciones.',
+                      value: negRef || 'En curso',
+                      sub: negRef
+                        ? `Negociación ${negRef} · Click para abrir info general con todos los datos sincronizados.`
+                        : (hasOferta
+                            ? `Negociando sobre la oferta ${ofertaActiva.ref}.`
+                            : 'Negociación activa.'),
                       status: 'current',
-                      openAction: { label:'Abrir negociación', onClick: () => navigate('negociaciones', { demanda: demanda.ref }) },
-                      action: { label:'Abrir info general de la negociación', onClick: () => navigate('negociaciones', { demanda: demanda.ref }), primary:true },
+                      openAction: { label:'Abrir negociación', onClick: irANegociacion },
+                      action: { label:'Abrir info general de la negociación', onClick: irANegociacion, primary:true },
                     })
                   }
 
