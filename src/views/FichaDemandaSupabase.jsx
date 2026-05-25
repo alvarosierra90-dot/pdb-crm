@@ -11,7 +11,7 @@ import FunnelTracker from '../components/FunnelTracker'
 import FunnelStepCards from '../components/FunnelStepCards'
 import MarcarDemandaCierreModal from '../components/MarcarDemandaCierreModal'
 import NotasModal from '../components/NotasModal'
-import { Building2, Target, ScrollText, Trophy, X as XClose, Briefcase, Tag, FileSearch, Handshake } from 'lucide-react'
+import { Building2, Target, ScrollText, Trophy, X as XClose, Briefcase, Tag, FileSearch, Handshake, MessageSquare } from 'lucide-react'
 
 // Orden canónico · Info → Documentos → Vista 360 → Confidencialidad.
 // Requisitos se fusionó en "Información general" (sección inferior).
@@ -192,11 +192,19 @@ export default function FichaDemandaSupabase({ refOrId }) {
     const SELECT_FALLBACK = buildFallback(SELECT_FULL, ['documentos'])
 
     let { data, error } = await supabase.from('demandas').select(SELECT_FULL).eq('ref', refOrId).maybeSingle()
-    if (error && /oferta_id|instruccion_ref/i.test(error.message)) {
-      // Migración 036 aún no aplicada → reintenta sin oferta_id/instruccion_ref
+    // Migración 036 aún no aplicada → reintenta sin oferta_id/instruccion_ref.
+    // Detectamos el caso por columna ausente o por relación FK que PostgREST
+    // no encuentra en su schema cache.
+    const looksLikeMissing036 = error && (
+      /oferta_id|instruccion_ref/i.test(error.message || '') ||
+      /oferta_id|instruccion_ref/i.test(error.details || '') ||
+      /oferta_id|instruccion_ref/i.test(error.hint || '')
+    )
+    if (looksLikeMissing036) {
       const q2 = SELECT_FULL
         .replace(', oferta_id, instruccion_ref', '')
-        .replace(/,\s*oferta:oferta_id[^)]+\)\s*\)\s*\)/, '')
+        // El join 'oferta:oferta_id (...)' anida 'activos:activo_id (...)' → 2 niveles
+        .replace(/,\s*oferta:oferta_id\s*\([^)]+\)\s*\)/, '')
       const r = await supabase.from('demandas').select(q2).eq('ref', refOrId).maybeSingle()
       data = r.data; error = r.error
       if (data) { data.oferta_id = null; data.instruccion_ref = null; data.oferta = null }
@@ -753,14 +761,6 @@ export default function FichaDemandaSupabase({ refOrId }) {
                         </div>
                       )}
 
-                      {/* Acceso a la negociación cuando el estado es 'en_negociacion' */}
-                      {enNegociacion && (
-                        <button
-                          className="ab-btn"
-                          style={{ width:'100%', background:'var(--purple,#6b5b8e)', color:'#fff', border:'1px solid var(--purple,#6b5b8e)', fontWeight:700 }}
-                          onClick={() => navigate('negociaciones', { demanda: demanda.ref })}
-                        > Abrir negociación</button>
-                      )}
                     </div>
                   )
 
@@ -935,6 +935,22 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       editAction: hasInstruccion ? { label:'Desvincular', onClick: desvincularInstruccion } : null,
                       extraBody: instExtra,
                       dyn: true,
+                    })
+                  }
+
+                  // Card Negociación · aparece cuando el estado es 'en_negociacion'.
+                  // Click → info general de la negociación en el módulo de Negociaciones.
+                  if (enNegociacion && !yaGanada && !yaPerdida && !yaDescartada) {
+                    steps.push({
+                      key:'negociacion', icon: MessageSquare, tone:'purple',
+                      label:'Negociación',
+                      value: 'En curso',
+                      sub: hasOferta
+                        ? `Negociando sobre la oferta ${ofertaActiva.ref}. Abre para ver el detalle en el módulo de Negociaciones.`
+                        : 'Negociación activa. Abre para ver el detalle en el módulo de Negociaciones.',
+                      status: 'current',
+                      openAction: { label:'Abrir negociación', onClick: () => navigate('negociaciones', { demanda: demanda.ref }) },
+                      action: { label:'Abrir info general de la negociación', onClick: () => navigate('negociaciones', { demanda: demanda.ref }), primary:true },
                     })
                   }
 
