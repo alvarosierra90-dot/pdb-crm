@@ -2290,6 +2290,48 @@ tr:hover .ra-cell { opacity: 1; }
   letter-spacing: -0.005em;
 }
 
+/* ═════════════════════════════════════════════════════════════
+   DASH-CARD · cards de información debajo de las step-cards
+   (Requisitos, Presupuesto, Equipo, Provincias, Zonas, etc.)
+   Misma estética Apple HIG que .step-card.
+   ═════════════════════════════════════════════════════════════ */
+.dash-card {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  font-family: var(--sans);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+.dash-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+.dash-card-count {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  font-family: var(--mono);
+  background: #f1f5f9;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.dash-card-sub {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 6px;
+}
+
 /* CTA · botón principal del paso actual */
 .step-card-cta { margin-top: 8px; }
 /* CTA · botón estilo iOS · soft tinted o filled */

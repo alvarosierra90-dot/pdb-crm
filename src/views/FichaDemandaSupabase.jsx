@@ -1074,83 +1074,16 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   return <FunnelStepCards steps={steps} />
                 })()}
 
-                {/* ── EQUIPO + COLABORADORES + PARTES INVOLUCRADAS (3 cuadros · misma fila) ── */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14, alignItems:'stretch' }}>
-                  <EquipoTrabajoCard
-                    title="Equipo de trabajo"
-                    equipo={equipoInterno}
-                    canManage={canManage}
-                    onAdd={(nombre, equipoNombre, rol) => handlers.addMiembro(nombre, equipoNombre, rol === 'Colaborador' ? 'Soporte' : rol)}
-                    onRemove={(idx) => handlers.removeMiembro(mapIdx(equipoInterno, idx))}
-                    onUpdateRol={(idx, rol) => handlers.updateMiembroRol(mapIdx(equipoInterno, idx), rol)}
-                  />
-                  <EquipoTrabajoCard
-                    title="Colaboradores"
-                    equipo={colaboradores}
-                    canManage={canManage}
-                    onAdd={(nombre, equipoNombre) => handlers.addMiembro(nombre, equipoNombre, 'Colaborador')}
-                    onRemove={(idx) => handlers.removeMiembro(mapIdx(colaboradores, idx))}
-                    onUpdateRol={(idx, rol) => handlers.updateMiembroRol(mapIdx(colaboradores, idx), rol)}
-                  />
-
-                  {/* === PARTES INVOLUCRADAS === */}
-                  <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
-                    <div className="va-card-header">
-                      <h3><span className="ico" style={{ color:'#6b5b8e' }}></span> Partes involucradas</h3>
-                      <span className="hint">Contactos de {cuenta?.nombre || '(cuenta)'}</span>
-                    </div>
-                    <div style={{ padding:'8px 20px 16px' }}>
-                      {otrosListaFull.length === 0 ? (
-                        <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', padding:'8px 0' }}>Sin partes adicionales.</div>
-                      ) : (
-                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                          {otrosListaFull.map(c => (
-                            <div key={c.dynamics_id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
-                              <div style={{ width:28, height:28, borderRadius:'50%', background:'#6b5b8e', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}>
-                                {(c.nombre || '').split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
-                              </div>
-                              <div style={{ flex:1, minWidth:0 }}>
-                                <div style={{ fontSize:12, fontWeight:600 }}>{c.nombre}</div>
-                                <div style={{ fontSize:10, color:'var(--text3)' }}>{c.email || c.telefono || '—'}</div>
-                              </div>
-                              <button onClick={() => setF('otros_contactos', form.otros_contactos.filter(id => id !== c.dynamics_id))}
-                                style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <select
-                        className="fsel"
-                        style={{ width:'100%', marginTop:8 }}
-                        value=""
-                        onChange={e => { if (e.target.value) setF('otros_contactos', [...form.otros_contactos, e.target.value]) }}
-                      >
-                        <option value="">+ Añadir contacto de la cuenta...</option>
-                        {otrosDisponibles.map(c => (
-                          <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre} — {c.email || c.telefono || ''}</option>
-                        ))}
-                      </select>
-                      {otrosDisponibles.length === 0 && (
-                        <div style={{ fontSize:10, color:'var(--text4)', marginTop:4 }}>No hay más contactos disponibles en la cuenta.</div>
-                      )}
-                    </div>
-                  </div>
-
-                </div>
-
                 {/* ════════════════════════════════════════════════════════════════
-                    REQUISITOS + ZONA DE BÚSQUEDA · fusionado dentro de Información
-                    general (antes era un tab independiente).
+                    DASHBOARD INFO · grid 3x2 con cards estilo Apple HIG.
+                    Fila 1: Requisitos · Presupuesto · Equipo + Colaboradores + Partes
+                    Fila 2: Provincias · Zonas · Detalles geográficos
                     ════════════════════════════════════════════════════════════════ */}
 
-                <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.04em', margin:'18px 0 10px', paddingTop:14, borderTop:'2px solid var(--border)' }}>
-                  Requisitos y zona de búsqueda
-                </div>
-
-                {/* ─── BARRA SUPERIOR · descripción + botón Exportar a mapa ─── */}
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12, padding:'10px 14px', background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:6 }}>
-                  <div style={{ fontSize:12, color:'var(--text2)' }}>
-                    Define los requisitos y la zona de búsqueda. Cuando tengas el perfil mínimo, exporta al mapa para seleccionar alternativas.
+                {/* Heading + Exportar a mapa */}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:6, marginBottom:14 }}>
+                  <div style={{ fontSize:15, fontWeight:600, color:'#0f172a', letterSpacing:'-0.01em' }}>
+                    Detalle de la demanda
                   </div>
                   <button
                     className="ab-btn"
@@ -1163,15 +1096,13 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   </button>
                 </div>
 
-                {/* ─── FILA 1: Requisitos generales (1/2) + Económicos (1/2) ─── */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+                {/* ─── FILA 1: Requisitos · Presupuesto · Equipo+Colab+Partes ─── */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14 }}>
 
                   {/* === REQUISITOS GENERALES === */}
-                  <div className="va-card" style={{ marginBottom:0 }}>
-                    <div className="va-card-header">
-                      <h3><span className="ico" style={{ color:'var(--accent)' }}></span> Requisitos generales</h3>
-                    </div>
-                    <div style={{ padding:'10px 18px 16px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                  <div className="dash-card">
+                    <div className="dash-card-head">Requisitos del activo</div>
+                    <div style={{ padding:'12px 16px 16px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                       <ReqField label="Naturaleza" accent="#0f172a">
                         <select className="fsel" value={form.naturaleza} onChange={e => setF('naturaleza', e.target.value)} style={{ width:'100%' }}>
                           <option value="">—</option><option>Leasing</option><option>Inversión</option>
@@ -1213,20 +1144,18 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   </div>
 
                   {/* === PRESUPUESTO === */}
-                  <div className="va-card" style={{ marginBottom:0 }}>
-                    <div className="va-card-header">
-                      <h3><span className="ico" style={{ color:'var(--green)' }}>€</span> Presupuesto</h3>
-                    </div>
-                    <div style={{ padding:'10px 18px 16px' }}>
-                      <ReqField label="Tipo de presupuesto" accent="var(--text)">
+                  <div className="dash-card">
+                    <div className="dash-card-head">Presupuesto</div>
+                    <div style={{ padding:'12px 16px 16px' }}>
+                      <ReqField label="Tipo">
                         <select className="fsel" value={form.presupuesto_tipo} onChange={e => setF('presupuesto_tipo', e.target.value)} style={{ width:'100%' }}>
                           <option value="">—</option><option>Alquiler</option><option>Venta</option><option>Alquiler / Venta</option>
                         </select>
                       </ReqField>
 
                       {(presTipo === 'Alquiler' || presTipo === 'Alquiler / Venta') && (
-                        <div style={{ marginTop:12, padding:10, background:'#f0fdfa', border:'1px solid #99f6e4', borderRadius:6 }}>
-                          <div style={{ fontSize:10, fontWeight:700, color:'#0f766e', marginBottom:8, textTransform:'uppercase', letterSpacing:'.04em' }}>Alquiler · €/m²/mes</div>
+                        <div style={{ marginTop:10, padding:'10px 12px', background:'#f0fdfa', border:'1px solid #99f6e4', borderRadius:10 }}>
+                          <div style={{ fontSize:11, fontWeight:600, color:'#0f766e', marginBottom:8, letterSpacing:'-0.005em' }}>Alquiler · €/m²/mes</div>
                           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
                             <ReqField label="Desde">
                               <input type="number" className="kf-inp" value={form.alq_min} onChange={e => setF('alq_min', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
@@ -1238,8 +1167,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
                         </div>
                       )}
                       {(presTipo === 'Venta' || presTipo === 'Alquiler / Venta') && (
-                        <div style={{ marginTop:10, padding:10, background:'#fffbeb', border:'1px solid #fde68a', borderRadius:6 }}>
-                          <div style={{ fontSize:10, fontWeight:700, color:'#b45309', marginBottom:8, textTransform:'uppercase', letterSpacing:'.04em' }}>Venta · €/m²</div>
+                        <div style={{ marginTop:10, padding:'10px 12px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:10 }}>
+                          <div style={{ fontSize:11, fontWeight:600, color:'#b45309', marginBottom:8, letterSpacing:'-0.005em' }}>Venta · €/m²</div>
                           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
                             <ReqField label="Desde">
                               <input type="number" className="kf-inp" value={form.venta_m2_min} onChange={e => setF('venta_m2_min', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
@@ -1251,25 +1180,109 @@ export default function FichaDemandaSupabase({ refOrId }) {
                         </div>
                       )}
                       {!presTipo && (
-                        <div style={{ marginTop:10, padding:14, border:'1px dashed var(--border)', borderRadius:6, background:'var(--gray-lt)', fontSize:11, color:'var(--text4)', fontStyle:'italic', textAlign:'center' }}>
-                          Selecciona el tipo de presupuesto para definir rangos económicos.
+                        <div style={{ marginTop:10, padding:'14px 12px', background:'#fafafa', borderRadius:10, fontSize:11.5, color:'#94a3b8', textAlign:'center' }}>
+                          Selecciona el tipo de presupuesto.
                         </div>
                       )}
                     </div>
                   </div>
+
+                  {/* === EQUIPO + COLABORADORES + PARTES INVOLUCRADAS (3 mini-secciones en 1 card) === */}
+                  <div className="dash-card" style={{ overflow:'visible' }}>
+                    <div className="dash-card-head">Equipo y partes</div>
+                    <div style={{ padding:'12px 16px 14px', display:'flex', flexDirection:'column', gap:12 }}>
+
+                      {/* Equipo de trabajo */}
+                      <div>
+                        <div className="dash-card-sub">Equipo de trabajo</div>
+                        {equipoInterno.length === 0 ? (
+                          <div style={{ fontSize:11.5, color:'#94a3b8' }}>Sin asignar.</div>
+                        ) : (
+                          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                            {equipoInterno.map((m, i) => (
+                              <div key={`int-${i}`} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                                <div style={{ width:24, height:24, borderRadius:'50%', background:'#f5efe5', color:'#5a4828', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>
+                                  {(m.nombre || '?').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()}
+                                </div>
+                                <div style={{ fontSize:12, fontWeight:500, color:'#0f172a', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.nombre}</div>
+                                <span style={{ fontSize:9.5, color: m.rol === 'Principal' ? '#0a66c2' : '#64748b', fontWeight:600 }}>{m.rol}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Colaboradores */}
+                      <div>
+                        <div className="dash-card-sub">Colaboradores</div>
+                        {colaboradores.length === 0 ? (
+                          <div style={{ fontSize:11.5, color:'#94a3b8' }}>Sin colaboradores externos.</div>
+                        ) : (
+                          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                            {colaboradores.map((m, i) => (
+                              <div key={`cl-${i}`} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                                <div style={{ width:24, height:24, borderRadius:'50%', background:'#fdf4ff', color:'#6b5b8e', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>
+                                  {(m.nombre || '?').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()}
+                                </div>
+                                <div style={{ fontSize:12, fontWeight:500, color:'#0f172a', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.nombre}</div>
+                                <span style={{ fontSize:9.5, color:'#6b21a8', fontWeight:600 }}>{m.equipo || 'Colab'}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Partes involucradas */}
+                      <div>
+                        <div className="dash-card-sub">Partes involucradas</div>
+                        {otrosListaFull.length === 0 ? (
+                          <div style={{ fontSize:11.5, color:'#94a3b8' }}>Sin partes adicionales.</div>
+                        ) : (
+                          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                            {otrosListaFull.map(c => (
+                              <div key={c.dynamics_id} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                                <div style={{ width:24, height:24, borderRadius:'50%', background:'#eef2ff', color:'#4338ca', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>
+                                  {(c.nombre || '').split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
+                                </div>
+                                <div style={{ fontSize:12, fontWeight:500, color:'#0f172a', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.nombre}</div>
+                                <button onClick={() => setF('otros_contactos', form.otros_contactos.filter(id => id !== c.dynamics_id))}
+                                  style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', fontSize:13, padding:'0 4px', lineHeight:1 }} title="Quitar">×</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {otrosDisponibles.length > 0 && (
+                          <select
+                            className="fsel"
+                            style={{ width:'100%', marginTop:6, fontSize:11.5 }}
+                            value=""
+                            onChange={e => { if (e.target.value) setF('otros_contactos', [...form.otros_contactos, e.target.value]) }}
+                          >
+                            <option value="">+ Añadir contacto…</option>
+                            {otrosDisponibles.map(c => (
+                              <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+
+                    </div>
+                  </div>
                 </div>
 
-                {/* ─── FILA 2: Provincias (1/2) + Zonas (1/2) ─── */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
-                  <div className="va-card" style={{ marginBottom:0 }}>
-                    <div className="va-card-header">
-                      <h3><span className="ico" style={{ color:'var(--accent)' }}></span> Provincias de interés</h3>
-                      <span className="hint">{provinciasMostrar.length} seleccionada(s)</span>
+                {/* ─── FILA 2: Provincias · Zonas · Detalles geográficos (3 cols) ─── */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14 }}>
+
+                  {/* Provincias */}
+                  <div className="dash-card">
+                    <div className="dash-card-head">
+                      Provincias
+                      <span className="dash-card-count">{provinciasMostrar.length}</span>
                     </div>
-                    <div style={{ padding:'10px 18px 16px' }}>
-                      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8, minHeight:28 }}>
+                    <div style={{ padding:'12px 16px 16px' }}>
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10, minHeight:24 }}>
                         {provinciasMostrar.length === 0 && (
-                          <span style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Ninguna provincia añadida.</span>
+                          <span style={{ fontSize:11.5, color:'#94a3b8' }}>Ninguna añadida.</span>
                         )}
                         {provinciasMostrar.map(p => (
                           <Chip key={p} label={p} onRemove={() => togglePick('provincias', p)} />
@@ -1283,15 +1296,16 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     </div>
                   </div>
 
-                  <div className="va-card" style={{ marginBottom:0 }}>
-                    <div className="va-card-header">
-                      <h3><span className="ico" style={{ color:'var(--purple)' }}>📍</span> Zonas de búsqueda</h3>
-                      <span className="hint">{zonasMostrar.length} seleccionada(s)</span>
+                  {/* Zonas */}
+                  <div className="dash-card">
+                    <div className="dash-card-head">
+                      Zonas
+                      <span className="dash-card-count">{zonasMostrar.length}</span>
                     </div>
-                    <div style={{ padding:'10px 18px 16px' }}>
-                      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8, minHeight:28 }}>
+                    <div style={{ padding:'12px 16px 16px' }}>
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10, minHeight:24 }}>
                         {zonasMostrar.length === 0 && (
-                          <span style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Ninguna zona añadida.</span>
+                          <span style={{ fontSize:11.5, color:'#94a3b8' }}>Ninguna añadida.</span>
                         )}
                         {zonasMostrar.map(z => (
                           <Chip key={z} label={z} onRemove={() => togglePick('zonas', z)} />
@@ -1304,24 +1318,23 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       </select>
                     </div>
                   </div>
-                </div>
 
-                {/* ─── FILA 3: Detalles geográficos (full-width) ─── */}
-                <div className="va-card" style={{ marginBottom:0 }}>
-                  <div className="va-card-header">
-                    <h3><span className="ico" style={{ color:'var(--teal)' }}></span> Detalles geográficos</h3>
+                  {/* Detalles geográficos */}
+                  <div className="dash-card">
+                    <div className="dash-card-head">Detalles geográficos</div>
+                    <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:10 }}>
+                      <ReqField label="Calles específicas">
+                        <input className="kf-inp" value={form.calles} onChange={e => setF('calles', e.target.value)} placeholder="Ej. Castellana 50–120" style={{ width:'100%' }} />
+                      </ReqField>
+                      <ReqField label="Puntos de interés">
+                        <input className="kf-inp" value={form.puntos_interes} onChange={e => setF('puntos_interes', e.target.value)} placeholder="Cerca de metro, autopistas..." style={{ width:'100%' }} />
+                      </ReqField>
+                      <ReqField label="Puntos a evitar">
+                        <input className="kf-inp" value={form.puntos_evitar} onChange={e => setF('puntos_evitar', e.target.value)} placeholder="Zonas en obras..." style={{ width:'100%' }} />
+                      </ReqField>
+                    </div>
                   </div>
-                  <div style={{ padding:'10px 18px 16px', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
-                    <ReqField label="Calles específicas">
-                      <input className="kf-inp" value={form.calles} onChange={e => setF('calles', e.target.value)} placeholder="Ej. Castellana 50–120" style={{ width:'100%' }} />
-                    </ReqField>
-                    <ReqField label="Puntos de interés">
-                      <input className="kf-inp" value={form.puntos_interes} onChange={e => setF('puntos_interes', e.target.value)} placeholder="Cerca de metro, autopistas..." style={{ width:'100%' }} />
-                    </ReqField>
-                    <ReqField label="Puntos a evitar">
-                      <input className="kf-inp" value={form.puntos_evitar} onChange={e => setF('puntos_evitar', e.target.value)} placeholder="Zonas en obras, polígonos..." style={{ width:'100%' }} />
-                    </ReqField>
-                  </div>
+
                 </div>
 
               </div></div>
