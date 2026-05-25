@@ -181,7 +181,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
       dynamics_account_id, dynamics_opportunity_id, mandato_id, oferta_id, instruccion_ref, created_at, updated_at,
       dynamics_accounts:dynamics_account_id ( dynamics_id, nombre, tipo, sector, direccion, codigo_postal, ciudad, pais, telefono, web ),
       dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo ),
-      mandato:mandato_id ( id, ref ),
+      mandato:mandato_id ( id, ref, titulo, tipo ),
       oferta:oferta_id ( id, ref, tipo_operacion, estado, activos:activo_id ( id, ref, nombre, ciudad, uso ) )
     `
     // Si una columna nueva aún no existe, reintenta sin ella para no romper la
@@ -307,10 +307,13 @@ export default function FichaDemandaSupabase({ refOrId }) {
     ;(async () => {
       let query = supabase
         .from('mandatos')
-        .select('id, ref, tipo, via, estado, dynamics_account_id, fecha_firma')
+        .select('id, ref, titulo, tipo, via, estado, dynamics_account_id, fecha_firma')
         .order('fecha_firma', { ascending:false })
         .limit(12)
-      if (q.length >= 1) query = query.ilike('ref', `%${q.toUpperCase()}%`)
+      // Busca por ref O por título (más fácil de localizar)
+      if (q.length >= 1) {
+        query = query.or(`ref.ilike.%${q.toUpperCase()}%,titulo.ilike.%${q}%`)
+      }
       const { data } = await query
       if (cancel) return
       // Ordena: mismos account_id arriba, luego buy, luego resto
@@ -867,7 +870,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                         onChange={e => { setMandatoSearch(e.target.value); setShowMandatoDD(true) }}
                         onFocus={() => setShowMandatoDD(true)}
                         onBlur={() => setTimeout(() => setShowMandatoDD(false), 200)}
-                        placeholder="🔍 Vincular mandato (MAN-...)"
+                        placeholder="🔍 Buscar por título o ref (MAN-...)"
                         style={{ width:'100%', fontFamily:'var(--mono)', fontSize:11, padding:'6px 8px' }}
                       />
                       {showMandatoDD && mandatoResults.length > 0 && ddPanel(
@@ -875,11 +878,14 @@ export default function FichaDemandaSupabase({ refOrId }) {
                           const mismaCuenta = m.dynamics_account_id === demanda.dynamics_account_id
                           return (
                             <div key={m.id} onMouseDown={() => vincularMandato(m.id)}
-                              style={{ padding:'7px 10px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
-                              <div style={{ fontWeight:600, fontFamily:'var(--mono)' }}>{m.ref}</div>
-                              <div style={{ fontSize:9, color:'var(--text4)' }}>
+                              style={{ padding:'8px 10px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
+                              <div style={{ fontWeight:600, color:'var(--text)' }}>
+                                {m.titulo || <span style={{ color:'var(--text4)', fontStyle:'italic' }}>(sin título)</span>}
+                              </div>
+                              <div style={{ fontSize:10, color:'var(--text3)', fontFamily:'var(--mono)', marginTop:2 }}>{m.ref}</div>
+                              <div style={{ fontSize:9, color:'var(--text4)', marginTop:3, display:'flex', gap:5, alignItems:'center' }}>
                                 <span className={`tag ${m.tipo === 'buy' ? 'tag-blue' : 'tag-amber'}`} style={{ fontSize:8 }}>{m.tipo}</span>
-                                {' '}{mismaCuenta && <span className="tag tag-green" style={{ fontSize:8 }}>✓ misma cuenta</span>}
+                                {mismaCuenta && <span className="tag tag-green" style={{ fontSize:8 }}>✓ misma cuenta</span>}
                               </div>
                             </div>
                           )
@@ -989,7 +995,11 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       key:'mandato', icon: ScrollText, tone: cardTone('Mandato'),
                       label:'Mandato',
                       value: demanda.mandato?.ref || null,
-                      sub: hasMandato ? 'Mandato vinculado a esta demanda.' : 'Opcional · vincula uno existente o pasa sin mandato.',
+                      // Sub muestra el TÍTULO del mandato (el que se puso al crearlo).
+                      // El tipo (consultoría / oficinas) no ayuda a identificarlo.
+                      sub: hasMandato
+                        ? (demanda.mandato?.titulo || '(sin título)')
+                        : 'Opcional · vincula uno existente o pasa sin mandato.',
                       status: hasMandato ? 'done' : cerrada ? 'locked' : 'current',
                       openAction: hasMandato ? { label:'Abrir mandato', onClick: () => navigate('ficha-mandato', { ref: demanda.mandato.ref }) } : null,
                       editAction: hasMandato ? { label:'Desvincular', onClick: desvincularMandato } : null,
