@@ -2063,22 +2063,17 @@ tr:hover .ra-cell { opacity: 1; }
 .vinc-card.is-clickable:hover .vinc-arrow { opacity: 1; }
 
 /* ═════════════════════════════════════════════════════════════
-   FUNNEL STEP CARDS · v2 · diseño elegante con stripe superior,
-   icono circular grande tintado, gradiente sutil por tono, sombra
-   suave en hover. Tonos por concepto:
-   · Cuenta/Oportunidad/Instrucción/Contacto = blue (Dynamics)
-   · Mandato = accent (bronze gold)
-   · Oferta = green
-   · Demanda/Estado = amber
-   · Negociación = indigo
-   · Activo = bronze
-   · Propuesta/Pitch = purple
-   · Outcomes: ganada→green, perdida/descartada→red
+   FUNNEL STEP CARDS · v3 · estética Apple HIG
+   · Fondo blanco puro, sin gradientes.
+   · Color usado solo en el icono (pequeño chip) y en el value/cta.
+   · Hairline border 1px, radius generoso, padding amplio.
+   · Tipografía: title compacto, value grande y limpio, sub gris fino.
+   · Hover sutil (lift 1px + sombra apple-style)
    ═════════════════════════════════════════════════════════════ */
 .step-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 @media (max-width: 1280px) {
   .step-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -2090,112 +2085,76 @@ tr:hover .ra-cell { opacity: 1; }
 .step-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px 16px 16px;
-  padding-top: 18px; /* deja sitio al stripe superior */
-  border-radius: 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  gap: 12px;
+  padding: 18px 18px 16px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   min-width: 0;
-  transition: transform .18s cubic-bezier(.4,0,.2,1), box-shadow .18s ease, border-color .18s ease;
   position: relative;
-  overflow: hidden;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
-}
-/* Stripe superior coloreada (la firma visual del tono) */
-.step-card::before {
-  content: '';
-  position: absolute;
-  left: 0; right: 0; top: 0;
-  height: 4px;
-  background: currentColor;
-  opacity: 1;
+  transition: transform .25s cubic-bezier(.4,0,.2,1), box-shadow .25s ease, border-color .25s ease;
+  /* SF Pro / Inter ya está como --sans en :root */
+  font-family: var(--sans);
 }
 .step-card.is-clickable { cursor: pointer; }
 .step-card.is-clickable:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, .08), 0 2px 6px rgba(15,23,42,.04);
-  border-color: currentColor;
+  transform: translateY(-1px);
+  border-color: rgba(0, 0, 0, 0.14);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0,0,0,0.03);
 }
 
-/* Tonos · color del texto/accent y stripe */
-.step-card.tone-green  { color: #15803d; }
-.step-card.tone-bronze { color: #B08D57; }
-.step-card.tone-blue   { color: #0f5fa7; }
-.step-card.tone-purple { color: #6b21a8; }
-.step-card.tone-accent { color: var(--accent); }
-.step-card.tone-amber  { color: #b45309; }
-.step-card.tone-red    { color: #b91c1c; }
-.step-card.tone-indigo { color: #4338ca; }
+/* Tonos · solo afectan al icono, value cuando done, y CTAs.
+   El fondo del card NUNCA cambia de blanco. */
+.step-card.tone-green  { --tone: #15803d; --tone-soft: rgba(21, 128, 61, 0.10); }
+.step-card.tone-bronze { --tone: #8a6d40; --tone-soft: rgba(138, 109, 64, 0.10); }
+.step-card.tone-blue   { --tone: #0a66c2; --tone-soft: rgba(10, 102, 194, 0.10); }
+.step-card.tone-purple { --tone: #6b21a8; --tone-soft: rgba(107, 33, 168, 0.10); }
+.step-card.tone-accent { --tone: var(--accent); --tone-soft: rgba(176, 141, 87, 0.10); }
+.step-card.tone-amber  { --tone: #b45309; --tone-soft: rgba(180, 83, 9, 0.10); }
+.step-card.tone-red    { --tone: #b91c1c; --tone-soft: rgba(185, 28, 28, 0.10); }
+.step-card.tone-indigo { --tone: #4338ca; --tone-soft: rgba(67, 56, 202, 0.10); }
 
-/* Estado: DONE · gradiente tintado + accent en el value */
-.step-card.step-done {
-  border-color: rgba(0,0,0,.06);
-}
-.step-card.step-done.tone-green  { background: linear-gradient(180deg, #f0fdf4 0%, #fff 70%); }
-.step-card.step-done.tone-bronze { background: linear-gradient(180deg, #faf5ec 0%, #fff 70%); }
-.step-card.step-done.tone-blue   { background: linear-gradient(180deg, #eff6ff 0%, #fff 70%); }
-.step-card.step-done.tone-purple { background: linear-gradient(180deg, #faf5ff 0%, #fff 70%); }
-.step-card.step-done.tone-accent { background: linear-gradient(180deg, #fdfaf3 0%, #fff 70%); }
-.step-card.step-done.tone-amber  { background: linear-gradient(180deg, #fffbeb 0%, #fff 70%); }
-.step-card.step-done.tone-red    { background: linear-gradient(180deg, #fef2f2 0%, #fff 70%); }
-.step-card.step-done.tone-indigo { background: linear-gradient(180deg, #eef2ff 0%, #fff 70%); }
+/* DONE · el card sigue blanco; el tono se ve en el icono y en el value */
+.step-card.step-done .step-card-val { color: var(--tone); }
 
-/* Estado: CURRENT · stripe 5px, gradiente más intenso del tono, sombra prominente */
+/* CURRENT · marca el border y un anillo muy sutil del tono */
 .step-card.step-current {
-  border: 1px solid currentColor;
-  box-shadow: 0 6px 22px rgba(15, 23, 42, .10);
+  border-color: var(--tone);
+  box-shadow:
+    0 0 0 4px var(--tone-soft),
+    0 4px 14px rgba(0, 0, 0, 0.05);
 }
-.step-card.step-current::before { height: 5px; }
-.step-card.step-current.tone-green  { background: linear-gradient(180deg, #dcfce7 0%, #f0fdf4 60%, #fff 100%); }
-.step-card.step-current.tone-bronze { background: linear-gradient(180deg, #f5ecd9 0%, #faf5ec 60%, #fff 100%); }
-.step-card.step-current.tone-blue   { background: linear-gradient(180deg, #dbeafe 0%, #eff6ff 60%, #fff 100%); }
-.step-card.step-current.tone-purple { background: linear-gradient(180deg, #f3e8ff 0%, #faf5ff 60%, #fff 100%); }
-.step-card.step-current.tone-accent { background: linear-gradient(180deg, #faf0dc 0%, #fdfaf3 60%, #fff 100%); }
-.step-card.step-current.tone-amber  { background: linear-gradient(180deg, #fef3c7 0%, #fffbeb 60%, #fff 100%); }
-.step-card.step-current.tone-red    { background: linear-gradient(180deg, #fee2e2 0%, #fef2f2 60%, #fff 100%); }
-.step-card.step-current.tone-indigo { background: linear-gradient(180deg, #e0e7ff 0%, #eef2ff 60%, #fff 100%); }
 
-/* Estado: LOCKED · gris, dashed, baja opacidad, stripe gris */
+/* LOCKED · 90% transparente, fondo gris hueso, border discreto */
 .step-card.step-locked {
-  background: linear-gradient(180deg, #f8fafc 0%, #fff 70%);
-  border: 1px dashed var(--border);
-  color: var(--text4);
-  opacity: .82;
+  background: #fafafa;
+  border-color: rgba(0, 0, 0, 0.06);
   box-shadow: none;
 }
-.step-card.step-locked::before { background: #cbd5e1; height: 3px; }
 .step-card.step-locked .step-card-ico {
   background: #f1f5f9;
-  color: var(--text4);
-  border-color: #e2e8f0;
+  color: #94a3b8;
 }
+.step-card.step-locked .step-card-title { color: #94a3b8; }
 
-/* Icono · circular más grande tintado con el color del tono */
+/* Icono · chip cuadrado redondeado (squircle), tinte soft del tono,
+   símbolo en el color saturado. Estética Apple iOS. */
 .step-card-ico {
-  width: 40px; height: 40px;
-  border-radius: 50%;
+  width: 36px; height: 36px;
+  border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  color: #fff;
+  background: var(--tone-soft, #f1f5f9);
+  color: var(--tone, #0f172a);
   flex-shrink: 0;
-  background: currentColor;
-  box-shadow: 0 2px 6px rgba(15,23,42,.12), inset 0 -1px 0 rgba(0,0,0,.08);
 }
-.step-card-ico > svg { color: #fff; }
-.step-card.tone-green  .step-card-ico { background: #15803d; }
-.step-card.tone-bronze .step-card-ico { background: #B08D57; }
-.step-card.tone-blue   .step-card-ico { background: #0f5fa7; }
-.step-card.tone-purple .step-card-ico { background: #6b21a8; }
-.step-card.tone-accent .step-card-ico { background: var(--accent); }
-.step-card.tone-amber  .step-card-ico { background: #b45309; }
-.step-card.tone-red    .step-card-ico { background: #b91c1c; }
-.step-card.tone-indigo .step-card-ico { background: #4338ca; }
+.step-card-ico > svg { color: inherit; }
 
-/* Header de la card (icono + label en una fila) */
+/* Head row · icono + label */
 .step-card-head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  min-width: 0;
 }
 
 .step-card-body { flex: 1; min-width: 0; }
@@ -2208,180 +2167,135 @@ tr:hover .ra-cell { opacity: 1; }
   min-width: 0;
 }
 
-/* Label con numerito de paso, pills de estado */
+/* Label · título de la card (sin uppercase ni tracking enorme).
+   Estética Apple: solo el nombre del concepto, peso medio. */
 .step-card-lbl {
   flex: 1;
   min-width: 0;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text4);
-  text-transform: uppercase;
-  letter-spacing: .08em;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 .step-card-title {
-  font-size: 11.5px;
-  font-weight: 800;
-  color: currentColor;
-  letter-spacing: .03em;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+  letter-spacing: -0.01em;
 }
-.step-card.step-current .step-card-lbl { color: currentColor; }
-.step-card.step-current .step-card-title { color: currentColor; }
 .step-num {
-  font-size: 9.5px;
-  font-weight: 800;
-  color: var(--text4);
-  background: rgba(255,255,255,.7);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1px 7px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #94a3b8;
   font-family: var(--mono);
   letter-spacing: 0;
   white-space: nowrap;
 }
-.step-card.step-current .step-num,
-.step-card.step-done .step-num {
-  background: currentColor;
-  color: #fff;
-  border-color: transparent;
-  opacity: .95;
-}
+.step-card.step-locked .step-card-title { color: #94a3b8; }
+/* Pills · estética Apple, soft tinted */
 .step-pill-current {
-  font-size: 8.5px;
-  font-weight: 800;
-  color: #fff;
-  background: currentColor;
-  padding: 2px 7px;
-  border-radius: 10px;
-  letter-spacing: .05em;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--tone);
+  background: var(--tone-soft);
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0;
 }
-.step-pill-current::after {
-  content: '';
-  display: inline-block;
-  width: 0; height: 0;
-}
-/* Texto blanco real (currentColor en el pill apuntaría al texto blanco infinito).
-   Truco: usamos color del padre vía un span interno. Aquí simplificamos
-   poniendo el color explícito por tono mediante el padre. */
-.step-card.tone-green  .step-pill-current { background: #15803d; color: #fff; }
-.step-card.tone-bronze .step-pill-current { background: #B08D57; color: #fff; }
-.step-card.tone-blue   .step-pill-current { background: #0f5fa7; color: #fff; }
-.step-card.tone-purple .step-pill-current { background: #6b21a8; color: #fff; }
-.step-card.tone-accent .step-pill-current { background: var(--accent); color: #fff; }
-.step-card.tone-amber  .step-pill-current { background: #b45309; color: #fff; }
-.step-card.tone-red    .step-pill-current { background: #b91c1c; color: #fff; }
-.step-card.tone-indigo .step-pill-current { background: #4338ca; color: #fff; }
 .step-pill-done {
-  font-size: 11px;
-  color: #15803d;
-  margin-left: 4px;
-  font-weight: 800;
-}
-.step-pill-locked { font-size: 11px; margin-left: 4px; }
-.step-pill-optional {
-  font-size: 8.5px;
+  font-size: 12px;
+  color: var(--tone);
   font-weight: 700;
-  color: var(--text3);
-  background: var(--gray-lt, #f4f4f5);
-  border: 1px solid var(--border);
-  padding: 1px 6px;
-  border-radius: 3px;
-  margin-left: 4px;
-  letter-spacing: .05em;
-  text-transform: uppercase;
+  opacity: .9;
+}
+.step-pill-locked { font-size: 11px; opacity: .5; }
+.step-pill-optional {
+  font-size: 10px;
+  font-weight: 500;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0;
 }
 .step-card-extra {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed rgba(0,0,0,.08);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0,0,0,.06);
 }
 
 .step-card-val {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--ink);
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 1.3;
-  margin-top: 2px;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
 }
-.step-card.step-done .step-card-val,
-.step-card.step-done.is-clickable .step-card-val {
-  color: currentColor;
-}
-.step-card.step-current .step-card-val { color: currentColor; }
+.step-card.step-done .step-card-val { color: var(--tone); }
+.step-card.step-current .step-card-val { color: #0f172a; }
 .step-card-sub {
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--text3);
+  font-size: 12.5px;
+  font-weight: 400;
+  color: #64748b;
   margin-top: 4px;
-  line-height: 1.45;
+  line-height: 1.5;
   white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  letter-spacing: -0.005em;
 }
 
 .step-card-empty {
-  font-size: 11.5px;
-  font-style: italic;
-  color: var(--accent);
-  font-weight: 500;
-  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--tone);
+  font-weight: 400;
+  margin-top: 2px;
+  letter-spacing: -0.005em;
 }
 
 .step-card-locked-msg {
-  font-size: 11px;
-  color: var(--text4);
-  margin-top: 4px;
-  line-height: 1.4;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
 }
 
 /* CTA · botón principal del paso actual */
 .step-card-cta { margin-top: 8px; }
+/* CTA · botón estilo iOS · soft tinted o filled */
 .step-cta-btn {
-  padding: 8px 14px;
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 8px;
-  border: 1px solid currentColor;
-  background: rgba(255,255,255,.85);
-  color: currentColor;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 10px;
+  border: none;
+  background: var(--tone-soft);
+  color: var(--tone);
   cursor: pointer;
   font-family: inherit;
-  transition: all .15s ease;
+  transition: background .15s ease, opacity .15s ease;
   width: 100%;
-  letter-spacing: .01em;
+  letter-spacing: -0.01em;
 }
 .step-cta-btn:hover {
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(15,23,42,.10);
+  background: var(--tone);
+  color: #fff;
 }
 .step-cta-btn.is-primary {
-  background: currentColor;
+  background: var(--tone);
   color: #fff;
-  box-shadow: 0 3px 10px rgba(15,23,42,.18);
-  border-color: transparent;
+  font-weight: 600;
 }
-.step-card.tone-green  .step-cta-btn.is-primary { background: #15803d; color: #fff; }
-.step-card.tone-bronze .step-cta-btn.is-primary { background: #B08D57; color: #fff; }
-.step-card.tone-blue   .step-cta-btn.is-primary { background: #0f5fa7; color: #fff; }
-.step-card.tone-purple .step-cta-btn.is-primary { background: #6b21a8; color: #fff; }
-.step-card.tone-accent .step-cta-btn.is-primary { background: var(--accent); color: #fff; }
-.step-card.tone-amber  .step-cta-btn.is-primary { background: #b45309; color: #fff; }
-.step-card.tone-red    .step-cta-btn.is-primary { background: #b91c1c; color: #fff; }
-.step-card.tone-indigo .step-cta-btn.is-primary { background: #4338ca; color: #fff; }
 .step-cta-btn.is-primary:hover {
-  filter: brightness(1.06);
-  box-shadow: 0 6px 18px rgba(15,23,42,.22);
+  opacity: .88;
 }
 
 /* Acciones de la card DONE · ✎ Editar · ↗ Abrir · → Siguiente paso */
@@ -2392,31 +2306,30 @@ tr:hover .ra-cell { opacity: 1; }
   gap: 6px;
 }
 .step-mini-btn {
-  padding: 4px 9px;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 5px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text2);
+  padding: 5px 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: none;
+  background: #f1f5f9;
+  color: #475569;
   cursor: pointer;
   font-family: inherit;
-  transition: all .12s ease;
+  transition: background .12s ease, color .12s ease;
   line-height: 1.3;
+  letter-spacing: -0.005em;
 }
 .step-mini-btn:hover {
-  border-color: currentColor;
-  color: var(--ink);
-  background: var(--gray-lt, #f4f4f5);
+  background: #e2e8f0;
+  color: #0f172a;
 }
 .step-mini-btn.is-next {
-  border-color: var(--accent-bd);
-  color: var(--accent);
-  background: var(--accent-lt);
-  font-weight: 700;
+  background: var(--tone-soft);
+  color: var(--tone);
+  font-weight: 600;
 }
 .step-mini-btn.is-next:hover {
-  background: var(--accent);
+  background: var(--tone);
   color: #fff;
 }
 
