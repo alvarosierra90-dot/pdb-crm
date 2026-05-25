@@ -476,6 +476,7 @@ export default function FichaLead() {
                       value: [lead.contacto_nombre, lead.contacto_apellidos].filter(Boolean).join(' ') || null,
                       sub: lead.email || lead.telefono || null,
                       status: contactoStatus,
+                      vacant: !([lead.contacto_nombre, lead.contacto_apellidos].filter(Boolean).join(' ')) && contactoStatus === 'current',
                       action: contactoStatus === 'current'
                         ? { label:'✎ Completar contacto', onClick: () => setShowEditarContacto(true), primary: true }
                         : null,
@@ -490,6 +491,7 @@ export default function FichaLead() {
                       value: lead.cuenta_nombre || null,
                       sub: lead.cuenta_sector || null,
                       status: cuentaStatus,
+                      vacant: !hasCuenta && cuentaStatus === 'current',
                       action: cuentaStatus === 'current'
                         ? { label:'⚡ Transformar y vincular cuenta', onClick: () => !cerradoLocal && setShowTransformar(true), primary: true }
                         : null,
@@ -506,6 +508,7 @@ export default function FichaLead() {
                       value: oportunidadNombre || lead.dynamics_opportunity_id || null,
                       sub: lead.via ? `Vía ${lead.via}` : null,
                       status: oportunidadStatus,
+                      vacant: !hasOportunidad && oportunidadStatus === 'current',
                       action: oportunidadStatus === 'current'
                         ? { label:'⚡ Transformar lead', onClick: () => !cerradoLocal && setShowTransformar(true), primary: true }
                         : null,
@@ -523,6 +526,7 @@ export default function FichaLead() {
                       value: propuestaRef,
                       sub: hasPropuesta ? 'Completa el proyecto desde la ficha de propuesta.' : null,
                       status: propuestaStatus,
+                      vacant: !hasPropuesta && propuestaStatus === 'current',
                       action: propuestaStatus === 'current'
                         ? { label:'Ir a generar propuesta', onClick: () => propuestaRef ? navigate('ficha-propuesta', { id: propuestaRef }) : navigate('propuestas'), primary: false }
                         : null,
@@ -543,6 +547,7 @@ export default function FichaLead() {
                       value: lead.mandato?.ref || null,
                       sub: hasMandato ? `${lead.mandato.tipo || 'mandato'} · ${lead.mandato.exclusividad_modo || 'exclusiva'}` : null,
                       status: mandatoStatus,
+                      vacant: !hasMandato && mandatoStatus === 'current',
                       action: mandatoStatus === 'current' && propuestaRef
                         ? { label:'Marcar propuesta como ganada', onClick: () => navigate('ficha-propuesta', { id: propuestaRef }), primary: true }
                         : null,
@@ -590,6 +595,7 @@ export default function FichaLead() {
                         value: meta.value,
                         sub:   meta.sub,
                         status: destinoStatus,
+                        vacant: !meta.value && destinoStatus === 'current',
                         action: destinoStatus === 'current' && esDirecto
                           ? { label: `Transformar como ${meta.label} directa`, onClick: () => !cerradoLocal && setShowTransformar(true), primary: true }
                           : null,

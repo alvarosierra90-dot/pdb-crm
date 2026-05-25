@@ -436,6 +436,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                       value: cuenta?.nombre || null,
                       sub:   cuenta?.sector || cuenta?.tipo || null,
                       status: hasCuenta ? 'done' : 'current',
+                      vacant: !hasCuenta,
                       openAction: hasCuenta ? { label:'Abrir cuenta', onClick: () => navigate('cuentas', { id: cuenta.dynamics_id || cuenta.id }) } : null,
                       lockedHint: null,
                       dyn: true,
@@ -462,6 +463,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                         : null,
                       sub: esPitchOferta ? 'Pitch de oferta · vincula los edificios del propietario al que pitcheas.' : null,
                       status: activosStatus,
+                      vacant: !tieneActivos && activosStatus === 'current',
                       extraBody: hasOportunidad ? activosBody : null,
                       lockedHint:'Vincula primero la oportunidad.',
                     },
@@ -473,6 +475,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                       value: tienePitch ? 'Pitch sincronizado' : null,
                       sub: pitchAplica ? 'Salta al paso 5 con propuesta + activos pre-rellenados.' : null,
                       status: pitchStatus,
+                      vacant: !tienePitch && pitchStatus === 'current',
                       optional: true,
                       // Slot extra: input para pegar URL del pitch externo (Drive/OneDrive/SharePoint)
                       // si el broker lo hizo fuera de la app.

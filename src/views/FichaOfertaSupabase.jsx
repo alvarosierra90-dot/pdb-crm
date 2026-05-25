@@ -8,7 +8,10 @@ import { Inbox, Building2, MapPin, Wallet, FileText, Globe, Presentation, Clock 
 import Vinculaciones from '../components/Vinculaciones'
 import HeaderPills from '../components/HeaderPills'
 import FunnelTracker from '../components/FunnelTracker'
+import FunnelStepCards from '../components/FunnelStepCards'
 import NotasModal from '../components/NotasModal'
+import { cardTone } from '../lib/cardTones'
+import { ScrollText, Target, Tag, FileSearch } from 'lucide-react'
 // Stacking compartido con FichaActivo · misma lógica/diseño, solo cambia initView.
 import { StackingPlan } from './FichaActivo'
 
@@ -413,41 +416,66 @@ export default function FichaOfertaSupabase({ refOrId }) {
           {/* TAB: Información oferta */}
           {tab === 'of-info' && (
             <div className="tab-content active"><div className="info-pad fp-tab">
-              {/* ── SECCIÓN 01 · VINCULACIONES ── */}
+              {/* ── SECCIÓN 01 · VINCULACIONES (FunnelStepCards canon) ── */}
               <div className="fp-section-eyebrow">
                 <span className="fp-eyebrow-n">01</span>
                 <span className="fp-eyebrow-l">Vinculaciones</span>
                 <span className="fp-eyebrow-hint">A qué está conectada esta oferta</span>
               </div>
-              <Vinculaciones
-                cuenta={propietario ? {
-                  id: propietario.id || propietario.dynamics_id,
-                  nombre: propietario.nombre,
-                  sub: propietario.sector || propietario.tipo
-                } : null}
-                cuentaLabel="Propietario (Cuenta)"
-                activo={activo ? {
-                  ref: activo.ref,
-                  nombre: activo.nombre,
-                  direccion: activo.direccion,
-                  sub: [activo.zona, activo.ciudad].filter(Boolean).join(' · ') || activo.uso
-                } : null}
-                oportunidad={oportunidad ? {
-                  id: oportunidad.id || oportunidad.dynamics_id,
-                  nombre: oportunidad.nombre,
-                  sub: oportunidad.tipo
-                } : null}
-                instruccion={mandatoVinculado?.dynamics_instruction_id ? {
-                  id: mandatoVinculado.dynamics_instruction_id,
-                  dynamics_id: mandatoVinculado.dynamics_instruction_id
-                } : null}
-                mandato={mandatoVinculado ? {
-                  id: mandatoVinculado.id,
-                  ref: mandatoVinculado.ref,
-                  titulo: mandatoVinculado.titulo,
-                  sub: mandatoVinculado.tipo
-                } : null}
-              />
+              {(() => {
+                const hasActivo  = !!activo
+                const hasPropie  = !!propietario
+                const hasOpo     = !!oportunidad
+                const hasMandato = !!mandatoVinculado
+                const hasInstr   = !!mandatoVinculado?.dynamics_instruction_id
+                return (
+                  <FunnelStepCards steps={[
+                    {
+                      key:'activo', icon: Tag, tone: cardTone('Activo'),
+                      label:'Activo', value: activo?.nombre || null,
+                      sub: activo ? ([activo.zona, activo.ciudad].filter(Boolean).join(' · ') || activo.uso || null) : null,
+                      status: hasActivo ? 'done' : 'current',
+                      vacant: !hasActivo,
+                      openAction: hasActivo ? { label:'Abrir activo', onClick: () => navigate('ficha-activo', { ref: activo.ref }) } : null,
+                    },
+                    {
+                      key:'propietario', icon: Building2, tone: cardTone('Cuenta'),
+                      label:'Propietario (Cuenta)', value: propietario?.nombre || null,
+                      sub: propietario?.sector || propietario?.tipo || null,
+                      status: hasPropie ? 'done' : 'current',
+                      vacant: !hasPropie,
+                      openAction: hasPropie ? { label:'Abrir cuenta', onClick: () => navigate('cuentas', { id: propietario.dynamics_id || propietario.id }) } : null,
+                      dyn: true,
+                    },
+                    {
+                      key:'oportunidad', icon: Target, tone: cardTone('Oportunidad'),
+                      label:'Oportunidad', value: oportunidad?.nombre || null,
+                      sub: oportunidad?.tipo || null,
+                      status: hasOpo ? 'done' : 'current',
+                      vacant: !hasOpo,
+                      openAction: hasOpo ? { label:'Abrir oportunidad', onClick: () => navigate('ficha-oportunidad', { id: oportunidad.dynamics_id || oportunidad.id }) } : null,
+                      dyn: true,
+                    },
+                    {
+                      key:'mandato', icon: ScrollText, tone: cardTone('Mandato'),
+                      label:'Mandato', value: mandatoVinculado?.ref || null,
+                      sub: hasMandato ? (mandatoVinculado.titulo || mandatoVinculado.tipo || '(sin título)') : 'Opcional · vincula uno o pasa sin mandato.',
+                      status: hasMandato ? 'done' : 'current',
+                      vacant: !hasMandato,
+                      openAction: hasMandato ? { label:'Abrir mandato', onClick: () => navigate('ficha-mandato', { ref: mandatoVinculado.ref }) } : null,
+                      optional: !hasMandato,
+                    },
+                    {
+                      key:'instruccion', icon: FileSearch, tone: cardTone('Instrucción'),
+                      label:'Instrucción', value: mandatoVinculado?.dynamics_instruction_id || null,
+                      sub: hasInstr ? 'Instrucción de Dynamics vinculada.' : 'Se genera al firmar el mandato.',
+                      status: hasInstr ? 'done' : 'current',
+                      vacant: !hasInstr,
+                      dyn: true,
+                    },
+                  ]} />
+                )
+              })()}
               {/* ── SECCIÓN 02 · EQUIPO Y COLABORADORES (50/50) ── */}
               <div className="fp-section-eyebrow">
                 <span className="fp-eyebrow-n">02</span>

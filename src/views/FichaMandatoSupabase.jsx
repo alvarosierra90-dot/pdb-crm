@@ -7,6 +7,9 @@ import ActividadesPanel from '../components/ActividadesPanel'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
 import FunnelTracker from '../components/FunnelTracker'
+import FunnelStepCards from '../components/FunnelStepCards'
+import { cardTone } from '../lib/cardTones'
+import { Building2, Target, ScrollText, Tag, FileSearch } from 'lucide-react'
 
 // Mismo formato que Propuestas y Proyectos: una sola pestaña principal
 // que agrupa todos los bloques. Fees y honorarios pasa a estar dentro
@@ -874,20 +877,60 @@ export default function FichaMandatoSupabase({ refOrId }) {
             return (
               <div className="tab-content active"><div className="info-pad">
 
-                {/* ── VINCULACIONES (canónico, siempre arriba) ── */}
-                <Vinculaciones
-                  cuenta={cuenta ? {
-                    id:     cuenta.dynamics_id || cuenta.id,
-                    nombre: cuenta.nombre,
-                    sub:    cuenta.sector || cuenta.tipo,
-                  } : null}
-                  activo={activoForVinc}
-                  oportunidad={oportunidad ? {
-                    id:     oportunidad.dynamics_id || oportunidad.id,
-                    nombre: oportunidad.nombre,
-                    sub:    oportunidad.tipo,
-                  } : null}
-                />
+                {/* ── VINCULACIONES (FunnelStepCards canon) ── */}
+                {(() => {
+                  const hasCuenta = !!cuenta
+                  const hasOpo    = !!oportunidad
+                  const hasActivo = activosLinked.length > 0
+                  const hasInstr  = !!mandato.dynamics_instruction_id
+                  return (
+                    <FunnelStepCards steps={[
+                      {
+                        key:'cuenta', icon: Building2, tone: cardTone('Cuenta'),
+                        label:'Cuenta', value: cuenta?.nombre || null,
+                        sub: cuenta?.sector || cuenta?.tipo || null,
+                        status: hasCuenta ? 'done' : 'current',
+                        vacant: !hasCuenta,
+                        openAction: hasCuenta ? { label:'Abrir cuenta', onClick: () => navigate('cuentas', { id: cuenta.dynamics_id || cuenta.id }) } : null,
+                        dyn: true,
+                      },
+                      {
+                        key:'oportunidad', icon: Target, tone: cardTone('Oportunidad'),
+                        label:'Oportunidad', value: oportunidad?.nombre || null,
+                        sub: oportunidad?.tipo || null,
+                        status: hasOpo ? 'done' : 'current',
+                        vacant: !hasOpo,
+                        openAction: hasOpo ? { label:'Abrir oportunidad', onClick: () => navigate('ficha-oportunidad', { id: oportunidad.dynamics_id || oportunidad.id }) } : null,
+                        dyn: true,
+                      },
+                      {
+                        key:'instruccion', icon: FileSearch, tone: cardTone('Instrucción'),
+                        label:'Instrucción', value: mandato.dynamics_instruction_id || null,
+                        sub: hasInstr ? 'Instrucción de Dynamics vinculada.' : 'Se sincroniza con Dynamics al firmar.',
+                        status: hasInstr ? 'done' : 'current',
+                        vacant: !hasInstr,
+                        dyn: true,
+                      },
+                      {
+                        key:'activos', icon: Tag, tone: cardTone('Activo'),
+                        label: activosLinked.length === 1 ? 'Activo' : 'Activos',
+                        value: hasActivo
+                          ? (activosLinked.length === 1
+                              ? (activosLinked[0].activos?.nombre || activosLinked[0].activos?.ref)
+                              : `${activosLinked.length} activos`)
+                          : null,
+                        sub: hasActivo && activosLinked.length === 1
+                          ? ([activosLinked[0].activos?.ciudad, activosLinked[0].activos?.uso].filter(Boolean).join(' · ') || null)
+                          : (hasActivo ? 'Ver listado abajo' : 'Vincula los activos del mandato.'),
+                        status: hasActivo ? 'done' : 'current',
+                        vacant: !hasActivo,
+                        openAction: hasActivo && activosLinked.length === 1 && activosLinked[0].activos?.ref
+                          ? { label:'Abrir activo', onClick: () => navigate('ficha-activo', { ref: activosLinked[0].activos.ref }) }
+                          : null,
+                      },
+                    ]} />
+                  )
+                })()}
 
                 {/* ── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones) ── */}
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>

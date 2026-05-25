@@ -206,6 +206,7 @@ export default function FichaOportunidad() {
                           ? v.propuestas.join(' · ')
                           : (op.pitch === 'Sí' ? 'Pitch con propuesta competitiva' : null),
                         status: hasPropuesta ? 'done' : op.pitch === 'Sí' ? 'current' : 'locked',
+                        vacant: !hasPropuesta && op.pitch === 'Sí',
                         openAction: hasPropuesta
                           ? { label:'Abrir propuesta', onClick: () => navigate('ficha-propuesta', { id: v.propuestas[0] }) }
                           : null,
@@ -223,6 +224,7 @@ export default function FichaOportunidad() {
                           : null,
                         sub: hasMandato && v.mandatos.length > 1 ? v.mandatos.join(' · ') : null,
                         status: hasMandato ? 'done' : (hasPropuesta || hasCuenta) ? 'current' : 'locked',
+                        vacant: !hasMandato && (hasPropuesta || hasCuenta),
                         openAction: hasMandato
                           ? { label:'Abrir mandato', onClick: () => navigate('ficha-mandato', { ref: v.mandatos[0] }) }
                           : null,
@@ -238,6 +240,7 @@ export default function FichaOportunidad() {
                           ? `${v.ofertas.length} oferta(s) · ${v.demandas.length} demanda(s)${v.activos.length > 0 ? ` · ${v.activos.length} activo(s)` : ''}`
                           : 'Generadas tras firmar mandato o vía directa.',
                         status: hasComercial ? 'done' : hasMandato ? 'current' : 'locked',
+                        vacant: !hasComercial && hasMandato,
                         openAction: hasComercial
                           ? { label:'Ver vinculaciones', onClick: () => setTab('vinc') }
                           : null,
