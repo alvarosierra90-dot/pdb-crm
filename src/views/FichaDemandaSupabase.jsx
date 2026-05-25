@@ -1001,6 +1001,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                         ? (demanda.mandato?.titulo || '(sin título)')
                         : 'Opcional · vincula uno existente o pasa sin mandato.',
                       status: hasMandato ? 'done' : cerrada ? 'locked' : 'current',
+                      vacant: !hasMandato && !cerrada,  // gris hasta que se vincule
                       openAction: hasMandato ? { label:'Abrir mandato', onClick: () => navigate('ficha-mandato', { ref: demanda.mandato.ref }) } : null,
                       editAction: hasMandato ? { label:'Desvincular', onClick: desvincularMandato } : null,
                       extraBody: mandatoExtra,
@@ -1012,6 +1013,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       value: hasOferta ? ofertaActiva.ref : null,
                       sub: ofertaSub,
                       status: hasOferta ? 'done' : cerrada ? 'locked' : 'current',
+                      vacant: !hasOferta && !cerrada,  // gris hasta que se vincule
                       openAction: hasOferta ? { label:'Abrir oferta', onClick: () => navigate('ficha-oferta', { ofertaRef: ofertaActiva.ref }) } : null,
                       editAction: hasOferta ? { label:'Desvincular', onClick: desvincularOferta } : null,
                       extraBody: ofertaExtra,
@@ -1035,6 +1037,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       value: demanda.instruccion_ref || null,
                       sub: hasInstruccion ? 'Instrucción de Dynamics vinculada.' : 'Vincula la instrucción para arrancar la negociación.',
                       status: hasInstruccion ? 'done' : 'current',
+                      vacant: !hasInstruccion,  // gris hasta que se vincule
                       openAction: hasInstruccion ? { label:'Ver instrucciones', onClick: () => navigate('instrucciones', { ref: demanda.instruccion_ref }) } : null,
                       editAction: hasInstruccion ? { label:'Desvincular', onClick: desvincularInstruccion } : null,
                       extraBody: instExtra,

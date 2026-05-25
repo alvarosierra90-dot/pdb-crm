@@ -41,7 +41,7 @@ export default function FunnelStepCards({ steps }) {
 function StepCard({
   icon: Icon, tone = 'accent', label, value, sub,
   status, action, secondaryAction, editAction, nextAction, openAction, lockedHint,
-  dyn, count, index, total, extraBody, optional,
+  dyn, count, index, total, extraBody, optional, vacant,
 }) {
   const isDone    = status === 'done'
   const isCurrent = status === 'current'
@@ -54,7 +54,7 @@ function StepCard({
 
   return (
     <div
-      className={`step-card tone-${tone} step-${status}${cardClickable ? ' is-clickable' : ''}`}
+      className={`step-card tone-${tone} step-${status}${vacant ? ' step-vacant' : ''}${cardClickable ? ' is-clickable' : ''}`}
       onClick={handleCardClick}
       style={cardClickable ? { cursor:'pointer' } : undefined}
       role={cardClickable ? 'button' : undefined}

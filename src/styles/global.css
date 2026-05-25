@@ -2137,6 +2137,28 @@ tr:hover .ra-cell { opacity: 1; }
 }
 .step-card.step-locked .step-card-title { color: #94a3b8; }
 
+/* VACANT · card actionable pero sin nada vinculado todavía.
+   El tono se silencia · solo aparece al hacer hover en los CTAs.
+   El color se "activa" cuando la card pasa a done. */
+.step-card.step-vacant {
+  --tone: #64748b;
+  --tone-soft: #f1f5f9;
+  background: #fafafa;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: none;
+}
+.step-card.step-vacant .step-card-ico {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+.step-card.step-vacant .step-card-title {
+  color: #64748b;
+}
+.step-card.step-vacant.is-clickable:hover {
+  border-color: rgba(0, 0, 0, 0.14);
+  background: #fff;
+}
+
 /* Icono · chip cuadrado redondeado (squircle), tinte soft del tono,
    símbolo en el color saturado. Estética Apple iOS. */
 .step-card-ico {
