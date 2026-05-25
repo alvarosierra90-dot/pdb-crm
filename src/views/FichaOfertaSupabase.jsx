@@ -13,7 +13,7 @@ import NotasModal from '../components/NotasModal'
 import { cardTone } from '../lib/cardTones'
 import { ScrollText, Target, Tag, FileSearch } from 'lucide-react'
 // Stacking compartido con FichaActivo · misma lógica/diseño, solo cambia initView.
-import { StackingPlan } from './FichaActivo'
+import { StackingPlan, ESTADOS_CONSTRUCCION } from './FichaActivo'
 
 // Pestañas de la ficha de oferta. "Crear ficha" eliminada (botones PPT/PDF
 // se exponen en el header). "Equipo de trabajo" se quitó como pestaña porque
@@ -615,70 +615,129 @@ export default function FichaOfertaSupabase({ refOrId }) {
             </div></div>
           )}
 
-          {/* Condiciones · fusionado dentro de Espacios comerciales
-              (regla del usuario · ya no es un tab independiente). */}
+          {/* Condiciones · fusionado dentro de Espacios comerciales (canon Apple HIG). */}
           {tab === 'of-espacios' && (
             <div className="tab-content active"><div className="info-pad">
-              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14, paddingBottom:10, borderBottom:'2px solid var(--border)' }}>
-                <div style={{ width:28, height:28, borderRadius:8, background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, flexShrink:0 }}>€</div>
-                <div>
-                  <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>Condiciones de la oferta</div>
-                  <div style={{ fontSize:11, color:'var(--text3)', marginTop:1 }}>Comercialización, tipología y estado · vinculado a los espacios de arriba</div>
+
+              {/* Fila 1 · Comercialización · Superficie · Renta/Precio */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14 }}>
+
+                {/* === COMERCIALIZACIÓN === */}
+                <div className="dash-card">
+                  <div className="dash-card-head">Comercialización</div>
+                  <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:10 }}>
+                    <div className="dash-field">
+                      <label className="dash-field-lbl">Tipo de operación</label>
+                      <select className="dash-field-input" value={form.tipo_operacion} onChange={e => setF('tipo_operacion', e.target.value)}>
+                        <option value="">—</option>{TIPO_OPERACION.map(o => <option key={o}>{o}</option>)}
+                      </select>
+                    </div>
+                    <div className="dash-field">
+                      <label className="dash-field-lbl">Tipo de comercialización</label>
+                      <select className="dash-field-input" value={form.tipo_comercializacion} onChange={e => setF('tipo_comercializacion', e.target.value)}>
+                        <option value="">—</option>{TIPO_COMERC.map(o => <option key={o}>{o}</option>)}
+                      </select>
+                    </div>
+                    <div className="dash-field">
+                      <label className="dash-field-lbl">Tipología</label>
+                      <select className="dash-field-input" value={form.tipologia} onChange={e => setF('tipologia', e.target.value)}>
+                        <option value="">—</option>{TIPOLOGIAS.map(o => <option key={o}>{o}</option>)}
+                      </select>
+                    </div>
+                    {/* Estado de construcción · vive en el activo (mismo catálogo que FichaActivo).
+                        Si no hay activo vinculado, el selector se desactiva y avisa. */}
+                    <div className="dash-field">
+                      <label className="dash-field-lbl" style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
+                        <span>Estado de construcción</span>
+                        {activo?.ref && <span style={{ fontSize:9, fontWeight:500, color:'#94a3b8', textTransform:'none', letterSpacing:0 }}>· dato del activo</span>}
+                      </label>
+                      <select
+                        className="dash-field-input"
+                        disabled={!activo?.id}
+                        value={activo?.estado_construccion || ''}
+                        onChange={async e => {
+                          if (!activo?.id) return
+                          const nuevo = e.target.value || null
+                          // Optimistic update local
+                          setActivo(prev => prev ? { ...prev, estado_construccion: nuevo } : prev)
+                          const { error } = await supabase.from('activos')
+                            .update({ estado_construccion: nuevo, updated_at: new Date().toISOString() })
+                            .eq('id', activo.id)
+                          if (error) setSaveError(error.message)
+                        }}
+                        style={!activo?.id ? { opacity:0.5, cursor:'not-allowed' } : undefined}>
+                        <option value="">—</option>
+                        {ESTADOS_CONSTRUCCION.map(o => <option key={o}>{o}</option>)}
+                      </select>
+                      {!activo?.id && (
+                        <div style={{ fontSize:10, color:'#94a3b8', marginTop:2 }}>Vincula un activo arriba para editarlo.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* === SUPERFICIE === */}
+                <div className="dash-card">
+                  <div className="dash-card-head">Superficie</div>
+                  <div style={{ padding:'12px 16px 16px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                    <div className="dash-num-box">
+                      <div className="dash-num-lbl">Disponible (m²)</div>
+                      <input type="number" value={form.superficie_disponible} onChange={e => setF('superficie_disponible', e.target.value)} placeholder="—" className="dash-num-input" />
+                    </div>
+                    <div className="dash-num-box">
+                      <div className="dash-num-lbl">Plazas</div>
+                      <input type="number" value={form.plazas} onChange={e => setF('plazas', e.target.value)} placeholder="—" className="dash-num-input" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* === RENTA / PRECIO === */}
+                <div className="dash-card">
+                  <div className="dash-card-head">{form.tipo_operacion === 'Venta' ? 'Precio' : 'Renta'}</div>
+                  <div style={{ padding:'12px 16px 16px' }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:10 }}>
+                      <div className="dash-num-box">
+                        <div className="dash-num-lbl">{form.tipo_operacion === 'Venta' ? '€/m²' : '€/m² /mes'}</div>
+                        <input type="number" value={form.renta_m2} onChange={e => setF('renta_m2', e.target.value)} placeholder="—" className="dash-num-input" />
+                      </div>
+                      <div className="dash-num-box">
+                        <div className="dash-num-lbl">Gastos €/m²</div>
+                        <input type="number" value={form.gastos_comunes} onChange={e => setF('gastos_comunes', e.target.value)} placeholder="—" className="dash-num-input" />
+                      </div>
+                    </div>
+                    {/* Calculados · solo lectura */}
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, padding:'10px 12px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:10 }}>
+                      <div style={{ textAlign:'center' }}>
+                        <div style={{ fontSize:10, fontWeight:600, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'.05em' }}>Mensual</div>
+                        <div style={{ fontSize:14, fontWeight:700, color:'#15803d', fontFamily:'var(--mono)', marginTop:2 }}>
+                          {oferta.renta_mensual ? `${Number(oferta.renta_mensual).toLocaleString('es-ES')} €` : '—'}
+                        </div>
+                      </div>
+                      <div style={{ textAlign:'center' }}>
+                        <div style={{ fontSize:10, fontWeight:600, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'.05em' }}>Anual</div>
+                        <div style={{ fontSize:14, fontWeight:700, color:'#15803d', fontFamily:'var(--mono)', marginTop:2 }}>
+                          {oferta.renta_anual ? `${Number(oferta.renta_anual).toLocaleString('es-ES')} €` : '—'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Fila 2 · Descriptivo (full width) */}
+              <div className="dash-card" style={{ marginBottom:14 }}>
+                <div className="dash-card-head">Descriptivo comercial</div>
+                <div style={{ padding:'12px 16px 16px' }}>
+                  <textarea
+                    className="dash-field-input"
+                    style={{ minHeight:90, resize:'vertical', fontFamily:'var(--sans)', lineHeight:1.5 }}
+                    value={form.descriptivo}
+                    onChange={e => setF('descriptivo', e.target.value)}
+                    placeholder="Descripción comercial completa que aparecerá en la ficha pública / pitch..." />
                 </div>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-                <div>
-                  <div className="of-section">📑 COMERCIALIZACIÓN</div>
-                  <div className="info-block">
-                    <div className="ir"><span className="ir-k">Tipo operación</span><span className="ir-v">{editing
-                      ? <select style={sel} value={form.tipo_operacion} onChange={e => setF('tipo_operacion', e.target.value)}>
-                          <option value="">—</option>{TIPO_OPERACION.map(o => <option key={o}>{o}</option>)}
-                        </select>
-                      : (oferta.tipo_operacion || <span style={{ color:'var(--text4)' }}>—</span>)}</span></div>
-                    <div className="ir"><span className="ir-k">Tipo comercialización</span><span className="ir-v">{editing
-                      ? <select style={sel} value={form.tipo_comercializacion} onChange={e => setF('tipo_comercializacion', e.target.value)}>
-                          <option value="">—</option>{TIPO_COMERC.map(o => <option key={o}>{o}</option>)}
-                        </select>
-                      : (oferta.tipo_comercializacion || <span style={{ color:'var(--text4)' }}>—</span>)}</span></div>
-                    <div className="ir"><span className="ir-k">Tipología</span><span className="ir-v">{editing
-                      ? <select style={sel} value={form.tipologia} onChange={e => setF('tipologia', e.target.value)}>
-                          <option value="">—</option>{TIPOLOGIAS.map(o => <option key={o}>{o}</option>)}
-                        </select>
-                      : (oferta.tipologia || <span style={{ color:'var(--text4)' }}>—</span>)}</span></div>
-                  </div>
 
-                  <div className="of-section">📐 SUPERFICIE</div>
-                  <div className="info-block">
-                    <div className="ir"><span className="ir-k">Sup. disponible (m²)</span><span className="ir-v">{editing
-                      ? <input type="number" style={inp} value={form.superficie_disponible} onChange={e => setF('superficie_disponible', e.target.value)} placeholder="—" />
-                      : (oferta.superficie_disponible ? `${Number(oferta.superficie_disponible).toLocaleString('es-ES')} m²` : <span style={{ color:'var(--text4)' }}>—</span>)}</span></div>
-                    <div className="ir"><span className="ir-k">Plazas aparcamiento</span><span className="ir-v">{editing
-                      ? <input type="number" style={inp} value={form.plazas} onChange={e => setF('plazas', e.target.value)} placeholder="—" />
-                      : (oferta.plazas || <span style={{ color:'var(--text4)' }}>—</span>)}</span></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="of-section" style={{display:'inline-flex',alignItems:'center',gap:6}}><Wallet size={14} strokeWidth={1.75} /> RENTA / PRECIO</div>
-                  <div className="info-block">
-                    <div className="ir"><span className="ir-k">Renta €/m² /mes</span><span className="ir-v">{editing
-                      ? <input type="number" style={inp} value={form.renta_m2} onChange={e => setF('renta_m2', e.target.value)} placeholder="—" />
-                      : (oferta.renta_m2 || <span style={{ color:'var(--text4)' }}>—</span>)}</span></div>
-                    <div className="ir"><span className="ir-k">Gastos comunes €/m²</span><span className="ir-v">{editing
-                      ? <input type="number" style={inp} value={form.gastos_comunes} onChange={e => setF('gastos_comunes', e.target.value)} placeholder="—" />
-                      : (oferta.gastos_comunes || <span style={{ color:'var(--text4)' }}>—</span>)}</span></div>
-                    <div className="ir"><span className="ir-k">Renta mensual</span><span className="ir-v">{oferta.renta_mensual ? `${Number(oferta.renta_mensual).toLocaleString('es-ES')} €` : <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                    <div className="ir"><span className="ir-k">Renta anual</span><span className="ir-v">{oferta.renta_anual ? `${Number(oferta.renta_anual).toLocaleString('es-ES')} €` : <span style={{ color:'var(--text4)' }}>—</span>}</span></div>
-                  </div>
-
-                  <div className="of-section" style={{display:'inline-flex',alignItems:'center',gap:6}}><FileText size={14} strokeWidth={1.75} /> DESCRIPTIVO</div>
-                  <div className="info-block">
-                    {editing
-                      ? <textarea style={ta} value={form.descriptivo} onChange={e => setF('descriptivo', e.target.value)} placeholder="Descripción comercial completa..." />
-                      : (oferta.descriptivo || <span style={{ color:'var(--text4)' }}>—</span>)}
-                  </div>
-                </div>
-              </div>
             </div></div>
           )}
 
@@ -803,49 +862,55 @@ export default function FichaOfertaSupabase({ refOrId }) {
                   )
                 }
                 return (
-                  <div style={{ padding:'14px 18px' }}>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-                      <div style={{ fontSize:12, fontWeight:700, color:'var(--text)' }}>
-                        Espacios asignados <span style={{ marginLeft:6, padding:'1px 7px', background:'var(--accent-lt)', color:'var(--accent)', borderRadius:9, fontSize:10 }}>{espacios.length}</span>
+                  <div style={{ padding:'0 36px 24px' }}>
+                    <div className="dash-card">
+                      <div className="dash-card-head">
+                        Espacios asignados
+                        <span className="dash-card-count">{espacios.length}</span>
                       </div>
-                      <button onClick={() => setTab('of-stacking')} style={{ padding:'5px 12px', fontSize:11, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, background:'var(--surface)', cursor:'pointer', fontFamily:'inherit' }}>
-                        ✎ Editar en Stacking →
-                      </button>
+                      <div style={{ padding:'12px 16px 16px' }}>
+                        <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8 }}>
+                          <button onClick={() => setTab('of-stacking')}
+                            style={{ padding:'6px 12px', fontSize:11.5, fontWeight:500, border:'none', borderRadius:8, background:'var(--accent-lt)', color:'var(--accent)', cursor:'pointer', fontFamily:'inherit', letterSpacing:'-0.005em' }}>
+                            ✎ Editar en Stacking
+                          </button>
+                        </div>
+                        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12.5 }}>
+                          <thead>
+                            <tr>
+                              {['Edificio','Planta','Superficie (m²)', oferta.tipo_operacion === 'Venta' ? 'Precio €/m²' : 'Renta €/m²/mes', oferta.tipo_operacion === 'Venta' ? 'Precio total' : 'Renta mensual'].map(h =>
+                                <th key={h} style={{ padding:'8px 10px', fontSize:10, fontWeight:600, color:'#94a3b8', textAlign:'left', textTransform:'uppercase', letterSpacing:'.05em', borderBottom:'1px solid rgba(0,0,0,0.08)' }}>{h}</th>
+                              )}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {espacios.map((e, i) => (
+                              <tr key={i} style={{ borderBottom:'1px solid rgba(0,0,0,0.04)' }}>
+                                <td style={{ padding:'10px', fontWeight:500, color:'#0f172a' }}>{e.edificio}</td>
+                                <td style={{ padding:'10px' }}><span style={{ fontSize:10.5, fontWeight:600, padding:'2px 8px', borderRadius:999, background:'#f1f5f9', color:'#64748b' }}>{e.planta}</span></td>
+                                <td style={{ padding:'10px', fontFamily:'var(--mono)', fontWeight:600, color:'#0f172a' }}>{e.sup.toLocaleString('es-ES')}</td>
+                                <td style={{ padding:'10px', fontFamily:'var(--mono)', color: e.renta ? '#0f172a' : '#cbd5e1' }}>
+                                  {e.renta ? `${e.renta} €` : '— por completar'}
+                                </td>
+                                <td style={{ padding:'10px', fontFamily:'var(--mono)', fontWeight:600, color:'#15803d' }}>
+                                  {oferta.tipo_operacion === 'Venta'
+                                    ? (e.precio_total ? `${Number(e.precio_total).toLocaleString('es-ES')} €` : (e.renta && e.sup ? `${Math.round(e.renta * e.sup).toLocaleString('es-ES')} €` : '—'))
+                                    : (e.renta && e.sup ? `${Math.round(e.renta * e.sup).toLocaleString('es-ES')} €` : '—')}
+                                </td>
+                              </tr>
+                            ))}
+                            <tr style={{ borderTop:'1px solid rgba(0,0,0,0.10)' }}>
+                              <td colSpan={2} style={{ padding:'10px', fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.05em' }}>Total</td>
+                              <td style={{ padding:'10px', fontFamily:'var(--mono)', fontWeight:800, color:'#0f172a' }}>{totalSup.toLocaleString('es-ES')}</td>
+                              <td></td>
+                              <td style={{ padding:'10px', fontFamily:'var(--mono)', fontWeight:800, color:'#15803d' }}>
+                                {totalRenta > 0 ? `${Math.round(totalRenta).toLocaleString('es-ES')} €` : '—'}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                    <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12, border:'1px solid var(--border)', borderRadius:6, overflow:'hidden' }}>
-                      <thead>
-                        <tr style={{ background:'var(--gray-lt)' }}>
-                          {['Edificio','Planta','Superficie (m²)', oferta.tipo_operacion === 'Venta' ? 'Precio €/m²' : 'Renta €/m²/mes', oferta.tipo_operacion === 'Venta' ? 'Precio total' : 'Renta mensual'].map(h =>
-                            <th key={h} style={{ padding:'8px 12px', fontSize:10, fontWeight:700, color:'var(--text4)', textAlign:'left', textTransform:'uppercase', letterSpacing:'.04em', borderBottom:'1px solid var(--border)' }}>{h}</th>
-                          )}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {espacios.map((e, i) => (
-                          <tr key={i} style={{ borderBottom:'1px solid var(--border)' }}>
-                            <td style={{ padding:'7px 12px' }}>{e.edificio}</td>
-                            <td style={{ padding:'7px 12px' }}><span className="tag tag-gray" style={{ fontSize:10 }}>{e.planta}</span></td>
-                            <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600 }}>{e.sup.toLocaleString('es-ES')}</td>
-                            <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', color: e.renta ? 'var(--text2)' : 'var(--text4)', fontStyle: e.renta ? 'normal' : 'italic' }}>
-                              {e.renta ? `${e.renta} €` : '— por completar'}
-                            </td>
-                            <td style={{ padding:'7px 12px', fontFamily:'var(--mono)', fontWeight:600, color:'var(--green)' }}>
-                              {oferta.tipo_operacion === 'Venta'
-                                ? (e.precio_total ? `${Number(e.precio_total).toLocaleString('es-ES')} €` : (e.renta && e.sup ? `${Math.round(e.renta * e.sup).toLocaleString('es-ES')} €` : '—'))
-                                : (e.renta && e.sup ? `${Math.round(e.renta * e.sup).toLocaleString('es-ES')} €` : '—')}
-                            </td>
-                          </tr>
-                        ))}
-                        <tr style={{ background:'var(--gray-lt)', borderTop:'2px solid var(--border)' }}>
-                          <td colSpan={2} style={{ padding:'8px 12px', fontSize:10, fontWeight:700, color:'var(--text3)', textTransform:'uppercase' }}>Total</td>
-                          <td style={{ padding:'8px 12px', fontFamily:'var(--mono)', fontWeight:800 }}>{totalSup.toLocaleString('es-ES')}</td>
-                          <td></td>
-                          <td style={{ padding:'8px 12px', fontFamily:'var(--mono)', fontWeight:800, color:'var(--green)' }}>
-                            {totalRenta > 0 ? `${Math.round(totalRenta).toLocaleString('es-ES')} €` : '—'}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
                   </div>
                 )
               })()}
