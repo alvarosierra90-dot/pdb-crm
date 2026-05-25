@@ -11,6 +11,7 @@ import FunnelTracker from '../components/FunnelTracker'
 import FunnelStepCards from '../components/FunnelStepCards'
 import MarcarDemandaCierreModal from '../components/MarcarDemandaCierreModal'
 import NotasModal from '../components/NotasModal'
+import IniciarNegociacionModal from '../components/IniciarNegociacionModal'
 import { cardTone } from '../lib/cardTones'
 import { Building2, Target, ScrollText, Trophy, X as XClose, Briefcase, Tag, FileSearch, Handshake, MessageSquare } from 'lucide-react'
 
@@ -142,6 +143,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [showFirmarModal, setShowFirmarModal] = useState(false)
   const [showCierreModal, setShowCierreModal] = useState(null) // 'ganada' | 'perdida' | null
   const [showNotasModal, setShowNotasModal] = useState(false)
+  const [showNegociacionModal, setShowNegociacionModal] = useState(false)
   const [oportunidad, setOportunidad] = useState(null)
   // Vista 360 · alternativas (oferta_demanda con joins a ofertas + activos)
   const [alternativas, setAlternativas] = useState([])
@@ -587,6 +589,14 @@ export default function FichaDemandaSupabase({ refOrId }) {
         ]}
       />
 
+      {showNegociacionModal && (
+        <IniciarNegociacionModal
+          demanda={demanda}
+          onClose={() => setShowNegociacionModal(false)}
+          onSuccess={() => { setShowNegociacionModal(false); load() }}
+        />
+      )}
+
       <div className="ficha-wrap">
         <div className="ficha-main">
 
@@ -727,7 +737,21 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       {!yaGanada && (
                         <div>
                           <div className="rp-lbl" style={{ marginBottom:4 }}>Cambiar estado</div>
-                          <select className="fsel" value={ESTADO_OPTS.some(o => o.v === form.estatus) ? form.estatus : 'ongoing'} onChange={e => setF('estatus', e.target.value)} style={{ width:'100%' }}>
+                          <select
+                            className="fsel"
+                            value={ESTADO_OPTS.some(o => o.v === form.estatus) ? form.estatus : 'ongoing'}
+                            onChange={e => {
+                              const next = e.target.value
+                              // Pasar a 'En negociación' → confirmación + cascada
+                              // (crea NEG-XXXX y sincroniza cuenta/oportunidad/mandato/oferta).
+                              // Solo dispara cuando la demanda NO está ya en negociación.
+                              if (next === 'en_negociacion' && form.estatus !== 'en_negociacion') {
+                                setShowNegociacionModal(true)
+                                return
+                              }
+                              setF('estatus', next)
+                            }}
+                            style={{ width:'100%' }}>
                             {ESTADO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
                           </select>
                         </div>
