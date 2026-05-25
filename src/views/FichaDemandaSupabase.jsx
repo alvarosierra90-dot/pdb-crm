@@ -164,6 +164,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
   const [form, setForm] = useState({
     nombre:'', estatus:'', notas:'', motivo_descarte:'',
+    standby_proxima_llamada:'', standby_notas:'',
     naturaleza:'', tipo_activo:'', uso_principal:'', tipologia:'', razon_busqueda:'', timing:'',
     sup_min:'', sup_max:'',
     presupuesto_tipo:'', alq_min:'', alq_max:'', venta_m2_min:'', venta_m2_max:'',
@@ -176,7 +177,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
     // SELECT robusto: si la columna `documentos` aún no existe (migración 031
     // sin aplicar), reintentamos sin ella para no romper la ficha entera.
     const SELECT_FULL = `
-      id, ref, nombre, estatus, notas, motivo_descarte, requisitos, otros_contactos, equipo_trabajo, documentos,
+      id, ref, nombre, estatus, notas, motivo_descarte, standby_proxima_llamada, standby_notas, requisitos, otros_contactos, equipo_trabajo, documentos,
       dynamics_account_id, dynamics_opportunity_id, mandato_id, oferta_id, instruccion_ref, created_at, updated_at,
       dynamics_accounts:dynamics_account_id ( dynamics_id, nombre, tipo, sector, direccion, codigo_postal, ciudad, pais, telefono, web ),
       dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo ),
@@ -219,6 +220,13 @@ export default function FichaDemandaSupabase({ refOrId }) {
       const r = await supabase.from('demandas').select(SELECT_FALLBACK).eq('ref', refOrId).maybeSingle()
       data = r.data; error = r.error
       if (data) data.documentos = []
+    }
+    if (error && /standby_proxima_llamada|standby_notas/i.test((error.message || '') + (error.details || ''))) {
+      // Migración 038 no aplicada todavía → reintenta sin esos campos
+      const q3 = SELECT_FULL.replace(', standby_proxima_llamada, standby_notas', '')
+      const r = await supabase.from('demandas').select(q3).eq('ref', refOrId).maybeSingle()
+      data = r.data; error = r.error
+      if (data) { data.standby_proxima_llamada = null; data.standby_notas = null }
     }
     if (error) { setError(error.message); setDemanda(null); setLoading(false); return }
     if (!data)  { setError(`Demanda ${refOrId} no encontrada`); setDemanda(null); setLoading(false); return }
@@ -409,6 +417,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
       estatus:          demanda.estatus || 'ongoing',
       notas:            demanda.notas || '',
       motivo_descarte:  demanda.motivo_descarte || '',
+      standby_proxima_llamada: demanda.standby_proxima_llamada || '',
+      standby_notas:          demanda.standby_notas || '',
       naturaleza:       r.naturaleza || '',
       tipo_activo:      r.tipo_activo || '',
       uso_principal:    r.uso_principal || '',
@@ -471,11 +481,20 @@ export default function FichaDemandaSupabase({ refOrId }) {
       estatus:   form.estatus || 'ongoing',
       notas:     form.notas || null,
       motivo_descarte: form.estatus === 'descartada' ? (form.motivo_descarte.trim() || null) : null,
+      // Recordatorio Standby (solo se persiste si estatus='paralizada')
+      standby_proxima_llamada: form.estatus === 'paralizada' ? (form.standby_proxima_llamada || null) : null,
+      standby_notas:           form.estatus === 'paralizada' ? (form.standby_notas?.trim() || null) : null,
       requisitos: Object.keys(requisitos).length ? requisitos : null,
       otros_contactos: form.otros_contactos.length ? form.otros_contactos : null,
       updated_at: new Date().toISOString(),
     }
-    const { error } = await supabase.from('demandas').update(payload).eq('id', demanda.id)
+    let { error } = await supabase.from('demandas').update(payload).eq('id', demanda.id)
+    if (error && /standby_proxima_llamada|standby_notas/i.test(error.message || '')) {
+      // Migración 038 todavía no aplicada → guarda sin los campos de standby
+      const { standby_proxima_llamada, standby_notas, ...rest } = payload  // eslint-disable-line no-unused-vars
+      const retry = await supabase.from('demandas').update(rest).eq('id', demanda.id)
+      error = retry.error
+    }
     setSaving(false)
     if (error) { setSaveError(error.message); return }
     setEditing(false)  // tras guardar OK, vuelve a modo vista
@@ -771,6 +790,39 @@ export default function FichaDemandaSupabase({ refOrId }) {
                             style={{ width:'100%' }}>
                             {ESTADO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
                           </select>
+                        </div>
+                      )}
+
+                      {/* Standby · recordatorio + notas conversación cliente */}
+                      {form.estatus === 'paralizada' && (
+                        <div style={{ marginTop:2, padding:'12px 14px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:10 }}>
+                          <div style={{ fontSize:13, fontWeight:600, color:'#92400e', marginBottom:8, letterSpacing:'-0.01em' }}>
+                            Recordatorio
+                          </div>
+                          <div style={{ marginBottom:10 }}>
+                            <label style={{ fontSize:11, fontWeight:500, color:'#78350f', display:'block', marginBottom:4 }}>
+                              Próxima llamada
+                            </label>
+                            <input
+                              type="date"
+                              className="kf-inp"
+                              value={form.standby_proxima_llamada || ''}
+                              onChange={e => setF('standby_proxima_llamada', e.target.value)}
+                              style={{ width:'100%', padding:'7px 9px', fontSize:13, border:'1px solid #fcd34d', borderRadius:8, background:'#fff', fontFamily:'inherit' }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize:11, fontWeight:500, color:'#78350f', display:'block', marginBottom:4 }}>
+                              Última conversación con el cliente
+                            </label>
+                            <textarea
+                              value={form.standby_notas || ''}
+                              onChange={e => setF('standby_notas', e.target.value)}
+                              placeholder="Qué se ha hablado, motivo del standby, próximos pasos…"
+                              rows={3}
+                              style={{ width:'100%', padding:'8px 10px', fontSize:13, border:'1px solid #fcd34d', borderRadius:8, background:'#fff', fontFamily:'inherit', resize:'vertical', lineHeight:1.5, letterSpacing:'-0.005em' }}
+                            />
+                          </div>
                         </div>
                       )}
 
