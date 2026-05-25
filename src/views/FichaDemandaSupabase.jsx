@@ -13,12 +13,12 @@ import MarcarDemandaCierreModal from '../components/MarcarDemandaCierreModal'
 import NotasModal from '../components/NotasModal'
 import { Building2, Target, ScrollText, Trophy, X as XClose, Briefcase, Tag, FileSearch, Handshake } from 'lucide-react'
 
-// Orden canónico · Info → Específico → Documentos → Vista 360 → Confidencialidad
-// "Negociaciones" es específico de Demanda (las que salen de ella), va antes de Documentos.
+// Orden canónico · Info → Documentos → Vista 360 → Confidencialidad.
+// Requisitos se fusionó en "Información general" (sección inferior).
+// Negociaciones se accede ahora vía la card de Estado cuando estatus =
+// 'en_negociacion' (botón 'Abrir negociación'), no hay tab dedicado.
 const DEM_TABS = [
   ['dem-info', 'Información general'],
-  ['dem-req',  'Requisitos'],
-  ['dem-neg',  'Negociaciones'],
   ['dem-docs', 'Documentos'],
   ['dem-360',  'Vista 360'],
   ['dem-conf', 'Confidencialidad'],
@@ -643,7 +643,9 @@ export default function FichaDemandaSupabase({ refOrId }) {
             ))}
           </div>
 
-          {/* TAB: Información general — formato cards uniformes (Mandato/Propuesta) */}
+          {/* TAB: Información general — formato cards uniformes (Mandato/Propuesta).
+              Incluye también los Requisitos y la Zona de búsqueda (antes eran un tab
+              separado, ahora viven aquí abajo). */}
           {tab === 'dem-info' && (() => {
             const equipo = Array.isArray(demanda.equipo_trabajo) ? demanda.equipo_trabajo : []
             const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
@@ -653,6 +655,17 @@ export default function FichaDemandaSupabase({ refOrId }) {
               onAfter: () => load(),
               onError: (msg) => setSaveError(msg),
             })
+
+            // Helpers Requisitos (movidos desde el antiguo tab dem-req)
+            const ReqField = ({ label, required, accent, children }) => (
+              <div style={{ display:'flex', flexDirection:'column', gap:4, minWidth:0 }}>
+                <div style={{ fontSize:11, fontWeight:700, color: accent || 'var(--text)', textTransform:'uppercase', letterSpacing:'.03em' }}>
+                  {label} {required && <span style={{ color:'#dc2626' }}>*</span>}
+                </div>
+                {children}
+              </div>
+            )
+            const canExport = !!form.uso_principal && (!!form.sup_min || !!form.sup_max)
 
             const equipoInterno = equipo.filter(m => m.rol !== 'Colaborador')
             const colaboradores = equipo.filter(m => m.rol === 'Colaborador')
@@ -931,8 +944,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   return <FunnelStepCards steps={steps} />
                 })()}
 
-                {/* ── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones) ── */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+                {/* ── EQUIPO + COLABORADORES + PARTES INVOLUCRADAS (3 cuadros · misma fila) ── */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14, alignItems:'stretch' }}>
                   <EquipoTrabajoCard
                     title="Equipo de trabajo"
                     equipo={equipoInterno}
@@ -949,10 +962,6 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     onRemove={(idx) => handlers.removeMiembro(mapIdx(colaboradores, idx))}
                     onUpdateRol={(idx, rol) => handlers.updateMiembroRol(mapIdx(colaboradores, idx), rol)}
                   />
-                </div>
-
-                {/* ─── FILA: Partes involucradas (full-width temporal · Bloque 3 lo pondrá en 3 cuadros) ─── */}
-                <div style={{ marginBottom:12 }}>
 
                   {/* === PARTES INVOLUCRADAS === */}
                   <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
@@ -999,24 +1008,14 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
                 </div>
 
-              </div></div>
-            )
-          })()}
+                {/* ════════════════════════════════════════════════════════════════
+                    REQUISITOS + ZONA DE BÚSQUEDA · fusionado dentro de Información
+                    general (antes era un tab independiente).
+                    ════════════════════════════════════════════════════════════════ */}
 
-          {/* TAB: Requisitos (Requisitos + Zona de búsqueda fusionados) */}
-          {tab === 'dem-req' && (() => {
-            // Helper compacto: label + control + gap mínimo
-            const ReqField = ({ label, required, accent, children }) => (
-              <div style={{ display:'flex', flexDirection:'column', gap:4, minWidth:0 }}>
-                <div style={{ fontSize:11, fontWeight:700, color: accent || 'var(--text)', textTransform:'uppercase', letterSpacing:'.03em' }}>
-                  {label} {required && <span style={{ color:'#dc2626' }}>*</span>}
+                <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.04em', margin:'18px 0 10px', paddingTop:14, borderTop:'2px solid var(--border)' }}>
+                  Requisitos y zona de búsqueda
                 </div>
-                {children}
-              </div>
-            )
-            const canExport = !!form.uso_principal && (!!form.sup_min || !!form.sup_max)
-            return (
-              <div className="tab-content active"><div className="info-pad">
 
                 {/* ─── BARRA SUPERIOR · descripción + botón Exportar a mapa ─── */}
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12, padding:'10px 14px', background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:6 }}>
@@ -1528,7 +1527,6 @@ export default function FichaDemandaSupabase({ refOrId }) {
               </div></div>
             )
           })()}
-          {tab === 'dem-neg'  && <div className="tab-content active"><StubTab label="Negociaciones en curso" /></div>}
           {tab === 'dem-conf'     && (
             <ConfidencialidadPanel
               entityLabel="demanda"
