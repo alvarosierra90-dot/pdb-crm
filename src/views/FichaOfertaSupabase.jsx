@@ -476,75 +476,124 @@ export default function FichaOfertaSupabase({ refOrId }) {
                   ]} />
                 )
               })()}
-              {/* ── SECCIÓN 02 · EQUIPO Y COLABORADORES (50/50) ── */}
-              <div className="fp-section-eyebrow">
-                <span className="fp-eyebrow-n">02</span>
-                <span className="fp-eyebrow-l">Equipo y colaboradores</span>
-                <span className="fp-eyebrow-hint">Quién está trabajando en esta oferta</span>
-              </div>
+              {/* ── DASHBOARD 3 columnas: Estado · Equipo · Colaboradores ── */}
               {(() => {
                 const equipo = Array.isArray(oferta.equipo_trabajo) ? oferta.equipo_trabajo : []
                 const equipoInterno = equipo.filter(m => m.rol === 'Principal' || m.rol === 'Soporte')
                 const colaboradores = equipo.filter(m => m.rol === 'Colaborador')
-                const renderList = (list, emptyHint, accent) => list.length === 0 ? (
-                  <div style={{ fontSize:12, color:'var(--text4)', fontStyle:'italic', padding:'10px 4px' }}>{emptyHint}</div>
-                ) : (
-                  <ul style={{ listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', gap:6 }}>
-                    {list.map((m, i) => (
-                      <li key={`${m.nombre}-${i}`} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 10px', background:'#fff', border:'1px solid var(--border)', borderRadius:8, borderLeft:`3px solid ${accent}` }}>
-                        <div style={{ width:28, height:28, borderRadius:'50%', background:accent, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>
-                          {(m.nombre || '?').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()}
-                        </div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>{m.nombre}</div>
-                          <div style={{ fontSize:11, color:'var(--text3)' }}>{m.equipo || '—'}</div>
-                        </div>
-                        <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:9, background:`${accent}15`, color:accent, border:`1px solid ${accent}30`, textTransform:'uppercase', letterSpacing:'.04em' }}>{m.rol}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )
+                const requiereMotivo = ESTADOS_CIERRE_OFERTA.includes(form.estado)
+                const motivoEsPredef = MOTIVOS_DESCARTE_OFERTA.includes(form.motivo_descarte)
+                const motivoEsOtro   = !!form.motivo_descarte && !motivoEsPredef
+                const motivoSelV     = motivoEsOtro ? 'Otro motivo' : (form.motivo_descarte || '')
+                const motivoOtroTxt  = motivoEsOtro ? form.motivo_descarte : ''
+                const sinMotivo      = requiereMotivo && !form.motivo_descarte.trim()
                 return (
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:8 }}>
-                    <div className="va-meta-card va-card-info-cuenta">
-                      <div className="va-meta-head accent-green"><span className="dot"/>Equipo de trabajo</div>
-                      <div style={{ padding:'10px 14px' }}>
-                        {renderList(equipoInterno, 'Sin Principal ni Soporte asignados aún.', '#15803d')}
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14 }}>
+
+                    {/* === ESTADO DE LA OFERTA === */}
+                    <div className="dash-card">
+                      <div className="dash-card-head">Estado de la oferta</div>
+                      <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:10 }}>
+                        <div className="dash-field">
+                          <label className="dash-field-lbl">Estado</label>
+                          <select className="dash-field-input" value={form.estado} onChange={e => setF('estado', e.target.value)}>
+                            <option value="">—</option>
+                            {ESTADO_OFERTA.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                          </select>
+                        </div>
+                        <div className="dash-field">
+                          <label className="dash-field-lbl">Mercado</label>
+                          <select className="dash-field-input" value={form.tipo_mercado} onChange={e => setF('tipo_mercado', e.target.value)}>
+                            {TIPO_MERCADO.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                          </select>
+                        </div>
+                        {(requiereMotivo || oferta.motivo_descarte) && (
+                          <>
+                            <div className="dash-field">
+                              <label className="dash-field-lbl" style={{ color: requiereMotivo ? '#b91c1c' : undefined }}>
+                                Motivo del cierre {requiereMotivo && <span>*</span>}
+                              </label>
+                              <select className="dash-field-input"
+                                value={motivoSelV}
+                                style={{ borderColor: sinMotivo ? '#dc2626' : undefined }}
+                                onChange={e => {
+                                  const v = e.target.value
+                                  if (v === '') setF('motivo_descarte', '')
+                                  else if (v === 'Otro motivo') setF('motivo_descarte', motivoOtroTxt || ' ')
+                                  else setF('motivo_descarte', v)
+                                }}>
+                                <option value="">Selecciona un motivo...</option>
+                                {MOTIVOS_DESCARTE_OFERTA.map(m => <option key={m}>{m}</option>)}
+                              </select>
+                            </div>
+                            {(motivoSelV === 'Otro motivo' || motivoEsOtro) && (
+                              <div className="dash-field">
+                                <label className="dash-field-lbl">Describe el motivo</label>
+                                <textarea className="dash-field-input"
+                                  style={{ minHeight:60, resize:'vertical', borderColor: sinMotivo ? '#dc2626' : undefined, fontFamily:'var(--sans)', lineHeight:1.5 }}
+                                  value={motivoOtroTxt}
+                                  onChange={e => setF('motivo_descarte', e.target.value)}
+                                  placeholder="Describe brevemente por qué se cierra/retira esta oferta..." />
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
-                    <div className="va-meta-card" style={{ overflow:'visible' }}>
-                      <div className="va-meta-head accent-purple"><span className="dot"/>Colaboradores</div>
-                      <div style={{ padding:'10px 14px' }}>
-                        {colaboradores.length === 0 ? (
-                          <div style={{ fontSize:12, color:'var(--text4)', fontStyle:'italic', padding:'6px 4px' }}>Sin colaboradores externos vinculados.</div>
+
+                    {/* === EQUIPO DE TRABAJO === */}
+                    <div className="dash-card">
+                      <div className="dash-card-head">Equipo de trabajo</div>
+                      <div style={{ padding:'12px 16px 16px' }}>
+                        {equipoInterno.length === 0 ? (
+                          <div style={{ fontSize:11.5, color:'#94a3b8' }}>Sin Principal ni Soporte asignados.</div>
                         ) : (
-                          <ul style={{ listStyle:'none', padding:0, margin:'0 0 8px', display:'flex', flexDirection:'column', gap:6 }}>
-                            {colaboradores.map((m, i) => (
-                              <li key={`${m.nombre}-${i}`} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 10px', background:'#fff', border:'1px solid var(--border)', borderRadius:8, borderLeft:'3px solid #6b21a8' }}>
-                                <div style={{ width:28, height:28, borderRadius:'50%', background:'#6b21a8', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>
+                          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                            {equipoInterno.map((m, i) => (
+                              <div key={`int-${i}`} className="dash-eq-row">
+                                <div style={{ width:24, height:24, borderRadius:'50%', background:'#dcfce7', color:'#15803d', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>
                                   {(m.nombre || '?').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()}
                                 </div>
-                                <div style={{ flex:1, minWidth:0 }}>
-                                  <div style={{ fontSize:13, fontWeight:600 }}>{m.nombre}</div>
-                                  <div style={{ fontSize:11, color:'var(--text3)' }}>{m.equipo || '—'}</div>
-                                </div>
-                                <button onClick={() => removeColaborador(m.nombre)} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:13, padding:'2px 6px' }} title="Quitar colaborador">✕</button>
-                              </li>
+                                <div style={{ fontSize:12, fontWeight:500, color:'#0f172a', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.nombre}</div>
+                                <span style={{ fontSize:9.5, color: m.rol === 'Principal' ? '#0a66c2' : '#64748b', fontWeight:600 }}>{m.rol}</span>
+                              </div>
                             ))}
-                          </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* === COLABORADORES === */}
+                    <div className="dash-card" style={{ overflow:'visible' }}>
+                      <div className="dash-card-head">Colaboradores</div>
+                      <div style={{ padding:'12px 16px 14px' }}>
+                        {colaboradores.length === 0 ? (
+                          <div style={{ fontSize:11.5, color:'#94a3b8', marginBottom:8 }}>Sin colaboradores externos.</div>
+                        ) : (
+                          <div style={{ display:'flex', flexDirection:'column', gap:5, marginBottom:8 }}>
+                            {colaboradores.map((m, i) => (
+                              <div key={`cl-${i}`} className="dash-eq-row">
+                                <div style={{ width:24, height:24, borderRadius:'50%', background:'#fdf4ff', color:'#6b5b8e', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>
+                                  {(m.nombre || '?').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()}
+                                </div>
+                                <div style={{ fontSize:12, fontWeight:500, color:'#0f172a', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.nombre}</div>
+                                <button onClick={() => removeColaborador(m.nombre)} className="dash-eq-remove" title="Quitar">×</button>
+                              </div>
+                            ))}
+                          </div>
                         )}
                         <div style={{ position:'relative' }}>
                           <input
-                            className="kf-inp"
+                            className="dash-field-input"
                             value={colabSearch}
                             onChange={e => { setColabSearch(e.target.value); setShowColabDD(true) }}
                             onFocus={() => setShowColabDD(true)}
                             onBlur={() => setTimeout(() => setShowColabDD(false), 200)}
-                            placeholder="🔍 Añadir colaborador (cuenta competencia / gestor exclusivo)"
-                            style={{ width:'100%', fontSize:12, padding:'6px 9px' }}
+                            placeholder="🔍 Añadir colaborador..."
+                            style={{ fontSize:12 }}
                           />
                           {showColabDD && colabSearch.length >= 2 && (
-                            <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, zIndex:30, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6, maxHeight:220, overflowY:'auto', boxShadow:'0 6px 20px rgba(0,0,0,0.12)' }}>
+                            <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, zIndex:30, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, maxHeight:220, overflowY:'auto', boxShadow:'0 6px 20px rgba(0,0,0,0.12)' }}>
                               {colabResults.length === 0 ? (
                                 <div style={{ padding:'8px 12px', fontSize:11, color:'var(--text4)' }}>Sin resultados.</div>
                               ) : colabResults.map(c => (
@@ -556,102 +605,13 @@ export default function FichaOfertaSupabase({ refOrId }) {
                               ))}
                             </div>
                           )}
-                          {colabSearch.length > 0 && colabSearch.length < 2 && (
-                            <div style={{ fontSize:10, color:'var(--text4)', marginTop:4 }}>Escribe al menos 2 caracteres.</div>
-                          )}
                         </div>
                       </div>
                     </div>
+
                   </div>
                 )
               })()}
-
-              {/* ── SECCIÓN 03 · ESTADO ── (Notas viven arriba a la derecha) */}
-              <div className="fp-section-eyebrow">
-                <span className="fp-eyebrow-n">03</span>
-                <span className="fp-eyebrow-l">Estado</span>
-                <span className="fp-eyebrow-hint">Cambia aquí el estado de la oferta</span>
-              </div>
-              <div>
-                {/* ─ ESTADO (accionable, destacado en accent) ─ */}
-                <div>
-                  <div className="va-meta-card va-card-primary">
-                    <div className="va-meta-head accent-purple"><span className="dot"/>Estado de la oferta</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div className="ir">
-                        <span className="ir-k">Estado oferta</span>
-                        <span className="ir-v">{editing
-                          ? <select style={sel} value={form.estado} onChange={e => setF('estado', e.target.value)}>
-                              <option value="">—</option>
-                              {ESTADO_OFERTA.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                            </select>
-                          : (oferta.estado || <span style={{ color:'var(--text4)' }}>—</span>)}</span>
-                      </div>
-
-                      {/* Motivo: obligatorio cuando estado es Retirada / Ocupada total */}
-                      {(ESTADOS_CIERRE_OFERTA.includes(form.estado) || oferta.motivo_descarte) && (() => {
-                        const motivoEsPredef = MOTIVOS_DESCARTE_OFERTA.includes(form.motivo_descarte)
-                        const motivoEsOtro   = !!form.motivo_descarte && !motivoEsPredef
-                        const sel_v          = motivoEsOtro ? 'Otro motivo' : (form.motivo_descarte || '')
-                        const otroTexto      = motivoEsOtro ? form.motivo_descarte : ''
-                        const requiereMotivo = ESTADOS_CIERRE_OFERTA.includes(form.estado)
-                        const sinMotivo      = requiereMotivo && !form.motivo_descarte.trim()
-                        return (
-                          <>
-                            <div className="ir" style={{ alignItems:'flex-start' }}>
-                              <span className="ir-k" style={{ color: requiereMotivo ? '#dc2626' : 'var(--text4)', fontWeight:700 }}>
-                                Motivo del cierre {requiereMotivo && <span style={{ color:'#dc2626' }}>*</span>}
-                              </span>
-                              <span className="ir-v">
-                                {editing
-                                  ? <select
-                                      style={{ ...sel, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
-                                      value={sel_v}
-                                      onChange={e => {
-                                        const v = e.target.value
-                                        if (v === '') setF('motivo_descarte', '')
-                                        else if (v === 'Otro motivo') setF('motivo_descarte', otroTexto || ' ')
-                                        else setF('motivo_descarte', v)
-                                      }}
-                                    >
-                                      <option value="">Selecciona un motivo...</option>
-                                      {MOTIVOS_DESCARTE_OFERTA.map(m => <option key={m}>{m}</option>)}
-                                    </select>
-                                  : (motivoEsPredef ? form.motivo_descarte : (motivoEsOtro ? 'Otro motivo' : <span style={{ color:'var(--text4)' }}>—</span>))}
-                              </span>
-                            </div>
-                            {(sel_v === 'Otro motivo' || motivoEsOtro) && (
-                              <div className="ir" style={{ alignItems:'flex-start' }}>
-                                <span className="ir-k">Describe el motivo</span>
-                                <span className="ir-v" style={{ flex:1 }}>
-                                  {editing
-                                    ? <textarea
-                                        style={{ ...ta, minHeight:50, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
-                                        value={otroTexto}
-                                        onChange={e => setF('motivo_descarte', e.target.value)}
-                                        placeholder="Describe brevemente por qué se cierra/retira esta oferta..."
-                                      />
-                                    : (oferta.motivo_descarte || <span style={{ color:'var(--text4)' }}>—</span>)}
-                                </span>
-                              </div>
-                            )}
-                          </>
-                        )
-                      })()}
-
-                      <div className="ir">
-                        <span className="ir-k">Mercado</span>
-                        <span className="ir-v">{editing
-                          ? <select style={sel} value={form.tipo_mercado} onChange={e => setF('tipo_mercado', e.target.value)}>
-                              {TIPO_MERCADO.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                            </select>
-                          : (oferta.tipo_mercado === 'off_market' ? 'Off-market' : 'Mercado')}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
             </div></div>
           )}
 
