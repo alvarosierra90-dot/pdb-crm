@@ -8,6 +8,7 @@ import { Inbox, Building2, MapPin, Wallet, FileText, Globe, Presentation, Clock 
 import Vinculaciones from '../components/Vinculaciones'
 import HeaderPills from '../components/HeaderPills'
 import FunnelTracker from '../components/FunnelTracker'
+import NotasModal from '../components/NotasModal'
 // Stacking compartido con FichaActivo · misma lógica/diseño, solo cambia initView.
 import { StackingPlan } from './FichaActivo'
 
@@ -85,6 +86,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [showFirmarModal, setShowFirmarModal] = useState(false)
+  const [showNotasModal, setShowNotasModal] = useState(false)
   const [mandatoVinculado, setMandatoVinculado] = useState(null)
   // Live stacking del activo · refleja edits en tiempo real para el tab Espacios.
   const [liveBuildings, setLiveBuildings] = useState(null)
@@ -274,6 +276,23 @@ export default function FichaOfertaSupabase({ refOrId }) {
         />
       )}
 
+      <NotasModal
+        open={showNotasModal}
+        onClose={() => setShowNotasModal(false)}
+        onSave={async () => { await saveEdit() }}
+        title="Notas"
+        subtitle={`Notas internas · ${oferta.ref}`}
+        saving={saving}
+        fields={[{
+          key:'comentarios',
+          label:'Notas internas',
+          value: form.comentarios,
+          onChange: (v) => setF('comentarios', v),
+          placeholder:'Observaciones internas sobre la oferta...',
+          rows:6,
+        }]}
+      />
+
       <div className="ficha-wrap">
         <div className="ficha-main">
 
@@ -301,14 +320,28 @@ export default function FichaOfertaSupabase({ refOrId }) {
                 <div className="ah-name" style={{ fontSize:22, fontWeight:700, letterSpacing:'-.015em' }}>{tituloHeader}</div>
                 <div className="ah-addr">{dirHeader} · Creada: {fmtDate(oferta.created_at)} · {CURRENT_USER.nombre}</div>
               </div>
-              <HeaderPills items={[
-                { key:'estado', type:'info', label:'Estado', value:`● ${oferta.estado || 'En curso'}`, color:'green', accent:true },
-                { key:'mercado', type:'info', label:'Mercado', value: oferta.tipo_mercado === 'off_market' ? 'Off-market' : 'Mercado', color: oferta.tipo_mercado === 'off_market' ? 'amber' : 'blue', accent:true },
-                oferta.tipo_operacion && { key:'tipo', type:'info', label:'Operación', value: oferta.tipo_operacion, color:'teal', accent:true },
-                { key:'sup', type:'info', label:'Sup. disponible', value: oferta.superficie_disponible ? `${Number(oferta.superficie_disponible).toLocaleString('es-ES')} m²` : '—' },
-                { key:'renta', type:'info', label:'Renta €/m²', value: oferta.renta_m2 ? `${oferta.renta_m2} €` : '—', color:'accent', accent: !!oferta.renta_m2 },
-                { key:'responsable', type:'info', label:'Responsable', value: oferta.responsable || CURRENT_USER.nombre },
-              ]} />
+              {(() => {
+                const hasNotas = !!(form.comentarios || '').trim()
+                return (
+                  <HeaderPills items={[
+                    { key:'estado', type:'info', label:'Estado', value:`● ${oferta.estado || 'En curso'}`, color:'green', accent:true },
+                    { key:'mercado', type:'info', label:'Mercado', value: oferta.tipo_mercado === 'off_market' ? 'Off-market' : 'Mercado', color: oferta.tipo_mercado === 'off_market' ? 'amber' : 'blue', accent:true },
+                    oferta.tipo_operacion && { key:'tipo', type:'info', label:'Operación', value: oferta.tipo_operacion, color:'teal', accent:true },
+                    { key:'sup', type:'info', label:'Sup. disponible', value: oferta.superficie_disponible ? `${Number(oferta.superficie_disponible).toLocaleString('es-ES')} m²` : '—' },
+                    { key:'renta', type:'info', label:'Renta €/m²', value: oferta.renta_m2 ? `${oferta.renta_m2} €` : '—', color:'accent', accent: !!oferta.renta_m2 },
+                    { key:'responsable', type:'info', label:'Responsable', value: oferta.responsable || CURRENT_USER.nombre },
+                    {
+                      key:'notas', type:'button', label:'Notas',
+                      value: hasNotas ? '📝' : '—',
+                      icon: hasNotas ? null : '📝',
+                      color: hasNotas ? 'accent' : 'default',
+                      accent: hasNotas,
+                      onClick: () => setShowNotasModal(true),
+                      title: hasNotas ? 'Ver / editar notas' : 'Añadir notas',
+                    },
+                  ]} />
+                )
+              })()}
             </div>
 
             {/* Audit + export — debajo de los KPIs, ancho completo */}
@@ -414,14 +447,14 @@ export default function FichaOfertaSupabase({ refOrId }) {
                 )
               })()}
 
-              {/* ── SECCIÓN 03 · ESTADO + COMENTARIOS ── */}
+              {/* ── SECCIÓN 03 · ESTADO ── (Notas viven arriba a la derecha) */}
               <div className="fp-section-eyebrow">
                 <span className="fp-eyebrow-n">03</span>
-                <span className="fp-eyebrow-l">Estado y notas</span>
-                <span className="fp-eyebrow-hint">Cambia aquí el estado y deja contexto interno</span>
+                <span className="fp-eyebrow-l">Estado</span>
+                <span className="fp-eyebrow-hint">Cambia aquí el estado de la oferta</span>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1.3fr 1fr', gap:14 }}>
-                {/* ─ COL 1 · ESTADO (accionable, destacado en accent) ─ */}
+              <div>
+                {/* ─ ESTADO (accionable, destacado en accent) ─ */}
                 <div>
                   <div className="va-meta-card va-card-primary">
                     <div className="va-meta-head accent-purple"><span className="dot"/>Estado de la oferta</div>
@@ -499,17 +532,6 @@ export default function FichaOfertaSupabase({ refOrId }) {
                   </div>
                 </div>
 
-                {/* ─ COL 2 · COMENTARIOS INTERNOS ─ */}
-                <div>
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-red"><span className="dot"/>Comentarios internos</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      {editing
-                        ? <textarea style={ta} value={form.comentarios} onChange={e => setF('comentarios', e.target.value)} placeholder="Comentarios internos sobre la oferta..." />
-                        : (oferta.comentarios || <span style={{ color:'var(--text4)' }}>—</span>)}
-                    </div>
-                  </div>
-                </div>
               </div>
             </div></div>
           )}

@@ -10,6 +10,7 @@ import HeaderPills from '../components/HeaderPills'
 import FunnelTracker from '../components/FunnelTracker'
 import FunnelStepCards from '../components/FunnelStepCards'
 import MarcarDemandaCierreModal from '../components/MarcarDemandaCierreModal'
+import NotasModal from '../components/NotasModal'
 import { Building2, Target, ScrollText, Trophy, X as XClose } from 'lucide-react'
 
 // Orden canónico · Info → Específico → Documentos → Vista 360 → Confidencialidad
@@ -127,6 +128,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [saveError, setSaveError] = useState(null)
   const [showFirmarModal, setShowFirmarModal] = useState(false)
   const [showCierreModal, setShowCierreModal] = useState(null) // 'ganada' | 'perdida' | null
+  const [showNotasModal, setShowNotasModal] = useState(false)
   const [oportunidad, setOportunidad] = useState(null)
   // Vista 360 · alternativas (oferta_demanda con joins a ofertas + activos)
   const [alternativas, setAlternativas] = useState([])
@@ -464,6 +466,25 @@ export default function FichaDemandaSupabase({ refOrId }) {
         />
       )}
 
+      <NotasModal
+        open={showNotasModal}
+        onClose={() => setShowNotasModal(false)}
+        onSave={async () => { await saveEdit() }}
+        title="Notas"
+        subtitle={`Notas internas · ${demanda.ref}`}
+        saving={saving}
+        fields={[
+          {
+            key:'notas',
+            label:'Notas internas',
+            value: form.notas,
+            onChange: (v) => setF('notas', v),
+            placeholder:'Notas internas sobre la demanda...',
+            rows:6,
+          },
+        ]}
+      />
+
       <div className="ficha-wrap">
         <div className="ficha-main">
 
@@ -500,6 +521,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
               {(() => {
                 const ec = ESTADO_COLOR[form.estatus] || ESTADO_COLOR.ongoing
                 const colorMap = { ongoing:'green', potencial:'blue', paralizada:'amber', descartada:'red', cerrada_concedido:'green', cerrada_perdida:'red' }
+                const hasNotas = !!(form.notas || '').trim()
                 const items = [
                   { key:'estado', type:'info', label:'Estado', value:`${ec.icon} ${ESTADO_LABEL[form.estatus] || form.estatus || '—'}`,
                     color: colorMap[form.estatus] || 'amber', accent:true },
@@ -508,6 +530,15 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 if (visUso) items.push({ key:'uso', type:'info', label:'Uso principal', value: visUso, color:'blue', accent:true })
                 if (reqs.sup_min || reqs.sup_max) items.push({ key:'sup', type:'info', label:'Superficie', value: `${reqs.sup_min || '?'}–${reqs.sup_max || '?'} m²` })
                 items.push({ key:'resp', type:'info', label:'Responsable', value: CURRENT_USER.nombre })
+                items.push({
+                  key:'notas', type:'button', label:'Notas',
+                  value: hasNotas ? '📝' : '—',
+                  icon: hasNotas ? null : '📝',
+                  color: hasNotas ? 'accent' : 'default',
+                  accent: hasNotas,
+                  onClick: () => setShowNotasModal(true),
+                  title: hasNotas ? 'Ver/editar notas' : 'Añadir notas',
+                })
                 return <HeaderPills items={items} />
               })()}
             </div>
@@ -803,22 +834,6 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     </div>
                   </div>
                 )}
-
-                {/* ─── Notas (full-width) ─── */}
-                <div className="va-card" style={{ marginBottom:0 }}>
-                  <div className="va-card-header">
-                    <h3><span className="ico">▭</span> Notas internas</h3>
-                  </div>
-                  <div style={{ padding:'8px 20px 16px' }}>
-                    <textarea
-                      className="kf-inp"
-                      style={{ width:'100%', minHeight:80, resize:'vertical', fontSize:12 }}
-                      value={form.notas}
-                      onChange={e => setF('notas', e.target.value)}
-                      placeholder="Notas internas sobre la demanda..."
-                    />
-                  </div>
-                </div>
 
               </div></div>
             )

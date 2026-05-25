@@ -7,6 +7,7 @@ import { isSupabaseRef } from '../components/FichaPendienteSupabase'
 import FichaOfertaSupabase from './FichaOfertaSupabase'
 import { FileText, Presentation, Link2, Clock } from 'lucide-react'
 import Vinculaciones from '../components/Vinculaciones'
+import NotasModal from '../components/NotasModal'
 import { CURRENT_USER } from '../lib/currentUser'
 // IMPORTANTE: Importar el StackingPlan exacto de FichaActivo para garantizar
 // igualdad visual y funcional total entre Activo y Oferta (regla del usuario).
@@ -142,6 +143,7 @@ function FichaOfertaMock() {
   const [addingUser, setAddingUser] = useState(false)
   const [newUser, setNewUser] = useState('')
   const [showTarea, setShowTarea] = useState(false)
+  const [showNotasModal, setShowNotasModal] = useState(false)
   const [showNegociacion, setShowNegociacion] = useState(false)
   const [negOk, setNegOk] = useState(false)
 
@@ -996,6 +998,14 @@ function FichaOfertaMock() {
         <div className="ab-sep" />
         <button className="ab-btn">Recalcular</button>
         <div className="ab-sep" />
+        <button
+          className="ab-btn"
+          onClick={() => setShowNotasModal(true)}
+          style={(comentarios || '').trim() ? { background:'var(--accent-lt)', borderColor:'var(--accent-bd)', color:'var(--accent)', fontWeight:700 } : undefined}
+          title={(comentarios || '').trim() ? 'Ver / editar notas' : 'Añadir notas'}
+        >
+          📝 Notas{(comentarios || '').trim() && ' ●'}
+        </button>
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
         {!isMock && oferta?.ref && oferta?.estado !== 'En negociación' && (
           <button className="ab-btn" style={{ color:'var(--amber)', borderColor:'var(--amber-bd)', background:'var(--amber-lt)' }} onClick={() => setShowNegociacion(true)}>Iniciar negociación</button>
@@ -1555,16 +1565,6 @@ function FichaOfertaMock() {
                             </div>
                           </>
                         )}
-                      </div>
-                    </div>
-
-                    {/* ── COMENTARIOS INTERNOS ── */}
-                    <div className="va-card">
-                      <div className="va-card-header">
-                        <h3><span className="ico">✎</span> Comentarios internos</h3>
-                      </div>
-                      <div style={{padding:'4px 20px 16px'}}>
-                        <textarea className="of-textarea" placeholder="Observaciones internas..." value={comentarios} onChange={e => setComentarios(e.target.value)} style={{ minHeight:80, width:'100%' }} />
                       </div>
                     </div>
 
@@ -2737,6 +2737,20 @@ function FichaOfertaMock() {
           </div>
       </div>
       {showTarea && <AsignarTareaModal refTipo="Oferta" refNombre="OLBUR2315645" onClose={() => setShowTarea(false)} />}
+      <NotasModal
+        open={showNotasModal}
+        onClose={() => setShowNotasModal(false)}
+        title="Notas"
+        subtitle={oferta?.ref ? `Notas internas · ${oferta.ref}` : 'Notas internas'}
+        fields={[{
+          key:'notas',
+          label:'Notas internas',
+          value: comentarios,
+          onChange: setComentarios,
+          placeholder:'Observaciones internas sobre la oferta...',
+          rows:6,
+        }]}
+      />
 
       {/* Modal Iniciar negociación */}
       {showNegociacion && (
