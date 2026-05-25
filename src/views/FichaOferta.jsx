@@ -7,7 +7,10 @@ import { isSupabaseRef } from '../components/FichaPendienteSupabase'
 import FichaOfertaSupabase from './FichaOfertaSupabase'
 import { FileText, Presentation, Link2, Clock } from 'lucide-react'
 import Vinculaciones from '../components/Vinculaciones'
+import FunnelStepCards from '../components/FunnelStepCards'
 import NotasModal from '../components/NotasModal'
+import { cardTone } from '../lib/cardTones'
+import { Building2, Target, Tag, ScrollText, FileSearch } from 'lucide-react'
 import { CURRENT_USER } from '../lib/currentUser'
 // IMPORTANTE: Importar el StackingPlan exacto de FichaActivo para garantizar
 // igualdad visual y funcional total entre Activo y Oferta (regla del usuario).
@@ -1096,15 +1099,59 @@ function FichaOfertaMock() {
               {activeTab==='of-info' && (
                 <div className="tab-content active">
                   <div className="info-pad" style={{padding:'20px 36px 4px'}}>
-                    {/* ── 01 · VINCULACIONES (canónico, siempre arriba) ── */}
-                    <Vinculaciones
-                      cuentaLabel="Propietario (Cuenta)"
-                      cuenta={activoSeleccionado?.propietario ? { id: null, nombre: activoSeleccionado.propietario } : null}
-                      activo={activoSeleccionado ? { ref: activoSeleccionado.ref, nombre: activoSeleccionado.nombre, direccion: activoSeleccionado.direccion } : null}
-                      oportunidad={mandatoAsociado?.dynamics_opportunity_id ? { id: mandatoAsociado.dynamics_opportunity_id, nombre: mandatoAsociado.dynamics_opportunity_id } : null}
-                      instruccion={mandatoAsociado?.dynamics_instruction_id ? { id: mandatoAsociado.dynamics_instruction_id, dynamics_id: mandatoAsociado.dynamics_instruction_id } : null}
-                      mandato={mandatoAsociado ? { id: mandatoAsociado.id, ref: mandatoAsociado.ref, titulo: mandatoAsociado.titulo } : null}
-                    />
+                    {/* ── 01 · VINCULACIONES (FunnelStepCards canon) ── */}
+                    {(() => {
+                      const hasActivo = !!activoSeleccionado
+                      const hasPropie = !!activoSeleccionado?.propietario
+                      const hasOpo    = !!mandatoAsociado?.dynamics_opportunity_id
+                      const hasMand   = !!mandatoAsociado
+                      const hasInstr  = !!mandatoAsociado?.dynamics_instruction_id
+                      return (
+                        <FunnelStepCards steps={[
+                          {
+                            key:'activo', icon: Tag, tone: cardTone('Activo'),
+                            label:'Activo', value: activoSeleccionado?.nombre || null,
+                            sub: activoSeleccionado?.direccion || null,
+                            status: hasActivo ? 'done' : 'current',
+                            vacant: !hasActivo,
+                            openAction: hasActivo ? { label:'Abrir activo', onClick: () => navigate('ficha-activo', { ref: activoSeleccionado.ref }) } : null,
+                          },
+                          {
+                            key:'propietario', icon: Building2, tone: cardTone('Cuenta'),
+                            label:'Propietario (Cuenta)', value: activoSeleccionado?.propietario || null,
+                            sub: null,
+                            status: hasPropie ? 'done' : 'current',
+                            vacant: !hasPropie,
+                            dyn: true,
+                          },
+                          {
+                            key:'oportunidad', icon: Target, tone: cardTone('Oportunidad'),
+                            label:'Oportunidad', value: mandatoAsociado?.dynamics_opportunity_id || null,
+                            sub: null,
+                            status: hasOpo ? 'done' : 'current',
+                            vacant: !hasOpo,
+                            dyn: true,
+                          },
+                          {
+                            key:'mandato', icon: ScrollText, tone: cardTone('Mandato'),
+                            label:'Mandato', value: mandatoAsociado?.ref || null,
+                            sub: mandatoAsociado?.titulo || null,
+                            status: hasMand ? 'done' : 'current',
+                            vacant: !hasMand,
+                            openAction: hasMand ? { label:'Abrir mandato', onClick: () => navigate('ficha-mandato', { ref: mandatoAsociado.ref }) } : null,
+                            optional: !hasMand,
+                          },
+                          {
+                            key:'instruccion', icon: FileSearch, tone: cardTone('Instrucción'),
+                            label:'Instrucción', value: mandatoAsociado?.dynamics_instruction_id || null,
+                            sub: hasInstr ? 'Vinculada vía mandato.' : null,
+                            status: hasInstr ? 'done' : 'current',
+                            vacant: !hasInstr,
+                            dyn: true,
+                          },
+                        ]} />
+                      )
+                    })()}
                   </div>
 
                   {/* ── 02 · EQUIPO Y COLABORADORES (50/50, justo bajo Vinculaciones) ── */}

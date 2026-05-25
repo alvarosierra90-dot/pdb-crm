@@ -3198,7 +3198,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
     {
       key:   'propietario',
       icon:  UserCheck,
-      tone:  'green',
+      tone:  'blue', // canon: Cuenta/Propietario = blue (Dynamics)
       label: propietariosReg.length > 1 ? 'Propietarios' : 'Propietario',
       value: propLabel,
       sub:   propSub,
@@ -3209,16 +3209,16 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
     {
       key:   'mandato',
       icon:  ScrollText,
-      tone:  'accent',
+      tone:  'accent', // canon: Mandato = accent
       label: 'Mandato activo',
       value: mand?.ref || null,
-      sub:   mand?.tipo || null,
+      sub:   mand?.titulo || mand?.tipo || null,
       onClick: mand ? () => navigate('ficha-mandato', { id: mand.ref }) : null,
     },
     {
       key:   'ofertas',
       icon:  Tag,
-      tone:  'blue',
+      tone:  'green', // canon: Oferta = green
       label: 'Ofertas activas',
       value: ofCount > 0 ? (ofCount === 1 ? 'oferta' : 'ofertas') : null,
       count: ofCount > 0 ? ofCount : null,

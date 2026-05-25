@@ -800,7 +800,7 @@ export default function FichaArrendatario() {
                   {
                     key:'cuenta',
                     icon: Building2,
-                    tone:'green',
+                    tone:'blue', // canon: Cuenta = blue (Dynamics)
                     label:'Cuenta arrendataria',
                     value: form.tenant || null,
                     sub: form.persona_fisica ? 'Persona física' : null,
@@ -809,7 +809,7 @@ export default function FichaArrendatario() {
                   {
                     key:'activo',
                     icon: Building,
-                    tone:'bronze',
+                    tone:'bronze', // canon: Activo = bronze
                     label:'Activo donde está',
                     value: form.activo_direccion || form.activo || null,
                     sub: [form.zona, form.subzona].filter(Boolean).join(' · ') || null,
@@ -818,7 +818,7 @@ export default function FichaArrendatario() {
                   {
                     key:'mandato',
                     icon: ScrollText,
-                    tone:'accent',
+                    tone:'accent', // canon: Mandato = accent
                     label:'Mandato origen',
                     value: null,
                     sub: null,
@@ -827,7 +827,7 @@ export default function FichaArrendatario() {
                   {
                     key:'oferta',
                     icon: Tag,
-                    tone:'blue',
+                    tone:'green', // canon: Oferta = green
                     label:'Oferta cerrada',
                     value: params?.fromOfertaRef || null,
                     sub: null,

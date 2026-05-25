@@ -550,7 +550,7 @@ export default function FichaPropietario() {
                   {
                     key:'cuenta',
                     icon: Building2,
-                    tone:'green',
+                    tone:'blue', // canon: Cuenta = blue (Dynamics)
                     label:'Cuenta propietaria',
                     value: form.propietario || null,
                     sub: form.tipo_entidad || null,
@@ -559,7 +559,7 @@ export default function FichaPropietario() {
                   {
                     key:'activo',
                     icon: Building,
-                    tone:'bronze',
+                    tone:'bronze', // canon: Activo = bronze
                     label: params?.ownerData?.activos > 1 ? 'Activos vinculados' : 'Activo vinculado',
                     value: params?.fromActivoNombre || null,
                     sub: params?.ownerSuperficie ? `${Number(params.ownerSuperficie).toLocaleString('es-ES')} m²` : null,
@@ -568,7 +568,7 @@ export default function FichaPropietario() {
                   {
                     key:'mandatos',
                     icon: ScrollText,
-                    tone:'accent',
+                    tone:'accent', // canon: Mandato = accent
                     label:'Mandatos vinculados',
                     value: null,
                     sub: null,
@@ -577,7 +577,7 @@ export default function FichaPropietario() {
                   {
                     key:'ofertas',
                     icon: Tag,
-                    tone:'blue',
+                    tone:'green', // canon: Oferta = green
                     label:'Ofertas activas',
                     value: null,
                     sub: null,

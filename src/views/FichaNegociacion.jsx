@@ -7,6 +7,9 @@ import Vinculaciones from '../components/Vinculaciones'
 import EquipoTrabajoCard from '../components/EquipoTrabajoCard'
 import HeaderPills from '../components/HeaderPills'
 import FunnelTracker from '../components/FunnelTracker'
+import FunnelStepCards from '../components/FunnelStepCards'
+import { cardTone } from '../lib/cardTones'
+import { Building2, Target, Tag, ScrollText, MessageSquare } from 'lucide-react'
 
 // ─── CONTRACT DRAFTS ─────────────────────────────────────────────────────────
 const CONTRACTS_INIT = [
@@ -355,12 +358,57 @@ export default function FichaNegociacion() {
             <div style={{ overflowY: 'auto', flex: 1 }}>
               <div className="info-pad">
 
-                {/* ── VINCULACIONES (canónico, siempre arriba) ── */}
-                <Vinculaciones
-                  cuenta={{ id: vinc.cuentaId, nombre: vinc.cuenta, sub: vinc.cuentaSub }}
-                  activo={{ ref: vinc.activoRef, nombre: vinc.activoNombre, direccion: vinc.activoDir, sub: vinc.activoSub }}
-                  oportunidad={{ id: vinc.opoId, nombre: vinc.opoNombre, sub: vinc.opoSub }}
-                />
+                {/* ── VINCULACIONES (FunnelStepCards canon) ── */}
+                <FunnelStepCards steps={[
+                  {
+                    key:'cuenta', icon: Building2, tone: cardTone('Cuenta'),
+                    label:'Cuenta', value: vinc.cuenta || null,
+                    sub: vinc.cuentaSub || null,
+                    status: vinc.cuenta ? 'done' : 'current',
+                    vacant: !vinc.cuenta,
+                    openAction: vinc.cuenta ? { label:'Abrir cuenta', onClick: () => navigate('cuentas', { id: vinc.cuentaId }) } : null,
+                    dyn: true,
+                  },
+                  {
+                    key:'oportunidad', icon: Target, tone: cardTone('Oportunidad'),
+                    label:'Oportunidad', value: vinc.opoNombre || null,
+                    sub: vinc.opoSub || null,
+                    status: vinc.opoNombre ? 'done' : 'current',
+                    vacant: !vinc.opoNombre,
+                    openAction: vinc.opoNombre ? { label:'Abrir oportunidad', onClick: () => navigate('ficha-oportunidad', { id: vinc.opoId }) } : null,
+                    dyn: true,
+                  },
+                  {
+                    key:'mandato', icon: ScrollText, tone: cardTone('Mandato'),
+                    label:'Mandato', value: funnel.man || null,
+                    sub: funnel.man ? 'Mandato vinculado a la negociación.' : null,
+                    status: funnel.man ? 'done' : 'current',
+                    vacant: !funnel.man,
+                    openAction: funnel.man ? { label:'Abrir mandato', onClick: () => navigate('ficha-mandato', { ref: funnel.man }) } : null,
+                  },
+                  {
+                    key:'oferta', icon: Tag, tone: cardTone('Oferta'),
+                    label:'Oferta', value: funnel.ofr || null,
+                    sub: null,
+                    status: funnel.ofr ? 'done' : 'current',
+                    vacant: !funnel.ofr,
+                    openAction: funnel.ofr ? { label:'Abrir oferta', onClick: () => navigate('ficha-oferta', { ofertaRef: funnel.ofr }) } : null,
+                  },
+                  {
+                    key:'activo', icon: Tag, tone: cardTone('Activo'),
+                    label:'Activo', value: vinc.activoNombre || null,
+                    sub: vinc.activoSub || null,
+                    status: vinc.activoNombre ? 'done' : 'current',
+                    vacant: !vinc.activoNombre,
+                    openAction: vinc.activoRef ? { label:'Abrir activo', onClick: () => navigate('ficha-activo', { ref: vinc.activoRef }) } : null,
+                  },
+                  {
+                    key:'negociacion', icon: MessageSquare, tone: cardTone('Negociación'),
+                    label:'Negociación', value: hdr.ref,
+                    sub: 'Esta ficha · ' + (hdr.estado || ''),
+                    status: 'current',
+                  },
+                ]} />
 
                 {/* ── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones) ── */}
                 {(() => {
