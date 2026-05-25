@@ -13,6 +13,7 @@ import MarcarDemandaCierreModal from '../components/MarcarDemandaCierreModal'
 import NotasModal from '../components/NotasModal'
 import IniciarNegociacionModal from '../components/IniciarNegociacionModal'
 import { cardTone } from '../lib/cardTones'
+import { ZONES } from './FichaActivo'
 import { Building2, Target, ScrollText, Trophy, X as XClose, Briefcase, Tag, FileSearch, Handshake, MessageSquare } from 'lucide-react'
 
 // Orden canónico · Info → Documentos → Vista 360 → Confidencialidad.
@@ -56,7 +57,14 @@ const MOTIVOS_DESCARTE_DEMANDA = [
 ]
 
 const PROVINCIAS_LISTA = ['Madrid','Barcelona','Valencia','Sevilla','Bilbao','Málaga','Zaragoza','Alicante','Las Palmas','Mallorca']
-const ZONAS_MADRID = ['CBD','M-30','A-1 · Alcobendas','A-1 · Tres Cantos','A-2 · Corredor del Henares','A-3 · Vallecas','A-4 · Getafe','A-5 · Pozuelo','A-6 · Las Rozas','M-40','M-50','Centro','Salamanca','Chamberí','Chamartín','Castellana']
+// Mapea el uso_principal a la key de ZONES (área → zona → subzona)
+function zonesKeyForUso(uso) {
+  if (!uso) return 'Oficinas'
+  if (/oficina/i.test(uso)) return 'Oficinas'
+  if (/log|industri/i.test(uso)) return 'Logístico'
+  if (/retail|local|centro comercial|high street|flagship/i.test(uso)) return 'Retail'
+  return 'Oficinas'
+}
 
 // Estilo coherente con of-inp/of-sel
 const sel = { width:'auto', padding:'2px 6px', fontSize:11, border:'1px solid var(--border)', borderRadius:4, background:'var(--surface)', fontFamily:'inherit' }
@@ -165,6 +173,9 @@ export default function FichaDemandaSupabase({ refOrId }) {
   // section = 'equipo' | 'colab' | null. Compartimos UI compacta.
   const [addEqSection, setAddEqSection] = useState(null)
   const [addEqDraft, setAddEqDraft] = useState({ equipo:'', miembro:'', rol:'Soporte' })
+  // Zonas · cascada Eje (área) → Área (zona) → Subzona usando ZONES del pitch
+  const [zonaCity, setZonaCity] = useState('Madrid')
+  const [zonaDraft, setZonaDraft] = useState({ eje:'', area:'', subzona:'' })
 
   const [form, setForm] = useState({
     nombre:'', estatus:'', notas:'', motivo_descarte:'',
@@ -1398,23 +1409,77 @@ export default function FichaDemandaSupabase({ refOrId }) {
                           {PROVINCIAS_LISTA.filter(p => !form.provincias.includes(p)).map(p => <option key={p}>{p}</option>)}
                         </select>
                       </div>
-                      {/* Zonas */}
-                      <div>
-                        <div className="dash-card-sub">Zonas · {zonasMostrar.length}</div>
-                        <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8, minHeight:24 }}>
-                          {zonasMostrar.length === 0 && (
-                            <span style={{ fontSize:11.5, color:'#94a3b8' }}>Ninguna añadida.</span>
-                          )}
-                          {zonasMostrar.map(z => (
-                            <Chip key={z} label={z} onRemove={() => togglePick('zonas', z)} />
-                          ))}
-                        </div>
-                        <select className="fsel" style={{ width:'100%' }} value=""
-                          onChange={e => { if (e.target.value) togglePick('zonas', e.target.value) }}>
-                          <option value="">+ Añadir zona</option>
-                          {ZONAS_MADRID.filter(z => !form.zonas.includes(z)).map(z => <option key={z}>{z}</option>)}
-                        </select>
-                      </div>
+                      {/* Zonas · cascada Eje → Área → Subzona (mismo modelo que Pitch paso 7) */}
+                      {(() => {
+                        const zKey = zonesKeyForUso(form.uso_principal)
+                        const zonesByCity = (ZONES?.[zKey] || {})
+                        const ciudadesDisp = Object.keys(zonesByCity)
+                        const rawList = zonesByCity[zonaCity] || []
+                        const ejesDisp = Array.from(new Set(rawList.map(r => r.area)))
+                        const areasDisp = Array.from(new Set(rawList.filter(r => r.area === zonaDraft.eje).map(r => r.zona)))
+                        const subzonasDisp = Array.from(new Set(rawList.filter(r => r.area === zonaDraft.eje && r.zona === zonaDraft.area).map(r => r.subzona)))
+
+                        const composeLabel = (eje, area, sub) => [eje, area, sub].filter(Boolean).join(' · ')
+                        const canAdd = !!zonaDraft.eje && !!zonaDraft.area && !!zonaDraft.subzona
+                        const addZone = () => {
+                          if (!canAdd) return
+                          const label = composeLabel(zonaDraft.eje, zonaDraft.area, zonaDraft.subzona)
+                          if (!form.zonas.includes(label)) {
+                            setF('zonas', [...form.zonas, label])
+                          }
+                          setZonaDraft({ eje:'', area:'', subzona:'' })
+                        }
+
+                        return (
+                          <div>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:6 }}>
+                              <div className="dash-card-sub" style={{ margin:0 }}>Zonas · {zonasMostrar.length}</div>
+                              {ciudadesDisp.length > 1 && (
+                                <select value={zonaCity} onChange={e => { setZonaCity(e.target.value); setZonaDraft({ eje:'', area:'', subzona:'' }) }}
+                                  style={{ fontSize:10.5, border:'none', background:'transparent', color:'#64748b', fontWeight:600, cursor:'pointer', padding:0 }}>
+                                  {ciudadesDisp.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                              )}
+                            </div>
+                            {/* Chips de zonas seleccionadas */}
+                            <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10, minHeight:24 }}>
+                              {zonasMostrar.length === 0 && (
+                                <span style={{ fontSize:11.5, color:'#94a3b8' }}>Ninguna añadida.</span>
+                              )}
+                              {zonasMostrar.map(z => (
+                                <Chip key={z} label={z} onRemove={() => togglePick('zonas', z)} />
+                              ))}
+                            </div>
+                            {/* Cascada Eje → Área → Subzona */}
+                            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
+                              <select className="fsel" value={zonaDraft.eje}
+                                onChange={e => setZonaDraft({ eje: e.target.value, area:'', subzona:'' })}
+                                style={{ fontSize:11 }}>
+                                <option value="">Eje</option>
+                                {ejesDisp.map(e => <option key={e}>{e}</option>)}
+                              </select>
+                              <select className="fsel" value={zonaDraft.area} disabled={!zonaDraft.eje}
+                                onChange={e => setZonaDraft(p => ({ ...p, area: e.target.value, subzona:'' }))}
+                                style={{ fontSize:11, opacity: zonaDraft.eje ? 1 : 0.5 }}>
+                                <option value="">Área</option>
+                                {areasDisp.map(a => <option key={a}>{a}</option>)}
+                              </select>
+                              <select className="fsel" value={zonaDraft.subzona} disabled={!zonaDraft.area}
+                                onChange={e => setZonaDraft(p => ({ ...p, subzona: e.target.value }))}
+                                style={{ fontSize:11, opacity: zonaDraft.area ? 1 : 0.5 }}>
+                                <option value="">Subzona</option>
+                                {subzonasDisp.map(s => <option key={s}>{s}</option>)}
+                              </select>
+                            </div>
+                            <button onClick={addZone} disabled={!canAdd}
+                              style={{ marginTop:6, width:'100%', padding:'7px 10px', fontSize:11.5, fontWeight:600, border:'none', borderRadius:8,
+                                background: canAdd ? '#6b21a8' : '#cbd5e1', color:'#fff',
+                                cursor: canAdd ? 'pointer' : 'not-allowed', letterSpacing:'-0.005em' }}>
+                              + Añadir zona
+                            </button>
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
 

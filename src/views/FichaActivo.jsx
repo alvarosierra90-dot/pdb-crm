@@ -35,8 +35,10 @@ function UsoIco({ uso, size = 14 }) {
   return <Ico size={size} strokeWidth={1.75} />
 }
 
-/* ── ZONAS por USO y CIUDAD (área → zona → subzona) ── */
-const ZONES = {
+/* ── ZONAS por USO y CIUDAD (área → zona → subzona) ──
+   Exportado para reusarse en otras fichas (Demanda, Oferta…) y
+   garantizar consistencia con la jerarquía del Pitch paso 7. */
+export const ZONES = {
   'Oficinas': {
     'Madrid': [
       { area:'Centro',         zona:'M-30',       subzona:'Azca' },
