@@ -17,13 +17,13 @@ export const CARD_TONE = {
   'Oportunidad':   'blue',
   'Instrucción':   'blue',
 
-  // ── PDB ───────────────────────────────────────────────────────────
+  // ── PDB · cada concepto un color único y distinguible ────────────
   'Lead':          'amber',
   'Propuesta':     'purple',
-  'Mandato':       'accent',
+  'Mandato':       'accent',  // bronze / gold
   'Oferta':        'green',
   'Demanda':       'amber',
-  'Negociación':   'bronze',
+  'Negociación':   'indigo',  // distinto de bronze (Mandato) y amber (Demanda)
   'Activo':        'bronze',
 
   // ── Outcomes finales ──────────────────────────────────────────────

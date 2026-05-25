@@ -54,25 +54,27 @@ function StepCard({
 
   return (
     <div
-      className={`step-card tone-${tone} step-${status}${cardClickable ? ' step-clickable' : ''}`}
+      className={`step-card tone-${tone} step-${status}${cardClickable ? ' is-clickable' : ''}`}
       onClick={handleCardClick}
       style={cardClickable ? { cursor:'pointer' } : undefined}
       role={cardClickable ? 'button' : undefined}
       tabIndex={cardClickable ? 0 : undefined}
     >
-      <div className="step-card-ico">
-        <Icon size={16} strokeWidth={1.75} />
-      </div>
-      <div className="step-card-body">
+      <div className="step-card-head">
+        <div className="step-card-ico">
+          <Icon size={20} strokeWidth={1.85} />
+        </div>
         <div className="step-card-lbl">
           <span className="step-num">{index + 1}/{total}</span>
-          {label}
+          <span className="step-card-title">{label}</span>
           {dyn      && <span className="vinc-dyn">D</span>}
           {optional && <span className="step-pill-optional">OPCIONAL</span>}
           {isCurrent && <span className="step-pill-current">PASO ACTUAL</span>}
           {isDone    && <span className="step-pill-done">✓</span>}
           {isLocked  && <span className="step-pill-locked">🔒</span>}
         </div>
+      </div>
+      <div className="step-card-body">
 
         {isDone && (
           <>
