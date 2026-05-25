@@ -9,12 +9,14 @@ import { Download, SlidersHorizontal } from 'lucide-react'
 // Las demandas viven en Supabase (migración 016 las migró todas).
 // Mapeo visual de estados · misma paleta que FichaDemandaSupabase
 const ESTADO_TAG_MAP = {
-  'En Curso':            'tag-green',
+  'En curso':            'tag-green',
+  'Standby':             'tag-amber',
+  'En negociación':      'tag-purple',
+  'Descartada':          'tag-red',
+  'Perdida':             'tag-red',
+  'Cerrada por Savills': 'tag-green',
+  // Legacy (registros antiguos)
   'Potencial':           'tag-blue',
-  'Paralizado':          'tag-amber',
-  'Descartado':          'tag-red',
-  'Cerrada · Concedido': 'tag-green',
-  'Cerrada · Perdida':   'tag-red',
 }
 const estadoTag = e => ESTADO_TAG_MAP[e] || 'tag-gray'
 
@@ -41,7 +43,8 @@ function fmtDateEs(ts) {
 }
 
 // estatus que computan como "activas" en el listado principal
-const ESTATUS_ACTIVAS = ['ongoing','potencial','paralizada']
+// En negociación también cuenta como activa (todavía no se ha cerrado).
+const ESTATUS_ACTIVAS = ['ongoing','potencial','paralizada','en_negociacion']
 
 export default function DemandaList() {
   const { navigate } = useNav()
@@ -75,12 +78,13 @@ export default function DemandaList() {
         created: fmtDateEs(d.created_at),
         by:     '—',
         desc:   d.nombre || d.notas || '(Sin descripción — completar)',
-        estado: d.estatus === 'ongoing' ? 'En Curso'
+        estado: d.estatus === 'ongoing' ? 'En curso'
               : d.estatus === 'potencial' ? 'Potencial'
-              : d.estatus === 'paralizada' ? 'Paralizado'
-              : d.estatus === 'descartada' ? 'Descartado'
-              : d.estatus === 'cerrada_concedido' ? 'Cerrada · Concedido'
-              : d.estatus === 'cerrada_perdida' ? 'Cerrada · Perdida'
+              : d.estatus === 'paralizada' ? 'Standby'
+              : d.estatus === 'en_negociacion' ? 'En negociación'
+              : d.estatus === 'descartada' ? 'Descartada'
+              : d.estatus === 'cerrada_concedido' ? 'Cerrada por Savills'
+              : d.estatus === 'cerrada_perdida' ? 'Perdida'
               : d.estatus || '—',
         supMin: Number(d.requisitos?.sup_min ?? d.requisitos?.m2_min) || 0,
         supMax: Number(d.requisitos?.sup_max ?? d.requisitos?.m2_max) || 0,
@@ -154,20 +158,18 @@ export default function DemandaList() {
 
   // KPIs derivados de los datos reales
   const enCurso       = demandasActivas.filter(d => d._estatus === 'ongoing').length
-  const paralizadas   = demandasActivas.filter(d => d._estatus === 'paralizada').length
-  const potenciales   = demandasActivas.filter(d => d._estatus === 'potencial').length
-  const supMediaBusc  = demandasActivas.length
-    ? Math.round(demandasActivas.reduce((s, d) => s + ((d.supMin + d.supMax) / 2), 0) / demandasActivas.length)
-    : 0
+  const standby       = demandasActivas.filter(d => d._estatus === 'paralizada').length
+  const enNegociacion = demandasActivas.filter(d => d._estatus === 'en_negociacion').length
+  const cerradasSavills = demandasDesact.filter(d => d._estatus === 'cerrada_concedido').length
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
       <div className="kpi-strip" style={{ gridTemplateColumns: 'repeat(5,1fr)' }}>
-        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Activas</div><div className="ks-val green">{demandasActivas.length}</div><div className="ks-sub">En curso + potencial + paralizada</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Activas</div><div className="ks-val green">{demandasActivas.length}</div><div className="ks-sub">En curso + standby + negociación</div></div>
         <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">En curso</div><div className="ks-val">{enCurso}</div></div>
-        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Paralizadas</div><div className="ks-val amber">{paralizadas}</div></div>
-        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Potenciales</div><div className="ks-val" style={{ color:'var(--accent)' }}>{potenciales}</div></div>
-        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Desactivadas</div><div className="ks-val" style={{ color:'var(--text3)' }}>{demandasDesact.length}</div><div className="ks-sub">Descartadas / cerradas</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Standby</div><div className="ks-val amber">{standby}</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">En negociación</div><div className="ks-val" style={{ color:'var(--purple)' }}>{enNegociacion}</div></div>
+        <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Cerradas por Savills</div><div className="ks-val green">{cerradasSavills}</div><div className="ks-sub">+ {demandasDesact.length - cerradasSavills} descartadas/perdidas</div></div>
       </div>
 
       {/* Tabs Activas / Desactivadas */}

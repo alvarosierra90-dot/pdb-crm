@@ -11,7 +11,7 @@ import FunnelTracker from '../components/FunnelTracker'
 import FunnelStepCards from '../components/FunnelStepCards'
 import MarcarDemandaCierreModal from '../components/MarcarDemandaCierreModal'
 import NotasModal from '../components/NotasModal'
-import { Building2, Target, ScrollText, Trophy, X as XClose } from 'lucide-react'
+import { Building2, Target, ScrollText, Trophy, X as XClose, Briefcase, Tag, FileSearch, Handshake } from 'lucide-react'
 
 // Orden canónico · Info → Específico → Documentos → Vista 360 → Confidencialidad
 // "Negociaciones" es específico de Demanda (las que salen de ella), va antes de Documentos.
@@ -64,24 +64,36 @@ const ta  = { width:'100%', padding:'6px 9px', fontSize:11.5, border:'1px solid 
 
 function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('es-ES') }
 
+// Opciones que el usuario puede elegir explícitamente en el dropdown del
+// Estado de la demanda. 'cerrada_concedido' (Cerrada por Savills) NO se elige
+// aquí — se establece automáticamente al cerrar con éxito una negociación
+// (botón "Marcar como ganada").
 const ESTADO_OPTS = [
-  { v:'ongoing',           label:'En curso' },
-  { v:'potencial',         label:'Potencial' },
-  { v:'paralizada',        label:'Paralizado' },
-  { v:'descartada',        label:'Descartado' },
-  { v:'cerrada_concedido', label:'Cerrada · Concedido' },
-  { v:'cerrada_perdida',   label:'Cerrada · Perdida' },
+  { v:'ongoing',         label:'En curso' },
+  { v:'paralizada',      label:'Standby' },
+  { v:'en_negociacion',  label:'En negociación' },
+  { v:'cerrada_perdida', label:'Perdida' },
+  { v:'descartada',      label:'Descartada' },
 ]
-const ESTADO_LABEL = Object.fromEntries(ESTADO_OPTS.map(o => [o.v, o.label]))
+const ESTADO_LABEL = {
+  ongoing:           'En curso',
+  potencial:         'Potencial',
+  paralizada:        'Standby',
+  en_negociacion:    'En negociación',
+  descartada:        'Descartada',
+  cerrada_concedido: 'Cerrada por Savills',
+  cerrada_perdida:   'Perdida',
+}
 
 // Paleta visual por estado · usada en header, badge de estado grande y lista
 const ESTADO_COLOR = {
-  ongoing:           { tag:'tag-green', headerCol:'var(--green)',  bg:'#dcfce7', bd:'#86efac', text:'#15803d', icon:'●' },
-  potencial:         { tag:'tag-blue',  headerCol:'var(--accent)', bg:'#f5efe5', bd:'#93c5fd', text:'#6f5734', icon:'' },
-  paralizada:        { tag:'tag-amber', headerCol:'var(--amber)',  bg:'#fef3c7', bd:'#fcd34d', text:'#92400e', icon:'⏸' },
-  descartada:        { tag:'tag-red',   headerCol:'#dc2626',       bg:'#fee2e2', bd:'#fca5a5', text:'#991b1b', icon:'✕' },
-  cerrada_concedido: { tag:'tag-green', headerCol:'var(--green)',  bg:'#dcfce7', bd:'#86efac', text:'#15803d', icon:'' },
-  cerrada_perdida:   { tag:'tag-red',   headerCol:'#dc2626',       bg:'#fee2e2', bd:'#fca5a5', text:'#991b1b', icon:'✕' },
+  ongoing:           { tag:'tag-green',  headerCol:'var(--green)',  bg:'#dcfce7', bd:'#86efac', text:'#15803d', icon:'●' },
+  potencial:         { tag:'tag-blue',   headerCol:'var(--accent)', bg:'#f5efe5', bd:'#93c5fd', text:'#6f5734', icon:'' },
+  paralizada:        { tag:'tag-amber',  headerCol:'var(--amber)',  bg:'#fef3c7', bd:'#fcd34d', text:'#92400e', icon:'⏸' },
+  en_negociacion:    { tag:'tag-purple', headerCol:'var(--purple)', bg:'#f3e8ff', bd:'#d8b4fe', text:'#6b21a8', icon:'' },
+  descartada:        { tag:'tag-red',    headerCol:'#dc2626',       bg:'#fee2e2', bd:'#fca5a5', text:'#991b1b', icon:'✕' },
+  cerrada_concedido: { tag:'tag-green',  headerCol:'var(--green)',  bg:'#dcfce7', bd:'#86efac', text:'#15803d', icon:'' },
+  cerrada_perdida:   { tag:'tag-red',    headerCol:'#dc2626',       bg:'#fee2e2', bd:'#fca5a5', text:'#991b1b', icon:'✕' },
 }
 
 function StubTab({ label }) {
@@ -137,6 +149,13 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [mandatoSearch, setMandatoSearch] = useState('')
   const [mandatoResults, setMandatoResults] = useState([])
   const [showMandatoDD, setShowMandatoDD] = useState(false)
+  // Typeahead Oferta · vincular una oferta concreta a la demanda
+  const [ofertaSearch, setOfertaSearch] = useState('')
+  const [ofertaResults, setOfertaResults] = useState([])
+  const [showOfertaDD, setShowOfertaDD] = useState(false)
+  // Typeahead Instrucción · texto libre con sugerencias mock (master Dynamics)
+  const [instSearch, setInstSearch] = useState('')
+  const [showInstDD, setShowInstDD] = useState(false)
 
   const [form, setForm] = useState({
     nombre:'', estatus:'', notas:'', motivo_descarte:'',
@@ -153,14 +172,35 @@ export default function FichaDemandaSupabase({ refOrId }) {
     // sin aplicar), reintentamos sin ella para no romper la ficha entera.
     const SELECT_FULL = `
       id, ref, nombre, estatus, notas, motivo_descarte, requisitos, otros_contactos, equipo_trabajo, documentos,
-      dynamics_account_id, dynamics_opportunity_id, mandato_id, created_at, updated_at,
+      dynamics_account_id, dynamics_opportunity_id, mandato_id, oferta_id, instruccion_ref, created_at, updated_at,
       dynamics_accounts:dynamics_account_id ( dynamics_id, nombre, tipo, sector, direccion, codigo_postal, ciudad, pais, telefono, web ),
       dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo ),
-      mandato:mandato_id ( id, ref )
+      mandato:mandato_id ( id, ref ),
+      oferta:oferta_id ( id, ref, tipo_operacion, estado, activos:activo_id ( id, ref, nombre, ciudad, uso ) )
     `
-    const SELECT_FALLBACK = SELECT_FULL.replace(', documentos', '')
+    // Si una columna nueva aún no existe, reintenta sin ella para no romper la
+    // ficha entera (migración 031 = documentos, 036 = oferta_id/instruccion_ref).
+    const buildFallback = (full, missing) =>
+      missing.reduce((q, col) => {
+        if (col === 'oferta_id') {
+          return q
+            .replace(', oferta_id', '')
+            .replace(/,\s*oferta:oferta_id[^)]+\)\s*\)/, '')
+        }
+        return q.replace(new RegExp(`,\\s*${col}`, 'g'), '')
+      }, full)
+    const SELECT_FALLBACK = buildFallback(SELECT_FULL, ['documentos'])
 
     let { data, error } = await supabase.from('demandas').select(SELECT_FULL).eq('ref', refOrId).maybeSingle()
+    if (error && /oferta_id|instruccion_ref/i.test(error.message)) {
+      // Migración 036 aún no aplicada → reintenta sin oferta_id/instruccion_ref
+      const q2 = SELECT_FULL
+        .replace(', oferta_id, instruccion_ref', '')
+        .replace(/,\s*oferta:oferta_id[^)]+\)\s*\)\s*\)/, '')
+      const r = await supabase.from('demandas').select(q2).eq('ref', refOrId).maybeSingle()
+      data = r.data; error = r.error
+      if (data) { data.oferta_id = null; data.instruccion_ref = null; data.oferta = null }
+    }
     if (error && /documentos/i.test(error.message)) {
       // Reintenta sin la columna documentos
       const r = await supabase.from('demandas').select(SELECT_FALLBACK).eq('ref', refOrId).maybeSingle()
@@ -262,6 +302,59 @@ export default function FichaDemandaSupabase({ refOrId }) {
     if (!window.confirm('¿Desvincular el mandato de esta demanda? La demanda volverá a estar sin mandato.')) return
     const { error } = await supabase.from('demandas')
       .update({ mandato_id: null, updated_at: new Date().toISOString() })
+      .eq('id', demanda.id)
+    if (error) { setSaveError(error.message); return }
+    await load()
+  }
+
+  // ── Búsqueda de ofertas para vincular a la demanda ──
+  useEffect(() => {
+    if (!showOfertaDD) return
+    const q = ofertaSearch.trim()
+    let cancel = false
+    ;(async () => {
+      let query = supabase
+        .from('ofertas')
+        .select('id, ref, tipo_operacion, estado, activos:activo_id ( id, ref, nombre, ciudad )')
+        .order('updated_at', { ascending:false })
+        .limit(12)
+      if (q.length >= 1) query = query.ilike('ref', `%${q.toUpperCase()}%`)
+      const { data } = await query
+      if (!cancel) setOfertaResults(data || [])
+    })()
+    return () => { cancel = true }
+  }, [ofertaSearch, showOfertaDD])
+
+  const vincularOferta = async (ofertaId) => {
+    const { error } = await supabase.from('demandas')
+      .update({ oferta_id: ofertaId, updated_at: new Date().toISOString() })
+      .eq('id', demanda.id)
+    if (error) { setSaveError(error.message); return }
+    setOfertaSearch(''); setShowOfertaDD(false); setOfertaResults([])
+    await load()
+  }
+  const desvincularOferta = async () => {
+    if (!window.confirm('¿Desvincular la oferta de esta demanda?')) return
+    const { error } = await supabase.from('demandas')
+      .update({ oferta_id: null, updated_at: new Date().toISOString() })
+      .eq('id', demanda.id)
+    if (error) { setSaveError(error.message); return }
+    await load()
+  }
+
+  const vincularInstruccion = async (ref) => {
+    if (!ref) return
+    const { error } = await supabase.from('demandas')
+      .update({ instruccion_ref: ref, updated_at: new Date().toISOString() })
+      .eq('id', demanda.id)
+    if (error) { setSaveError(error.message); return }
+    setInstSearch(''); setShowInstDD(false)
+    await load()
+  }
+  const desvincularInstruccion = async () => {
+    if (!window.confirm('¿Desvincular la instrucción de esta demanda?')) return
+    const { error } = await supabase.from('demandas')
+      .update({ instruccion_ref: null, updated_at: new Date().toISOString() })
       .eq('id', demanda.id)
     if (error) { setSaveError(error.message); return }
     await load()
@@ -520,7 +613,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
               </div>
               {(() => {
                 const ec = ESTADO_COLOR[form.estatus] || ESTADO_COLOR.ongoing
-                const colorMap = { ongoing:'green', potencial:'blue', paralizada:'amber', descartada:'red', cerrada_concedido:'green', cerrada_perdida:'red' }
+                const colorMap = { ongoing:'green', potencial:'blue', paralizada:'amber', en_negociacion:'purple', descartada:'red', cerrada_concedido:'green', cerrada_perdida:'red' }
                 const hasNotas = !!(form.notas || '').trim()
                 const items = [
                   { key:'estado', type:'info', label:'Estado', value:`${ec.icon} ${ESTADO_LABEL[form.estatus] || form.estatus || '—'}`,
@@ -560,13 +653,6 @@ export default function FichaDemandaSupabase({ refOrId }) {
               onAfter: () => load(),
               onError: (msg) => setSaveError(msg),
             })
-            const ec = ESTADO_COLOR[form.estatus] || ESTADO_COLOR.ongoing
-            const motivoEsPredef = MOTIVOS_DESCARTE_DEMANDA.includes(form.motivo_descarte)
-            const motivoEsOtro   = !!form.motivo_descarte && !motivoEsPredef
-            const motivoSelV     = motivoEsOtro ? 'Otro motivo' : (form.motivo_descarte || '')
-            const motivoOtroTxt  = motivoEsOtro ? form.motivo_descarte : ''
-            const requiereMotivo = form.estatus === 'descartada'
-            const sinMotivo      = requiereMotivo && !(form.motivo_descarte || '').trim()
 
             const equipoInterno = equipo.filter(m => m.rol !== 'Colaborador')
             const colaboradores = equipo.filter(m => m.rol === 'Colaborador')
@@ -580,80 +666,269 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   const hasCuenta      = !!(cuenta?.dynamics_id || cuenta?.id)
                   const hasOportunidad = !!(oportunidad?.dynamics_id || demanda.dynamics_opportunity_id)
                   const hasMandato     = !!demanda.mandato_id
+                  const hasOferta      = !!(demanda.oferta_id && demanda.oferta)
+                  const hasInstruccion = !!demanda.instruccion_ref
+                  const enNegociacion  = form.estatus === 'en_negociacion'
                   const yaGanada       = form.estatus === 'cerrada_concedido'
-                  const yaPerdida      = ['cerrada_perdida','descartada'].includes(form.estatus)
-                  const enCurso        = !yaGanada && !yaPerdida && hasOportunidad
-                  return (
-                    <FunnelStepCards steps={[
-                      {
-                        key:'cuenta',
-                        icon: Building2,
-                        tone:'green',
-                        label:'Cliente (Cuenta)',
-                        value: cuenta?.nombre || null,
-                        sub:   cuenta?.sector || cuenta?.tipo || null,
-                        status: hasCuenta ? 'done' : 'current',
-                        openAction: hasCuenta ? { label:'Abrir cuenta', onClick: () => navigate('cuentas', { id: cuenta.dynamics_id || cuenta.id }) } : null,
-                        dyn: true,
-                      },
-                      {
-                        key:'oportunidad',
-                        icon: Target,
-                        tone:'accent',
-                        label:'Oportunidad',
-                        value: oportunidad?.nombre || demanda.dynamics_opportunity_id || null,
-                        sub:   oportunidad?.tipo || null,
-                        status: hasOportunidad ? 'done' : 'locked',
-                        openAction: hasOportunidad ? { label:'Abrir oportunidad', onClick: () => navigate('ficha-oportunidad', { id: oportunidad?.dynamics_id || demanda.dynamics_opportunity_id }) } : null,
-                        lockedHint:'Sin oportunidad vinculada.',
-                        dyn: true,
-                      },
-                      {
-                        key:'mandato',
-                        icon: ScrollText,
-                        tone:'purple',
-                        label:'Mandato',
-                        value: demanda.mandato?.ref || null,
-                        sub: hasMandato ? 'Mandato vinculado a esta demanda.' : null,
-                        status: hasMandato ? 'done' : 'locked',
-                        openAction: hasMandato ? { label:'Abrir mandato', onClick: () => navigate('ficha-mandato', { ref: demanda.mandato.ref }) } : null,
-                        lockedHint:'Las demandas pueden o no llevar mandato. Si no hay, se hace matching directo desde el pool de ofertas.',
-                        optional: !hasMandato,
-                      },
-                      // Card Ganado
-                      {
-                        key:'ganada',
-                        icon: Trophy,
-                        tone:'green',
-                        label:'Demanda ganada',
-                        value: yaGanada ? 'Concedido' : null,
-                        sub: yaGanada
-                          ? 'Cuenta firmó con un activo del pool.'
-                          : 'Cuando la cuenta firme con un activo, marca aquí el cierre concedido.',
-                        status: yaGanada ? 'done' : yaPerdida ? 'locked' : enCurso ? 'current' : 'locked',
-                        action: enCurso
-                          ? { label:'✓ Marcar como ganada', onClick: () => setShowCierreModal('ganada'), primary: true }
-                          : null,
-                        lockedHint: yaPerdida ? 'La demanda ya está marcada como perdida/descartada.' : 'Vincula la oportunidad.',
-                      },
-                      // Card Perdido
-                      {
-                        key:'perdida',
-                        icon: XClose,
-                        tone:'red',
-                        label:'Demanda perdida',
-                        value: yaPerdida ? (demanda.motivo_descarte || ESTADO_LABEL[form.estatus]) : null,
-                        sub: yaPerdida
-                          ? null
-                          : 'Si la cuenta no firma o cierra sin éxito, indica el motivo aquí.',
-                        status: yaPerdida ? 'done' : yaGanada ? 'locked' : enCurso ? 'current' : 'locked',
-                        action: enCurso
-                          ? { label:'✗ Marcar como perdida', onClick: () => setShowCierreModal('perdida'), primary: false }
-                          : null,
-                        lockedHint: yaGanada ? 'La demanda ya está marcada como ganada.' : 'Vincula la oportunidad.',
-                      },
-                    ]} />
+                  const yaDescartada   = form.estatus === 'descartada'
+                  const yaPerdida      = form.estatus === 'cerrada_perdida'
+                  const cerrada        = yaGanada || yaDescartada || yaPerdida
+
+                  // Buscador inline reutilizable para cards 'current'
+                  const ddPanel = (children) => (
+                    <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, zIndex:30, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6, maxHeight:240, overflowY:'auto', boxShadow:'0 6px 20px rgba(0,0,0,0.12)' }}>
+                      {children}
+                    </div>
                   )
+
+                  // Estado de la demanda — bloque visual + dropdown + motivo
+                  const ec = ESTADO_COLOR[form.estatus] || ESTADO_COLOR.ongoing
+                  const motivoEsPredef = MOTIVOS_DESCARTE_DEMANDA.includes(form.motivo_descarte)
+                  const motivoEsOtro   = !!form.motivo_descarte && !motivoEsPredef
+                  const motivoSelV     = motivoEsOtro ? 'Otro motivo' : (form.motivo_descarte || '')
+                  const motivoOtroTxt  = motivoEsOtro ? form.motivo_descarte : ''
+                  const requiereMotivo = yaDescartada || yaPerdida
+                  const sinMotivo      = requiereMotivo && !(form.motivo_descarte || '').trim()
+
+                  const estadoExtra = (
+                    <div onClick={e => e.stopPropagation()} style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                      {/* Badge grande con el estado actual */}
+                      <div style={{ padding:'10px 12px', background: ec.bg, border:`2px solid ${ec.bd}`, borderRadius:8, display:'flex', alignItems:'center', gap:10 }}>
+                        <div style={{ fontSize:20, lineHeight:1, color: ec.text }}>{ec.icon}</div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:9, fontWeight:700, color: ec.text, opacity:.75, textTransform:'uppercase', letterSpacing:'.04em' }}>Estado actual</div>
+                          <div style={{ fontSize:14, fontWeight:800, color: ec.text, lineHeight:1.2 }}>{ESTADO_LABEL[form.estatus] || form.estatus || '—'}</div>
+                        </div>
+                      </div>
+
+                      {/* Dropdown de cambio · oculto si la demanda ya está cerrada por Savills */}
+                      {!yaGanada && (
+                        <div>
+                          <div className="rp-lbl" style={{ marginBottom:4 }}>Cambiar estado</div>
+                          <select className="fsel" value={ESTADO_OPTS.some(o => o.v === form.estatus) ? form.estatus : 'ongoing'} onChange={e => setF('estatus', e.target.value)} style={{ width:'100%' }}>
+                            {ESTADO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Motivo · obligatorio si descartada/perdida */}
+                      {(requiereMotivo || demanda.motivo_descarte) && (
+                        <div>
+                          <div className="rp-lbl" style={{ marginTop:2, marginBottom:4, color: requiereMotivo ? '#dc2626' : undefined }}>
+                            Motivo {requiereMotivo && <span style={{ color:'#dc2626' }}>*</span>}
+                          </div>
+                          <select className="fsel" value={motivoSelV}
+                            style={{ width:'100%', borderColor: sinMotivo ? '#dc2626' : undefined }}
+                            onChange={e => {
+                              const v = e.target.value
+                              if (v === '') setF('motivo_descarte', '')
+                              else if (v === 'Otro motivo') setF('motivo_descarte', motivoOtroTxt || ' ')
+                              else setF('motivo_descarte', v)
+                            }}>
+                            <option value="">Selecciona un motivo...</option>
+                            {MOTIVOS_DESCARTE_DEMANDA.map(m => <option key={m}>{m}</option>)}
+                          </select>
+                          {(motivoSelV === 'Otro motivo' || motivoEsOtro) && (
+                            <textarea
+                              className="kf-inp"
+                              style={{ width:'100%', marginTop:6, minHeight:50, resize:'vertical', borderColor: sinMotivo ? '#dc2626' : undefined }}
+                              value={motivoOtroTxt}
+                              onChange={e => setF('motivo_descarte', e.target.value)}
+                              placeholder="Describe brevemente el motivo..."
+                            />
+                          )}
+                        </div>
+                      )}
+
+                      {/* Acceso a la negociación cuando el estado es 'en_negociacion' */}
+                      {enNegociacion && (
+                        <button
+                          className="ab-btn"
+                          style={{ width:'100%', background:'var(--purple,#6b5b8e)', color:'#fff', border:'1px solid var(--purple,#6b5b8e)', fontWeight:700 }}
+                          onClick={() => navigate('negociaciones', { demanda: demanda.ref })}
+                        > Abrir negociación</button>
+                      )}
+                    </div>
+                  )
+
+                  // Mandato extra body · buscador inline cuando no hay
+                  const mandatoExtra = !hasMandato && !cerrada ? (
+                    <div onClick={e => e.stopPropagation()} style={{ position:'relative', marginTop:4 }}>
+                      <input
+                        className="kf-inp"
+                        value={mandatoSearch}
+                        onChange={e => { setMandatoSearch(e.target.value); setShowMandatoDD(true) }}
+                        onFocus={() => setShowMandatoDD(true)}
+                        onBlur={() => setTimeout(() => setShowMandatoDD(false), 200)}
+                        placeholder="🔍 Vincular mandato (MAN-...)"
+                        style={{ width:'100%', fontFamily:'var(--mono)', fontSize:11, padding:'6px 8px' }}
+                      />
+                      {showMandatoDD && mandatoResults.length > 0 && ddPanel(
+                        mandatoResults.map(m => {
+                          const mismaCuenta = m.dynamics_account_id === demanda.dynamics_account_id
+                          return (
+                            <div key={m.id} onMouseDown={() => vincularMandato(m.id)}
+                              style={{ padding:'7px 10px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
+                              <div style={{ fontWeight:600, fontFamily:'var(--mono)' }}>{m.ref}</div>
+                              <div style={{ fontSize:9, color:'var(--text4)' }}>
+                                <span className={`tag ${m.tipo === 'buy' ? 'tag-blue' : 'tag-amber'}`} style={{ fontSize:8 }}>{m.tipo}</span>
+                                {' '}{mismaCuenta && <span className="tag tag-green" style={{ fontSize:8 }}>✓ misma cuenta</span>}
+                              </div>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  ) : null
+
+                  // Oferta extra body · buscador inline cuando no hay
+                  const ofertaActiva = demanda.oferta
+                  const ofertaExtra = !hasOferta && !cerrada ? (
+                    <div onClick={e => e.stopPropagation()} style={{ position:'relative', marginTop:4 }}>
+                      <input
+                        className="kf-inp"
+                        value={ofertaSearch}
+                        onChange={e => { setOfertaSearch(e.target.value); setShowOfertaDD(true) }}
+                        onFocus={() => setShowOfertaDD(true)}
+                        onBlur={() => setTimeout(() => setShowOfertaDD(false), 200)}
+                        placeholder="🔍 Vincular oferta (OFE-...)"
+                        style={{ width:'100%', fontFamily:'var(--mono)', fontSize:11, padding:'6px 8px' }}
+                      />
+                      {showOfertaDD && ofertaResults.length > 0 && ddPanel(
+                        ofertaResults.map(o => (
+                          <div key={o.id} onMouseDown={() => vincularOferta(o.id)}
+                            style={{ padding:'7px 10px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
+                            <div style={{ fontWeight:600, fontFamily:'var(--mono)' }}>{o.ref}</div>
+                            <div style={{ fontSize:9, color:'var(--text4)' }}>
+                              {o.activos?.nombre || '—'} · {o.tipo_operacion || ''} · {o.estado || ''}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  ) : null
+
+                  // Instrucción extra body · buscador (texto libre, ref Dynamics)
+                  const instExtra = !hasInstruccion && enNegociacion ? (
+                    <div onClick={e => e.stopPropagation()} style={{ marginTop:4 }}>
+                      <input
+                        className="kf-inp"
+                        value={instSearch}
+                        onChange={e => setInstSearch(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') vincularInstruccion(instSearch.trim().toUpperCase()) }}
+                        placeholder="🔍 Vincular instrucción (INS-...) y Enter"
+                        style={{ width:'100%', fontFamily:'var(--mono)', fontSize:11, padding:'6px 8px' }}
+                      />
+                      <div style={{ fontSize:9, color:'var(--text4)', marginTop:3 }}>Master Dynamics · escribe la referencia exacta y pulsa Enter</div>
+                    </div>
+                  ) : null
+
+                  // Sub para card Oferta done
+                  const ofertaSub = hasOferta
+                    ? `${ofertaActiva.activos?.nombre || ''} · ${ofertaActiva.tipo_operacion || ''}`.replace(/^ ·\s*/, '').replace(/\s*·\s*$/, '')
+                    : 'Cuando empieces la negociación, vincula aquí la oferta concreta.'
+
+                  // Card final · cuando la demanda se cierra (ganada/descartada/perdida)
+                  const finalCard = (() => {
+                    if (yaGanada) {
+                      return {
+                        key:'cerrada-savills', icon: Trophy, tone:'green', label:'Cerrada por Savills',
+                        value:'✓ Operación cerrada con éxito',
+                        sub: hasOferta ? `Oferta firmada: ${ofertaActiva.ref}` : 'Operación cerrada.',
+                        status:'done',
+                        openAction: hasOferta
+                          ? { label:'Ver resumen', onClick: () => navigate('ficha-negociacion', { ref: ofertaActiva.ref }) }
+                          : { label:'Ver negociación', onClick: () => navigate('negociaciones', { demanda: demanda.ref }) },
+                      }
+                    }
+                    if (yaDescartada) {
+                      return {
+                        key:'descartada', icon: XClose, tone:'red', label:'Descartada',
+                        value: demanda.motivo_descarte || 'Descartada',
+                        sub:'Descarte registrado. Ver motivo en la card Estado.',
+                        status:'done',
+                      }
+                    }
+                    if (yaPerdida) {
+                      return {
+                        key:'perdida', icon: XClose, tone:'red', label:'Perdida',
+                        value: demanda.motivo_descarte || 'Perdida',
+                        sub:'Negociación cerrada sin éxito.',
+                        status:'done',
+                      }
+                    }
+                    return null
+                  })()
+
+                  const steps = [
+                    {
+                      key:'cuenta', icon: Building2, tone:'green',
+                      label:'Cuenta', value: cuenta?.nombre || null,
+                      sub: cuenta?.sector || cuenta?.tipo || null,
+                      status: hasCuenta ? 'done' : 'current',
+                      openAction: hasCuenta ? { label:'Abrir cuenta', onClick: () => navigate('cuentas', { id: cuenta.dynamics_id || cuenta.id }) } : null,
+                      dyn: true,
+                    },
+                    {
+                      key:'oportunidad', icon: Target, tone:'accent',
+                      label:'Oportunidad', value: oportunidad?.nombre || demanda.dynamics_opportunity_id || null,
+                      sub: oportunidad?.tipo || null,
+                      status: hasOportunidad ? 'done' : 'locked',
+                      openAction: hasOportunidad ? { label:'Abrir oportunidad', onClick: () => navigate('ficha-oportunidad', { id: oportunidad?.dynamics_id || demanda.dynamics_opportunity_id }) } : null,
+                      lockedHint:'Sin oportunidad vinculada.',
+                      dyn: true,
+                    },
+                    {
+                      key:'mandato', icon: ScrollText, tone:'purple',
+                      label:'Mandato',
+                      value: demanda.mandato?.ref || null,
+                      sub: hasMandato ? 'Mandato vinculado a esta demanda.' : 'Opcional · vincula uno existente o pasa sin mandato.',
+                      status: hasMandato ? 'done' : cerrada ? 'locked' : 'current',
+                      openAction: hasMandato ? { label:'Abrir mandato', onClick: () => navigate('ficha-mandato', { ref: demanda.mandato.ref }) } : null,
+                      editAction: hasMandato ? { label:'Desvincular', onClick: desvincularMandato } : null,
+                      extraBody: mandatoExtra,
+                      optional: !hasMandato,
+                    },
+                    {
+                      key:'oferta', icon: Tag, tone:'blue',
+                      label:'Oferta',
+                      value: hasOferta ? ofertaActiva.ref : null,
+                      sub: ofertaSub,
+                      status: hasOferta ? 'done' : cerrada ? 'locked' : 'current',
+                      openAction: hasOferta ? { label:'Abrir oferta', onClick: () => navigate('ficha-oferta', { ofertaRef: ofertaActiva.ref }) } : null,
+                      editAction: hasOferta ? { label:'Desvincular', onClick: desvincularOferta } : null,
+                      extraBody: ofertaExtra,
+                      optional: !hasOferta && !enNegociacion,
+                    },
+                    {
+                      key:'estado', icon: Briefcase, tone: ec.headerCol === 'var(--green)' ? 'green' : ec.headerCol === 'var(--amber)' ? 'amber' : ec.headerCol === 'var(--purple)' ? 'purple' : ec.headerCol === '#dc2626' ? 'red' : 'accent',
+                      label:'Estado de la demanda',
+                      value: null,
+                      sub: null,
+                      status: 'current',
+                      extraBody: estadoExtra,
+                    },
+                  ]
+
+                  // Card Instrucción aparece cuando estado = en_negociacion (o ya hay instrucción)
+                  if (enNegociacion || hasInstruccion) {
+                    steps.push({
+                      key:'instruccion', icon: FileSearch, tone:'amber',
+                      label:'Instrucción',
+                      value: demanda.instruccion_ref || null,
+                      sub: hasInstruccion ? 'Instrucción de Dynamics vinculada.' : 'Vincula la instrucción para arrancar la negociación.',
+                      status: hasInstruccion ? 'done' : 'current',
+                      openAction: hasInstruccion ? { label:'Ver instrucciones', onClick: () => navigate('instrucciones', { ref: demanda.instruccion_ref }) } : null,
+                      editAction: hasInstruccion ? { label:'Desvincular', onClick: desvincularInstruccion } : null,
+                      extraBody: instExtra,
+                      dyn: true,
+                    })
+                  }
+
+                  // Card final solo si la demanda está cerrada
+                  if (finalCard) steps.push(finalCard)
+
+                  return <FunnelStepCards steps={steps} />
                 })()}
 
                 {/* ── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones) ── */}
@@ -676,66 +951,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   />
                 </div>
 
-                {/* ─── FILA: Estado (1/2) + Partes involucradas (1/2) ─── */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
-
-                  {/* === ESTADO DE LA DEMANDA · cuadro visual grande === */}
-                  <div className="va-card" style={{ marginBottom:0 }}>
-                    <div className="va-card-header">
-                      <h3><span className="ico" style={{ color: ec.headerCol }}>{ec.icon}</span> Estado de la demanda</h3>
-                    </div>
-                    <div style={{ padding:'8px 18px 16px' }}>
-                      {/* Badge grande con color por estado */}
-                      <div style={{
-                        padding:'14px 16px',
-                        background: ec.bg, border: `2px solid ${ec.bd}`, borderRadius: 8,
-                        display:'flex', alignItems:'center', gap:12, marginBottom: 12,
-                      }}>
-                        <div style={{ fontSize:26, lineHeight:1, color: ec.text }}>{ec.icon}</div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:10, fontWeight:700, color: ec.text, opacity:.75, textTransform:'uppercase', letterSpacing:'.04em' }}>Estado actual</div>
-                          <div style={{ fontSize:18, fontWeight:800, color: ec.text, lineHeight:1.2 }}>{ESTADO_LABEL[form.estatus] || form.estatus || '—'}</div>
-                        </div>
-                      </div>
-
-                      {/* Cambiar estado */}
-                      <div style={{ marginBottom: motivoSelV ? 10 : 0 }}>
-                        <div className="rp-lbl" style={{ marginBottom:4 }}>Cambiar estado</div>
-                        <select className="fsel" value={form.estatus} onChange={e => setF('estatus', e.target.value)} style={{ width:'100%' }}>
-                          {ESTADO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                        </select>
-                      </div>
-
-                      {/* Motivo del descarte: visible si descartada o ya guardado */}
-                      {(requiereMotivo || demanda.motivo_descarte) && (
-                        <>
-                          <div className="rp-lbl" style={{ marginTop:8, marginBottom:4, color: requiereMotivo ? '#dc2626' : undefined }}>
-                            Motivo del descarte {requiereMotivo && <span style={{ color:'#dc2626' }}>*</span>}
-                          </div>
-                          <select className="fsel" value={motivoSelV}
-                            style={{ width:'100%', borderColor: sinMotivo ? '#dc2626' : undefined }}
-                            onChange={e => {
-                              const v = e.target.value
-                              if (v === '') setF('motivo_descarte', '')
-                              else if (v === 'Otro motivo') setF('motivo_descarte', motivoOtroTxt || ' ')
-                              else setF('motivo_descarte', v)
-                            }}>
-                            <option value="">Selecciona un motivo...</option>
-                            {MOTIVOS_DESCARTE_DEMANDA.map(m => <option key={m}>{m}</option>)}
-                          </select>
-                          {(motivoSelV === 'Otro motivo' || motivoEsOtro) && (
-                            <textarea
-                              className="kf-inp"
-                              style={{ width:'100%', marginTop:6, minHeight:50, resize:'vertical', borderColor: sinMotivo ? '#dc2626' : undefined }}
-                              value={motivoOtroTxt}
-                              onChange={e => setF('motivo_descarte', e.target.value)}
-                              placeholder="Describe brevemente por qué se descarta esta demanda..."
-                            />
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
+                {/* ─── FILA: Partes involucradas (full-width temporal · Bloque 3 lo pondrá en 3 cuadros) ─── */}
+                <div style={{ marginBottom:12 }}>
 
                   {/* === PARTES INVOLUCRADAS === */}
                   <div className="va-card" style={{ marginBottom:0, overflow:'visible' }}>
@@ -781,59 +998,6 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   </div>
 
                 </div>
-
-                {/* ─── Vincular Mandato (solo si no hay vinculado · alternativa al botón "Firmar mandato") ─── */}
-                {!(demanda.mandato_id && demanda.mandato) && (
-                  <div className="va-card" style={{ marginBottom:12, overflow:'visible' }}>
-                    <div className="va-card-header">
-                      <h3><span className="ico"></span> Vincular mandato existente</h3>
-                      <span className="hint">Opcional · usa "Firmar mandato" arriba para crear uno nuevo</span>
-                    </div>
-                    <div style={{ padding:'8px 20px 16px', position:'relative' }}>
-                      <input
-                        className="kf-inp"
-                        value={mandatoSearch}
-                        onChange={e => { setMandatoSearch(e.target.value); setShowMandatoDD(true) }}
-                        onFocus={() => setShowMandatoDD(true)}
-                        onBlur={() => setTimeout(() => setShowMandatoDD(false), 200)}
-                        placeholder="🔍 Buscar mandato existente (ej. MAN-2026-)"
-                        style={{ width:'100%', fontFamily:'var(--mono)', fontSize:12, padding:'8px 10px' }}
-                      />
-                      {showMandatoDD && (
-                        <div style={{ position:'absolute', top:'calc(100% + 2px)', left:20, right:20, zIndex:30, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6, maxHeight:240, overflowY:'auto', boxShadow:'0 6px 20px rgba(0,0,0,0.12)' }}>
-                          {mandatoResults.length === 0 ? (
-                            <div style={{ padding:'10px 12px', fontSize:11, color:'var(--text4)' }}>
-                              {mandatoSearch.length < 1 ? 'Escribe para buscar mandatos...' : 'Sin resultados para esa referencia.'}
-                            </div>
-                          ) : mandatoResults.map(m => {
-                            const mismaCuenta = m.dynamics_account_id === demanda.dynamics_account_id
-                            return (
-                              <div
-                                key={m.id}
-                                onMouseDown={() => vincularMandato(m.id)}
-                                style={{ padding:'8px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8 }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
-                                onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
-                              >
-                                <div style={{ width:24, height:24, borderRadius:'50%', background:'var(--purple, #6b5b8e)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0 }}></div>
-                                <div style={{ flex:1, minWidth:0 }}>
-                                  <div style={{ fontSize:12, fontWeight:600, fontFamily:'var(--mono)' }}>{m.ref}</div>
-                                  <div style={{ fontSize:10, color:'var(--text4)', display:'flex', gap:6, flexWrap:'wrap' }}>
-                                    <span className={`tag ${m.tipo === 'buy' ? 'tag-blue' : 'tag-amber'}`} style={{ fontSize:8 }}>{m.tipo}</span>
-                                    <span className="tag tag-gray" style={{ fontSize:8 }}>{m.via}</span>
-                                    {mismaCuenta && <span className="tag tag-green" style={{ fontSize:8 }}>✓ misma cuenta</span>}
-                                    <span>· {m.estado}</span>
-                                    {m.fecha_firma && <span>· firma {fmtDate(m.fecha_firma)}</span>}
-                                  </div>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
 
               </div></div>
             )

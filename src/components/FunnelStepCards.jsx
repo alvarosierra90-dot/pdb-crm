@@ -47,8 +47,19 @@ function StepCard({
   const isCurrent = status === 'current'
   const isLocked  = status === 'locked'
 
+  // Si la card está done y tiene openAction, todo el cuerpo es clicable y
+  // navega al registro vinculado. Los botones internos hacen stopPropagation.
+  const cardClickable = isDone && !!openAction
+  const handleCardClick = cardClickable ? () => openAction.onClick?.() : undefined
+
   return (
-    <div className={`step-card tone-${tone} step-${status}`}>
+    <div
+      className={`step-card tone-${tone} step-${status}${cardClickable ? ' step-clickable' : ''}`}
+      onClick={handleCardClick}
+      style={cardClickable ? { cursor:'pointer' } : undefined}
+      role={cardClickable ? 'button' : undefined}
+      tabIndex={cardClickable ? 0 : undefined}
+    >
       <div className="step-card-ico">
         <Icon size={16} strokeWidth={1.75} />
       </div>

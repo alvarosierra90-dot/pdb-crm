@@ -2109,6 +2109,7 @@ tr:hover .ra-cell { opacity: 1; }
 .step-card.tone-purple { color: #6b21a8; }
 .step-card.tone-accent { color: var(--accent); }
 .step-card.tone-amber  { color: #b45309; }
+.step-card.tone-red    { color: #b91c1c; }
 
 /* Estado: DONE · gradiente tone, color saturado, clicable */
 .step-card.step-done.tone-green  { background: linear-gradient(180deg,#f0fdf4 0%,#fff 60%); }
@@ -2117,6 +2118,7 @@ tr:hover .ra-cell { opacity: 1; }
 .step-card.step-done.tone-purple { background: linear-gradient(180deg,#faf5ff 0%,#fff 60%); }
 .step-card.step-done.tone-accent { background: linear-gradient(180deg,#fdfaf3 0%,#fff 60%); }
 .step-card.step-done.tone-amber  { background: linear-gradient(180deg,#fffbeb 0%,#fff 60%); }
+.step-card.step-done.tone-red    { background: linear-gradient(180deg,#fef2f2 0%,#fff 60%); }
 
 /* Estado: CURRENT · fondo accent, border más grueso, CTA grande */
 .step-card.step-current {
@@ -2151,6 +2153,7 @@ tr:hover .ra-cell { opacity: 1; }
 .step-card.tone-purple .step-card-ico { background: #6b21a8; }
 .step-card.tone-accent .step-card-ico { background: var(--accent); }
 .step-card.tone-amber  .step-card-ico { background: #b45309; }
+.step-card.tone-red    .step-card-ico { background: #b91c1c; }
 
 .step-card-body { flex: 1; min-width: 0; }
 
