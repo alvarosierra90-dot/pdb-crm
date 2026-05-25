@@ -88,6 +88,10 @@ export default function FichaOfertaSupabase({ refOrId }) {
   const [showFirmarModal, setShowFirmarModal] = useState(false)
   const [showNotasModal, setShowNotasModal] = useState(false)
   const [mandatoVinculado, setMandatoVinculado] = useState(null)
+  // Buscador de cuentas para añadir un Colaborador a la oferta
+  const [colabSearch, setColabSearch] = useState('')
+  const [colabResults, setColabResults] = useState([])
+  const [showColabDD, setShowColabDD] = useState(false)
   // Live stacking del activo · refleja edits en tiempo real para el tab Espacios.
   const [liveBuildings, setLiveBuildings] = useState(null)
   const liveBuildingsRef = useRef(null)
@@ -173,6 +177,49 @@ export default function FichaOfertaSupabase({ refOrId }) {
 
   const restablecer = async () => {
     setSaveError(null)
+    await load()
+  }
+
+  // Buscar cuentas en dynamics_accounts para añadir como Colaborador
+  useEffect(() => {
+    if (!showColabDD) return
+    if (!colabSearch || colabSearch.length < 2) { setColabResults([]); return }
+    let cancel = false
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from('dynamics_accounts')
+        .select('dynamics_id, nombre, tipo, sector')
+        .ilike('nombre', `%${colabSearch}%`)
+        .order('nombre')
+        .limit(10)
+      if (!cancel) setColabResults(data || [])
+    }, 200)
+    return () => { cancel = true; clearTimeout(t) }
+  }, [colabSearch, showColabDD])
+
+  const addColaborador = async (cuenta) => {
+    const equipo = Array.isArray(oferta?.equipo_trabajo) ? oferta.equipo_trabajo : []
+    // Evita duplicados por nombre
+    if (equipo.some(m => m.nombre === cuenta.nombre && m.rol === 'Colaborador')) {
+      setColabSearch(''); setShowColabDD(false); setColabResults([])
+      return
+    }
+    const nuevoEquipo = [...equipo, { nombre: cuenta.nombre, equipo: cuenta.tipo || 'Agente externo', rol: 'Colaborador' }]
+    const { error } = await supabase.from('ofertas')
+      .update({ equipo_trabajo: nuevoEquipo, updated_at: new Date().toISOString() })
+      .eq('id', oferta.id)
+    if (error) { setSaveError(error.message); return }
+    setColabSearch(''); setShowColabDD(false); setColabResults([])
+    await load()
+  }
+
+  const removeColaborador = async (nombre) => {
+    const equipo = Array.isArray(oferta?.equipo_trabajo) ? oferta.equipo_trabajo : []
+    const nuevoEquipo = equipo.filter(m => !(m.nombre === nombre && m.rol === 'Colaborador'))
+    const { error } = await supabase.from('ofertas')
+      .update({ equipo_trabajo: nuevoEquipo, updated_at: new Date().toISOString() })
+      .eq('id', oferta.id)
+    if (error) { setSaveError(error.message); return }
     await load()
   }
 
@@ -437,10 +484,54 @@ export default function FichaOfertaSupabase({ refOrId }) {
                         {renderList(equipoInterno, 'Sin Principal ni Soporte asignados aún.', '#15803d')}
                       </div>
                     </div>
-                    <div className="va-meta-card">
+                    <div className="va-meta-card" style={{ overflow:'visible' }}>
                       <div className="va-meta-head accent-purple"><span className="dot"/>Colaboradores</div>
                       <div style={{ padding:'10px 14px' }}>
-                        {renderList(colaboradores, 'Sin colaboradores externos vinculados.', '#6b21a8')}
+                        {colaboradores.length === 0 ? (
+                          <div style={{ fontSize:12, color:'var(--text4)', fontStyle:'italic', padding:'6px 4px' }}>Sin colaboradores externos vinculados.</div>
+                        ) : (
+                          <ul style={{ listStyle:'none', padding:0, margin:'0 0 8px', display:'flex', flexDirection:'column', gap:6 }}>
+                            {colaboradores.map((m, i) => (
+                              <li key={`${m.nombre}-${i}`} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 10px', background:'#fff', border:'1px solid var(--border)', borderRadius:8, borderLeft:'3px solid #6b21a8' }}>
+                                <div style={{ width:28, height:28, borderRadius:'50%', background:'#6b21a8', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>
+                                  {(m.nombre || '?').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()}
+                                </div>
+                                <div style={{ flex:1, minWidth:0 }}>
+                                  <div style={{ fontSize:13, fontWeight:600 }}>{m.nombre}</div>
+                                  <div style={{ fontSize:11, color:'var(--text3)' }}>{m.equipo || '—'}</div>
+                                </div>
+                                <button onClick={() => removeColaborador(m.nombre)} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:13, padding:'2px 6px' }} title="Quitar colaborador">✕</button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        <div style={{ position:'relative' }}>
+                          <input
+                            className="kf-inp"
+                            value={colabSearch}
+                            onChange={e => { setColabSearch(e.target.value); setShowColabDD(true) }}
+                            onFocus={() => setShowColabDD(true)}
+                            onBlur={() => setTimeout(() => setShowColabDD(false), 200)}
+                            placeholder="🔍 Añadir colaborador (cuenta competencia / gestor exclusivo)"
+                            style={{ width:'100%', fontSize:12, padding:'6px 9px' }}
+                          />
+                          {showColabDD && colabSearch.length >= 2 && (
+                            <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, zIndex:30, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6, maxHeight:220, overflowY:'auto', boxShadow:'0 6px 20px rgba(0,0,0,0.12)' }}>
+                              {colabResults.length === 0 ? (
+                                <div style={{ padding:'8px 12px', fontSize:11, color:'var(--text4)' }}>Sin resultados.</div>
+                              ) : colabResults.map(c => (
+                                <div key={c.dynamics_id} onMouseDown={() => addColaborador(c)}
+                                  style={{ padding:'8px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:12 }}>
+                                  <div style={{ fontWeight:600 }}>{c.nombre}</div>
+                                  <div style={{ fontSize:10, color:'var(--text4)' }}>{[c.tipo, c.sector].filter(Boolean).join(' · ') || c.dynamics_id}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {colabSearch.length > 0 && colabSearch.length < 2 && (
+                            <div style={{ fontSize:10, color:'var(--text4)', marginTop:4 }}>Escribe al menos 2 caracteres.</div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

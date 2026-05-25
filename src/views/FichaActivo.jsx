@@ -4863,17 +4863,31 @@ export default function FichaActivo() {
     // se ejecute después de que el activo se cargue desde Supabase.
   }, [params?.ref, activo?.propietario, activo?.ref])
 
-  // Load ofertas from Supabase for this activo
+  // Load ofertas from Supabase for this activo.
+  // Filtra por activo_id cuando el activo ya está cargado (autoritativo) y
+  // se queda con activo_ref como fallback mientras se resuelve el activo.
+  // Esto soluciona el caso en el que el sidebar del stacking no veía ofertas
+  // vinculadas a Castellana 43: las ofertas más nuevas guardan activo_id pero
+  // pueden no tener activo_ref poblado, y el query antiguo (activo_ref) las
+  // descartaba aunque sí aparecieran en vista 360.
   useEffect(() => {
     const ref = params?.ref
     if (!ref || params?.new) return
     setLoadingOfertas(true)
-    supabase.from('ofertas').select('*').eq('activo_ref', ref)
-      .then(({ data }) => {
-        setOfertas(data || [])
-        setLoadingOfertas(false)
+    const q = activo?.id
+      ? supabase.from('ofertas').select('*').or(`activo_id.eq.${activo.id},activo_ref.eq.${ref}`)
+      : supabase.from('ofertas').select('*').eq('activo_ref', ref)
+    q.then(({ data }) => {
+      // Dedup por id (puede entrar dos veces si activo_id y activo_ref coinciden)
+      const seen = new Set()
+      const uniq = (data || []).filter(o => {
+        if (seen.has(o.id)) return false
+        seen.add(o.id); return true
       })
-  }, [params?.ref])
+      setOfertas(uniq)
+      setLoadingOfertas(false)
+    })
+  }, [params?.ref, activo?.id])
 
   const handleCreateActivo = async () => {
     setSubmitted(true)
