@@ -1158,28 +1158,32 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       </ReqField>
 
                       {(presTipo === 'Alquiler' || presTipo === 'Alquiler / Venta') && (
-                        <div style={{ marginTop:10, padding:'10px 12px', background:'#f0fdfa', border:'1px solid #99f6e4', borderRadius:10 }}>
-                          <div style={{ fontSize:11, fontWeight:600, color:'#0f766e', marginBottom:8, letterSpacing:'-0.005em' }}>Alquiler · €/m²/mes</div>
-                          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-                            <ReqField label="Desde">
-                              <input type="number" className="kf-inp" value={form.alq_min} onChange={e => setF('alq_min', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
-                            </ReqField>
-                            <ReqField label="Hasta">
-                              <input type="number" className="kf-inp" value={form.alq_max} onChange={e => setF('alq_max', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
-                            </ReqField>
+                        <div style={{ marginTop:10, padding:'12px 14px', background:'#f0fdfa', border:'1px solid #99f6e4', borderRadius:10 }}>
+                          <div style={{ fontSize:10.5, fontWeight:600, color:'#0f766e', marginBottom:10, letterSpacing:'.04em', textTransform:'uppercase' }}>Alquiler · €/m²/mes</div>
+                          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                            <div className="dash-num-box">
+                              <div className="dash-num-lbl">Desde</div>
+                              <input type="number" value={form.alq_min} onChange={e => setF('alq_min', e.target.value)} placeholder="—" className="dash-num-input" />
+                            </div>
+                            <div className="dash-num-box">
+                              <div className="dash-num-lbl">Hasta</div>
+                              <input type="number" value={form.alq_max} onChange={e => setF('alq_max', e.target.value)} placeholder="—" className="dash-num-input" />
+                            </div>
                           </div>
                         </div>
                       )}
                       {(presTipo === 'Venta' || presTipo === 'Alquiler / Venta') && (
-                        <div style={{ marginTop:10, padding:'10px 12px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:10 }}>
-                          <div style={{ fontSize:11, fontWeight:600, color:'#b45309', marginBottom:8, letterSpacing:'-0.005em' }}>Venta · €/m²</div>
-                          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-                            <ReqField label="Desde">
-                              <input type="number" className="kf-inp" value={form.venta_m2_min} onChange={e => setF('venta_m2_min', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
-                            </ReqField>
-                            <ReqField label="Hasta">
-                              <input type="number" className="kf-inp" value={form.venta_m2_max} onChange={e => setF('venta_m2_max', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
-                            </ReqField>
+                        <div style={{ marginTop:10, padding:'12px 14px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:10 }}>
+                          <div style={{ fontSize:10.5, fontWeight:600, color:'#b45309', marginBottom:10, letterSpacing:'.04em', textTransform:'uppercase' }}>Venta · €/m²</div>
+                          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                            <div className="dash-num-box">
+                              <div className="dash-num-lbl">Desde</div>
+                              <input type="number" value={form.venta_m2_min} onChange={e => setF('venta_m2_min', e.target.value)} placeholder="—" className="dash-num-input" />
+                            </div>
+                            <div className="dash-num-box">
+                              <div className="dash-num-lbl">Hasta</div>
+                              <input type="number" value={form.venta_m2_max} onChange={e => setF('venta_m2_max', e.target.value)} placeholder="—" className="dash-num-input" />
+                            </div>
                           </div>
                         </div>
                       )}
@@ -1367,68 +1371,69 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   </div>
                 </div>
 
-                {/* ─── FILA 2: Provincias · Zonas · Detalles geográficos (3 cols) ─── */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14 }}>
+                {/* ─── FILA 2: Provincias+Zonas (combinado) · Detalles geográficos ─── */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
 
-                  {/* Provincias */}
+                  {/* Provincias + Zonas (combinadas en un único card) */}
                   <div className="dash-card">
                     <div className="dash-card-head">
-                      Provincias
-                      <span className="dash-card-count">{provinciasMostrar.length}</span>
+                      Provincias y zonas
+                      <span className="dash-card-count">{provinciasMostrar.length + zonasMostrar.length}</span>
                     </div>
-                    <div style={{ padding:'12px 16px 16px' }}>
-                      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10, minHeight:24 }}>
-                        {provinciasMostrar.length === 0 && (
-                          <span style={{ fontSize:11.5, color:'#94a3b8' }}>Ninguna añadida.</span>
-                        )}
-                        {provinciasMostrar.map(p => (
-                          <Chip key={p} label={p} onRemove={() => togglePick('provincias', p)} />
-                        ))}
+                    <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:14 }}>
+                      {/* Provincias */}
+                      <div>
+                        <div className="dash-card-sub">Provincias · {provinciasMostrar.length}</div>
+                        <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8, minHeight:24 }}>
+                          {provinciasMostrar.length === 0 && (
+                            <span style={{ fontSize:11.5, color:'#94a3b8' }}>Ninguna añadida.</span>
+                          )}
+                          {provinciasMostrar.map(p => (
+                            <Chip key={p} label={p} onRemove={() => togglePick('provincias', p)} />
+                          ))}
+                        </div>
+                        <select className="fsel" style={{ width:'100%' }} value=""
+                          onChange={e => { if (e.target.value) togglePick('provincias', e.target.value) }}>
+                          <option value="">+ Añadir provincia</option>
+                          {PROVINCIAS_LISTA.filter(p => !form.provincias.includes(p)).map(p => <option key={p}>{p}</option>)}
+                        </select>
                       </div>
-                      <select className="fsel" style={{ width:'100%' }} value=""
-                        onChange={e => { if (e.target.value) togglePick('provincias', e.target.value) }}>
-                        <option value="">+ Añadir provincia</option>
-                        {PROVINCIAS_LISTA.filter(p => !form.provincias.includes(p)).map(p => <option key={p}>{p}</option>)}
-                      </select>
+                      {/* Zonas */}
+                      <div>
+                        <div className="dash-card-sub">Zonas · {zonasMostrar.length}</div>
+                        <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8, minHeight:24 }}>
+                          {zonasMostrar.length === 0 && (
+                            <span style={{ fontSize:11.5, color:'#94a3b8' }}>Ninguna añadida.</span>
+                          )}
+                          {zonasMostrar.map(z => (
+                            <Chip key={z} label={z} onRemove={() => togglePick('zonas', z)} />
+                          ))}
+                        </div>
+                        <select className="fsel" style={{ width:'100%' }} value=""
+                          onChange={e => { if (e.target.value) togglePick('zonas', e.target.value) }}>
+                          <option value="">+ Añadir zona</option>
+                          {ZONAS_MADRID.filter(z => !form.zonas.includes(z)).map(z => <option key={z}>{z}</option>)}
+                        </select>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Zonas */}
-                  <div className="dash-card">
-                    <div className="dash-card-head">
-                      Zonas
-                      <span className="dash-card-count">{zonasMostrar.length}</span>
-                    </div>
-                    <div style={{ padding:'12px 16px 16px' }}>
-                      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10, minHeight:24 }}>
-                        {zonasMostrar.length === 0 && (
-                          <span style={{ fontSize:11.5, color:'#94a3b8' }}>Ninguna añadida.</span>
-                        )}
-                        {zonasMostrar.map(z => (
-                          <Chip key={z} label={z} onRemove={() => togglePick('zonas', z)} />
-                        ))}
-                      </div>
-                      <select className="fsel" style={{ width:'100%' }} value=""
-                        onChange={e => { if (e.target.value) togglePick('zonas', e.target.value) }}>
-                        <option value="">+ Añadir zona</option>
-                        {ZONAS_MADRID.filter(z => !form.zonas.includes(z)).map(z => <option key={z}>{z}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Detalles geográficos */}
+                  {/* Detalles geográficos · inputs siempre con recuadro prominente */}
                   <div className="dash-card">
                     <div className="dash-card-head">Detalles geográficos</div>
-                    <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:10 }}>
-                      <ReqField label="Calles específicas">
-                        <input className="kf-inp" value={form.calles} onChange={e => setF('calles', e.target.value)} placeholder="Ej. Castellana 50–120" style={{ width:'100%' }} />
-                      </ReqField>
-                      <ReqField label="Puntos de interés">
-                        <input className="kf-inp" value={form.puntos_interes} onChange={e => setF('puntos_interes', e.target.value)} placeholder="Cerca de metro, autopistas..." style={{ width:'100%' }} />
-                      </ReqField>
-                      <ReqField label="Puntos a evitar">
-                        <input className="kf-inp" value={form.puntos_evitar} onChange={e => setF('puntos_evitar', e.target.value)} placeholder="Zonas en obras..." style={{ width:'100%' }} />
-                      </ReqField>
+                    <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:12 }}>
+                      <div className="dash-field">
+                        <label className="dash-field-lbl">Calles específicas</label>
+                        <input value={form.calles} onChange={e => setF('calles', e.target.value)} placeholder="Ej. Castellana 50–120" className="dash-field-input" />
+                      </div>
+                      <div className="dash-field">
+                        <label className="dash-field-lbl">Puntos de interés</label>
+                        <input value={form.puntos_interes} onChange={e => setF('puntos_interes', e.target.value)} placeholder="Cerca de metro, autopistas..." className="dash-field-input" />
+                      </div>
+                      <div className="dash-field">
+                        <label className="dash-field-lbl">Puntos a evitar</label>
+                        <input value={form.puntos_evitar} onChange={e => setF('puntos_evitar', e.target.value)} placeholder="Zonas en obras..." className="dash-field-input" />
+                      </div>
                     </div>
                   </div>
 

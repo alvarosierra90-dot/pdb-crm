@@ -44,8 +44,10 @@ const NewBtn = ({ label, onClick }) => (
 )
 
 export default function Topbar() {
-  const { view, navigate, goBack, canGoBack, prev } = useNav()
+  const { view, params, navigate, goBack, canGoBack, prev } = useNav()
   const prevLabel = prev ? (VIEW_LABEL[prev.view] || prev.view) : null
+  // Ref dinámico del registro abierto (cuando aplica)
+  const curRef = params?.ref || params?.id || params?.ofertaRef || null
 
   const configs = {
     activos: {
@@ -53,24 +55,24 @@ export default function Topbar() {
       right: <><ExportBtn /><NewBtn label="Nuevo Activo" /></>
     },
     'ficha-activo': {
-      bc: <><span className="bc-link" onClick={() => navigate('activos')}>Activos</span><Sep /><span className="bc-cur">P.E Avalon</span></>,
-      right: <><span className="sbadge sb-conf"><Lock size={ICO_SM} /> Confidencial</span><ExportBtn /><span className="sbadge sb-green">● Activo en mercado</span></>
+      bc: <><span className="bc-link" onClick={() => navigate('activos')}>Activos</span><Sep /><span className="bc-cur">{curRef || 'Activo'}</span></>,
+      right: <><ExportBtn /></>
     },
     ofertas: {
       bc: <><span className="bc-title">Ofertas</span></>,
       right: <><ExportBtn /><NewBtn label="Nueva Oferta" /></>
     },
     'ficha-oferta': {
-      bc: <><span className="bc-link" onClick={() => navigate('ofertas')}>Ofertas</span><Sep /><span className="bc-cur">OLBUR2315645 · Albatros</span></>,
-      right: <><span className="sbadge sb-conf"><Lock size={ICO_SM} /> Oferta confidencial: No</span><span className="sbadge sb-green">● En curso</span><ExportBtn /></>
+      bc: <><span className="bc-link" onClick={() => navigate('ofertas')}>Ofertas</span><Sep /><span className="bc-cur">{curRef || 'Oferta'}</span></>,
+      right: <><ExportBtn /></>
     },
     negociaciones: {
       bc: <><span className="bc-title">Negociaciones</span></>,
       right: <><ExportBtn /><NewBtn label="Nueva negociación" /></>
     },
     'ficha-negociacion': {
-      bc: <><span className="bc-link" onClick={() => navigate('negociaciones')}>Negociaciones</span><Sep /><span className="bc-cur">NEG-0044 · Cuenta XYZ / Avalon</span></>,
-      right: <><span className="sbadge" style={{background:'var(--amber-lt)',color:'var(--amber)',border:'1px solid var(--amber-bd)'}}><ArrowLeftRight size={ICO_SM} /> En negociación</span><ExportBtn /></>
+      bc: <><span className="bc-link" onClick={() => navigate('negociaciones')}>Negociaciones</span><Sep /><span className="bc-cur">{curRef || 'Negociación'}</span></>,
+      right: <><ExportBtn /></>
     },
     portfolios: {
       bc: <><span className="bc-title">Propietarios · Portfolios</span></>,
@@ -85,8 +87,8 @@ export default function Topbar() {
       right: <><ExportBtn /><NewBtn label="Nueva Demanda" onClick={() => navigate('ficha-demanda')} /></>
     },
     'ficha-demanda': {
-      bc: <><span className="bc-link" onClick={() => navigate('demandas')}>Demandas</span><Sep /><span className="bc-cur">D251035690 · Corporacion Financiera Azuaga</span></>,
-      right: <><span className="sbadge sb-green">● En Curso</span><ExportBtn /></>
+      bc: <><span className="bc-link" onClick={() => navigate('demandas')}>Demandas</span><Sep /><span className="bc-cur">{curRef || 'Demanda'}</span></>,
+      right: <><ExportBtn /></>
     },
     actividades: {
       bc: <><span className="bc-title">Actividades</span></>,
