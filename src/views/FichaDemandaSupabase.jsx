@@ -1255,6 +1255,27 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   )
                 })()}
 
+                {/* Ofertas en negociación · vinculadas en Info general */}
+                {(() => {
+                  const enNeg = alternativas.filter(a => a.estado_alternativa === 'negociando')
+                  if (!enNeg.length) return null
+                  return (
+                    <div style={{ marginBottom:14, padding:'10px 14px', background:'#fef3c7', border:'1px solid #fde68a', borderRadius:'var(--r)' }}>
+                      <div style={{ fontSize:9, fontWeight:700, color:'#92400e', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:6 }}>Ofertas en negociación ({enNeg.length})</div>
+                      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                        {enNeg.map(a => (
+                          <div key={a.id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, flexWrap:'wrap' }}>
+                            <span style={{ fontWeight:600, cursor:'pointer' }} onClick={() => a.activos?.ref && navigate('ficha-activo', { ref:a.activos.ref })}>{a.activos?.nombre || '(activo)'}</span>
+                            {a.activos?.ciudad && <span style={{ fontSize:10, color:'var(--text3)' }}>{a.activos.ciudad}</span>}
+                            {a.ofertas?.ref && <span className="tag tag-blue" style={{ fontSize:9, fontFamily:'var(--mono)', cursor:'pointer' }} onClick={() => navigate('ficha-oferta', { ofertaRef:a.ofertas.ref })}>{a.ofertas.ref}</span>}
+                            <button className="ab-btn" style={{ fontSize:9, padding:'2px 8px', marginLeft:'auto' }} onClick={() => a.ofertas?.ref && navigate('ficha-negociacion', { id:a.ofertas.ref })}>Ver negociación →</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+
                 {/* ─── FILA 1: Requisitos · Presupuesto · Equipo+Colab+Partes ─── */}
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14 }}>
 
