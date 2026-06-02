@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNav } from '../context/NavigationContext'
+import { useNav, useUnsavedGuard } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal, EQUIPOS_SAVILLS, MIEMBROS_POR_EQUIPO } from '../components/EquipoTrabajoCard'
@@ -585,7 +585,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
     // Si pasa a descartada, motivo es obligatorio
     if (form.estatus === 'descartada' && !form.motivo_descarte.trim()) {
       setSaveError('Debes indicar el motivo del descarte antes de guardar.')
-      return
+      return false
     }
     setSaving(true)
     const requisitos = {
@@ -630,10 +630,14 @@ export default function FichaDemandaSupabase({ refOrId }) {
       error = retry.error
     }
     setSaving(false)
-    if (error) { setSaveError(error.message); return }
+    if (error) { setSaveError(error.message); return false }
     setEditing(false)  // tras guardar OK, vuelve a modo vista
     await load()
+    return true
   }
+
+  // Guard de cambios sin guardar: si estás en modo edición, avisa al navegar.
+  useUnsavedGuard({ isDirty: () => editing, onSave: saveEdit })
 
   const setF = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
   const togglePick = (key, val) => {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNav } from '../context/NavigationContext'
+import { useNav, useUnsavedGuard } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { LEAD_TIPOS, LEAD_ESTADOS, LEAD_PRIORIDADES, LEAD_CANALES } from '../data/mockLeads'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
@@ -230,6 +230,9 @@ export default function FichaLead() {
     setEditing(false)
     await loadLead()
   }
+
+  // Guard de cambios sin guardar (modo edición del lead).
+  useUnsavedGuard({ isDirty: () => editing, onSave: async () => { await saveEdit() } })
 
   const setF = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
 

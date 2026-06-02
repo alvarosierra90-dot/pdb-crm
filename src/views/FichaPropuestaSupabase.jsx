@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNav } from '../context/NavigationContext'
+import { useNav, useUnsavedGuard } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
@@ -221,6 +221,9 @@ export default function FichaPropuestaSupabase({ refOrId }) {
     setEditing(false)  // tras guardar OK, vuelve a modo vista
     await load()
   }
+
+  // Guard de cambios sin guardar (modo edición de la propuesta).
+  useUnsavedGuard({ isDirty: () => editing, onSave: async () => { await saveEdit() } })
 
   const setF = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
 

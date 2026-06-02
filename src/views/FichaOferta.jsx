@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNav } from '../context/NavigationContext'
+import { useNav, useUnsavedGuard } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { supabase } from '../lib/supabase'
 import { OFERTAS as MOCK_OFERTAS, ACTIVOS as MOCK_ACTIVOS } from '../data/mockData'
@@ -905,6 +905,9 @@ function FichaOfertaMock() {
       setSaving(false)
     }
   }
+
+  // Guard de cambios sin guardar (modo edición de la oferta).
+  useUnsavedGuard({ isDirty: () => editing, onSave: async () => { await handleSave() } })
 
   // Eliminar la oferta por completo: la fila de Supabase + las unidades vac
   // del stacking. Se usa cuando la oferta fue introducida por error.
