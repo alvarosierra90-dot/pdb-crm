@@ -162,6 +162,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [visitaModal, setVisitaModal] = useState(null)   // { altId, fecha }
   const [descarteModal, setDescarteModal] = useState(null) // { altId, motivo }
   const [perdidaModal, setPerdidaModal] = useState(null)   // { altId, motivo, estatus }
+  const [standbyNotaModal, setStandbyNotaModal] = useState(false) // nota de standby en pantalla aparte
   const [ultimaSeleccion, setUltimaSeleccion] = useState(null) // última selección/microsite
   const [enviarModal, setEnviarModal] = useState(null)         // { sel, selected:[emails], search }
   const [savedFlash, setSavedFlash] = useState(false)          // feedback "✓ Guardado" en acciones auto-guardadas
@@ -884,6 +885,25 @@ export default function FichaDemandaSupabase({ refOrId }) {
       )}
 
       {/* Modal · motivo de descarte */}
+      {/* Modal · nota de standby (leer/editar en pantalla aparte) */}
+      {standbyNotaModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }} onClick={() => setStandbyNotaModal(false)}>
+          <div style={{ background:'#fff', borderRadius:10, width:'min(520px,100%)', boxShadow:'0 20px 50px rgba(15,23,42,0.25)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding:'14px 18px', borderBottom:'1px solid #e5e7eb', fontSize:14, fontWeight:700 }}>Última conversación con el cliente</div>
+            <div style={{ padding:'16px 18px' }}>
+              <textarea value={form.standby_notas || ''} onChange={e => setF('standby_notas', e.target.value)} autoFocus
+                placeholder="Qué se ha hablado, motivo del standby, próximos pasos…"
+                style={{ width:'100%', minHeight:200, padding:'10px 12px', fontSize:13, border:'1px solid #e5e7eb', borderRadius:6, fontFamily:'inherit', boxSizing:'border-box', resize:'vertical', lineHeight:1.55 }} />
+            </div>
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'12px 18px', borderTop:'1px solid #e5e7eb', background:'#f8fafc' }}>
+              <button onClick={() => setStandbyNotaModal(false)} style={{ padding:'8px 14px', fontSize:12, border:'1px solid #cbd5e1', borderRadius:6, background:'#fff', cursor:'pointer', fontFamily:'inherit' }}>Cerrar</button>
+              <button onClick={async () => { if (demanda?.id) { await supabase.from('demandas').update({ standby_notas: form.standby_notas?.trim() || null, updated_at: new Date().toISOString() }).eq('id', demanda.id); markSaved(); await load() } setStandbyNotaModal(false) }}
+                style={{ padding:'8px 16px', fontSize:12, fontWeight:700, border:'none', borderRadius:6, background:'var(--accent)', color:'#fff', cursor:'pointer', fontFamily:'inherit' }}>Guardar nota</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal · negociación perdida (motivo + estado de la demanda) */}
       {perdidaModal && (
         <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }} onClick={() => setPerdidaModal(null)}>
@@ -1124,36 +1144,22 @@ export default function FichaDemandaSupabase({ refOrId }) {
                         </div>
                       )}
 
-                      {/* Standby · recordatorio + notas conversación cliente */}
+                      {/* Standby · recordatorio compacto (solo fecha + botón nota) */}
                       {form.estatus === 'paralizada' && (
-                        <div style={{ marginTop:2, padding:'12px 14px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:10 }}>
-                          <div style={{ fontSize:13, fontWeight:600, color:'#92400e', marginBottom:8, letterSpacing:'-0.01em' }}>
-                            Recordatorio
-                          </div>
-                          <div style={{ marginBottom:10 }}>
-                            <label style={{ fontSize:11, fontWeight:500, color:'#78350f', display:'block', marginBottom:4 }}>
-                              Próxima llamada
-                            </label>
+                        <div style={{ marginTop:2, padding:'10px 14px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:10, display:'flex', alignItems:'flex-end', gap:10, flexWrap:'wrap' }}>
+                          <div style={{ flex:1, minWidth:140 }}>
+                            <label style={{ fontSize:11, fontWeight:600, color:'#92400e', display:'block', marginBottom:4 }}>Próxima llamada</label>
                             <input
                               type="date"
-                              className="kf-inp"
                               value={form.standby_proxima_llamada || ''}
                               onChange={e => setF('standby_proxima_llamada', e.target.value)}
-                              style={{ width:'100%', padding:'7px 9px', fontSize:13, border:'1px solid #fcd34d', borderRadius:8, background:'#fff', fontFamily:'inherit' }}
+                              style={{ width:'100%', padding:'7px 9px', fontSize:13, border:'1px solid #fcd34d', borderRadius:8, background:'#fff', fontFamily:'inherit', boxSizing:'border-box' }}
                             />
                           </div>
-                          <div>
-                            <label style={{ fontSize:11, fontWeight:500, color:'#78350f', display:'block', marginBottom:4 }}>
-                              Última conversación con el cliente
-                            </label>
-                            <textarea
-                              value={form.standby_notas || ''}
-                              onChange={e => setF('standby_notas', e.target.value)}
-                              placeholder="Qué se ha hablado, motivo del standby, próximos pasos…"
-                              rows={3}
-                              style={{ width:'100%', padding:'8px 10px', fontSize:13, border:'1px solid #fcd34d', borderRadius:8, background:'#fff', fontFamily:'inherit', resize:'vertical', lineHeight:1.5, letterSpacing:'-0.005em' }}
-                            />
-                          </div>
+                          <button onClick={() => setStandbyNotaModal(true)}
+                            style={{ flexShrink:0, padding:'8px 12px', fontSize:12, fontWeight:600, border:'1px solid #fcd34d', borderRadius:8, background:'#fff', color:'#92400e', cursor:'pointer', fontFamily:'inherit' }}>
+                            📝 {form.standby_notas?.trim() ? 'Ver / editar nota' : 'Añadir nota'}
+                          </button>
                         </div>
                       )}
 
