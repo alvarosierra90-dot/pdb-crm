@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNav } from '../context/NavigationContext'
+import { useNav, useUnsavedGuard } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
@@ -313,6 +313,9 @@ export default function FichaMandatoSupabase({ refOrId }) {
     setEditing(false)  // tras guardar OK, vuelve a modo vista
     await load()
   }
+
+  // Guard de cambios sin guardar (modo edición del mandato).
+  useUnsavedGuard({ isDirty: () => editing, onSave: async () => { await saveEdit() } })
 
   // ====== Activos vinculados ======
   const addActivo = async (activoId) => {
