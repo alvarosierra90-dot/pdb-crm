@@ -355,31 +355,42 @@ export default function MapasView() {
 
   // Load real data from Supabase
   useEffect(() => {
-    supabase.from('ofertas')
-      .select('id, ref, activo_id, estado, renta_m2, superficie_disponible, activos(nombre, zona, lat, lng, uso, propietario, sba)')
-      .eq('activa', true)
-      .then(({ data }) => {
-        if (!data?.length) return
-        const mapped = data
-          .filter(o => o.activos?.lat && o.activos?.lng)
-          .map(o => ({
-            id: o.ref,
-            ofertaId: o.id,
-            activoId: o.activo_id,
-            nombre: `${o.activos?.nombre || '—'} — ${o.ref}`,
-            dir: o.activos?.zona || '—',
-            lat: Number(o.activos.lat),
-            lng: Number(o.activos.lng),
-            uso: o.activos?.uso || '—',
-            sba: o.superficie_disponible || 0,
-            renta: o.renta_m2 || 0,
-            disp: 'Inmediata',
-            prop: o.activos?.propietario || '—',
-            mandato: '—',
-            estado: o.estado || 'Disponible',
-          }))
-        if (mapped.length) setDbOfertas(mapped)
-      })
+    ;(async () => {
+      // Ofertas + activo. Se unen por activo_id O activo_ref (muchas ofertas se
+      // vinculan por ref, no por uuid), igual que la ficha del activo. Si solo se
+      // uniera por el embed activo_id, esas ofertas se perderían y el mapa caería
+      // a datos de ejemplo.
+      const { data: ofs } = await supabase.from('ofertas')
+        .select('id, ref, activo_id, activo_ref, estado, activa, renta_m2, superficie_disponible')
+      if (!ofs?.length) return
+      const activas = ofs.filter(o => o.activa !== false && o.estado !== 'Cerrada' && o.estado !== 'Desactivada')
+      const ids  = [...new Set(activas.map(o => o.activo_id).filter(Boolean))]
+      const refs = [...new Set(activas.map(o => o.activo_ref).filter(Boolean))]
+      const orParts = []
+      if (ids.length)  orParts.push(`id.in.(${ids.join(',')})`)
+      if (refs.length) orParts.push(`ref.in.(${refs.map(r => `"${r}"`).join(',')})`)
+      let acts = []
+      if (orParts.length) {
+        const { data } = await supabase.from('activos')
+          .select('id, ref, nombre, zona, lat, lng, uso, propietario, sba').or(orParts.join(','))
+        acts = data || []
+      }
+      const byId = {}, byRef = {}
+      acts.forEach(a => { byId[a.id] = a; if (a.ref) byRef[a.ref] = a })
+      const mapped = activas.map(o => {
+        const a = byId[o.activo_id] || byRef[o.activo_ref]
+        if (!a || a.lat == null || a.lng == null) return null
+        return {
+          id: o.ref, ofertaId: o.id, activoId: a.id,
+          nombre: `${a.nombre || '—'} — ${o.ref}`,
+          dir: a.zona || '—', lat: Number(a.lat), lng: Number(a.lng),
+          uso: a.uso || '—', sba: o.superficie_disponible || a.sba || 0,
+          renta: o.renta_m2 || 0, disp: 'Inmediata', prop: a.propietario || '—',
+          mandato: '—', estado: o.estado || 'Disponible',
+        }
+      }).filter(Boolean)
+      if (mapped.length) setDbOfertas(mapped)
+    })()
 
     supabase.from('activos')
       .select('ref, nombre, zona, lat, lng, uso, sba, n_plantas_sobre, anno_construccion, propietario, occupancy_rate')
