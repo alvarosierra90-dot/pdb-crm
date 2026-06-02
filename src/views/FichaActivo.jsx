@@ -827,6 +827,57 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
     }
     doRemove()
   }
+  // arrSlotsFor: reconcilia las units de arrendatario/oferta contra los tramos.
+  // A diferencia de prop, un tramo puede tener VARIOS ocupantes (el espacio del
+  // propietario se reparte entre 1+ arrendatarios/ofertas). Devuelve un array
+  // alineado a los tramos: slot[i] = lista de units en el tramo i.
+  //   · Si las units llevan `seg`, se respeta.
+  //   · Legacy (sin seg): se reparten por m² acumulados (cada unit cae en el
+  //     tramo donde empieza su offset).
+  const arrSlotsFor = (tramos, units) => {
+    const slots = (tramos || []).map(() => [])
+    const us = units || []
+    if (us.some(u => Number.isInteger(u.seg))) {
+      for (const u of us) { const s = Number.isInteger(u.seg) ? u.seg : 0; if (s < slots.length) slots[s].push(u) }
+      return slots
+    }
+    const bounds = []; let acc = 0
+    for (const t of tramos) { acc += (t.sup || 0); bounds.push(acc) }
+    let offset = 0
+    for (const u of us) {
+      let seg = bounds.findIndex(b => offset < b)
+      if (seg < 0) seg = slots.length - 1
+      if (seg >= 0) slots[seg].push(u)
+      offset += (u.sup || 0)
+    }
+    return slots
+  }
+
+  // Añade un ocupante (arrendatario u oferta) a un tramo, ocupando su hueco
+  // libre. mk(free, seg) devuelve los campos del nuevo unit. Normaliza la fila
+  // a units seg-tagged. Devuelve sin cambios si el tramo está lleno.
+  const assignTenant = (floorId, segIdx, mk) => updBuilding(b => {
+    const f = b.floors.find(fl => fl.id === floorId)
+    if (!f) return b
+    const tramos = f.principal || []
+    if (tramos.length === 0) return b
+    const arr = [...(b.arr || [])]
+    const ri = arr.findIndex(r => r.p === floorId)
+    const slots = arrSlotsFor(tramos, ri >= 0 ? arr[ri].units : [])
+    const usedOf = (i) => slots[i].reduce((s, u) => s + (u.sup || 0), 0)
+    let seg = segIdx
+    if (seg == null || seg < 0 || seg >= tramos.length) seg = tramos.findIndex((t, i) => usedOf(i) < t.sup)
+    if (seg < 0) return b
+    const free = tramos[seg].sup - usedOf(seg)
+    if (free <= 0) return b
+    const newUnit = { ...mk(free, seg), seg, sup: free }
+    slots[seg] = [...slots[seg], newUnit]
+    const units = slots.flatMap((occ, i) => occ.map(u => ({ ...u, seg: i })))
+    const row = { p: floorId, sup: f.sup, units }
+    if (ri >= 0) arr[ri] = row; else arr.push(row)
+    return { ...b, arr }
+  })
+
   const removeArrUnit = (floorId, idx) => {
     // Localiza la unidad antes de eliminar para detectar si es una oferta.
     const bldNow = buildings.find(b => b.id === edifId)
@@ -886,10 +937,33 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
 
   const savePASup = () => {
     if(!editPA) return
-    const val = parseFloat(editPASup)
+    let val = parseFloat(editPASup)
     if(isNaN(val)||val<=0) return
     const renta = parseFloat(editPARenta)
     const total = parseFloat(editPATotal)
+    // Validación dura: el ocupante no puede exceder los m² de su tramo menos lo
+    // que ocupan los demás del mismo tramo. El reparto de m² del tramo se define
+    // en "Uso principal" — aquí solo se ajusta dentro del muro.
+    {
+      const f = edif.floors.find(fl => fl.id === editPA.rowP)
+      const row0 = edif[editPA.layer]?.find(r => r.p === editPA.rowP)
+      const u0 = row0?.units?.[editPA.idx]
+      if (f && row0 && u0) {
+        const tramos = f.principal || []
+        const seg = Number.isInteger(u0.seg) ? u0.seg : 0
+        const tramoSup = tramos[seg]?.sup ?? f.sup
+        const otros = (row0.units || []).reduce((s, u, i) => {
+          const us = Number.isInteger(u.seg) ? u.seg : 0
+          return s + (i !== editPA.idx && us === seg ? (u.sup || 0) : 0)
+        }, 0)
+        const maxVal = tramoSup - otros
+        if (val > maxVal) {
+          window.alert(`No caben ${val.toLocaleString('es-ES')} m² en este tramo (máximo ${maxVal.toLocaleString('es-ES')} m²). El reparto de m² se define en "Uso principal".`)
+          val = maxVal
+          if (val <= 0) return
+        }
+      }
+    }
     updBuilding(b=>({...b, [editPA.layer]: b[editPA.layer].map(row=>{
       if(row.p!==editPA.rowP) return row
       const units=[...row.units]
@@ -1859,56 +1933,130 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                 })
                 return edif.floors.map(floor=>{
                 const barH = Math.max(38, Math.round((floor.sup / maxFloorSup) * 58))
-                const arrRow  = (edif.arr||[]).find(r=>r.p===floor.id)
-                const units   = filterUnits(arrRow?.units)
-                const rowSup  = arrRow?.sup ?? floor.sup
-                const assigned = units.reduce((s,u)=>s+u.sup,0)
-                const isEmpty = units.length===0
-                const isTgt   = dragTarget===floor.id
-                const isSel   = selectedFloors.includes(floor.id)
+                const tramos   = floor.principal || []
+                const arrRow   = (edif.arr||[]).find(r=>r.p===floor.id)
+                const arrUnits = filterUnits(arrRow?.units)
+                const slots    = arrSlotsFor(tramos, arrUnits)
+                const rowSup   = arrRow?.sup ?? floor.sup
+                const noUso    = tramos.length===0
+                const isEmpty  = !noUso && slots.every(occ=>occ.length===0)
+                const isTgt    = dragTarget===floor.id
+                const isSel    = selectedFloors.includes(floor.id)
+                // Render de un ocupante (arrendatario / oferta / común / parking)
+                // dentro de su tramo. wpct = ancho relativo AL TRAMO.
+                const renderOccupant = (u, wpct) => {
+                  const rawIdx = (arrRow?.units || []).indexOf(u)
+                  const editable = u.type==='ten' || u.type==='vac'
+                  const isEd = editPA?.layer==='arr' && editPA?.rowP===floor.id && editPA?.idx===rawIdx
+                  let bg, bd, col
+                  if (u.type==='ten') { col = tenantColor(u.n); bg = col+'18'; bd = col+'88' }
+                  else if (u.type==='vac') {
+                    const OCOLS=['#16a34a','#8a6d40','#d97706','#6b5b8e']
+                    const oIdx = extraOfertas.findIndex(o=>o.nombre===u.oferta)
+                    col = oIdx>=0 ? OCOLS[oIdx%OCOLS.length] : OCOLS[0]; bg=col+'12'; bd=col+'55'
+                  } else { const tc=TYPE_COLORS[u.type]||TYPE_COLORS.ten; bg=tc.bg; bd=tc.bd; col=tc.col }
+                  const label = typeLabel(u)
+                  const isHL = (u.type==='ten' && hoverKey === 'ten:'+(u.arr_ref || u.n))
+                            || (u.type==='vac' && hoverKey === 'ofr:'+u.oferta)
+                  return (
+                    <div key={rawIdx}
+                      title={`${label} · ${u.sup.toLocaleString('es-ES')} m²${u.brk?` · break ${u.brk}`:''}`}
+                      onClick={editable ? e=>{e.stopPropagation();if(isEd)setEditPA(null);else{setEditPA({layer:'arr',rowP:floor.id,idx:rawIdx});setEditPASup(String(u.sup));setEditPARenta(String(u.renta??''));setEditPATotal(String(u.precio_total??''))}} : undefined}
+                      className={`sp-block${isHL?' sp-block-hl':''}`}
+                      style={{width:wpct,background:isHL?col+'33':bg,border:`1px solid ${isHL?col:bd}`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible',flexDirection:'column',minHeight:barH,justifyContent:'center',boxShadow:isHL?`0 0 0 2px ${col}, 0 2px 12px ${col}66`:undefined,transform:isHL?'scale(1.02)':undefined,zIndex:isHL?2:undefined,transition:'box-shadow 120ms ease, transform 120ms ease'}}
+                    >
+                      {isEd ? (
+                        <div style={{display:'flex',flexDirection:'column',gap:6,padding:'6px 8px',background:'#fff',border:`1.5px solid ${col}`,borderRadius:6,boxShadow:`0 4px 14px ${col}33`}} onClick={e=>e.stopPropagation()}>
+                          <div style={{display:'flex',gap:5,alignItems:'center'}}>
+                            <input type="number" value={editPASup} onChange={e=>setEditPASup(e.target.value)} autoFocus
+                              onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
+                              style={{width:90,padding:'6px 8px',fontSize:13,fontWeight:600,border:`1px solid ${col}`,borderRadius:4,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                            <span style={{fontSize:11,color:col,fontWeight:600}}>m²</span>
+                          </div>
+                          {u.type==='vac'&&u.oferta&&(()=>{
+                            const ofMeta = extraOfertas.find(o => o.nombre === u.oferta)
+                            const isVenta = ofMeta?.tipoOperacion === 'Venta'
+                            const unitLabel = isVenta ? '€/m²' : '€/m²/mes'
+                            return (
+                              <>
+                                <div style={{display:'flex',gap:5,alignItems:'center'}}>
+                                  <input type="number" step="0.01" value={editPARenta} onChange={e=>setEditPARenta(e.target.value)}
+                                    onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
+                                    placeholder={unitLabel}
+                                    style={{width:100,padding:'6px 8px',fontSize:13,fontWeight:600,border:`1px solid ${col}`,borderRadius:4,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                  <span style={{fontSize:11,color:col,fontWeight:600}}>{unitLabel}</span>
+                                </div>
+                                {isVenta && (
+                                  <div style={{display:'flex',gap:5,alignItems:'center'}}>
+                                    <input type="number" step="1" value={editPATotal} onChange={e=>setEditPATotal(e.target.value)}
+                                      onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
+                                      placeholder="Total €"
+                                      style={{width:120,padding:'6px 8px',fontSize:13,fontWeight:600,border:`1px solid ${col}`,borderRadius:4,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                                    <span style={{fontSize:11,color:col,fontWeight:600}}>€ total</span>
+                                  </div>
+                                )}
+                              </>
+                            )
+                          })()}
+                          <button onClick={savePASup} style={{padding:'6px 10px',background:col,color:'#fff',border:'none',borderRadius:4,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>✓ Guardar</button>
+                        </div>
+                      ) : (
+                        <>
+                          {editable && (
+                            <button onClick={e=>{e.stopPropagation();removeArrUnit(floor.id,rawIdx)}}
+                              style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
+                          )}
+                          <div className="sp-block-content">
+                            {u.type==='ten' && u.arr_ref ? (
+                              <span className="sp-block-name"
+                                title="Ir a la ficha del arrendatario"
+                                onClick={e=>{
+                                  e.stopPropagation()
+                                  spNavigate('ficha-arrendatario', {
+                                    arrRef: u.arr_ref,
+                                    tenantName: u.n,
+                                    fromActivoRef: activoRef,
+                                    fromActivoNombre: activoNombre,
+                                    fromActivoTab: 'at-stacking',
+                                  })
+                                }}
+                                style={{color:col, textDecoration:'underline', cursor:'pointer'}}>{label}</span>
+                            ) : (
+                              <span className="sp-block-name" style={{color:col}}>{label}</span>
+                            )}
+                            <span className="sp-block-meta" style={{color:col}}>{(()=>{
+                              const ofMeta = u.type==='vac' ? extraOfertas.find(o => o.nombre === u.oferta) : null
+                              const isVenta = ofMeta?.tipoOperacion === 'Venta'
+                              const sup = u.sup.toLocaleString('es-ES') + ' m²'
+                              if (u.renta>0) {
+                                const unit = isVenta ? '€/m²' : '€/m²/mes'
+                                const tot = isVenta && u.precio_total>0 ? ` · ${Number(u.precio_total).toLocaleString('es-ES')} €` : ''
+                                return `${sup} · ${u.renta}${unit}${tot}`
+                              }
+                              return sup
+                            })()}</span>
+                          </div>
+                          {u.type==='vac' && <span className="sp-block-badge" style={{color:col}}>OFERTA</span>}
+                          {u.type==='ten' && <span className="sp-block-badge" style={{color:col}}>ARREND.</span>}
+                          {u.brk&&<span style={{fontSize:8,color:u.brkColor||col,fontWeight:600}}>⊙ {u.brk}</span>}
+                        </>
+                      )}
+                    </div>
+                  )
+                }
                 return (
                   <div key={floor.id}
                     onClick={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
                     onDragOver={e=>{
-                      // Regla: uso principal es el primer hito. Sin él no se
-                      // puede agregar oferta ni arrendatario.
-                      if(floor.principal.length===0){e.dataTransfer.dropEffect='none';return}
+                      if(noUso){e.dataTransfer.dropEffect='none';return}
                       e.preventDefault();setDragTarget(floor.id)
                     }}
                     onDragLeave={()=>setDragTarget(null)}
                     onDrop={e=>{
                       e.preventDefault();setDragTarget(null)
-                      if(!dragging) return
-                      if(floor.principal.length===0) {
-                        setDropWarning(floor.id); setTimeout(()=>setDropWarning(null),3000); setDragging(null); return
-                      }
-                      const targets = selectedFloors.length > 1 ? selectedFloors : [floor.id]
-                      // Resolver key del tenant arrastrado a {ref,name} via tenantSet.
-                      // Si no se encuentra (caso raro), tratamos la key como nombre.
-                      const dragKey = dragging.startsWith('ten:') ? dragging.slice(4) : null
-                      const dropTenant = dragKey ? (tenantSet.find(t => t.key === dragKey) || { ref:null, name: dragKey }) : null
-                      updBuilding(b=>{
-                        let arr=[...(b.arr||[])]
-                        targets.forEach(fId=>{
-                          const f=edif.floors.find(fl=>fl.id===fId)
-                          if(!f) return
-                          if(f.principal.length===0) return
-                          const newUnit = dragging.startsWith('ten:')
-                            ? {type:'ten', arr_ref: dropTenant.ref, n: dropTenant.name}
-                            : {type:'vac',oferta:dragging.slice(4),renta:0}
-                          const idx=arr.findIndex(r=>r.p===fId)
-                          if(idx>=0){
-                            const avail=arr[idx].sup-arr[idx].units.reduce((s,u)=>s+u.sup,0)
-                            if(avail<=0) return
-                            arr[idx]={...arr[idx],units:[...arr[idx].units,{...newUnit,sup:avail}]}
-                          } else {
-                            arr=[...arr,{p:fId,sup:f.sup,units:[{...newUnit,sup:f.sup}]}]
-                          }
-                        })
-                        return {...b,arr}
-                      })
-                      if(targets.length>1) setSelectedFloors([])
-                      setDragging(null)
+                      // Sin uso principal no hay tramos. El drop real se hace por
+                      // tramo (abajo).
+                      if(noUso){ setDropWarning(floor.id); setTimeout(()=>setDropWarning(null),3000); setDragging(null) }
                     }}
                     className="sp-row"
                     style={{
@@ -1938,123 +2086,64 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                           })}
                         </div>
                       )}
-                      {/* Bloques de arrendatario */}
-                      <div style={{display:'flex',gap:2,minHeight:barH}}>
-                        {isEmpty ? (
+                      {/* Bloques de arrendatario = tramos heredados de Uso principal
+                          (los muros) con 1+ ocupantes DENTRO de cada uno. Los m² del
+                          tramo no se editan aquí; solo se reparte dentro del muro (B4). */}
+                      <div style={{display:'flex',gap:4,minHeight:barH}}>
+                        {noUso ? (
                           <div className="sp-block-empty" style={{borderColor:isTgt?'var(--pdb-blue)':undefined,color:isTgt?'var(--pdb-blue)':undefined}}>
-                            {isTgt?<><ArrowDown size={11} strokeWidth={2}/> Soltar aquí</>:'Sin asignación — arrastra desde el panel lateral'}
+                            Asigna primero un uso principal en esta planta
                           </div>
-                        ) : (
-                          <>
-                            {units.map((u,i)=>{
-                              const wpct = `${(u.sup/rowSup)*100}%`
-                              const isEd = editPA?.layer==='arr' && editPA?.rowP===floor.id && editPA?.idx===i
-                              let bg, bd, col
-                              if (u.type==='ten') {
-                                col = tenantColor(u.n); bg = col+'18'; bd = col+'88'
-                              } else if (u.type==='vac') {
-                                const OCOLS=['#16a34a','#8a6d40','#d97706','#6b5b8e']
-                                const oIdx = extraOfertas.findIndex(o=>o.nombre===u.oferta)
-                                col = oIdx>=0 ? OCOLS[oIdx%OCOLS.length] : OCOLS[0]; bg=col+'12'; bd=col+'55'
-                              } else {
-                                const tc=TYPE_COLORS[u.type]||TYPE_COLORS.ten; bg=tc.bg; bd=tc.bd; col=tc.col
-                              }
-                              const label = typeLabel(u)
-                              // Hover highlight: ten matches 'ten:<ref|name>',
-                              // vac matches 'ofr:<oferta>'.
-                              const isHL = (u.type==='ten' && hoverKey === 'ten:'+(u.arr_ref || u.n))
-                                        || (u.type==='vac' && hoverKey === 'ofr:'+u.oferta)
-                              return (
-                                <div key={i}
-                                  title={`${label} · ${u.sup.toLocaleString('es-ES')} m²${u.brk?` · break ${u.brk}`:''}`}
-                                  onClick={e=>{e.stopPropagation();if(isEd)setEditPA(null);else{setEditPA({layer:'arr',rowP:floor.id,idx:i});setEditPASup(String(u.sup));setEditPARenta(String(u.renta??''));setEditPATotal(String(u.precio_total??''))}}}
-                                  className={`sp-block${isHL?' sp-block-hl':''}`}
-                                  style={{width:wpct,background:isHL?col+'33':bg,border:`1px solid ${isHL?col:bd}`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible',flexDirection:'column',minHeight:barH,justifyContent:'center',boxShadow:isHL?`0 0 0 2px ${col}, 0 2px 12px ${col}66`:undefined,transform:isHL?'scale(1.02)':undefined,zIndex:isHL?2:undefined,transition:'box-shadow 120ms ease, transform 120ms ease'}}
-                                >
-                                  {isEd ? (
-                                    <div style={{display:'flex',flexDirection:'column',gap:6,padding:'6px 8px',background:'#fff',border:`1.5px solid ${col}`,borderRadius:6,boxShadow:`0 4px 14px ${col}33`}} onClick={e=>e.stopPropagation()}>
-                                      <div style={{display:'flex',gap:5,alignItems:'center'}}>
-                                        <input type="number" value={editPASup} onChange={e=>setEditPASup(e.target.value)} autoFocus
-                                          onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
-                                          style={{width:90,padding:'6px 8px',fontSize:13,fontWeight:600,border:`1px solid ${col}`,borderRadius:4,fontFamily:'var(--mono)',textAlign:'right'}}/>
-                                        <span style={{fontSize:11,color:col,fontWeight:600}}>m²</span>
-                                      </div>
-                                      {u.type==='vac'&&u.oferta&&(()=>{
-                                        const ofMeta = extraOfertas.find(o => o.nombre === u.oferta)
-                                        const isVenta = ofMeta?.tipoOperacion === 'Venta'
-                                        const unitLabel = isVenta ? '€/m²' : '€/m²/mes'
-                                        return (
-                                          <>
-                                            <div style={{display:'flex',gap:5,alignItems:'center'}}>
-                                              <input type="number" step="0.01" value={editPARenta} onChange={e=>setEditPARenta(e.target.value)}
-                                                onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
-                                                placeholder={unitLabel}
-                                                style={{width:100,padding:'6px 8px',fontSize:13,fontWeight:600,border:`1px solid ${col}`,borderRadius:4,fontFamily:'var(--mono)',textAlign:'right'}}/>
-                                              <span style={{fontSize:11,color:col,fontWeight:600}}>{unitLabel}</span>
-                                            </div>
-                                            {isVenta && (
-                                              <div style={{display:'flex',gap:5,alignItems:'center'}}>
-                                                <input type="number" step="1" value={editPATotal} onChange={e=>setEditPATotal(e.target.value)}
-                                                  onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
-                                                  placeholder="Total €"
-                                                  style={{width:120,padding:'6px 8px',fontSize:13,fontWeight:600,border:`1px solid ${col}`,borderRadius:4,fontFamily:'var(--mono)',textAlign:'right'}}/>
-                                                <span style={{fontSize:11,color:col,fontWeight:600}}>€ total</span>
-                                              </div>
-                                            )}
-                                          </>
-                                        )
-                                      })()}
-                                      <button onClick={savePASup} style={{padding:'6px 10px',background:col,color:'#fff',border:'none',borderRadius:4,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>✓ Guardar</button>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <button onClick={e=>{e.stopPropagation();removeArrUnit(floor.id,i)}}
-                                        style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
-                                      <div className="sp-block-content">
-                                        {u.type==='ten' && u.arr_ref ? (
-                                          <span className="sp-block-name"
-                                            title="Ir a la ficha del arrendatario"
-                                            onClick={e=>{
-                                              e.stopPropagation()
-                                              spNavigate('ficha-arrendatario', {
-                                                arrRef: u.arr_ref,
-                                                tenantName: u.n,
-                                                fromActivoRef: activoRef,
-                                                fromActivoNombre: activoNombre,
-                                                fromActivoTab: 'at-stacking',
-                                              })
-                                            }}
-                                            style={{color:col, textDecoration:'underline', cursor:'pointer'}}>{label}</span>
-                                        ) : (
-                                          <span className="sp-block-name" style={{color:col}}>{label}</span>
-                                        )}
-                                        <span className="sp-block-meta" style={{color:col}}>{(()=>{
-                                          const ofMeta = u.type==='vac' ? extraOfertas.find(o => o.nombre === u.oferta) : null
-                                          const isVenta = ofMeta?.tipoOperacion === 'Venta'
-                                          const sup = u.sup.toLocaleString('es-ES') + ' m²'
-                                          if (u.renta>0) {
-                                            const unit = isVenta ? '€/m²' : '€/m²/mes'
-                                            const tot = isVenta && u.precio_total>0 ? ` · ${Number(u.precio_total).toLocaleString('es-ES')} €` : ''
-                                            return `${sup} · ${u.renta}${unit}${tot}`
-                                          }
-                                          return sup
-                                        })()}</span>
-                                      </div>
-                                      {u.type==='vac' && <span className="sp-block-badge" style={{color:col}}>OFERTA</span>}
-                                      {u.type==='ten' && <span className="sp-block-badge" style={{color:col}}>ARREND.</span>}
-                                      {u.brk&&<span style={{fontSize:8,color:u.brkColor||col,fontWeight:600}}>⊙ {u.brk}</span>}
-                                    </>
-                                  )}
+                        ) : tramos.map((tr,i)=>{
+                          const occ  = slots[i] || []
+                          const used = occ.reduce((s,u)=>s+(u.sup||0),0)
+                          const free = tr.sup - used
+                          const info = usoInfo(tr.uso)
+                          const assignable = tr.uso!=='parking' && tr.uso!=='comun'
+                          const twpct = `${(tr.sup/floor.sup)*100}%`
+                          const onTramoDrop = (e)=>{
+                            e.preventDefault(); e.stopPropagation(); setDragTarget(null)
+                            if(!dragging){ return }
+                            const isTen = dragging.startsWith('ten:')
+                            const isOfr = dragging.startsWith('ofr:')
+                            if(!assignable || (!isTen && !isOfr)){ setDragging(null); return }
+                            // Validación: un tramo no mezcla oferta + arrendatario.
+                            const hasTen = occ.some(u=>u.type==='ten')
+                            const hasVac = occ.some(u=>u.type==='vac')
+                            if((isTen && hasVac) || (isOfr && hasTen)){
+                              window.alert('Un tramo no puede tener oferta y arrendatario a la vez. Retira lo que haya antes.')
+                              setDragging(null); return
+                            }
+                            const dragKey = isTen ? dragging.slice(4) : null
+                            const dropTenant = dragKey ? (tenantSet.find(t=>t.key===dragKey) || {ref:null,name:dragKey}) : null
+                            const ofrName = isOfr ? dragging.slice(4) : null
+                            const mk = () => isTen
+                              ? {type:'ten', arr_ref: dropTenant.ref, n: dropTenant.name}
+                              : {type:'vac', oferta: ofrName, renta:0}
+                            // Multi-selección: mismo ocupante al primer tramo libre de
+                            // cada planta seleccionada (p. ej. un inquilino en P5–P8).
+                            const targets = selectedFloors.length>1 ? selectedFloors : [floor.id]
+                            if(targets.length>1){ targets.forEach(fId=>assignTenant(fId, null, mk)); setSelectedFloors([]) }
+                            else assignTenant(floor.id, i, mk)
+                            setDragging(null)
+                          }
+                          return (
+                            <div key={i}
+                              onDragOver={assignable && free>0 ? e=>{e.preventDefault();e.stopPropagation();setDragTarget(floor.id)} : undefined}
+                              onDrop={assignable ? onTramoDrop : undefined}
+                              title={`Tramo ${info.label} · ${tr.sup.toLocaleString('es-ES')} m²`}
+                              style={{width:twpct,flexShrink:0,display:'flex',gap:2,padding:2,borderRadius:6,background:(info.bg||'#f8fafc'),border:`1px dashed ${(info.bd||info.color||'#cbd5e1')}88`,minHeight:barH,boxSizing:'border-box'}}>
+                              {occ.map(u=>renderOccupant(u, `${((u.sup||0)/tr.sup)*100}%`))}
+                              {free>0 && (
+                                <div className="sp-block-empty" style={{flex:1,minWidth:16,flexDirection:'column',gap:1,fontSize:9,borderColor:isTgt?'var(--pdb-blue)':undefined,color:isTgt?'var(--pdb-blue)':undefined}}>
+                                  {assignable
+                                    ? (isTgt?<><ArrowDown size={11} strokeWidth={2}/> Soltar</>:<span>{free.toLocaleString('es-ES')} m²</span>)
+                                    : <span>{info.label}</span>}
                                 </div>
-                              )
-                            })}
-                            {assigned<rowSup && (
-                              <div className="sp-block-empty" style={{flex:1,minWidth:20,flexDirection:'column',gap:1,fontSize:9,borderColor:isTgt?'var(--pdb-blue)':undefined,color:isTgt?'var(--pdb-blue)':undefined}}>
-                                <span>{(rowSup-assigned).toLocaleString('es-ES')} m² sin asignar</span>
-                              </div>
-                            )}
-                          </>
-                        )}
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
 
