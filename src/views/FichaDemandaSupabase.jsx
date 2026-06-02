@@ -1042,6 +1042,9 @@ export default function FichaDemandaSupabase({ refOrId }) {
             ))}
           </div>
 
+          {/* dk-page · un único contenedor scrollable para todo el contenido del tab */}
+          <div className="dk-page">
+
           {/* TAB: Información general — formato cards uniformes (Mandato/Propuesta).
               Incluye también los Requisitos y la Zona de búsqueda (antes eran un tab
               separado, ahora viven aquí abajo). */}
@@ -2167,10 +2170,10 @@ export default function FichaDemandaSupabase({ refOrId }) {
             return (
               <div className="tab-content active"><div className="info-pad">
 
-                {/* Zona de carga · drag&drop */}
+                {/* Documentos · una sola sección, botón de carga arriba, subidas como cards */}
                 <div
                   className="va-card"
-                  style={{ marginBottom:12 }}
+                  style={{ marginBottom:0 }}
                   onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--accent)' }}
                   onDragLeave={e => { e.currentTarget.style.borderColor = '' }}
                   onDrop={e => {
@@ -2179,64 +2182,49 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     handleUpload(e.dataTransfer.files)
                   }}
                 >
-                  <div className="va-card-header">
-                    <h3><span className="ico" style={{ color:'var(--accent)' }}>↑</span> Subir documento</h3>
-                    <span className="hint">Arrastra archivos aquí o pulsa para seleccionar</span>
+                  <div className="va-card-header" style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <h3><span className="ico">▤</span> Documentos <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({docs.length})</span></h3>
+                    <label className="btn" style={{ cursor:'pointer', fontSize:12, background:'var(--accent)', color:'#fff', borderColor:'var(--accent)' }}>
+                      ＋ Cargar documento
+                      <input
+                        type="file"
+                        multiple
+                        style={{ display:'none' }}
+                        onChange={e => handleUpload(e.target.files)}
+                      />
+                    </label>
                   </div>
-                  <label style={{
-                    display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                    padding:'24px 14px', margin:'10px 18px 16px',
-                    border:'2px dashed var(--border)', borderRadius:8,
-                    background:'var(--surface-2)', cursor:'pointer', textAlign:'center',
-                  }}>
-                    <div style={{ fontSize:32, marginBottom:6 }}></div>
-                    <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', marginBottom:3 }}>Arrastra archivos o haz click</div>
-                    <div style={{ fontSize:11, color:'var(--text4)' }}>Brief · NDA · KYC · Planos · Propuestas · Reportes</div>
-                    <input
-                      type="file"
-                      multiple
-                      style={{ display:'none' }}
-                      onChange={e => handleUpload(e.target.files)}
-                    />
-                  </label>
-                </div>
-
-                {/* Lista de documentos */}
-                <div className="va-card" style={{ marginBottom:0 }}>
-                  <div className="va-card-header">
-                    <h3><span className="ico">▤</span> Documentos cargados <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({docs.length})</span></h3>
-                  </div>
-                  <div style={{ padding:'10px 18px 16px' }}>
+                  <div style={{ padding:'12px 18px 16px' }}>
                     {docs.length === 0 ? (
-                      <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', textAlign:'center', padding:'14px 0' }}>
-                        Aún no hay documentos cargados. Arrastra archivos arriba para empezar.
+                      <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', textAlign:'center', padding:'20px 0' }}>
+                        Aún no hay documentos. Pulsa «Cargar documento» o arrastra archivos aquí.
                       </div>
                     ) : (
-                      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(230px,1fr))', gap:12 }}>
                         {docs.map(d => {
                           const cat = d.etiqueta || 'Otro'
                           return (
-                            <div key={d.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)' }}>
-                              <div style={{ width:34, height:34, borderRadius:'50%', background:COLOR_CAT[cat] + '22', color:COLOR_CAT[cat], display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, flexShrink:0 }}>
+                            <div key={d.id} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'12px 13px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', position:'relative' }}>
+                              <div style={{ width:38, height:38, borderRadius:9, background:COLOR_CAT[cat] + '22', color:COLOR_CAT[cat], display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>
                                 {ICON_CAT[cat]}
                               </div>
                               <div style={{ flex:1, minWidth:0 }}>
-                                <div style={{ fontSize:12, fontWeight:600, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.nombre}</div>
-                                <div style={{ fontSize:10, color:'var(--text3)' }}>
-                                  {fmtSize(d.tamano)} · {fmtDate(d.fecha)} · {d.autor}
+                                <div style={{ fontSize:12.5, fontWeight:600, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.nombre}</div>
+                                <div style={{ fontSize:10, color:'var(--text3)', marginTop:2 }}>
+                                  {fmtSize(d.tamano)} · {fmtDate(d.fecha)}
                                 </div>
+                                <select
+                                  className="fsel"
+                                  value={cat}
+                                  onChange={e => cambiarEtiqueta(d.id, e.target.value)}
+                                  style={{ marginTop:7, fontSize:10, padding:'3px 6px', borderColor: COLOR_CAT[cat], color: COLOR_CAT[cat], fontWeight:700 }}
+                                >
+                                  {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
+                                </select>
                               </div>
-                              <select
-                                className="fsel"
-                                value={cat}
-                                onChange={e => cambiarEtiqueta(d.id, e.target.value)}
-                                style={{ fontSize:10, padding:'3px 6px', minWidth:130, borderColor: COLOR_CAT[cat], color: COLOR_CAT[cat], fontWeight:700 }}
-                              >
-                                {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
-                              </select>
                               <button
                                 onClick={() => eliminarDoc(d.id)}
-                                style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:13, padding:'2px 6px' }}
+                                style={{ position:'absolute', top:8, right:8, background:'none', border:'none', color:'var(--text4)', cursor:'pointer', fontSize:13 }}
                                 title="Eliminar"
                               >✕</button>
                             </div>
@@ -2244,8 +2232,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
                         })}
                       </div>
                     )}
-                    <div style={{ marginTop:10, padding:'8px 10px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:5, fontSize:10, color:'#92400e' }}>
-                      ⚠ Los archivos solo guardan metadata por ahora (storage real pendiente). El nombre, tamaño, fecha, autor y etiqueta sí se persisten.
+                    <div style={{ marginTop:12, padding:'8px 10px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:5, fontSize:10, color:'#92400e' }}>
+                      ⚠ Los archivos guardan solo metadata por ahora (storage real pendiente).
                     </div>
                   </div>
                 </div>
@@ -2271,6 +2259,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
               responsable={CURRENT_USER.nombre}
             />
           )}
+
+          </div>{/* /dk-page */}
 
         </div>
 
