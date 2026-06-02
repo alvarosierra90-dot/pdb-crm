@@ -161,6 +161,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [showMatching, setShowMatching] = useState(false)
   const [visitaModal, setVisitaModal] = useState(null)   // { altId, fecha }
   const [descarteModal, setDescarteModal] = useState(null) // { altId, motivo }
+  const [perdidaModal, setPerdidaModal] = useState(null)   // { altId, motivo, estatus }
   const [ultimaSeleccion, setUltimaSeleccion] = useState(null) // última selección/microsite
   const [enviarModal, setEnviarModal] = useState(null)         // { sel, selected:[emails], search }
   const [savedFlash, setSavedFlash] = useState(false)          // feedback "✓ Guardado" en acciones auto-guardadas
@@ -534,6 +535,22 @@ export default function FichaDemandaSupabase({ refOrId }) {
     await loadAlternativas()
   }
 
+  // Confirmar negociación perdida: motivo de la caída + estado en que queda la
+  // demanda (se refleja en la card de estado del principio).
+  const confirmPerdida = async () => {
+    if (!perdidaModal) return
+    const { altId, motivo, estatus } = perdidaModal
+    const alt = alternativas.find(a => a.id === altId)
+    const cond = { ...(alt?.condiciones_negociadas || {}), motivo_perdida: motivo || null }
+    const { error } = await supabase.from('oferta_demanda')
+      .update({ estado_alternativa:'perdida', condiciones_negociadas:cond, updated_at:new Date().toISOString() })
+      .eq('id', altId)
+    if (error) { setSaveError(error.message); return }
+    if (demanda?.id) await supabase.from('demandas').update({ estatus, updated_at:new Date().toISOString() }).eq('id', demanda.id)
+    setPerdidaModal(null)
+    await load(); await loadAlternativas()
+  }
+
   // Enviar al cliente la última selección: marca estado 'enviada' (trazabilidad)
   // y abre el correo con el enlace de la microsite.
   // Abre el modal de envío con la parte involucrada preseleccionada.
@@ -867,6 +884,35 @@ export default function FichaDemandaSupabase({ refOrId }) {
       )}
 
       {/* Modal · motivo de descarte */}
+      {/* Modal · negociación perdida (motivo + estado de la demanda) */}
+      {perdidaModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }} onClick={() => setPerdidaModal(null)}>
+          <div style={{ background:'#fff', borderRadius:10, width:'min(460px,100%)', boxShadow:'0 20px 50px rgba(15,23,42,0.25)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding:'14px 18px', borderBottom:'1px solid #e5e7eb', fontSize:14, fontWeight:700 }}>Negociación perdida</div>
+            <div style={{ padding:'16px 18px', display:'flex', flexDirection:'column', gap:14 }}>
+              <div>
+                <div style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:6 }}>Motivo de la caída</div>
+                <textarea value={perdidaModal.motivo} onChange={e => setPerdidaModal(m => ({ ...m, motivo: e.target.value }))} autoFocus
+                  placeholder="Ej. el cliente eligió otra opción, no llegaron a acuerdo de renta…"
+                  style={{ width:'100%', minHeight:70, padding:'9px 10px', fontSize:13, border:'1px solid #e5e7eb', borderRadius:6, fontFamily:'inherit', boxSizing:'border-box', resize:'vertical' }} />
+              </div>
+              <div>
+                <div style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:6 }}>¿En qué estado queda la demanda?</div>
+                <select value={perdidaModal.estatus} onChange={e => setPerdidaModal(m => ({ ...m, estatus: e.target.value }))}
+                  style={{ width:'100%', padding:'9px 10px', fontSize:13, border:'1px solid #e5e7eb', borderRadius:6, fontFamily:'inherit', boxSizing:'border-box', background:'#fff' }}>
+                  {ESTADO_OPTS.filter(o => o.v !== 'en_negociacion').map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                </select>
+                <div style={{ fontSize:10, color:'var(--text4)', marginTop:5 }}>Se reflejará en la card de estado del principio de la demanda.</div>
+              </div>
+            </div>
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'12px 18px', borderTop:'1px solid #e5e7eb', background:'#f8fafc' }}>
+              <button onClick={() => setPerdidaModal(null)} style={{ padding:'8px 14px', fontSize:12, border:'1px solid #cbd5e1', borderRadius:6, background:'#fff', cursor:'pointer', fontFamily:'inherit' }}>Cancelar</button>
+              <button onClick={confirmPerdida} style={{ padding:'8px 16px', fontSize:12, fontWeight:700, border:'none', borderRadius:6, background:'var(--red)', color:'#fff', cursor:'pointer', fontFamily:'inherit' }}>✕ Confirmar perdida</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {descarteModal && (
         <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center' }} onClick={() => setDescarteModal(null)}>
           <div style={{ background:'#fff', borderRadius:10, width:'min(440px,92vw)', boxShadow:'0 20px 50px rgba(15,23,42,0.25)' }} onClick={e => e.stopPropagation()}>
@@ -1991,7 +2037,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                                   <>
                                     <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px' }} onClick={() => alt.ofertas?.ref && navigate('ficha-negociacion', { id: alt.ofertas.ref })}>Ver negociación</button>
                                     <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--green)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'ganada')}>Ganada</button>
-                                    <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'perdida')}>✕ Perdida</button>
+                                    <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => setPerdidaModal({ altId: alt.id, motivo:'', estatus:'ongoing' })}>✕ Perdida</button>
                                   </>
                                 )} />
                             })
