@@ -1447,7 +1447,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 })()}
 
                 {/* ─── DETALLE · todos los cuadros en una sola fila ─── */}
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12, marginBottom:14, alignItems:'start' }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12, marginBottom:14, alignItems:'stretch' }}>
 
                   {/* === REQUISITOS GENERALES === */}
                   <div className="dash-card">
