@@ -1292,47 +1292,51 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     },
                   ]
 
-                  // Card Instrucción aparece cuando estado = en_negociacion (o ya hay instrucción)
-                  if (enNegociacion || hasInstruccion) {
-                    steps.push({
-                      key:'instruccion', icon: FileSearch, tone: cardTone('Instrucción'),
-                      label:'Instrucción',
-                      value: demanda.instruccion_ref || null,
-                      sub: hasInstruccion ? 'Instrucción de Dynamics vinculada.' : 'Vincula la instrucción para arrancar la negociación.',
-                      status: hasInstruccion ? 'done' : 'current',
-                      vacant: !hasInstruccion,  // gris hasta que se vincule
-                      openAction: hasInstruccion ? { label:'Ver instrucciones', onClick: () => navigate('instrucciones', { ref: demanda.instruccion_ref }) } : null,
-                      editAction: hasInstruccion ? { label:'Desvincular', onClick: desvincularInstruccion } : null,
-                      extraBody: instExtra,
-                      dyn: true,
-                    })
-                  }
+                  // Card Instrucción — SIEMPRE visible (gris si aún no se ha llegado).
+                  steps.push({
+                    key:'instruccion', icon: FileSearch, tone: cardTone('Instrucción'),
+                    label:'Instrucción',
+                    value: demanda.instruccion_ref || null,
+                    sub: hasInstruccion ? 'Instrucción de Dynamics vinculada.' : (enNegociacion ? 'Vincula la instrucción para arrancar la negociación.' : null),
+                    status: hasInstruccion ? 'done' : (enNegociacion ? 'current' : 'locked'),
+                    vacant: !hasInstruccion && enNegociacion,
+                    openAction: hasInstruccion ? { label:'Ver instrucciones', onClick: () => navigate('instrucciones', { ref: demanda.instruccion_ref }) } : null,
+                    editAction: hasInstruccion ? { label:'Desvincular', onClick: desvincularInstruccion } : null,
+                    extraBody: enNegociacion ? instExtra : null,
+                    lockedHint:'Se vincula al pasar la demanda a negociación.',
+                    dyn: true,
+                  })
 
-                  // Card Negociación · aparece cuando el estado es 'en_negociacion'.
-                  // Click → info general de la negociación en el módulo de Negociaciones.
-                  if (enNegociacion && !yaGanada && !yaPerdida && !yaDescartada) {
+                  // Card Negociación — SIEMPRE visible (gris hasta que haya negociación).
+                  {
                     const negRef = negociacionVinculada?.ref || null
-                    // Click directo → ficha de la negociación con todos los datos vinculados
                     const irANegociacion = () => negRef
                       ? navigate('ficha-negociacion', { ref: negRef })
                       : navigate('negociaciones', { demanda: demanda.ref })
+                    const negActiva = enNegociacion && !yaGanada && !yaPerdida && !yaDescartada
+                    const negCerrada = yaGanada || yaPerdida
                     steps.push({
                       key:'negociacion', icon: MessageSquare, tone: cardTone('Negociación'),
                       label:'Negociación',
-                      value: negRef || 'En curso',
-                      sub: negRef
-                        ? `Negociación ${negRef} · Click para abrir info general con todos los datos sincronizados.`
-                        : (hasOferta
-                            ? `Negociando sobre la oferta ${ofertaActiva.ref}.`
-                            : 'Negociación activa.'),
-                      status: 'current',
-                      openAction: { label:'Abrir negociación', onClick: irANegociacion },
-                      action: { label:'Abrir info general de la negociación', onClick: irANegociacion, primary:true },
+                      value: negActiva ? (negRef || 'En curso') : (negCerrada ? (negRef || 'Cerrada') : null),
+                      sub: negActiva
+                        ? (negRef ? `Negociación ${negRef} · Click para abrir info general.` : (hasOferta ? `Negociando sobre la oferta ${ofertaActiva.ref}.` : 'Negociación activa.'))
+                        : null,
+                      status: negActiva ? 'current' : (negCerrada ? 'done' : 'locked'),
+                      openAction: (negActiva || negCerrada) ? { label:'Abrir negociación', onClick: irANegociacion } : null,
+                      action: negActiva ? { label:'Abrir info general de la negociación', onClick: irANegociacion, primary:true } : null,
+                      lockedHint:'Se abre al mover una alternativa a "En negociación".',
                     })
                   }
 
-                  // Card final solo si la demanda está cerrada
+                  // Card Cierre — SIEMPRE visible (gris hasta el cierre).
                   if (finalCard) steps.push(finalCard)
+                  else steps.push({
+                    key:'cierre', icon: Trophy, tone: cardTone('Demanda'),
+                    label:'Cierre', value: null,
+                    status:'locked',
+                    lockedHint:'Se completa al ganar, perder o descartar la operación.',
+                  })
 
                   return <FunnelStepCards steps={steps} />
                 })()}
@@ -1375,8 +1379,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   )
                 })()}
 
-                {/* ─── FILA 1: Requisitos · Presupuesto · Equipo+Colab+Partes ─── */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14 }}>
+                {/* ─── DETALLE · todos los cuadros en una sola fila ─── */}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:12, marginBottom:14, alignItems:'start' }}>
 
                   {/* === REQUISITOS GENERALES === */}
                   <div className="dash-card">
@@ -1644,12 +1648,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
                     </div>
                   </div>
-                </div>
 
-                {/* ─── FILA 2: Provincias+Zonas (combinado) · Detalles geográficos ─── */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
-
-                  {/* Provincias + Zonas (combinadas en un único card) */}
+                  {/* Provincias + Zonas (combinadas en un único card) · misma fila */}
                   <div className="dash-card">
                     <div className="dash-card-head">
                       Provincias y zonas
