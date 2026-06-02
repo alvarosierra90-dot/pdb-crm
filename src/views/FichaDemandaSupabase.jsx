@@ -1907,41 +1907,6 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   <button className="ab-btn save" style={{ fontSize:12 }} onClick={() => setShowMatching(true)}>🔍 Matching con ofertas</button>
                 </div>
 
-                {/* Historial de búsquedas / selecciones enviadas */}
-                {historialSel.length > 0 && (
-                  <div className="va-card" style={{ marginBottom:14 }}>
-                    <div className="va-card-header"><h3>Historial de búsquedas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:6 }}>({historialSel.length})</span></h3></div>
-                    <div style={{ padding:'4px 0 6px', overflowX:'auto' }}>
-                      <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
-                        <thead><tr>{['Fecha','Activos','Estado','Vistas','Enlace'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 14px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
-                        <tbody>
-                          {historialSel.map((s, i) => {
-                            const origin = typeof window !== 'undefined' ? window.location.origin : ''
-                            const link = `${origin}/m/${s.token}`
-                            const n = (s.seleccion_ofertas || []).length
-                            const isFirst = i === historialSel.length - 1
-                            const isLast = i === 0
-                            return (
-                              <tr key={s.id} style={{ borderTop:'1px solid var(--border)' }}>
-                                <td style={{ padding:'6px 14px', whiteSpace:'nowrap' }}>
-                                  {new Date(s.created_at).toLocaleDateString('es-ES')}
-                                  {isFirst && <span className="tag tag-gray" style={{ fontSize:8, marginLeft:6 }}>inicial</span>}
-                                  {isLast && historialSel.length > 1 && <span className="tag tag-blue" style={{ fontSize:8, marginLeft:6 }}>actual</span>}
-                                </td>
-                                <td style={{ padding:'6px 14px', fontFamily:'var(--mono)' }}>{n}</td>
-                                <td style={{ padding:'6px 14px' }}><span className={`tag ${s.estado === 'enviada' ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:9 }}>{s.estado || 'borrador'}</span></td>
-                                <td style={{ padding:'6px 14px', fontSize:10, color:'var(--text3)' }}>{s.vistas || 0}{s.ultima_vista ? ` · ${new Date(s.ultima_vista).toLocaleDateString('es-ES')}` : ''}</td>
-                                <td style={{ padding:'6px 14px' }}><button onClick={() => navigator.clipboard?.writeText(link)} style={{ fontSize:9, padding:'2px 8px', border:'1px solid var(--border)', borderRadius:4, background:'#fff', cursor:'pointer', fontFamily:'inherit' }}>⎘ Copiar</button></td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                    <div style={{ padding:'4px 14px 12px', fontSize:10, color:'var(--text4)', fontStyle:'italic' }}>Cada fila es una selección enviada al cliente. La traza de búsquedas muestra cómo evolucionó el interés de la cuenta hasta cerrar.</div>
-                  </div>
-                )}
-
                 {/* Cabecera con KPIs de funnel */}
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:14 }}>
                   {[
@@ -2111,6 +2076,41 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       </div>
                     )}
                   </DropCol>
+                )}
+
+                {/* Historial de búsquedas / selecciones enviadas · AL FINAL (canon maqueta) */}
+                {historialSel.length > 0 && (
+                  <div className="va-card" style={{ marginTop:14, marginBottom:0 }}>
+                    <div className="va-card-header"><h3>Historial de búsquedas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:6 }}>({historialSel.length})</span></h3></div>
+                    <div style={{ padding:'4px 0 6px', overflowX:'auto' }}>
+                      <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                        <thead><tr>{['Fecha','Activos','Estado','Vistas','Enlace'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 14px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
+                        <tbody>
+                          {historialSel.map((s, i) => {
+                            const origin = typeof window !== 'undefined' ? window.location.origin : ''
+                            const link = `${origin}/m/${s.token}`
+                            const n = (s.seleccion_ofertas || []).length
+                            const isFirst = i === historialSel.length - 1
+                            const isLast = i === 0
+                            return (
+                              <tr key={s.id} style={{ borderTop:'1px solid var(--border)' }}>
+                                <td style={{ padding:'6px 14px', whiteSpace:'nowrap' }}>
+                                  {new Date(s.created_at).toLocaleDateString('es-ES')}
+                                  {isFirst && <span className="tag tag-gray" style={{ fontSize:8, marginLeft:6 }}>inicial</span>}
+                                  {isLast && historialSel.length > 1 && <span className="tag tag-blue" style={{ fontSize:8, marginLeft:6 }}>actual</span>}
+                                </td>
+                                <td style={{ padding:'6px 14px', fontFamily:'var(--mono)' }}>{n}</td>
+                                <td style={{ padding:'6px 14px' }}><span className={`tag ${s.estado === 'enviada' ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:9 }}>{s.estado || 'borrador'}</span></td>
+                                <td style={{ padding:'6px 14px', fontSize:10, color:'var(--text3)' }}>{s.vistas || 0}{s.ultima_vista ? ` · ${new Date(s.ultima_vista).toLocaleDateString('es-ES')}` : ''}</td>
+                                <td style={{ padding:'6px 14px' }}><button onClick={() => navigator.clipboard?.writeText(link)} style={{ fontSize:9, padding:'2px 8px', border:'1px solid var(--border)', borderRadius:4, background:'#fff', cursor:'pointer', fontFamily:'inherit' }}>⎘ Copiar</button></td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div style={{ padding:'4px 14px 12px', fontSize:10, color:'var(--text4)', fontStyle:'italic' }}>Cada fila es una selección enviada al cliente. La traza de búsquedas muestra cómo evolucionó el interés de la cuenta hasta cerrar.</div>
+                  </div>
                 )}
 
               </div></div>
