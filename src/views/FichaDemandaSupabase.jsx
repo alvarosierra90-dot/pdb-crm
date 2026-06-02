@@ -15,7 +15,7 @@ import NotasModal from '../components/NotasModal'
 import IniciarNegociacionModal from '../components/IniciarNegociacionModal'
 import { cardTone } from '../lib/cardTones'
 import { ZONES } from './FichaActivo'
-import { Building2, Target, ScrollText, Trophy, X as XClose, Briefcase, Tag, FileSearch, Handshake, MessageSquare } from 'lucide-react'
+import { Building2, Target, ScrollText, Trophy, X as XClose, Briefcase, Tag, FileSearch, Handshake, MessageSquare, Sparkles } from 'lucide-react'
 
 // Orden canónico · Info → Documentos → Vista 360 → Confidencialidad.
 // Requisitos se fusionó en "Información general" (sección inferior).
@@ -204,7 +204,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
       id, ref, nombre, estatus, notas, motivo_descarte, standby_proxima_llamada, standby_notas, requisitos, otros_contactos, equipo_trabajo, documentos,
       dynamics_account_id, dynamics_opportunity_id, mandato_id, oferta_id, instruccion_ref, created_at, updated_at,
       dynamics_accounts:dynamics_account_id ( dynamics_id, nombre, tipo, sector, direccion, codigo_postal, ciudad, pais, telefono, web ),
-      dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo ),
+      dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo, lead_ref ),
       mandato:mandato_id ( id, ref, titulo, tipo ),
       oferta:oferta_id ( id, ref, tipo_operacion, estado, activos:activo_id ( id, ref, nombre, ciudad, uso ) )
     `
@@ -1318,7 +1318,16 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     return null
                   })()
 
+                  const leadRef = oportunidad?.lead_ref || null
                   const steps = [
+                    {
+                      key:'lead', icon: Sparkles, tone: cardTone('Lead'),
+                      label:'Lead', value: leadRef,
+                      sub: leadRef ? 'Origen del funnel comercial' : null,
+                      status: leadRef ? 'done' : 'locked',
+                      openAction: leadRef ? { label:'Abrir lead', onClick: () => navigate('ficha-lead', { ref: leadRef }) } : null,
+                      lockedHint:'Sin lead de origen vinculado.',
+                    },
                     {
                       key:'cuenta', icon: Building2, tone: cardTone('Cuenta'),
                       label:'Cuenta', value: cuenta?.nombre || null,

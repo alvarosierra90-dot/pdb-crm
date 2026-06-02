@@ -10,7 +10,7 @@ import Vinculaciones from '../components/Vinculaciones'
 import FunnelStepCards from '../components/FunnelStepCards'
 import NotasModal from '../components/NotasModal'
 import { cardTone } from '../lib/cardTones'
-import { Building2, Target, Tag, ScrollText, FileSearch } from 'lucide-react'
+import { Building2, Target, Tag, ScrollText, FileSearch, Sparkles } from 'lucide-react'
 import { CURRENT_USER } from '../lib/currentUser'
 // IMPORTANTE: Importar el StackingPlan exacto de FichaActivo para garantizar
 // igualdad visual y funcional total entre Activo y Oferta (regla del usuario).
@@ -224,6 +224,7 @@ function FichaOfertaMock() {
 
   // ── Mandato asociado (solo si Mandato Savills) ──
   const [mandatoAsociado,    setMandatoAsociado]    = useState(null)   // { id, ref, titulo, activos:[{nombre,direccion}] }
+  const [leadRefOferta,      setLeadRefOferta]      = useState(null)   // lead de origen, resuelto vía mandato → oportunidad → lead_ref
   const [mandatoBuscador,    setMandatoBuscador]    = useState('')
   const [showMandatoDropdown,setShowMandatoDropdown]= useState(false)
   const [mandatosDB,         setMandatosDB]         = useState([])
@@ -537,6 +538,25 @@ function FichaOfertaMock() {
   }, [])
 
   // ── Load mandatos para el buscador (solo cuando Mandato Savills) ──
+  // Lead de origen · resuelto en cadena mandato → oportunidad → lead_ref (best-effort)
+  useEffect(() => {
+    let cancel = false
+    const opoId = mandatoAsociado?.dynamics_opportunity_id
+    const run = async () => {
+      // 1) Si el mandato ya trae el id de oportunidad, úsalo; si no, intenta cargarlo del mandato
+      let oppDynId = opoId
+      if (!oppDynId && mandatoAsociado?.id) {
+        const { data: m } = await supabase.from('mandatos').select('dynamics_opportunity_id').eq('id', mandatoAsociado.id).maybeSingle()
+        oppDynId = m?.dynamics_opportunity_id || null
+      }
+      if (!oppDynId) { if (!cancel) setLeadRefOferta(null); return }
+      const { data: op } = await supabase.from('dynamics_opportunities').select('lead_ref').eq('dynamics_id', oppDynId).maybeSingle()
+      if (!cancel) setLeadRefOferta(op?.lead_ref || null)
+    }
+    run().catch(() => { if (!cancel) setLeadRefOferta(null) })
+    return () => { cancel = true }
+  }, [mandatoAsociado?.id, mandatoAsociado?.dynamics_opportunity_id])
+
   useEffect(() => {
     if (tipoComercializacion !== 'Mandato Savills') return
     if (mandatosDB.length > 0) return
@@ -1140,6 +1160,14 @@ function FichaOfertaMock() {
                       const hasInstr  = !!mandatoAsociado?.dynamics_instruction_id
                       return (
                         <FunnelStepCards steps={[
+                          {
+                            key:'lead', icon: Sparkles, tone: cardTone('Lead'),
+                            label:'Lead', value: leadRefOferta,
+                            sub: leadRefOferta ? 'Origen del funnel comercial' : null,
+                            status: leadRefOferta ? 'done' : 'locked',
+                            openAction: leadRefOferta ? { label:'Abrir lead', onClick: () => navigate('ficha-lead', { ref: leadRefOferta }) } : null,
+                            lockedHint:'Sin lead de origen vinculado.',
+                          },
                           {
                             key:'activo', icon: Tag, tone: cardTone('Activo'),
                             label:'Activo', value: activoSeleccionado?.nombre || null,
