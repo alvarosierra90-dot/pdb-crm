@@ -156,7 +156,7 @@ function FichaOfertaMock() {
   // Vista 360 · demandas que han presentado esta oferta + cuentas (derivado de oferta_demanda)
   const [of360, setOf360] = useState({ loaded:false, demandas:[], cuentas:[] })
   useEffect(() => {
-    if (activeTab !== 'of-seg' || !oferta?.id || of360.loaded) return
+    if (!oferta?.id || of360.loaded) return
     let cancel = false
     ;(async () => {
       const { data: alts } = await supabase
@@ -181,7 +181,7 @@ function FichaOfertaMock() {
       if (!cancel) setOf360({ loaded:true, demandas, cuentas })
     })()
     return () => { cancel = true }
-  }, [activeTab, oferta?.id])
+  }, [oferta?.id])
   const [isMock, setIsMock]     = useState(false)  // true when showing example data
   const [saving, setSaving]     = useState(false)
   const [saveOk, setSaveOk]     = useState(false)
@@ -2791,6 +2791,25 @@ function FichaOfertaMock() {
                 )
               })()}
             </div>
+
+            {/* ── Demandas vinculadas (de oferta_demanda) ── */}
+            {of360.demandas.length > 0 && (
+              <div className="rp-sec">
+                <div className="rp-lbl">Demandas vinculadas</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  {of360.demandas.map(d => {
+                    const cuenta = of360.cuentas.find(c => c.dynamics_id === d.dynamics_account_id)
+                    const neg = d.estado_alternativa === 'negociando'
+                    return (
+                      <div key={d.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:6, fontSize:11 }}>
+                        <span style={{ cursor:'pointer', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} onClick={() => navigate('ficha-demanda', { id: d.ref || d.id })}>{cuenta?.nombre || d.nombre || d.ref}</span>
+                        <span className={`tag ${neg ? 'tag-amber' : 'tag-blue'}`} style={{ fontSize:8, flexShrink:0 }}>{neg ? 'En negociación' : (d.estado_alternativa || '—')}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* ── Vista 360 (resumen de seguimiento) ── */}
             <div className="rp-sec">

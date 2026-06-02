@@ -504,7 +504,10 @@ export default function FichaDemandaSupabase({ refOrId }) {
     await supabase.from('selecciones').update({ estado:'enviada', enviada_at:new Date().toISOString() }).eq('id', sel.id)
     setUltimaSeleccion(s => s ? { ...s, estado:'enviada' } : s)
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    window.open(`mailto:?subject=${encodeURIComponent('Selección de inmuebles · ' + (demanda?.nombre || ''))}&body=${encodeURIComponent('Le compartimos una selección de inmuebles:\n\n' + origin + '/m/' + sel.token)}`)
+    // Destinatario = parte involucrada asignada (otros contactos), si no, primer
+    // contacto de la cuenta. La demanda ya está vinculada a la cuenta.
+    const dest = (otrosListaFull || []).find(c => c?.email)?.email || (contactosCuenta || []).find(c => c?.email)?.email || ''
+    window.open(`mailto:${encodeURIComponent(dest)}?subject=${encodeURIComponent('Selección de inmuebles · ' + (demanda?.nombre || ''))}&body=${encodeURIComponent('Le compartimos una selección de inmuebles:\n\n' + origin + '/m/' + sel.token)}`)
   }
 
   // Cada vez que la demanda se (re)carga, sincroniza el form para que los
@@ -1221,6 +1224,27 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     Fila 2: Provincias · Zonas · Detalles geográficos
                     ════════════════════════════════════════════════════════════════ */}
 
+                {/* Ofertas en negociación · arriba del todo de la card */}
+                {(() => {
+                  const enNeg = alternativas.filter(a => a.estado_alternativa === 'negociando')
+                  if (!enNeg.length) return null
+                  return (
+                    <div style={{ marginTop:6, marginBottom:14, padding:'10px 14px', background:'#fef3c7', border:'1px solid #fde68a', borderRadius:'var(--r)' }}>
+                      <div style={{ fontSize:9, fontWeight:700, color:'#92400e', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:6 }}>En negociación · ofertas vinculadas ({enNeg.length})</div>
+                      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                        {enNeg.map(a => (
+                          <div key={a.id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, flexWrap:'wrap' }}>
+                            <span style={{ fontWeight:600, cursor:'pointer' }} onClick={() => a.activos?.ref && navigate('ficha-activo', { ref:a.activos.ref })}>{a.activos?.nombre || '(activo)'}</span>
+                            {a.activos?.ciudad && <span style={{ fontSize:10, color:'var(--text3)' }}>{a.activos.ciudad}</span>}
+                            {a.ofertas?.ref && <span className="tag tag-blue" style={{ fontSize:9, fontFamily:'var(--mono)', cursor:'pointer' }} onClick={() => navigate('ficha-oferta', { ofertaRef:a.ofertas.ref })}>{a.ofertas.ref}</span>}
+                            <button className="ab-btn" style={{ fontSize:9, padding:'2px 8px', marginLeft:'auto' }} onClick={() => a.ofertas?.ref && navigate('ficha-negociacion', { id:a.ofertas.ref })}>Ver negociación →</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+
                 {/* Heading + Exportar a mapa */}
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:6, marginBottom:14 }}>
                   <div style={{ fontSize:15, fontWeight:600, color:'#0f172a', letterSpacing:'-0.01em' }}>
@@ -1250,27 +1274,6 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       <button onClick={() => navigator.clipboard?.writeText(link)} style={{ flexShrink:0, padding:'5px 10px', fontSize:11, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, background:'#fff', cursor:'pointer', fontFamily:'inherit' }}>⎘ Copiar</button>
                       <button onClick={() => enviarSeleccion(ultimaSeleccion)} style={{ flexShrink:0, padding:'5px 12px', fontSize:11, fontWeight:700, border:'none', borderRadius:5, background:'var(--accent)', color:'#fff', cursor:'pointer', fontFamily:'inherit' }}>✉ Enviar al cliente</button>
                       <span style={{ flexShrink:0, fontSize:10, color:'var(--text3)' }}>{ultimaSeleccion.vistas || 0} vistas{ultimaSeleccion.ultima_vista ? ` · última ${new Date(ultimaSeleccion.ultima_vista).toLocaleDateString('es-ES')}` : ''}</span>
-                    </div>
-                  )
-                })()}
-
-                {/* Ofertas en negociación · vinculadas en Info general */}
-                {(() => {
-                  const enNeg = alternativas.filter(a => a.estado_alternativa === 'negociando')
-                  if (!enNeg.length) return null
-                  return (
-                    <div style={{ marginBottom:14, padding:'10px 14px', background:'#fef3c7', border:'1px solid #fde68a', borderRadius:'var(--r)' }}>
-                      <div style={{ fontSize:9, fontWeight:700, color:'#92400e', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:6 }}>Ofertas en negociación ({enNeg.length})</div>
-                      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                        {enNeg.map(a => (
-                          <div key={a.id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, flexWrap:'wrap' }}>
-                            <span style={{ fontWeight:600, cursor:'pointer' }} onClick={() => a.activos?.ref && navigate('ficha-activo', { ref:a.activos.ref })}>{a.activos?.nombre || '(activo)'}</span>
-                            {a.activos?.ciudad && <span style={{ fontSize:10, color:'var(--text3)' }}>{a.activos.ciudad}</span>}
-                            {a.ofertas?.ref && <span className="tag tag-blue" style={{ fontSize:9, fontFamily:'var(--mono)', cursor:'pointer' }} onClick={() => navigate('ficha-oferta', { ofertaRef:a.ofertas.ref })}>{a.ofertas.ref}</span>}
-                            <button className="ab-btn" style={{ fontSize:9, padding:'2px 8px', marginLeft:'auto' }} onClick={() => a.ofertas?.ref && navigate('ficha-negociacion', { id:a.ofertas.ref })}>Ver negociación →</button>
-                          </div>
-                        ))}
-                      </div>
                     </div>
                   )
                 })()}
