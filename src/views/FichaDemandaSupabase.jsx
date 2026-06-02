@@ -1029,8 +1029,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   <div className="dk-sbox t-gold"><span className="k">Uso principal</span><span className="v gold">{visUso || '—'}</span></div>
                   <div className="dk-sbox"><span className="k">Superficie</span><span className="v mono">{(reqs.sup_min || reqs.sup_max) ? `${reqs.sup_min || '?'}–${reqs.sup_max || '?'} m²` : '—'}</span></div>
                   <div className="dk-sbox"><span className="k">Responsable</span><span className="v">{CURRENT_USER.nombre}</span></div>
-                  <div className="dk-sbox"><span className="k">Confidencialidad</span><span className="v faint">{demandaConfidential ? 'Sí' : 'No'}</span></div>
-                  <div className="dk-sbox clk" onClick={() => setShowNotasModal(true)} title={hasNotas ? 'Ver/editar notas' : 'Añadir notas'}><span className="k">Notas</span><span className="v faint">{hasNotas ? '📝 Ver' : '—'}</span></div>
+                  <div className={`dk-sbox ${demandaConfidential ? 't-conf' : ''}`}><span className="k">Confidencialidad</span><span className={`v ${demandaConfidential ? 'conf-yes' : 'faint'}`}>{demandaConfidential ? 'Sí' : 'No'}</span></div>
+                  <div className="dk-sbox clk" onClick={() => setShowNotasModal(true)} title={hasNotas ? 'Ver/editar notas' : 'Añadir notas'}><span className="k">Notas</span><span className="v faint">{hasNotas ? 'Ver' : '—'}</span></div>
                 </div>
               )
             })()}
@@ -1068,6 +1068,21 @@ export default function FichaDemandaSupabase({ refOrId }) {
               </div>
             )
             const canExport = !!form.uso_principal && (!!form.sup_min || !!form.sup_max)
+
+            // Botón Editar/Guardar por card · usa el mecanismo global (editing + saveEdit)
+            const CardEditBtn = () => editing ? (
+              <button onClick={() => saveEdit()} disabled={saving} title="Guardar cambios"
+                style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:700, color:'#fff', background:'var(--accent)', border:'none', borderRadius:7, padding:'5px 11px', cursor: saving ? 'default' : 'pointer', fontFamily:'inherit', flexShrink:0 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                {saving ? 'Guardando…' : 'Guardar'}
+              </button>
+            ) : (
+              <button onClick={() => setEditing(true)} title="Editar"
+                style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:600, color:'var(--text3)', background:'none', border:'1px solid var(--border)', borderRadius:7, padding:'5px 11px', cursor:'pointer', fontFamily:'inherit', flexShrink:0 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Editar
+              </button>
+            )
 
             const equipoInterno = equipo.filter(m => m.rol !== 'Colaborador')
             const colaboradores = equipo.filter(m => m.rol === 'Colaborador')
@@ -1452,7 +1467,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
                   {/* === REQUISITOS GENERALES === */}
                   <div className="dash-card">
-                    <div className="dash-card-head">Requisitos del activo</div>
+                    <div className="dash-card-head" style={{ alignItems:'center' }}>Requisitos del activo <CardEditBtn /></div>
                     <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:11 }}>
                       <ReqField label="Naturaleza" accent="#0f172a">
                         <select className="fsel" value={form.naturaleza} onChange={e => setF('naturaleza', e.target.value)} style={{ width:'100%' }}>
@@ -1498,7 +1513,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
                   {/* === PRESUPUESTO === */}
                   <div className="dash-card">
-                    <div className="dash-card-head">Presupuesto</div>
+                    <div className="dash-card-head" style={{ alignItems:'center' }}>Presupuesto <CardEditBtn /></div>
                     <div style={{ padding:'12px 16px 16px' }}>
                       <ReqField label="Tipo">
                         <select className="fsel" value={form.presupuesto_tipo} onChange={e => setF('presupuesto_tipo', e.target.value)} style={{ width:'100%' }}>

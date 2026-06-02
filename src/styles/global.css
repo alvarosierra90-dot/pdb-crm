@@ -2123,6 +2123,9 @@ tr:hover .ra-cell { opacity: 1; }
 .dem-skin .dk-sbox .v.faint{ color:var(--dk-ink-faint);font-weight:500; }
 .dem-skin .dk-sbox.t-purple{ background:#f1eeff;border-color:#d4caff; }
 .dem-skin .dk-sbox.t-gold{ background:var(--dk-gold-bg);border-color:var(--dk-gold-line); }
+.dem-skin .dk-sbox.t-conf{ background:#f0fdfa;border-color:#99f6e4; }
+.dem-skin .dk-sbox.t-conf .k{ color:#0f766e; }
+.dem-skin .dk-sbox .v.conf-yes{ color:#0f766e;font-weight:800; }
 
 /* ── Layout · UNA sola página con scroll (cabecera+tabs fijas, contenido scrollea como un bloque) ── */
 .dem-skin .ficha-main > *{ flex:0 0 auto; }            /* funnel, cabecera y tabs quedan fijos arriba */
