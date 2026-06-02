@@ -973,6 +973,13 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
       units[editPA.idx] = upd
       return {...row, units}
     })}))
+    // Sincroniza la renta de cierre del arrendatario con closing_rent en BD.
+    if (editPA.layer === 'arr' && !isNaN(renta) && renta >= 0) {
+      const u0 = edif.arr?.find(r => r.p === editPA.rowP)?.units?.[editPA.idx]
+      if (u0?.type === 'ten' && u0.arr_ref) {
+        supabase.from('arrendatarios').update({ closing_rent: renta, renta }).eq('ref', u0.arr_ref)
+      }
+    }
     setEditPA(null); setEditPASup(''); setEditPARenta(''); setEditPATotal('')
   }
 
@@ -1960,7 +1967,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                             || (u.type==='vac' && hoverKey === 'ofr:'+u.oferta)
                   return (
                     <div key={rawIdx}
-                      title={`${label} · ${u.sup.toLocaleString('es-ES')} m²${u.brk?` · break ${u.brk}`:''}`}
+                      title={`${label} · ${u.sup.toLocaleString('es-ES')} m²${u.renta>0?` · ${u.renta} €/m²/mes`:''}${u.brk?` · break ${u.brk}`:''}`}
                       onClick={editable ? e=>{e.stopPropagation();if(isEd)setEditPA(null);else{setEditPA({layer:'arr',rowP:floor.id,idx:rawIdx});setEditPASup(String(u.sup));setEditPARenta(String(u.renta??''));setEditPATotal(String(u.precio_total??''))}} : undefined}
                       className={`sp-block${isHL?' sp-block-hl':''}`}
                       style={{width:wpct,background:isHL?col+'33':bg,border:`1px solid ${isHL?col:bd}`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible',flexDirection:'column',minHeight:barH,justifyContent:'center',boxShadow:isHL?`0 0 0 2px ${col}, 0 2px 12px ${col}66`:undefined,transform:isHL?'scale(1.02)':undefined,zIndex:isHL?2:undefined,transition:'box-shadow 120ms ease, transform 120ms ease'}}
@@ -1973,6 +1980,15 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                               style={{width:90,padding:'6px 8px',fontSize:13,fontWeight:600,border:`1px solid ${col}`,borderRadius:4,fontFamily:'var(--mono)',textAlign:'right'}}/>
                             <span style={{fontSize:11,color:col,fontWeight:600}}>m²</span>
                           </div>
+                          {u.type==='ten' && (
+                            <div style={{display:'flex',gap:5,alignItems:'center'}}>
+                              <input type="number" step="0.01" value={editPARenta} onChange={e=>setEditPARenta(e.target.value)}
+                                onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
+                                placeholder="Renta cierre"
+                                style={{width:100,padding:'6px 8px',fontSize:13,fontWeight:600,border:`1px solid ${col}`,borderRadius:4,fontFamily:'var(--mono)',textAlign:'right'}}/>
+                              <span style={{fontSize:11,color:col,fontWeight:600}}>€/m²/mes</span>
+                            </div>
+                          )}
                           {u.type==='vac'&&u.oferta&&(()=>{
                             const ofMeta = extraOfertas.find(o => o.nombre === u.oferta)
                             const isVenta = ofMeta?.tipoOperacion === 'Venta'
