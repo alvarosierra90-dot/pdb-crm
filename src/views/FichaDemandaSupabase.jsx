@@ -448,7 +448,15 @@ export default function FichaDemandaSupabase({ refOrId }) {
   // el rastro: una card sigue (en gris) en las columnas por las que pasó.
   const moverAlternativa = async (altId, destino) => {
     // Visita y descarte abren su propio modal (calendario / motivo).
-    if (destino === 'visitadas') { const a = alternativas.find(x => x.id === altId); setVisitaModal({ altId, fecha: a?.condiciones_negociadas?.fecha_visita || '' }); return }
+    if (destino === 'visitadas') {
+      const a = alternativas.find(x => x.id === altId)
+      const prev = a?.condiciones_negociadas?.fecha_visita
+      const today = new Date().toISOString().slice(0, 10)
+      // Por defecto hoy (formato válido yyyy-mm-dd) para que el botón esté activo
+      // y se vea valor aunque el calendario nativo no se abra al primer clic.
+      setVisitaModal({ altId, fecha: /^\d{4}-\d{2}-\d{2}$/.test(prev || '') ? prev : today })
+      return
+    }
     if (destino === 'descartar') { setDescarteModal({ altId, motivo: '' }); return }
     const alt = alternativas.find(a => a.id === altId)
     if (!alt) return
