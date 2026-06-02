@@ -153,6 +153,35 @@ function FichaOfertaMock() {
 
   // DB state
   const [oferta, setOferta]     = useState(null)   // loaded from Supabase
+  // Vista 360 · demandas que han presentado esta oferta + cuentas (derivado de oferta_demanda)
+  const [of360, setOf360] = useState({ loaded:false, demandas:[], cuentas:[] })
+  useEffect(() => {
+    if (activeTab !== 'of-seg' || !oferta?.id || of360.loaded) return
+    let cancel = false
+    ;(async () => {
+      const { data: alts } = await supabase
+        .from('oferta_demanda')
+        .select('demanda_id, estado_alternativa, created_at, demandas(id, ref, nombre, dynamics_account_id, sup_min, sup_max, estado)')
+        .eq('oferta_id', oferta.id)
+        .order('created_at', { ascending:false })
+      if (cancel) return
+      const seen = new Set(); const demandas = []; const accIds = new Set()
+      for (const a of (alts || [])) {
+        const d = a.demandas
+        if (!d || seen.has(d.id)) continue
+        seen.add(d.id)
+        demandas.push({ ...d, estado_alternativa: a.estado_alternativa, fecha: a.created_at })
+        if (d.dynamics_account_id) accIds.add(d.dynamics_account_id)
+      }
+      let cuentas = []
+      if (accIds.size) {
+        const { data } = await supabase.from('dynamics_accounts').select('dynamics_id, nombre').in('dynamics_id', [...accIds])
+        cuentas = data || []
+      }
+      if (!cancel) setOf360({ loaded:true, demandas, cuentas })
+    })()
+    return () => { cancel = true }
+  }, [activeTab, oferta?.id])
   const [isMock, setIsMock]     = useState(false)  // true when showing example data
   const [saving, setSaving]     = useState(false)
   const [saveOk, setSaveOk]     = useState(false)
@@ -2468,6 +2497,50 @@ function FichaOfertaMock() {
                           <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginTop:3 }}>{k.lbl}</div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* ── Demandas vinculadas + Cuentas presentadas (derivado de oferta_demanda) ── */}
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+                    <div className="va-card" style={{ margin:0 }}>
+                      <div className="va-card-header"><h3>Demandas vinculadas <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>{of360.demandas.length}</span></h3></div>
+                      <div style={{ padding:'4px 0 14px' }}>
+                        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                          <thead><tr>{['Ref','Cuenta','Estado'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 12px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
+                          <tbody>
+                            {of360.demandas.length === 0
+                              ? <tr><td colSpan={3} style={{ padding:'14px', color:'var(--text4)', fontSize:11, textAlign:'center' }}>Aún no se ha presentado a ninguna demanda</td></tr>
+                              : of360.demandas.map(d => {
+                                  const cuenta = of360.cuentas.find(c => c.dynamics_id === d.dynamics_account_id)
+                                  return (
+                                    <tr key={d.id} style={{ borderTop:'1px solid var(--border)', cursor:'pointer' }} onClick={() => navigate('ficha-demanda', { id: d.ref || d.id })}>
+                                      <td style={{ padding:'6px 12px' }}><span className="asset-link" style={{ fontFamily:'var(--mono)', fontSize:10 }}>{d.ref || '—'}</span></td>
+                                      <td style={{ padding:'6px 12px', fontSize:10 }}>{cuenta?.nombre || d.nombre || '—'}</td>
+                                      <td style={{ padding:'6px 12px' }}><span className="tag tag-blue" style={{ fontSize:9 }}>{d.estado_alternativa || d.estado || '—'}</span></td>
+                                    </tr>
+                                  )
+                                })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div className="va-card" style={{ margin:0 }}>
+                      <div className="va-card-header"><h3>Cuentas presentadas <span style={{ fontSize:9, color:'var(--text4)', fontWeight:400, marginLeft:6 }}>{of360.cuentas.length}</span></h3></div>
+                      <div style={{ padding:'4px 0 14px' }}>
+                        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                          <thead><tr>{['Cuenta','Dynamics ID'].map(h => <th key={h} style={{ textAlign:'left', padding:'6px 12px', fontSize:9, color:'var(--text4)', fontWeight:600, textTransform:'uppercase' }}>{h}</th>)}</tr></thead>
+                          <tbody>
+                            {of360.cuentas.length === 0
+                              ? <tr><td colSpan={2} style={{ padding:'14px', color:'var(--text4)', fontSize:11, textAlign:'center' }}>Sin cuentas presentadas</td></tr>
+                              : of360.cuentas.map(c => (
+                                  <tr key={c.dynamics_id} style={{ borderTop:'1px solid var(--border)' }}>
+                                    <td style={{ padding:'6px 12px', fontWeight:500 }}>{c.nombre}</td>
+                                    <td style={{ padding:'6px 12px', fontSize:10, color:'var(--text3)', fontFamily:'var(--mono)' }}>{c.dynamics_id}</td>
+                                  </tr>
+                                ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
 
