@@ -1380,12 +1380,12 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 })()}
 
                 {/* ─── DETALLE · todos los cuadros en una sola fila ─── */}
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:12, marginBottom:14, alignItems:'start' }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12, marginBottom:14, alignItems:'start' }}>
 
                   {/* === REQUISITOS GENERALES === */}
                   <div className="dash-card">
                     <div className="dash-card-head">Requisitos del activo</div>
-                    <div style={{ padding:'12px 16px 16px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                    <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:11 }}>
                       <ReqField label="Naturaleza" accent="#0f172a">
                         <select className="fsel" value={form.naturaleza} onChange={e => setF('naturaleza', e.target.value)} style={{ width:'100%' }}>
                           <option value="">—</option><option>Leasing</option><option>Inversión</option>
@@ -1417,12 +1417,14 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       <ReqField label="Timing del proyecto">
                         <input type="date" className="fsel" value={form.timing} onChange={e => setF('timing', e.target.value)} style={{ width:'100%' }} />
                       </ReqField>
-                      <ReqField label="Superficie mín. (m²)">
-                        <input type="number" className="kf-inp" value={form.sup_min} onChange={e => setF('sup_min', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
-                      </ReqField>
-                      <ReqField label="Superficie máx. (m²)">
-                        <input type="number" className="kf-inp" value={form.sup_max} onChange={e => setF('sup_max', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
-                      </ReqField>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                        <ReqField label="Sup. mín. (m²)">
+                          <input type="number" className="kf-inp" value={form.sup_min} onChange={e => setF('sup_min', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
+                        </ReqField>
+                        <ReqField label="Sup. máx. (m²)">
+                          <input type="number" className="kf-inp" value={form.sup_max} onChange={e => setF('sup_max', e.target.value)} placeholder="—" style={{ width:'100%', fontFamily:'var(--mono)', textAlign:'right', fontWeight:600 }} />
+                        </ReqField>
+                      </div>
                     </div>
                   </div>
 
@@ -1744,25 +1746,6 @@ export default function FichaDemandaSupabase({ refOrId }) {
                           </div>
                         )
                       })()}
-                    </div>
-                  </div>
-
-                  {/* Detalles geográficos · inputs siempre con recuadro prominente */}
-                  <div className="dash-card">
-                    <div className="dash-card-head">Detalles geográficos</div>
-                    <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:12 }}>
-                      <div className="dash-field">
-                        <label className="dash-field-lbl">Calles específicas</label>
-                        <input value={form.calles} onChange={e => setF('calles', e.target.value)} placeholder="Ej. Castellana 50–120" className="dash-field-input" />
-                      </div>
-                      <div className="dash-field">
-                        <label className="dash-field-lbl">Puntos de interés</label>
-                        <input value={form.puntos_interes} onChange={e => setF('puntos_interes', e.target.value)} placeholder="Cerca de metro, autopistas..." className="dash-field-input" />
-                      </div>
-                      <div className="dash-field">
-                        <label className="dash-field-lbl">Puntos a evitar</label>
-                        <input value={form.puntos_evitar} onChange={e => setF('puntos_evitar', e.target.value)} placeholder="Zonas en obras..." className="dash-field-input" />
-                      </div>
                     </div>
                   </div>
 
