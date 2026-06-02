@@ -10,6 +10,7 @@ import HeaderPills from '../components/HeaderPills'
 import FunnelTracker from '../components/FunnelTracker'
 import FunnelStepCards from '../components/FunnelStepCards'
 import MarcarDemandaCierreModal from '../components/MarcarDemandaCierreModal'
+import MatchingOfertasModal from '../components/MatchingOfertasModal'
 import NotasModal from '../components/NotasModal'
 import IniciarNegociacionModal from '../components/IniciarNegociacionModal'
 import { cardTone } from '../lib/cardTones'
@@ -157,6 +158,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [negociacionVinculada, setNegociacionVinculada] = useState(null)
   // Vista 360 · alternativas (oferta_demanda con joins a ofertas + activos)
   const [alternativas, setAlternativas] = useState([])
+  const [showMatching, setShowMatching] = useState(false)
   const [loadingAlt, setLoadingAlt] = useState(false)
   // Typeahead de búsqueda de Mandato para vincular
   const [mandatoSearch, setMandatoSearch] = useState('')
@@ -621,6 +623,14 @@ export default function FichaDemandaSupabase({ refOrId }) {
           demanda={demanda}
           onClose={() => setShowCierreModal(null)}
           onSuccess={() => { setShowCierreModal(null); load() }}
+        />
+      )}
+      {showMatching && demanda && (
+        <MatchingOfertasModal
+          demanda={demanda}
+          yaAnadidas={alternativas}
+          onClose={() => setShowMatching(false)}
+          onAdded={loadAlternativas}
         />
       )}
 
@@ -1555,6 +1565,12 @@ export default function FichaDemandaSupabase({ refOrId }) {
             return (
               <div className="tab-content active"><div className="info-pad">
 
+                {/* Acción: matching con el pool de ofertas */}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+                  <div style={{ fontSize:12, color:'var(--text3)' }}>Cruza la demanda contra el pool de ofertas y añade las que encajen como alternativas.</div>
+                  <button className="ab-btn save" style={{ fontSize:12 }} onClick={() => setShowMatching(true)}>🔍 Matching con ofertas</button>
+                </div>
+
                 {/* Cabecera con KPIs de funnel */}
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:14 }}>
                   {[
@@ -1935,7 +1951,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   <div style={{ marginTop:8, display:'flex', flexDirection:'column', gap:3 }}>
                     <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>Resumen ejecutivo</button>
                     <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>Sugerir zonas alternativas</button>
-                    <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>🔍 Matching con ofertas</button>
+                    <button onClick={() => setShowMatching(true)} style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>🔍 Matching con ofertas</button>
                   </div>
                   <div className="ai-cta">✎ Preguntar a la IA</div>
                 </div>
