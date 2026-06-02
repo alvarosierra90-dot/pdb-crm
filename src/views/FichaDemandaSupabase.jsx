@@ -426,6 +426,42 @@ export default function FichaDemandaSupabase({ refOrId }) {
     await loadAlternativas()
   }
 
+  // Mover alternativa entre columnas del kanban (drag&drop). Guarda hitos en
+  // condiciones_negociadas (visited/fecha_visita/negotiated) para poder pintar
+  // el rastro: una card sigue (en gris) en las columnas por las que pasó.
+  const moverAlternativa = async (altId, destino) => {
+    const alt = alternativas.find(a => a.id === altId)
+    if (!alt) return
+    const cond = { ...(alt.condiciones_negociadas || {}) }
+    let estado
+    if (destino === 'presentadas') estado = 'enviada'
+    else if (destino === 'visitadas') {
+      const f = window.prompt('¿Cuándo se visitó? (dd/mm/aaaa)', cond.fecha_visita || '')
+      if (f === null) return
+      estado = 'visita_realizada'; cond.visited = true; cond.fecha_visita = f || null
+    }
+    else if (destino === 'negociando') { estado = 'negociando'; cond.negotiated = true }
+    else return
+    const { error } = await supabase.from('oferta_demanda')
+      .update({ estado_alternativa: estado, condiciones_negociadas: cond, updated_at: new Date().toISOString() })
+      .eq('id', altId)
+    if (error) { setSaveError(error.message); return }
+    await loadAlternativas()
+  }
+
+  // Descartar con motivo (botón) → pasa a la caja Descartadas de abajo.
+  const descartarAlternativa = async (altId) => {
+    const motivo = window.prompt('Motivo de descarte:', '')
+    if (motivo === null) return
+    const alt = alternativas.find(a => a.id === altId)
+    const cond = { ...(alt?.condiciones_negociadas || {}), motivo_descarte: motivo || null }
+    const { error } = await supabase.from('oferta_demanda')
+      .update({ estado_alternativa: 'descartada', condiciones_negociadas: cond, updated_at: new Date().toISOString() })
+      .eq('id', altId)
+    if (error) { setSaveError(error.message); return }
+    await loadAlternativas()
+  }
+
   // Cada vez que la demanda se (re)carga, sincroniza el form para que los
   // inputs reflejen el estado persistido. El usuario puede modificar
   // libremente y pulsar Guardar para persistir.
@@ -1519,24 +1555,42 @@ export default function FichaDemandaSupabase({ refOrId }) {
           })()}
 
           {tab === 'dem-360' && (() => {
-            // Agrupación por fase del funnel
-            const presentadas = alternativas.filter(a => ['propuesta','enviada'].includes(a.estado_alternativa))
-            const visitadas   = alternativas.filter(a => ['visita_programada','visita_realizada'].includes(a.estado_alternativa))
-            const negociando  = alternativas.filter(a => ['negociando'].includes(a.estado_alternativa))
-            const cerradas    = alternativas.filter(a => ['ganada','perdida','descartada'].includes(a.estado_alternativa))
+            // Hitos (guardados en condiciones_negociadas) para el rastro del funnel.
+            const condOf = (alt) => alt.condiciones_negociadas || {}
+            const isClosed = (alt) => ['ganada','perdida','descartada'].includes(alt.estado_alternativa)
+            const wasVisited = (alt) => !!condOf(alt).visited || ['visita_programada','visita_realizada'].includes(alt.estado_alternativa)
+            const wasNegotiated = (alt) => !!condOf(alt).negotiated || alt.estado_alternativa === 'negociando'
+            const stageOf = (alt) => {
+              if (isClosed(alt)) return 'cerradas'
+              if (alt.estado_alternativa === 'negociando') return 'negociando'
+              if (['visita_programada','visita_realizada'].includes(alt.estado_alternativa)) return 'visitadas'
+              return 'presentadas'
+            }
+            // Activas en el kanban + membresía por columna (con rastro): cada card
+            // aparece en su etapa actual y, en gris, en las columnas que ya pasó.
+            const activas       = alternativas.filter(a => !isClosed(a))
+            const colPresentadas = activas
+            const colVisitadas   = activas.filter(wasVisited)
+            const colNegociando  = activas.filter(wasNegotiated)
+            const cerradas       = alternativas.filter(a => ['ganada','perdida'].includes(a.estado_alternativa))
+            const descartadas    = alternativas.filter(a => a.estado_alternativa === 'descartada')
 
             const fmtSba = sba => sba ? `${Number(sba).toLocaleString('es-ES')} m²` : '—'
 
-            // Tarjeta de alternativa reutilizable (mismo formato cards uniformes)
-            const AltCard = ({ alt, accent = 'var(--accent)', actions }) => {
+            // Tarjeta de alternativa. ghost = card "de paso" (gris oscuro, no
+            // arrastrable) en una columna que ya superó. note = pie del ghost.
+            const AltCard = ({ alt, accent = 'var(--accent)', actions, ghost = false, note }) => {
               const a = alt.activos || {}
               const o = alt.ofertas || {}
               return (
-                <div style={{ display:'flex', flexDirection:'column', gap:8, padding:'10px 12px', border:'1px solid var(--border)', borderLeft:`3px solid ${accent}`, borderRadius:'var(--r)', background:'var(--surface)' }}>
+                <div
+                  draggable={!ghost}
+                  onDragStart={ghost ? undefined : e => { e.dataTransfer.setData('text/plain', alt.id); e.dataTransfer.effectAllowed = 'move' }}
+                  style={{ display:'flex', flexDirection:'column', gap:8, padding:'10px 12px', border:'1px solid var(--border)', borderLeft:`3px solid ${ghost ? '#64748b' : accent}`, borderRadius:'var(--r)', background: ghost ? '#e2e8f0' : 'var(--surface)', opacity: ghost ? 0.9 : 1, cursor: ghost ? 'default' : 'grab' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                    <div style={{ width:32, height:32, borderRadius:'50%', background:accent, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, flexShrink:0 }}></div>
+                    <div style={{ width:32, height:32, borderRadius:'50%', background: ghost ? '#94a3b8' : accent, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, flexShrink:0 }}></div>
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', cursor:'pointer' }} onClick={() => a.ref && navigate('ficha-activo', { ref:a.ref })}>
+                      <div style={{ fontSize:12, fontWeight:700, color: ghost ? 'var(--text3)' : 'var(--text)', cursor:'pointer' }} onClick={() => a.ref && navigate('ficha-activo', { ref:a.ref })}>
                         {a.nombre || '(activo sin nombre)'}
                       </div>
                       <div style={{ fontSize:10, color:'var(--text3)' }}>
@@ -1547,7 +1601,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       <span className="tag tag-blue" style={{ fontSize:9, fontFamily:'var(--mono)', cursor:'pointer' }} onClick={() => navigate('ficha-oferta', { ofertaRef: o.ref })}>{o.ref}</span>
                     )}
                   </div>
-                  {actions && (
+                  {ghost && note && <div style={{ fontSize:9, color:'var(--text4)', fontStyle:'italic' }}>{note}</div>}
+                  {!ghost && actions && (
                     <div style={{ display:'flex', gap:5, flexWrap:'wrap', borderTop:'1px dashed var(--border)', paddingTop:8, marginTop:2 }}>
                       {actions}
                     </div>
@@ -1555,6 +1610,15 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 </div>
               )
             }
+
+            // Caja-columna soltable (drag&drop).
+            const DropCol = ({ destino, children, ...rest }) => (
+              <div {...rest}
+                onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+                onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) moverAlternativa(id, destino) }}>
+                {children}
+              </div>
+            )
 
             const EmptyCol = ({ msg }) => (
               <div style={{ padding:'20px 12px', textAlign:'center', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'var(--gray-lt)', fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>
@@ -1574,9 +1638,9 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 {/* Cabecera con KPIs de funnel */}
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:14 }}>
                   {[
-                    ['Presentadas', presentadas.length, '#f5efe5', '#6f5734', ''],
-                    ['Visitadas',   visitadas.length,   '#f0fdfa', '#0f766e', ''],
-                    ['Negociando',  negociando.length,  '#fef3c7', '#92400e', ''],
+                    ['Presentadas', colPresentadas.length, '#f5efe5', '#6f5734', ''],
+                    ['Visitadas',   colVisitadas.length,   '#f0fdfa', '#0f766e', ''],
+                    ['Negociando',  colNegociando.length,  '#fef3c7', '#92400e', ''],
                     ['Cerradas',    cerradas.length,    '#f1f5f9', '#475569', '✓'],
                   ].map(([lbl, val, bg, color, icon]) => (
                     <div key={lbl} style={{ padding:'10px 12px', background:bg, border:`1px solid ${color}33`, borderRadius:6 }}>
@@ -1604,92 +1668,79 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 )}
 
                 {!loadingAlt && alternativas.length > 0 && (
+                  <>
+                  <div style={{ fontSize:10, color:'var(--text4)', marginBottom:8, fontStyle:'italic' }}>Arrastra las cards entre columnas. Una card visitada se queda en gris en "Visitadas" aunque pase a negociación, para distinguir si se visitó o se pasó directa.</div>
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12 }}>
 
                     {/* === COL 1 · PRESENTADAS === */}
-                    <div className="va-card" style={{ marginBottom:0 }}>
+                    <DropCol destino="presentadas" className="va-card" style={{ marginBottom:0 }}>
                       <div className="va-card-header" style={{ background:'#f8fafc' }}>
-                        <h3><span className="ico" style={{ color:'#6f5734' }}></span> Presentadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({presentadas.length})</span></h3>
+                        <h3><span className="ico" style={{ color:'#6f5734' }}></span> Presentadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({colPresentadas.filter(a=>stageOf(a)==='presentadas').length})</span></h3>
                       </div>
-                      <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8 }}>
-                        {presentadas.length === 0
+                      <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8, minHeight:60 }}>
+                        {colPresentadas.length === 0
                           ? <EmptyCol msg="Aún no se han presentado edificios." />
-                          : presentadas.map(alt => (
-                              <AltCard key={alt.id} alt={alt} accent="#6f5734" actions={
-                                <>
-                                  {alt.estado_alternativa === 'propuesta' && (
-                                    <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'enviada')}>📤 Marcar enviada</button>
-                                  )}
-                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'visita_programada')}>🗓 Visita programada</button>
-                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'descartada')}>✕ Descartar</button>
-                                </>
-                              } />
-                            ))
+                          : colPresentadas.map(alt => {
+                              const ghost = stageOf(alt) !== 'presentadas'
+                              return <AltCard key={alt.id} alt={alt} accent="#6f5734" ghost={ghost}
+                                note={ghost ? 'Pasó de fase' : undefined}
+                                actions={ghost ? null : (
+                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => descartarAlternativa(alt.id)}>✕ Descartar</button>
+                                )} />
+                            })
                         }
                       </div>
-                    </div>
+                    </DropCol>
 
                     {/* === COL 2 · VISITADAS === */}
-                    <div className="va-card" style={{ marginBottom:0 }}>
+                    <DropCol destino="visitadas" className="va-card" style={{ marginBottom:0 }}>
                       <div className="va-card-header" style={{ background:'#f0fdfa' }}>
-                        <h3><span className="ico" style={{ color:'#0f766e' }}></span> Visitadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({visitadas.length})</span></h3>
+                        <h3><span className="ico" style={{ color:'#0f766e' }}></span> Visitadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({colVisitadas.filter(a=>stageOf(a)==='visitadas').length})</span></h3>
                       </div>
-                      <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8 }}>
-                        {visitadas.length === 0
-                          ? <EmptyCol msg="Aún no hay visitas programadas." />
-                          : visitadas.map(alt => (
-                              <AltCard key={alt.id} alt={alt} accent="#0f766e" actions={
-                                <>
-                                  {alt.estado_alternativa === 'visita_programada' && (
-                                    <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'visita_realizada')}>✓ Visita realizada</button>
-                                  )}
-                                  {alt.estado_alternativa === 'visita_realizada' && (
-                                    <button
-                                      className="ab-btn"
-                                      style={{ fontSize:9, padding:'3px 8px', background:'var(--purple, #6b5b8e)', color:'#fff', border:'1px solid var(--purple, #6b5b8e)', fontWeight:700 }}
-                                      onClick={() => {
-                                        // TODO: cascada Instrucción → Negociación
-                                        // Por ahora cambia estado a 'negociando' y muestra aviso
-                                        if (window.confirm('Esto creará primero una Instrucción y después una Negociación. ¿Continuar?\n\n(Cascada Instrucción→Negociación todavía no implementada — por ahora solo se cambia el estado a "negociando".)')) {
-                                          cambiarEstadoAlternativa(alt.id, 'negociando')
-                                        }
-                                      }}
-                                      title="Crea Instrucción + Negociación (cascada)"
-                                    >Transformar a Negociación</button>
-                                  )}
-                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'descartada')}>✕ Descartar</button>
-                                </>
-                              } />
-                            ))
+                      <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8, minHeight:60 }}>
+                        {colVisitadas.length === 0
+                          ? <EmptyCol msg="Arrastra aquí una card para registrar la visita." />
+                          : colVisitadas.map(alt => {
+                              const ghost = stageOf(alt) !== 'visitadas'
+                              const fv = condOf(alt).fecha_visita
+                              return <AltCard key={alt.id} alt={alt} accent="#0f766e" ghost={ghost}
+                                note={ghost ? (fv ? `Visitada ${fv}` : 'Visitada') : undefined}
+                                actions={ghost ? null : (
+                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => descartarAlternativa(alt.id)}>✕ Descartar</button>
+                                )} />
+                            })
                         }
                       </div>
-                    </div>
+                    </DropCol>
 
                     {/* === COL 3 · EN NEGOCIACIÓN === */}
-                    <div className="va-card" style={{ marginBottom:0 }}>
+                    <DropCol destino="negociando" className="va-card" style={{ marginBottom:0 }}>
                       <div className="va-card-header" style={{ background:'#fef3c7' }}>
-                        <h3><span className="ico" style={{ color:'#92400e' }}></span> En negociación <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({negociando.length})</span></h3>
+                        <h3><span className="ico" style={{ color:'#92400e' }}></span> En negociación <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({colNegociando.filter(a=>stageOf(a)==='negociando').length})</span></h3>
                       </div>
-                      <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8 }}>
-                        {negociando.length === 0
-                          ? <EmptyCol msg="Sin negociaciones activas." />
-                          : negociando.map(alt => (
-                              <AltCard key={alt.id} alt={alt} accent="#92400e" actions={
-                                <>
-                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px' }} onClick={() => alt.ofertas?.ref && navigate('ficha-negociacion', { id: alt.ofertas.ref })}>Ver negociación</button>
-                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--green)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'ganada')}>Ganada</button>
-                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'perdida')}>✕ Perdida</button>
-                                </>
-                              } />
-                            ))
+                      <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8, minHeight:60 }}>
+                        {colNegociando.length === 0
+                          ? <EmptyCol msg="Arrastra aquí una card para abrir negociación." />
+                          : colNegociando.map(alt => {
+                              const ghost = stageOf(alt) !== 'negociando'
+                              return <AltCard key={alt.id} alt={alt} accent="#92400e" ghost={ghost}
+                                actions={ghost ? null : (
+                                  <>
+                                    <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px' }} onClick={() => alt.ofertas?.ref && navigate('ficha-negociacion', { id: alt.ofertas.ref })}>Ver negociación</button>
+                                    <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--green)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'ganada')}>Ganada</button>
+                                    <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'perdida')}>✕ Perdida</button>
+                                  </>
+                                )} />
+                            })
                         }
                       </div>
-                    </div>
+                    </DropCol>
 
                   </div>
+                  </>
                 )}
 
-                {/* CERRADAS · siempre visible si hay alguna */}
+                {/* CERRADAS (ganada/perdida) */}
                 {cerradas.length > 0 && (
                   <div className="va-card" style={{ marginTop:14, marginBottom:0 }}>
                     <div className="va-card-header">
@@ -1701,11 +1752,30 @@ export default function FichaDemandaSupabase({ refOrId }) {
                         return (
                           <AltCard key={alt.id} alt={alt} accent={isWin ? 'var(--green)' : '#94a3b8'} actions={
                             <span className={`tag ${isWin ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:9 }}>
-                              {alt.estado_alternativa === 'ganada' ? 'Ganada' : alt.estado_alternativa === 'perdida' ? '✕ Perdida' : '⊘ Descartada'}
+                              {isWin ? 'Ganada' : '✕ Perdida'}
                             </span>
                           } />
                         )
                       })}
+                    </div>
+                  </div>
+                )}
+
+                {/* DESCARTADAS (con motivo) */}
+                {descartadas.length > 0 && (
+                  <div className="va-card" style={{ marginTop:14, marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico" style={{ color:'#b91c1c' }}>⊘</span> Descartadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({descartadas.length})</span></h3>
+                    </div>
+                    <div style={{ padding:'10px 18px 14px', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
+                      {descartadas.map(alt => (
+                        <AltCard key={alt.id} alt={alt} accent="#b91c1c" actions={
+                          <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                            <span className="tag tag-red" style={{ fontSize:9, width:'fit-content' }}>⊘ Descartada</span>
+                            {condOf(alt).motivo_descarte && <span style={{ fontSize:10, color:'var(--text3)' }}>Motivo: {condOf(alt).motivo_descarte}</span>}
+                          </div>
+                        } />
+                      ))}
                     </div>
                   </div>
                 )}
