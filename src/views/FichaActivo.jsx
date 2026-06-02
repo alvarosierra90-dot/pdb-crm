@@ -4401,9 +4401,37 @@ export default function FichaActivo() {
   // Callback del modal AltaPropietarioModal: registra el propietario en local
   // state (propietariosReg) para que aparezca en el panel lateral del stacking
   // y se pueda arrastrar a las plantas. La superficie se completa al hacer drop.
-  const handlePropietarioCreado = (propietario) => {
+  const handlePropietarioCreado = async (propietario) => {
+    // 1) Persistir en Supabase con ref canónico (PRO-XXXXXXX) para que la ficha
+    //    del propietario cargue de verdad y la superficie se vincule por prop_id.
+    //    Mismas columnas que FichaPropietario.handleSaveFromActivo.
+    const { nextRef } = await import('../lib/nextRef')
+    let savedId = null, savedRef = null
+    try {
+      const ref = await nextRef('propietarios', 'PRO')
+      const row = {
+        ref,
+        nombre:        propietario.propietario,
+        propietario:   propietario.propietario,
+        activo:        activo?.nombre || activo?.direccion || null,
+        activo_ref:    propietario.activo_ref || activo?.ref || null,
+        anyo_compra:   propietario.anyo_firma ? parseInt(propietario.anyo_firma) : null,
+        trimestre:     propietario.trimestre || null,
+        perfil:        propietario.perfil_inversor || null,
+        estrategia:    propietario.estrategia || null,
+        cap_rate:      propietario.cap_rate ? parseFloat(propietario.cap_rate) : null,
+        observaciones: propietario.notas || null,
+      }
+      const { data, error } = await supabase.from('propietarios').insert(row).select('id, ref').single()
+      if (error) { console.error('Error guardando propietario:', error); alert('No se pudo guardar el propietario: ' + error.message) }
+      else if (data) { savedId = data.id; savedRef = data.ref }
+    } catch (e) { console.error('Exception guardando propietario:', e) }
+
+    // 2) Estado local del panel del stacking con el id REAL (uuid) → al arrastrar
+    //    se estampa prop_id = id real y todo queda vinculado.
     setPropietariosReg(prev => [...prev, {
-      id: propietario.id,
+      id: savedId || propietario.id,
+      ref: savedRef,
       propietario: propietario.propietario,
       dynamics_id: propietario.dynamics_id,
       desconocido: propietario.desconocido,
@@ -4428,28 +4456,37 @@ export default function FichaActivo() {
   }
 
   const handleArrendatarioCreado = async (arr) => {
-    // 1) Persistir en Supabase para que se sincronice con FichaArrendatario
-    //    La columna `ref` tiene DEFAULT generate_arrendatario_ref() en Postgres
-    //    (migración 032), así que NO la enviamos — la genera el servidor.
-    const payload = {
-      tenant: arr.tenant,
-      tenant_desconocido: !!arr.tenant_desconocido,
-      activo_ref: arr.activo_ref || activo?.ref || null,
-      anyo_firma: arr.anyo_firma ? Number(arr.anyo_firma) : null,
-      trimestre: arr.trimestre || null,
-      closing_rent: arr.closing_rent !== '' && arr.closing_rent != null ? Number(arr.closing_rent) : null,
-      anios_obligado: arr.anios_obligado !== '' && arr.anios_obligado != null ? Number(arr.anios_obligado) : null,
-    }
+    // 1) Persistir en Supabase con ref canónico (ARR-XXXXXXX). Garantizar el ref
+    //    cliente-side evita que la ficha quede sin cargar ("Guarda primero…").
+    //    Mismas columnas que FichaArrendatario.handleSaveUpdate (incl. `inicio`).
+    const { nextRef } = await import('../lib/nextRef')
     let savedRef = null
     let savedId  = null
     try {
+      const ref = await nextRef('arrendatarios', 'ARR')
+      const payload = {
+        ref,
+        tenant: arr.tenant,
+        nombre: arr.tenant,
+        tenant_desconocido: !!arr.tenant_desconocido,
+        activo_ref: arr.activo_ref || activo?.ref || null,
+        edificio: activo?.nombre || activo?.direccion || null,
+        anyo_firma: arr.anyo_firma ? Number(arr.anyo_firma) : null,
+        trimestre: arr.trimestre || null,
+        inicio: arr.fecha_inicio || null,
+        closing_rent: arr.closing_rent !== '' && arr.closing_rent != null ? Number(arr.closing_rent) : null,
+        renta: arr.closing_rent !== '' && arr.closing_rent != null ? Number(arr.closing_rent) : null,
+        anios_obligado: arr.anios_obligado !== '' && arr.anios_obligado != null ? Number(arr.anios_obligado) : null,
+        estado_arr: 'Vigente',
+      }
       const { data, error } = await supabase
         .from('arrendatarios')
         .insert(payload)
-        .select()
+        .select('id, ref')
         .single()
       if (error) {
         console.error('Error guardando arrendatario:', error)
+        alert('No se pudo guardar el arrendatario: ' + error.message)
       } else if (data) {
         savedRef = data.ref || null
         savedId  = data.id  || null

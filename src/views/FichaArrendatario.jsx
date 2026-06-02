@@ -466,6 +466,21 @@ export default function FichaArrendatario() {
     return () => { cancel = true }
   }, [tab, stackingActivo?.ref, stackingActivo?.id])
 
+  // Deriva la superficie del arrendatario sumando sus units en el stacking del
+  // activo (asignadas en cualquier ficha). Así la superficie se ve aunque se
+  // haya asignado desde el activo y no desde aquí.
+  useEffect(() => {
+    if (!loadedRef || !Array.isArray(stackingActivo?.stacking_data)) return
+    const totalSup = stackingActivo.stacking_data
+      .flatMap(b => b.arr || []).flatMap(r => r.units || [])
+      .filter(u => u.type === 'ten' && u.arr_ref === loadedRef)
+      .reduce((s, u) => s + (Number(u.sup) || 0), 0)
+    if (totalSup > 0 && String(totalSup) !== String(form.superficie || '')) {
+      set('superficie', String(totalSup))
+      supabase.from('arrendatarios').update({ superficie: totalSup }).eq('ref', loadedRef)
+    }
+  }, [loadedRef, stackingActivo?.stacking_data])
+
   // ── Load from DB when opened by tenant name click ─────────────
   useEffect(() => {
     if (!params?.tenantName || params?.fromOfertaRef) return
