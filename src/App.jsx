@@ -48,9 +48,10 @@ import FichaLead from './views/FichaLead'
 import FichaOportunidad from './views/FichaOportunidad'
 import PitchView from './views/PitchView'
 import NexoView from './views/NexoView'
+import CAMView from './views/CAMView'
 import FormacionInterna from './views/FormacionInterna'
 
-const BUILT = ['activos','ficha-activo','ofertas','ficha-oferta','negociaciones','ficha-negociacion','portfolios','portfolio','demandas','ficha-demanda','actividades','ficha-actividad','visitas','ficha-visita','tareas','ficha-tarea','zonas','ficha-zona','usuarios','ficha-usuario','mandatos','ficha-mandato','mapas','mis-clientes','inteligencia-comercial','vencimientos','marketing','informes-mercado','noticias','arrendatarios','ficha-arrendatario','propietarios','ficha-propietario','propuestas','ficha-propuesta','presentaciones','ficha-presentacion','cuentas','contactos','oportunidades','ficha-oportunidad','instruccion','entidades-legales','leads','ficha-lead','pitch','nexo','formacion-interna']
+const BUILT = ['activos','ficha-activo','ofertas','ficha-oferta','negociaciones','ficha-negociacion','portfolios','portfolio','demandas','ficha-demanda','actividades','ficha-actividad','visitas','ficha-visita','tareas','ficha-tarea','zonas','ficha-zona','usuarios','ficha-usuario','mandatos','ficha-mandato','mapas','mis-clientes','inteligencia-comercial','vencimientos','marketing','informes-mercado','noticias','arrendatarios','ficha-arrendatario','propietarios','ficha-propietario','propuestas','ficha-propuesta','presentaciones','ficha-presentacion','cuentas','contactos','oportunidades','ficha-oportunidad','instruccion','entidades-legales','leads','ficha-lead','pitch','nexo','cam','formacion-interna']
 
 function Router() {
   const { view } = useNav()
@@ -103,6 +104,7 @@ function Router() {
       {view === 'ficha-lead' && <FichaLead />}
       {view === 'pitch' && <PitchView />}
       {view === 'nexo' && <NexoView />}
+      {view === 'cam' && <CAMView />}
       {view === 'formacion-interna' && <FormacionInterna />}
       {!BUILT.includes(view) && (
         <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: 'var(--text4)' }}>

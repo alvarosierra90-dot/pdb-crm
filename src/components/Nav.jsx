@@ -292,6 +292,10 @@ export default function Nav() {
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="4" cy="4" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="4" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><path d="M6 4h4M6 12h4M4 6v4M12 6v4"/></svg>
           NEXO
         </div>
+        <div className={`nav-item ${isActive('cam') ? 'active' : ''}`} onClick={() => navigate('cam')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 13V6l6-4 6 4v7"/><path d="M2 13h12"/><rect x="6" y="9" width="4" height="4"/><circle cx="8" cy="5.5" r="1"/></svg>
+          CAM
+        </div>
         <div className={`nav-item ${isActive('formacion-interna') ? 'active' : ''}`} onClick={() => navigate('formacion-interna')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 2L1 5l7 3 7-3-7-3z"/><path d="M3 7v3l5 2 5-2V7"/></svg>
           Formación interna

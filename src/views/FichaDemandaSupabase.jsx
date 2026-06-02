@@ -24,8 +24,6 @@ import { Building2, Target, ScrollText, Trophy, X as XClose, Briefcase, Tag, Fil
 const DEM_TABS = [
   ['dem-info', 'Información general'],
   ['dem-360',  'Vista 360'],
-  ['dem-docs', 'Documentos'],
-  ['dem-conf', 'Confidencialidad'],
 ]
 
 const USOS_TIPOLOGIAS = {
@@ -2115,7 +2113,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
               </div></div>
             )
           })()}
-          {tab === 'dem-docs' && (() => {
+          {tab === 'dem-info' && (() => {
             const docs = Array.isArray(demanda.documentos) ? demanda.documentos : []
             const CATEGORIAS = ['Brief','NDA','KYC','Plano','Propuesta económica','Reporte','Contrato','Email','Otro']
             const ICON_CAT = {
@@ -2255,7 +2253,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
               </div></div>
             )
           })()}
-          {tab === 'dem-conf'     && (
+          {tab === 'dem-info'     && (
             <ConfidencialidadPanel
               entityLabel="demanda"
               confidential={demandaConfidential}
