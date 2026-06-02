@@ -898,11 +898,18 @@ export default function FichaDemandaSupabase({ refOrId }) {
               </div>
               <div>
                 <div style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:6 }}>¿En qué estado queda la demanda?</div>
-                <select value={perdidaModal.estatus} onChange={e => setPerdidaModal(m => ({ ...m, estatus: e.target.value }))}
-                  style={{ width:'100%', padding:'9px 10px', fontSize:13, border:'1px solid #e5e7eb', borderRadius:6, fontFamily:'inherit', boxSizing:'border-box', background:'#fff' }}>
-                  {ESTADO_OPTS.filter(o => o.v !== 'en_negociacion').map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                </select>
-                <div style={{ fontSize:10, color:'var(--text4)', marginTop:5 }}>Se reflejará en la card de estado del principio de la demanda.</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  {ESTADO_OPTS.filter(o => o.v !== 'en_negociacion').map(o => {
+                    const sel = perdidaModal.estatus === o.v
+                    return (
+                      <button key={o.v} onClick={() => setPerdidaModal(m => ({ ...m, estatus: o.v }))}
+                        style={{ textAlign:'left', padding:'9px 12px', border:`1.5px solid ${sel ? 'var(--accent)' : '#e5e7eb'}`, background: sel ? 'var(--accent-lt)' : '#fff', borderRadius:6, cursor:'pointer', fontFamily:'inherit', fontSize:12, fontWeight: sel ? 700 : 500, color: sel ? 'var(--accent)' : '#334155' }}>
+                        {sel ? '● ' : '○ '}{o.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                <div style={{ fontSize:10, color:'var(--text4)', marginTop:6 }}>Se reflejará en la card de estado del principio de la demanda.</div>
               </div>
             </div>
             <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'12px 18px', borderTop:'1px solid #e5e7eb', background:'#f8fafc' }}>
@@ -2037,7 +2044,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                                   <>
                                     <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px' }} onClick={() => alt.ofertas?.ref && navigate('ficha-negociacion', { id: alt.ofertas.ref })}>Ver negociación</button>
                                     <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--green)' }} onClick={() => cambiarEstadoAlternativa(alt.id, 'ganada')}>Ganada</button>
-                                    <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => setPerdidaModal({ altId: alt.id, motivo:'', estatus:'ongoing' })}>✕ Perdida</button>
+                                    <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onMouseDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setPerdidaModal({ altId: alt.id, motivo:'', estatus:'ongoing' }) }}>✕ Perdida</button>
                                   </>
                                 )} />
                             })
