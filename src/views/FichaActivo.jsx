@@ -4435,6 +4435,11 @@ export default function FichaActivo() {
         propietario:   propietario.propietario,
         activo:        activo?.nombre || activo?.direccion || null,
         activo_ref:    propietario.activo_ref || activo?.ref || null,
+        // Hereda los datos estructurales del activo al vincularse.
+        zona:          activo?.zona || null,
+        subzona:       activo?.subzona || null,
+        area:          activo?.area || null,
+        uso:           activo?.uso || null,
         anyo_compra:   propietario.anyo_firma ? parseInt(propietario.anyo_firma) : null,
         trimestre:     propietario.trimestre || null,
         perfil:        propietario.perfil_inversor || null,

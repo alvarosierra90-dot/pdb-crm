@@ -312,16 +312,25 @@ export default function FichaPropietario() {
     if (!dbId || !aref) return
     let cancel = false
     ;(async () => {
-      const sd = Array.isArray(stackingActivo?.stacking_data)
-        ? stackingActivo.stacking_data
-        : (await supabase.from('activos').select('stacking_data').eq('ref', aref).maybeSingle()).data?.stacking_data
-      if (cancel || !Array.isArray(sd)) return
-      const totalSup = sd.flatMap(b => b.prop || []).flatMap(r => r.units || [])
-        .filter(u => u.prop_id === dbId)
-        .reduce((s, u) => s + (Number(u.sup) || 0), 0)
-      if (totalSup > 0 && String(totalSup) !== String(form.superficie || '')) {
-        set('superficie', String(totalSup))
-        supabase.from('propietarios').update({ superficie: totalSup }).eq('id', dbId)
+      const { data: ac } = await supabase.from('activos')
+        .select('stacking_data, zona, subzona, area, uso').eq('ref', aref).maybeSingle()
+      if (cancel || !ac) return
+      const sd = ac.stacking_data
+      if (Array.isArray(sd)) {
+        const totalSup = sd.flatMap(b => b.prop || []).flatMap(r => r.units || [])
+          .filter(u => u.prop_id === dbId)
+          .reduce((s, u) => s + (Number(u.sup) || 0), 0)
+        if (totalSup > 0 && String(totalSup) !== String(form.superficie || '')) {
+          set('superficie', String(totalSup))
+          supabase.from('propietarios').update({ superficie: totalSup }).eq('id', dbId)
+        }
+      }
+      // Hereda los datos estructurales del activo si faltan en el propietario.
+      const inh = {}
+      ;['zona','subzona','area','uso'].forEach(k => { if (ac[k] && !form[k]) inh[k] = ac[k] })
+      if (!cancel && Object.keys(inh).length) {
+        Object.entries(inh).forEach(([k,v]) => set(k, v))
+        supabase.from('propietarios').update(inh).eq('id', dbId)
       }
     })()
     return () => { cancel = true }
