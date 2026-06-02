@@ -306,6 +306,8 @@ export default function FichaArrendatario() {
   // Stacking plan compartido — capa 'arr' por defecto
   const [stackingActivo, setStackingActivo] = useState(null) // { id, ref, nombre, stacking_data, ... }
   const [arrTodosActivo, setArrTodosActivo] = useState([])    // arrendatarios del mismo activo (sidebar)
+  const [ofertasActivo, setOfertasActivo]   = useState([])    // ofertas del activo (sidebar stacking)
+  const [ownersActivo, setOwnersActivo]     = useState([])    // propietarios del activo (capa prop)
   const [bajaArr, setBajaArr] = useState(null)
   // Modal de Salida del arrendatario (Baja / Fin de contrato → Traslado)
   const [showSalida, setShowSalida] = useState(false)
@@ -441,6 +443,28 @@ export default function FichaArrendatario() {
       })
     return () => { cancel = true }
   }, [tab, stackingActivo?.ref, loadedRef, form.tenant, form.tenant_desconocido])
+
+  // El stacking de esta ficha debe ser una RÉPLICA del de la ficha del activo:
+  // necesita las ofertas (si no, la capa arr las filtra y desaparecen) y los
+  // propietarios para el sidebar completo. Mismo query que FichaActivo.
+  useEffect(() => {
+    if (tab !== 'stacking' || !stackingActivo?.ref) { setOfertasActivo([]); setOwnersActivo([]); return }
+    let cancel = false
+    ;(async () => {
+      const q = stackingActivo.id
+        ? supabase.from('ofertas').select('*').or(`activo_id.eq.${stackingActivo.id},activo_ref.eq.${stackingActivo.ref}`)
+        : supabase.from('ofertas').select('*').eq('activo_ref', stackingActivo.ref)
+      const { data: ofs } = await q
+      if (!cancel) {
+        const seen = new Set()
+        const uniq = (ofs || []).filter(o => { if (seen.has(o.id)) return false; seen.add(o.id); return true })
+        setOfertasActivo(uniq.map(o => ({ id:o.id, ref:o.ref, nombre:o.nombre || o.ref, tipoOperacion:o.tipo_operacion || 'Alquiler' })))
+      }
+      const { data: own } = await supabase.from('propietarios').select('id, propietario, activo_ref').eq('activo_ref', stackingActivo.ref)
+      if (!cancel) setOwnersActivo((own || []).map(r => ({ id:r.id, name:r.propietario })))
+    })()
+    return () => { cancel = true }
+  }, [tab, stackingActivo?.ref, stackingActivo?.id])
 
   // ── Load from DB when opened by tenant name click ─────────────
   useEffect(() => {
@@ -1329,12 +1353,16 @@ export default function FichaArrendatario() {
                         activoNombre={stackingActivo.nombre || ''}
                         activoPropietario={stackingActivo.propietario || ''}
                         extraTenants={arrTodosActivo}
+                        extraOwners={ownersActivo}
+                        extraOfertas={ofertasActivo}
                         initView="arr"
                         onBuildingsChange={(blds) => {
                           clearTimeout(stackingAutoSaveTimer.current)
                           stackingAutoSaveTimer.current = setTimeout(async () => {
                             // 1) Persistir stacking_data del activo
                             await supabase.from('activos').update({ stacking_data: blds }).eq('ref', stackingActivo.ref)
+                            // Sincroniza la copia en memoria (evita que un re-render revierta lo guardado).
+                            setStackingActivo(prev => prev ? { ...prev, stacking_data: blds } : prev)
                             // 2) Sincronizar la superficie del arrendatario actual
                             //    sumando todas las units 'ten' cuyo arr_ref coincide con
                             //    el ref de este arrendatario (loadedRef o ref guardado).

@@ -5373,8 +5373,12 @@ export default function FichaActivo() {
                   const ref = activoRef.current?.ref
                   if (!ref) return
                   clearTimeout(autoSaveTimer.current)
-                  autoSaveTimer.current = setTimeout(() => {
-                    supabase.from('activos').update({ stacking_data: blds }).eq('ref', ref)
+                  autoSaveTimer.current = setTimeout(async () => {
+                    const { error } = await supabase.from('activos').update({ stacking_data: blds }).eq('ref', ref)
+                    if (error) { console.error('Stacking autosave:', error.message); return }
+                    // Sincroniza la copia en memoria para que un re-render no
+                    // revierta lo guardado (causa de "no se queda guardado").
+                    setActivo(prev => prev ? { ...prev, stacking_data: blds } : prev)
                   }, 1500)
                 }}
                 activoPropietario={activo?.propietario || ''}

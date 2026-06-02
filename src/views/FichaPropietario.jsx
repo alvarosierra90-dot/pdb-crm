@@ -215,6 +215,8 @@ export default function FichaPropietario() {
   // Stacking plan compartido (mismo patrón que FichaArrendatario)
   const [stackingActivo, setStackingActivo] = useState(null)
   const [propTodosActivo, setPropTodosActivo] = useState([])
+  const [ofertasActivo, setOfertasActivo]     = useState([]) // ofertas del activo (sidebar stacking)
+  const [tenantsActivo, setTenantsActivo]     = useState([]) // arrendatarios del activo (capa arr)
   const stackingAutoSaveTimer = useRef(null)
   // dbId: uuid real de la fila en supabase.propietarios. Se rellena tras INSERT
   // exitoso y se usa para los UPDATEs posteriores. form.id se mantiene como
@@ -280,6 +282,28 @@ export default function FichaPropietario() {
       })
     return () => { cancel = true }
   }, [tab, stackingActivo?.ref, dbId, form.propietario])
+
+  // El stacking de esta ficha debe ser una RÉPLICA del de la ficha del activo:
+  // necesita las ofertas (si no, la capa arr las filtra y desaparecen) y los
+  // arrendatarios para el sidebar completo. Mismo query que FichaActivo.
+  useEffect(() => {
+    if (tab !== 'stacking' || !stackingActivo?.ref) { setOfertasActivo([]); setTenantsActivo([]); return }
+    let cancel = false
+    ;(async () => {
+      const q = stackingActivo.id
+        ? supabase.from('ofertas').select('*').or(`activo_id.eq.${stackingActivo.id},activo_ref.eq.${stackingActivo.ref}`)
+        : supabase.from('ofertas').select('*').eq('activo_ref', stackingActivo.ref)
+      const { data: ofs } = await q
+      if (!cancel) {
+        const seen = new Set()
+        const uniq = (ofs || []).filter(o => { if (seen.has(o.id)) return false; seen.add(o.id); return true })
+        setOfertasActivo(uniq.map(o => ({ id:o.id, ref:o.ref, nombre:o.nombre || o.ref, tipoOperacion:o.tipo_operacion || 'Alquiler' })))
+      }
+      const { data: ten } = await supabase.from('arrendatarios').select('ref, nombre, tenant, activo_ref').eq('activo_ref', stackingActivo.ref)
+      if (!cancel) setTenantsActivo((ten || []).map(r => ({ ref:r.ref, name:r.tenant || r.nombre || '—' })))
+    })()
+    return () => { cancel = true }
+  }, [tab, stackingActivo?.ref, stackingActivo?.id])
 
   const plusvaliaNum = form.valoracion_actual && form.precio_compra
     ? (() => {
@@ -977,12 +1001,16 @@ export default function FichaPropietario() {
                         activoNombre={stackingActivo.nombre || ''}
                         activoPropietario={stackingActivo.propietario || ''}
                         extraOwners={propTodosActivo}
+                        extraTenants={tenantsActivo}
+                        extraOfertas={ofertasActivo}
                         initView="prop"
                         onBuildingsChange={(blds) => {
                           clearTimeout(stackingAutoSaveTimer.current)
                           stackingAutoSaveTimer.current = setTimeout(async () => {
                             // 1) Persistir stacking_data del activo
                             await supabase.from('activos').update({ stacking_data: blds }).eq('ref', stackingActivo.ref)
+                            // Sincroniza la copia en memoria (evita que un re-render revierta lo guardado).
+                            setStackingActivo(prev => prev ? { ...prev, stacking_data: blds } : prev)
                             // 2) Sincronizar la superficie del propietario actual sumando
                             //    todas las units de la capa prop con prop_id == dbId
                             const myId = dbId
