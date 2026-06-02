@@ -468,7 +468,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
     // Mover hacia atrás limpia los hitos de fases posteriores (la card sale de
     // esas columnas). Hacia delante añade el hito correspondiente.
     if (destino === 'presentadas') { estado = 'enviada'; delete cond.visited; delete cond.fecha_visita; delete cond.finalista; delete cond.negotiated }
-    else if (destino === 'finalistas') { estado = 'finalista'; cond.finalista = true; delete cond.negotiated }
+    else if (destino === 'finalistas') { estado = 'enviada'; cond.finalista = true; delete cond.negotiated } // 'finalista' no es valor válido de estado → hito en cond
     else if (destino === 'negociando') { estado = 'negociando'; cond.negotiated = true }
     else return
     const { error } = await supabase.from('oferta_demanda')
@@ -1776,9 +1776,10 @@ export default function FichaDemandaSupabase({ refOrId }) {
             const wasNegotiated = (alt) => !!condOf(alt).negotiated || alt.estado_alternativa === 'negociando'
             const stageOf = (alt) => {
               if (isClosed(alt)) return 'cerradas'
-              if (alt.estado_alternativa === 'negociando') return 'negociando'
-              if (alt.estado_alternativa === 'finalista') return 'finalistas'
-              if (['visita_programada','visita_realizada'].includes(alt.estado_alternativa)) return 'visitadas'
+              const c = condOf(alt)
+              if (c.negotiated || alt.estado_alternativa === 'negociando') return 'negociando'
+              if (c.finalista) return 'finalistas'
+              if (c.visited || ['visita_programada','visita_realizada'].includes(alt.estado_alternativa)) return 'visitadas'
               return 'presentadas'
             }
             // Activas en el kanban + membresía por columna (con rastro): cada card
@@ -1802,19 +1803,18 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 <div
                   draggable
                   onDragStart={e => { e.dataTransfer.setData('text/plain', alt.id); e.dataTransfer.effectAllowed = 'move' }}
-                  style={{ display:'flex', flexDirection:'column', gap:8, padding:'10px 12px', border:'1px solid var(--border)', borderLeft:`3px solid ${ghost ? '#94a3b8' : accent}`, borderRadius:'var(--r)', background: ghost ? '#eef2f7' : 'var(--surface)', opacity: ghost ? 0.92 : 1, cursor: 'grab' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                    <div style={{ width:32, height:32, borderRadius:'50%', background: ghost ? '#94a3b8' : accent, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, flexShrink:0 }}></div>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:12, fontWeight:700, color: ghost ? 'var(--text3)' : 'var(--text)', cursor:'pointer' }} onClick={() => a.ref && navigate('ficha-activo', { ref:a.ref })}>
+                  style={{ display:'flex', flexDirection:'column', gap:6, padding:'9px 11px', border:'1px solid #e5e7eb', borderLeft:`3px solid ${ghost ? '#cbd5e1' : accent}`, borderRadius:6, background: ghost ? '#f8fafc' : '#fff', cursor:'grab' }}>
+                  <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
+                    <div style={{ minWidth:0 }}>
+                      <div style={{ fontSize:12, fontWeight:600, color: ghost ? '#64748b' : '#0f172a', cursor:'pointer', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }} onClick={() => a.ref && navigate('ficha-activo', { ref:a.ref })}>
                         {a.nombre || '(activo sin nombre)'}
                       </div>
-                      <div style={{ fontSize:10, color:'var(--text3)' }}>
+                      <div style={{ fontSize:10, color:'#94a3b8' }}>
                         {[a.ciudad, a.uso, fmtSba(a.sba)].filter(x => x && x !== '—').join(' · ') || '—'}
                       </div>
                     </div>
                     {o.ref && (
-                      <span className="tag tag-blue" style={{ fontSize:9, fontFamily:'var(--mono)', cursor:'pointer' }} onClick={() => navigate('ficha-oferta', { ofertaRef: o.ref })}>{o.ref}</span>
+                      <span onClick={() => navigate('ficha-oferta', { ofertaRef: o.ref })} style={{ flexShrink:0, fontSize:9, fontFamily:'var(--mono)', color:'#475569', border:'1px solid #e5e7eb', borderRadius:4, padding:'1px 5px', cursor:'pointer' }}>{o.ref}</span>
                     )}
                   </div>
                   {note && <div style={{ fontSize:9, color:'var(--text4)', fontStyle:'italic' }}>{note}</div>}
@@ -1942,7 +1942,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
                     {/* === COL 2 · VISITADAS === */}
                     <DropCol destino="visitadas" className="va-card" style={{ marginBottom:0 }}>
-                      <div className="va-card-header" style={{ background:'#f0fdfa' }}>
+                      <div className="va-card-header" style={{ background:'#f8fafc' }}>
                         <h3><span className="ico" style={{ color:'#0f766e' }}></span> Visitadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({colVisitadas.filter(a=>stageOf(a)==='visitadas').length})</span></h3>
                       </div>
                       <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8, minHeight:60 }}>
@@ -1960,7 +1960,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
                     {/* === COL 3 · FINALISTAS === */}
                     <DropCol destino="finalistas" className="va-card" style={{ marginBottom:0 }}>
-                      <div className="va-card-header" style={{ background:'#f5f3ff' }}>
+                      <div className="va-card-header" style={{ background:'#f8fafc' }}>
                         <h3><span className="ico" style={{ color:'#6b21a8' }}></span> Finalistas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({colFinalistas.filter(a=>stageOf(a)==='finalistas').length})</span></h3>
                       </div>
                       <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8, minHeight:60 }}>
@@ -1977,7 +1977,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
                     {/* === COL 4 · EN NEGOCIACIÓN === */}
                     <DropCol destino="negociando" className="va-card" style={{ marginBottom:0 }}>
-                      <div className="va-card-header" style={{ background:'#fef3c7' }}>
+                      <div className="va-card-header" style={{ background:'#f8fafc' }}>
                         <h3><span className="ico" style={{ color:'#92400e' }}></span> En negociación <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({colNegociando.filter(a=>stageOf(a)==='negociando').length})</span></h3>
                       </div>
                       <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8, minHeight:60 }}>
