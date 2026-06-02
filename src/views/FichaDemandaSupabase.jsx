@@ -163,6 +163,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [descarteModal, setDescarteModal] = useState(null) // { altId, motivo }
   const [ultimaSeleccion, setUltimaSeleccion] = useState(null) // última selección/microsite
   const [enviarModal, setEnviarModal] = useState(null)         // { sel, selected:[emails], search }
+  const [savedFlash, setSavedFlash] = useState(false)          // feedback "✓ Guardado" en acciones auto-guardadas
+  const markSaved = () => { setSavedFlash(true); setTimeout(() => setSavedFlash(false), 1800) }
   const [historialSel, setHistorialSel] = useState([])         // historial de búsquedas/selecciones
   const [loadingAlt, setLoadingAlt] = useState(false)
   // Typeahead de búsqueda de Mandato para vincular
@@ -369,7 +371,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
       .eq('id', demanda.id)
     if (error) { setSaveError(error.message); return }
     setMandatoSearch(''); setShowMandatoDD(false); setMandatoResults([])
-    await load()
+    await load(); markSaved()
   }
 
   const desvincularMandato = async () => {
@@ -405,7 +407,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
       .eq('id', demanda.id)
     if (error) { setSaveError(error.message); return }
     setOfertaSearch(''); setShowOfertaDD(false); setOfertaResults([])
-    await load()
+    await load(); markSaved()
   }
   const desvincularOferta = async () => {
     if (!window.confirm('¿Desvincular la oferta de esta demanda?')) return
@@ -464,6 +466,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
     const cond = { ...(alt.condiciones_negociadas || {}) }
     let estado
     if (destino === 'presentadas') estado = 'enviada'
+    else if (destino === 'finalistas') { estado = 'finalista'; cond.finalista = true }
     else if (destino === 'negociando') { estado = 'negociando'; cond.negotiated = true }
     else return
     const { error } = await supabase.from('oferta_demanda')
@@ -753,6 +756,12 @@ export default function FichaDemandaSupabase({ refOrId }) {
           onSuccess={() => { setShowCierreModal(null); load() }}
         />
       )}
+      {savedFlash && (
+        <div style={{ position:'fixed', bottom:20, right:20, zIndex:3000, background:'#15803d', color:'#fff', padding:'10px 16px', borderRadius:8, fontSize:13, fontWeight:700, boxShadow:'0 6px 20px rgba(0,0,0,0.2)' }}>
+          ✓ Guardado
+        </div>
+      )}
+
       {showMatching && demanda && (
         <MatchingOfertasModal
           demanda={demanda}
@@ -1760,10 +1769,12 @@ export default function FichaDemandaSupabase({ refOrId }) {
             const condOf = (alt) => alt.condiciones_negociadas || {}
             const isClosed = (alt) => ['ganada','perdida','descartada'].includes(alt.estado_alternativa)
             const wasVisited = (alt) => !!condOf(alt).visited || ['visita_programada','visita_realizada'].includes(alt.estado_alternativa)
+            const wasFinalista  = (alt) => !!condOf(alt).finalista || alt.estado_alternativa === 'finalista'
             const wasNegotiated = (alt) => !!condOf(alt).negotiated || alt.estado_alternativa === 'negociando'
             const stageOf = (alt) => {
               if (isClosed(alt)) return 'cerradas'
               if (alt.estado_alternativa === 'negociando') return 'negociando'
+              if (alt.estado_alternativa === 'finalista') return 'finalistas'
               if (['visita_programada','visita_realizada'].includes(alt.estado_alternativa)) return 'visitadas'
               return 'presentadas'
             }
@@ -1772,6 +1783,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
             const activas       = alternativas.filter(a => !isClosed(a))
             const colPresentadas = activas
             const colVisitadas   = activas.filter(wasVisited)
+            const colFinalistas  = activas.filter(wasFinalista)
             const colNegociando  = activas.filter(wasNegotiated)
             const cerradas       = alternativas.filter(a => ['ganada','perdida'].includes(a.estado_alternativa))
             const descartadas    = alternativas.filter(a => a.estado_alternativa === 'descartada')
@@ -1906,7 +1918,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 {!loadingAlt && alternativas.length > 0 && (
                   <>
                   <div style={{ fontSize:10, color:'var(--text4)', marginBottom:8, fontStyle:'italic' }}>Arrastra las cards entre columnas. Una card visitada se queda en gris en "Visitadas" aunque pase a negociación, para distinguir si se visitó o se pasó directa.</div>
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12 }}>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:10 }}>
 
                     {/* === COL 1 · PRESENTADAS === */}
                     <DropCol destino="presentadas" className="va-card" style={{ marginBottom:0 }}>
@@ -1943,7 +1955,24 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       </div>
                     </DropCol>
 
-                    {/* === COL 3 · EN NEGOCIACIÓN === */}
+                    {/* === COL 3 · FINALISTAS === */}
+                    <DropCol destino="finalistas" className="va-card" style={{ marginBottom:0 }}>
+                      <div className="va-card-header" style={{ background:'#f5f3ff' }}>
+                        <h3><span className="ico" style={{ color:'#6b21a8' }}></span> Finalistas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({colFinalistas.filter(a=>stageOf(a)==='finalistas').length})</span></h3>
+                      </div>
+                      <div style={{ padding:'10px 14px 14px', display:'flex', flexDirection:'column', gap:8, minHeight:60 }}>
+                        {colFinalistas.length === 0
+                          ? <EmptyCol msg="Arrastra aquí las alternativas finalistas." />
+                          : colFinalistas.map(alt => {
+                              const ghost = stageOf(alt) !== 'finalistas'
+                              return <AltCard key={alt.id} alt={alt} accent="#6b21a8" ghost={ghost}
+                                note={ghost ? 'Finalista' : undefined} />
+                            })
+                        }
+                      </div>
+                    </DropCol>
+
+                    {/* === COL 4 · EN NEGOCIACIÓN === */}
                     <DropCol destino="negociando" className="va-card" style={{ marginBottom:0 }}>
                       <div className="va-card-header" style={{ background:'#fef3c7' }}>
                         <h3><span className="ico" style={{ color:'#92400e' }}></span> En negociación <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({colNegociando.filter(a=>stageOf(a)==='negociando').length})</span></h3>
