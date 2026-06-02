@@ -338,6 +338,7 @@ export default function FichaArrendatario() {
           activo_direccion: activoDireccion,
           tenant:           data.tenant || data.nombre || '',
           tenant_desconocido: data.tenant_desconocido || false,
+          propietario:      data.propietario_cuenta || prev.propietario || '',
           anyo_firma:       data.anyo_firma ? String(data.anyo_firma) : '',
           trimestre:        data.trimestre || 'Q1',
           superficie:       data.superficie ? String(data.superficie) : '',
@@ -487,9 +488,40 @@ export default function FichaArrendatario() {
         set('superficie', String(totalSup))
         supabase.from('arrendatarios').update({ superficie: totalSup }).eq('ref', loadedRef)
       }
+      // Propietario (cuenta) = dueño del tramo concreto que ocupa el arrendatario
+      // (cruce planta-a-planta: misma planta y mismo seg en la capa de propietarios).
+      let ownerName = null
+      for (const b of sd) {
+        const arrRow = (b.arr || []).find(r => (r.units || []).some(u => u.type === 'ten' && u.arr_ref === loadedRef))
+        if (!arrRow) continue
+        const tenUnit = arrRow.units.find(u => u.type === 'ten' && u.arr_ref === loadedRef)
+        const seg = Number.isInteger(tenUnit?.seg) ? tenUnit.seg : 0
+        const propUnits = ((b.prop || []).find(r => r.p === arrRow.p)?.units) || []
+        const owner = propUnits.find(u => u.seg === seg) || propUnits[0]
+        if (owner?.n) { ownerName = owner.n; break }
+      }
+      if (!cancel && ownerName && ownerName !== (form.propietario || '')) {
+        set('propietario', ownerName)
+        supabase.from('arrendatarios').update({ propietario_cuenta: ownerName }).eq('ref', loadedRef)
+      }
     })()
     return () => { cancel = true }
   }, [loadedRef, linkedActivoRef, stackingActivo?.stacking_data])
+
+  // Break option = fecha inicio + años de obligado cumplimiento (auto-calculada).
+  useEffect(() => {
+    const parts = (form.fecha_inicio || '').split('/')
+    if (parts.length !== 3 || !form.anios_obligado) return
+    const [dd, mm, yyyy] = parts.map(Number)
+    const d = new Date(yyyy, mm - 1, dd)
+    const aniosNum = Number(form.anios_obligado)
+    if (isNaN(d.getTime()) || !aniosNum) return
+    d.setFullYear(d.getFullYear() + Math.floor(aniosNum))
+    const meses = Math.round((aniosNum - Math.floor(aniosNum)) * 12)
+    if (meses) d.setMonth(d.getMonth() + meses)
+    const computed = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+    if (computed !== form.break_option) set('break_option', computed)
+  }, [form.fecha_inicio, form.anios_obligado])
 
   // ── Load from DB when opened by tenant name click ─────────────
   useEffect(() => {

@@ -1785,12 +1785,12 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
         }
         for (const e of (extraTenants || [])) {
           if (typeof e === 'string') _push({ key: e, ref: null, name: e })
-          else if (e && e.name)      _push({ key: e.ref || e.name, ref: e.ref || null, name: e.name })
+          else if (e && e.name)      _push({ key: e.ref || e.name, ref: e.ref || null, name: e.name, renta: e.renta })
         }
         for (const r of (edif.arr || [])) {
           for (const u of (r.units || [])) {
             if (u.type==='ten' || u.type==='rt' || u.type==='pk') {
-              _push({ key: u.arr_ref || u.n, ref: u.arr_ref || null, name: u.n })
+              _push({ key: u.arr_ref || u.n, ref: u.arr_ref || null, name: u.n, renta: u.renta })
             }
           }
         }
@@ -2138,7 +2138,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                             const dropTenant = dragKey ? (tenantSet.find(t=>t.key===dragKey) || {ref:null,name:dragKey}) : null
                             const ofrName = isOfr ? dragging.slice(4) : null
                             const mk = () => isTen
-                              ? {type:'ten', arr_ref: dropTenant.ref, n: dropTenant.name}
+                              ? {type:'ten', arr_ref: dropTenant.ref, n: dropTenant.name, renta: Number(dropTenant.renta) || 0}
                               : {type:'vac', oferta: ofrName, renta:0}
                             // Multi-selección: mismo ocupante al primer tramo libre de
                             // cada planta seleccionada (p. ej. un inquilino en P5–P8).
@@ -4484,6 +4484,17 @@ export default function FichaActivo() {
     let savedId  = null
     try {
       const ref = await nextRef('arrendatarios', 'ARR')
+      // Break option = fecha inicio + años de obligado cumplimiento (auto).
+      const breakOption = (() => {
+        if (!arr.fecha_inicio || arr.anios_obligado === '' || arr.anios_obligado == null) return null
+        const d = new Date(arr.fecha_inicio)
+        if (isNaN(d.getTime())) return null
+        const aniosNum = Number(arr.anios_obligado)
+        d.setFullYear(d.getFullYear() + Math.floor(aniosNum))
+        const meses = Math.round((aniosNum - Math.floor(aniosNum)) * 12)
+        if (meses) d.setMonth(d.getMonth() + meses)
+        return d.toISOString().slice(0, 10)
+      })()
       const payload = {
         ref,
         tenant: arr.tenant,
@@ -4494,6 +4505,8 @@ export default function FichaActivo() {
         anyo_firma: arr.anyo_firma ? Number(arr.anyo_firma) : null,
         trimestre: arr.trimestre || null,
         inicio: arr.fecha_inicio || null,
+        break_option: breakOption,
+        vencimiento: breakOption,
         closing_rent: arr.closing_rent !== '' && arr.closing_rent != null ? Number(arr.closing_rent) : null,
         renta: arr.closing_rent !== '' && arr.closing_rent != null ? Number(arr.closing_rent) : null,
         anios_obligado: arr.anios_obligado !== '' && arr.anios_obligado != null ? Number(arr.anios_obligado) : null,
@@ -5471,7 +5484,7 @@ export default function FichaActivo() {
                 activoRef={activo?.ref || params?.ref || ''}
                 activoNombre={displayNombre ?? activo?.nombre ?? ''}
                 extraOwners={propietariosReg.map(p=>({ id: p.id, name: p.propietario }))}
-                extraTenants={arrendatariosReg.map(a=>({ ref: a.ref, name: a.tenant }))}
+                extraTenants={arrendatariosReg.map(a=>({ ref: a.ref, name: a.tenant, renta: a.closing_rent ?? a.renta_m2 }))}
                 onAddOwner={handleAddOwner}
                 onAddTenant={handleAddTenant}
                 onRemoveTenant={({ unit, doRemove }) => {
