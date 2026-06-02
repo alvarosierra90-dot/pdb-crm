@@ -152,6 +152,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [showNotasModal, setShowNotasModal] = useState(false)
   const [showNegociacionModal, setShowNegociacionModal] = useState(false)
   const [oportunidad, setOportunidad] = useState(null)
+  const [leadRefDemanda, setLeadRefDemanda] = useState(null)  // lead de origen (leads.demanda_id → ref)
   // Negociación vinculada a esta demanda (si existe en BD)
   const [negociacionVinculada, setNegociacionVinculada] = useState(null)
   // Vista 360 · alternativas (oferta_demanda con joins a ofertas + activos)
@@ -204,7 +205,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
       id, ref, nombre, estatus, notas, motivo_descarte, standby_proxima_llamada, standby_notas, requisitos, otros_contactos, equipo_trabajo, documentos,
       dynamics_account_id, dynamics_opportunity_id, mandato_id, oferta_id, instruccion_ref, created_at, updated_at,
       dynamics_accounts:dynamics_account_id ( dynamics_id, nombre, tipo, sector, direccion, codigo_postal, ciudad, pais, telefono, web ),
-      dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo, lead_ref ),
+      dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo ),
       mandato:mandato_id ( id, ref, titulo, tipo ),
       oferta:oferta_id ( id, ref, tipo_operacion, estado, activos:activo_id ( id, ref, nombre, ciudad, uso ) )
     `
@@ -302,6 +303,16 @@ export default function FichaDemandaSupabase({ refOrId }) {
   }, [refOrId])
 
   useEffect(() => { load() }, [load])
+
+  // Lead de origen · la tabla leads referencia la demanda que generó (leads.demanda_id)
+  useEffect(() => {
+    let cancel = false
+    if (!demanda?.id) { setLeadRefDemanda(null); return }
+    supabase.from('leads').select('ref').eq('demanda_id', demanda.id).maybeSingle()
+      .then(({ data }) => { if (!cancel) setLeadRefDemanda(data?.ref || null) })
+      .catch(() => { if (!cancel) setLeadRefDemanda(null) })
+    return () => { cancel = true }
+  }, [demanda?.id])
 
   // Carga las alternativas (oferta_demanda) cuando se conoce la demanda
   const loadAlternativas = useCallback(async () => {
@@ -1318,7 +1329,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     return null
                   })()
 
-                  const leadRef = oportunidad?.lead_ref || null
+                  const leadRef = leadRefDemanda
                   const steps = [
                     {
                       key:'lead', icon: Sparkles, tone: cardTone('Lead'),

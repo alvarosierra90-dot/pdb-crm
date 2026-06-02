@@ -538,24 +538,15 @@ function FichaOfertaMock() {
   }, [])
 
   // ── Load mandatos para el buscador (solo cuando Mandato Savills) ──
-  // Lead de origen · resuelto en cadena mandato → oportunidad → lead_ref (best-effort)
+  // Lead de origen · la tabla leads referencia la oferta que generó (leads.oferta_id)
   useEffect(() => {
     let cancel = false
-    const opoId = mandatoAsociado?.dynamics_opportunity_id
-    const run = async () => {
-      // 1) Si el mandato ya trae el id de oportunidad, úsalo; si no, intenta cargarlo del mandato
-      let oppDynId = opoId
-      if (!oppDynId && mandatoAsociado?.id) {
-        const { data: m } = await supabase.from('mandatos').select('dynamics_opportunity_id').eq('id', mandatoAsociado.id).maybeSingle()
-        oppDynId = m?.dynamics_opportunity_id || null
-      }
-      if (!oppDynId) { if (!cancel) setLeadRefOferta(null); return }
-      const { data: op } = await supabase.from('dynamics_opportunities').select('lead_ref').eq('dynamics_id', oppDynId).maybeSingle()
-      if (!cancel) setLeadRefOferta(op?.lead_ref || null)
-    }
-    run().catch(() => { if (!cancel) setLeadRefOferta(null) })
+    if (!oferta?.id) { setLeadRefOferta(null); return }
+    supabase.from('leads').select('ref').eq('oferta_id', oferta.id).maybeSingle()
+      .then(({ data }) => { if (!cancel) setLeadRefOferta(data?.ref || null) })
+      .catch(() => { if (!cancel) setLeadRefOferta(null) })
     return () => { cancel = true }
-  }, [mandatoAsociado?.id, mandatoAsociado?.dynamics_opportunity_id])
+  }, [oferta?.id])
 
   useEffect(() => {
     if (tipoComercializacion !== 'Mandato Savills') return
