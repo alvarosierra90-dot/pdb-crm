@@ -465,8 +465,10 @@ export default function FichaDemandaSupabase({ refOrId }) {
     if (!alt) return
     const cond = { ...(alt.condiciones_negociadas || {}) }
     let estado
-    if (destino === 'presentadas') estado = 'enviada'
-    else if (destino === 'finalistas') { estado = 'finalista'; cond.finalista = true }
+    // Mover hacia atrás limpia los hitos de fases posteriores (la card sale de
+    // esas columnas). Hacia delante añade el hito correspondiente.
+    if (destino === 'presentadas') { estado = 'enviada'; delete cond.visited; delete cond.fecha_visita; delete cond.finalista; delete cond.negotiated }
+    else if (destino === 'finalistas') { estado = 'finalista'; cond.finalista = true; delete cond.negotiated }
     else if (destino === 'negociando') { estado = 'negociando'; cond.negotiated = true }
     else return
     const { error } = await supabase.from('oferta_demanda')
@@ -509,6 +511,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
     const { altId, fecha } = visitaModal
     const alt = alternativas.find(a => a.id === altId)
     const cond = { ...(alt?.condiciones_negociadas || {}), visited: true, fecha_visita: fecha || null }
+    delete cond.finalista; delete cond.negotiated   // visitar = volver a fase visitadas
     const { error } = await supabase.from('oferta_demanda')
       .update({ estado_alternativa: 'visita_realizada', condiciones_negociadas: cond, updated_at: new Date().toISOString() })
       .eq('id', altId)
@@ -1797,9 +1800,9 @@ export default function FichaDemandaSupabase({ refOrId }) {
               const o = alt.ofertas || {}
               return (
                 <div
-                  draggable={!ghost}
-                  onDragStart={ghost ? undefined : e => { e.dataTransfer.setData('text/plain', alt.id); e.dataTransfer.effectAllowed = 'move' }}
-                  style={{ display:'flex', flexDirection:'column', gap:8, padding:'10px 12px', border:'1px solid var(--border)', borderLeft:`3px solid ${ghost ? '#64748b' : accent}`, borderRadius:'var(--r)', background: ghost ? '#e2e8f0' : 'var(--surface)', opacity: ghost ? 0.9 : 1, cursor: ghost ? 'default' : 'grab' }}>
+                  draggable
+                  onDragStart={e => { e.dataTransfer.setData('text/plain', alt.id); e.dataTransfer.effectAllowed = 'move' }}
+                  style={{ display:'flex', flexDirection:'column', gap:8, padding:'10px 12px', border:'1px solid var(--border)', borderLeft:`3px solid ${ghost ? '#94a3b8' : accent}`, borderRadius:'var(--r)', background: ghost ? '#eef2f7' : 'var(--surface)', opacity: ghost ? 0.92 : 1, cursor: 'grab' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                     <div style={{ width:32, height:32, borderRadius:'50%', background: ghost ? '#94a3b8' : accent, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, flexShrink:0 }}></div>
                     <div style={{ flex:1, minWidth:0 }}>
