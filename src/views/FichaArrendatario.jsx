@@ -470,16 +470,26 @@ export default function FichaArrendatario() {
   // activo (asignadas en cualquier ficha). Así la superficie se ve aunque se
   // haya asignado desde el activo y no desde aquí.
   useEffect(() => {
-    if (!loadedRef || !Array.isArray(stackingActivo?.stacking_data)) return
-    const totalSup = stackingActivo.stacking_data
-      .flatMap(b => b.arr || []).flatMap(r => r.units || [])
-      .filter(u => u.type === 'ten' && u.arr_ref === loadedRef)
-      .reduce((s, u) => s + (Number(u.sup) || 0), 0)
-    if (totalSup > 0 && String(totalSup) !== String(form.superficie || '')) {
-      set('superficie', String(totalSup))
-      supabase.from('arrendatarios').update({ superficie: totalSup }).eq('ref', loadedRef)
-    }
-  }, [loadedRef, stackingActivo?.stacking_data])
+    const aref = linkedActivoRef || params?.fromActivoRef
+    if (!loadedRef || !aref) return
+    let cancel = false
+    ;(async () => {
+      // Busca el stacking del activo DIRECTAMENTE (no depende de abrir la
+      // pestaña Stacking) para rellenar "Superficie total ocupada" en Datos.
+      const sd = Array.isArray(stackingActivo?.stacking_data)
+        ? stackingActivo.stacking_data
+        : (await supabase.from('activos').select('stacking_data').eq('ref', aref).maybeSingle()).data?.stacking_data
+      if (cancel || !Array.isArray(sd)) return
+      const totalSup = sd.flatMap(b => b.arr || []).flatMap(r => r.units || [])
+        .filter(u => u.type === 'ten' && u.arr_ref === loadedRef)
+        .reduce((s, u) => s + (Number(u.sup) || 0), 0)
+      if (totalSup > 0 && String(totalSup) !== String(form.superficie || '')) {
+        set('superficie', String(totalSup))
+        supabase.from('arrendatarios').update({ superficie: totalSup }).eq('ref', loadedRef)
+      }
+    })()
+    return () => { cancel = true }
+  }, [loadedRef, linkedActivoRef, stackingActivo?.stacking_data])
 
   // ── Load from DB when opened by tenant name click ─────────────
   useEffect(() => {

@@ -308,16 +308,24 @@ export default function FichaPropietario() {
   // Deriva la superficie del propietario sumando sus units (prop_id) en el
   // stacking del activo, asignadas en cualquier ficha.
   useEffect(() => {
-    if (!dbId || !Array.isArray(stackingActivo?.stacking_data)) return
-    const totalSup = stackingActivo.stacking_data
-      .flatMap(b => b.prop || []).flatMap(r => r.units || [])
-      .filter(u => u.prop_id === dbId)
-      .reduce((s, u) => s + (Number(u.sup) || 0), 0)
-    if (totalSup > 0 && String(totalSup) !== String(form.superficie || '')) {
-      set('superficie', String(totalSup))
-      supabase.from('propietarios').update({ superficie: totalSup }).eq('id', dbId)
-    }
-  }, [dbId, stackingActivo?.stacking_data])
+    const aref = linkedActivoRef || params?.fromActivoRef || propietarioReal?.activo_ref
+    if (!dbId || !aref) return
+    let cancel = false
+    ;(async () => {
+      const sd = Array.isArray(stackingActivo?.stacking_data)
+        ? stackingActivo.stacking_data
+        : (await supabase.from('activos').select('stacking_data').eq('ref', aref).maybeSingle()).data?.stacking_data
+      if (cancel || !Array.isArray(sd)) return
+      const totalSup = sd.flatMap(b => b.prop || []).flatMap(r => r.units || [])
+        .filter(u => u.prop_id === dbId)
+        .reduce((s, u) => s + (Number(u.sup) || 0), 0)
+      if (totalSup > 0 && String(totalSup) !== String(form.superficie || '')) {
+        set('superficie', String(totalSup))
+        supabase.from('propietarios').update({ superficie: totalSup }).eq('id', dbId)
+      }
+    })()
+    return () => { cancel = true }
+  }, [dbId, linkedActivoRef, propietarioReal?.activo_ref, stackingActivo?.stacking_data])
 
   const plusvaliaNum = form.valoracion_actual && form.precio_compra
     ? (() => {
