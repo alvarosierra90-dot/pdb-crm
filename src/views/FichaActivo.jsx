@@ -747,9 +747,53 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
     })}))
   }
 
-  const removePropUnit = (floorId, idx) => {
-    // Regla de negocio: no se puede quitar un propietario si la misma planta
-    // tiene oferta o arrendatario asignados — primero hay que quitarlos.
+  // ── Tramos (Model A, confirmado 2026-06-02) ──────────────────────────
+  // Los tramos de una planta = sus segmentos de 'Uso principal' (uso + m²).
+  // Cada tramo es la frontera de UN propietario; los m² del tramo solo se
+  // editan en Uso principal — las capas prop/arr los heredan.
+  // slotsFor() reconcilia las units (de prop o arr) contra los tramos:
+  //   · Si ya llevan `seg` (índice de tramo), se respeta.
+  //   · Legacy (sin seg): se alinea por m² acumulados — un owner que cubre
+  //     toda la planta ocupa todos sus tramos. Devuelve un array alineado a
+  //     los tramos (slot[i] = unit del tramo i, o null si está libre).
+  const slotsFor = (tramos, units) => {
+    const slots = (tramos || []).map(() => null)
+    const us = units || []
+    if (us.some(u => Number.isInteger(u.seg))) {
+      for (const u of us) if (Number.isInteger(u.seg) && u.seg < slots.length) slots[u.seg] = u
+      return slots
+    }
+    let ui = 0, rem = us[0]?.sup ?? 0
+    for (let i = 0; i < slots.length; i++) {
+      while (ui < us.length && rem <= 0) { ui++; rem = us[ui]?.sup ?? 0 }
+      if (ui < us.length) { slots[i] = us[ui]; rem -= (tramos[i].sup || 0) }
+    }
+    return slots
+  }
+
+  // Asigna un propietario a un tramo (segIdx). Si segIdx es null, va al primer
+  // tramo libre. Normaliza toda la fila a units seg-tagged con sup = tramo.
+  const assignOwner = (floorId, segIdx, owner) => updBuilding(b => {
+    const f = b.floors.find(fl => fl.id === floorId)
+    if (!f) return b
+    const tramos = f.principal || []
+    if (tramos.length === 0) return b
+    const prop = [...(b.prop || [])]
+    const ri = prop.findIndex(r => r.p === floorId)
+    const slots = slotsFor(tramos, ri >= 0 ? prop[ri].units : [])
+    let seg = segIdx
+    if (seg == null || seg < 0 || seg >= tramos.length) seg = slots.findIndex(s => !s)
+    if (seg < 0) return b
+    slots[seg] = { prop_id: owner.id || null, n: owner.name }
+    const units = slots.map((s, i) => s ? { prop_id: s.prop_id || null, n: s.n, seg: i, sup: tramos[i].sup } : null).filter(Boolean)
+    const row = { p: floorId, sup: f.sup, units }
+    if (ri >= 0) prop[ri] = row; else prop.push(row)
+    return { ...b, prop }
+  })
+
+  const removeOwnerTramo = (floorId, seg) => {
+    // No se puede quitar un propietario si la misma planta tiene oferta o
+    // arrendatario asignados — primero hay que quitarlos.
     const bldNow = buildings.find(b => b.id === edifId)
     const arrRow = bldNow?.arr?.find(r => r.p === floorId)
     const blockingUnits = (arrRow?.units || []).filter(u =>
@@ -765,16 +809,20 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
       window.alert(`No se puede quitar el propietario de la planta ${floorId}: hay ${lbl} asignado. Primero retira lo que está encima y luego podrás quitar el propietario.`)
       return
     }
+    const floor   = bldNow?.floors?.find(f => f.id === floorId)
     const propRow = bldNow?.prop?.find(r => r.p === floorId)
-    const unit = propRow?.units?.[idx]
-    const doRemove = () => updBuilding(b => ({
-      ...b,
-      prop: (b.prop || []).map(r => r.p !== floorId ? r : { ...r, units: r.units.filter((_, i) => i !== idx) }),
-    }))
-    // Si el padre maneja la baja del propietario (FichaActivo abre el modal de
-    // salida), delegamos. Si no, eliminamos directamente.
-    if (unit && typeof onRemoveOwner === 'function') {
-      onRemoveOwner({ unit, floorId, idx, doRemove })
+    const unit = slotsFor(floor?.principal || [], propRow?.units)[seg]
+    if (!unit) return
+    const doRemove = () => updBuilding(b => {
+      const f = b.floors.find(fl => fl.id === floorId)
+      const row = (b.prop || []).find(r => r.p === floorId)
+      const slots = slotsFor(f?.principal || [], row?.units); slots[seg] = null
+      const units = slots.map((s, i) => s ? { prop_id: s.prop_id || null, n: s.n, seg: i, sup: f.principal[i].sup } : null).filter(Boolean)
+      return { ...b, prop: (b.prop || []).map(r => r.p !== floorId ? r : { ...r, units }) }
+    })
+    // Si el padre maneja la baja (abre el modal de venta), delegamos.
+    if (typeof onRemoveOwner === 'function') {
+      onRemoveOwner({ unit, floorId, idx: seg, doRemove })
       return
     }
     doRemove()
@@ -1522,50 +1570,29 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
                 const barH = Math.max(34, Math.round((floor.sup / maxFloorSup) * 54))
-                const propRow = (edif.prop||[]).find(r=>r.p===floor.id)
-                const units    = propRow?.units || []
+                const tramos   = floor.principal || []
+                const propRow  = (edif.prop||[]).find(r=>r.p===floor.id)
+                const slots    = slotsFor(tramos, propRow?.units)
                 const rowSup   = propRow?.sup ?? floor.sup
-                const assigned = units.reduce((s,u)=>s+u.sup,0)
-                const unassigned = rowSup - assigned
-                const isEmpty  = units.length===0
+                const noUso    = tramos.length===0
+                const isEmpty  = !noUso && slots.every(s=>!s)
                 const isTgt    = dragTarget===floor.id
                 const isSel    = selectedFloors.includes(floor.id)
                 return (
                   <div key={floor.id}
                     onClick={()=>setSelectedFloors(p=>p.includes(floor.id)?p.filter(x=>x!==floor.id):[...p,floor.id])}
                     onDragOver={e=>{
-                      if(floor.principal.length===0){e.dataTransfer.dropEffect='none';return}
+                      if(noUso){e.dataTransfer.dropEffect='none';return}
                       e.preventDefault();setDragTarget(floor.id)
                     }}
                     onDragLeave={()=>setDragTarget(null)}
                     onDrop={e=>{
                       e.preventDefault();setDragTarget(null)
-                      // Regla de negocio: hay que asignar uso principal antes
-                      // de poder colocar un propietario.
-                      if(floor.principal.length===0){
-                        setDropWarning(floor.id); setTimeout(()=>setDropWarning(null),3000); setDragging(null); return
+                      // Sin uso principal no hay tramos → no se puede colocar
+                      // propietario. El drop real se gestiona por tramo (abajo).
+                      if(noUso){
+                        setDropWarning(floor.id); setTimeout(()=>setDropWarning(null),3000); setDragging(null)
                       }
-                      const dropOwner = ownerSet.find(o => o.key === dragging)
-                      if(!dragging || !dropOwner) return
-                      const targets = selectedFloors.length > 1 ? selectedFloors : [floor.id]
-                      updBuilding(b=>{
-                        let prop=[...(b.prop||[])]
-                        targets.forEach(fId=>{
-                          const f=edif.floors.find(fl=>fl.id===fId)
-                          const fSup=f?.sup??floor.sup
-                          const idx=prop.findIndex(r=>r.p===fId)
-                          const newUnit = { prop_id: dropOwner.id, n: dropOwner.name }
-                          if(idx>=0){
-                            const avail=prop[idx].sup-prop[idx].units.reduce((s,u)=>s+u.sup,0)
-                            if(avail>0) prop[idx]={...prop[idx],units:[...prop[idx].units,{ ...newUnit, sup: avail }]}
-                          } else {
-                            prop=[...prop,{p:fId,sup:fSup,units:[{ ...newUnit, sup: fSup }]}]
-                          }
-                        })
-                        return {...b,prop}
-                      })
-                      if(targets.length>1) setSelectedFloors([])
-                      setDragging(null)
                     }}
                     className="sp-row"
                     style={{
@@ -1594,56 +1621,57 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                           })}
                         </div>
                       )}
-                      {/* Bloques de propietario */}
+                      {/* Bloques de propietario = un bloque por tramo de Uso principal.
+                          Los m² del tramo se heredan y NO se editan aquí (B4). */}
                       <div style={{display:'flex',gap:2,minHeight:barH}}>
-                        {isEmpty ? (
+                        {noUso ? (
                           <div className="sp-block-empty" style={{borderColor:isTgt?'var(--pdb-blue)':undefined,color:isTgt?'var(--pdb-blue)':undefined}}>
-                            {isTgt?<><ArrowDown size={11} strokeWidth={2}/> Soltar propietario</>:'Sin propietario asignado — arrastra aquí'}
+                            Asigna primero un uso principal en esta planta
                           </div>
-                        ) : (
-                          <>
-                            {units.map((u,i)=>{
-                              const col = ownerColor(u.n)
-                              const wpct = `${(u.sup/rowSup)*100}%`
-                              const isEd = editPA?.layer==='prop' && editPA?.rowP===floor.id && editPA?.idx===i
-                              const initials = u.n.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()
-                              const isHL = hoverKey === 'owner:'+(u.prop_id || u.n)
-                              return (
-                                <div key={i}
-                                  title={`${u.n} · ${u.sup.toLocaleString('es-ES')} m²`}
-                                  onClick={e=>{e.stopPropagation();if(isEd)setEditPA(null);else{setEditPA({layer:'prop',rowP:floor.id,idx:i});setEditPASup(String(u.sup))}}}
-                                  className={`sp-block${isHL?' sp-block-hl':''}`}
-                                  style={{width:wpct,background:col+(isHL?'2E':'18'),border:`1px solid ${isHL?col:col+'88'}`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible',boxShadow:isHL?`0 0 0 2px ${col}, 0 2px 12px ${col}66`:undefined,transform:isHL?'scale(1.02)':undefined,zIndex:isHL?2:undefined,transition:'box-shadow 120ms ease, transform 120ms ease'}}
-                                >
-                                  {isEd ? (
-                                    <div style={{display:'flex',gap:5,padding:'6px 8px',alignItems:'center',background:'#fff',border:`1.5px solid ${col}`,borderRadius:6,boxShadow:`0 4px 14px ${col}33`}} onClick={e=>e.stopPropagation()}>
-                                      <input type="number" value={editPASup} onChange={e=>setEditPASup(e.target.value)} autoFocus
-                                        onKeyDown={e=>{if(e.key==='Enter')savePASup();if(e.key==='Escape')setEditPA(null)}}
-                                        style={{width:90,padding:'6px 8px',fontSize:13,fontWeight:600,border:`1px solid ${col}`,borderRadius:4,fontFamily:'var(--mono)',textAlign:'right'}}/>
-                                      <span style={{fontSize:11,color:col,fontWeight:600}}>m²</span>
-                                      <button onClick={savePASup} style={{padding:'6px 10px',background:col,color:'#fff',border:'none',borderRadius:4,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',marginLeft:4}}>✓</button>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <button onClick={e=>{e.stopPropagation();removePropUnit(floor.id,i)}}
-                                        style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
-                                      <div className="sp-block-content">
-                                        <div className="sp-block-avatar" style={{background:col}}>{initials}</div>
-                                        <span className="sp-block-name" style={{color:col}}>{u.n}</span>
-                                        <span className="sp-block-meta" style={{color:col,marginLeft:'auto'}}>{u.sup.toLocaleString('es-ES')} m²</span>
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
-                              )
-                            })}
-                            {unassigned>0 && (
-                              <div className="sp-block-empty" style={{flex:1,minWidth:20,flexDirection:'column',gap:1,fontSize:9,borderColor:isTgt?'var(--pdb-blue)':undefined,color:isTgt?'var(--pdb-blue)':undefined}}>
-                                <span>{unassigned.toLocaleString('es-ES')} m² sin asignar</span>
+                        ) : tramos.map((tr,i)=>{
+                          const u = slots[i]
+                          const wpct = `${(tr.sup/floor.sup)*100}%`
+                          const onTramoDrop = (e)=>{
+                            e.preventDefault(); e.stopPropagation(); setDragTarget(null)
+                            const dropOwner = ownerSet.find(o => o.key === dragging)
+                            if(!dragging || !dropOwner){ setDragging(null); return }
+                            const targets = selectedFloors.length>1 ? selectedFloors : [floor.id]
+                            if(targets.length>1){ targets.forEach(fId=>assignOwner(fId,null,dropOwner)); setSelectedFloors([]) }
+                            else assignOwner(floor.id, i, dropOwner)
+                            setDragging(null)
+                          }
+                          if(!u){
+                            return (
+                              <div key={i}
+                                onDragOver={e=>{e.preventDefault();e.stopPropagation();setDragTarget(floor.id)}}
+                                onDrop={onTramoDrop}
+                                className="sp-block-empty"
+                                style={{width:wpct,flexShrink:0,borderColor:isTgt?'var(--pdb-blue)':undefined,color:isTgt?'var(--pdb-blue)':undefined}}
+                                title={`Tramo ${usoInfo(tr.uso).label} · ${tr.sup.toLocaleString('es-ES')} m² · sin propietario`}>
+                                {isTgt?<><ArrowDown size={11} strokeWidth={2}/> Soltar</>:`${tr.sup.toLocaleString('es-ES')} m² · sin propietario`}
                               </div>
-                            )}
-                          </>
-                        )}
+                            )
+                          }
+                          const col = ownerColor(u.n)
+                          const initials = (u.n||'').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()
+                          const isHL = hoverKey === 'owner:'+(u.prop_id || u.n)
+                          return (
+                            <div key={i}
+                              onDragOver={e=>{e.preventDefault();e.stopPropagation()}}
+                              title={`${u.n} · ${tr.sup.toLocaleString('es-ES')} m² · ${usoInfo(tr.uso).label}`}
+                              className={`sp-block${isHL?' sp-block-hl':''}`}
+                              style={{width:wpct,background:col+(isHL?'2E':'18'),border:`1px solid ${isHL?col:col+'88'}`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible',boxShadow:isHL?`0 0 0 2px ${col}, 0 2px 12px ${col}66`:undefined,transform:isHL?'scale(1.02)':undefined,zIndex:isHL?2:undefined,transition:'box-shadow 120ms ease, transform 120ms ease'}}
+                            >
+                              <button onClick={e=>{e.stopPropagation();removeOwnerTramo(floor.id,i)}}
+                                style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
+                              <div className="sp-block-content">
+                                <div className="sp-block-avatar" style={{background:col}}>{initials}</div>
+                                <span className="sp-block-name" style={{color:col}}>{u.n}</span>
+                                <span className="sp-block-meta" style={{color:col,marginLeft:'auto'}}>{tr.sup.toLocaleString('es-ES')} m²</span>
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
 
