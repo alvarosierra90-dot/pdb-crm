@@ -1112,7 +1112,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   </div>
                   <button
                     className="ab-btn"
-                    onClick={() => navigate('mapa-busqueda', { demanda: demanda.ref })}
+                    onClick={() => navigate('mapas', { from:'demanda', demandaId: demanda.id, id: demanda.ref, nombre: demanda.nombre, uso: demanda.uso_principal, sbaMin: demanda.sup_min, sbaMax: demanda.sup_max, rentaMax: demanda.alq_max })}
                     disabled={!canExport}
                     title={!form.uso_principal ? 'Define al menos el uso principal' : (!form.sup_min && !form.sup_max ? 'Define superficie mínima o máxima' : 'Exportar requisitos al mapa de búsqueda')}
                     style={{ background:'var(--accent)', color:'#fff', border:'1px solid var(--accent)', opacity: canExport ? 1 : 0.45, fontWeight:600, fontSize:12 }}

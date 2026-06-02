@@ -218,30 +218,74 @@ function MapCard({ item, layerId, cfg, isActive, isSelected, onToggle }) {
 }
 
 // ── Proposal modal ─────────────────────────────────────────────────────────
-function ProposalModal({ items, onClose, navigate, data = DATA }) {
+function ProposalModal({ items, onClose, navigate, data = DATA, demanda }) {
   const [copied, setCopied] = useState(false)
-  const url = 'https://pdb.savills.es/propuesta/PRO-2026-0047'
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved]   = useState(null)   // { token } tras guardar
+  const [error, setError]   = useState(null)
+
+  const ofertaItems = items.filter(i => i.ofertaId)   // solo ofertas reales tienen uuid
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const url = saved ? `${origin}/m/${saved.token}` : ''
+
+  const generar = async () => {
+    if (!demanda?.id) { setError('Abre el mapa desde "Exportar a mapa" de una demanda para poder guardar la selección.'); return }
+    if (!ofertaItems.length) { setError('Selecciona al menos una oferta.'); return }
+    setSaving(true); setError(null)
+    try {
+      // 1) Crear la selección (paquete enviable con token → /m/<token>)
+      const { data: sel, error: e1 } = await supabase.from('selecciones')
+        .insert({ demanda_id: demanda.id, nombre: demanda.nombre || null, estado: 'borrador', created_by: demanda.usuario || null })
+        .select('id, token').single()
+      if (e1) throw new Error(e1.message)
+      // 2) Items de la selección
+      const sofs = ofertaItems.map((it, i) => ({ seleccion_id: sel.id, oferta_id: it.ofertaId, activo_id: it.activoId || null, orden: i + 1 }))
+      const { error: e2 } = await supabase.from('seleccion_ofertas').insert(sofs)
+      if (e2) throw new Error(e2.message)
+      // 3) Alternativas (oferta_demanda) para la trazabilidad 360 — sin duplicar
+      for (const it of ofertaItems) {
+        const { data: ex } = await supabase.from('oferta_demanda')
+          .select('id').eq('demanda_id', demanda.id).eq('oferta_id', it.ofertaId).maybeSingle()
+        if (!ex) await supabase.from('oferta_demanda')
+          .insert({ demanda_id: demanda.id, oferta_id: it.ofertaId, activo_id: it.activoId || null, estado_alternativa: 'propuesta' })
+      }
+      setSaved({ token: sel.token })
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div style={{background:'#fff',borderRadius:12,width:540,maxHeight:'85vh',overflow:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.25)'}}>
         <div style={{padding:'18px 22px 14px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,background:'#fff',zIndex:1}}>
           <div>
-            <div style={{fontSize:15,fontWeight:700}}>Propuesta generada · PRO-2026-0047</div>
-            <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{items.length} alternativa{items.length!==1?'s':''} seleccionada{items.length!==1?'s':''}</div>
+            <div style={{fontSize:15,fontWeight:700}}>{saved ? 'Selección de alternativas creada' : 'Selección de alternativas'}</div>
+            <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{ofertaItems.length} alternativa{ofertaItems.length!==1?'s':''} · {demanda?.nombre || demanda?.ref || 'demanda'}</div>
           </div>
           <button onClick={onClose} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'var(--text4)'}}>✕</button>
         </div>
         <div style={{padding:'18px 22px'}}>
-          <div style={{background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:16}}>
-            <div style={{fontSize:9,fontWeight:700,color:'var(--accent)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>Enlace para el cliente</div>
-            <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <div style={{flex:1,fontSize:11,fontWeight:500,background:'#fff',border:'1px solid var(--border)',borderRadius:4,padding:'6px 10px',fontFamily:'var(--mono)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{url}</div>
-              <button onClick={()=>{setCopied(true);setTimeout(()=>setCopied(false),2000)}} style={{flexShrink:0,padding:'6px 12px',borderRadius:4,border:'none',background:copied?'var(--green)':'var(--accent)',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'background .2s'}}>
-                {copied?'✓ Copiado':'⎘ Copiar'}
-              </button>
+          {saved ? (
+            <div style={{background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:16}}>
+              <div style={{fontSize:9,fontWeight:700,color:'var(--accent)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>Enlace para el cliente (microsite)</div>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <div style={{flex:1,fontSize:11,fontWeight:500,background:'#fff',border:'1px solid var(--border)',borderRadius:4,padding:'6px 10px',fontFamily:'var(--mono)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{url}</div>
+                <button onClick={()=>{navigator.clipboard?.writeText(url);setCopied(true);setTimeout(()=>setCopied(false),2000)}} style={{flexShrink:0,padding:'6px 12px',borderRadius:4,border:'none',background:copied?'var(--green)':'var(--accent)',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'background .2s'}}>
+                  {copied?'✓ Copiado':'⎘ Copiar'}
+                </button>
+              </div>
+              <div style={{fontSize:9,color:'var(--text3)',marginTop:5}}>Guardada en la demanda. La microsite (mapa + fichas) se renderiza en esta ruta — pendiente de la fase de microsite.</div>
             </div>
-            <div style={{fontSize:9,color:'var(--text3)',marginTop:5}}>El cliente verá mapa interactivo, fichas comerciales, transportes y contexto del entorno.</div>
-          </div>
+          ) : (
+            <div style={{fontSize:11,color:'var(--text3)',marginBottom:14,lineHeight:1.5}}>
+              Se guardará como <strong>Selección de alternativas</strong> en la demanda, generando el enlace de microsite y vinculando los activos (aparecerán en la Vista 360 de cada activo y oferta).
+            </div>
+          )}
+
+          {error && <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:6,padding:'8px 10px',fontSize:11,color:'#991b1b',marginBottom:12}}>{error}</div>}
 
           <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>Alternativas</div>
           {items.map((item,i)=>{
@@ -259,9 +303,11 @@ function ProposalModal({ items, onClose, navigate, data = DATA }) {
           })}
 
           <div style={{display:'flex',gap:8,marginTop:16}}>
-            <button onClick={()=>{onClose();navigate('ficha-demanda')}} style={{flex:1,padding:'9px',borderRadius:'var(--r)',border:'none',background:'var(--accent)',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>💾 Guardar en demanda</button>
-            <button style={{flex:1,padding:'9px',borderRadius:'var(--r)',border:'1px solid var(--border)',background:'#fff',fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>📄 Exportar PDF</button>
-            <button style={{flex:1,padding:'9px',borderRadius:'var(--r)',border:'1px solid var(--border)',background:'#fff',fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>✉ Enviar email</button>
+            {saved ? (
+              <button onClick={()=>{onClose();navigate('ficha-demanda',{ id: demanda?.ref })}} style={{flex:1,padding:'9px',borderRadius:'var(--r)',border:'none',background:'var(--accent)',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Ir a la demanda →</button>
+            ) : (
+              <button onClick={generar} disabled={saving} style={{flex:1,padding:'9px',borderRadius:'var(--r)',border:'none',background:'var(--accent)',color:'#fff',fontSize:11,fontWeight:700,cursor:saving?'wait':'pointer',fontFamily:'inherit',opacity:saving?0.7:1}}>{saving?'Guardando…':'💾 Crear selección y enlace'}</button>
+            )}
           </div>
         </div>
       </div>
@@ -302,7 +348,7 @@ export default function MapasView() {
   // Load real data from Supabase
   useEffect(() => {
     supabase.from('ofertas')
-      .select('ref, estado, renta_m2, superficie_disponible, activos(nombre, zona, lat, lng, uso, propietario, sba)')
+      .select('id, ref, activo_id, estado, renta_m2, superficie_disponible, activos(nombre, zona, lat, lng, uso, propietario, sba)')
       .eq('activa', true)
       .then(({ data }) => {
         if (!data?.length) return
@@ -310,6 +356,8 @@ export default function MapasView() {
           .filter(o => o.activos?.lat && o.activos?.lng)
           .map(o => ({
             id: o.ref,
+            ofertaId: o.id,
+            activoId: o.activo_id,
             nombre: `${o.activos?.nombre || '—'} — ${o.ref}`,
             dir: o.activos?.zona || '—',
             lat: Number(o.activos.lat),
@@ -779,7 +827,7 @@ export default function MapasView() {
         </div>
       </div>
 
-      {showProposal && <ProposalModal items={selectedItems} onClose={()=>setShowProposal(false)} navigate={navigate} data={liveData}/>}
+      {showProposal && <ProposalModal items={selectedItems} onClose={()=>setShowProposal(false)} navigate={navigate} data={liveData} demanda={{ id: params?.demandaId, ref: params?.id, nombre: params?.nombre }}/>}
     </div>
   )
 }
