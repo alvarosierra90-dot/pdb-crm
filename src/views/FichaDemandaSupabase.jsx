@@ -710,8 +710,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const tituloHeader = demanda.nombre || cuenta?.nombre || '(Sin nombre)'
 
   return (
-    <div className="dem-skin" style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}
-      className={editing ? 'ficha-editing' : 'ficha-viewing'}>
+    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}
+      className={`dem-skin ${editing ? 'ficha-editing' : 'ficha-viewing'}`}>
 
       <div className="action-bar">
         {!editing ? (
