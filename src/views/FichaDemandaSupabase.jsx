@@ -712,7 +712,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const tituloHeader = demanda.nombre || cuenta?.nombre || '(Sin nombre)'
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}
+    <div className="dem-skin" style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}
       className={editing ? 'ficha-editing' : 'ficha-viewing'}>
 
       <div className="action-bar">
@@ -998,49 +998,44 @@ export default function FichaDemandaSupabase({ refOrId }) {
               onClick: demanda.negociacion_ref ? () => navigate('ficha-negociacion', { ref: demanda.negociacion_ref }) : null },
           ]} />
 
-          {/* Header con pills interactivos · canon unificado */}
-          <div className="ah">
-            <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#1e3a5f,#8a6d40)' }}>🔍</div>
+          {/* Header rediseñado · identidad + 7 KPIs (maqueta) */}
+          <div className="dk-topbar">
+            <div className="dk-identity">
+              <div className="dk-avatar">🔍</div>
               <div style={{ flex:1, minWidth:0 }}>
-                <div className="ah-ref">
-                  <span style={{ background:'var(--accent-lt)', color:'var(--accent)', border:'1px solid var(--accent-bd)', padding:'0 6px', borderRadius:3, fontSize:9, fontWeight:700 }}>DEMANDA</span>
-                  <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{demanda.ref}</span>
-                  {visTipologia && <span style={{ color:'var(--text4)', fontSize:11 }}>· {visTipologia}</span>}
+                <div className="dk-id-meta">
+                  <span className="dk-tag">Demanda</span>
+                  <span className="dk-ref">{demanda.ref}</span>
+                  {visTipologia && <><span className="dk-dot">·</span><span>{visTipologia}</span></>}
                 </div>
-                <div className="ah-name">
-                  {editing
-                    ? <input style={{ ...inpFull, fontSize:22, fontWeight:700, padding:'4px 8px' }} value={form.nombre} onChange={e => setF('nombre', e.target.value)} placeholder="Nombre de la demanda" />
-                    : tituloHeader}
-                </div>
-                <div className="ah-addr">
-                  📍 {[cuenta?.direccion, cuenta?.codigo_postal, cuenta?.ciudad].filter(Boolean).join(', ') || 'Dirección no disponible'} · Creada: {fmtDate(demanda.created_at)} · {CURRENT_USER.nombre}
+                {editing
+                  ? <input style={{ ...inpFull, fontSize:24, fontWeight:700, padding:'2px 6px', margin:'2px 0' }} value={form.nombre} onChange={e => setF('nombre', e.target.value)} placeholder="Nombre de la demanda" />
+                  : <h1 className="dk-h1">{tituloHeader}</h1>}
+                <div className="dk-addr">
+                  <span style={{ color:'#d93025' }}>📍</span>
+                  <span>{[cuenta?.direccion, cuenta?.codigo_postal, cuenta?.ciudad].filter(Boolean).join(', ') || 'Dirección no disponible'}</span>
+                  <span className="dk-dot">·</span><span>Creada: {fmtDate(demanda.created_at)}</span>
+                  <span className="dk-dot">·</span><strong>{CURRENT_USER.nombre}</strong>
                 </div>
               </div>
-              {(() => {
-                const ec = ESTADO_COLOR[form.estatus] || ESTADO_COLOR.ongoing
-                const colorMap = { ongoing:'green', potencial:'blue', paralizada:'amber', en_negociacion:'purple', descartada:'red', cerrada_concedido:'green', cerrada_perdida:'red' }
-                const hasNotas = !!(form.notas || '').trim()
-                const items = [
-                  { key:'estado', type:'info', label:'Estado', value:`${ec.icon} ${ESTADO_LABEL[form.estatus] || form.estatus || '—'}`,
-                    color: colorMap[form.estatus] || 'amber', accent:true },
-                ]
-                if (visNaturaleza) items.push({ key:'natur', type:'info', label:'Naturaleza', value: visNaturaleza, color: visNaturaleza === 'Inversión' ? 'amber' : 'blue', accent:true })
-                if (visUso) items.push({ key:'uso', type:'info', label:'Uso principal', value: visUso, color:'blue', accent:true })
-                if (reqs.sup_min || reqs.sup_max) items.push({ key:'sup', type:'info', label:'Superficie', value: `${reqs.sup_min || '?'}–${reqs.sup_max || '?'} m²` })
-                items.push({ key:'resp', type:'info', label:'Responsable', value: CURRENT_USER.nombre })
-                items.push({
-                  key:'notas', type:'button', label:'Notas',
-                  value: hasNotas ? '📝' : '—',
-                  icon: hasNotas ? null : '📝',
-                  color: hasNotas ? 'accent' : 'default',
-                  accent: hasNotas,
-                  onClick: () => setShowNotasModal(true),
-                  title: hasNotas ? 'Ver/editar notas' : 'Añadir notas',
-                })
-                return <HeaderPills items={items} />
-              })()}
             </div>
+            {(() => {
+              const estadoCls = form.estatus === 'en_negociacion' ? 'purple'
+                : form.estatus === 'paralizada' ? 'gold'
+                : ['cerrada_perdida','descartada'].includes(form.estatus) ? 'faint' : 'blue'
+              const hasNotas = !!(form.notas || '').trim()
+              return (
+                <div className="dk-summary">
+                  <div className={`dk-sbox ${form.estatus === 'en_negociacion' ? 't-purple' : ''}`}><span className="k">Estado</span><span className={`v ${estadoCls}`}>{ESTADO_LABEL[form.estatus] || form.estatus || '—'}</span></div>
+                  <div className="dk-sbox"><span className="k">Naturaleza</span><span className="v blue">{visNaturaleza || '—'}</span></div>
+                  <div className="dk-sbox t-gold"><span className="k">Uso principal</span><span className="v gold">{visUso || '—'}</span></div>
+                  <div className="dk-sbox"><span className="k">Superficie</span><span className="v mono">{(reqs.sup_min || reqs.sup_max) ? `${reqs.sup_min || '?'}–${reqs.sup_max || '?'} m²` : '—'}</span></div>
+                  <div className="dk-sbox"><span className="k">Responsable</span><span className="v">{CURRENT_USER.nombre}</span></div>
+                  <div className="dk-sbox"><span className="k">Confidencialidad</span><span className="v faint">{demandaConfidential ? 'Sí' : 'No'}</span></div>
+                  <div className="dk-sbox clk" onClick={() => setShowNotasModal(true)} title={hasNotas ? 'Ver/editar notas' : 'Añadir notas'}><span className="k">Notas</span><span className="v faint">{hasNotas ? '📝 Ver' : '—'}</span></div>
+                </div>
+              )
+            })()}
           </div>
 
           <div className="tabs">
