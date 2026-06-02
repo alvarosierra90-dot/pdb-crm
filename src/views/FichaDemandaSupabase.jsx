@@ -999,7 +999,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
           {/* Header rediseñado · identidad + 7 KPIs (maqueta) */}
           <div className="dk-topbar">
             <div className="dk-identity">
-              <div className="dk-avatar">🔍</div>
+              <div className="dk-avatar"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/><line x1="9" y1="9" x2="9" y2="9.01"/><line x1="9" y1="13" x2="9" y2="13.01"/></svg></div>
               <div style={{ flex:1, minWidth:0 }}>
                 <div className="dk-id-meta">
                   <span className="dk-tag">Demanda</span>
@@ -1414,7 +1414,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     Fila 2: Provincias · Zonas · Detalles geográficos
                     ════════════════════════════════════════════════════════════════ */}
 
-                {/* Heading + Exportar a mapa */}
+                {/* Heading + Realizar selección en mapa */}
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:12, marginBottom:16, paddingBottom:10, borderBottom:'1px solid #e5e7eb' }}>
                   <div style={{ fontSize:19, fontWeight:700, color:'#0f172a', letterSpacing:'-0.02em' }}>
                     Detalle de la demanda
@@ -1422,10 +1422,11 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   <button
                     onClick={() => navigate('mapas', { from:'demanda', demandaId: demanda.id, id: demanda.ref, nombre: demanda.nombre, uso: demanda.uso_principal, sbaMin: demanda.sup_min, sbaMax: demanda.sup_max, rentaMax: demanda.alq_max })}
                     disabled={!canExport}
-                    title={!form.uso_principal ? 'Define al menos el uso principal' : (!form.sup_min && !form.sup_max ? 'Define superficie mínima o máxima' : 'Exportar requisitos al mapa de búsqueda')}
+                    title={!form.uso_principal ? 'Define al menos el uso principal' : (!form.sup_min && !form.sup_max ? 'Define superficie mínima o máxima' : 'Realizar la selección de alternativas en el mapa de búsqueda')}
                     style={{ display:'inline-flex', alignItems:'center', gap:8, background:'var(--accent)', color:'#fff', border:'none', cursor: canExport ? 'pointer' : 'not-allowed', opacity: canExport ? 1 : 0.45, fontWeight:700, fontSize:13, padding:'10px 20px', borderRadius:9, fontFamily:'inherit', boxShadow: canExport ? '0 2px 10px rgba(37,99,235,.28)' : 'none' }}
                   >
-                    <span style={{ fontSize:15 }}>🗺️</span> Exportar a mapa
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+                    Realizar selección en mapa
                   </button>
                 </div>
 
@@ -1904,7 +1905,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                 {/* Acción: matching con el pool de ofertas */}
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
                   <div style={{ fontSize:12, color:'var(--text3)' }}>Cruza la demanda contra el pool de ofertas y añade las que encajen como alternativas.</div>
-                  <button className="ab-btn save" style={{ fontSize:12 }} onClick={() => setShowMatching(true)}>🔍 Matching con ofertas</button>
+                  <button className="ab-btn save" style={{ fontSize:12, display:'inline-flex', alignItems:'center', gap:6 }} onClick={() => setShowMatching(true)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Matching con ofertas</button>
                 </div>
 
                 {/* Cabecera con KPIs de funnel */}
@@ -2341,7 +2342,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   <div style={{ marginTop:8, display:'flex', flexDirection:'column', gap:3 }}>
                     <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>Resumen ejecutivo</button>
                     <button style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>Sugerir zonas alternativas</button>
-                    <button onClick={() => setShowMatching(true)} style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>🔍 Matching con ofertas</button>
+                    <button onClick={() => setShowMatching(true)} style={{ fontSize:10, padding:'4px 8px', background:'none', border:'1px solid var(--accent-bd)', color:'var(--accent)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', textAlign:'left', display:'inline-flex', alignItems:'center', gap:5 }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Matching con ofertas</button>
                   </div>
                   <div className="ai-cta">✎ Preguntar a la IA</div>
                 </div>
