@@ -1365,7 +1365,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   return (
                     <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', marginBottom:14, background:'#fff', border:'1px solid #e5e7eb', borderRadius:8, flexWrap:'wrap' }}>
                       <div style={{ flexShrink:0, fontSize:9, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.05em' }}>
-                        Última selección · {ultimaSeleccion.estado === 'enviada' ? 'enviada' : 'borrador'}
+                        Link generado de la selección
                       </div>
                       <div style={{ flex:1, minWidth:160, fontFamily:'var(--mono)', fontSize:11, background:'#f8fafc', border:'1px solid #e5e7eb', borderRadius:4, padding:'5px 9px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'#475569' }}>{link}</div>
                       <button onClick={() => navigator.clipboard?.writeText(link)} style={{ flexShrink:0, padding:'5px 10px', fontSize:11, fontWeight:600, border:'1px solid #e5e7eb', borderRadius:5, background:'#fff', cursor:'pointer', fontFamily:'inherit' }}>⎘ Copiar</button>
