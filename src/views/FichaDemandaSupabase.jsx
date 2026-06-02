@@ -461,9 +461,31 @@ export default function FichaDemandaSupabase({ refOrId }) {
       .update({ estado_alternativa: estado, condiciones_negociadas: cond, updated_at: new Date().toISOString() })
       .eq('id', altId)
     if (error) { setSaveError(error.message); return }
-    // (C) Al abrir negociación, la demanda pasa a estado "En negociación".
-    if (destino === 'negociando' && demanda?.id && demanda.estatus !== 'en_negociacion') {
-      await supabase.from('demandas').update({ estatus: 'en_negociacion' }).eq('id', demanda.id)
+    // Cascada al abrir negociación.
+    if (destino === 'negociando' && demanda?.id) {
+      // (1) Demanda: estatus + vincular la oferta a la "card de Oferta" del info general.
+      const upd = { estatus: 'en_negociacion', updated_at: new Date().toISOString() }
+      if (alt.ofertas?.id) upd.oferta_id = alt.ofertas.id
+      await supabase.from('demandas').update(upd).eq('id', demanda.id)
+      // (2) Oferta: estado "En negociación" (visible arriba en su ficha).
+      if (alt.ofertas?.id) await supabase.from('ofertas').update({ estado: 'En negociación' }).eq('id', alt.ofertas.id)
+      // (3) Crear la negociación si no existe → aparece en el módulo de Negociaciones.
+      if (alt.ofertas?.id) {
+        const { data: ex } = await supabase.from('negociaciones').select('id').eq('oferta_demanda_id', alt.id).maybeSingle()
+        if (!ex) {
+          const { nextRef } = await import('../lib/nextRef')
+          const ref = await nextRef('negociaciones', 'NEG')
+          const today = new Date().toISOString().slice(0, 10)
+          await supabase.from('negociaciones').insert({
+            ref, estado: 'En negociación', ronda: 1, fecha_inicio: today, ultima_actividad: today,
+            demanda_id: demanda.id, oferta_id: alt.ofertas.id, activo_id: alt.activos?.id || null,
+            oferta_demanda_id: alt.id,
+            cuenta_inquilina_id: demanda.dynamics_account_id || null,
+            parte_nombre: CURRENT_USER.nombre, parte_equipo: CURRENT_USER.equipo || 'Equipo PDB',
+            contraparte_empresa: cuenta?.nombre || null, contraparte_email: cuenta?.email || null, contraparte_telefono: cuenta?.telefono || null,
+          })
+        }
+      }
       await load()
     }
     await loadAlternativas()
@@ -1223,27 +1245,6 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     Fila 1: Requisitos · Presupuesto · Equipo + Colaboradores + Partes
                     Fila 2: Provincias · Zonas · Detalles geográficos
                     ════════════════════════════════════════════════════════════════ */}
-
-                {/* Ofertas en negociación · arriba del todo de la card */}
-                {(() => {
-                  const enNeg = alternativas.filter(a => a.estado_alternativa === 'negociando')
-                  if (!enNeg.length) return null
-                  return (
-                    <div style={{ marginTop:6, marginBottom:14, padding:'10px 14px', background:'#fef3c7', border:'1px solid #fde68a', borderRadius:'var(--r)' }}>
-                      <div style={{ fontSize:9, fontWeight:700, color:'#92400e', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:6 }}>En negociación · ofertas vinculadas ({enNeg.length})</div>
-                      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                        {enNeg.map(a => (
-                          <div key={a.id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, flexWrap:'wrap' }}>
-                            <span style={{ fontWeight:600, cursor:'pointer' }} onClick={() => a.activos?.ref && navigate('ficha-activo', { ref:a.activos.ref })}>{a.activos?.nombre || '(activo)'}</span>
-                            {a.activos?.ciudad && <span style={{ fontSize:10, color:'var(--text3)' }}>{a.activos.ciudad}</span>}
-                            {a.ofertas?.ref && <span className="tag tag-blue" style={{ fontSize:9, fontFamily:'var(--mono)', cursor:'pointer' }} onClick={() => navigate('ficha-oferta', { ofertaRef:a.ofertas.ref })}>{a.ofertas.ref}</span>}
-                            <button className="ab-btn" style={{ fontSize:9, padding:'2px 8px', marginLeft:'auto' }} onClick={() => a.ofertas?.ref && navigate('ficha-negociacion', { id:a.ofertas.ref })}>Ver negociación →</button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })()}
 
                 {/* Heading + Exportar a mapa */}
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:6, marginBottom:14 }}>
