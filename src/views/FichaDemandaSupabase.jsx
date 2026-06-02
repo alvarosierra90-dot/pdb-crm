@@ -162,6 +162,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
   const [visitaModal, setVisitaModal] = useState(null)   // { altId, fecha }
   const [descarteModal, setDescarteModal] = useState(null) // { altId, motivo }
   const [ultimaSeleccion, setUltimaSeleccion] = useState(null) // última selección/microsite
+  const [enviarModal, setEnviarModal] = useState(null)         // { sel, selected:[emails], search }
   const [historialSel, setHistorialSel] = useState([])         // historial de búsquedas/selecciones
   const [loadingAlt, setLoadingAlt] = useState(false)
   // Typeahead de búsqueda de Mandato para vincular
@@ -529,15 +530,24 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
   // Enviar al cliente la última selección: marca estado 'enviada' (trazabilidad)
   // y abre el correo con el enlace de la microsite.
-  const enviarSeleccion = async (sel) => {
+  // Abre el modal de envío con la parte involucrada preseleccionada.
+  const enviarSeleccion = (sel) => {
     if (!sel?.id) return
+    const involucrados = (otrosListaFull || []).filter(c => c?.email).map(c => c.email)
+    const fallback = involucrados.length ? [] : (contactosCuenta || []).filter(c => c?.email).slice(0, 1).map(c => c.email)
+    setEnviarModal({ sel, selected: [...new Set([...involucrados, ...fallback])], search: '' })
+  }
+
+  // Confirma el envío: abre el correo a los destinatarios y marca enviada.
+  const confirmEnviar = async () => {
+    if (!enviarModal) return
+    const { sel, selected } = enviarModal
     await supabase.from('selecciones').update({ estado:'enviada', enviada_at:new Date().toISOString() }).eq('id', sel.id)
     setUltimaSeleccion(s => s ? { ...s, estado:'enviada' } : s)
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    // Destinatario = parte involucrada asignada (otros contactos), si no, primer
-    // contacto de la cuenta. La demanda ya está vinculada a la cuenta.
-    const dest = (otrosListaFull || []).find(c => c?.email)?.email || (contactosCuenta || []).find(c => c?.email)?.email || ''
-    window.open(`mailto:${encodeURIComponent(dest)}?subject=${encodeURIComponent('Selección de inmuebles · ' + (demanda?.nombre || ''))}&body=${encodeURIComponent('Le compartimos una selección de inmuebles:\n\n' + origin + '/m/' + sel.token)}`)
+    const to = (selected || []).filter(Boolean).map(encodeURIComponent).join(',')
+    window.open(`mailto:${to}?subject=${encodeURIComponent('Selección de inmuebles · ' + (demanda?.nombre || ''))}&body=${encodeURIComponent('Le compartimos una selección de inmuebles:\n\n' + origin + '/m/' + sel.token)}`)
+    setEnviarModal(null)
   }
 
   // Cada vez que la demanda se (re)carga, sincroniza el form para que los
@@ -751,6 +761,81 @@ export default function FichaDemandaSupabase({ refOrId }) {
           onAdded={loadAlternativas}
         />
       )}
+
+      {/* Modal · enviar selección al cliente (elige destinatarios) */}
+      {enviarModal && (() => {
+        const involucrados = (otrosListaFull || []).filter(c => c?.email)
+        const q = (enviarModal.search || '').toLowerCase().trim()
+        const disponibles = (contactosCuenta || []).filter(c => c?.email
+          && !enviarModal.selected.includes(c.email)
+          && !involucrados.some(i => i.email === c.email)
+          && (!q || (c.nombre || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q)))
+        const toggle = (email) => setEnviarModal(m => ({ ...m, selected: m.selected.includes(email) ? m.selected.filter(e => e !== email) : [...m.selected, email] }))
+        const addContact = (c) => setEnviarModal(m => ({ ...m, selected: [...new Set([...m.selected, c.email])], search: '' }))
+        const extras = enviarModal.selected.filter(e => !involucrados.some(c => c.email === e))
+        return (
+          <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }} onClick={() => setEnviarModal(null)}>
+            <div style={{ background:'#fff', borderRadius:10, width:'min(480px,100%)', maxHeight:'88vh', display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 20px 50px rgba(15,23,42,0.25)' }} onClick={e => e.stopPropagation()}>
+              <div style={{ padding:'14px 18px', borderBottom:'1px solid #e5e7eb', fontSize:14, fontWeight:700 }}>Enviar selección al cliente</div>
+              <div style={{ padding:'16px 18px', overflowY:'auto', display:'flex', flexDirection:'column', gap:14 }}>
+
+                <div>
+                  <div style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:8 }}>Parte involucrada</div>
+                  {involucrados.length === 0
+                    ? <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>No hay parte involucrada asignada. Añade contactos de la cuenta abajo.</div>
+                    : involucrados.map(c => (
+                      <label key={c.dynamics_id} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 0', cursor:'pointer' }}>
+                        <input type="checkbox" checked={enviarModal.selected.includes(c.email)} onChange={() => toggle(c.email)} style={{ accentColor:'var(--accent)' }} />
+                        <span style={{ fontSize:12, fontWeight:600 }}>{c.nombre}</span>
+                        <span style={{ fontSize:11, color:'var(--text3)' }}>{c.email}</span>
+                      </label>
+                    ))}
+                </div>
+
+                {extras.length > 0 && (
+                  <div>
+                    <div style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:8 }}>Otros destinatarios</div>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                      {extras.map(email => (
+                        <span key={email} style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, background:'var(--accent-lt)', color:'var(--accent)', border:'1px solid var(--accent-bd)', borderRadius:14, padding:'3px 9px' }}>
+                          {email}
+                          <button onClick={() => toggle(email)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--accent)', fontSize:12, padding:0, lineHeight:1 }}>×</button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <div style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:8 }}>Añadir contactos de la cuenta</div>
+                  <input value={enviarModal.search} onChange={e => setEnviarModal(m => ({ ...m, search: e.target.value }))}
+                    placeholder="Buscar contacto por nombre o email…"
+                    style={{ width:'100%', padding:'8px 10px', fontSize:12, border:'1px solid #e5e7eb', borderRadius:6, fontFamily:'inherit', boxSizing:'border-box' }} />
+                  {q && (
+                    <div style={{ marginTop:6, border:'1px solid #e5e7eb', borderRadius:6, maxHeight:160, overflowY:'auto' }}>
+                      {disponibles.length === 0
+                        ? <div style={{ padding:'8px 10px', fontSize:11, color:'var(--text4)', fontStyle:'italic' }}>Sin contactos que coincidan.</div>
+                        : disponibles.map(c => (
+                          <div key={c.dynamics_id} onClick={() => addContact(c)}
+                            style={{ padding:'7px 10px', cursor:'pointer', borderBottom:'1px solid #f1f5f9', fontSize:12 }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                            onMouseLeave={e => e.currentTarget.style.background = ''}>
+                            <span style={{ fontWeight:600 }}>{c.nombre}</span> <span style={{ color:'var(--text3)' }}>· {c.email}</span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'12px 18px', borderTop:'1px solid #e5e7eb', background:'#f8fafc' }}>
+                <button onClick={() => setEnviarModal(null)} style={{ padding:'8px 14px', fontSize:12, border:'1px solid #cbd5e1', borderRadius:6, background:'#fff', cursor:'pointer', fontFamily:'inherit' }}>Cancelar</button>
+                <button onClick={confirmEnviar} disabled={!enviarModal.selected.length}
+                  style={{ padding:'8px 16px', fontSize:12, fontWeight:700, border:'none', borderRadius:6, background:'var(--accent)', color:'#fff', cursor: enviarModal.selected.length ? 'pointer' : 'not-allowed', opacity: enviarModal.selected.length ? 1 : 0.5, fontFamily:'inherit' }}>✉ Enviar a {enviarModal.selected.length}</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Modal · fecha de visita (calendario) */}
       {visitaModal && (
@@ -1259,18 +1344,17 @@ export default function FichaDemandaSupabase({ refOrId }) {
                     ════════════════════════════════════════════════════════════════ */}
 
                 {/* Heading + Exportar a mapa */}
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:6, marginBottom:14 }}>
-                  <div style={{ fontSize:15, fontWeight:600, color:'#0f172a', letterSpacing:'-0.01em' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:12, marginBottom:16, paddingBottom:10, borderBottom:'1px solid #e5e7eb' }}>
+                  <div style={{ fontSize:19, fontWeight:700, color:'#0f172a', letterSpacing:'-0.02em' }}>
                     Detalle de la demanda
                   </div>
                   <button
-                    className="ab-btn"
                     onClick={() => navigate('mapas', { from:'demanda', demandaId: demanda.id, id: demanda.ref, nombre: demanda.nombre, uso: demanda.uso_principal, sbaMin: demanda.sup_min, sbaMax: demanda.sup_max, rentaMax: demanda.alq_max })}
                     disabled={!canExport}
                     title={!form.uso_principal ? 'Define al menos el uso principal' : (!form.sup_min && !form.sup_max ? 'Define superficie mínima o máxima' : 'Exportar requisitos al mapa de búsqueda')}
-                    style={{ background:'var(--accent)', color:'#fff', border:'1px solid var(--accent)', opacity: canExport ? 1 : 0.45, fontWeight:600, fontSize:12 }}
+                    style={{ display:'inline-flex', alignItems:'center', gap:8, background:'var(--accent)', color:'#fff', border:'none', cursor: canExport ? 'pointer' : 'not-allowed', opacity: canExport ? 1 : 0.45, fontWeight:700, fontSize:13, padding:'10px 20px', borderRadius:9, fontFamily:'inherit', boxShadow: canExport ? '0 2px 10px rgba(37,99,235,.28)' : 'none' }}
                   >
-                    Exportar a mapa
+                    <span style={{ fontSize:15 }}>🗺️</span> Exportar a mapa
                   </button>
                 </div>
 
@@ -1279,13 +1363,13 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   const origin = typeof window !== 'undefined' ? window.location.origin : ''
                   const link = `${origin}/m/${ultimaSeleccion.token}`
                   return (
-                    <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', marginBottom:14, background:'var(--accent-lt)', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', flexWrap:'wrap' }}>
-                      <div style={{ flexShrink:0, fontSize:9, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.05em' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', marginBottom:14, background:'#fff', border:'1px solid #e5e7eb', borderRadius:8, flexWrap:'wrap' }}>
+                      <div style={{ flexShrink:0, fontSize:9, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.05em' }}>
                         Última selección · {ultimaSeleccion.estado === 'enviada' ? 'enviada' : 'borrador'}
                       </div>
-                      <div style={{ flex:1, minWidth:160, fontFamily:'var(--mono)', fontSize:11, background:'#fff', border:'1px solid var(--border)', borderRadius:4, padding:'5px 9px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{link}</div>
-                      <button onClick={() => navigator.clipboard?.writeText(link)} style={{ flexShrink:0, padding:'5px 10px', fontSize:11, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, background:'#fff', cursor:'pointer', fontFamily:'inherit' }}>⎘ Copiar</button>
-                      <button onClick={() => enviarSeleccion(ultimaSeleccion)} style={{ flexShrink:0, padding:'5px 12px', fontSize:11, fontWeight:700, border:'none', borderRadius:5, background:'var(--accent)', color:'#fff', cursor:'pointer', fontFamily:'inherit' }}>✉ Enviar al cliente</button>
+                      <div style={{ flex:1, minWidth:160, fontFamily:'var(--mono)', fontSize:11, background:'#f8fafc', border:'1px solid #e5e7eb', borderRadius:4, padding:'5px 9px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'#475569' }}>{link}</div>
+                      <button onClick={() => navigator.clipboard?.writeText(link)} style={{ flexShrink:0, padding:'5px 10px', fontSize:11, fontWeight:600, border:'1px solid #e5e7eb', borderRadius:5, background:'#fff', cursor:'pointer', fontFamily:'inherit' }}>⎘ Copiar</button>
+                      <button onClick={() => enviarSeleccion(ultimaSeleccion)} style={{ flexShrink:0, padding:'6px 14px', fontSize:11, fontWeight:700, border:'none', borderRadius:6, background:'var(--accent)', color:'#fff', cursor:'pointer', fontFamily:'inherit' }}>✉ Enviar al cliente</button>
                       <span style={{ flexShrink:0, fontSize:10, color:'var(--text3)' }}>{ultimaSeleccion.vistas || 0} vistas{ultimaSeleccion.ultima_vista ? ` · última ${new Date(ultimaSeleccion.ultima_vista).toLocaleDateString('es-ES')}` : ''}</span>
                     </div>
                   )
