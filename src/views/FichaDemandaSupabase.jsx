@@ -159,6 +159,9 @@ export default function FichaDemandaSupabase({ refOrId }) {
   // Vista 360 · alternativas (oferta_demanda con joins a ofertas + activos)
   const [alternativas, setAlternativas] = useState([])
   const [showMatching, setShowMatching] = useState(false)
+  const [visitaModal, setVisitaModal] = useState(null)   // { altId, fecha }
+  const [descarteModal, setDescarteModal] = useState(null) // { altId, motivo }
+  const [ultimaSeleccion, setUltimaSeleccion] = useState(null) // última selección/microsite
   const [loadingAlt, setLoadingAlt] = useState(false)
   // Typeahead de búsqueda de Mandato para vincular
   const [mandatoSearch, setMandatoSearch] = useState('')
@@ -315,6 +318,21 @@ export default function FichaDemandaSupabase({ refOrId }) {
 
   useEffect(() => { loadAlternativas() }, [loadAlternativas])
 
+  // Última selección de alternativas (microsite) de esta demanda — para la
+  // caja con el enlace en Información general.
+  useEffect(() => {
+    if (!demanda?.id) { setUltimaSeleccion(null); return }
+    let cancel = false
+    supabase.from('selecciones')
+      .select('id, token, nombre, estado, created_at, vistas, ultima_vista')
+      .eq('demanda_id', demanda.id)
+      .order('created_at', { ascending:false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => { if (!cancel) setUltimaSeleccion(data || null) })
+    return () => { cancel = true }
+  }, [demanda?.id, alternativas])
+
   // Busca mandatos al escribir en el typeahead · prioriza misma cuenta y tipo buy
   useEffect(() => {
     if (!showMandatoDD) return
@@ -430,36 +448,64 @@ export default function FichaDemandaSupabase({ refOrId }) {
   // condiciones_negociadas (visited/fecha_visita/negotiated) para poder pintar
   // el rastro: una card sigue (en gris) en las columnas por las que pasó.
   const moverAlternativa = async (altId, destino) => {
+    // Visita y descarte abren su propio modal (calendario / motivo).
+    if (destino === 'visitadas') { const a = alternativas.find(x => x.id === altId); setVisitaModal({ altId, fecha: a?.condiciones_negociadas?.fecha_visita || '' }); return }
+    if (destino === 'descartar') { setDescarteModal({ altId, motivo: '' }); return }
     const alt = alternativas.find(a => a.id === altId)
     if (!alt) return
     const cond = { ...(alt.condiciones_negociadas || {}) }
     let estado
     if (destino === 'presentadas') estado = 'enviada'
-    else if (destino === 'visitadas') {
-      const f = window.prompt('¿Cuándo se visitó? (dd/mm/aaaa)', cond.fecha_visita || '')
-      if (f === null) return
-      estado = 'visita_realizada'; cond.visited = true; cond.fecha_visita = f || null
-    }
     else if (destino === 'negociando') { estado = 'negociando'; cond.negotiated = true }
     else return
     const { error } = await supabase.from('oferta_demanda')
       .update({ estado_alternativa: estado, condiciones_negociadas: cond, updated_at: new Date().toISOString() })
       .eq('id', altId)
     if (error) { setSaveError(error.message); return }
+    // (C) Al abrir negociación, la demanda pasa a estado "En negociación".
+    if (destino === 'negociando' && demanda?.id && demanda.estatus !== 'en_negociacion') {
+      await supabase.from('demandas').update({ estatus: 'en_negociacion' }).eq('id', demanda.id)
+      await load()
+    }
     await loadAlternativas()
   }
 
-  // Descartar con motivo (botón) → pasa a la caja Descartadas de abajo.
-  const descartarAlternativa = async (altId) => {
-    const motivo = window.prompt('Motivo de descarte:', '')
-    if (motivo === null) return
+  // Confirmar visita desde el modal de calendario.
+  const confirmVisita = async () => {
+    if (!visitaModal) return
+    const { altId, fecha } = visitaModal
+    const alt = alternativas.find(a => a.id === altId)
+    const cond = { ...(alt?.condiciones_negociadas || {}), visited: true, fecha_visita: fecha || null }
+    const { error } = await supabase.from('oferta_demanda')
+      .update({ estado_alternativa: 'visita_realizada', condiciones_negociadas: cond, updated_at: new Date().toISOString() })
+      .eq('id', altId)
+    setVisitaModal(null)
+    if (error) { setSaveError(error.message); return }
+    await loadAlternativas()
+  }
+
+  // Confirmar descarte (con motivo) desde el modal.
+  const confirmDescarte = async () => {
+    if (!descarteModal) return
+    const { altId, motivo } = descarteModal
     const alt = alternativas.find(a => a.id === altId)
     const cond = { ...(alt?.condiciones_negociadas || {}), motivo_descarte: motivo || null }
     const { error } = await supabase.from('oferta_demanda')
       .update({ estado_alternativa: 'descartada', condiciones_negociadas: cond, updated_at: new Date().toISOString() })
       .eq('id', altId)
+    setDescarteModal(null)
     if (error) { setSaveError(error.message); return }
     await loadAlternativas()
+  }
+
+  // Enviar al cliente la última selección: marca estado 'enviada' (trazabilidad)
+  // y abre el correo con el enlace de la microsite.
+  const enviarSeleccion = async (sel) => {
+    if (!sel?.id) return
+    await supabase.from('selecciones').update({ estado:'enviada', enviada_at:new Date().toISOString() }).eq('id', sel.id)
+    setUltimaSeleccion(s => s ? { ...s, estado:'enviada' } : s)
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    window.open(`mailto:?subject=${encodeURIComponent('Selección de inmuebles · ' + (demanda?.nombre || ''))}&body=${encodeURIComponent('Le compartimos una selección de inmuebles:\n\n' + origin + '/m/' + sel.token)}`)
   }
 
   // Cada vez que la demanda se (re)carga, sincroniza el form para que los
@@ -668,6 +714,41 @@ export default function FichaDemandaSupabase({ refOrId }) {
           onClose={() => setShowMatching(false)}
           onAdded={loadAlternativas}
         />
+      )}
+
+      {/* Modal · fecha de visita (calendario) */}
+      {visitaModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center' }} onClick={() => setVisitaModal(null)}>
+          <div style={{ background:'#fff', borderRadius:10, width:'min(380px,92vw)', boxShadow:'0 20px 50px rgba(15,23,42,0.25)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--border)', fontSize:14, fontWeight:700 }}>¿Cuándo se visitó?</div>
+            <div style={{ padding:'16px 18px' }}>
+              <input type="date" value={visitaModal.fecha || ''} onChange={e => setVisitaModal(v => ({ ...v, fecha: e.target.value }))} autoFocus
+                style={{ width:'100%', padding:'9px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:6, fontFamily:'inherit', boxSizing:'border-box' }} />
+            </div>
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'12px 18px', borderTop:'1px solid var(--border)', background:'var(--gray-lt)' }}>
+              <button onClick={() => setVisitaModal(null)} style={{ padding:'8px 14px', fontSize:12, border:'1px solid var(--border)', borderRadius:6, background:'#fff', cursor:'pointer', fontFamily:'inherit' }}>Cancelar</button>
+              <button onClick={confirmVisita} disabled={!visitaModal.fecha} style={{ padding:'8px 16px', fontSize:12, fontWeight:600, border:'none', borderRadius:6, background:'var(--accent)', color:'#fff', cursor: visitaModal.fecha ? 'pointer' : 'not-allowed', opacity: visitaModal.fecha ? 1 : 0.5, fontFamily:'inherit' }}>Registrar visita</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal · motivo de descarte */}
+      {descarteModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center' }} onClick={() => setDescarteModal(null)}>
+          <div style={{ background:'#fff', borderRadius:10, width:'min(440px,92vw)', boxShadow:'0 20px 50px rgba(15,23,42,0.25)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--border)', fontSize:14, fontWeight:700 }}>Motivo de descarte</div>
+            <div style={{ padding:'16px 18px' }}>
+              <textarea value={descarteModal.motivo} onChange={e => setDescarteModal(v => ({ ...v, motivo: e.target.value }))} autoFocus
+                placeholder="Ej. fuera de presupuesto, no encaja la zona, el cliente lo descartó…"
+                style={{ width:'100%', minHeight:80, padding:'9px 10px', fontSize:13, border:'1px solid var(--border)', borderRadius:6, fontFamily:'inherit', boxSizing:'border-box', resize:'vertical' }} />
+            </div>
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'12px 18px', borderTop:'1px solid var(--border)', background:'var(--gray-lt)' }}>
+              <button onClick={() => setDescarteModal(null)} style={{ padding:'8px 14px', fontSize:12, border:'1px solid var(--border)', borderRadius:6, background:'#fff', cursor:'pointer', fontFamily:'inherit' }}>Cancelar</button>
+              <button onClick={confirmDescarte} style={{ padding:'8px 16px', fontSize:12, fontWeight:600, border:'none', borderRadius:6, background:'var(--red)', color:'#fff', cursor:'pointer', fontFamily:'inherit' }}>Descartar</button>
+            </div>
+          </div>
+        </div>
       )}
 
       <NotasModal
@@ -1157,6 +1238,23 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   </button>
                 </div>
 
+                {/* Caja · enlace de la última selección (microsite) */}
+                {ultimaSeleccion && (() => {
+                  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+                  const link = `${origin}/m/${ultimaSeleccion.token}`
+                  return (
+                    <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', marginBottom:14, background:'var(--accent-lt)', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', flexWrap:'wrap' }}>
+                      <div style={{ flexShrink:0, fontSize:9, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.05em' }}>
+                        Última selección · {ultimaSeleccion.estado === 'enviada' ? 'enviada' : 'borrador'}
+                      </div>
+                      <div style={{ flex:1, minWidth:160, fontFamily:'var(--mono)', fontSize:11, background:'#fff', border:'1px solid var(--border)', borderRadius:4, padding:'5px 9px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{link}</div>
+                      <button onClick={() => navigator.clipboard?.writeText(link)} style={{ flexShrink:0, padding:'5px 10px', fontSize:11, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, background:'#fff', cursor:'pointer', fontFamily:'inherit' }}>⎘ Copiar</button>
+                      <button onClick={() => enviarSeleccion(ultimaSeleccion)} style={{ flexShrink:0, padding:'5px 12px', fontSize:11, fontWeight:700, border:'none', borderRadius:5, background:'var(--accent)', color:'#fff', cursor:'pointer', fontFamily:'inherit' }}>✉ Enviar al cliente</button>
+                      <span style={{ flexShrink:0, fontSize:10, color:'var(--text3)' }}>{ultimaSeleccion.vistas || 0} vistas{ultimaSeleccion.ultima_vista ? ` · última ${new Date(ultimaSeleccion.ultima_vista).toLocaleDateString('es-ES')}` : ''}</span>
+                    </div>
+                  )
+                })()}
+
                 {/* ─── FILA 1: Requisitos · Presupuesto · Equipo+Colab+Partes ─── */}
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14 }}>
 
@@ -1601,7 +1699,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       <span className="tag tag-blue" style={{ fontSize:9, fontFamily:'var(--mono)', cursor:'pointer' }} onClick={() => navigate('ficha-oferta', { ofertaRef: o.ref })}>{o.ref}</span>
                     )}
                   </div>
-                  {ghost && note && <div style={{ fontSize:9, color:'var(--text4)', fontStyle:'italic' }}>{note}</div>}
+                  {note && <div style={{ fontSize:9, color:'var(--text4)', fontStyle:'italic' }}>{note}</div>}
                   {!ghost && actions && (
                     <div style={{ display:'flex', gap:5, flexWrap:'wrap', borderTop:'1px dashed var(--border)', paddingTop:8, marginTop:2 }}>
                       {actions}
@@ -1683,10 +1781,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                           : colPresentadas.map(alt => {
                               const ghost = stageOf(alt) !== 'presentadas'
                               return <AltCard key={alt.id} alt={alt} accent="#6f5734" ghost={ghost}
-                                note={ghost ? 'Pasó de fase' : undefined}
-                                actions={ghost ? null : (
-                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => descartarAlternativa(alt.id)}>✕ Descartar</button>
-                                )} />
+                                note={ghost ? 'Pasó de fase' : undefined} />
                             })
                         }
                       </div>
@@ -1704,10 +1799,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                               const ghost = stageOf(alt) !== 'visitadas'
                               const fv = condOf(alt).fecha_visita
                               return <AltCard key={alt.id} alt={alt} accent="#0f766e" ghost={ghost}
-                                note={ghost ? (fv ? `Visitada ${fv}` : 'Visitada') : undefined}
-                                actions={ghost ? null : (
-                                  <button className="ab-btn" style={{ fontSize:9, padding:'3px 8px', color:'var(--red)' }} onClick={() => descartarAlternativa(alt.id)}>✕ Descartar</button>
-                                )} />
+                                note={ghost ? (fv ? `Visitada ${fv}` : 'Visitada') : (fv ? `Visitada ${fv}` : undefined)} />
                             })
                         }
                       </div>
@@ -1761,23 +1853,27 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   </div>
                 )}
 
-                {/* DESCARTADAS (con motivo) */}
-                {descartadas.length > 0 && (
-                  <div className="va-card" style={{ marginTop:14, marginBottom:0 }}>
+                {/* DESCARTADAS · zona soltable (pide motivo al soltar) */}
+                {alternativas.length > 0 && (
+                  <DropCol destino="descartar" className="va-card" style={{ marginTop:14, marginBottom:0 }}>
                     <div className="va-card-header">
                       <h3><span className="ico" style={{ color:'#b91c1c' }}>⊘</span> Descartadas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({descartadas.length})</span></h3>
                     </div>
-                    <div style={{ padding:'10px 18px 14px', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
-                      {descartadas.map(alt => (
-                        <AltCard key={alt.id} alt={alt} accent="#b91c1c" actions={
-                          <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                            <span className="tag tag-red" style={{ fontSize:9, width:'fit-content' }}>⊘ Descartada</span>
-                            {condOf(alt).motivo_descarte && <span style={{ fontSize:10, color:'var(--text3)' }}>Motivo: {condOf(alt).motivo_descarte}</span>}
-                          </div>
-                        } />
-                      ))}
-                    </div>
-                  </div>
+                    {descartadas.length === 0 ? (
+                      <div style={{ padding:'16px 18px', textAlign:'center', fontSize:11, color:'var(--text4)', fontStyle:'italic', border:'1px dashed var(--border)', borderRadius:'var(--r)', margin:'10px 14px 14px' }}>Arrastra aquí una card para descartarla (te pedirá el motivo).</div>
+                    ) : (
+                      <div style={{ padding:'10px 18px 14px', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
+                        {descartadas.map(alt => (
+                          <AltCard key={alt.id} alt={alt} accent="#b91c1c" actions={
+                            <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                              <span className="tag tag-red" style={{ fontSize:9, width:'fit-content' }}>⊘ Descartada</span>
+                              {condOf(alt).motivo_descarte && <span style={{ fontSize:10, color:'var(--text3)' }}>Motivo: {condOf(alt).motivo_descarte}</span>}
+                            </div>
+                          } />
+                        ))}
+                      </div>
+                    )}
+                  </DropCol>
                 )}
 
               </div></div>
