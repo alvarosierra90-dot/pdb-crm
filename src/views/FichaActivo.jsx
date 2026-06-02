@@ -836,7 +836,11 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   //     tramo donde empieza su offset).
   const arrSlotsFor = (tramos, units) => {
     const slots = (tramos || []).map(() => [])
-    const us = units || []
+    // Las units 'vac' SIN oferta son espacio vacío (marcadores de hueco), no
+    // ocupantes: se ignoran para que el tramo quede libre y se pueda asignar.
+    // Si no, el render (que ya las filtra) y assignTenant divergían y el drop
+    // fallaba en silencio en plantas que parecían vacías.
+    const us = (units || []).filter(u => !(u.type === 'vac' && !u.oferta))
     if (us.some(u => Number.isInteger(u.seg))) {
       for (const u of us) { const s = Number.isInteger(u.seg) ? u.seg : 0; if (s < slots.length) slots[s].push(u) }
       return slots
@@ -4574,6 +4578,33 @@ export default function FichaActivo() {
   const autoSaveTimer = useRef(null) // debounce timer for stacking auto-save
   activoRef.current = activo // keep ref in sync on every render
 
+  // Sincroniza superficie (y renta de cierre) de cada arrendatario/propietario
+  // asignado en el stacking hacia su fila en BD, para que sus fichas lo
+  // reflejen sin tener que abrirlas. Se llama tras persistir el stacking.
+  const syncStackingToRecords = async (blds) => {
+    const tenAgg = {}
+    ;(blds||[]).flatMap(b=>b.arr||[]).flatMap(r=>r.units||[]).forEach(u=>{
+      if(u.type==='ten' && u.arr_ref){
+        const a = tenAgg[u.arr_ref] || { sup:0, renta:null }
+        a.sup += Number(u.sup)||0
+        if(u.renta>0 && a.renta==null) a.renta = Number(u.renta)
+        tenAgg[u.arr_ref] = a
+      }
+    })
+    for(const [arref, a] of Object.entries(tenAgg)){
+      const upd = { superficie: a.sup }
+      if(a.renta!=null){ upd.closing_rent = a.renta; upd.renta = a.renta }
+      await supabase.from('arrendatarios').update(upd).eq('ref', arref)
+    }
+    const propAgg = {}
+    ;(blds||[]).flatMap(b=>b.prop||[]).flatMap(r=>r.units||[]).forEach(u=>{
+      if(u.prop_id){ propAgg[u.prop_id] = (propAgg[u.prop_id]||0) + (Number(u.sup)||0) }
+    })
+    for(const [pid, sup] of Object.entries(propAgg)){
+      await supabase.from('propietarios').update({ superficie: sup }).eq('id', pid)
+    }
+  }
+
   useEffect(() => {
     if (!params?.ref) return
     setLoadingActivo(true)
@@ -5432,6 +5463,8 @@ export default function FichaActivo() {
                     // Sincroniza la copia en memoria para que un re-render no
                     // revierta lo guardado (causa de "no se queda guardado").
                     setActivo(prev => prev ? { ...prev, stacking_data: blds } : prev)
+                    // Propaga superficie/renta a las filas de arrendatarios/propietarios.
+                    syncStackingToRecords(blds)
                   }, 1500)
                 }}
                 activoPropietario={activo?.propietario || ''}
