@@ -224,30 +224,38 @@ function ProposalModal({ items, onClose, navigate, data = DATA, demanda }) {
   const [saved, setSaved]   = useState(null)   // { token } tras guardar
   const [error, setError]   = useState(null)
 
-  const ofertaItems = items.filter(i => i.ofertaId)   // solo ofertas reales tienen uuid
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const url = saved ? `${origin}/m/${saved.token}` : ''
 
   const generar = async () => {
     if (!demanda?.id) { setError('Abre el mapa desde "Exportar a mapa" de una demanda para poder guardar la selección.'); return }
-    if (!ofertaItems.length) { setError('Selecciona al menos una oferta.'); return }
+    if (!items.length) { setError('Selecciona al menos una oferta en el mapa.'); return }
     setSaving(true); setError(null)
     try {
+      // Resolver las ofertas seleccionadas contra la BD por su ref (item.id = ref
+      // de la oferta). Robusto aunque el mapa muestre datos de ejemplo.
+      const refs = [...new Set(items.map(i => i.id).filter(Boolean))]
+      const { data: ofs } = await supabase.from('ofertas').select('id, ref, activo_id').in('ref', refs)
+      const resolved = ofs || []
+      if (!resolved.length) {
+        setError('Las ofertas seleccionadas no están en la base de datos (el mapa está mostrando datos de ejemplo). Selecciona ofertas reales para poder guardar la selección.')
+        setSaving(false); return
+      }
       // 1) Crear la selección (paquete enviable con token → /m/<token>)
       const { data: sel, error: e1 } = await supabase.from('selecciones')
         .insert({ demanda_id: demanda.id, nombre: demanda.nombre || null, estado: 'borrador', created_by: demanda.usuario || null })
         .select('id, token').single()
       if (e1) throw new Error(e1.message)
       // 2) Items de la selección
-      const sofs = ofertaItems.map((it, i) => ({ seleccion_id: sel.id, oferta_id: it.ofertaId, activo_id: it.activoId || null, orden: i + 1 }))
+      const sofs = resolved.map((o, i) => ({ seleccion_id: sel.id, oferta_id: o.id, activo_id: o.activo_id || null, orden: i + 1 }))
       const { error: e2 } = await supabase.from('seleccion_ofertas').insert(sofs)
       if (e2) throw new Error(e2.message)
       // 3) Alternativas (oferta_demanda) para la trazabilidad 360 — sin duplicar
-      for (const it of ofertaItems) {
+      for (const o of resolved) {
         const { data: ex } = await supabase.from('oferta_demanda')
-          .select('id').eq('demanda_id', demanda.id).eq('oferta_id', it.ofertaId).maybeSingle()
+          .select('id').eq('demanda_id', demanda.id).eq('oferta_id', o.id).maybeSingle()
         if (!ex) await supabase.from('oferta_demanda')
-          .insert({ demanda_id: demanda.id, oferta_id: it.ofertaId, activo_id: it.activoId || null, estado_alternativa: 'propuesta' })
+          .insert({ demanda_id: demanda.id, oferta_id: o.id, activo_id: o.activo_id || null, estado_alternativa: 'propuesta' })
       }
       setSaved({ token: sel.token })
     } catch (e) {
@@ -263,7 +271,7 @@ function ProposalModal({ items, onClose, navigate, data = DATA, demanda }) {
         <div style={{padding:'18px 22px 14px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,background:'#fff',zIndex:1}}>
           <div>
             <div style={{fontSize:15,fontWeight:700}}>{saved ? 'Selección de alternativas creada' : 'Selección de alternativas'}</div>
-            <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{ofertaItems.length} alternativa{ofertaItems.length!==1?'s':''} · {demanda?.nombre || demanda?.ref || 'demanda'}</div>
+            <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{items.length} alternativa{items.length!==1?'s':''} · {demanda?.nombre || demanda?.ref || 'demanda'}</div>
           </div>
           <button onClick={onClose} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'var(--text4)'}}>✕</button>
         </div>
