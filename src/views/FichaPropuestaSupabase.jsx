@@ -296,7 +296,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
           {/* Funnel tracker · hilo conductor entre fases */}
           <FunnelTracker steps={[
             { key:'lead', label:'Lead', ref: propuesta.lead_ref || null,
-              onClick: propuesta.lead_ref ? () => navigate('ficha-lead', { ref: propuesta.lead_ref }) : null },
+              onClick: propuesta.lead_ref ? () => navigate('ficha-lead', { id: propuesta.lead_ref }) : null },
             { key:'opo',  label:'Oportunidad', ref: oportunidad?.dynamics_id || propuesta.dynamics_opportunity_id || null,
               onClick: (oportunidad?.dynamics_id || propuesta.dynamics_opportunity_id) ? () => navigate('ficha-oportunidad', { id: oportunidad?.dynamics_id || propuesta.dynamics_opportunity_id }) : null },
             { key:'pry',  label:'Propuesta', ref: propuesta.ref, current: true, onClick: null },

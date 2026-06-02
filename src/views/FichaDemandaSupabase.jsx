@@ -1336,7 +1336,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
                       label:'Lead', value: leadRef,
                       sub: leadRef ? 'Origen del funnel comercial' : null,
                       status: leadRef ? 'done' : 'locked',
-                      openAction: leadRef ? { label:'Abrir lead', onClick: () => navigate('ficha-lead', { ref: leadRef }) } : null,
+                      openAction: leadRef ? { label:'Abrir lead', onClick: () => navigate('ficha-lead', { id: leadRef }) } : null,
                       lockedHint:'Sin lead de origen vinculado.',
                     },
                     {

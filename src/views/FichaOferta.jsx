@@ -1156,7 +1156,7 @@ function FichaOfertaMock() {
                             label:'Lead', value: leadRefOferta,
                             sub: leadRefOferta ? 'Origen del funnel comercial' : null,
                             status: leadRefOferta ? 'done' : 'locked',
-                            openAction: leadRefOferta ? { label:'Abrir lead', onClick: () => navigate('ficha-lead', { ref: leadRefOferta }) } : null,
+                            openAction: leadRefOferta ? { label:'Abrir lead', onClick: () => navigate('ficha-lead', { id: leadRefOferta }) } : null,
                             lockedHint:'Sin lead de origen vinculado.',
                           },
                           {

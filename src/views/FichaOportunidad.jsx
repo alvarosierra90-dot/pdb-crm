@@ -90,7 +90,7 @@ export default function FichaOportunidad() {
           {/* Funnel tracker · hilo conductor entre fases */}
           <FunnelTracker steps={[
             { key:'lead', label:'Lead', ref: op.lead_ref || null,
-              onClick: op.lead_ref ? () => navigate('ficha-lead', { ref: op.lead_ref }) : null },
+              onClick: op.lead_ref ? () => navigate('ficha-lead', { id: op.lead_ref }) : null },
             { key:'opo',  label:'Oportunidad', ref: op.id, current: true, onClick: null },
             { key:'pry',  label:'Propuesta', ref: v.propuestas?.[0] || null,
               onClick: v.propuestas?.[0] ? () => navigate('ficha-propuesta', { id: v.propuestas[0] }) : null },
