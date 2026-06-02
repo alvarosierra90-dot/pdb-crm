@@ -23,8 +23,8 @@ import { Building2, Target, ScrollText, Trophy, X as XClose, Briefcase, Tag, Fil
 // 'en_negociacion' (botón 'Abrir negociación'), no hay tab dedicado.
 const DEM_TABS = [
   ['dem-info', 'Información general'],
-  ['dem-docs', 'Documentos'],
   ['dem-360',  'Vista 360'],
+  ['dem-docs', 'Documentos'],
   ['dem-conf', 'Confidencialidad'],
 ]
 
@@ -1789,7 +1789,8 @@ export default function FichaDemandaSupabase({ refOrId }) {
             const colVisitadas   = activas.filter(wasVisited)
             const colFinalistas  = activas.filter(wasFinalista)
             const colNegociando  = activas.filter(wasNegotiated)
-            const cerradas       = alternativas.filter(a => ['ganada','perdida'].includes(a.estado_alternativa))
+            const cerradas       = alternativas.filter(a => a.estado_alternativa === 'ganada')   // SOLO la firmada al cierre
+            const perdidas       = alternativas.filter(a => a.estado_alternativa === 'perdida')
             const descartadas    = alternativas.filter(a => a.estado_alternativa === 'descartada')
 
             const fmtSba = sba => sba ? `${Number(sba).toLocaleString('es-ES')} m²` : '—'
@@ -2002,23 +2003,34 @@ export default function FichaDemandaSupabase({ refOrId }) {
                   </>
                 )}
 
-                {/* CERRADAS (ganada/perdida) */}
+                {/* CERRADA · solo la opción firmada al final de la negociación */}
                 {cerradas.length > 0 && (
                   <div className="va-card" style={{ marginTop:14, marginBottom:0 }}>
                     <div className="va-card-header">
-                      <h3><span className="ico" style={{ color:'#475569' }}>✓</span> Cerradas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({cerradas.length})</span></h3>
+                      <h3><span className="ico" style={{ color:'#15803d' }}>✓</span> Cerrada · firmada <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({cerradas.length})</span></h3>
                     </div>
                     <div style={{ padding:'10px 18px 14px', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
-                      {cerradas.map(alt => {
-                        const isWin = alt.estado_alternativa === 'ganada'
-                        return (
-                          <AltCard key={alt.id} alt={alt} accent={isWin ? 'var(--green)' : '#94a3b8'} actions={
-                            <span className={`tag ${isWin ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:9 }}>
-                              {isWin ? 'Ganada' : '✕ Perdida'}
-                            </span>
-                          } />
-                        )
-                      })}
+                      {cerradas.map(alt => (
+                        <AltCard key={alt.id} alt={alt} accent="var(--green)" actions={
+                          <span className="tag tag-green" style={{ fontSize:9 }}>✓ Firmada</span>
+                        } />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* PERDIDAS · negociaciones cerradas sin firma */}
+                {perdidas.length > 0 && (
+                  <div className="va-card" style={{ marginTop:14, marginBottom:0 }}>
+                    <div className="va-card-header">
+                      <h3><span className="ico" style={{ color:'#94a3b8' }}>✕</span> Perdidas <span style={{ color:'var(--text4)', fontWeight:400, fontSize:11, marginLeft:4 }}>({perdidas.length})</span></h3>
+                    </div>
+                    <div style={{ padding:'10px 18px 14px', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
+                      {perdidas.map(alt => (
+                        <AltCard key={alt.id} alt={alt} accent="#94a3b8" actions={
+                          <span className="tag tag-gray" style={{ fontSize:9 }}>✕ Perdida</span>
+                        } />
+                      ))}
                     </div>
                   </div>
                 )}
