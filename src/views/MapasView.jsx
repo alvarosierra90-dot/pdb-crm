@@ -377,18 +377,22 @@ export default function MapasView() {
       }
       const byId = {}, byRef = {}
       acts.forEach(a => { byId[a.id] = a; if (a.ref) byRef[a.ref] = a })
+      // Incluimos TODAS las ofertas reales (con y sin coordenadas). Las que no
+      // tienen lat/lng no pintan marcador pero SÍ aparecen en la lista del panel
+      // derecho, así se pueden seleccionar igualmente (no se cae a datos demo).
       const mapped = activas.map(o => {
-        const a = byId[o.activo_id] || byRef[o.activo_ref]
-        if (!a || a.lat == null || a.lng == null) return null
+        const a = byId[o.activo_id] || byRef[o.activo_ref] || null
         return {
-          id: o.ref, ofertaId: o.id, activoId: a.id,
-          nombre: `${a.nombre || '—'} — ${o.ref}`,
-          dir: a.zona || '—', lat: Number(a.lat), lng: Number(a.lng),
-          uso: a.uso || '—', sba: o.superficie_disponible || a.sba || 0,
-          renta: o.renta_m2 || 0, disp: 'Inmediata', prop: a.propietario || '—',
+          id: o.ref, ofertaId: o.id, activoId: a?.id || null,
+          nombre: `${a?.nombre || o.activo_ref || '—'} — ${o.ref}`,
+          dir: a?.zona || '—',
+          lat: a?.lat != null ? Number(a.lat) : null,
+          lng: a?.lng != null ? Number(a.lng) : null,
+          uso: a?.uso || '—', sba: o.superficie_disponible || a?.sba || 0,
+          renta: o.renta_m2 || 0, disp: 'Inmediata', prop: a?.propietario || '—',
           mandato: '—', estado: o.estado || 'Disponible',
         }
-      }).filter(Boolean)
+      })
       if (mapped.length) setDbOfertas(mapped)
     })()
 
@@ -531,6 +535,8 @@ export default function MapasView() {
 
     // Add / update markers
     filtered.forEach(item => {
+      // Sin coordenadas no hay marcador (la oferta sigue en la lista del panel).
+      if (item.lat == null || item.lng == null || isNaN(Number(item.lat)) || isNaN(Number(item.lng))) return
       const isActive = item.id === activeId
       const isSel    = selected.has(item.id)
       const hl       = isActive || isSel
