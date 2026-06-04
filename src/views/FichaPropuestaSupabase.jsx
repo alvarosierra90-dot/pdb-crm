@@ -108,6 +108,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
   const [activoQuery, setActivoQuery] = useState('')
   const [activoFocused, setActivoFocused] = useState(false)
   const [savingActivo, setSavingActivo] = useState(false)
+  const [addingActivo, setAddingActivo] = useState(false)   // typeahead de activos solo tras pulsar "+ Añadir"
   // Alta inline de equipo/colaboradores (estilo Demanda/Lead)
   const [addEqSection, setAddEqSection] = useState(null)   // 'equipo' | 'colab' | null
   const [addEqDraft, setAddEqDraft] = useState({ equipo:'', miembro:'', rol:'Soporte' })
@@ -421,35 +422,53 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                           <div key={a.ref} style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'3px 6px 3px 9px', background:'#fff', border:'1px solid #d8b4fe', borderRadius:20, fontSize:10.5 }}>
                             <span onClick={() => navigate('ficha-activo', { ref: a.ref })} style={{ cursor:'pointer', fontWeight:600, color:'#6b5b8e' }} title="Abrir ficha">{a.nombre || a.ref}</span>
                             {a.ciudad && <span style={{ color:'var(--text4)', fontSize:9.5 }}>· {a.ciudad}</span>}
-                            <button onClick={(e) => { e.stopPropagation(); removeActivo(a.ref) }} disabled={savingActivo} title="Desvincular" style={{ marginLeft:1, background:'transparent', border:'none', cursor:'pointer', color:'var(--text4)', fontSize:12, lineHeight:1, padding:'0 2px' }}>×</button>
+                            <button onClick={(e) => { e.stopPropagation(); removeActivo(a.ref) }} disabled={savingActivo} title="Quitar activo" style={{ marginLeft:1, background:'transparent', border:'none', cursor:'pointer', color:'var(--text4)', fontSize:12, lineHeight:1, padding:'0 2px' }}>×</button>
                           </div>
                         ))}
                       </div>
                     )}
-                    <div style={{ position:'relative' }}>
-                      <input
-                        placeholder="Buscar activo por nombre, dirección o ref…"
-                        value={activoQuery}
-                        onChange={e => setActivoQuery(e.target.value)}
-                        onFocus={() => setActivoFocused(true)}
-                        onBlur={() => setTimeout(() => setActivoFocused(false), 150)}
-                        onClick={e => e.stopPropagation()}
-                        style={{ width:'100%', padding:'6px 9px', fontSize:11.5, border:'1px solid #d8b4fe', borderRadius:5, background:'#fff', boxSizing:'border-box', outline:'none', fontFamily:'inherit' }}
-                      />
-                      {activoFocused && matches.length > 0 && (
-                        <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, zIndex:50, background:'#fff', border:'1px solid #d8b4fe', borderRadius:5, maxHeight:200, overflowY:'auto', boxShadow:'0 6px 20px rgba(0,0,0,0.12)' }}>
-                          {matches.map(a => (
-                            <div key={a.ref} onMouseDown={() => addActivo(a)}
-                              style={{ padding:'6px 9px', fontSize:11.5, cursor:'pointer', borderBottom:'1px solid var(--border)' }}
-                              onMouseEnter={e => e.currentTarget.style.background = '#faf5ff'}
-                              onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
-                              <div style={{ fontWeight:600 }}>{a.nombre}</div>
-                              <div style={{ fontSize:9.5, color:'var(--text4)' }}>{[a.ref, a.direccion, a.ciudad, a.uso].filter(Boolean).join(' · ')}</div>
-                            </div>
-                          ))}
+
+                    {/* El typeahead solo aparece tras pulsar "+ Añadir activo" para
+                        no añadir activos por accidente (control explícito). */}
+                    {!addingActivo ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setAddingActivo(true); setActivoQuery('') }}
+                        style={{ padding:'5px 11px', fontSize:11, fontWeight:600, border:'1px dashed #c4b5fd', color:'#6b5b8e', background:'#faf5ff', borderRadius:6, cursor:'pointer', fontFamily:'inherit' }}>
+                        + Añadir activo
+                      </button>
+                    ) : (
+                      <div style={{ position:'relative' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                          <input
+                            autoFocus
+                            placeholder="Buscar activo por nombre, dirección o ref…"
+                            value={activoQuery}
+                            onChange={e => setActivoQuery(e.target.value)}
+                            onFocus={() => setActivoFocused(true)}
+                            onBlur={() => setTimeout(() => setActivoFocused(false), 150)}
+                            style={{ flex:1, padding:'6px 9px', fontSize:11.5, border:'1px solid #d8b4fe', borderRadius:5, background:'#fff', boxSizing:'border-box', outline:'none', fontFamily:'inherit' }}
+                          />
+                          <button
+                            onClick={() => { setAddingActivo(false); setActivoQuery(''); setActivoFocused(false) }}
+                            style={{ padding:'6px 10px', fontSize:11, fontWeight:500, border:'1px solid var(--border)', borderRadius:5, background:'#fff', color:'#64748b', cursor:'pointer', fontFamily:'inherit' }}>
+                            Cerrar
+                          </button>
                         </div>
-                      )}
-                    </div>
+                        {activoFocused && matches.length > 0 && (
+                          <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, zIndex:50, background:'#fff', border:'1px solid #d8b4fe', borderRadius:5, maxHeight:200, overflowY:'auto', boxShadow:'0 6px 20px rgba(0,0,0,0.12)' }}>
+                            {matches.map(a => (
+                              <div key={a.ref} onMouseDown={() => addActivo(a)}
+                                style={{ padding:'6px 9px', fontSize:11.5, cursor:'pointer', borderBottom:'1px solid var(--border)' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#faf5ff'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                                <div style={{ fontWeight:600 }}>{a.nombre}</div>
+                                <div style={{ fontSize:9.5, color:'var(--text4)' }}>{[a.ref, a.direccion, a.ciudad, a.uso].filter(Boolean).join(' · ')}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
 
