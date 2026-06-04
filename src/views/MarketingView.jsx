@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useNav } from '../context/NavigationContext'
+import DossierGenerator from './DossierGenerator'
 
 const SUBTABS = [
   ['campanas',    '📣 Campañas'],
   ['posicionamiento', 'Posicionamiento'],
   ['material',    'Material y Reporting'],
+  ['dossier',     'Generador de dossier'],
 ]
 
 /* ── Mock data ── */
@@ -301,10 +303,11 @@ export default function MarketingView() {
         ))}
       </div>
 
-      <div style={{flex:1,overflowY:'auto'}}>
+      <div style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',minHeight:0}}>
         {subtab==='campanas'        && <TabCampanas navigate={navigate}/>}
         {subtab==='posicionamiento' && <TabPosicionamiento/>}
         {subtab==='material'        && <TabMaterial/>}
+        {subtab==='dossier'         && <DossierGenerator/>}
       </div>
     </div>
   )
