@@ -2459,9 +2459,10 @@ tr:hover .ra-cell { opacity: 1; }
 /* Ficha de Activo · fila única de cards (Info general). En columnas estrechas
    las filas label/valor se apilan (label arriba, valor debajo) para que textos
    largos como la dirección no se solapen. */
-.act-info-row .ir { flex-wrap: wrap; align-items: baseline; row-gap: 1px; column-gap: 8px; padding: 5px 0; }
-.act-info-row .ir-k { flex: 0 0 100%; font-size: 9px; letter-spacing: .04em; text-transform: uppercase; color: var(--text4); }
-.act-info-row .ir-v { flex: 1 1 auto; min-width: 0; text-align: left; word-break: break-word; line-height: 1.35; }
+.act-info-row .ir { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 2px; padding: 6px 0; }
+.act-info-row .ir-k { width: 100%; flex: none; font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text4); line-height: 1.2; }
+.act-info-row .ir-v { width: 100%; flex: none; text-align: left; white-space: normal; word-break: break-word; line-height: 1.35; font-size: 12px; min-height: 0; display: block; }
+.act-info-row .ir-v input, .act-info-row .ir-v select, .act-info-row .ir-v textarea { width: 100%; box-sizing: border-box; }
 .act-info-row .va-chip-row { grid-template-columns: 1fr; gap: 6px; }
 
 /* Filas de miembro en la card 'Equipo y partes' · ✕ aparece en hover */
