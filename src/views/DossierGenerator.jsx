@@ -245,10 +245,10 @@ export default function DossierGenerator() {
       const { data } = await supabase.from('fotos_activo').select('url, nombre, tipo, orden').eq('activo_id', activoId).order('orden')
       rows = (data || []).filter(r => r.url)
     } catch { rows = [] }
-    const photos = rows.filter(r => r.tipo !== 'plano')
-      .sort((a, b) => (b.tipo === 'principal' ? 1 : 0) - (a.tipo === 'principal' ? 1 : 0))
-      .map(r => ({ name: r.nombre || 'foto', url: r.url }))
-    const plans = rows.filter(r => r.tipo === 'plano').map(r => ({ name: r.nombre || 'plano', url: r.url }))
+    // Convención: columna `tipo` = subtipo. Es plano si el subtipo es de plano.
+    const PLAN_SUBS = ['Plano de planta', 'Sección', 'Axonométrica']
+    const photos = rows.filter(r => !PLAN_SUBS.includes(r.tipo)).map(r => ({ name: r.nombre || 'foto', url: r.url }))
+    const plans  = rows.filter(r => PLAN_SUBS.includes(r.tipo)).map(r => ({ name: r.nombre || 'plano', url: r.url }))
     return { photos, plans }
   }
 

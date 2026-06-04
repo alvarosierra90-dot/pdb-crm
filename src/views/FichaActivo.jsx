@@ -2353,21 +2353,26 @@ function TabMultimedia({ activoId }) {
   const [lightbox, setLightbox] = useState(null)
   const fileRef = useRef(null)
 
-  // Carga real desde fotos_activo (las imágenes se guardan como data URL en BD)
+  // Carga real desde fotos_activo. Convención (sin migración): la columna `tipo`
+  // guarda el SUBTIPO (Exterior, Interior, Plano de planta…). Es plano si el
+  // subtipo está en FOTO_SUB_PLAN. La foto principal es la de orden 0.
   async function reload() {
     if (!activoId) { setMedia([]); setLoading(false); return }
     setLoading(true)
     const { data } = await supabase.from('fotos_activo')
       .select('id, url, nombre, tipo, orden').eq('activo_id', activoId).order('orden')
-    setMedia((data || []).map(r => ({
-      id: r.id,
-      tipo: r.tipo === 'plano' ? 'Plano' : 'Fotografía',
-      subtipo: r.tipo === 'plano' ? 'Plano de planta' : 'Exterior',
-      desc: r.nombre || '',
-      principal: r.tipo === 'principal',
-      src: r.url || '',
-      date: '',
-    })))
+    setMedia((data || []).map(r => {
+      const esPlano = FOTO_SUB_PLAN.includes(r.tipo)
+      return {
+        id: r.id,
+        tipo: esPlano ? 'Plano' : 'Fotografía',
+        subtipo: r.tipo || (esPlano ? 'Plano de planta' : 'Exterior'),
+        desc: r.nombre || '',
+        principal: !esPlano && r.orden === 0,
+        src: r.url || '',
+        date: '',
+      }
+    }))
     setLoading(false)
   }
   useEffect(() => { reload() }, [activoId])
@@ -2379,8 +2384,8 @@ function TabMultimedia({ activoId }) {
   const setPrincipal = async (id) => {
     if (!activoId) return
     setBusy(true)
-    await supabase.from('fotos_activo').update({ tipo:'exterior' }).eq('activo_id', activoId).eq('tipo','principal')
-    await supabase.from('fotos_activo').update({ tipo:'principal', orden:0 }).eq('id', id)
+    await supabase.from('fotos_activo').update({ orden:1 }).eq('activo_id', activoId).in('tipo', FOTO_SUB_FOTO)
+    await supabase.from('fotos_activo').update({ orden:0 }).eq('id', id)
     setLightbox(null)
     await reload(); setBusy(false)
   }
@@ -2392,24 +2397,31 @@ function TabMultimedia({ activoId }) {
     await reload(); setBusy(false)
   }
 
+  // Etiquetado posterior · cambia subtipo (columna tipo) y descripción (nombre)
+  const updateTag = async (id, subtipo, desc) => {
+    setBusy(true)
+    await supabase.from('fotos_activo').update({ tipo: subtipo, nombre: desc }).eq('id', id)
+    await reload(); setBusy(false)
+  }
+
   const uploadFiles = async (fileList) => {
     const files = Array.from(fileList || []).filter(f => f.type.startsWith('image/'))
     if (!activoId) { window.alert('Guarda primero el activo para poder subir fotos.'); return }
     if (files.length === 0) return
     setBusy(true)
+    const esPlano = FOTO_SUB_PLAN.includes(newSub)
     const yaHayPrincipal = media.some(m => m.principal)
     const base = media.length
     for (let i = 0; i < files.length; i++) {
       const f = files[i]
       const dataUrl = await new Promise(res => { const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(f) })
-      const esPlano = newTipo === 'Plano'
       const principal = !esPlano && !yaHayPrincipal && i === 0
       await supabase.from('fotos_activo').insert({
         activo_id:    activoId,
         storage_path: `inline/${activoId}/${base + i}-${(f.name || 'img').replace(/[^\w.\-]+/g, '_')}`,
         url:          dataUrl,
         nombre:       newDesc || f.name || `${newSub} ${base + i + 1}`,
-        tipo:         esPlano ? 'plano' : (principal ? 'principal' : 'exterior'),
+        tipo:         newSub,
         orden:        principal ? 0 : base + i + 1,
       })
     }
@@ -2517,13 +2529,25 @@ function TabMultimedia({ activoId }) {
               <div style={{height:200,display:'flex',alignItems:'center',justifyContent:'center',fontSize:80,background:'var(--gray-lt)'}}>🏢</div>
             )}
             <div style={{padding:'16px 20px'}}>
-              <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>{lightbox.desc}</div>
-              <div style={{display:'flex',gap:6,marginBottom:10}}>
-                <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'#f5efe5',color:'#5a4828',fontWeight:600}}>{lightbox.tipo}</span>
-                <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'var(--gray-lt)',color:'var(--text3)',border:'1px solid var(--border)'}}>{lightbox.subtipo}</span>
+              <div style={{display:'flex',gap:6,marginBottom:10,alignItems:'center'}}>
+                <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:lightbox.tipo==='Plano'?'#ede9fe':'#f5efe5',color:lightbox.tipo==='Plano'?'#6b5b8e':'#5a4828',fontWeight:600}}>{lightbox.tipo}</span>
                 {lightbox.principal && <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:'var(--accent)',color:'#fff',fontWeight:700}}>PRINCIPAL</span>}
               </div>
-              <div style={{fontSize:10,color:'var(--text4)',marginBottom:14}}>Subido el {lightbox.date}</div>
+              {/* Etiquetado · subtipo + descripción, se guarda en la PDB */}
+              <div style={{display:'grid',gridTemplateColumns:'150px 1fr auto',gap:8,alignItems:'end',marginBottom:14}}>
+                <div>
+                  <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Etiqueta</div>
+                  <select className="fsel" style={{width:'100%'}} value={lightbox.subtipo} onChange={e=>setLightbox({...lightbox,subtipo:e.target.value})}>
+                    <optgroup label="Fotografía">{FOTO_SUB_FOTO.map(s=><option key={s} value={s}>{s}</option>)}</optgroup>
+                    <optgroup label="Plano">{FOTO_SUB_PLAN.map(s=><option key={s} value={s}>{s}</option>)}</optgroup>
+                  </select>
+                </div>
+                <div>
+                  <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Descripción</div>
+                  <input className="of-inp" style={{width:'100%',boxSizing:'border-box'}} value={lightbox.desc} onChange={e=>setLightbox({...lightbox,desc:e.target.value})} placeholder="Fachada principal..."/>
+                </div>
+                <button onClick={()=>updateTag(lightbox.id,lightbox.subtipo,lightbox.desc)} disabled={busy} style={{padding:'8px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Guardar etiqueta</button>
+              </div>
               <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                 {!lightbox.principal && <button onClick={()=>{setPrincipal(lightbox.id);setLightbox({...lightbox,principal:true})}} style={{padding:'6px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>★ Marcar como principal</button>}
                 {(lightbox.src && (lightbox.src.startsWith('http') || lightbox.src.startsWith('data:'))) && (
@@ -2851,12 +2875,26 @@ function MapaCarrusel({ activo, direccion, onAddressChange }) {
   const searchRef  = useRef(null)
   const acRef      = useRef(null)
   const [carIdx, setCarIdx] = useState(0)
+  const [ordenadas, setOrdenadas] = useState([])
 
-  const fotos = MOCK_MEDIA.filter(m => m.tipo === 'Fotografía')
-  const principal = fotos.find(m => m.principal) || fotos[0]
-  const ordenadas = principal
-    ? [principal, ...fotos.filter(m => m.id !== principal?.id)]
-    : fotos
+  // Fotos reales del activo desde fotos_activo (sin defaults). Se sincroniza
+  // con lo que se sube en el tab Multimedia (mismo origen). principal = orden 0.
+  useEffect(() => {
+    let cancel = false
+    async function loadFotos() {
+      if (!activo?.id) { if (!cancel) setOrdenadas([]); return }
+      const { data } = await supabase.from('fotos_activo')
+        .select('id, url, nombre, tipo, orden').eq('activo_id', activo.id).order('orden')
+      if (cancel) return
+      const fotos = (data || [])
+        .filter(r => r.url && !FOTO_SUB_PLAN.includes(r.tipo))
+        .map(r => ({ id: r.id, src: r.url, desc: r.nombre || '', subtipo: r.tipo || 'Foto', principal: r.orden === 0 }))
+      setOrdenadas(fotos)
+      setCarIdx(0)
+    }
+    loadFotos()
+    return () => { cancel = true }
+  }, [activo?.id])
 
   // Init map + Places search bar (once)
   useEffect(() => {
@@ -2947,11 +2985,11 @@ function MapaCarrusel({ activo, direccion, onAddressChange }) {
           <>
             {/* Foto principal full-bleed */}
             <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
-              {ordenadas[carIdx]?.src?.startsWith('http') ? (
+              {(ordenadas[carIdx]?.src && (ordenadas[carIdx].src.startsWith('http') || ordenadas[carIdx].src.startsWith('data:'))) ? (
                 <img src={ordenadas[carIdx].src} alt={ordenadas[carIdx].desc}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
               ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 72, background: '#f1f5f9' }}>{ordenadas[carIdx]?.src}</div>
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 72, background: '#f1f5f9' }}>🏢</div>
               )}
               {/* Gradient overlay */}
               <div style={{ position:'absolute',inset:0, background:'linear-gradient(180deg,rgba(0,0,0,0) 50%,rgba(0,0,0,0.55) 100%)', pointerEvents:'none' }}/>
@@ -2968,8 +3006,8 @@ function MapaCarrusel({ activo, direccion, onAddressChange }) {
                 {ordenadas.slice(0,4).map((f,i) => (
                   <div key={f.id} onClick={() => setCarIdx(i)}
                     style={{ width:32,height:32,borderRadius:4,border:`2px solid ${i===carIdx?'#fff':'rgba(255,255,255,.6)'}`,overflow:'hidden',cursor:'pointer',background:'#f8fafc',flexShrink:0 }}>
-                    {f.src?.startsWith('http') ? <img src={f.src} alt={f.desc} style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }} loading="lazy"/>
-                      : <div style={{ width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14 }}>{f.src}</div>}
+                    {(f.src && (f.src.startsWith('http') || f.src.startsWith('data:'))) ? <img src={f.src} alt={f.desc} style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }} loading="lazy"/>
+                      : <div style={{ width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14 }}>🏢</div>}
                   </div>
                 ))}
               </div>
