@@ -32,7 +32,6 @@ const inlineInp = {
   width:'100%', padding:'4px 7px', fontSize:11.5, border:'1px solid var(--border)',
   borderRadius:5, background:'var(--surface)', color:'var(--text)', fontFamily:'inherit', boxSizing:'border-box', outline:'none',
 }
-const inlineTa = { ...inlineInp, padding:'6px 8px', resize:'vertical', minHeight:60, lineHeight:1.5 }
 
 // Tabs canónicos · "Información general" + "Vista 360" (sustituye a Trazabilidad)
 const TABS = [
@@ -59,6 +58,18 @@ function PrioridadTag({ prioridad }) {
 function fmtFecha(ts) {
   if (!ts) return '—'
   return new Date(ts).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })
+}
+
+// Estilo del valor en modo lectura dentro de una dash-card (estilo Demanda).
+const viewVal = { fontSize:13, fontWeight:600, color:'var(--text)' }
+// Campo vertical (label arriba + valor/input debajo) usado en las cards de detalle.
+function DashField({ label, children }) {
+  return (
+    <div className="dash-field">
+      <span className="dash-field-lbl">{label}</span>
+      {children}
+    </div>
+  )
 }
 
 export default function FichaLead() {
@@ -330,18 +341,31 @@ export default function FichaLead() {
               onClick: lead.mandato_ref ? () => navigate('ficha-mandato', { ref: lead.mandato_ref }) : null },
           ]} />
 
-          {/* Header con pills interactivos (popover editable) · canon unificado */}
-          <div className="ah">
-            <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-              <div style={{ width:50, height:50, borderRadius:10, background:'#fef3c7', border:'1px solid #fde68a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>
-
-              </div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div className="ah-ref">
-                  <span style={{ background:'#fef3c7', color:'#92400e', border:'1px solid #fde68a', padding:'0 6px', borderRadius:3, fontSize:9, fontWeight:700 }}>LEAD</span>
-                  <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{lead.ref}</span>
+          {/* Header rediseñado · identidad + chips estilo Demanda (.dem-skin / .dk-topbar) */}
+          <div className="dem-skin">
+            <div className="dk-topbar">
+              <div className="dk-identity">
+                <div className="dk-avatar" style={{ background:'linear-gradient(135deg,#f59e0b,#b45309)' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
                 </div>
-                <div className="ah-name">{lead.nombre}</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div className="dk-id-meta">
+                    <span className="dk-tag">Lead</span>
+                    <span className="dk-ref">{lead.ref}</span>
+                    {LEAD_TIPOS.find(x => x.key === lead.tipo) && (
+                      <><span className="dk-dot">·</span><span>{LEAD_TIPOS.find(x => x.key === lead.tipo).label}</span></>
+                    )}
+                  </div>
+                  {editing
+                    ? <input style={{ ...inlineInp, fontSize:24, fontWeight:700, padding:'2px 6px', margin:'2px 0' }} value={form.nombre} onChange={e => setF('nombre', e.target.value)} placeholder="Nombre del lead" />
+                    : <h1 className="dk-h1">{lead.nombre}</h1>}
+                  <div className="dk-addr">
+                    {contactoNombre && <><span>{contactoNombre}</span><span className="dk-dot">·</span></>}
+                    {cuentaNombre && <><span>{cuentaNombre}</span><span className="dk-dot">·</span></>}
+                    <span>Entrada: {fmtFecha(lead.created_at)}</span>
+                    <span className="dk-dot">·</span><strong>{lead.responsable || 'Sin responsable'}</strong>
+                  </div>
+                </div>
               </div>
               {(() => {
                 const tipo      = LEAD_TIPOS.find(x => x.key === lead.tipo)
@@ -360,10 +384,11 @@ export default function FichaLead() {
                   loadLead()
                 }
                 const fechaEntrada = lead.created_at ? new Date(lead.created_at) : null
-                const fechaEntradaStr = fechaEntrada ? fechaEntrada.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'2-digit' }) : '—'
-                const horaEntradaStr  = fechaEntrada ? fechaEntrada.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' }) : '—'
+                const entradaStr = fechaEntrada
+                  ? `${fechaEntrada.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'2-digit' })} · ${fechaEntrada.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })}`
+                  : '—'
                 return (
-                  <HeaderPills items={[
+                  <HeaderPills variant="dk" items={[
                     { key:'estado', type:'popover', label:'Estado', value: estado?.label || null, color: estadoColor, accent: !!estado,
                       popover: { type:'select', options: LEAD_ESTADOS.map(x => ({ value:x.key, label:x.label })), onSave: v => saveField('estado', v) } },
                     { key:'prioridad', type:'popover', label:'Prioridad', value: prioridad?.label || null, color: prioridadColor, accent: lead.prioridad === 'alta' || lead.prioridad === 'media',
@@ -375,8 +400,7 @@ export default function FichaLead() {
                       popover: { type:'select', options: EQUIPOS.map(eq => ({ value:eq, label:eq })), onSave: v => saveField('equipo', v) } },
                     { key:'resp', type:'popover', label:'Responsable', value: lead.responsable || null,
                       popover: { type:'text', placeholder:'Nombre del broker', onSave: v => saveField('responsable', v) } },
-                    { key:'fecha', type:'info', label:'Entrada', value: fechaEntradaStr, title: fechaEntrada ? fechaEntrada.toLocaleString('es-ES') : null },
-                    { key:'hora',  type:'info', label:'Hora',    value: horaEntradaStr },
+                    { key:'entrada', type:'info', label:'Entrada', value: entradaStr, title: fechaEntrada ? fechaEntrada.toLocaleString('es-ES') : null },
                     cuentaNombre && { key:'cuenta', type:'info', label:'Cuenta', value: cuentaNombre, color:'blue', accent:true },
                     oportunidadId && { key:'oportunidad', type:'info', label:'Oportunidad', value: oportunidadNombre || oportunidadId, color:'teal', accent:true },
                   ]} />
@@ -633,21 +657,74 @@ export default function FichaLead() {
                   return <FunnelStepCards steps={finalSteps} />
                 })()}
 
-                {/* ─── Descripción del lead · único bloque del tab info ───
-                       Todos los campos estructurados (estado, tipo, prioridad,
-                       canal, equipo, responsable, fechas) viven ahora en pills
-                       popover del header. Contacto en su step card. Cuenta y
-                       Oportunidad Dynamics en step cards del wizard. ─── */}
-                <div className="va-card" style={{ marginBottom:14 }}>
-                  <div className="va-card-header">
-                    <h3><span className="ico">▭</span> Descripción</h3>
-                    <span className="hint">Texto libre · contexto del lead</span>
+                {/* ─── DETALLE · los 4 cuadros en una sola fila (estilo Demanda) ───
+                       Los campos estructurados (estado, tipo, prioridad, canal,
+                       equipo, responsable, fechas) viven en los chips del header.
+                       Aquí: Descripción + Notas (texto libre) + Canal y origen +
+                       Captura automática, en una fila de 4 columnas a misma altura. ─── */}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12, marginBottom:14, alignItems:'stretch' }}>
+
+                  {/* Descripción */}
+                  <div className="dash-card">
+                    <div className="dash-card-head">Descripción</div>
+                    <div style={{ padding:'12px 16px 16px', fontSize:12.5, color:'var(--text2)', lineHeight:1.55 }}>
+                      {editing
+                        ? <textarea className="dash-field-input" style={{ minHeight:140, resize:'vertical', lineHeight:1.5 }} value={form.descripcion} onChange={e => setF('descripcion', e.target.value)} placeholder="Detalles del lead..." />
+                        : (lead.descripcion || <span style={{ color:'var(--text4)' }}>Sin descripción.</span>)}
+                    </div>
                   </div>
-                  <div style={{padding:'4px 20px 16px',fontSize:12,color:'var(--text2)',lineHeight:1.55}}>
-                    {editing
-                      ? <textarea style={inlineTa} value={form.descripcion} onChange={e => setF('descripcion', e.target.value)} placeholder="Detalles del lead..." />
-                      : (lead.descripcion || <span style={{color:'var(--text4)'}}>Sin descripción.</span>)}
+
+                  {/* Notas de cualificación */}
+                  <div className="dash-card">
+                    <div className="dash-card-head">Notas de cualificación</div>
+                    <div style={{ padding:'12px 16px 16px', fontSize:12.5, color:'var(--text2)', lineHeight:1.55 }}>
+                      {editing
+                        ? <textarea className="dash-field-input" style={{ minHeight:140, resize:'vertical', lineHeight:1.5 }} value={form.notas_cualificacion} onChange={e => setF('notas_cualificacion', e.target.value)} placeholder="Notas internas durante la cualificación..." />
+                        : (lead.notas_cualificacion || <span style={{ color:'var(--text4)' }}>Sin notas.</span>)}
+                    </div>
                   </div>
+
+                  {/* Canal y origen */}
+                  <div className="dash-card">
+                    <div className="dash-card-head">Canal y origen</div>
+                    <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:11 }}>
+                      <DashField label="Canal de entrada">
+                        {editing
+                          ? <select className="dash-field-input" value={form.origen_canal} onChange={e => setF('origen_canal', e.target.value)}>
+                              <option value="">—</option>
+                              {LEAD_CANALES.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                          : <span style={lead.origen_canal ? viewVal : { ...viewVal, color:'var(--text4)', fontWeight:500 }}>{lead.origen_canal || '—'}</span>}
+                      </DashField>
+                      <DashField label="Campaña asociada">
+                        {editing
+                          ? <input className="dash-field-input" value={form.origen_campana} onChange={e => setF('origen_campana', e.target.value)} placeholder="Q2-2026 Oficinas Madrid" />
+                          : <span style={lead.origen_campana ? viewVal : { ...viewVal, color:'var(--text4)', fontWeight:500 }}>{lead.origen_campana || '—'}</span>}
+                      </DashField>
+                      <DashField label="Anuncio concreto">
+                        {editing
+                          ? <input className="dash-field-input" value={form.origen_anuncio} onChange={e => setF('origen_anuncio', e.target.value)} placeholder="Form contacto general" />
+                          : <span style={lead.origen_anuncio ? viewVal : { ...viewVal, color:'var(--text4)', fontWeight:500 }}>{lead.origen_anuncio || '—'}</span>}
+                      </DashField>
+                      <DashField label="URL de origen">
+                        {editing
+                          ? <input className="dash-field-input" style={{ fontFamily:'var(--mono)' }} value={form.origen_url} onChange={e => setF('origen_url', e.target.value)} placeholder="savills.es/contacto" />
+                          : <span style={{ ...(lead.origen_url ? viewVal : { ...viewVal, color:'var(--text4)', fontWeight:500 }), fontFamily:'var(--mono)', fontSize:11 }}>{lead.origen_url || '—'}</span>}
+                      </DashField>
+                    </div>
+                  </div>
+
+                  {/* Captura automática */}
+                  <div className="dash-card">
+                    <div className="dash-card-head">Captura automática</div>
+                    <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:11 }}>
+                      <DashField label="Fecha y hora"><span style={{ ...viewVal, fontFamily:'var(--mono)', fontSize:12 }}>{fmtFecha(lead.created_at)}</span></DashField>
+                      <DashField label="Equipo por defecto"><span style={lead.equipo ? viewVal : { ...viewVal, color:'var(--text4)', fontWeight:500 }}>{lead.equipo || '—'}</span></DashField>
+                      <DashField label="Responsable inicial"><span style={lead.responsable ? viewVal : { ...viewVal, color:'var(--text4)', fontWeight:500 }}>{lead.responsable || '—'}</span></DashField>
+                      <DashField label="Tipo sugerido"><TipoTag tipo={lead.tipo}/></DashField>
+                    </div>
+                  </div>
+
                 </div>
 
                 {/* Equipo de trabajo · bloque relacional (N miembros, no cabe como pill) */}
@@ -658,60 +735,6 @@ export default function FichaLead() {
                   onRemove={removeMiembro}
                   onUpdateRol={updateMiembroRol}
                 />
-
-                {(lead.notas_cualificacion || editing) && (
-                  <div className="va-card">
-                    <div className="va-card-header">
-                      <h3><span className="ico" style={{color:'var(--green)'}}>●</span> Notas de cualificación</h3>
-                    </div>
-                    <div style={{padding:'4px 20px 16px',fontSize:12,color:'var(--text2)',lineHeight:1.55}}>
-                      {editing
-                        ? <textarea style={inlineTa} value={form.notas_cualificacion} onChange={e => setF('notas_cualificacion', e.target.value)} placeholder="Notas internas durante la cualificación..." />
-                        : lead.notas_cualificacion}
-                    </div>
-                  </div>
-                )}
-
-                {/* ─── Canal y origen | Captura automática ─── */}
-                <div className="va-two-col">
-                  <div className="va-meta-card">
-                    <div className="va-meta-head"><span className="dot"/>Canal y origen</div>
-                    <div className="va-kv-list">
-                      <div className="ir"><span className="ir-k">Canal de entrada</span><span className="ir-v">
-                        {editing
-                          ? <select style={inlineInp} value={form.origen_canal} onChange={e => setF('origen_canal', e.target.value)}>
-                              <option value="">—</option>
-                              {LEAD_CANALES.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                          : (lead.origen_canal || <span style={{color:'var(--text4)'}}>—</span>)}
-                      </span></div>
-                      <div className="ir"><span className="ir-k">Campaña asociada</span><span className="ir-v">
-                        {editing
-                          ? <input style={inlineInp} value={form.origen_campana} onChange={e => setF('origen_campana', e.target.value)} placeholder="Q2-2026 Oficinas Madrid" />
-                          : (lead.origen_campana || <span style={{color:'var(--text4)'}}>—</span>)}
-                      </span></div>
-                      <div className="ir"><span className="ir-k">Anuncio concreto</span><span className="ir-v">
-                        {editing
-                          ? <input style={inlineInp} value={form.origen_anuncio} onChange={e => setF('origen_anuncio', e.target.value)} placeholder="Form contacto general" />
-                          : (lead.origen_anuncio || <span style={{color:'var(--text4)'}}>—</span>)}
-                      </span></div>
-                      <div className="ir"><span className="ir-k">URL de origen</span><span className="ir-v" style={{fontFamily:'var(--mono)',fontSize:11}}>
-                        {editing
-                          ? <input style={{ ...inlineInp, fontFamily:'var(--mono)' }} value={form.origen_url} onChange={e => setF('origen_url', e.target.value)} placeholder="savills.es/contacto" />
-                          : (lead.origen_url || <span style={{color:'var(--text4)'}}>—</span>)}
-                      </span></div>
-                    </div>
-                  </div>
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-purple"><span className="dot"/>Captura automática</div>
-                    <div className="va-kv-list">
-                      <div className="ir"><span className="ir-k">Fecha y hora</span><span className="ir-v" style={{fontFamily:'var(--mono)'}}>{fmtFecha(lead.created_at)}</span></div>
-                      <div className="ir"><span className="ir-k">Equipo por defecto</span><span className="ir-v">{lead.equipo || '—'}</span></div>
-                      <div className="ir"><span className="ir-k">Responsable inicial</span><span className="ir-v">{lead.responsable || '—'}</span></div>
-                      <div className="ir"><span className="ir-k">Tipo sugerido</span><span className="ir-v"><TipoTag tipo={lead.tipo}/></span></div>
-                    </div>
-                  </div>
-                </div>
 
                 {/* ─── Registros generados al transformar (ancho completo) ─── */}
                 {oportunidadId && (

@@ -22,25 +22,34 @@ import { useState, useRef, useEffect } from 'react'
  *
  * Solo un popover puede estar abierto a la vez (coordinado por openKey).
  *
- * @param {Array} items  Array de pills
+ * @param {Array}  items    Array de pills
+ * @param {string} variant  'dk' → chips estilo Demanda (.dk-summary / .dk-sbox).
+ *                          Requiere un ancestro .dem-skin para resolver el CSS.
+ *                          Conserva popovers/select/button editables.
  */
-export default function HeaderPills({ items = [] }) {
+export default function HeaderPills({ items = [], variant }) {
   const [openKey, setOpenKey] = useState(null)
+  const isDk = variant === 'dk'
+
+  const containerProps = isDk
+    ? { className: 'dk-summary' }
+    : { style: {
+        flexShrink: 0,
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, 150px)',
+        gap: 8,
+        alignSelf: 'center',
+        maxWidth: 'min(640px, 70%)',
+        justifyContent: 'flex-end',
+      } }
 
   return (
-    <div style={{
-      flexShrink: 0,
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, 150px)',
-      gap: 8,
-      alignSelf: 'center',
-      maxWidth: 'min(640px, 70%)',
-      justifyContent: 'flex-end',
-    }}>
+    <div {...containerProps}>
       {items.filter(Boolean).map((it, i) => (
         <Pill
           key={it.key || i}
           {...it}
+          variant={variant}
           isOpen={openKey === (it.key || i)}
           onOpen={() => setOpenKey(it.key || i)}
           onClose={() => setOpenKey(null)}
@@ -50,8 +59,62 @@ export default function HeaderPills({ items = [] }) {
   )
 }
 
-function Pill({ type = 'info', label, value, color, accent, options, onChange, onClick, badge, icon, title, popover, isOpen, onOpen, onClose }) {
+function Pill({ type = 'info', label, value, color, accent, options, onChange, onClick, badge, icon, title, popover, isOpen, onOpen, onClose, variant }) {
   const palette = palettes[color] || palettes.default
+
+  // ── Variante 'dk' · chip estilo Demanda (.dk-sbox) conservando los popovers ──
+  if (variant === 'dk') {
+    const boxStyle = { position: 'relative', ...(accent ? { background: palette.bg, borderColor: palette.bd } : {}) }
+    const vStyle = value
+      ? (accent ? { color: palette.fg } : undefined)
+      : { color: 'var(--dk-ink-faint)', fontWeight: 500, fontStyle: 'italic' }
+
+    if (type === 'popover') {
+      return (
+        <div className="dk-sbox clk" style={boxStyle} title={title}>
+          <button
+            onClick={() => isOpen ? onClose?.() : onOpen?.()}
+            style={{ all: 'unset', display: 'flex', flexDirection: 'column', gap: 2, width: '100%', cursor: 'pointer', boxSizing: 'border-box' }}>
+            <span className="k">{label}<span style={{ float: 'right', opacity: .5 }}>{isOpen ? '▴' : '▾'}</span></span>
+            <span className="v" style={vStyle}>{value || '— pendiente'}</span>
+          </button>
+          {isOpen && <PillPopover popover={popover} currentValue={value} onClose={onClose} palette={palette} />}
+        </div>
+      )
+    }
+    if (type === 'select') {
+      return (
+        <div className="dk-sbox" style={boxStyle} title={title}>
+          <span className="k">{label}</span>
+          <select value={value} onChange={e => onChange?.(e.target.value)} className="v"
+            style={{ ...(accent ? { color: palette.fg } : {}), border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', outline: 'none', width: '100%' }}>
+            {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+      )
+    }
+    if (type === 'button') {
+      return (
+        <button className="dk-sbox clk" onClick={onClick} title={title} style={{ ...boxStyle, textAlign: 'left' }}>
+          <span className="k">{label}</span>
+          <span className="v" style={{ ...(accent ? { color: palette.fg } : {}), display: 'flex', alignItems: 'center', gap: 6 }}>
+            {icon && <span>{icon}</span>}{value}
+            {badge != null && badge > 0 && (
+              <span style={{ background: palette.fg || 'var(--accent)', color: '#fff', borderRadius: 9, padding: '0 6px', fontSize: 9, fontWeight: 700, marginLeft: 'auto' }}>{badge}</span>
+            )}
+          </span>
+        </button>
+      )
+    }
+    // type === 'info'
+    return (
+      <div className="dk-sbox" style={boxStyle} title={title}>
+        <span className="k">{label}</span>
+        <span className="v" style={accent ? { color: palette.fg } : undefined}>{value}</span>
+      </div>
+    )
+  }
+
   const baseStyle = {
     background: accent ? palette.bg : 'var(--surface)',
     border: `2px solid ${accent ? palette.bd : 'var(--border)'}`,
