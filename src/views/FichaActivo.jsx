@@ -3524,22 +3524,19 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
           </div>
         )}
 
-        {/* ── LOCALIZACIÓN ── */}
-        <div className="va-card">
-          <div className="va-card-header">
-            <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Localización</h3>
-            {info.coordenadas && <span className="hint">Coordenadas · {info.coordenadas}</span>}
-          </div>
-          <ZonaBox info={info} setI={setI} asChipRow/>
-        </div>
+        {/* ── DETALLE · todos los cuadros en una sola fila (estilo Demanda/Lead) ── */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(5, minmax(0,1fr))',gap:12,marginBottom:14,alignItems:'start'}}>
 
-        {/* ── UBICACIÓN + TIPOLOGÍA ── */}
-        <div className="va-two-col">
+          {/* LOCALIZACIÓN */}
+          <div className="dash-card">
+            <div className="dash-card-head">Localización{info.coordenadas && <span style={{fontSize:9,fontWeight:500,color:'var(--text4)',fontFamily:'var(--mono)'}}>{info.coordenadas}</span>}</div>
+            <div style={{padding:'10px 14px 14px'}}><ZonaBox info={info} setI={setI} asChipRow/></div>
+          </div>
 
           {/* UBICACIÓN */}
-          <div className="va-meta-card">
-            <div className="va-meta-head accent-red"><span className="dot"/>Ubicación</div>
-            <div className="va-kv-list">
+          <div className="dash-card">
+            <div className="dash-card-head">Ubicación</div>
+            <div className="va-kv-list" style={{padding:'6px 14px 12px'}}>
             <InlineField label="Nombre del activo" value={info.nombre}
               onSave={()=>{ setDirty(true); if(onInfoSaved) onInfoSaved({nombre: info.nombre}) }}>
               <input value={info.nombre} onChange={e=>setI('nombre',e.target.value)} style={inp} placeholder="Nombre comercial del activo..."/>
@@ -3559,9 +3556,9 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
           </div>
 
           {/* TIPOLOGÍA */}
-          <div className="va-meta-card">
-            <div className="va-meta-head accent-purple"><span className="dot"/>Tipología</div>
-            <div className="va-kv-list">
+          <div className="dash-card">
+            <div className="dash-card-head">Tipología</div>
+            <div className="va-kv-list" style={{padding:'6px 14px 12px'}}>
             <InlineField label="Tipo de activo" value={info.tipo_activo} onSave={()=>setDirty(true)}>
               <select value={info.tipo_activo} onChange={e=>setI('tipo_activo',e.target.value)} style={sel}>
                 {['Edificio','Nave','Local','Parcela','Complejo','Torre','Centro comercial','Parque empresarial','Parque logístico','Residencia'].map(t=><option key={t}>{t}</option>)}
@@ -3589,17 +3586,11 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
             </InlineField>
             </div>
           </div>
-        </div>
-
-        {/* ── SUPERFICIES & DATOS URBANÍSTICOS — grid 2 columnas (regla 50%) ── */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,alignItems:'start'}}>
 
           {/* Superficies y detalles */}
-          <div className="va-card" style={{margin:0}}>
-            <div className="va-card-header">
-              <h3><span className="ico">▭</span> Superficies y detalles</h3>
-            </div>
-            <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr',gap:0,paddingBottom:16}}>
+          <div className="dash-card">
+            <div className="dash-card-head">Superficies y detalles</div>
+            <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr',gap:0,padding:'6px 14px 14px'}}>
               <InlineField label="SBA (m²)" value={info.sba ? Number(info.sba).toLocaleString('es-ES')+' m²' : '—'}
                 display={<span style={{fontWeight:600,fontFamily:'var(--mono)',color:'var(--pdb-blue)'}}>{info.sba ? Number(info.sba).toLocaleString('es-ES') : '—'}</span>}
                 onSave={()=>setDirty(true)}>
@@ -3640,18 +3631,14 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
           </div>
 
           {/* Datos urbanísticos */}
-          <div className="va-card" style={{margin:0}}>
-            <div className="va-card-header">
-              <h3><span className="ico">⚑</span> Datos urbanísticos</h3>
-              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--pdb-green)',fontWeight:600}}>✓ Sincronizado</span>}
-                {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--pdb-red)',maxWidth:200,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
-                <button className="ab-btn blue" onClick={syncCatastro} disabled={syncingCat}>
-                  {syncingCat ? 'Consultando…' : 'Sincronizar'}
-                </button>
-              </div>
+          <div className="dash-card">
+            <div className="dash-card-head">Datos urbanísticos
+              <button className="ab-btn blue" onClick={syncCatastro} disabled={syncingCat} style={{padding:'2px 8px',fontSize:10}}>
+                {syncingCat ? 'Consultando…' : 'Sincronizar'}
+              </button>
             </div>
-            <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr',gap:0,paddingBottom:16}}>
+            {catMsg && <div style={{padding:'4px 14px 0',fontSize:9.5,color:catMsg==='ok'?'var(--pdb-green)':'var(--pdb-red)',fontWeight:600,lineHeight:1.3}}>{catMsg==='ok'?'✓ Sincronizado':catMsg}</div>}
+            <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr',gap:0,padding:'6px 14px 14px'}}>
               <InlineField label="Ref. catastral" value={info.ref_catastral||'—'} onSave={()=>setDirty(true)}>
                 <input value={info.ref_catastral} onChange={e=>setI('ref_catastral',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/>
               </InlineField>
