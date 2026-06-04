@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNav, useUnsavedGuard } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
-import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
+import { makeEquipoHandlers, isPrincipal, EQUIPOS_SAVILLS, MIEMBROS_POR_EQUIPO } from '../components/EquipoTrabajoCard'
 import MarcarPropuestaGanadaModal from '../components/MarcarPropuestaGanadaModal'
 import MarcarPropuestaPerdidaModal from '../components/MarcarPropuestaPerdidaModal'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
@@ -12,15 +12,13 @@ import FunnelTracker from '../components/FunnelTracker'
 import FunnelStepCards from '../components/FunnelStepCards'
 import { Building2, Target, Building, Presentation, Trophy, X as XClose } from 'lucide-react'
 
-// Pestañas. "Equipos y participantes" eliminada: ahora vive como sección dentro
-// de "Datos del proyecto", justo bajo Vinculaciones (mismo patrón que Oferta).
-// Tabs canónicos. "Datos del proyecto" → "Información general"; "Trazabilidad" → "Vista 360"; "Documentación" → "Documentos"
+// Pestañas · mismo criterio que Demandas/Leads: Información general + Vista 360.
+// "Resumen" eliminada (no aporta). "Confidencialidad" deja de ser tab y vive
+// al final de "Información general". "Documentos" se mantiene como tab propio.
 const PRY_TABS = [
   ['datos',        'Información general'],
-  ['resumen',      'Resumen'],
   ['docs',         'Documentos'],
   ['trazabilidad', 'Vista 360'],
-  ['conf',         'Confidencialidad'],
 ]
 
 const TIPOS = ['Pitch','Valoración','Propuesta de servicios','Mandato comercial','Consultoría','Urbanismo','Proyecto de arquitectura / workplace']
@@ -62,6 +60,19 @@ const ta = { width:'100%', padding:'6px 9px', fontSize:11.5, border:'1px solid v
 
 function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('es-ES') }
 
+// Valor en modo lectura dentro de una dash-card (estilo Demanda/Lead).
+const viewVal = { fontSize:13, fontWeight:600, color:'var(--text)' }
+const viewVoid = { ...viewVal, color:'var(--text4)', fontWeight:500 }
+// Campo vertical (label arriba + valor/input debajo) para las cards de detalle.
+function DashField({ label, children }) {
+  return (
+    <div className="dash-field">
+      <span className="dash-field-lbl">{label}</span>
+      {children}
+    </div>
+  )
+}
+
 function StubTab({ label }) {
   return (
     <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
@@ -97,6 +108,9 @@ export default function FichaPropuestaSupabase({ refOrId }) {
   const [activoQuery, setActivoQuery] = useState('')
   const [activoFocused, setActivoFocused] = useState(false)
   const [savingActivo, setSavingActivo] = useState(false)
+  // Alta inline de equipo/colaboradores (estilo Demanda/Lead)
+  const [addEqSection, setAddEqSection] = useState(null)   // 'equipo' | 'colab' | null
+  const [addEqDraft, setAddEqDraft] = useState({ equipo:'', miembro:'', rol:'Soporte' })
 
   const [form, setForm] = useState({
     nombre:'', tipo:'', linea:'', estado:'',
@@ -304,32 +318,41 @@ export default function FichaPropuestaSupabase({ refOrId }) {
               onClick: propuesta.mandato_ref ? () => navigate('ficha-mandato', { ref: propuesta.mandato_ref }) : null },
           ]} />
 
-          <div className="ah">
-            <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-              <div className="ah-ico" style={{ background:'linear-gradient(135deg,#6b5b8e,#a78bfa)' }}>📄</div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div className="ah-ref">
-                  <span style={{ background:'#f3e8ff', color:'#6b5b8e', border:'1px solid #d8b4fe', padding:'0 6px', borderRadius:3, fontSize:9, fontWeight:700 }}>PROPUESTA</span>
-                  <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{propuesta.ref}</span>
-                  {propuesta.linea && <span style={{ color:'var(--text4)', fontSize:11 }}>· {propuesta.linea}</span>}
+          {/* Header rediseñado · identidad + chips estilo Demanda/Lead (.dem-skin / .dk-topbar) */}
+          <div className="dem-skin">
+            <div className="dk-topbar">
+              <div className="dk-identity">
+                <div className="dk-avatar" style={{ background:'linear-gradient(135deg,#6b5b8e,#a78bfa)' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>
                 </div>
-                <div className="ah-name">
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div className="dk-id-meta">
+                    <span className="dk-tag">Propuesta</span>
+                    <span className="dk-ref">{propuesta.ref}</span>
+                    {propuesta.linea && <><span className="dk-dot">·</span><span>{propuesta.linea}</span></>}
+                  </div>
                   {editing
-                    ? <input style={{ ...inpFull, fontSize:22, fontWeight:700, padding:'4px 8px' }} value={form.nombre} onChange={e => setF('nombre', e.target.value)} placeholder="Nombre de la propuesta" />
-                    : tituloHeader}
+                    ? <input style={{ ...inpFull, fontSize:24, fontWeight:700, padding:'2px 6px', margin:'2px 0' }} value={form.nombre} onChange={e => setF('nombre', e.target.value)} placeholder="Nombre de la propuesta" />
+                    : <h1 className="dk-h1">{tituloHeader}</h1>}
+                  <div className="dk-addr">
+                    <span style={{ color:'#d93025' }}>📍</span>
+                    <span>{dirHeader}</span>
+                    <span className="dk-dot">·</span><span>Creada: {fmtDate(propuesta.created_at)}</span>
+                    <span className="dk-dot">·</span><strong>{propuesta.responsable || CURRENT_USER.nombre}</strong>
+                  </div>
                 </div>
-                <div className="ah-addr">📍 {dirHeader} · Creada: {fmtDate(propuesta.created_at)} · {CURRENT_USER.nombre}</div>
               </div>
-              <HeaderPills items={[
-                { key:'estado', type:'info', label:'Estado', value:`● ${ESTADO_LABEL[propuesta.estado] || propuesta.estado}`,
-                  color: propuesta.estado === 'ganada' ? 'green' : propuesta.estado === 'perdida' || propuesta.estado === 'cancelada' ? 'red' : propuesta.estado === 'presentada' ? 'blue' : 'amber',
-                  accent:true,
-                },
+              <HeaderPills variant="dk" items={[
+                { key:'estado', type:'info', label:'Estado', value: ESTADO_LABEL[propuesta.estado] || propuesta.estado || '—',
+                  color: propuesta.estado === 'ganada' ? 'green' : (propuesta.estado === 'perdida' || propuesta.estado === 'cancelada') ? 'red' : propuesta.estado === 'presentada' ? 'blue' : 'amber',
+                  accent:true },
                 propuesta.tipo && { key:'tipo', type:'info', label:'Tipo', value: propuesta.tipo, color:'blue', accent:true },
-                { key:'fees', type:'info', label:'Fees', value: propuesta.fees ? `${Number(propuesta.fees).toLocaleString('es-ES')} €` : '—',
-                  color:'green', accent: !!propuesta.fees },
+                { key:'fees', type:'info', label:'Fees', value: propuesta.fees ? `${Number(propuesta.fees).toLocaleString('es-ES')} €` : '—', color:'green', accent: !!propuesta.fees },
                 { key:'cierre', type:'info', label:'Cierre estim.', value: propuesta.fecha_cierre ? fmtDate(propuesta.fecha_cierre) : '—', color:'accent', accent: !!propuesta.fecha_cierre },
                 { key:'responsable', type:'info', label:'Responsable', value: propuesta.responsable || CURRENT_USER.nombre },
+                propuesta.equipo && { key:'equipo', type:'info', label:'Equipo', value: propuesta.equipo },
+                cuenta?.nombre && { key:'cliente', type:'info', label:'Cliente', value: cuenta.nombre, color:'blue', accent:true },
+                oportunidad?.nombre && { key:'oportunidad', type:'info', label:'Oportunidad', value: oportunidad.nombre, color:'teal', accent:true },
               ]} />
             </div>
           </div>
@@ -546,185 +569,265 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                 )
               })()}
 
-              {/* ── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones, idéntica posición que en Oferta) ── */}
-              {(() => {
-                const equipo = Array.isArray(propuesta?.equipo_trabajo) ? propuesta.equipo_trabajo : []
-                const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
-                const canManage = userIsPrincipal || equipo.length === 0
-                const handlers = makeEquipoHandlers({
-                  supabase, table:'propuestas', idValue:propuesta?.id, equipo,
-                  onAfter: () => load(),
-                  onError: (msg) => setSaveError(msg),
-                })
-                const equipoInterno = equipo.filter(m => m.rol !== 'Colaborador')
-                const colaboradores = equipo.filter(m => m.rol === 'Colaborador')
-                // Remap idx en lista filtrada → idx real en el array completo.
-                // Las refs de los items son las mismas (Array.filter no clona).
-                const mapIdx = (filtered, idx) => equipo.indexOf(filtered[idx])
-                return (
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
-                    {/* Izquierda · Equipo de trabajo (Principal + Soporte) */}
-                    <EquipoTrabajoCard
-                      title="Equipo de trabajo"
-                      equipo={equipoInterno}
-                      canManage={canManage}
-                      onAdd={(nombre, equipoNombre, rol) => handlers.addMiembro(nombre, equipoNombre, rol === 'Colaborador' ? 'Soporte' : rol)}
-                      onRemove={(idx) => handlers.removeMiembro(mapIdx(equipoInterno, idx))}
-                      onUpdateRol={(idx, rol) => handlers.updateMiembroRol(mapIdx(equipoInterno, idx), rol)}
-                    />
-                    {/* Derecha · Colaboradores (rol Colaborador) */}
-                    <EquipoTrabajoCard
-                      title="Colaboradores"
-                      equipo={colaboradores}
-                      canManage={canManage}
-                      onAdd={(nombre, equipoNombre) => handlers.addMiembro(nombre, equipoNombre, 'Colaborador')}
-                      onRemove={(idx) => handlers.removeMiembro(mapIdx(colaboradores, idx))}
-                      onUpdateRol={(idx, rol) => handlers.updateMiembroRol(mapIdx(colaboradores, idx), rol)}
-                    />
-                  </div>
-                )
-              })()}
+              {/* ── DETALLE · todos los cuadros en una sola fila (estilo Demanda/Lead) ── */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12, marginBottom:14, alignItems:'stretch' }}>
 
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-                <div>
-                  <div className="va-meta-card" style={{ marginBottom:14 }}>
-                    <div className="va-meta-head accent-purple"><span className="dot"/>Datos del proyecto</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div className="ir"><span className="ir-k">Tipo</span><span className="ir-v">{editing
-                        ? <select style={sel} value={form.tipo} onChange={e => setF('tipo', e.target.value)}>
-                            <option value="">—</option>{TIPOS.map(t => <option key={t}>{t}</option>)}
-                          </select>
-                        : (propuesta.tipo || <span style={{ color:'var(--text4)' }}>—</span>)}</span></div>
-                      <div className="ir"><span className="ir-k">Línea de negocio</span><span className="ir-v">{editing
-                        ? <select style={sel} value={form.linea} onChange={e => setF('linea', e.target.value)}>
-                            <option value="">—</option>{LINEAS.map(l => <option key={l}>{l}</option>)}
-                          </select>
-                        : (propuesta.linea || <span style={{ color:'var(--text4)' }}>—</span>)}</span></div>
-                      <div className="ir"><span className="ir-k">Estado</span><span className="ir-v">{editing
-                        ? <select style={sel} value={form.estado} onChange={e => setF('estado', e.target.value)}>
-                            {ESTADOS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                          </select>
-                        : (ESTADO_LABEL[propuesta.estado] || propuesta.estado || '—')}</span></div>
-
-                      {/* Motivo: obligatorio si la propuesta se cierra como perdida o cancelada */}
-                      {(ESTADOS_CIERRE_PROPUESTA.includes(form.estado) || propuesta.motivo_descarte) && (() => {
-                        const motivoEsPredef = MOTIVOS_DESCARTE_PROPUESTA.includes(form.motivo_descarte)
-                        const motivoEsOtro   = !!form.motivo_descarte && !motivoEsPredef
-                        const sel_v          = motivoEsOtro ? 'Otro motivo' : (form.motivo_descarte || '')
-                        const otroTexto      = motivoEsOtro ? form.motivo_descarte : ''
-                        const requiereMotivo = ESTADOS_CIERRE_PROPUESTA.includes(form.estado)
-                        const sinMotivo      = requiereMotivo && !form.motivo_descarte.trim()
-                        return (
-                          <>
-                            <div className="ir" style={{ alignItems:'flex-start' }}>
-                              <span className="ir-k" style={{ color: requiereMotivo ? '#dc2626' : 'var(--text4)', fontWeight:700 }}>
-                                Motivo del cierre {requiereMotivo && <span style={{ color:'#dc2626' }}>*</span>}
-                              </span>
-                              <span className="ir-v">
-                                {editing
-                                  ? <select
-                                      style={{ ...sel, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
-                                      value={sel_v}
-                                      onChange={e => {
-                                        const v = e.target.value
-                                        if (v === '') setF('motivo_descarte', '')
-                                        else if (v === 'Otro motivo') setF('motivo_descarte', otroTexto || ' ')
-                                        else setF('motivo_descarte', v)
-                                      }}
-                                    >
-                                      <option value="">Selecciona un motivo...</option>
-                                      {MOTIVOS_DESCARTE_PROPUESTA.map(m => <option key={m}>{m}</option>)}
-                                    </select>
-                                  : (motivoEsPredef ? form.motivo_descarte : (motivoEsOtro ? 'Otro motivo' : <span style={{ color:'var(--text4)' }}>—</span>))}
-                              </span>
-                            </div>
-                            {(sel_v === 'Otro motivo' || motivoEsOtro) && (
-                              <div className="ir" style={{ alignItems:'flex-start' }}>
-                                <span className="ir-k">Describe el motivo</span>
-                                <span className="ir-v" style={{ flex:1 }}>
-                                  {editing
-                                    ? <textarea
-                                        style={{ ...ta, minHeight:50, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
-                                        value={otroTexto}
-                                        onChange={e => setF('motivo_descarte', e.target.value)}
-                                        placeholder="Describe brevemente por qué se cierra esta propuesta..."
-                                      />
-                                    : (propuesta.motivo_descarte || <span style={{ color:'var(--text4)' }}>—</span>)}
-                                </span>
-                              </div>
-                            )}
-                          </>
-                        )
-                      })()}
-                    </div>
-                  </div>
-
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-amber"><span className="dot"/>Económicos y fechas</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div className="ir"><span className="ir-k">Fees (€)</span><span className="ir-v">{editing
-                        ? <input type="number" style={inp} value={form.fees} onChange={e => setF('fees', e.target.value)} placeholder="—" />
-                        : (propuesta.fees ? `${Number(propuesta.fees).toLocaleString('es-ES')} €` : <span style={{ color:'var(--text4)' }}>—</span>)}</span></div>
-                      <div className="ir"><span className="ir-k">F. presentación</span><span className="ir-v">{editing
-                        ? <input type="date" style={{ ...sel, width:130 }} value={form.fecha_presentacion} onChange={e => setF('fecha_presentacion', e.target.value)} />
-                        : fmtDate(propuesta.fecha_presentacion)}</span></div>
-                      <div className="ir"><span className="ir-k">F. resolución</span><span className="ir-v">{editing
-                        ? <input type="date" style={{ ...sel, width:130 }} value={form.fecha_resolucion} onChange={e => setF('fecha_resolucion', e.target.value)} />
-                        : fmtDate(propuesta.fecha_resolucion)}</span></div>
-                      <div className="ir"><span className="ir-k">F. cierre estimada</span><span className="ir-v">{editing
-                        ? <input type="date" style={{ ...sel, width:130 }} value={form.fecha_cierre} onChange={e => setF('fecha_cierre', e.target.value)} />
-                        : fmtDate(propuesta.fecha_cierre)}</span></div>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="va-meta-card" style={{ marginBottom:14 }}>
-                    <div className="va-meta-head"><span className="dot"/>Asignación</div>
-                    <div style={{ padding:'10px 14px' }}>
-                      <div className="ir"><span className="ir-k">Equipo</span><span className="ir-v">{editing
-                        ? <input style={inpFull} value={form.equipo} onChange={e => setF('equipo', e.target.value)} placeholder="Capital Markets, Leasing Madrid..." />
-                        : (propuesta.equipo || <span style={{ color:'var(--text4)' }}>—</span>)}</span></div>
-                      <div className="ir"><span className="ir-k">Responsable</span><span className="ir-v">{editing
-                        ? <input style={inpFull} value={form.responsable} onChange={e => setF('responsable', e.target.value)} />
-                        : (propuesta.responsable || <span style={{ color:'var(--text4)' }}>—</span>)}</span></div>
-                    </div>
-                  </div>
-
-                  <div className="va-meta-card">
-                    <div className="va-meta-head accent-red"><span className="dot"/>Notas</div>
-                    <div style={{ padding:'10px 14px' }}>
+                {/* Datos del proyecto */}
+                <div className="dash-card">
+                  <div className="dash-card-head">Datos del proyecto</div>
+                  <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:11 }}>
+                    <DashField label="Tipo">
                       {editing
-                        ? <textarea style={ta} value={form.notas} onChange={e => setF('notas', e.target.value)} placeholder="Notas internas sobre la propuesta..." />
-                        : (propuesta.notas || <span style={{ color:'var(--text4)' }}>—</span>)}
-                    </div>
+                        ? <select className="dash-field-input" value={form.tipo} onChange={e => setF('tipo', e.target.value)}><option value="">—</option>{TIPOS.map(t => <option key={t}>{t}</option>)}</select>
+                        : <span style={propuesta.tipo ? viewVal : viewVoid}>{propuesta.tipo || '—'}</span>}
+                    </DashField>
+                    <DashField label="Línea de negocio">
+                      {editing
+                        ? <select className="dash-field-input" value={form.linea} onChange={e => setF('linea', e.target.value)}><option value="">—</option>{LINEAS.map(l => <option key={l}>{l}</option>)}</select>
+                        : <span style={propuesta.linea ? viewVal : viewVoid}>{propuesta.linea || '—'}</span>}
+                    </DashField>
+                    <DashField label="Estado">
+                      {editing
+                        ? <select className="dash-field-input" value={form.estado} onChange={e => setF('estado', e.target.value)}>{ESTADOS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}</select>
+                        : <span style={viewVal}>{ESTADO_LABEL[propuesta.estado] || propuesta.estado || '—'}</span>}
+                    </DashField>
+
+                    {/* Motivo: obligatorio si la propuesta se cierra como perdida o cancelada */}
+                    {(ESTADOS_CIERRE_PROPUESTA.includes(form.estado) || propuesta.motivo_descarte) && (() => {
+                      const motivoEsPredef = MOTIVOS_DESCARTE_PROPUESTA.includes(form.motivo_descarte)
+                      const motivoEsOtro   = !!form.motivo_descarte && !motivoEsPredef
+                      const sel_v          = motivoEsOtro ? 'Otro motivo' : (form.motivo_descarte || '')
+                      const otroTexto      = motivoEsOtro ? form.motivo_descarte : ''
+                      const requiereMotivo = ESTADOS_CIERRE_PROPUESTA.includes(form.estado)
+                      const sinMotivo      = requiereMotivo && !form.motivo_descarte.trim()
+                      return (
+                        <>
+                          <DashField label={`Motivo del cierre${requiereMotivo ? ' *' : ''}`}>
+                            {editing
+                              ? <select className="dash-field-input" style={{ borderColor: sinMotivo ? '#dc2626' : undefined }} value={sel_v}
+                                  onChange={e => {
+                                    const v = e.target.value
+                                    if (v === '') setF('motivo_descarte', '')
+                                    else if (v === 'Otro motivo') setF('motivo_descarte', otroTexto || ' ')
+                                    else setF('motivo_descarte', v)
+                                  }}>
+                                  <option value="">Selecciona un motivo...</option>
+                                  {MOTIVOS_DESCARTE_PROPUESTA.map(m => <option key={m}>{m}</option>)}
+                                </select>
+                              : <span style={form.motivo_descarte ? viewVal : viewVoid}>{motivoEsPredef ? form.motivo_descarte : (motivoEsOtro ? 'Otro motivo' : '—')}</span>}
+                          </DashField>
+                          {(sel_v === 'Otro motivo' || motivoEsOtro) && (
+                            <DashField label="Describe el motivo">
+                              {editing
+                                ? <textarea className="dash-field-input" style={{ minHeight:60, resize:'vertical', borderColor: sinMotivo ? '#dc2626' : undefined }} value={otroTexto} onChange={e => setF('motivo_descarte', e.target.value)} placeholder="Describe brevemente por qué se cierra…" />
+                                : <span style={propuesta.motivo_descarte ? { ...viewVal, fontWeight:500 } : viewVoid}>{propuesta.motivo_descarte || '—'}</span>}
+                            </DashField>
+                          )}
+                        </>
+                      )
+                    })()}
                   </div>
                 </div>
+
+                {/* Económicos y fechas */}
+                <div className="dash-card">
+                  <div className="dash-card-head">Económicos y fechas</div>
+                  <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:11 }}>
+                    <DashField label="Fees (€)">
+                      {editing
+                        ? <input type="number" className="dash-field-input" value={form.fees} onChange={e => setF('fees', e.target.value)} placeholder="—" />
+                        : <span style={propuesta.fees ? { ...viewVal, fontFamily:'var(--mono)' } : viewVoid}>{propuesta.fees ? `${Number(propuesta.fees).toLocaleString('es-ES')} €` : '—'}</span>}
+                    </DashField>
+                    <DashField label="F. presentación">
+                      {editing
+                        ? <input type="date" className="dash-field-input" value={form.fecha_presentacion} onChange={e => setF('fecha_presentacion', e.target.value)} />
+                        : <span style={viewVal}>{fmtDate(propuesta.fecha_presentacion)}</span>}
+                    </DashField>
+                    <DashField label="F. resolución">
+                      {editing
+                        ? <input type="date" className="dash-field-input" value={form.fecha_resolucion} onChange={e => setF('fecha_resolucion', e.target.value)} />
+                        : <span style={viewVal}>{fmtDate(propuesta.fecha_resolucion)}</span>}
+                    </DashField>
+                    <DashField label="F. cierre estimada">
+                      {editing
+                        ? <input type="date" className="dash-field-input" value={form.fecha_cierre} onChange={e => setF('fecha_cierre', e.target.value)} />
+                        : <span style={viewVal}>{fmtDate(propuesta.fecha_cierre)}</span>}
+                    </DashField>
+                  </div>
+                </div>
+
+                {/* Asignación y notas */}
+                <div className="dash-card">
+                  <div className="dash-card-head">Asignación y notas</div>
+                  <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:11 }}>
+                    <DashField label="Equipo">
+                      {editing
+                        ? <input className="dash-field-input" value={form.equipo} onChange={e => setF('equipo', e.target.value)} placeholder="Capital Markets, Leasing Madrid…" />
+                        : <span style={propuesta.equipo ? viewVal : viewVoid}>{propuesta.equipo || '—'}</span>}
+                    </DashField>
+                    <DashField label="Responsable">
+                      {editing
+                        ? <input className="dash-field-input" value={form.responsable} onChange={e => setF('responsable', e.target.value)} />
+                        : <span style={propuesta.responsable ? viewVal : viewVoid}>{propuesta.responsable || '—'}</span>}
+                    </DashField>
+                    <DashField label="Notas">
+                      {editing
+                        ? <textarea className="dash-field-input" style={{ minHeight:90, resize:'vertical', lineHeight:1.5 }} value={form.notas} onChange={e => setF('notas', e.target.value)} placeholder="Notas internas sobre la propuesta…" />
+                        : <span style={propuesta.notas ? { ...viewVal, fontWeight:500, whiteSpace:'pre-wrap' } : viewVoid}>{propuesta.notas || '—'}</span>}
+                    </DashField>
+                  </div>
+                </div>
+
+                {/* Equipo de trabajo · dash-card con Equipo + Colaboradores (estilo Demanda/Lead) */}
+                {(() => {
+                  const equipo = Array.isArray(propuesta?.equipo_trabajo) ? propuesta.equipo_trabajo : []
+                  const userIsPrincipal = isPrincipal(equipo, CURRENT_USER.nombre)
+                  const canManage = userIsPrincipal || equipo.length === 0
+                  const handlers = makeEquipoHandlers({
+                    supabase, table:'propuestas', idValue:propuesta?.id, equipo,
+                    onAfter: () => load(),
+                    onError: (msg) => setSaveError(msg),
+                  })
+                  const equipoInterno = equipo.filter(m => m.rol !== 'Colaborador')
+                  const colaboradores = equipo.filter(m => m.rol === 'Colaborador')
+                  const mapIdx = (filtered, i) => equipo.indexOf(filtered[i])
+                  const iniciales = n => (n || '?').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()
+                  return (
+                    <div className="dash-card" style={{ overflow:'visible' }}>
+                      <div className="dash-card-head">Equipo de trabajo</div>
+                      <div style={{ padding:'12px 16px 14px', display:'flex', flexDirection:'column', gap:12 }}>
+
+                        {/* Equipo (Principal/Soporte) */}
+                        <div>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                            <div className="dash-card-sub" style={{ margin:0 }}>Equipo</div>
+                            {canManage && addEqSection !== 'equipo' && (
+                              <button onClick={() => { setAddEqSection('equipo'); setAddEqDraft({ equipo:'', miembro:'', rol:'Soporte' }) }}
+                                style={{ background:'none', border:'none', color:'#0a66c2', cursor:'pointer', fontSize:11, fontWeight:600, padding:0 }}>+ Añadir</button>
+                            )}
+                          </div>
+                          {equipoInterno.length === 0 ? (
+                            <div style={{ fontSize:11.5, color:'#94a3b8' }}>Sin asignar.</div>
+                          ) : (
+                            <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                              {equipoInterno.map((m, i) => (
+                                <div key={`int-${i}`} className="dash-eq-row">
+                                  <div style={{ width:24, height:24, borderRadius:'50%', background:'#f5efe5', color:'#5a4828', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>{iniciales(m.nombre)}</div>
+                                  <div style={{ fontSize:12, fontWeight:500, color:'#0f172a', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.nombre}</div>
+                                  <span style={{ fontSize:9.5, color: m.rol === 'Principal' ? '#0a66c2' : '#64748b', fontWeight:600 }}>{m.rol}</span>
+                                  {canManage && (
+                                    <button onClick={() => handlers.removeMiembro(mapIdx(equipoInterno, i))} className="dash-eq-remove" title="Quitar">×</button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {addEqSection === 'equipo' && (
+                            <div style={{ marginTop:8, padding:'10px 12px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:10, display:'flex', flexDirection:'column', gap:6 }}>
+                              <select className="fsel" value={addEqDraft.equipo} onChange={e => setAddEqDraft(p => ({ ...p, equipo: e.target.value, miembro:'' }))} style={{ fontSize:11.5 }}>
+                                <option value="">Equipo…</option>
+                                {EQUIPOS_SAVILLS.map(eq => <option key={eq}>{eq}</option>)}
+                              </select>
+                              {addEqDraft.equipo && (
+                                <select className="fsel" value={addEqDraft.miembro} onChange={e => setAddEqDraft(p => ({ ...p, miembro: e.target.value }))} style={{ fontSize:11.5 }}>
+                                  <option value="">Miembro…</option>
+                                  {(MIEMBROS_POR_EQUIPO[addEqDraft.equipo] || []).map(n => <option key={n}>{n}</option>)}
+                                </select>
+                              )}
+                              <select className="fsel" value={addEqDraft.rol} onChange={e => setAddEqDraft(p => ({ ...p, rol: e.target.value }))} style={{ fontSize:11.5 }}>
+                                <option>Principal</option>
+                                <option>Soporte</option>
+                              </select>
+                              <div style={{ display:'flex', gap:6 }}>
+                                <button disabled={!addEqDraft.equipo || !addEqDraft.miembro}
+                                  onClick={() => { handlers.addMiembro(addEqDraft.miembro, addEqDraft.equipo, addEqDraft.rol); setAddEqSection(null) }}
+                                  style={{ flex:1, padding:'6px 10px', fontSize:11.5, fontWeight:600, border:'none', borderRadius:8, background: (!addEqDraft.equipo || !addEqDraft.miembro) ? '#cbd5e1' : '#0a66c2', color:'#fff', cursor: (!addEqDraft.equipo || !addEqDraft.miembro) ? 'not-allowed' : 'pointer' }}>Añadir</button>
+                                <button onClick={() => setAddEqSection(null)} style={{ padding:'6px 10px', fontSize:11.5, fontWeight:500, border:'1px solid var(--border)', borderRadius:8, background:'#fff', color:'#64748b', cursor:'pointer' }}>Cancelar</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Colaboradores */}
+                        <div>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                            <div className="dash-card-sub" style={{ margin:0 }}>Colaboradores</div>
+                            {canManage && addEqSection !== 'colab' && (
+                              <button onClick={() => { setAddEqSection('colab'); setAddEqDraft({ equipo:'', miembro:'', rol:'Colaborador' }) }}
+                                style={{ background:'none', border:'none', color:'#6b21a8', cursor:'pointer', fontSize:11, fontWeight:600, padding:0 }}>+ Añadir</button>
+                            )}
+                          </div>
+                          {colaboradores.length === 0 ? (
+                            <div style={{ fontSize:11.5, color:'#94a3b8' }}>Sin colaboradores externos.</div>
+                          ) : (
+                            <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                              {colaboradores.map((m, i) => (
+                                <div key={`cl-${i}`} className="dash-eq-row">
+                                  <div style={{ width:24, height:24, borderRadius:'50%', background:'#fdf4ff', color:'#6b5b8e', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>{iniciales(m.nombre)}</div>
+                                  <div style={{ fontSize:12, fontWeight:500, color:'#0f172a', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.nombre}</div>
+                                  <span style={{ fontSize:9.5, color:'#6b21a8', fontWeight:600 }}>{m.equipo || 'Colab'}</span>
+                                  {canManage && (
+                                    <button onClick={() => handlers.removeMiembro(mapIdx(colaboradores, i))} className="dash-eq-remove" title="Quitar">×</button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {addEqSection === 'colab' && (
+                            <div style={{ marginTop:8, padding:'10px 12px', background:'#faf5ff', border:'1px solid #e9d5ff', borderRadius:10, display:'flex', flexDirection:'column', gap:6 }}>
+                              <select className="fsel" value={addEqDraft.equipo} onChange={e => setAddEqDraft(p => ({ ...p, equipo: e.target.value, miembro:'' }))} style={{ fontSize:11.5 }}>
+                                <option value="">Equipo / consultora…</option>
+                                {EQUIPOS_SAVILLS.map(eq => <option key={eq}>{eq}</option>)}
+                                <option value="Agente externo">Agente externo</option>
+                              </select>
+                              {addEqDraft.equipo && addEqDraft.equipo !== 'Agente externo' && (
+                                <select className="fsel" value={addEqDraft.miembro} onChange={e => setAddEqDraft(p => ({ ...p, miembro: e.target.value }))} style={{ fontSize:11.5 }}>
+                                  <option value="">Miembro…</option>
+                                  {(MIEMBROS_POR_EQUIPO[addEqDraft.equipo] || []).map(n => <option key={n}>{n}</option>)}
+                                </select>
+                              )}
+                              {addEqDraft.equipo === 'Agente externo' && (
+                                <input className="kf-inp" placeholder="Nombre del agente externo" value={addEqDraft.miembro} onChange={e => setAddEqDraft(p => ({ ...p, miembro: e.target.value }))} style={{ fontSize:11.5 }} />
+                              )}
+                              <div style={{ display:'flex', gap:6 }}>
+                                <button disabled={!addEqDraft.equipo || !addEqDraft.miembro}
+                                  onClick={() => { handlers.addMiembro(addEqDraft.miembro, addEqDraft.equipo, 'Colaborador'); setAddEqSection(null) }}
+                                  style={{ flex:1, padding:'6px 10px', fontSize:11.5, fontWeight:600, border:'none', borderRadius:8, background: (!addEqDraft.equipo || !addEqDraft.miembro) ? '#cbd5e1' : '#6b21a8', color:'#fff', cursor: (!addEqDraft.equipo || !addEqDraft.miembro) ? 'not-allowed' : 'pointer' }}>Añadir</button>
+                                <button onClick={() => setAddEqSection(null)} style={{ padding:'6px 10px', fontSize:11.5, fontWeight:500, border:'1px solid var(--border)', borderRadius:8, background:'#fff', color:'#64748b', cursor:'pointer' }}>Cancelar</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                      </div>
+                    </div>
+                  )
+                })()}
+
               </div>
+
+              {/* ── CONFIDENCIALIDAD · al final de Información general (mismo criterio que Demanda) ── */}
+              <ConfidencialidadPanel
+                entityLabel="propuesta"
+                confidential={pryConfidential}
+                onToggle={setPryConfidential}
+                hiddenFields={['Cuenta','Datos económicos / Fees','Estrategia comercial','Documentación adjunta','Equipo participante']}
+                visibleFields={['Tipo de propuesta','Estado','Equipo','Fecha de creación','Información básica']}
+                authorizedUsers={pryAuthUsers}
+                onAddUser={(newUser) => {
+                  const [name, team] = [newUser.split('·')[0].trim(), newUser.split('·')[1]?.trim() || '']
+                  const ini = name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+                  const today = new Date().toLocaleDateString('es-ES')
+                  setPryAuthUsers(prev => [...prev, { name, team, role:'Autorizado', initials:ini, bg:'#f0fdf4', color:'#166534', granted:today }])
+                }}
+                onRemoveUser={(idx) => setPryAuthUsers(prev => prev.filter((_,j) => j !== idx))}
+                responsable={CURRENT_USER.nombre}
+              />
             </div></div>
           )}
 
           {tab === 'trazabilidad' && <div className="tab-content active"><StubTab label="Vista 360" /></div>}
           {tab === 'docs'         && <div className="tab-content active"><StubTab label="Documentos" /></div>}
-          {tab === 'resumen'      && <div className="tab-content active"><StubTab label="Resumen" /></div>}
-          {tab === 'conf' && (
-            <ConfidencialidadPanel
-              entityLabel="propuesta"
-              confidential={pryConfidential}
-              onToggle={setPryConfidential}
-              hiddenFields={['Cuenta','Datos económicos / Fees','Estrategia comercial','Documentación adjunta','Equipo participante']}
-              visibleFields={['Tipo de propuesta','Estado','Equipo','Fecha de creación','Información básica']}
-              authorizedUsers={pryAuthUsers}
-              onAddUser={(newUser) => {
-                const [name, team] = [newUser.split('·')[0].trim(), newUser.split('·')[1]?.trim() || '']
-                const ini = name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
-                const today = new Date().toLocaleDateString('es-ES')
-                setPryAuthUsers(prev => [...prev, { name, team, role:'Autorizado', initials:ini, bg:'#f0fdf4', color:'#166534', granted:today }])
-              }}
-              onRemoveUser={(idx) => setPryAuthUsers(prev => prev.filter((_,j) => j !== idx))}
-              responsable={CURRENT_USER.nombre}
-            />
-          )}
 
         </div>
       </div>
