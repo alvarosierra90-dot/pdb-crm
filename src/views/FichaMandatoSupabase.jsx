@@ -132,6 +132,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
   const [cancelMotivo, setCancelMotivo] = useState('')
   const [showNotasModal, setShowNotasModal] = useState(false)
   const [showFeesModal, setShowFeesModal] = useState(false)
+  const [showActivosModal, setShowActivosModal] = useState(false)
   // Alta inline de equipo/colaboradores (estilo Demanda/Lead/Propuesta)
   const [addEqSection, setAddEqSection] = useState(null)   // 'equipo' | 'colab' | null
   const [addEqDraft, setAddEqDraft] = useState({ equipo:'', miembro:'', rol:'Soporte' })
@@ -848,40 +849,17 @@ export default function FichaMandatoSupabase({ refOrId }) {
                         key:'activos', icon: Tag, tone: cardTone('Activo'),
                         label: activosLinked.length === 1 ? 'Activo' : 'Activos',
                         value: hasActivo ? `${activosLinked.length} ${activosLinked.length === 1 ? 'activo' : 'activos'}` : null,
-                        sub: hasActivo ? null : 'Vincula los activos del mandato.',
+                        sub: hasActivo
+                          ? (sbaTotal ? `${(sbaTotal/1000).toFixed(1)}k m² · SBA total` : 'Pulsa para ver y gestionar')
+                          : 'Vincula los activos del mandato.',
                         status: hasActivo ? 'done' : 'current',
                         vacant: !hasActivo,
-                        // Lista de activos vinculados + alta dentro de la propia card
-                        extraBody: (
-                          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                            {(form.tipo === 'alquiler' || form.tipo === 'venta') && activosLinked.length === 0 && (
-                              <div style={{ fontSize:10, color:'#dc2626', fontWeight:700 }}>* Tipo {TIPO_LABEL[form.tipo]} requiere al menos 1 activo</div>
-                            )}
-                            {activosLinked.map(l => l.activos && (
-                              <div key={l.id}
-                                style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', cursor:'pointer' }}
-                                onClick={() => navigate('ficha-activo', { ref: l.activos.ref })}
-                                title={`Abrir ficha del activo ${l.activos.ref}`}>
-                                <div style={{ flex:1, minWidth:0 }}>
-                                  <div style={{ fontSize:11.5, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{l.activos.nombre} <span style={{ fontFamily:'var(--mono)', color:'var(--text4)', fontSize:9.5, fontWeight:500 }}>{l.activos.ref}</span></div>
-                                  <div style={{ fontSize:9.5, color:'var(--text3)' }}>{[l.activos.ciudad, l.activos.uso, l.activos.sba ? `${Number(l.activos.sba).toLocaleString('es-ES')} m²` : null].filter(Boolean).join(' · ')}</div>
-                                </div>
-                                <input type="number" style={{ ...inp, width:70, fontSize:10 }} defaultValue={l.sba_asignada ?? ''}
-                                  onClick={e => e.stopPropagation()}
-                                  onBlur={e => updateSbaAsignada(l.id, e.target.value)} placeholder="SBA" title="SBA asignada" />
-                                <button onClick={e => { e.stopPropagation(); removeActivo(l.id) }} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }} title="Quitar activo">✕</button>
-                              </div>
-                            ))}
-                            <select style={{ ...sel, width:'100%' }} value="" onChange={e => { if (e.target.value) addActivo(e.target.value) }}>
-                              <option value="">+ Añadir activo al mandato…</option>
-                              {activosDisponibles.map(a => (
-                                <option key={a.id} value={a.id}>{a.nombre} — {a.ciudad || ''} · {a.ref}</option>
-                              ))}
-                            </select>
-                          </div>
-                        ),
-                        openAction: hasActivo && activosLinked.length === 1 && activosLinked[0].activos?.ref
-                          ? { label:'Abrir activo', onClick: () => navigate('ficha-activo', { ref: activosLinked[0].activos.ref }) }
+                        // La gestión (lista + alta) vive en un modal → la card mantiene tamaño fijo
+                        action: !hasActivo
+                          ? { label:'+ Vincular activos', onClick: () => setShowActivosModal(true), primary: true }
+                          : null,
+                        openAction: hasActivo
+                          ? { label:'Ver / gestionar', onClick: () => setShowActivosModal(true) }
                           : null,
                       },
                     ]} />
@@ -1110,6 +1088,58 @@ export default function FichaMandatoSupabase({ refOrId }) {
                   })()}
 
                 </div>
+
+                {/* ─── Modal · Activos vinculados (lista + alta) ─── */}
+                {showActivosModal && (
+                  <div onClick={() => setShowActivosModal(false)} style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:10, width:'min(720px, 96vw)', maxHeight:'90vh', overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 20px 50px rgba(15,23,42,0.25)' }}>
+                      <div style={{ padding:'18px 24px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+                        <div>
+                          <div style={{ fontSize:17, fontWeight:700, color:'var(--text)' }}>Activos vinculados ({activosLinked.length})</div>
+                          <div style={{ fontSize:12, color:'var(--text3)', marginTop:2 }}>{mandato.ref} · Vincula activos y ajusta la SBA asignada</div>
+                        </div>
+                        <button onClick={() => setShowActivosModal(false)} style={{ background:'none', border:'none', fontSize:20, color:'var(--text4)', cursor:'pointer', padding:'4px 8px' }}>×</button>
+                      </div>
+                      <div style={{ flex:1, overflowY:'auto', padding:'14px 24px 18px' }}>
+                        {(form.tipo === 'alquiler' || form.tipo === 'venta') && activosLinked.length === 0 && (
+                          <div style={{ marginBottom:10, padding:'8px 10px', background:'var(--amber-lt)', border:'1px solid var(--amber-bd)', borderRadius:5, fontSize:11, color:'var(--amber)', fontWeight:700 }}>
+                            * Tipo {TIPO_LABEL[form.tipo]} requiere al menos 1 activo
+                          </div>
+                        )}
+                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                          {activosLinked.length === 0 && (
+                            <div style={{ fontSize:12, color:'var(--text4)', fontStyle:'italic', padding:'6px 0' }}>Sin activos vinculados</div>
+                          )}
+                          {activosLinked.map(l => l.activos && (
+                            <div key={l.id}
+                              style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', cursor:'pointer' }}
+                              onClick={() => navigate('ficha-activo', { ref: l.activos.ref })}
+                              title={`Abrir ficha del activo ${l.activos.ref}`}>
+                              <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}></div>
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <div style={{ fontSize:12, fontWeight:600 }}>{l.activos.nombre} <span style={{ marginLeft:6, fontFamily:'var(--mono)', color:'var(--text4)', fontSize:10, fontWeight:500 }}>{l.activos.ref}</span></div>
+                                <div style={{ fontSize:10, color:'var(--text3)' }}>{[l.activos.ciudad, l.activos.uso, l.activos.sba ? `${Number(l.activos.sba).toLocaleString('es-ES')} m²` : null].filter(Boolean).join(' · ')}</div>
+                              </div>
+                              <input type="number" style={{ ...inp, width:90, fontSize:11 }} defaultValue={l.sba_asignada ?? ''}
+                                onClick={e => e.stopPropagation()}
+                                onBlur={e => updateSbaAsignada(l.id, e.target.value)} placeholder="SBA asig." title="SBA asignada" />
+                              <button onClick={e => { e.stopPropagation(); removeActivo(l.id) }} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:13, padding:'2px 4px' }} title="Quitar activo">✕</button>
+                            </div>
+                          ))}
+                        </div>
+                        <select style={{ ...sel, width:'100%', marginTop:10 }} value="" onChange={e => { if (e.target.value) addActivo(e.target.value) }}>
+                          <option value="">+ Añadir activo al mandato…</option>
+                          {activosDisponibles.map(a => (
+                            <option key={a.id} value={a.id}>{a.nombre} — {a.ciudad || ''} · {a.ref}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={{ padding:'14px 24px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'flex-end', flexShrink:0 }}>
+                        <button onClick={() => setShowActivosModal(false)} style={{ padding:'8px 16px', fontSize:12, border:'1px solid var(--border)', borderRadius:5, background:'#fff', cursor:'pointer', fontWeight:600 }}>Cerrar</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* ─── Agente externo (solo si co-exclusiva) — mini-fila compacta ─── */}
                 {form.exclusividad_modo === 'coexclusiva' && (
