@@ -2456,6 +2456,14 @@ tr:hover .ra-cell { opacity: 1; }
 }
 .dash-field-input::placeholder { color: #cbd5e1; }
 
+/* Ficha de Activo · fila única de cards (Info general). En columnas estrechas
+   las filas label/valor se apilan (label arriba, valor debajo) para que textos
+   largos como la dirección no se solapen. */
+.act-info-row .ir { flex-wrap: wrap; align-items: baseline; row-gap: 1px; column-gap: 8px; padding: 5px 0; }
+.act-info-row .ir-k { flex: 0 0 100%; font-size: 9px; letter-spacing: .04em; text-transform: uppercase; color: var(--text4); }
+.act-info-row .ir-v { flex: 1 1 auto; min-width: 0; text-align: left; word-break: break-word; line-height: 1.35; }
+.act-info-row .va-chip-row { grid-template-columns: 1fr; gap: 6px; }
+
 /* Filas de miembro en la card 'Equipo y partes' · ✕ aparece en hover */
 .dash-eq-row {
   display: flex;

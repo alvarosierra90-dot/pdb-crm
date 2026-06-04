@@ -3525,7 +3525,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
         )}
 
         {/* ── DETALLE · todos los cuadros en una sola fila (estilo Demanda/Lead) ── */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(5, minmax(0,1fr))',gap:12,marginBottom:14,alignItems:'start'}}>
+        <div className="act-info-row" style={{display:'grid',gridTemplateColumns:'repeat(5, minmax(0,1fr))',gap:12,marginBottom:14,alignItems:'stretch'}}>
 
           {/* LOCALIZACIÓN */}
           <div className="dash-card">
