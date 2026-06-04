@@ -149,6 +149,12 @@ export default function FichaLead() {
 
   useEffect(() => { loadLead() }, [loadLead])
 
+  // Guard de cambios sin guardar (modo edición del lead).
+  // IMPORTANTE: debe ir ANTES de cualquier return condicional para no romper
+  // el orden de hooks (si se llama tras los early-return → "Rendered more hooks
+  // than during the previous render" → pantalla en blanco).
+  useUnsavedGuard({ isDirty: () => editing, onSave: async () => { await saveEdit() } })
+
   if (loading) {
     return <div style={{ padding:32, color:'var(--text4)', fontSize:12 }}>Cargando…</div>
   }
@@ -230,9 +236,6 @@ export default function FichaLead() {
     setEditing(false)
     await loadLead()
   }
-
-  // Guard de cambios sin guardar (modo edición del lead).
-  useUnsavedGuard({ isDirty: () => editing, onSave: async () => { await saveEdit() } })
 
   const setF = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
 
