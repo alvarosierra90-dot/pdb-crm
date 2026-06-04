@@ -6,20 +6,18 @@ import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../component
 import ActividadesPanel from '../components/ActividadesPanel'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
+import HeaderPills from '../components/HeaderPills'
 import FunnelTracker from '../components/FunnelTracker'
 import FunnelStepCards from '../components/FunnelStepCards'
 import { cardTone } from '../lib/cardTones'
 import { Building2, Target, ScrollText, Tag, FileSearch } from 'lucide-react'
 
-// Mismo formato que Propuestas y Proyectos: una sola pestaña principal
-// que agrupa todos los bloques. Fees y honorarios pasa a estar dentro
-// de Información del mandato (encima de Equipo de trabajo).
-// Vista 360 sustituye a Actividades.
+// Mismo criterio que Demandas/Leads/Propuestas: Información general + Vista 360.
+// "Documentos" y "Confidencialidad" dejan de ser tabs y viven como secciones
+// al final de "Información general".
 const MAN_TABS = [
   ['man-info', 'Información general'],
-  ['man-docs', 'Documentos'],
   ['man-act',  'Vista 360'],
-  ['man-conf', 'Confidencialidad'],
 ]
 
 const TIPO_OPTS = [
@@ -85,6 +83,16 @@ const ta  = { width:'100%', padding:'6px 9px', fontSize:11.5, border:'1px solid 
 function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('es-ES') }
 function diasEntre(d) { if (!d) return null; const t = new Date(d).getTime(); return Math.round((t - Date.now()) / 86400000) }
 
+// Campo vertical (label arriba + control debajo) para las dash-cards de detalle.
+function DashField({ label, children }) {
+  return (
+    <div className="dash-field">
+      <span className="dash-field-lbl">{label}</span>
+      {children}
+    </div>
+  )
+}
+
 function StubTab({ label }) {
   return (
     <div style={{ padding:32, textAlign:'center', color:'var(--text4)', fontSize:12 }}>
@@ -124,6 +132,9 @@ export default function FichaMandatoSupabase({ refOrId }) {
   const [cancelMotivo, setCancelMotivo] = useState('')
   const [showNotasModal, setShowNotasModal] = useState(false)
   const [showFeesModal, setShowFeesModal] = useState(false)
+  // Alta inline de equipo/colaboradores (estilo Demanda/Lead/Propuesta)
+  const [addEqSection, setAddEqSection] = useState(null)   // 'equipo' | 'colab' | null
+  const [addEqDraft, setAddEqDraft] = useState({ equipo:'', miembro:'', rol:'Soporte' })
 
   const [form, setForm] = useState({
     titulo:'', tipo:'alquiler', via:'directo', estado:'en_curso',
@@ -677,162 +688,81 @@ export default function FichaMandatoSupabase({ refOrId }) {
             { key:'man',  label:'Mandato', ref: mandato.ref, current: true, onClick: null },
           ]} />
 
-          {/* Header con pills interactivos */}
+          {/* Header rediseñado · identidad + chips dk (estilo Demanda/Lead/Propuesta) */}
           {(() => {
             const hasNotas = !!(form.notas?.trim() || form.vision_novedades?.trim())
             const notasCount = (form.notas?.trim() ? 1 : 0) + (form.vision_novedades?.trim() ? 1 : 0)
             const totalFee = Number(form.fee_eur_fijo) || 0
             const isCoex = form.exclusividad_modo === 'coexclusiva'
+            const estadoPal = estadoColor === 'var(--green)' ? 'green' : estadoColor === 'var(--amber)' ? 'amber' : estadoColor === 'var(--red)' ? 'red' : 'default'
+            // Cambiar exclusividad · al pasar a exclusiva limpia agente y lo quita de Colaboradores
+            const cambiarExclusividad = async (nuevoModo) => {
+              setF('exclusividad_modo', nuevoModo)
+              if (nuevoModo === 'exclusiva' && mandato?.id) {
+                setF('cuenta_agente_id','')
+                setF('contacto_agente_id','')
+                const eq = Array.isArray(mandato.equipo_trabajo) ? mandato.equipo_trabajo : []
+                const limpio = eq.filter(m => m.equipo !== 'Agente externo')
+                if (limpio.length !== eq.length) {
+                  await supabase.from('mandatos').update({ equipo_trabajo: limpio }).eq('id', mandato.id)
+                  load()
+                }
+              }
+            }
+            // Vincular cuenta del agente externo · sincroniza con Colaboradores
+            const cambiarAgente = async (newId) => {
+              setF('cuenta_agente_id', newId)
+              setF('contacto_agente_id','')
+              if (!mandato?.id) return
+              const eq = Array.isArray(mandato.equipo_trabajo) ? mandato.equipo_trabajo : []
+              const sinExterno = eq.filter(m => m.equipo !== 'Agente externo')
+              let nuevoEquipo = sinExterno
+              if (newId) {
+                const cu = cuentasCatalog.find(c => c.dynamics_id === newId)
+                if (cu) nuevoEquipo = [...sinExterno, { nombre: cu.nombre, equipo: 'Agente externo', rol: 'Colaborador' }]
+              }
+              await supabase.from('mandatos').update({
+                equipo_trabajo: nuevoEquipo,
+                cuenta_agente_id: newId || null,
+                contacto_agente_id: null,
+              }).eq('id', mandato.id)
+              load()
+            }
             return (
-              <div className="ah">
-                <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-                  <div className="ah-ico" style={{ background:'linear-gradient(135deg,#4d4068,#9333ea)' }}></div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div className="ah-ref">
-                      <span style={{ background:'var(--purple-lt,#f3e8ff)', color:'var(--purple,#9333ea)', border:'1px solid var(--purple-bd,#d8b4fe)', padding:'0 6px', borderRadius:3, fontSize:9, fontWeight:700 }}>MANDATO</span>
-                      <span className="asset-link" style={{ fontFamily:'var(--mono)' }}>{mandato.ref}</span>
-                      <span style={{ color:'var(--text4)', fontSize:11 }}>· {TIPO_LABEL[form.tipo]}{form.via && ` · Vía ${form.via}`}</span>
+              <div className="dem-skin">
+                <div className="dk-topbar">
+                  <div className="dk-identity">
+                    <div className="dk-avatar" style={{ background:'linear-gradient(135deg,#4d4068,#9333ea)' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg>
                     </div>
-                    <div className="ah-name">
-                      <input style={{ ...inpFull, fontSize:22, fontWeight:700, padding:'4px 8px' }} value={form.titulo} onChange={e => setF('titulo', e.target.value)} placeholder="Título del mandato" />
-                    </div>
-                    <div className="ah-addr">
-                      📍 {[cuenta?.direccion, cuenta?.codigo_postal, cuenta?.ciudad].filter(Boolean).join(', ') || 'Cuenta sin dirección'} · Creado: {fmtDate(mandato.created_at)} · {CURRENT_USER.nombre}
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div className="dk-id-meta">
+                        <span className="dk-tag">Mandato</span>
+                        <span className="dk-ref">{mandato.ref}</span>
+                        <span className="dk-dot">·</span><span>{TIPO_LABEL[form.tipo]}{form.via && ` · Vía ${form.via}`}</span>
+                      </div>
+                      <input style={{ ...inpFull, fontSize:24, fontWeight:700, padding:'2px 6px', margin:'2px 0' }} value={form.titulo} onChange={e => setF('titulo', e.target.value)} placeholder="Título del mandato" />
+                      <div className="dk-addr">
+                        <span style={{ color:'#d93025' }}>📍</span>
+                        <span>{[cuenta?.direccion, cuenta?.codigo_postal, cuenta?.ciudad].filter(Boolean).join(', ') || 'Cuenta sin dirección'}</span>
+                        <span className="dk-dot">·</span><span>Creado: {fmtDate(mandato.created_at)}</span>
+                        <span className="dk-dot">·</span><strong>{responsableUI}</strong>
+                      </div>
                     </div>
                   </div>
-
-                  {/* PILLS interactivos · grid con columnas iguales para simetría perfecta */}
-                  <div style={{ flexShrink:0, display:'grid', gridTemplateColumns:'repeat(auto-fill, 150px)', gap:8, alignSelf:'center', maxWidth:'min(640px, 70%)', justifyContent:'flex-end' }}>
-                    {/* Estado */}
-                    <div style={{
-                      background:'var(--surface)', border:`2px solid ${estadoColor === 'var(--green)' ? 'var(--green-bd)' : estadoColor === 'var(--amber)' ? 'var(--amber-bd)' : estadoColor === 'var(--red)' ? 'var(--red-bd)' : 'var(--border)'}`,
-                      borderRadius:10, padding:'8px 14px',
-                    }}>
-                      <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em' }}>Estado</div>
-                      <div style={{ fontSize:15, fontWeight:700, color:estadoColor, marginTop:2 }}>● {estadoUI}</div>
-                    </div>
-
-                    {/* Exclusividad interactiva */}
-                    <div style={{
-                      background: isCoex ? 'var(--purple-lt)' : 'var(--accent-lt)',
-                      border:`2px solid ${isCoex ? 'var(--purple-bd)' : 'var(--accent-bd)'}`,
-                      borderRadius:10, padding:'8px 14px',
-                    }}>
-                      <div style={{ fontSize:10, fontWeight:700, color: isCoex ? 'var(--purple)' : 'var(--accent)', textTransform:'uppercase', letterSpacing:'.05em' }}>Exclusividad</div>
-                      <select
-                        value={form.exclusividad_modo}
-                        onChange={async e => {
-                          const nuevoModo = e.target.value
-                          setF('exclusividad_modo', nuevoModo)
-                          // Al pasar a exclusiva: limpiar cuenta/contacto agente y quitar el Agente externo de Colaboradores
-                          if (nuevoModo === 'exclusiva' && mandato?.id) {
-                            setF('cuenta_agente_id','')
-                            setF('contacto_agente_id','')
-                            const eq = Array.isArray(mandato.equipo_trabajo) ? mandato.equipo_trabajo : []
-                            const limpio = eq.filter(m => m.equipo !== 'Agente externo')
-                            if (limpio.length !== eq.length) {
-                              await supabase.from('mandatos').update({ equipo_trabajo: limpio }).eq('id', mandato.id)
-                              load()
-                            }
-                          }
-                        }}
-                        style={{ fontSize:15, fontWeight:700, color: isCoex ? 'var(--purple)' : 'var(--accent)', border:'none', background:'transparent', padding:0, cursor:'pointer', fontFamily:'inherit', outline:'none', width:'100%', marginTop:2 }}>
-                        <option value="exclusiva">Exclusiva</option>
-                        <option value="coexclusiva">Co-exclusiva</option>
-                      </select>
-                    </div>
-
-                    {/* Pill Agente externo · solo si Co-exclusiva. Al vincular cuenta se añade auto a Colaboradores */}
-                    {isCoex && (
-                      <div style={{
-                        background:'var(--purple-lt)',
-                        border:'2px solid var(--purple-bd)',
-                        borderRadius:10, padding:'8px 14px',
-                      }}>
-                        <div style={{ fontSize:10, fontWeight:700, color:'var(--purple)', textTransform:'uppercase', letterSpacing:'.05em' }}>Agente externo</div>
-                        <select
-                          value={form.cuenta_agente_id}
-                          onChange={async e => {
-                            const newId = e.target.value
-                            setF('cuenta_agente_id', newId)
-                            setF('contacto_agente_id','')
-                            if (!mandato?.id) return
-                            // Sincronizar con Colaboradores (equipo_trabajo jsonb)
-                            const eq = Array.isArray(mandato.equipo_trabajo) ? mandato.equipo_trabajo : []
-                            const sinExterno = eq.filter(m => m.equipo !== 'Agente externo')
-                            let nuevoEquipo = sinExterno
-                            if (newId) {
-                              const cu = cuentasCatalog.find(c => c.dynamics_id === newId)
-                              if (cu) nuevoEquipo = [...sinExterno, { nombre: cu.nombre, equipo: 'Agente externo', rol: 'Colaborador' }]
-                            }
-                            await supabase.from('mandatos').update({
-                              equipo_trabajo: nuevoEquipo,
-                              cuenta_agente_id: newId || null,
-                              contacto_agente_id: null,
-                            }).eq('id', mandato.id)
-                            load()
-                          }}
-                          style={{ fontSize:15, fontWeight:700, color:'var(--purple)', border:'none', background:'transparent', padding:0, cursor:'pointer', fontFamily:'inherit', outline:'none', width:'100%', marginTop:2, overflow:'hidden', textOverflow:'ellipsis' }}>
-                          <option value="">Vincular cuenta…</option>
-                          {cuentasCatalog.map(c => <option key={c.dynamics_id} value={c.dynamics_id}>{c.nombre}</option>)}
-                        </select>
-                      </div>
-                    )}
-
-                    {/* Fees (botón → modal) */}
-                    <button
-                      onClick={() => setShowFeesModal(true)}
-                      style={{
-                        background: totalFee > 0 ? 'var(--green-lt)' : 'var(--surface)',
-                        border:`2px solid ${totalFee > 0 ? 'var(--green-bd)' : 'var(--border)'}`,
-                        borderRadius:10, padding:'8px 14px', cursor:'pointer',
-                        fontFamily:'inherit', textAlign:'left',
-                      }}
-                      title="Ver fees y honorarios"
-                    >
-                      <div style={{ fontSize:10, fontWeight:700, color: totalFee > 0 ? 'var(--green)' : 'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em' }}>Fees</div>
-                      <div style={{ fontSize:15, fontWeight:700, color: totalFee > 0 ? 'var(--green)' : 'var(--text3)', marginTop:2 }}>
-                        {totalFee > 0 ? `${totalFee.toLocaleString('es-ES')} €` : 'Sin fee'}
-                      </div>
-                    </button>
-
-                    {/* Notas (botón → modal) */}
-                    <button
-                      onClick={() => setShowNotasModal(true)}
-                      style={{
-                        background: hasNotas ? 'var(--accent-lt)' : 'var(--surface)',
-                        border:`2px solid ${hasNotas ? 'var(--accent-bd)' : 'var(--border)'}`,
-                        borderRadius:10, padding:'8px 14px', cursor:'pointer',
-                        fontFamily:'inherit', textAlign:'left', position:'relative',
-                      }}
-                      title={hasNotas ? `${notasCount} bloque(s) con notas` : 'Añadir notas'}
-                    >
-                      <div style={{ fontSize:10, fontWeight:700, color: hasNotas ? 'var(--accent)' : 'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em' }}>Notas</div>
-                      <div style={{ fontSize:15, fontWeight:700, color: hasNotas ? 'var(--accent)' : 'var(--text3)', marginTop:2, display:'flex', alignItems:'center', gap:6 }}>
-                        📝 {hasNotas ? <span>{notasCount}</span> : <span style={{ fontSize:13, fontWeight:500 }}>—</span>}
-                      </div>
-                    </button>
-
-                    {/* Activos */}
-                    <div style={{ background:'var(--surface)', border:'2px solid var(--border)', borderRadius:10, padding:'8px 14px' }}>
-                      <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em' }}>Activos</div>
-                      <div style={{ fontSize:15, fontWeight:700, color:'var(--accent)', marginTop:2 }}>{activosLinked.length} · {sbaTotal ? `${(sbaTotal/1000).toFixed(1)}k m²` : '—'}</div>
-                    </div>
-
-                    {/* Responsable */}
-                    <div style={{ background:'var(--surface)', border:'2px solid var(--border)', borderRadius:10, padding:'8px 14px' }}>
-                      <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.05em' }}>Responsable</div>
-                      <div style={{ fontSize:14, fontWeight:700, color:'var(--accent)', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{responsableUI}</div>
-                    </div>
-
-                    {/* Días restantes (solo si alerta) */}
-                    {dr !== null && dr >= 0 && dr <= 60 && (
-                      <div style={{ background:'var(--amber-lt)', border:'2px solid var(--amber-bd)', borderRadius:10, padding:'8px 14px' }}>
-                        <div style={{ fontSize:10, fontWeight:700, color:'var(--amber)', textTransform:'uppercase', letterSpacing:'.05em' }}>Días restantes</div>
-                        <div style={{ fontSize:15, fontWeight:700, color:'var(--amber)', marginTop:2 }}>⏳ {dr}d</div>
-                      </div>
-                    )}
-                  </div>
+                  <HeaderPills variant="dk" items={[
+                    { key:'estado', type:'info', label:'Estado', value: estadoUI, color: estadoPal, accent: estadoPal !== 'default' },
+                    { key:'excl', type:'select', label:'Exclusividad', value: form.exclusividad_modo, color: isCoex ? 'purple' : 'accent', accent:true,
+                      options:[{ value:'exclusiva', label:'Exclusiva' },{ value:'coexclusiva', label:'Co-exclusiva' }], onChange: cambiarExclusividad },
+                    isCoex && { key:'agente', type:'select', label:'Agente externo', value: form.cuenta_agente_id, color:'purple', accent:true,
+                      options:[{ value:'', label:'Vincular cuenta…' }, ...cuentasCatalog.map(c => ({ value:c.dynamics_id, label:c.nombre }))], onChange: cambiarAgente },
+                    { key:'fees', type:'button', label:'Fees', value: totalFee > 0 ? `${totalFee.toLocaleString('es-ES')} €` : 'Sin fee', color: totalFee > 0 ? 'green' : 'default', accent: totalFee > 0, onClick: () => setShowFeesModal(true) },
+                    { key:'notas', type:'button', label:'Notas', value: hasNotas ? `📝 ${notasCount}` : '—', color: hasNotas ? 'accent' : 'default', accent: hasNotas, onClick: () => setShowNotasModal(true) },
+                    { key:'activos', type:'info', label:'Activos', value: `${activosLinked.length}${sbaTotal ? ` · ${(sbaTotal/1000).toFixed(1)}k m²` : ''}`, color:'accent', accent: activosLinked.length > 0 },
+                    { key:'responsable', type:'info', label:'Responsable', value: responsableUI },
+                    (dr !== null && dr >= 0 && dr <= 60) && { key:'dias', type:'info', label:'Días restantes', value:`⏳ ${dr}d`, color:'amber', accent:true },
+                    { key:'conf', type:'info', label:'Confidencialidad', value: mandatoConfidential ? 'Confidencial' : 'No', color:'teal', accent: mandatoConfidential },
+                  ]} />
                 </div>
               </div>
             )
@@ -935,52 +865,28 @@ export default function FichaMandatoSupabase({ refOrId }) {
                   )
                 })()}
 
-                {/* ── EQUIPO DE TRABAJO + COLABORADORES (50/50 justo bajo Vinculaciones) ── */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
-                  <EquipoTrabajoCard
-                    title="Equipo de trabajo"
-                    equipo={equipoInterno}
-                    canManage={canManage}
-                    onAdd={(nombre, equipoNombre, rol) => handlers.addMiembro(nombre, equipoNombre, rol === 'Colaborador' ? 'Soporte' : rol)}
-                    onRemove={(idx) => handlers.removeMiembro(mapIdx(equipoInterno, idx))}
-                    onUpdateRol={(idx, rol) => handlers.updateMiembroRol(mapIdx(equipoInterno, idx), rol)}
-                  />
-                  <EquipoTrabajoCard
-                    title="Colaboradores"
-                    equipo={colaboradores}
-                    canManage={canManage}
-                    onAdd={(nombre, equipoNombre) => handlers.addMiembro(nombre, equipoNombre, 'Colaborador')}
-                    onRemove={(idx) => handlers.removeMiembro(mapIdx(colaboradores, idx))}
-                    onUpdateRol={(idx, rol) => handlers.updateMiembroRol(mapIdx(colaboradores, idx), rol)}
-                  />
-                </div>
+                {/* ── DETALLE · todos los cuadros en una sola fila (estilo Demanda/Lead/Propuesta) ── */}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:12, marginBottom:14, alignItems:'stretch' }}>
 
-                {/* ─── FILA 1: Mandato | Vigencia y alertas (50/50) — Exclusividad vive en el header como tag interactiva ─── */}
-                <div className="va-two-col">
-                  <div className="va-meta-card" style={{ marginBottom:0 }}>
-                    <div className="va-meta-head"><span className="dot"/>Mandato</div>
-                    <div className="va-kv-list">
-                      <div className="ir"><span className="ir-k">Tipo</span>
-                        <span className="ir-v">
-                          <select style={sel} value={form.tipo} onChange={e => setF('tipo', e.target.value)}>
-                            {TIPO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                          </select>
-                        </span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Vía</span>
-                        <span className="ir-v">
-                          <select style={sel} value={form.via} onChange={e => setF('via', e.target.value)}>
-                            {VIA_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                          </select>
-                        </span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Estado</span>
-                        <span className="ir-v">
-                          <select style={sel} value={form.estado} onChange={e => setF('estado', e.target.value)}>
-                            {ESTADO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-                          </select>
-                        </span>
-                      </div>
+                  {/* Mandato */}
+                  <div className="dash-card">
+                    <div className="dash-card-head">Mandato</div>
+                    <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:11 }}>
+                      <DashField label="Tipo">
+                        <select className="dash-field-input" value={form.tipo} onChange={e => setF('tipo', e.target.value)}>
+                          {TIPO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                        </select>
+                      </DashField>
+                      <DashField label="Vía">
+                        <select className="dash-field-input" value={form.via} onChange={e => setF('via', e.target.value)}>
+                          {VIA_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                        </select>
+                      </DashField>
+                      <DashField label="Estado">
+                        <select className="dash-field-input" value={form.estado} onChange={e => setF('estado', e.target.value)}>
+                          {ESTADO_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                        </select>
+                      </DashField>
                       {form.estado === 'cancelado' && (() => {
                         const motivoEsPredef = MOTIVOS_CANCELACION.includes(form.motivo_cancelacion)
                         const motivoEsOtro   = !!form.motivo_cancelacion && !motivoEsPredef
@@ -989,96 +895,196 @@ export default function FichaMandatoSupabase({ refOrId }) {
                         const sinMotivo      = !form.motivo_cancelacion.trim()
                         return (
                           <>
-                            <div className="ir" style={{ alignItems:'flex-start' }}>
-                              <span className="ir-k" style={{ color:'#dc2626', fontWeight:700 }}>Motivo cancelación *</span>
-                              <span className="ir-v">
-                                <select
-                                  style={{ ...sel, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
-                                  value={sel_v}
-                                  onChange={e => {
-                                    const v = e.target.value
-                                    if (v === '') setF('motivo_cancelacion','')
-                                    else if (v === 'Otro motivo') setF('motivo_cancelacion', otroTexto || ' ')
-                                    else setF('motivo_cancelacion', v)
-                                  }}
-                                >
-                                  <option value="">Selecciona un motivo...</option>
-                                  {MOTIVOS_CANCELACION.map(m => <option key={m}>{m}</option>)}
-                                </select>
-                              </span>
-                            </div>
+                            <DashField label="Motivo cancelación *">
+                              <select className="dash-field-input" style={{ borderColor: sinMotivo ? '#dc2626' : undefined }} value={sel_v}
+                                onChange={e => {
+                                  const v = e.target.value
+                                  if (v === '') setF('motivo_cancelacion','')
+                                  else if (v === 'Otro motivo') setF('motivo_cancelacion', otroTexto || ' ')
+                                  else setF('motivo_cancelacion', v)
+                                }}>
+                                <option value="">Selecciona un motivo...</option>
+                                {MOTIVOS_CANCELACION.map(m => <option key={m}>{m}</option>)}
+                              </select>
+                            </DashField>
                             {(sel_v === 'Otro motivo' || motivoEsOtro) && (
-                              <div className="ir" style={{ alignItems:'flex-start' }}>
-                                <span className="ir-k">Describe el motivo</span>
-                                <span className="ir-v" style={{ flex:1 }}>
-                                  <textarea
-                                    style={{ ...ta, minHeight:50, borderColor: sinMotivo ? '#dc2626' : 'var(--border)' }}
-                                    value={otroTexto}
-                                    onChange={e => setF('motivo_cancelacion', e.target.value)}
-                                    placeholder="Describe el motivo de la cancelación..."
-                                  />
-                                </span>
-                              </div>
+                              <DashField label="Describe el motivo">
+                                <textarea className="dash-field-input" style={{ minHeight:60, resize:'vertical', borderColor: sinMotivo ? '#dc2626' : undefined }} value={otroTexto} onChange={e => setF('motivo_cancelacion', e.target.value)} placeholder="Describe el motivo de la cancelación…" />
+                              </DashField>
                             )}
                           </>
                         )
                       })()}
-                      <div className="ir"><span className="ir-k">Departamento</span>
-                        <span className="ir-v">
-                          <select style={sel} value={form.departamento} onChange={e => setF('departamento', e.target.value)}>
-                            <option value="">—</option>
-                            {DEPARTAMENTOS.map(d => <option key={d}>{d}</option>)}
-                          </select>
-                        </span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Provincia</span>
-                        <span className="ir-v">
-                          <select style={sel} value={form.provincia} onChange={e => setF('provincia', e.target.value)}>
-                            <option value="">—</option>
-                            {PROVINCIAS.map(p => <option key={p}>{p}</option>)}
-                          </select>
-                        </span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Zona</span>
-                        <span className="ir-v"><input style={{ ...inp, width:140 }} value={form.zona} onChange={e => setF('zona', e.target.value)} placeholder="Zona / submercado" /></span>
-                      </div>
+                      <DashField label="Departamento">
+                        <select className="dash-field-input" value={form.departamento} onChange={e => setF('departamento', e.target.value)}>
+                          <option value="">—</option>
+                          {DEPARTAMENTOS.map(d => <option key={d}>{d}</option>)}
+                        </select>
+                      </DashField>
+                      <DashField label="Provincia">
+                        <select className="dash-field-input" value={form.provincia} onChange={e => setF('provincia', e.target.value)}>
+                          <option value="">—</option>
+                          {PROVINCIAS.map(p => <option key={p}>{p}</option>)}
+                        </select>
+                      </DashField>
+                      <DashField label="Zona">
+                        <input className="dash-field-input" value={form.zona} onChange={e => setF('zona', e.target.value)} placeholder="Zona / submercado" />
+                      </DashField>
                     </div>
                   </div>
 
-                  <div className="va-meta-card" style={{ marginBottom:0 }}>
-                    <div className="va-meta-head accent-purple"><span className="dot"/>Vigencia y alertas</div>
-                    <div className="va-kv-list">
-                      <div className="ir"><span className="ir-k">Fecha de firma</span>
-                        <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_firma || ''} onChange={e => setF('fecha_firma', e.target.value)} /></span>
+                  {/* Vigencia y alertas */}
+                  <div className="dash-card">
+                    <div className="dash-card-head">Vigencia y alertas</div>
+                    <div style={{ padding:'12px 16px 16px', display:'flex', flexDirection:'column', gap:11 }}>
+                      <DashField label="Fecha de firma">
+                        <input type="date" className="dash-field-input" value={form.fecha_firma || ''} onChange={e => setF('fecha_firma', e.target.value)} />
+                      </DashField>
+                      <DashField label="Fecha de inicio">
+                        <input type="date" className="dash-field-input" value={form.fecha_inicio || ''} onChange={e => setF('fecha_inicio', e.target.value)} />
+                      </DashField>
+                      <DashField label="Vencimiento">
+                        <input type="date" className="dash-field-input" value={form.fecha_vencimiento || ''} onChange={e => setF('fecha_vencimiento', e.target.value)} />
+                      </DashField>
+                      <DashField label="Días restantes">
+                        <span style={{ fontSize:13, fontWeight:600 }}>{dr === null ? '—' : (dr < 0 ? <span style={{ color:'var(--red)', fontWeight:700 }}>Vencido hace {Math.abs(dr)}d</span> : <span style={{ color: dr <= 30 ? 'var(--red)' : dr <= 60 ? 'var(--amber)' : 'var(--text)' }}>{dr} días</span>)}</span>
+                      </DashField>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                        <DashField label="Preaviso (días)">
+                          <input type="number" className="dash-field-input" value={form.preaviso_dias} onChange={e => setF('preaviso_dias', e.target.value)} />
+                        </DashField>
+                        <DashField label="Alertar antes (días)">
+                          <input type="number" className="dash-field-input" value={form.alerta_dias} onChange={e => setF('alerta_dias', e.target.value)} />
+                        </DashField>
                       </div>
-                      <div className="ir"><span className="ir-k">Fecha de inicio</span>
-                        <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_inicio || ''} onChange={e => setF('fecha_inicio', e.target.value)} /></span>
-                      </div>
-                      <div className="ir"><span className="ir-k" style={{ fontWeight:700 }}>Vencimiento</span>
-                        <span className="ir-v"><input type="date" style={{ ...sel, width:150 }} value={form.fecha_vencimiento || ''} onChange={e => setF('fecha_vencimiento', e.target.value)} /></span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Días restantes</span>
-                        <span className="ir-v">{dr === null ? '—' : (dr < 0 ? <span style={{ color:'var(--red)', fontWeight:700 }}>Vencido hace {Math.abs(dr)}d</span> : <span style={{ color: dr <= 30 ? 'var(--red)' : dr <= 60 ? 'var(--amber)' : 'var(--text)' }}>{dr} días</span>)}</span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Preaviso (días)</span>
-                        <span className="ir-v"><input type="number" style={{ ...inp, width:80 }} value={form.preaviso_dias} onChange={e => setF('preaviso_dias', e.target.value)} /></span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Alertar X días antes</span>
-                        <span className="ir-v"><input type="number" style={{ ...inp, width:80 }} value={form.alerta_dias} onChange={e => setF('alerta_dias', e.target.value)} /></span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Prórroga tácita</span>
-                        <span className="ir-v">
-                          <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:11 }}>
-                            <input type="checkbox" checked={form.prorroga_tacita} onChange={e => setF('prorroga_tacita', e.target.checked)} />
-                            {form.prorroga_tacita ? 'Sí' : 'No'}
-                          </label>
-                        </span>
-                      </div>
-                      <div className="ir"><span className="ir-k">Meses de prórroga</span>
-                        <span className="ir-v"><input type="number" style={{ ...inp, width:80 }} value={form.prorroga_meses} onChange={e => setF('prorroga_meses', e.target.value)} disabled={!form.prorroga_tacita} /></span>
-                      </div>
+                      <DashField label="Prórroga tácita">
+                        <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, fontWeight:600 }}>
+                          <input type="checkbox" checked={form.prorroga_tacita} onChange={e => setF('prorroga_tacita', e.target.checked)} />
+                          {form.prorroga_tacita ? 'Sí' : 'No'}
+                        </label>
+                      </DashField>
+                      {form.prorroga_tacita && (
+                        <DashField label="Meses de prórroga">
+                          <input type="number" className="dash-field-input" value={form.prorroga_meses} onChange={e => setF('prorroga_meses', e.target.value)} />
+                        </DashField>
+                      )}
                     </div>
                   </div>
+
+                  {/* Equipo de trabajo · dash-card con Equipo + Colaboradores (estilo Demanda/Lead/Propuesta) */}
+                  {(() => {
+                    const iniciales = n => (n || '?').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()
+                    return (
+                      <div className="dash-card" style={{ overflow:'visible' }}>
+                        <div className="dash-card-head">Equipo de trabajo</div>
+                        <div style={{ padding:'12px 16px 14px', display:'flex', flexDirection:'column', gap:12 }}>
+
+                          {/* Equipo (Principal/Soporte) */}
+                          <div>
+                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                              <div className="dash-card-sub" style={{ margin:0 }}>Equipo</div>
+                              {canManage && addEqSection !== 'equipo' && (
+                                <button onClick={() => { setAddEqSection('equipo'); setAddEqDraft({ equipo:'', miembro:'', rol:'Soporte' }) }}
+                                  style={{ background:'none', border:'none', color:'#0a66c2', cursor:'pointer', fontSize:11, fontWeight:600, padding:0 }}>+ Añadir</button>
+                              )}
+                            </div>
+                            {equipoInterno.length === 0 ? (
+                              <div style={{ fontSize:11.5, color:'#94a3b8' }}>Sin asignar.</div>
+                            ) : (
+                              <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                                {equipoInterno.map((m, i) => (
+                                  <div key={`int-${i}`} className="dash-eq-row">
+                                    <div style={{ width:24, height:24, borderRadius:'50%', background:'#f5efe5', color:'#5a4828', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>{iniciales(m.nombre)}</div>
+                                    <div style={{ fontSize:12, fontWeight:500, color:'#0f172a', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.nombre}</div>
+                                    <span style={{ fontSize:9.5, color: m.rol === 'Principal' ? '#0a66c2' : '#64748b', fontWeight:600 }}>{m.rol}</span>
+                                    {canManage && (
+                                      <button onClick={() => handlers.removeMiembro(mapIdx(equipoInterno, i))} className="dash-eq-remove" title="Quitar">×</button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {addEqSection === 'equipo' && (
+                              <div style={{ marginTop:8, padding:'10px 12px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:10, display:'flex', flexDirection:'column', gap:6 }}>
+                                <select className="fsel" value={addEqDraft.equipo} onChange={e => setAddEqDraft(p => ({ ...p, equipo: e.target.value, miembro:'' }))} style={{ fontSize:11.5 }}>
+                                  <option value="">Equipo…</option>
+                                  {EQUIPOS_SAVILLS.map(eq => <option key={eq}>{eq}</option>)}
+                                </select>
+                                {addEqDraft.equipo && (
+                                  <select className="fsel" value={addEqDraft.miembro} onChange={e => setAddEqDraft(p => ({ ...p, miembro: e.target.value }))} style={{ fontSize:11.5 }}>
+                                    <option value="">Miembro…</option>
+                                    {(MIEMBROS_POR_EQUIPO[addEqDraft.equipo] || []).map(n => <option key={n}>{n}</option>)}
+                                  </select>
+                                )}
+                                <select className="fsel" value={addEqDraft.rol} onChange={e => setAddEqDraft(p => ({ ...p, rol: e.target.value }))} style={{ fontSize:11.5 }}>
+                                  <option>Principal</option>
+                                  <option>Soporte</option>
+                                </select>
+                                <div style={{ display:'flex', gap:6 }}>
+                                  <button disabled={!addEqDraft.equipo || !addEqDraft.miembro}
+                                    onClick={() => { handlers.addMiembro(addEqDraft.miembro, addEqDraft.equipo, addEqDraft.rol); setAddEqSection(null) }}
+                                    style={{ flex:1, padding:'6px 10px', fontSize:11.5, fontWeight:600, border:'none', borderRadius:8, background: (!addEqDraft.equipo || !addEqDraft.miembro) ? '#cbd5e1' : '#0a66c2', color:'#fff', cursor: (!addEqDraft.equipo || !addEqDraft.miembro) ? 'not-allowed' : 'pointer' }}>Añadir</button>
+                                  <button onClick={() => setAddEqSection(null)} style={{ padding:'6px 10px', fontSize:11.5, fontWeight:500, border:'1px solid var(--border)', borderRadius:8, background:'#fff', color:'#64748b', cursor:'pointer' }}>Cancelar</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Colaboradores */}
+                          <div>
+                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                              <div className="dash-card-sub" style={{ margin:0 }}>Colaboradores</div>
+                              {canManage && addEqSection !== 'colab' && (
+                                <button onClick={() => { setAddEqSection('colab'); setAddEqDraft({ equipo:'', miembro:'', rol:'Colaborador' }) }}
+                                  style={{ background:'none', border:'none', color:'#6b21a8', cursor:'pointer', fontSize:11, fontWeight:600, padding:0 }}>+ Añadir</button>
+                              )}
+                            </div>
+                            {colaboradores.length === 0 ? (
+                              <div style={{ fontSize:11.5, color:'#94a3b8' }}>Sin colaboradores externos.</div>
+                            ) : (
+                              <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                                {colaboradores.map((m, i) => (
+                                  <div key={`cl-${i}`} className="dash-eq-row">
+                                    <div style={{ width:24, height:24, borderRadius:'50%', background:'#fdf4ff', color:'#6b5b8e', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>{iniciales(m.nombre)}</div>
+                                    <div style={{ fontSize:12, fontWeight:500, color:'#0f172a', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.nombre}</div>
+                                    <span style={{ fontSize:9.5, color:'#6b21a8', fontWeight:600 }}>{m.equipo || 'Colab'}</span>
+                                    {canManage && (
+                                      <button onClick={() => handlers.removeMiembro(mapIdx(colaboradores, i))} className="dash-eq-remove" title="Quitar">×</button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {addEqSection === 'colab' && (
+                              <div style={{ marginTop:8, padding:'10px 12px', background:'#faf5ff', border:'1px solid #e9d5ff', borderRadius:10, display:'flex', flexDirection:'column', gap:6 }}>
+                                <select className="fsel" value={addEqDraft.equipo} onChange={e => setAddEqDraft(p => ({ ...p, equipo: e.target.value, miembro:'' }))} style={{ fontSize:11.5 }}>
+                                  <option value="">Equipo / consultora…</option>
+                                  {EQUIPOS_SAVILLS.map(eq => <option key={eq}>{eq}</option>)}
+                                  <option value="Agente externo">Agente externo</option>
+                                </select>
+                                {addEqDraft.equipo && addEqDraft.equipo !== 'Agente externo' && (
+                                  <select className="fsel" value={addEqDraft.miembro} onChange={e => setAddEqDraft(p => ({ ...p, miembro: e.target.value }))} style={{ fontSize:11.5 }}>
+                                    <option value="">Miembro…</option>
+                                    {(MIEMBROS_POR_EQUIPO[addEqDraft.equipo] || []).map(n => <option key={n}>{n}</option>)}
+                                  </select>
+                                )}
+                                {addEqDraft.equipo === 'Agente externo' && (
+                                  <input className="kf-inp" placeholder="Nombre del agente externo" value={addEqDraft.miembro} onChange={e => setAddEqDraft(p => ({ ...p, miembro: e.target.value }))} style={{ fontSize:11.5 }} />
+                                )}
+                                <div style={{ display:'flex', gap:6 }}>
+                                  <button disabled={!addEqDraft.equipo || !addEqDraft.miembro}
+                                    onClick={() => { handlers.addMiembro(addEqDraft.miembro, addEqDraft.equipo, 'Colaborador'); setAddEqSection(null) }}
+                                    style={{ flex:1, padding:'6px 10px', fontSize:11.5, fontWeight:600, border:'none', borderRadius:8, background: (!addEqDraft.equipo || !addEqDraft.miembro) ? '#cbd5e1' : '#6b21a8', color:'#fff', cursor: (!addEqDraft.equipo || !addEqDraft.miembro) ? 'not-allowed' : 'pointer' }}>Añadir</button>
+                                  <button onClick={() => setAddEqSection(null)} style={{ padding:'6px 10px', fontSize:11.5, fontWeight:500, border:'1px solid var(--border)', borderRadius:8, background:'#fff', color:'#64748b', cursor:'pointer' }}>Cancelar</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                 </div>
 
@@ -1281,12 +1287,41 @@ export default function FichaMandatoSupabase({ refOrId }) {
                   </div>
                 )}
 
+                {/* ── DOCUMENTOS · sección dentro de Información general ── */}
+                <div className="va-card" style={{ marginTop:14 }}>
+                  <div className="va-card-header">
+                    <h3><span className="ico">▤</span> Documentos del mandato</h3>
+                    <button className="ab-btn blue">+ Subir documento</button>
+                  </div>
+                  <div style={{ padding:'12px 20px', fontSize:11, color:'var(--text4)' }}>
+                    Próximamente: documentos del mandato (contrato firmado, anexos, KYC) con almacenamiento real.
+                  </div>
+                </div>
+
+                {/* ── CONFIDENCIALIDAD · al final de Información general (mismo criterio que Demanda) ── */}
+                <div style={{ marginTop:14 }}>
+                  <ConfidencialidadPanel
+                    entityLabel="mandato"
+                    confidential={mandatoConfidential}
+                    onToggle={setMandatoConfidential}
+                    hiddenFields={['Cuenta','Activos vinculados','Fees y honorarios','Condiciones económicas','Documentación']}
+                    visibleFields={['Tipo de mandato','Estado del mandato','Equipo','Fecha de inicio','Información básica']}
+                    authorizedUsers={mandatoAuthUsers}
+                    onAddUser={(newUser) => {
+                      const [name, team] = [newUser.split('·')[0].trim(), newUser.split('·')[1]?.trim() || '']
+                      const ini = name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+                      const today = new Date().toLocaleDateString('es-ES')
+                      setMandatoAuthUsers(prev => [...prev, { name, team, role:'Autorizado', initials:ini, bg:'#f0fdf4', color:'#166534', granted:today }])
+                    }}
+                    onRemoveUser={(idx) => setMandatoAuthUsers(prev => prev.filter((_,j) => j !== idx))}
+                    responsable={CURRENT_USER.nombre}
+                  />
+                </div>
+
               </div></div>
             )
           })()}
 
-
-          {tab === 'man-docs' && <StubTab label="Documentos del mandato" />}
           {tab === 'man-act'  && (
             <div className="tab-content active">
               <ActividadesPanel
@@ -1294,24 +1329,6 @@ export default function FichaMandatoSupabase({ refOrId }) {
                 title="Actividades vinculadas al mandato"
               />
             </div>
-          )}
-          {tab === 'man-conf' && (
-            <ConfidencialidadPanel
-              entityLabel="mandato"
-              confidential={mandatoConfidential}
-              onToggle={setMandatoConfidential}
-              hiddenFields={['Cuenta','Activos vinculados','Fees y honorarios','Condiciones económicas','Documentación']}
-              visibleFields={['Tipo de mandato','Estado del mandato','Equipo','Fecha de inicio','Información básica']}
-              authorizedUsers={mandatoAuthUsers}
-              onAddUser={(newUser) => {
-                const [name, team] = [newUser.split('·')[0].trim(), newUser.split('·')[1]?.trim() || '']
-                const ini = name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
-                const today = new Date().toLocaleDateString('es-ES')
-                setMandatoAuthUsers(prev => [...prev, { name, team, role:'Autorizado', initials:ini, bg:'#f0fdf4', color:'#166534', granted:today }])
-              }}
-              onRemoveUser={(idx) => setMandatoAuthUsers(prev => prev.filter((_,j) => j !== idx))}
-              responsable={CURRENT_USER.nombre}
-            />
           )}
 
         </div>
