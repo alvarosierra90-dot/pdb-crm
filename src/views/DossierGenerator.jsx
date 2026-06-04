@@ -758,6 +758,83 @@ function OfertaSlide({ a }) {
   )
 }
 
+/* Galería · resto de fotos subidas (la 1ª va como imagen principal) */
+function GallerySlide({ photos }) {
+  const rest = (photos || []).slice(1)
+  if (rest.length === 0) return null
+  return (
+    <div className="slide" style={{ background: '#fff', padding: 18, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gridAutoRows: '1fr', gap: 10 }}>
+      {rest.slice(0, 4).map((p, i) => (
+        <div key={i} style={{ overflow: 'hidden', borderRadius: 2, background: 'var(--surface-2)' }}>
+          <img src={p.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* Planos subidos */
+function PlanosSlide({ plans }) {
+  if (!plans || plans.length === 0) return null
+  const cols = Math.min(plans.length, 3)
+  return (
+    <div className="slide slide-content" style={{ padding: '32px 52px' }}>
+      <h3 style={{ fontSize: 30, marginBottom: 16 }}>Planos</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 12, flex: 1, minHeight: 0 }}>
+        {plans.slice(0, 3).map((p, i) => (
+          <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 2, overflow: 'hidden', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img src={p.url} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* Amenities (oficinas) · separados por coma */
+function AmenitiesSlide({ amenities }) {
+  const items = (amenities || '').split(',').map(s => s.trim()).filter(Boolean)
+  if (items.length === 0) return null
+  return (
+    <div className="slide slide-content">
+      <h3>Amenities <span className="italic-gold">& servicios</span></h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px 28px', marginTop: 8, maxWidth: 780 }}>
+        {items.map((it, i) => (
+          <div key={i} style={{ fontSize: 13, color: 'var(--ink-2)', display: 'flex', gap: 8, alignItems: 'baseline' }}><span style={{ color: 'var(--gold)' }}>—</span>{it}</div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* Sostenibilidad · una por línea */
+function SostSlide({ sost }) {
+  const items = (sost || '').split('\n').map(s => s.trim()).filter(Boolean)
+  if (items.length === 0) return null
+  return (
+    <div className="slide slide-content">
+      <h3>Sostenibilidad <span className="italic-gold">& certificaciones</span></h3>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 28px', marginTop: 8, maxWidth: 780 }}>
+        {items.map((it, i) => (
+          <div key={i} style={{ fontSize: 13, color: 'var(--ink-2)', display: 'flex', gap: 8, alignItems: 'baseline' }}><span style={{ color: 'var(--success)' }}>✓</span>{it}</div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* Especificaciones técnicas · una por línea */
+function SpecsSlide({ specs, mono }) {
+  const items = (specs || '').split('\n').map(s => s.trim()).filter(Boolean)
+  if (items.length === 0) return null
+  return (
+    <div className="slide slide-content">
+      <h3 style={mono ? { fontFamily: 'Manrope', fontWeight: 700, fontSize: 24 } : undefined}>Especificaciones <span className="italic-gold">técnicas</span></h3>
+      <div style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--ink-2)', maxWidth: 660, marginTop: 8 }}>{items.map((l, i) => <div key={i}>{l}</div>)}</div>
+    </div>
+  )
+}
+
 function KpiOff({ value, unit, label, sublabel }) {
   return (
     <div className="kpi">
@@ -792,7 +869,15 @@ function OffSlides({ a }) {
 
       <div className="slide slide-photo">{mainPhoto ? <img src={mainPhoto} alt="" /> : '— Imagen principal del activo —'}</div>
 
+      <GallerySlide photos={a.photos} />
+
       <MapSlide a={a} />
+
+      <PlanosSlide plans={a.plans} />
+
+      <AmenitiesSlide amenities={a.kpis?.amenities} />
+
+      <SostSlide sost={a.sost} />
 
       {a.fuente === 'oferta' && <OfertaSlide a={a} />}
 
@@ -811,21 +896,7 @@ function OffSlides({ a }) {
         </div>
       )}
 
-      {(a.specs || a.sost) && (
-        <div className="slide slide-content" style={{ padding: '32px 52px' }}>
-          <h3 style={{ fontSize: 28, marginBottom: 12 }}>Especificaciones <span className="italic-gold">técnicas</span></h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginTop: 8 }}>
-            <div>
-              <div style={{ fontSize: 10, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 8 }}>Instalaciones</div>
-              <div style={{ fontSize: 12, lineHeight: 1.6 }}>{lines(a.specs)}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 10, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 8 }}>Sostenibilidad</div>
-              <div style={{ fontSize: 12, lineHeight: 1.6 }}>{lines(a.sost)}</div>
-            </div>
-          </div>
-        </div>
-      )}
+      <SpecsSlide specs={a.specs} />
     </>
   )
 }
@@ -859,7 +930,13 @@ function LogSlides({ a }) {
 
       <div className="slide slide-photo">{mainPhoto ? <img src={mainPhoto} alt="" /> : '— Imagen aérea / nave —'}</div>
 
+      <GallerySlide photos={a.photos} />
+
       <MapSlide a={a} />
+
+      <PlanosSlide plans={a.plans} />
+
+      <SostSlide sost={a.sost} />
 
       {a.fuente === 'oferta' && <OfertaSlide a={a} />}
 
@@ -869,12 +946,7 @@ function LogSlides({ a }) {
         <div style={{ marginTop: 16, fontSize: 11, color: 'var(--muted)' }}>{(a.transportes || '').split('\n').filter(Boolean).join(' · ')}</div>
       </div>
 
-      {a.specs && (
-        <div className="slide slide-content">
-          <h3 style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 24 }}>ESPECIFICACIONES DEL EDIFICIO</h3>
-          <div style={{ fontSize: 12, lineHeight: 1.7, maxWidth: 640 }}>{lines(a.specs)}</div>
-        </div>
-      )}
+      <SpecsSlide specs={a.specs} mono />
     </>
   )
 }
