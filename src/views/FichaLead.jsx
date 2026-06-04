@@ -849,45 +849,6 @@ export default function FichaLead() {
 
                 </div>
 
-                {/* ─── Registros generados al transformar (ancho completo) ─── */}
-                {oportunidadId && (
-                  <div className="va-card">
-                    <div className="va-card-header">
-                      <h3><span className="ico" style={{color:'var(--accent)'}}>●</span> Registros generados al transformar</h3>
-                    </div>
-                    <div style={{padding:'4px 20px 16px', display:'flex', flexDirection:'column', gap:8}}>
-                      <div style={{ background:'#cffafe', border:'1px solid #67e8f9', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#0e7490' }}>
-                        ⚡ Oportunidad: {oportunidadNombre} <span style={{ fontFamily:'var(--mono)', fontSize:10, marginLeft:8, opacity:0.7 }}>{oportunidadId}</span>
-                      </div>
-                      {lead.propuestas && (
-                        <div onClick={() => navigate('propuestas')} style={{ background:'#fef3c7', border:'1px solid #fde68a', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#92400e', cursor:'pointer' }}>
-                          📄 Propuesta: {lead.propuestas.nombre || lead.propuestas.ref} <span className="tag tag-amber" style={{ marginLeft:8 }}>{lead.propuestas.estado}</span>
-                        </div>
-                      )}
-                      {lead.demandas && (
-                        <div onClick={() => navigate('demandas')} style={{ background:'#f3e8ff', border:'1px solid #d8b4fe', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#6b21a8', cursor:'pointer' }}>
-                          Demanda: {lead.demandas.nombre || lead.demandas.ref} <span className="tag tag-purple" style={{ marginLeft:8 }}>{lead.demandas.estatus}</span>
-                        </div>
-                      )}
-                      {lead.ofertas && (
-                        <div onClick={() => navigate('ofertas')} style={{ background:'#dcfce7', border:'1px solid #86efac', borderRadius:'var(--r)', padding:'10px 12px', fontSize:12, fontWeight:600, color:'#15803d', cursor:'pointer' }}>
-                          Oferta: {lead.ofertas.ref}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* ─── Actividades (ancho completo) ─── */}
-                <div className="va-card">
-                  <div className="va-card-header">
-                    <h3><span className="ico">◈</span> Actividades del lead</h3>
-                    <button className="ab-btn blue">+ Nueva actividad</button>
-                  </div>
-                  <div style={{padding:'12px 20px',fontSize:11,color:'var(--text4)'}}>
-                    Próximamente: actividades del lead vinculadas vía tabla `actividades`.
-                  </div>
-                </div>
               </>
             )}
 
@@ -923,13 +884,68 @@ export default function FichaLead() {
                     </div>
                   )}
                   {oportunidadId && (
-                    <div style={{ background:'#cffafe', border:'1px solid #67e8f9', borderRadius:'var(--r)', padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
-                      <div style={{ width:24, height:24, borderRadius:'50%', background:'#B08D57', color:'#fff', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>D</div>
-                      <div style={{ flex:1 }}>
-                        <div style={{ fontSize:12, fontWeight:600, color:'#0e7490' }}>Transformado · Oportunidad creada en Dynamics</div>
-                        <div style={{ fontSize:10, color:'#0891b2', fontFamily:'var(--mono)' }}>{oportunidadId} · {oportunidadNombre}</div>
+                    <>
+                      <div style={{ background:'#cffafe', border:'1px solid #67e8f9', borderRadius:'var(--r)', padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
+                        <div style={{ width:24, height:24, borderRadius:'50%', background:'#B08D57', color:'#fff', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>D</div>
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontSize:12, fontWeight:600, color:'#0e7490' }}>Transformado en Microsoft Dynamics 365</div>
+                          <div style={{ fontSize:10, color:'#0891b2' }}>Registros creados y vinculados a partir de este lead</div>
+                        </div>
                       </div>
-                    </div>
+
+                      {/* Registros creados al transformar · clicables */}
+                      <div style={{ display:'flex', flexDirection:'column', gap:8, marginLeft:34 }}>
+                        {/* Oportunidad asignada */}
+                        <div onClick={() => navigate('ficha-oportunidad', { id: lead.dynamics_opportunity_id })}
+                          style={{ background:'#cffafe', border:'1px solid #67e8f9', borderRadius:'var(--r)', padding:'9px 12px', fontSize:12, fontWeight:600, color:'#0e7490', cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
+                          <span style={{ fontSize:9, fontWeight:700, letterSpacing:'.04em', textTransform:'uppercase', opacity:.65 }}>Oportunidad asignada</span>
+                          <span>{oportunidadNombre || oportunidadId}</span>
+                          <span style={{ fontFamily:'var(--mono)', fontSize:10, marginLeft:'auto', opacity:0.7 }}>{oportunidadId}</span>
+                        </div>
+
+                        {/* Cuenta creada y asignada */}
+                        {cuentaNombre && (
+                          <div onClick={() => lead.dynamics_account_id && navigate('cuentas', { id: lead.dynamics_account_id })}
+                            style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:'var(--r)', padding:'9px 12px', fontSize:12, fontWeight:600, color:'#2563eb', cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
+                            <span style={{ fontSize:9, fontWeight:700, letterSpacing:'.04em', textTransform:'uppercase', opacity:.65 }}>Cuenta creada y asignada</span>
+                            <span>{cuentaNombre}</span>
+                          </div>
+                        )}
+
+                        {/* Contacto vinculado */}
+                        {contactoNombre && (
+                          <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:'var(--r)', padding:'9px 12px', fontSize:12, fontWeight:600, color:'#2563eb', display:'flex', alignItems:'center', gap:8 }}>
+                            <span style={{ fontSize:9, fontWeight:700, letterSpacing:'.04em', textTransform:'uppercase', opacity:.65 }}>Contacto vinculado</span>
+                            <span>{contactoNombre}</span>
+                          </div>
+                        )}
+
+                        {/* Propuesta / Demanda / Oferta generadas en cascada */}
+                        {lead.propuestas && (
+                          <div onClick={() => navigate('ficha-propuesta', { id: lead.propuestas.ref })}
+                            style={{ background:'#f3e8ff', border:'1px solid #d8b4fe', borderRadius:'var(--r)', padding:'9px 12px', fontSize:12, fontWeight:600, color:'#6b21a8', cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
+                            <span style={{ fontSize:9, fontWeight:700, letterSpacing:'.04em', textTransform:'uppercase', opacity:.65 }}>Propuesta</span>
+                            <span>{lead.propuestas.nombre || lead.propuestas.ref}</span>
+                            {lead.propuestas.estado && <span className="tag tag-purple" style={{ marginLeft:'auto' }}>{lead.propuestas.estado}</span>}
+                          </div>
+                        )}
+                        {lead.demandas && (
+                          <div onClick={() => navigate('ficha-demanda', { id: lead.demandas.ref })}
+                            style={{ background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'var(--r)', padding:'9px 12px', fontSize:12, fontWeight:600, color:'#92400e', cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
+                            <span style={{ fontSize:9, fontWeight:700, letterSpacing:'.04em', textTransform:'uppercase', opacity:.65 }}>Demanda</span>
+                            <span>{lead.demandas.nombre || lead.demandas.ref}</span>
+                            {lead.demandas.estatus && <span className="tag tag-amber" style={{ marginLeft:'auto' }}>{lead.demandas.estatus}</span>}
+                          </div>
+                        )}
+                        {lead.ofertas && (
+                          <div onClick={() => navigate('ficha-oferta', { ofertaRef: lead.ofertas.ref })}
+                            style={{ background:'#dcfce7', border:'1px solid #86efac', borderRadius:'var(--r)', padding:'9px 12px', fontSize:12, fontWeight:600, color:'#15803d', cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
+                            <span style={{ fontSize:9, fontWeight:700, letterSpacing:'.04em', textTransform:'uppercase', opacity:.65 }}>Oferta</span>
+                            <span>{lead.ofertas.ref}</span>
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                   {lead.estado === 'no_cualificado' && (
                     <div style={{ background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:'var(--r)', padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
