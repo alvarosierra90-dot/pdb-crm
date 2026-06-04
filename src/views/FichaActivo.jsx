@@ -2340,8 +2340,10 @@ const MOCK_MEDIA = [
   { id:7, tipo:'Plano',      subtipo:'Plano de planta', desc:'Planta tipo — distribución', principal:false, date:'20/03/2026', src:'https://images.unsplash.com/photo-1541888846341-b14b40e47e34?w=800&q=80' },
 ]
 
-function TabMultimedia() {
+function TabMultimedia({ activoId }) {
   const [media, setMedia]       = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [busy, setBusy]         = useState(false)
   const [filter, setFilter]     = useState('todos')
   const [dragging, setDragging] = useState(false)
   const [uploadMode, setUpload] = useState(false)
@@ -2349,17 +2351,70 @@ function TabMultimedia() {
   const [newSub,  setNewSub]    = useState('Exterior')
   const [newDesc, setNewDesc]   = useState('')
   const [lightbox, setLightbox] = useState(null)
+  const fileRef = useRef(null)
+
+  // Carga real desde fotos_activo (las imágenes se guardan como data URL en BD)
+  async function reload() {
+    if (!activoId) { setMedia([]); setLoading(false); return }
+    setLoading(true)
+    const { data } = await supabase.from('fotos_activo')
+      .select('id, url, nombre, tipo, orden').eq('activo_id', activoId).order('orden')
+    setMedia((data || []).map(r => ({
+      id: r.id,
+      tipo: r.tipo === 'plano' ? 'Plano' : 'Fotografía',
+      subtipo: r.tipo === 'plano' ? 'Plano de planta' : 'Exterior',
+      desc: r.nombre || '',
+      principal: r.tipo === 'principal',
+      src: r.url || '',
+      date: '',
+    })))
+    setLoading(false)
+  }
+  useEffect(() => { reload() }, [activoId])
 
   const displayed = filter === 'todos' ? media
     : filter === 'fotografias' ? media.filter(m=>m.tipo==='Fotografía')
     : media.filter(m=>m.tipo==='Plano')
 
-  const setPrincipal = (id) => setMedia(prev => prev.map(m => ({...m, principal: m.id === id})))
+  const setPrincipal = async (id) => {
+    if (!activoId) return
+    setBusy(true)
+    await supabase.from('fotos_activo').update({ tipo:'exterior' }).eq('activo_id', activoId).eq('tipo','principal')
+    await supabase.from('fotos_activo').update({ tipo:'principal', orden:0 }).eq('id', id)
+    setLightbox(null)
+    await reload(); setBusy(false)
+  }
 
-  const addMedia = () => {
-    const id = Math.max(0,...media.map(m=>m.id))+1
-    setMedia(prev => [...prev, { id, tipo:newTipo, subtipo:newSub, desc:newDesc||`${newSub} ${id}`, principal:false, src:'', date:'14/04/2026' }])
+  const removeMedia = async (id) => {
+    setBusy(true)
+    await supabase.from('fotos_activo').delete().eq('id', id)
+    setLightbox(null)
+    await reload(); setBusy(false)
+  }
+
+  const uploadFiles = async (fileList) => {
+    const files = Array.from(fileList || []).filter(f => f.type.startsWith('image/'))
+    if (!activoId) { window.alert('Guarda primero el activo para poder subir fotos.'); return }
+    if (files.length === 0) return
+    setBusy(true)
+    const yaHayPrincipal = media.some(m => m.principal)
+    const base = media.length
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i]
+      const dataUrl = await new Promise(res => { const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(f) })
+      const esPlano = newTipo === 'Plano'
+      const principal = !esPlano && !yaHayPrincipal && i === 0
+      await supabase.from('fotos_activo').insert({
+        activo_id:    activoId,
+        storage_path: `inline/${activoId}/${base + i}-${(f.name || 'img').replace(/[^\w.\-]+/g, '_')}`,
+        url:          dataUrl,
+        nombre:       newDesc || f.name || `${newSub} ${base + i + 1}`,
+        tipo:         esPlano ? 'plano' : (principal ? 'principal' : 'exterior'),
+        orden:        principal ? 0 : base + i + 1,
+      })
+    }
     setUpload(false); setNewDesc('')
+    await reload(); setBusy(false)
   }
 
   return (
@@ -2382,12 +2437,16 @@ function TabMultimedia() {
       {/* Upload area */}
       {uploadMode && (
         <div style={{border:'2px dashed var(--accent)',borderRadius:8,padding:20,marginBottom:16,background:'var(--accent-lt)'}}>
+          <input ref={fileRef} type="file" multiple accept="image/*" style={{display:'none'}}
+            onChange={e=>{ uploadFiles(e.target.files); e.target.value='' }} />
           <div style={{textAlign:'center',marginBottom:14}}>
-            <div onDragOver={e=>{e.preventDefault();setDragging(true)}} onDragLeave={()=>setDragging(false)} onDrop={e=>{e.preventDefault();setDragging(false)}}
-              style={{padding:'24px 0',background:dragging?'rgba(37,99,235,.08)':'transparent',borderRadius:6,transition:'background .15s'}}>
+            <div onDragOver={e=>{e.preventDefault();setDragging(true)}} onDragLeave={()=>setDragging(false)}
+              onDrop={e=>{e.preventDefault();setDragging(false);uploadFiles(e.dataTransfer.files)}}
+              onClick={()=>fileRef.current?.click()}
+              style={{padding:'24px 0',background:dragging?'rgba(37,99,235,.08)':'transparent',borderRadius:6,transition:'background .15s',cursor:'pointer'}}>
               <Upload size={28} strokeWidth={1.5} style={{marginBottom:6,color:'var(--text4)'}}/>
-              <div style={{fontSize:12,color:'var(--text3)'}}>Arrastra archivos JPEG aquí o <span style={{color:'var(--accent)',cursor:'pointer',fontWeight:600}}>haz clic para cargar</span></div>
-              <div style={{fontSize:10,color:'var(--text4)',marginTop:4}}>Solo se admiten archivos .jpg / .jpeg</div>
+              <div style={{fontSize:12,color:'var(--text3)'}}>Arrastra imágenes aquí o <span style={{color:'var(--accent)',cursor:'pointer',fontWeight:600}}>haz clic para cargar</span></div>
+              <div style={{fontSize:10,color:'var(--text4)',marginTop:4}}>{busy ? 'Guardando…' : 'JPG / PNG · se guardan en la PDB'}</div>
             </div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr auto',gap:10,alignItems:'flex-end'}}>
@@ -2407,9 +2466,14 @@ function TabMultimedia() {
               <div style={{fontSize:9,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',marginBottom:3}}>Descripción (opcional)</div>
               <input className="of-inp" style={{width:'100%',boxSizing:'border-box'}} placeholder="Fachada principal..." value={newDesc} onChange={e=>setNewDesc(e.target.value)}/>
             </div>
-            <button onClick={addMedia} style={{padding:'5px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Añadir</button>
+            <button onClick={()=>fileRef.current?.click()} disabled={busy || !activoId} style={{padding:'5px 14px',background:(busy||!activoId)?'var(--gray-lt)':'var(--accent)',color:(busy||!activoId)?'var(--text4)':'#fff',border:'none',borderRadius:5,fontSize:11,cursor:(busy||!activoId)?'not-allowed':'pointer',fontFamily:'inherit',fontWeight:600}}>Seleccionar archivos</button>
           </div>
+          {!activoId && <div style={{fontSize:10,color:'#b45309',marginTop:8}}>Guarda primero el activo para poder subir fotos.</div>}
         </div>
+      )}
+
+      {!loading && media.length === 0 && (
+        <div style={{padding:'32px 0',textAlign:'center',color:'var(--text4)',fontSize:12}}>Sin multimedia todavía. Pulsa “↑ Cargar” para subir fotos y planos.</div>
       )}
 
       {/* Galería */}
@@ -2418,10 +2482,10 @@ function TabMultimedia() {
           <div key={m.id} style={{border:`2px solid ${m.principal?'var(--accent)':'var(--border)'}`,borderRadius:8,overflow:'hidden',background:'var(--surface)',cursor:'pointer',position:'relative'}}
             onClick={()=>setLightbox(m)}>
             <div style={{height:120,overflow:'hidden',position:'relative',background:'var(--gray-lt)'}}>
-              {m.src.startsWith('http') ? (
+              {(m.src && (m.src.startsWith('http') || m.src.startsWith('data:'))) ? (
                 <img src={m.src} alt={m.desc} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} loading="lazy"/>
               ) : (
-                <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:40}}>{m.src}</div>
+                <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,color:'var(--text4)'}}>🏢</div>
               )}
               {m.principal && <span style={{position:'absolute',top:6,left:6,background:'var(--accent)',color:'#fff',fontSize:8,fontWeight:700,padding:'2px 7px',borderRadius:8,letterSpacing:'.03em'}}>PRINCIPAL</span>}
             </div>
@@ -2447,10 +2511,10 @@ function TabMultimedia() {
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}
           onClick={()=>setLightbox(null)}>
           <div style={{background:'var(--surface)',borderRadius:12,overflow:'hidden',maxWidth:720,width:'92%',boxShadow:'0 24px 64px rgba(0,0,0,.4)'}} onClick={e=>e.stopPropagation()}>
-            {lightbox.src.startsWith('http') ? (
+            {(lightbox.src && (lightbox.src.startsWith('http') || lightbox.src.startsWith('data:'))) ? (
               <img src={lightbox.src} alt={lightbox.desc} style={{width:'100%',maxHeight:440,objectFit:'cover',display:'block'}}/>
             ) : (
-              <div style={{height:200,display:'flex',alignItems:'center',justifyContent:'center',fontSize:80,background:'var(--gray-lt)'}}>{lightbox.src}</div>
+              <div style={{height:200,display:'flex',alignItems:'center',justifyContent:'center',fontSize:80,background:'var(--gray-lt)'}}>🏢</div>
             )}
             <div style={{padding:'16px 20px'}}>
               <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>{lightbox.desc}</div>
@@ -2462,12 +2526,13 @@ function TabMultimedia() {
               <div style={{fontSize:10,color:'var(--text4)',marginBottom:14}}>Subido el {lightbox.date}</div>
               <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                 {!lightbox.principal && <button onClick={()=>{setPrincipal(lightbox.id);setLightbox({...lightbox,principal:true})}} style={{padding:'6px 14px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>★ Marcar como principal</button>}
-                {lightbox.src?.startsWith('http') && (
+                {(lightbox.src && (lightbox.src.startsWith('http') || lightbox.src.startsWith('data:'))) && (
                   <a href={lightbox.src} download={`${lightbox.desc||'imagen'}.jpg`} target="_blank" rel="noreferrer"
                     style={{padding:'6px 14px',background:'#16a34a',color:'#fff',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:4}}>
-                    <ArrowDown size={12} strokeWidth={1.75}/> Descargar JPG
+                    <ArrowDown size={12} strokeWidth={1.75}/> Descargar
                   </a>
                 )}
+                <button onClick={()=>removeMedia(lightbox.id)} disabled={busy} style={{padding:'6px 14px',background:'#fef2f2',color:'#b91c1c',border:'1px solid #fca5a5',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Eliminar</button>
                 <button onClick={()=>setLightbox(null)} style={{padding:'6px 14px',background:'var(--surface)',color:'var(--text2)',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>Cerrar</button>
               </div>
             </div>
@@ -6260,7 +6325,7 @@ export default function FichaActivo() {
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:18,padding:'18px 24px',alignItems:'start'}}>
                 {/* Columna izquierda: Multimedia */}
                 <div style={{minWidth:0}}>
-                  <TabMultimedia/>
+                  <TabMultimedia activoId={activo?.id}/>
                 </div>
                 {/* Columna derecha: Documentos */}
                 <div style={{minWidth:0}}>
