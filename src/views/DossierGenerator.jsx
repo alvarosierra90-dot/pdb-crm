@@ -188,9 +188,18 @@ export default function DossierGenerator() {
     const kpis = { ...base }
     if (act?.sba != null) kpis.sba = String(act.sba)
     if (act?.leed) kpis.cert = act.leed
+    if (act?.plazas != null) kpis.parking = String(act.plazas)   // plazas en características/KPIs del activo
     if (act?.n_edificios != null && linea === 'industrial') kpis.naves = String(act.n_edificios)
     if (act?.sup_parcela != null && linea === 'industrial') kpis.parcela = String(act.sup_parcela)
     return kpis
+  }
+
+  // Espacios 'vac' del stacking del activo asignados a esta oferta → [{ sup, renta }]
+  const stackingVacForOferta = (stacking, ofertaRef) => {
+    const blds = Array.isArray(stacking) ? stacking : []
+    return blds.flatMap(b => (b.arr || []).flatMap(r => (r.units || [])
+      .filter(u => u.type === 'vac' && (u.oferta === ofertaRef || !ofertaRef))
+      .map(u => ({ sup: Number(u.sup) || 0, renta: Number(u.renta) || 0 }))))
   }
 
   const closePdb = () => { setPdbOpen(false); setPdbQuery(''); setPdbResults([]) }
@@ -201,6 +210,22 @@ export default function DossierGenerator() {
       if (!o) return
       let act = null
       if (o.activo_id) { const { data } = await supabase.from('activos').select('*').eq('id', o.activo_id).maybeSingle(); act = data }
+
+      // Superficie disponible (máx = total de módulos vac de esta oferta) y
+      // mínima alquilable: si la oferta es divisible → menor módulo; si no → total.
+      const vac = stackingVacForOferta(act?.stacking_data, o.ref)
+      const totalDisp = vac.reduce((s, e) => s + e.sup, 0) || Number(o.superficie_disponible) || 0
+      const modules = vac.map(e => e.sup).filter(s => s > 0)
+      let desg = []
+      try { const { data } = await supabase.from('desglose_ofertas').select('divisible, sup_min').eq('oferta_id', o.id); desg = data || [] } catch { desg = [] }
+      const divisible = desg.some(d => d.divisible) || modules.length > 1
+      const desgMins = desg.filter(d => d.divisible && Number(d.sup_min) > 0).map(d => Number(d.sup_min))
+      let supMin = totalDisp
+      if (divisible) {
+        if (desgMins.length) supMin = Math.min(...desgMins)
+        else if (modules.length) supMin = Math.min(...modules)
+      }
+
       setDraft(d => ({
         ...d,
         fuente: 'oferta', refPdb: o.ref, activoRef: act?.ref || o.activo_ref || '',
@@ -212,7 +237,9 @@ export default function DossierGenerator() {
         lat: act?.lat ?? d.lat, lng: act?.lng ?? d.lng,
         tipo_operacion: o.tipo_operacion || '',
         disponibilidad: o.estado || (o.activa ? 'Disponible' : '') || d.disponibilidad,
-        sup_disponible: o.superficie_disponible != null ? String(o.superficie_disponible) : '',
+        sup_disponible: totalDisp ? String(totalDisp) : (o.superficie_disponible != null ? String(o.superficie_disponible) : ''),
+        sup_min: supMin ? String(supMin) : '',
+        sup_max: totalDisp ? String(totalDisp) : '',
         renta_m2: o.renta_m2 != null ? String(o.renta_m2) : '',
         renta_mensual: o.renta_mensual != null ? String(o.renta_mensual) : '',
         renta_anual: o.renta_anual != null ? String(o.renta_anual) : '',
