@@ -16,12 +16,19 @@ const CONFIG_GROUPS = {
   tipo: {
     num: '01', label: 'TIPO DE OUTPUT', cols: 2,
     options: [
-      { value: 'ficha', title: 'Ficha Comercial', desc: 'Dossier individual de un activo. PDF de 4-8 páginas. Para envíos puntuales y respuestas a requerimientos.' },
-      { value: 'book',  title: 'Product Book',    desc: 'Selección de varios activos en un único documento. Incluye índice, comparables y mapa de zona.' },
+      { value: 'ficha', title: 'Ficha Comercial', desc: 'Dossier individual de un activo u oferta. PDF de 4-8 páginas. Para envíos puntuales y respuestas a requerimientos.' },
+      { value: 'book',  title: 'Product Book',    desc: 'Selección de varios activos/ofertas en un único documento. Incluye índice y resumen.' },
+    ],
+  },
+  fuente: {
+    num: '02', label: 'FUENTE DE DATOS', cols: 2,
+    options: [
+      { value: 'activo', title: 'Desde un activo', desc: 'Ficha del edificio: fotos, planos, características, ubicación en mapa, parking, superficie y uso principal. Sincroniza desde la PDB de activos.' },
+      { value: 'oferta', title: 'Desde una oferta', desc: 'Todo lo del activo + stacking plan con disponibilidad, lo disponible, superficie mín./máx. y condiciones económicas. Sincroniza desde la PDB de ofertas.' },
     ],
   },
   linea: {
-    num: '02', label: 'LÍNEA DE NEGOCIO', cols: 3,
+    num: '03', label: 'LÍNEA DE NEGOCIO', cols: 3,
     options: [
       { value: 'oficinas',   title: 'Oficinas',              desc: 'Edificios corporativos · plantas de oficina · sedes premium. Madrid prime + descentralizado.' },
       { value: 'industrial', title: 'Industrial / Logístico', desc: 'Naves logísticas · parques empresariales · last-mile · centros de distribución.' },
@@ -32,7 +39,7 @@ const CONFIG_GROUPS = {
     ],
   },
   delegacion: {
-    num: '03', label: 'DELEGACIÓN', cols: 4,
+    num: '04', label: 'DELEGACIÓN', cols: 4,
     options: [
       { value: 'madrid',    title: 'Madrid',    desc: 'Mercado piloto. Catálogo completo de zonas y comparables.' },
       { value: 'barcelona', title: 'Barcelona', desc: '22@ · Eje Diagonal · Plaça d\'Europa · Sant Cugat.' },
@@ -41,14 +48,14 @@ const CONFIG_GROUPS = {
     ],
   },
   equipo: {
-    num: '04', label: 'EQUIPO / SERVICIO', cols: 2,
+    num: '05', label: 'EQUIPO / SERVICIO', cols: 2,
     options: [
       { value: 'leasing', title: 'Leasing', desc: 'Comercialización · arrendamiento. Landlord rep o Tenant rep. Single / multi / dual track.', badge: { cls: 'badge-available', txt: 'Disponible' } },
       { value: 'cm', title: 'Capital Markets', desc: 'Inversión · transacciones. Sell-side, buy-side, forward funding, sale & leaseback.', badge: { cls: 'badge-dev', txt: 'En desarrollo' }, soon: true },
     ],
   },
   idioma: {
-    num: '05', label: 'IDIOMA DEL DOSSIER', cols: 3,
+    num: '06', label: 'IDIOMA DEL DOSSIER', cols: 3,
     options: [
       { value: 'es', title: 'Español',  desc: 'Estándar. Para clientes nacionales y equipo local.' },
       { value: 'en', title: 'English',  desc: 'Para cuentas internacionales, REITs y fondos extranjeros.' },
@@ -81,15 +88,24 @@ const KPI_TEMPLATES = {
 }
 
 const LINEA_LABEL = { oficinas: 'Oficinas', industrial: 'Industrial / Logístico' }
+const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+
 const emptyAsset = () => ({
+  fuente: 'activo',                 // 'activo' | 'oferta'
+  refPdb: '', activoRef: '',        // referencias de origen
   nombre: '', direccion: '', zona: '', propiedad: '', disponibilidad: '',
   transportes: '', empresas: '', pitch: '', specs: '', sost: '', cocom: '',
+  lat: null, lng: null,
   kpis: {}, photos: [], plans: [],
+  // Datos específicos de oferta
+  tipo_operacion: '', sup_disponible: '', sup_min: '', sup_max: '',
+  renta_m2: '', renta_mensual: '', renta_anual: '', gastos: '',
+  stacking: null,                   // stacking_data del activo de la oferta
 })
 
 export default function DossierGenerator() {
   const [step, setStep] = useState(0)
-  const [config, setConfig] = useState({ tipo: null, linea: null, delegacion: null, equipo: null, idioma: null })
+  const [config, setConfig] = useState({ tipo: null, fuente: null, linea: null, delegacion: null, equipo: null, idioma: null })
   const [stage, setStage] = useState('form')          // 'list' | 'form' (solo relevante en book)
   const [assets, setAssets] = useState([])            // product book
   const [editingIdx, setEditingIdx] = useState(null)  // índice en edición (book), null = nuevo
@@ -104,8 +120,9 @@ export default function DossierGenerator() {
 
   const frameRef = useRef(null)
 
-  const configComplete = config.tipo && config.linea && config.delegacion && config.equipo && config.idioma
+  const configComplete = config.tipo && config.fuente && config.linea && config.delegacion && config.equipo && config.idioma
   const isBook = config.tipo === 'book'
+  const isOferta = config.fuente === 'oferta'
   const linea = config.linea || 'oficinas'
   const kpiTpl = KPI_TEMPLATES[linea] || KPI_TEMPLATES.oficinas
 
@@ -119,9 +136,11 @@ export default function DossierGenerator() {
 
   const goStep = (n) => { setStep(n); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
+  const newDraft = () => ({ ...emptyAsset(), fuente: config.fuente || 'activo' })
+
   const startWizard = () => {
     goStep(1)
-    if (isBook) { setStage('list') } else { setStage('form'); setDraft(emptyAsset()); setEditingIdx(null) }
+    if (isBook) { setStage('list') } else { setStage('form'); setDraft(newDraft()); setEditingIdx(null) }
   }
 
   /* ---------- uploads (a dataURL para preview + export) ---------- */
@@ -135,41 +154,92 @@ export default function DossierGenerator() {
   }
   const removeFile = (type, idx) => setDraft(d => ({ ...d, [type]: d[type].filter((_, i) => i !== idx) }))
 
-  /* ---------- PDB prefill ---------- */
+  /* ---------- PDB prefill (activos u ofertas según la fuente) ---------- */
   const searchPdb = useCallback(async (q) => {
     setPdbQuery(q)
     if (!q || q.trim().length < 2) { setPdbResults([]); return }
     const term = q.trim()
-    const { data } = await supabase
-      .from('activos')
-      .select('id, ref, nombre, direccion, zona, subzona, ciudad, uso, sba, n_edificios, leed')
-      .or(`nombre.ilike.%${term}%,ref.ilike.%${term}%`)
-      .order('nombre')
-      .limit(8)
-    setPdbResults(data || [])
-  }, [])
+    if (isOferta) {
+      const { data } = await supabase
+        .from('ofertas')
+        .select('id, ref, nombre, titulo_web, tipo_operacion, estado, superficie_disponible, renta_m2, tipologia, activo_id, activo_ref')
+        .or(`nombre.ilike.%${term}%,ref.ilike.%${term}%,titulo_web.ilike.%${term}%`)
+        .order('ref').limit(8)
+      setPdbResults((data || []).map(o => ({
+        id: o.id, kind: 'oferta', ref: o.ref,
+        nombre: o.nombre || o.titulo_web || o.ref,
+        meta: [o.ref, o.tipo_operacion, o.tipologia, o.superficie_disponible ? `${o.superficie_disponible} m²` : null, o.renta_m2 ? `${o.renta_m2} €/m²` : null].filter(Boolean).join(' · '),
+      })))
+    } else {
+      const { data } = await supabase
+        .from('activos')
+        .select('id, ref, nombre, zona, subzona, ciudad, uso, sba')
+        .or(`nombre.ilike.%${term}%,ref.ilike.%${term}%`)
+        .order('nombre').limit(8)
+      setPdbResults((data || []).map(a => ({
+        id: a.id, kind: 'activo', ref: a.ref,
+        nombre: a.nombre || a.ref,
+        meta: [a.ref, a.zona || a.subzona, a.ciudad, a.uso, a.sba ? `${a.sba} m²` : null].filter(Boolean).join(' · '),
+      })))
+    }
+  }, [isOferta])
 
-  const loadFromPdb = (a) => {
-    setDraft(d => {
-      const kpis = { ...d.kpis }
-      if (a.sba != null) kpis.sba = String(a.sba)
-      if (a.leed) kpis.cert = a.leed
-      if (a.n_edificios != null && linea === 'industrial') kpis.naves = String(a.n_edificios)
-      return {
+  const mapActivoKpis = (act, base) => {
+    const kpis = { ...base }
+    if (act?.sba != null) kpis.sba = String(act.sba)
+    if (act?.leed) kpis.cert = act.leed
+    if (act?.n_edificios != null && linea === 'industrial') kpis.naves = String(act.n_edificios)
+    if (act?.sup_parcela != null && linea === 'industrial') kpis.parcela = String(act.sup_parcela)
+    return kpis
+  }
+
+  const closePdb = () => { setPdbOpen(false); setPdbQuery(''); setPdbResults([]) }
+
+  const loadFromPdb = async (row) => {
+    if (row.kind === 'oferta') {
+      const { data: o } = await supabase.from('ofertas').select('*').eq('id', row.id).maybeSingle()
+      if (!o) return
+      let act = null
+      if (o.activo_id) { const { data } = await supabase.from('activos').select('*').eq('id', o.activo_id).maybeSingle(); act = data }
+      setDraft(d => ({
         ...d,
+        fuente: 'oferta', refPdb: o.ref, activoRef: act?.ref || o.activo_ref || '',
+        nombre: act?.nombre || o.nombre || o.titulo_web || d.nombre,
+        direccion: [act?.direccion, act?.ciudad].filter(Boolean).join(', ') || d.direccion,
+        zona: act?.zona || act?.subzona || d.zona,
+        propiedad: act?.propietario || d.propiedad,
+        pitch: o.descriptivo || o.descripcion_web || d.pitch,
+        lat: act?.lat ?? d.lat, lng: act?.lng ?? d.lng,
+        tipo_operacion: o.tipo_operacion || '',
+        disponibilidad: o.estado || (o.activa ? 'Disponible' : '') || d.disponibilidad,
+        sup_disponible: o.superficie_disponible != null ? String(o.superficie_disponible) : '',
+        renta_m2: o.renta_m2 != null ? String(o.renta_m2) : '',
+        renta_mensual: o.renta_mensual != null ? String(o.renta_mensual) : '',
+        renta_anual: o.renta_anual != null ? String(o.renta_anual) : '',
+        gastos: o.gastos_comunes != null ? String(o.gastos_comunes) : '',
+        stacking: act?.stacking_data || null,
+        kpis: mapActivoKpis(act, d.kpis),
+      }))
+    } else {
+      const { data: a } = await supabase.from('activos').select('*').eq('id', row.id).maybeSingle()
+      if (!a) return
+      setDraft(d => ({
+        ...d,
+        fuente: 'activo', refPdb: a.ref, activoRef: a.ref,
         nombre: a.nombre || d.nombre,
         direccion: [a.direccion, a.ciudad].filter(Boolean).join(', ') || d.direccion,
         zona: a.zona || a.subzona || d.zona,
-        kpis,
-      }
-    })
-    setPdbOpen(false)
-    setPdbQuery('')
-    setPdbResults([])
+        propiedad: a.propietario || d.propiedad,
+        lat: a.lat ?? d.lat, lng: a.lng ?? d.lng,
+        stacking: a.stacking_data || null,
+        kpis: mapActivoKpis(a, d.kpis),
+      }))
+    }
+    closePdb()
   }
 
   /* ---------- book actions ---------- */
-  const addNewAsset = () => { setDraft(emptyAsset()); setEditingIdx(null); setStage('form') }
+  const addNewAsset = () => { setDraft(newDraft()); setEditingIdx(null); setStage('form') }
   const editAsset = (i) => { setDraft({ ...assets[i] }); setEditingIdx(i); setStage('form') }
   const removeAsset = (i) => {
     if (!window.confirm('¿Eliminar este activo del book?')) return
@@ -183,7 +253,7 @@ export default function DossierGenerator() {
         if (editingIdx != null) { const next = [...prev]; next[editingIdx] = { ...draft }; return next }
         return [...prev, { ...draft }]
       })
-      setDraft(emptyAsset())
+      setDraft(newDraft())
       setEditingIdx(null)
       setStage('list')
     } else {
@@ -208,8 +278,13 @@ export default function DossierGenerator() {
     const nodes = frameRef.current ? Array.from(frameRef.current.querySelectorAll('.slide')) : []
     const shots = []
     for (const node of nodes) {
-      const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false })
-      shots.push({ img: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height })
+      try {
+        const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false })
+        shots.push({ img: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height })
+      } catch (err) {
+        // Una slide que no se puede capturar (p.ej. mapa con CORS) no debe abortar el resto.
+        console.warn('Slide no capturable, se omite:', err)
+      }
     }
     return shots
   }
@@ -368,10 +443,10 @@ export default function DossierGenerator() {
 
               {/* Cargar desde PDB */}
               <div className="pdb-loader">
-                <div className="pl-title">Cargar desde la PDB · autorrellena el formulario</div>
+                <div className="pl-title">{isOferta ? 'Sincronizar desde una OFERTA de la PDB' : 'Sincronizar desde un ACTIVO de la PDB'}{draft.refPdb ? ` · cargado ${draft.refPdb}` : ''}</div>
                 <div className="pl-row">
                   <input
-                    placeholder="Buscar activo de la PDB por nombre o referencia…"
+                    placeholder={isOferta ? 'Buscar oferta por nombre, título o referencia…' : 'Buscar activo por nombre o referencia…'}
                     value={pdbQuery}
                     onChange={e => { searchPdb(e.target.value); setPdbOpen(true) }}
                     onFocus={() => setPdbOpen(true)}
@@ -380,15 +455,15 @@ export default function DossierGenerator() {
                 </div>
                 {pdbOpen && pdbResults.length > 0 && (
                   <div className="pdb-results">
-                    {pdbResults.map(a => (
-                      <div className="pr-item" key={a.id} onMouseDown={() => loadFromPdb(a)}>
-                        <div className="pr-name">{a.nombre}</div>
-                        <div className="pr-meta">{[a.ref, a.zona || a.subzona, a.ciudad, a.uso, a.sba ? `${a.sba} m²` : null].filter(Boolean).join(' · ')}</div>
+                    {pdbResults.map(r => (
+                      <div className="pr-item" key={r.id} onMouseDown={() => loadFromPdb(r)}>
+                        <div className="pr-name">{r.nombre}</div>
+                        <div className="pr-meta">{r.meta}</div>
                       </div>
                     ))}
                   </div>
                 )}
-                <div className="field" style={{ marginTop: 8 }}><div className="hint">O rellena los campos manualmente más abajo.</div></div>
+                <div className="field" style={{ marginTop: 8 }}><div className="hint">{isOferta ? 'Trae el stacking, disponibilidad y condiciones económicas de la oferta + los datos del edificio. Editable más abajo.' : 'Trae fotos, características y ubicación del activo. Editable más abajo.'}</div></div>
               </div>
 
               {/* 01 Identificación */}
@@ -419,6 +494,29 @@ export default function DossierGenerator() {
                   </div>
                 ))}
               </div>
+
+              {/* 02b · Condiciones de la oferta (solo fuente = oferta) */}
+              {isOferta && (
+                <div className="form-sec">
+                  <div className="form-sec-title"><span className="gnum">★</span>DISPONIBILIDAD Y CONDICIONES DE LA OFERTA</div>
+                  <div className="form-row cols-3">
+                    <Field label="Tipo de operación"><input value={draft.tipo_operacion} onChange={e => setField('tipo_operacion', e.target.value)} placeholder="Alquiler · Venta" /></Field>
+                    <Field label="Disponibilidad / estado"><input value={draft.disponibilidad} onChange={e => setField('disponibilidad', e.target.value)} placeholder="Inmediata · Q3 2026" /></Field>
+                    <Field label="Superficie disponible (m²)"><input value={draft.sup_disponible} onChange={e => setField('sup_disponible', e.target.value)} placeholder="3.500" /></Field>
+                  </div>
+                  <div className="form-row cols-4">
+                    <Field label="Superficie mín. (m²)"><input value={draft.sup_min} onChange={e => setField('sup_min', e.target.value)} placeholder="500" /></Field>
+                    <Field label="Superficie máx. (m²)"><input value={draft.sup_max} onChange={e => setField('sup_max', e.target.value)} placeholder="3.500" /></Field>
+                    <Field label="Renta (€/m²/mes)"><input value={draft.renta_m2} onChange={e => setField('renta_m2', e.target.value)} placeholder="16,50" /></Field>
+                    <Field label="Gastos comunes (€/m²/mes)"><input value={draft.gastos} onChange={e => setField('gastos', e.target.value)} placeholder="3,00" /></Field>
+                  </div>
+                  <div className="form-row cols-2">
+                    <Field label="Renta mensual (€)"><input value={draft.renta_mensual} onChange={e => setField('renta_mensual', e.target.value)} placeholder="57.750" /></Field>
+                    <Field label="Renta anual (€)"><input value={draft.renta_anual} onChange={e => setField('renta_anual', e.target.value)} placeholder="693.000" /></Field>
+                  </div>
+                  <div className="field"><div className="hint">{draft.stacking ? `Stacking plan sincronizado del activo${draft.activoRef ? ` ${draft.activoRef}` : ''} · se incluye una slide de disponibilidad por planta.` : 'Sin stacking sincronizado. Carga la oferta desde la PDB para traerlo.'}</div></div>
+                </div>
+              )}
 
               {/* 03 Fotos y planos */}
               <div className="form-sec">
@@ -466,7 +564,7 @@ export default function DossierGenerator() {
               <div className="actions">
                 <button className="btn btn-ghost" onClick={() => { if (isBook) setStage('list'); else goStep(0) }}>{isBook ? '← Volver al book' : '← Volver'}</button>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  {isBook && <button className="btn btn-ghost" onClick={() => { setDraft(emptyAsset()); setEditingIdx(null); setStage('list') }}>Cancelar</button>}
+                  {isBook && <button className="btn btn-ghost" onClick={() => { setDraft(newDraft()); setEditingIdx(null); setStage('list') }}>Cancelar</button>}
                   <button className="btn" onClick={saveAssetFromForm}>{isBook ? (editingIdx != null ? 'Guardar cambios →' : 'Guardar activo →') : 'Generar vista previa →'}</button>
                 </div>
               </div>
@@ -547,6 +645,92 @@ function IndexSlide({ assets }) {
   )
 }
 
+/* Slide de ubicación · static map exportable si hay clave, si no embed (solo pantalla) */
+function MapSlide({ a }) {
+  const q = (a.lat != null && a.lng != null) ? `${a.lat},${a.lng}` : (a.direccion || a.zona || '')
+  if (!q) return null
+  const staticUrl = MAPS_KEY
+    ? `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(q)}&zoom=15&size=640x360&scale=2&maptype=roadmap&markers=color:0x0B2545%7C${encodeURIComponent(q)}&key=${MAPS_KEY}`
+    : null
+  return (
+    <div className="slide" style={{ position: 'relative', background: '#e8e6e2' }}>
+      <div style={{ position: 'absolute', top: 24, left: 32, zIndex: 2, background: 'rgba(255,255,255,0.94)', padding: '10px 16px', borderRadius: 2, boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
+        <div style={{ fontSize: 10, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--gold)' }}>Ubicación</div>
+        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, color: 'var(--ink)' }}>{a.zona || a.nombre || '—'}</div>
+        {a.direccion && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{a.direccion}</div>}
+      </div>
+      {staticUrl
+        ? <img src={staticUrl} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Mapa de ubicación" />
+        : <iframe title="Mapa" style={{ width: '100%', height: '100%', border: 0 }} src={`https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=15&output=embed`} />}
+    </div>
+  )
+}
+
+function EconItem({ label, value }) {
+  return (
+    <div>
+      <div style={{ fontSize: 9, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--navy)' }}>{value || '—'}</div>
+    </div>
+  )
+}
+
+function StackingMini({ stacking }) {
+  const blds = Array.isArray(stacking) ? stacking : []
+  if (blds.length === 0) return null
+  return (
+    <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+      {blds.map((b, bi) => (
+        <div key={bi} style={{ minWidth: 130 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, marginBottom: 5 }}>{b.label || b.id}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {(b.arr || []).map((f, fi) => {
+              const vac = (f.units || []).some(u => u.type === 'vac')
+              return (
+                <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 9 }}>
+                  <span style={{ width: 30, color: 'var(--muted)' }}>{f.p}</span>
+                  <span style={{ flex: 1, height: 11, borderRadius: 2, background: vac ? '#9CC5AB' : '#E2DFD9' }} title={vac ? 'Disponible' : 'Ocupado'} />
+                  <span style={{ width: 48, textAlign: 'right', color: 'var(--muted)' }}>{f.sup ? `${f.sup}` : ''}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function OfertaSlide({ a }) {
+  const eur = v => v ? Number(String(v).replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.')).toLocaleString('es-ES') + ' €' : ''
+  const supRange = (a.sup_min || a.sup_max) ? `${a.sup_min || '?'}–${a.sup_max || '?'} m²` : ''
+  return (
+    <div className="slide slide-content" style={{ padding: '36px 52px' }}>
+      <h3 style={{ fontSize: 30, marginBottom: 16 }}>Disponibilidad y <span className="italic-gold">condiciones</span></h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18, marginBottom: 20 }}>
+        <EconItem label="Operación" value={a.tipo_operacion} />
+        <EconItem label="Disponibilidad" value={a.disponibilidad} />
+        <EconItem label="Sup. disponible" value={a.sup_disponible ? `${a.sup_disponible} m²` : ''} />
+        <EconItem label="Sup. mín–máx" value={supRange} />
+        <EconItem label="Renta" value={a.renta_m2 ? `${a.renta_m2} €/m²/mes` : ''} />
+        <EconItem label="Gastos" value={a.gastos ? `${a.gastos} €/m²/mes` : ''} />
+        <EconItem label="Renta mensual" value={a.renta_mensual ? eur(a.renta_mensual) : ''} />
+        <EconItem label="Renta anual" value={a.renta_anual ? eur(a.renta_anual) : ''} />
+      </div>
+      {Array.isArray(a.stacking) && a.stacking.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+            Stacking · disponibilidad por planta
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'var(--muted)', letterSpacing: 0, textTransform: 'none' }}><span style={{ width: 10, height: 10, background: '#9CC5AB', borderRadius: 2, display: 'inline-block' }} /> Disponible</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'var(--muted)', letterSpacing: 0, textTransform: 'none' }}><span style={{ width: 10, height: 10, background: '#E2DFD9', borderRadius: 2, display: 'inline-block' }} /> Ocupado</span>
+          </div>
+          <StackingMini stacking={a.stacking} />
+        </div>
+      )}
+    </div>
+  )
+}
+
 function KpiOff({ value, unit, label, sublabel }) {
   return (
     <div className="kpi">
@@ -580,6 +764,10 @@ function OffSlides({ a }) {
       </div>
 
       <div className="slide slide-photo">{mainPhoto ? <img src={mainPhoto} alt="" /> : '— Imagen principal del activo —'}</div>
+
+      <MapSlide a={a} />
+
+      {a.fuente === 'oferta' && <OfertaSlide a={a} />}
 
       <div className="slide slide-content">
         <h3>Las personas, <span className="italic-gold">en el centro</span></h3>
@@ -643,6 +831,10 @@ function LogSlides({ a }) {
       </div>
 
       <div className="slide slide-photo">{mainPhoto ? <img src={mainPhoto} alt="" /> : '— Imagen aérea / nave —'}</div>
+
+      <MapSlide a={a} />
+
+      {a.fuente === 'oferta' && <OfertaSlide a={a} />}
 
       <div className="slide slide-content">
         <h3 style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 24 }}>UBICACIÓN</h3>
