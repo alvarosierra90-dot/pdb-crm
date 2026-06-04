@@ -353,6 +353,7 @@ export default function FichaPropuestaSupabase({ refOrId }) {
                 propuesta.equipo && { key:'equipo', type:'info', label:'Equipo', value: propuesta.equipo },
                 cuenta?.nombre && { key:'cliente', type:'info', label:'Cliente', value: cuenta.nombre, color:'blue', accent:true },
                 oportunidad?.nombre && { key:'oportunidad', type:'info', label:'Oportunidad', value: oportunidad.nombre, color:'teal', accent:true },
+                { key:'confidencialidad', type:'info', label:'Confidencialidad', value: pryConfidential ? 'Confidencial' : 'No', color:'teal', accent: pryConfidential },
               ]} />
             </div>
           </div>
