@@ -3,7 +3,7 @@ import { useNav } from '../context/NavigationContext'
 import DossierGenerator from './DossierGenerator'
 
 const SUBTABS = [
-  ['dossier',     'Generador de dossier'],
+  ['dossier',     'Generador multimedia'],
   ['campanas',    '📣 Campañas'],
   ['posicionamiento', 'Posicionamiento'],
   ['material',    'Material y Reporting'],

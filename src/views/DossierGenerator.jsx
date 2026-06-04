@@ -237,6 +237,21 @@ export default function DossierGenerator() {
       .map(u => ({ sup: Number(u.sup) || 0, renta: Number(u.renta) || 0 }))))
   }
 
+  // Fotos/planos reales del activo desde la tabla fotos_activo (si existen)
+  const loadActivoFotos = async (activoId) => {
+    if (!activoId) return { photos: [], plans: [] }
+    let rows = []
+    try {
+      const { data } = await supabase.from('fotos_activo').select('url, nombre, tipo, orden').eq('activo_id', activoId).order('orden')
+      rows = (data || []).filter(r => r.url)
+    } catch { rows = [] }
+    const photos = rows.filter(r => r.tipo !== 'plano')
+      .sort((a, b) => (b.tipo === 'principal' ? 1 : 0) - (a.tipo === 'principal' ? 1 : 0))
+      .map(r => ({ name: r.nombre || 'foto', url: r.url }))
+    const plans = rows.filter(r => r.tipo === 'plano').map(r => ({ name: r.nombre || 'plano', url: r.url }))
+    return { photos, plans }
+  }
+
   const closePdb = () => { setPdbOpen(false); setPdbQuery(''); setPdbResults([]) }
 
   const loadFromPdb = async (row) => {
@@ -245,6 +260,7 @@ export default function DossierGenerator() {
       if (!o) return
       let act = null
       if (o.activo_id) { const { data } = await supabase.from('activos').select('*').eq('id', o.activo_id).maybeSingle(); act = data }
+      const fotos = await loadActivoFotos(act?.id)
 
       // Superficie disponible (máx = total de módulos vac de esta oferta) y
       // mínima alquilable: si la oferta es divisible → menor módulo; si no → total.
@@ -281,16 +297,21 @@ export default function DossierGenerator() {
         renta_anual: o.renta_anual != null ? String(o.renta_anual) : '',
         gastos: o.gastos_comunes != null ? String(o.gastos_comunes) : '',
         stacking: act?.stacking_data || null,
+        photos: fotos.photos.length ? fotos.photos : d.photos,
+        plans: fotos.plans.length ? fotos.plans : d.plans,
         kpis: mapActivoKpis(act, d.kpis),
       }))
     } else {
       const { data: a } = await supabase.from('activos').select('*').eq('id', row.id).maybeSingle()
       if (!a) return
+      const fotos = await loadActivoFotos(a.id)
       setDraft(d => ({
         ...d,
         ...activoExtras(a, d),
         fuente: 'activo', refPdb: a.ref, activoRef: a.ref,
         nombre: a.nombre || d.nombre,
+        photos: fotos.photos.length ? fotos.photos : d.photos,
+        plans: fotos.plans.length ? fotos.plans : d.plans,
         direccion: [a.direccion, a.ciudad].filter(Boolean).join(', ') || d.direccion,
         zona: a.zona || a.subzona || d.zona,
         propiedad: a.propietario || d.propiedad,
