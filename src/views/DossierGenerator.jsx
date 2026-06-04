@@ -94,6 +94,7 @@ const emptyAsset = () => ({
   fuente: 'activo',                 // 'activo' | 'oferta'
   refPdb: '', activoRef: '',        // referencias de origen
   nombre: '', direccion: '', zona: '', propiedad: '', disponibilidad: '',
+  uso: '', anno: '', calidad: '',
   transportes: '', empresas: '', pitch: '', specs: '', sost: '', cocom: '',
   lat: null, lng: null,
   kpis: {}, photos: [], plans: [],
@@ -184,14 +185,48 @@ export default function DossierGenerator() {
     }
   }, [isOferta])
 
+  // Nº de plantas a partir del stacking (cuenta filas de planta de todos los edificios)
+  const countPlantas = (stacking) => {
+    const blds = Array.isArray(stacking) ? stacking : []
+    const n = blds.reduce((s, b) => s + ((b.floors || b.arr || []).length), 0)
+    return n > 0 ? `${n} plantas` : ''
+  }
+
   const mapActivoKpis = (act, base) => {
     const kpis = { ...base }
     if (act?.sba != null) kpis.sba = String(act.sba)
     if (act?.leed) kpis.cert = act.leed
     if (act?.plazas != null) kpis.parking = String(act.plazas)   // plazas en características/KPIs del activo
+    if (act?.parking_ev != null) kpis.parkingev = String(act.parking_ev)
+    if (act?.altura_libre) kpis.altura = String(act.altura_libre)
+    if (act?.amenities) kpis.amenities = Array.isArray(act.amenities) ? act.amenities.join(', ') : act.amenities
+    const plantas = countPlantas(act?.stacking_data)
+    if (plantas && !kpis.plantas) kpis.plantas = plantas
     if (act?.n_edificios != null && linea === 'industrial') kpis.naves = String(act.n_edificios)
     if (act?.sup_parcela != null && linea === 'industrial') kpis.parcela = String(act.sup_parcela)
+    if (act?.altura_libre && linea === 'industrial') kpis.altura = String(act.altura_libre)
     return kpis
+  }
+
+  // Campos derivados del activo (uso, specs y sostenibilidad auto-compuestos
+  // a partir de sus características) · no pisan lo que ya escribió el usuario.
+  const activoExtras = (act, d) => {
+    const specsAuto = [
+      act?.calidad && `Calidad ${act.calidad}`,
+      act?.anno_construccion && `Año de construcción ${act.anno_construccion}`,
+      act?.anno_rehabilitacion && `Última rehabilitación ${act.anno_rehabilitacion}`,
+      act?.altura_libre && `Altura libre ${act.altura_libre}`,
+      act?.sup_planta_tipo && `Superficie planta tipo ${act.sup_planta_tipo} m²`,
+    ].filter(Boolean).join('\n')
+    const sostAuto = [act?.leed, act?.esg_rating && `ESG ${act.esg_rating}`].filter(Boolean).join('\n')
+    return {
+      uso: act?.uso || d.uso,
+      anno: act?.anno_construccion != null ? String(act.anno_construccion) : d.anno,
+      calidad: act?.calidad || d.calidad,
+      specs: d.specs || specsAuto,
+      sost: d.sost || sostAuto,
+      transportes: d.transportes,
+    }
   }
 
   // Espacios 'vac' del stacking del activo asignados a esta oferta → [{ sup, renta }]
@@ -228,6 +263,7 @@ export default function DossierGenerator() {
 
       setDraft(d => ({
         ...d,
+        ...activoExtras(act, d),
         fuente: 'oferta', refPdb: o.ref, activoRef: act?.ref || o.activo_ref || '',
         nombre: act?.nombre || o.nombre || o.titulo_web || d.nombre,
         direccion: [act?.direccion, act?.ciudad].filter(Boolean).join(', ') || d.direccion,
@@ -252,6 +288,7 @@ export default function DossierGenerator() {
       if (!a) return
       setDraft(d => ({
         ...d,
+        ...activoExtras(a, d),
         fuente: 'activo', refPdb: a.ref, activoRef: a.ref,
         nombre: a.nombre || d.nombre,
         direccion: [a.direccion, a.ciudad].filter(Boolean).join(', ') || d.direccion,
@@ -500,8 +537,9 @@ export default function DossierGenerator() {
                   <Field label="Nombre comercial del activo *"><input value={draft.nombre} onChange={e => setField('nombre', e.target.value)} placeholder="Ej: Edificio Dublín" /></Field>
                   <Field label="Dirección *"><input value={draft.direccion} onChange={e => setField('direccion', e.target.value)} placeholder="Vía de Dublín 7, Madrid" /></Field>
                 </div>
-                <div className="form-row cols-3">
+                <div className="form-row cols-4">
                   <Field label="Submercado / Zona"><input value={draft.zona} onChange={e => setField('zona', e.target.value)} placeholder="Campo de las Naciones" /></Field>
+                  <Field label="Uso principal"><input value={draft.uso} onChange={e => setField('uso', e.target.value)} placeholder="Oficinas" /></Field>
                   <Field label="Propiedad"><input value={draft.propiedad} onChange={e => setField('propiedad', e.target.value)} placeholder="Monthisa" /></Field>
                   <Field label="Disponibilidad"><input value={draft.disponibilidad} onChange={e => setField('disponibilidad', e.target.value)} placeholder="Inmediata · Q3 2026 · ..." /></Field>
                 </div>
@@ -855,7 +893,7 @@ function OffSlides({ a }) {
           <div className="name">{(a.nombre || 'Edificio').replace('Edificio ', '')}</div>
           <div className="loc">{(a.zona || a.direccion || 'Madrid').toUpperCase()}</div>
         </div>
-        <div className="cover-pretitle">{(a.zona || 'Madrid').toUpperCase()} · MADRID</div>
+        <div className="cover-pretitle">{[a.uso, a.zona].filter(Boolean).join(' · ').toUpperCase() || (a.zona || 'Madrid').toUpperCase()}</div>
         <h1 className="cover-title">{a.nombre || 'Sin nombre'}</h1>
       </div>
 
