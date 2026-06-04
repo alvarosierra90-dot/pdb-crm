@@ -49,12 +49,14 @@ import FichaOportunidad from './views/FichaOportunidad'
 import PitchView from './views/PitchView'
 import NexoView from './views/NexoView'
 import CAMView from './views/CAMView'
+import SeleccionPublica from './public/SeleccionPublica'
 import FormacionInterna from './views/FormacionInterna'
 
-const BUILT = ['activos','ficha-activo','ofertas','ficha-oferta','negociaciones','ficha-negociacion','portfolios','portfolio','demandas','ficha-demanda','actividades','ficha-actividad','visitas','ficha-visita','tareas','ficha-tarea','zonas','ficha-zona','usuarios','ficha-usuario','mandatos','ficha-mandato','mapas','mis-clientes','inteligencia-comercial','vencimientos','marketing','informes-mercado','noticias','arrendatarios','ficha-arrendatario','propietarios','ficha-propietario','propuestas','ficha-propuesta','presentaciones','ficha-presentacion','cuentas','contactos','oportunidades','ficha-oportunidad','instruccion','entidades-legales','leads','ficha-lead','pitch','nexo','cam','formacion-interna']
+const BUILT = ['activos','ficha-activo','ofertas','ficha-oferta','negociaciones','ficha-negociacion','portfolios','portfolio','demandas','ficha-demanda','actividades','ficha-actividad','visitas','ficha-visita','tareas','ficha-tarea','zonas','ficha-zona','usuarios','ficha-usuario','mandatos','ficha-mandato','mapas','mis-clientes','inteligencia-comercial','vencimientos','marketing','informes-mercado','noticias','arrendatarios','ficha-arrendatario','propietarios','ficha-propietario','propuestas','ficha-propuesta','presentaciones','ficha-presentacion','cuentas','contactos','oportunidades','ficha-oportunidad','instruccion','entidades-legales','leads','ficha-lead','pitch','nexo','cam','formacion-interna','seleccion-publica']
 
 function Router() {
-  const { view } = useNav()
+  const { view, navigate } = useNav()
+  if (view === 'seleccion-publica') return <SeleccionPublica onClose={() => navigate('ofertas')} />
   if (view === 'mapas') return <div style={{position:'fixed',inset:0,display:'flex',flexDirection:'column',zIndex:100,background:'#fff'}}><MapasView /></div>
   return (
     <div className="main-wrap">

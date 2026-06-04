@@ -185,6 +185,10 @@ export default function Nav() {
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"/><path d="M2 4l6 5 6-5"/></svg>
           Ofertas
         </div>
+        <div className={`nav-item ${isActive('seleccion-publica') ? 'active' : ''}`} onClick={() => navigate('seleccion-publica')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+          Selección pública · maqueta
+        </div>
         <div className={`nav-item ${isActive('demandas','ficha-demanda') ? 'active' : ''}`} onClick={() => navigate('demandas')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
           Demandas
