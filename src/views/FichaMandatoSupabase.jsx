@@ -847,16 +847,39 @@ export default function FichaMandatoSupabase({ refOrId }) {
                       {
                         key:'activos', icon: Tag, tone: cardTone('Activo'),
                         label: activosLinked.length === 1 ? 'Activo' : 'Activos',
-                        value: hasActivo
-                          ? (activosLinked.length === 1
-                              ? (activosLinked[0].activos?.nombre || activosLinked[0].activos?.ref)
-                              : `${activosLinked.length} activos`)
-                          : null,
-                        sub: hasActivo && activosLinked.length === 1
-                          ? ([activosLinked[0].activos?.ciudad, activosLinked[0].activos?.uso].filter(Boolean).join(' · ') || null)
-                          : (hasActivo ? 'Ver listado abajo' : 'Vincula los activos del mandato.'),
+                        value: hasActivo ? `${activosLinked.length} ${activosLinked.length === 1 ? 'activo' : 'activos'}` : null,
+                        sub: hasActivo ? null : 'Vincula los activos del mandato.',
                         status: hasActivo ? 'done' : 'current',
                         vacant: !hasActivo,
+                        // Lista de activos vinculados + alta dentro de la propia card
+                        extraBody: (
+                          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                            {(form.tipo === 'alquiler' || form.tipo === 'venta') && activosLinked.length === 0 && (
+                              <div style={{ fontSize:10, color:'#dc2626', fontWeight:700 }}>* Tipo {TIPO_LABEL[form.tipo]} requiere al menos 1 activo</div>
+                            )}
+                            {activosLinked.map(l => l.activos && (
+                              <div key={l.id}
+                                style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 8px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', cursor:'pointer' }}
+                                onClick={() => navigate('ficha-activo', { ref: l.activos.ref })}
+                                title={`Abrir ficha del activo ${l.activos.ref}`}>
+                                <div style={{ flex:1, minWidth:0 }}>
+                                  <div style={{ fontSize:11.5, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{l.activos.nombre} <span style={{ fontFamily:'var(--mono)', color:'var(--text4)', fontSize:9.5, fontWeight:500 }}>{l.activos.ref}</span></div>
+                                  <div style={{ fontSize:9.5, color:'var(--text3)' }}>{[l.activos.ciudad, l.activos.uso, l.activos.sba ? `${Number(l.activos.sba).toLocaleString('es-ES')} m²` : null].filter(Boolean).join(' · ')}</div>
+                                </div>
+                                <input type="number" style={{ ...inp, width:70, fontSize:10 }} defaultValue={l.sba_asignada ?? ''}
+                                  onClick={e => e.stopPropagation()}
+                                  onBlur={e => updateSbaAsignada(l.id, e.target.value)} placeholder="SBA" title="SBA asignada" />
+                                <button onClick={e => { e.stopPropagation(); removeActivo(l.id) }} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }} title="Quitar activo">✕</button>
+                              </div>
+                            ))}
+                            <select style={{ ...sel, width:'100%' }} value="" onChange={e => { if (e.target.value) addActivo(e.target.value) }}>
+                              <option value="">+ Añadir activo al mandato…</option>
+                              {activosDisponibles.map(a => (
+                                <option key={a.id} value={a.id}>{a.nombre} — {a.ciudad || ''} · {a.ref}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ),
                         openAction: hasActivo && activosLinked.length === 1 && activosLinked[0].activos?.ref
                           ? { label:'Abrir activo', onClick: () => navigate('ficha-activo', { ref: activosLinked[0].activos.ref }) }
                           : null,
@@ -1111,49 +1134,7 @@ export default function FichaMandatoSupabase({ refOrId }) {
                 )}
 
                 {/* Notas y novedades vive ahora en el modal accesible vía botón del action-bar (📝 Notas) */}
-
-                {/* ─── Activos vinculados (multi · card full) ─── */}
-                <div className="va-card" style={{ marginTop:14, marginBottom:0, overflow:'visible' }}>
-                  <div className="va-card-header">
-                    <h3><span className="ico"></span> Activos vinculados ({activosLinked.length})</h3>
-                    {(form.tipo === 'alquiler' || form.tipo === 'venta') && activosLinked.length === 0 && (
-                      <span className="hint" style={{ color:'#dc2626', fontWeight:700 }}>* Tipo {TIPO_LABEL[form.tipo]} requiere al menos 1 activo</span>
-                    )}
-                  </div>
-                  <div style={{ padding:'4px 20px 16px' }}>
-                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                      {activosLinked.length === 0 && (
-                        <div style={{ fontSize:11, color:'var(--text4)', fontStyle:'italic', padding:'6px 0' }}>Sin activos vinculados</div>
-                      )}
-                      {activosLinked.map(l => l.activos && (
-                        <div
-                          key={l.id}
-                          style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--surface)', cursor:'pointer' }}
-                          onClick={() => navigate('ficha-activo', { ref: l.activos.ref })}
-                          title={`Abrir ficha del activo ${l.activos.ref}`}
-                        >
-                          <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}></div>
-                          <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontSize:12, fontWeight:600 }}>{l.activos.nombre} <span style={{ marginLeft:6, fontFamily:'var(--mono)', color:'var(--text4)', fontSize:10, fontWeight:500 }}>{l.activos.ref}</span></div>
-                            <div style={{ fontSize:10, color:'var(--text3)' }}>
-                              {[l.activos.ciudad, l.activos.uso, l.activos.sba ? `${Number(l.activos.sba).toLocaleString('es-ES')} m²` : null].filter(Boolean).join(' · ')}
-                            </div>
-                          </div>
-                          <input type="number" style={{ ...inp, width:80, fontSize:10 }} defaultValue={l.sba_asignada ?? ''}
-                            onClick={e => e.stopPropagation()}
-                            onBlur={e => updateSbaAsignada(l.id, e.target.value)} placeholder="SBA asig." title="SBA asignada" />
-                          <button onClick={e => { e.stopPropagation(); removeActivo(l.id) }} style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:11, padding:'2px 4px' }}>✕</button>
-                        </div>
-                      ))}
-                    </div>
-                    <select style={{ ...sel, width:'100%', marginTop:6 }} value="" onChange={e => { if (e.target.value) addActivo(e.target.value) }}>
-                      <option value="">+ Añadir activo al mandato…</option>
-                      {activosDisponibles.map(a => (
-                        <option key={a.id} value={a.id}>{a.nombre} — {a.ciudad || ''} · {a.ref}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                {/* Activos vinculados · ahora dentro de la card "Activos" del wizard (extraBody) */}
 
                 {/* Modal Fees y honorarios — accesible vía pill 🏦 del header */}
                 {showFeesModal && (
