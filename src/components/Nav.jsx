@@ -43,7 +43,7 @@ const SECTION_OF_VIEW = {
   // adm
   marketing:'adm',
   usuarios:'adm', 'ficha-usuario':'adm',
-  pitch:'adm', nexo:'adm',
+  pitch:'adm', nexo:'adm', cam:'adm', demo:'adm',
   'formacion-interna':'adm',
 }
 
@@ -303,6 +303,10 @@ export default function Nav() {
         <div className={`nav-item ${isActive('formacion-interna') ? 'active' : ''}`} onClick={() => navigate('formacion-interna')}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 2L1 5l7 3 7-3-7-3z"/><path d="M3 7v3l5 2 5-2V7"/></svg>
           Formación interna
+        </div>
+        <div className={`nav-item ${isActive('demo') ? 'active' : ''}`} onClick={() => navigate('demo')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M6 4l5 4-5 4z"/><rect x="1.5" y="1.5" width="13" height="13" rx="2"/></svg>
+          DEMO
         </div>
       </>}
 
