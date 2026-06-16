@@ -13,6 +13,9 @@ import VinculacionesMaestra from '../components/VinculacionesMaestra'
 import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
 import { supabase } from '../lib/supabase'
 import {
+  USOS_PRINCIPALES, normalizeUso, calidadesDe, camposSuperficie, buildMetricas, usoTag,
+} from '../lib/usoConfig'
+import {
   Building2, Factory, ShoppingBag, Server, Home, Hotel, Square,
   Mail, Phone, Users, FileText, Pencil, CheckSquare,
   MapPin, Search, Upload, Image as ImageIcon, AlertTriangle, ArrowDown, BarChart3, Wallet, ClipboardList,
@@ -20,18 +23,18 @@ import {
   Folder, Wrench, Target, Compass, Presentation, ScrollText, Tag, UserCheck
 } from 'lucide-react'
 
-const USO_PREFIX_FA    = { 'Oficinas':'OF', 'Logístico':'LG', 'Retail':'RT', 'Data Center':'DC', 'Residencial':'RS', 'Hoteles':'HT', 'Suelo':'SU' }
+const USO_PREFIX_FA    = { 'Oficinas':'OF', 'Industrial':'IN', 'Logística':'LG', 'Retail High Street':'RT', 'Centro Comercial':'CC', 'Hotel':'HT', 'Residencial':'RS', 'Build to Rent':'BR', 'Build to Sell':'BS', 'Flex Living':'FL', 'Senior Living':'SL', 'Care Homes':'CH', 'Apartamentos Turísticos':'AT', 'Aparcamiento':'AP', 'Trasteros':'TR', 'Data Center':'DC', 'Suelo':'SU' }
 const CIUDAD_PREFIX_FA = { 'Madrid':'MAD', 'Barcelona':'BCN', 'Valencia':'VLC', 'Sevilla':'SEV', 'Bilbao':'BIL', 'Guadalajara':'GUA' }
 function genRefFA(ciudad, uso) {
   const cp = CIUDAD_PREFIX_FA[ciudad] || ciudad.slice(0,3).toUpperCase()
-  const up = USO_PREFIX_FA[uso] || 'XX'
+  const up = USO_PREFIX_FA[normalizeUso(uso)] || 'XX'
   const num = String(Math.floor(Math.random()*90000)+10000)
   return `${cp}-${up}-${num}`
 }
 const CUENTAS_FA = ['Colonial SOCIMI','Merlin Properties','GMP','Barings Real Estate','Allianz Real Estate','Prologis','CBRE Investment Management','Grosvenor','IBA Capital','Neinor Homes','Axa IM Real Assets','Blackstone','Brookfield']
-const USO_ICO    = { 'Oficinas': Building2, 'Logístico': Factory, 'Retail': ShoppingBag, 'Data Center': Server, 'Residencial': Home, 'Hoteles': Hotel, 'Suelo': Square }
+const USO_ICO    = { 'Oficinas': Building2, 'Industrial': Factory, 'Logística': Factory, 'Retail High Street': ShoppingBag, 'Centro Comercial': ShoppingBag, 'Hotel': Hotel, 'Residencial': Home, 'Build to Rent': Home, 'Build to Sell': Home, 'Flex Living': Home, 'Senior Living': Home, 'Care Homes': Home, 'Apartamentos Turísticos': Hotel, 'Aparcamiento': Square, 'Trasteros': Square, 'Data Center': Server, 'Suelo': Square }
 function UsoIco({ uso, size = 14 }) {
-  const Ico = USO_ICO[uso] || Building2
+  const Ico = USO_ICO[normalizeUso(uso)] || Building2
   return <Ico size={size} strokeWidth={1.75} />
 }
 
@@ -307,7 +310,19 @@ const CITY_NORMALIZE = {
   'El Prat de Llobregat':'Barcelona','Sant Cugat del Vallès':'Barcelona',
   'Paterna':'Valencia','Torrent':'Valencia',
 }
-function getZoneData(ciudad, uso) { const c = CITY_NORMALIZE[ciudad] || ciudad; return (ZONES[uso]||{})[c] || [] }
+// Mapea el Uso principal canónico a la clave del objeto ZONES (que conserva la
+// nomenclatura histórica compartida con Demanda/Oferta). Usos sin zonas propias
+// caen a 'Oficinas'.
+const ZONES_KEY = {
+  'Oficinas':'Oficinas', 'Industrial':'Logístico', 'Logística':'Logístico',
+  'Retail High Street':'Retail', 'Centro Comercial':'Retail',
+  'Residencial':'Residencial', 'Build to Rent':'Residencial', 'Build to Sell':'Residencial',
+  'Flex Living':'Residencial', 'Senior Living':'Residencial', 'Care Homes':'Residencial',
+  'Hotel':'Hoteles', 'Apartamentos Turísticos':'Hoteles',
+  'Data Center':'Data Center', 'Suelo':'Suelo',
+}
+function zonesKey(uso) { const n = normalizeUso(uso); return ZONES_KEY[n] || (ZONES[n] ? n : 'Oficinas') }
+function getZoneData(ciudad, uso) { const c = CITY_NORMALIZE[ciudad] || ciudad; return (ZONES[zonesKey(uso)]||{})[c] || [] }
 function getAreas(ciudad, uso)    { return [...new Set(getZoneData(ciudad,uso).map(z=>z.area))] }
 function getZonas(ciudad, uso, area) { return [...new Set(getZoneData(ciudad,uso).filter(z=>z.area===area).map(z=>z.zona))] }
 function getSubzonas(ciudad, uso, area, zona) { return getZoneData(ciudad,uso).filter(z=>z.area===area&&z.zona===zona).map(z=>z.subzona) }
@@ -336,7 +351,7 @@ const CARAC_USO_FIELDS = {
     { id:'ascensores',     label:'Ascensores',               opciones:['Sí','No'] },
     { id:'montacargas',    label:'Montacargas',              opciones:['Sí','No'] },
   ],
-  'Logístico': [
+  'Logística': [
     { id:'iluminacion',     label:'Iluminación',            opciones:['LED','Fluorescentes','Natural','Sin iluminación'] },
     { id:'tipo_nave',       label:'Tipo de nave',           opciones:['Logística','Industrial','Cross-dock','Última milla'] },
     { id:'muelles',         label:'Muelles de carga',       opciones:['Sí','No'] },
@@ -349,7 +364,7 @@ const CARAC_USO_FIELDS = {
     { id:'oficinas_anexas', label:'Oficinas anexas',        opciones:['Sí','No'] },
     { id:'patio_maniobra',  label:'Patio de maniobra',      opciones:['Sí','No'] },
   ],
-  'Retail': [
+  'Retail High Street': [
     { id:'iluminacion',    label:'Iluminación',             opciones:['LED','Fluorescentes','Sin iluminación'] },
     { id:'estado',         label:'Estado del local',        opciones:['Implantado','En bruto','Reformado','A reformar'] },
     { id:'fachada',        label:'Fachada',                 opciones:['Amplia','Estándar','Escasa'] },
@@ -361,7 +376,7 @@ const CARAC_USO_FIELDS = {
     { id:'esquina',        label:'Esquina',                 opciones:['Sí','No'] },
     { id:'terraza',        label:'Terraza',                 opciones:['Sí','No'] },
   ],
-  'Centro comercial': [
+  'Centro Comercial': [
     { id:'iluminacion',    label:'Iluminación',             opciones:['LED','Fluorescentes','Sin iluminación'] },
     { id:'tipo_unidad',    label:'Tipo de unidad',          opciones:['Local','Isla / kiosco','Restaurante','Ocio'] },
     { id:'estado',         label:'Estado',                  opciones:['Implantado','En bruto','Reformado'] },
@@ -383,7 +398,7 @@ const CARAC_USO_FIELDS = {
     { id:'garaje',         label:'Garaje',                  opciones:['Sí','No'] },
     { id:'ascensor',       label:'Ascensor',                opciones:['Sí','No'] },
   ],
-  'Hoteles': [
+  'Hotel': [
     { id:'iluminacion',    label:'Iluminación',             opciones:['LED','Fluorescentes','Sin iluminación'] },
     { id:'categoria',      label:'Categoría',               opciones:['1 estrella','2 estrellas','3 estrellas','4 estrellas','5 estrellas'] },
     { id:'estado',         label:'Estado',                  opciones:['Operativo','Reformado','A reformar'] },
@@ -415,14 +430,13 @@ const CARAC_USO_FIELDS = {
 
 const MEDIOS_TRANSPORTE = ['Metro','Autobús','Cercanías','Tren','Tranvía','BiciMAD / Bici pública','Coche','Taxi / VTC','Aeropuerto']
 export const ESTADOS_CONSTRUCCION = ['Cambio de uso en trámite','Construcción existente','En construcción','En demolición','En rehabilitación','LC + ICO obtenidos','LC + ICO solicitados','Licencia de construcción','Licencia primera ocupación','Llave en mano','Nueva construcción / Obra nueva','Proyecto','Rehabilitación integral','Rehabilitación parcial']
-const USOS_PRINCIPALES = ['Build to Rent','Aparcamiento','Apartamentos turísticos','Build to Sell','Care homes','Trastero','Flex Living','Hotel','Industrial','Logística','Oficinas','Residencial','Retail','Senior Living']
-const CALIDADES = ['A+','A','B+','B','C','D']
+// USOS_PRINCIPALES y la lógica de Calidad/Superficies viven en ../lib/usoConfig
 
 const NEW_FORM_INIT = {
-  nombre:'', direccion:'', ciudad:'Madrid', pais:'España', cp:'',
+  nombre:'', direccion:'', ciudad:'Madrid', provincia:'', municipio:'', pais:'España', cp:'', coordenadas:'',
   area:'', zona:'', subzona:'',
-  tipo_activo:'Edificio', estado_construccion:'Construcción existente',
-  uso:'Oficinas', uso_secundario:'', calidad:'A',
+  tipo_activo:'Edificio', estado_construccion:'',
+  uso:'', uso_secundario:'', calidad:'',
   propietario:'', asset_manager:'',
   sba:'', sup_planta_tipo:'', ratio_perdida:'',
   anno_construccion:'', anno_rehabilitacion:'',
@@ -2693,7 +2707,10 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
   const zonas    = newForm.area ? getZonas(newForm.ciudad, newForm.uso, newForm.area) : []
   const subzonas = newForm.area && newForm.zona ? getSubzonas(newForm.ciudad, newForm.uso, newForm.area, newForm.zona) : []
 
-  const err = (field) => submitted && !newForm[field]
+  // Obligatorios resaltados en rojo en vivo (guía el orden de cumplimentación)
+  const err = (field) => !newForm[field]
+  const dirOk = !!newForm.direccion
+  const lock = dirOk ? undefined : { opacity:.45, pointerEvents:'none', userSelect:'none' }
   const inp = (field) => ({padding:'5px 8px',border:`1px solid ${err(field)?'var(--red)':'var(--accent-bd)'}`,borderRadius:5,fontSize:12,fontFamily:'inherit',background:err(field)?'#fff5f5':'var(--accent-lt)',color:'var(--text1)',width:'100%',boxSizing:'border-box',outline:'none'})
   const inpBase = {padding:'5px 8px',border:'1px solid var(--accent-bd)',borderRadius:5,fontSize:12,fontFamily:'inherit',background:'var(--accent-lt)',color:'var(--text1)',width:'100%',boxSizing:'border-box',outline:'none'}
   const sel = (field) => ({...inpBase,cursor:'pointer',...(err(field)?{border:'1px solid var(--red)',background:'#fff5f5'}:{})})
@@ -2712,88 +2729,76 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
     <div className="tab-content active">
       <div className="info-pad">
 
+        {/* ── PASO 1 · DIRECCIÓN (obligatorio, desbloquea el resto) ── */}
         {/* Mapa + carrusel */}
         <MapaCarrusel activo={null} direccion={newForm.direccion}
-          onAddressChange={({direccion,ciudad,pais,cp,coordenadas})=>{
-            setNF('direccion',direccion); setNF('ciudad',ciudad); setNF('pais',pais||'España')
+          onAddressChange={({direccion,ciudad,municipio,provincia,pais,cp,coordenadas})=>{
+            setNF('direccion',direccion)
+            setNF('ciudad',municipio||ciudad||''); setNF('municipio',municipio||ciudad||'')
+            if(provincia) setNF('provincia',provincia)
+            setNF('pais',pais||'España'); setNF('area',''); setNF('zona',''); setNF('subzona','')
             if(cp) setNF('cp',cp); if(coordenadas) setNF('coordenadas',coordenadas)
           }}/>
 
-        {/* LOCALIZACIÓN (Área / Zona / Subzona) */}
+        {/* UBICACIÓN (paso 1) */}
         <div className="va-card" style={{marginBottom:20}}>
           <div className="va-card-header">
-            <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Localización</h3>
-            {newForm.coordenadas && <span className="hint">Coordenadas · {newForm.coordenadas}</span>}
+            <h3><span className="ico accent-red">●</span> Ubicación <span style={{fontSize:10,fontWeight:600,color:'var(--text4)',marginLeft:6}}>· Paso 1</span></h3>
           </div>
-          <div className="va-chip-row">
-            <div className="va-chip-cell">
-              <div className="label">Área</div>
-              {nfAreas.length > 0
-                ? <select value={newForm.area} onChange={e=>{setNF('area',e.target.value);setNF('zona','');setNF('subzona','')}} style={selSt}><option value="">—</option>{nfAreas.map(a=><option key={a}>{a}</option>)}</select>
-                : <input value={newForm.area} onChange={e=>setNF('area',e.target.value)} style={selSt} placeholder="—"/>}
-            </div>
-            <div className="va-chip-cell">
-              <div className="label">Zona</div>
-              {zonas.length > 0
-                ? <select value={newForm.zona} onChange={e=>{setNF('zona',e.target.value);setNF('subzona','')}} style={selSt}><option value="">—</option>{zonas.map(z=><option key={z}>{z}</option>)}</select>
-                : <input value={newForm.zona} onChange={e=>setNF('zona',e.target.value)} style={selSt} placeholder="—"/>}
-            </div>
-            <div className="va-chip-cell">
-              <div className="label">Subzona</div>
-              {subzonas.length > 0
-                ? <select value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} style={selSt}><option value="">—</option>{subzonas.map(s=><option key={s}>{s}</option>)}</select>
-                : <input value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} style={selSt} placeholder="—"/>}
-            </div>
+          <div className="va-meta-body" style={{padding:'8px 16px 14px'}}>
+            <Row label="Nombre del activo">
+              <input value={newForm.nombre} onChange={e=>setNF('nombre',e.target.value)} style={inpBase} placeholder="P.E Avalon, Torre Sevilla..."/>
+            </Row>
+            <Row label="Propietario">
+              <input list="fa-cuentas-new" value={newForm.propietario} onChange={e=>setNF('propietario',e.target.value)} style={inpBase} placeholder="Buscar cuenta..."/>
+              <datalist id="fa-cuentas-new">{CUENTAS_FA.map(c=><option key={c} value={c}/>)}</datalist>
+            </Row>
+            <Row label="Dirección" required>
+              <input value={newForm.direccion} onChange={e=>setNF('direccion',e.target.value)} style={inp('direccion')} placeholder="Busca en el mapa o escribe la dirección..."/>
+              {err('direccion') && <span style={{fontSize:10,color:'var(--pdb-red)'}}>Campo obligatorio — empieza por aquí</span>}
+            </Row>
+            <Row label="País"><input value={newForm.pais} onChange={e=>setNF('pais',e.target.value)} style={inpBase} placeholder="España"/></Row>
+            <Row label="Provincia"><input value={newForm.provincia||''} onChange={e=>setNF('provincia',e.target.value)} style={inpBase} placeholder="—"/></Row>
+            <Row label="Municipio">
+              <input value={newForm.municipio||''} onChange={e=>{setNF('municipio',e.target.value);setNF('ciudad',e.target.value);setNF('area','');setNF('zona','');setNF('subzona','')}} style={inpBase} placeholder="Madrid"/>
+            </Row>
+            <Row label="Código postal"><input value={newForm.cp} onChange={e=>setNF('cp',e.target.value)} style={inpBase} placeholder="28037"/></Row>
+            <Row label="Coordenadas">
+              <input value={newForm.coordenadas||''} onChange={e=>setNF('coordenadas',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)',fontSize:11}} placeholder="40.416775, -3.703790"/>
+            </Row>
           </div>
         </div>
 
-        {/* UBICACIÓN + TIPOLOGÍA */}
-        <div className="va-two-col" style={{marginBottom:20}}>
-          <div className="va-meta-card">
-            <div className="va-meta-head accent-red"><span className="dot"/>Ubicación</div>
-            <div className="va-meta-body">
-              <Row label="Nombre del activo">
-                <input value={newForm.nombre} onChange={e=>setNF('nombre',e.target.value)} style={inpBase} placeholder="P.E Avalon, Torre Sevilla..."/>
-              </Row>
-              <Row label="Propietario">
-                <input list="fa-cuentas-new" value={newForm.propietario} onChange={e=>setNF('propietario',e.target.value)} style={inpBase} placeholder="Buscar cuenta..."/>
-                <datalist id="fa-cuentas-new">{CUENTAS_FA.map(c=><option key={c} value={c}/>)}</datalist>
-              </Row>
-              <Row label="Dirección" required>
-                <input value={newForm.direccion} onChange={e=>setNF('direccion',e.target.value)} style={inp('direccion')} placeholder="Calle Serrano 41, Madrid..."/>
-                {err('direccion') && <span style={{fontSize:10,color:'var(--pdb-red)'}}>Campo obligatorio</span>}
-              </Row>
-              <Row label="Ciudad">
-                <input value={newForm.ciudad} onChange={e=>{setNF('ciudad',e.target.value);setNF('area','');setNF('zona','');setNF('subzona','')}} style={inpBase} placeholder="Madrid"/>
-              </Row>
-              <Row label="País">
-                <input value={newForm.pais} onChange={e=>setNF('pais',e.target.value)} style={inpBase} placeholder="España"/>
-              </Row>
-              <Row label="Código postal">
-                <input value={newForm.cp} onChange={e=>setNF('cp',e.target.value)} style={inpBase} placeholder="28037"/>
-              </Row>
-              <Row label="Coordenadas">
-                <input value={newForm.coordenadas||''} onChange={e=>setNF('coordenadas',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)',fontSize:11}} placeholder="40.416775, -3.703790"/>
-              </Row>
-            </div>
+        {/* Aviso de bloqueo hasta completar la dirección */}
+        {!dirOk && (
+          <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',marginBottom:16,
+            background:'#fff5f5',border:'1px solid var(--pdb-red)',borderRadius:8,fontSize:12,color:'var(--pdb-red)',fontWeight:600}}>
+            <AlertTriangle size={15} strokeWidth={2}/> Completa la <strong>dirección</strong> para desbloquear el resto de la ficha.
           </div>
+        )}
 
-          <div className="va-meta-card">
-            <div className="va-meta-head accent-purple"><span className="dot"/>Tipología</div>
-            <div className="va-meta-body">
+        {/* ── RESTO DE LA FICHA · bloqueado hasta tener dirección ── */}
+        <div style={lock} aria-disabled={!dirOk}>
+
+          {/* TIPOLOGÍA (paso 2) */}
+          <div className="va-card" style={{marginBottom:20}}>
+            <div className="va-card-header">
+              <h3><span className="ico accent-purple">●</span> Tipología <span style={{fontSize:10,fontWeight:600,color:'var(--text4)',marginLeft:6}}>· Paso 2</span></h3>
+            </div>
+            <div className="va-meta-body" style={{padding:'8px 16px 14px'}}>
               <Row label="Tipo de activo" required>
                 <select value={newForm.tipo_activo} onChange={e=>setNF('tipo_activo',e.target.value)} style={sel('tipo_activo')}>
                   {['Edificio','Nave','Local','Parcela','Complejo','Torre','Centro comercial','Parque empresarial','Parque logístico','Residencia'].map(t=><option key={t}>{t}</option>)}
                 </select>
               </Row>
-              <Row label="Estado construcción">
-                <select value={newForm.estado_construccion} onChange={e=>setNF('estado_construccion',e.target.value)} style={{...inpBase,cursor:'pointer'}}>
-                  <option value="">—</option>{ESTADOS_CONSTRUCCION.map(e=><option key={e}>{e}</option>)}
+              <Row label="Uso principal" required>
+                <select value={newForm.uso} onChange={e=>{setNF('uso',e.target.value);setNF('calidad','');setNF('area','');setNF('zona','');setNF('subzona','')}} style={sel('uso')}>
+                  <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
                 </select>
               </Row>
-              <Row label="Uso principal" required>
-                <select value={newForm.uso} onChange={e=>setNF('uso',e.target.value)} style={sel('uso')}>
-                  <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
+              <Row label="Estado de construcción" required>
+                <select value={newForm.estado_construccion} onChange={e=>setNF('estado_construccion',e.target.value)} style={sel('estado_construccion')}>
+                  <option value="">—</option>{ESTADOS_CONSTRUCCION.map(e=><option key={e}>{e}</option>)}
                 </select>
               </Row>
               <Row label="Uso secundario">
@@ -2803,66 +2808,99 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
               </Row>
               <Row label="Calidad">
                 <select value={newForm.calidad} onChange={e=>setNF('calidad',e.target.value)} style={{...inpBase,cursor:'pointer'}}>
-                  <option value="">—</option>{CALIDADES.map(c=><option key={c}>{c}</option>)}
+                  <option value="">—</option>{calidadesDe(newForm.uso, newForm.calidad).map(c=><option key={c}>{c}</option>)}
                 </select>
               </Row>
             </div>
           </div>
-        </div>
 
-        {/* SUPERFICIES Y DETALLES */}
-        <div className="va-card" style={{marginBottom:20}}>
-          <div className="va-card-header">
-            <h3><span className="ico">▭</span> Superficies y detalles</h3>
-          </div>
-          <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:16}}>
-            <Row label="SBA (m²)">
-              <input type="number" value={newForm.sba} onChange={e=>setNF('sba',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="0"/>
-            </Row>
-            <Row label="Sup. planta tipo (m²)">
-              <input type="number" value={newForm.sup_planta_tipo} onChange={e=>setNF('sup_planta_tipo',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="0"/>
-            </Row>
-            <Row label="Ratio de pérdida (%)">
-              <input type="number" min="0" max="100" value={newForm.ratio_perdida} onChange={e=>setNF('ratio_perdida',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="0"/>
-            </Row>
-            <Row label="Año construcción">
-              <input type="number" value={newForm.anno_construccion} onChange={e=>setNF('anno_construccion',e.target.value)} style={inpBase} placeholder="—"/>
-            </Row>
-            <Row label="Año rehabilitación">
-              <input type="number" value={newForm.anno_rehabilitacion} onChange={e=>setNF('anno_rehabilitacion',e.target.value)} style={inpBase} placeholder="—"/>
-            </Row>
-            <Row label="Asset Manager">
-              <input value={newForm.asset_manager} onChange={e=>setNF('asset_manager',e.target.value)} style={inpBase} placeholder="—"/>
-            </Row>
-            <div className="ir">
-              <span className="ir-k">Nº edificios</span>
-              <span className="ir-v" style={{fontSize:10,color:'var(--muted)',fontStyle:'italic'}}>Desde Stacking Plan</span>
+          {/* LOCALIZACIÓN (Área / Zona / Subzona) */}
+          <div className="va-card" style={{marginBottom:20}}>
+            <div className="va-card-header">
+              <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Localización</h3>
+              {newForm.coordenadas && <span className="hint">Coordenadas · {newForm.coordenadas}</span>}
+            </div>
+            <div className="va-chip-row">
+              <div className="va-chip-cell">
+                <div className="label">Área</div>
+                {nfAreas.length > 0
+                  ? <select value={newForm.area} onChange={e=>{setNF('area',e.target.value);setNF('zona','');setNF('subzona','')}} style={selSt}><option value="">—</option>{nfAreas.map(a=><option key={a}>{a}</option>)}</select>
+                  : <input value={newForm.area} onChange={e=>setNF('area',e.target.value)} style={selSt} placeholder="—"/>}
+              </div>
+              <div className="va-chip-cell">
+                <div className="label">Zona</div>
+                {zonas.length > 0
+                  ? <select value={newForm.zona} onChange={e=>{setNF('zona',e.target.value);setNF('subzona','')}} style={selSt}><option value="">—</option>{zonas.map(z=><option key={z}>{z}</option>)}</select>
+                  : <input value={newForm.zona} onChange={e=>setNF('zona',e.target.value)} style={selSt} placeholder="—"/>}
+              </div>
+              <div className="va-chip-cell">
+                <div className="label">Subzona</div>
+                {subzonas.length > 0
+                  ? <select value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} style={selSt}><option value="">—</option>{subzonas.map(s=><option key={s}>{s}</option>)}</select>
+                  : <input value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} style={selSt} placeholder="—"/>}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* DATOS URBANÍSTICOS */}
-        <div className="va-card" style={{marginBottom:20}}>
-          <div className="va-card-header">
-            <h3><span className="ico">⚑</span> Datos urbanísticos</h3>
-            <div style={{display:'flex',alignItems:'center',gap:8}}>
-              {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--pdb-green)',fontWeight:600}}>✓ Sincronizado</span>}
-              {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--pdb-red)',maxWidth:200,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
-              <button className="ab-btn blue" onClick={syncCatastro} disabled={syncingCat}>
-                {syncingCat ? '⟳ Consultando...' : '⟳ Sincronizar'}
-              </button>
+          {/* SUPERFICIES Y DETALLES · dinámica según Uso principal */}
+          <div className="va-card" style={{marginBottom:20}}>
+            <div className="va-card-header">
+              <h3><span className="ico">▭</span> Superficies y detalles</h3>
+            </div>
+            <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:16}}>
+              {camposSuperficie(newForm.uso).map(m => {
+                if (m.compute) {
+                  const cv = m.compute(newForm)
+                  return (
+                    <div className="ir" key={m.key}>
+                      <span className="ir-k">{m.label}{m.unit?` (${m.unit})`:''}</span>
+                      <span className="ir-v" style={{color:'var(--pdb-blue)'}}>{cv != null ? cv.toLocaleString('es-ES') : '—'}</span>
+                    </div>
+                  )
+                }
+                if (m.special === 'stacking') return (
+                  <div className="ir" key={m.key}>
+                    <span className="ir-k">{m.label}</span>
+                    <span className="ir-v" style={{fontSize:10,color:'var(--muted)',fontStyle:'italic'}}>Desde Stacking Plan</span>
+                  </div>
+                )
+                if (m.special === 'pm') return (
+                  <Row key={m.key} label={m.label}>
+                    <input value={newForm.asset_manager} onChange={e=>setNF('asset_manager',e.target.value)} style={inpBase} placeholder="—"/>
+                  </Row>
+                )
+                return (
+                  <Row key={m.key} label={`${m.label}${m.unit?` (${m.unit})`:''}`}>
+                    <input type="number" value={newForm[m.key]||''} onChange={e=>setNF(m.key,e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="0" {...(m.unit==='%'?{min:'0',max:'100'}:{})}/>
+                  </Row>
+                )
+              })}
             </div>
           </div>
-          <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:16}}>
-            <Row label="Ref. catastral"><input value={newForm.ref_catastral} onChange={e=>setNF('ref_catastral',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/></Row>
-            <Row label="Clasificación"><input value={newForm.clasificacion_urb||''} onChange={e=>setNF('clasificacion_urb',e.target.value)} style={inpBase} placeholder="—"/></Row>
-            <Row label="Edificabilidad"><input value={newForm.edificabilidad} onChange={e=>setNF('edificabilidad',e.target.value)} style={inpBase} placeholder="—"/></Row>
-            <Row label="Uso PGOU"><input value={newForm.uso_pgou} onChange={e=>setNF('uso_pgou',e.target.value)} style={inpBase} placeholder="—"/></Row>
-            <Row label="Calificación"><input value={newForm.calificacion_urb} onChange={e=>setNF('calificacion_urb',e.target.value)} style={inpBase} placeholder="—"/></Row>
-            <Row label="Sup. parcela (m²)"><input type="number" value={newForm.sup_parcela} onChange={e=>setNF('sup_parcela',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="—"/></Row>
-          </div>
-        </div>
 
+          {/* DATOS URBANÍSTICOS */}
+          <div className="va-card" style={{marginBottom:20}}>
+            <div className="va-card-header">
+              <h3><span className="ico">⚑</span> Datos urbanísticos</h3>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--pdb-green)',fontWeight:600}}>✓ Sincronizado</span>}
+                {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--pdb-red)',maxWidth:200,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
+                <button className="ab-btn blue" onClick={syncCatastro} disabled={syncingCat}>
+                  {syncingCat ? '⟳ Consultando...' : '⟳ Sincronizar'}
+                </button>
+              </div>
+            </div>
+            <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:16}}>
+              <Row label="Ref. catastral"><input value={newForm.ref_catastral} onChange={e=>setNF('ref_catastral',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/></Row>
+              <Row label="Clasificación"><input value={newForm.clasificacion_urb||''} onChange={e=>setNF('clasificacion_urb',e.target.value)} style={inpBase} placeholder="—"/></Row>
+              <Row label="Edificabilidad"><input value={newForm.edificabilidad} onChange={e=>setNF('edificabilidad',e.target.value)} style={inpBase} placeholder="—"/></Row>
+              <Row label="Uso PGOU"><input value={newForm.uso_pgou} onChange={e=>setNF('uso_pgou',e.target.value)} style={inpBase} placeholder="—"/></Row>
+              <Row label="Calificación"><input value={newForm.calificacion_urb} onChange={e=>setNF('calificacion_urb',e.target.value)} style={inpBase} placeholder="—"/></Row>
+              <Row label="Sup. parcela (m²)"><input type="number" value={newForm.sup_parcela} onChange={e=>setNF('sup_parcela',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="—"/></Row>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   )
@@ -2924,9 +2962,13 @@ function MapaCarrusel({ activo, direccion, onAddressChange }) {
           markerRef.current.setVisible(true)
           if (onAddressChange) {
             const get = type => { const c = (place.address_components||[]).find(x=>x.types.includes(type)); return c?c.long_name:'' }
+            const municipio = get('locality') || get('postal_town') || ''
+            const provincia = get('administrative_area_level_2') || ''
             onAddressChange({
               direccion:   place.formatted_address || '',
-              ciudad:      get('locality') || get('administrative_area_level_2') || '',
+              ciudad:      municipio || provincia || '',
+              municipio,
+              provincia,
               pais:        get('country') || '',
               cp:          get('postal_code') || '',
               coordenadas: `${loc.lat().toFixed(6)}, ${loc.lng().toFixed(6)}`,
@@ -3217,7 +3259,12 @@ function AddressField({ value, ciudad, onSave }) {
         const place = acRef.current.getPlace()
         if (!place.geometry) return
         const get = type => { const c=(place.address_components||[]).find(x=>x.types.includes(type)); return c?c.long_name:'' }
-        setDraft({ direccion: place.formatted_address||'', ciudad: get('locality')||get('administrative_area_level_2')||'', pais: get('country')||'' })
+        const municipio = get('locality')||get('postal_town')||''
+        const provincia = get('administrative_area_level_2')||''
+        const loc = place.geometry.location
+        setDraft({ direccion: place.formatted_address||'', ciudad: municipio||provincia||'', municipio, provincia,
+          pais: get('country')||'', cp: get('postal_code')||'',
+          coordenadas: `${loc.lat().toFixed(6)}, ${loc.lng().toFixed(6)}` })
       })
     }
     if (window.google?.maps?.places) setup()
@@ -3272,7 +3319,7 @@ function AddressField({ value, ciudad, onSave }) {
 
 function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, syncRef, hidden, vincMaestra, propietariosReg = [], arrendatariosCount = 0, goToTab, liveBuildings, activoRef, activoNombre }) {
   const INIT_INFO = {
-    nombre:'', direccion:'', ciudad:'', pais:'España', cp:'', coordenadas:'',
+    nombre:'', direccion:'', ciudad:'', provincia:'', municipio:'', pais:'España', cp:'', coordenadas:'',
     area:'', zona:'', subzona:'',
     tipo_activo:'Edificio', estado_construccion:'Construcción existente',
     uso:'', uso_secundario:'', calidad:'',
@@ -3296,6 +3343,8 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
       nombre:              activo.nombre              || '',
       direccion:           activo.direccion           || '',
       ciudad:              activo.ciudad              || '',
+      provincia:           activo.provincia           || '',
+      municipio:           activo.municipio           || activo.ciudad || '',
       pais:                activo.pais                || 'España',
       cp:                  activo.cp                  || '',
       coordenadas:         activo.coordenadas         || '',
@@ -3319,6 +3368,8 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
       calificacion_urb:    activo.calificacion_urb    || '',
       edificabilidad:      activo.edificabilidad      || '',
       sup_parcela:         activo.sup_parcela         || '',
+      // Métricas específicas por uso (jsonb) → planas para editar con setI
+      ...(activo.metricas || {}),
     })
     setDirty(false)
   }, [activo])
@@ -3368,6 +3419,11 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
     // Migración 005
     if (has('sup_planta_tipo'))   payload.sup_planta_tipo   = info.sup_planta_tipo ? parseFloat(info.sup_planta_tipo) : null
     if (has('ratio_perdida'))     payload.ratio_perdida     = info.ratio_perdida    ? parseFloat(info.ratio_perdida)  : null
+
+    // Migración 040 — ubicación granular + métricas dinámicas por uso (jsonb)
+    if (has('provincia'))         payload.provincia         = info.provincia         || null
+    if (has('municipio'))         payload.municipio         = info.municipio          || null
+    if (has('metricas'))          payload.metricas          = buildMetricas(info)
 
     const { error } = await supabase.from('activos').update(payload).eq('ref', activo.ref)
     setSaving(false)
@@ -3541,13 +3597,21 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
               onSave={()=>{ setDirty(true); if(onInfoSaved) onInfoSaved({nombre: info.nombre}) }}>
               <input value={info.nombre} onChange={e=>setI('nombre',e.target.value)} style={inp} placeholder="Nombre comercial del activo..."/>
             </InlineField>
-            <AddressField value={info.direccion} ciudad={info.ciudad}
-              onSave={d=>{ setI('direccion',d.direccion); if(d.ciudad) setI('ciudad',d.ciudad); if(d.pais) setI('pais',d.pais) }}/>
-            <InlineField label="Ciudad" value={info.ciudad} onSave={()=>setDirty(true)}>
-              <input value={info.ciudad} onChange={e=>setI('ciudad',e.target.value)} style={inp} placeholder="—"/>
-            </InlineField>
+            <AddressField value={info.direccion} ciudad={info.municipio||info.ciudad}
+              onSave={d=>{ setI('direccion',d.direccion)
+                if(d.pais) setI('pais',d.pais)
+                if(d.provincia) setI('provincia',d.provincia)
+                if(d.municipio){ setI('municipio',d.municipio); setI('ciudad',d.municipio) }
+                if(d.cp) setI('cp',d.cp)
+                if(d.coordenadas) setI('coordenadas',d.coordenadas) }}/>
             <InlineField label="País" value={info.pais} onSave={()=>setDirty(true)}>
               <input value={info.pais} onChange={e=>setI('pais',e.target.value)} style={inp} placeholder="—"/>
+            </InlineField>
+            <InlineField label="Provincia" value={info.provincia||'—'} onSave={()=>setDirty(true)}>
+              <input value={info.provincia} onChange={e=>setI('provincia',e.target.value)} style={inp} placeholder="—"/>
+            </InlineField>
+            <InlineField label="Municipio" value={info.municipio||info.ciudad||'—'} onSave={()=>setDirty(true)}>
+              <input value={info.municipio} onChange={e=>{ setI('municipio',e.target.value); setI('ciudad',e.target.value) }} style={inp} placeholder="—"/>
             </InlineField>
             <InlineField label="Código postal" value={info.cp||'—'} onSave={()=>setDirty(true)}>
               <input value={info.cp} onChange={e=>setI('cp',e.target.value)} style={inp} placeholder="—"/>
@@ -3586,7 +3650,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
             </InlineField>
             <InlineField label="Calidad" value={info.calidad||'—'} onSave={()=>setDirty(true)}>
               <select value={info.calidad} onChange={e=>setI('calidad',e.target.value)} style={sel}>
-                <option value="">—</option>{CALIDADES.map(c=><option key={c}>{c}</option>)}
+                <option value="">—</option>{calidadesDe(info.uso, info.calidad).map(c=><option key={c}>{c}</option>)}
               </select>
             </InlineField>
             </div>
@@ -3596,42 +3660,45 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
           <div className="dash-card">
             <div className="dash-card-head">Superficies y detalles</div>
             <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr',gap:0,padding:'6px 14px 14px'}}>
-              <InlineField label="SBA (m²)" value={info.sba ? Number(info.sba).toLocaleString('es-ES')+' m²' : '—'}
-                display={<span style={{fontWeight:600,fontFamily:'var(--mono)',color:'var(--pdb-blue)'}}>{info.sba ? Number(info.sba).toLocaleString('es-ES') : '—'}</span>}
-                onSave={()=>setDirty(true)}>
-                <input type="number" value={info.sba} onChange={e=>setI('sba',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0"/>
-              </InlineField>
-              <InlineField label="Sup. planta tipo (m²)" value={info.sup_planta_tipo ? Number(info.sup_planta_tipo).toLocaleString('es-ES')+' m²' : '—'} onSave={()=>setDirty(true)}>
-                <input type="number" value={info.sup_planta_tipo} onChange={e=>setI('sup_planta_tipo',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0"/>
-              </InlineField>
-              <InlineField label="Ratio de pérdida (%)" value={info.ratio_perdida ? `${info.ratio_perdida}%` : '—'} onSave={()=>setDirty(true)}>
-                <input type="number" min="0" max="100" value={info.ratio_perdida} onChange={e=>setI('ratio_perdida',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0"/>
-              </InlineField>
-              <div className="ir">
-                <span className="ir-k">Superficie neta (m²)</span>
-                <span className="ir-v" style={{flex:1,color:'var(--pdb-blue)'}}>
-                  {(info.sba && info.ratio_perdida) ? Math.round(Number(info.sba)*(1-Number(info.ratio_perdida)/100)).toLocaleString('es-ES') : '—'}
-                </span>
-                {/* Placeholder invisible para alinear con InlineField (que tiene botón lápiz a la derecha) */}
-                <span style={{width:20,flexShrink:0}} aria-hidden="true"/>
-              </div>
-              <InlineField label="Año construcción" value={info.anno_construccion||'—'} onSave={()=>setDirty(true)}>
-                <input type="number" value={info.anno_construccion} onChange={e=>setI('anno_construccion',e.target.value)} style={inp} placeholder="—"/>
-              </InlineField>
-              <InlineField label="Año rehabilitación" value={info.anno_rehabilitacion||'—'} onSave={()=>setDirty(true)}>
-                <input type="number" value={info.anno_rehabilitacion} onChange={e=>setI('anno_rehabilitacion',e.target.value)} style={inp} placeholder="—"/>
-              </InlineField>
-              <InlineField label="Property Manager" value={info.asset_manager||'—'} onSave={()=>setDirty(true)}>
-                <AssetManagerSearch value={info.asset_manager} onChange={v=>setI('asset_manager',v)}/>
-              </InlineField>
-              <div className="ir">
-                <span className="ir-k">Nº edificios</span>
-                <span className="ir-v" style={{flex:1,display:'flex',alignItems:'center',justifyContent:'flex-end',gap:6}}>
-                  <span>{nEdificios ?? 1}</span>
-                  <span style={{fontSize:11,color:'var(--pdb-blue)',cursor:'pointer',fontWeight:500}}>ver stacking plan</span>
-                </span>
-                <span style={{width:20,flexShrink:0}} aria-hidden="true"/>
-              </div>
+              {/* Campos dinámicos según Uso principal (ver ../lib/usoConfig) */}
+              {camposSuperficie(info.uso).map(m => {
+                if (m.compute) {
+                  const cv = m.compute(info)
+                  return (
+                    <div className="ir" key={m.key}>
+                      <span className="ir-k">{m.label}{m.unit?` (${m.unit})`:''}</span>
+                      <span className="ir-v" style={{flex:1,color:'var(--pdb-blue)'}}>{cv != null ? cv.toLocaleString('es-ES') : '—'}</span>
+                      <span style={{width:20,flexShrink:0}} aria-hidden="true"/>
+                    </div>
+                  )
+                }
+                if (m.special === 'pm') return (
+                  <InlineField key={m.key} label={m.label} value={info.asset_manager||'—'} onSave={()=>setDirty(true)}>
+                    <AssetManagerSearch value={info.asset_manager} onChange={v=>setI('asset_manager',v)}/>
+                  </InlineField>
+                )
+                if (m.special === 'stacking') return (
+                  <div className="ir" key={m.key}>
+                    <span className="ir-k">{m.label}</span>
+                    <span className="ir-v" style={{flex:1,display:'flex',alignItems:'center',justifyContent:'flex-end',gap:6}}>
+                      <span>{nEdificios ?? 1}</span>
+                      <span style={{fontSize:11,color:'var(--pdb-blue)',cursor:'pointer',fontWeight:500}}>ver stacking plan</span>
+                    </span>
+                    <span style={{width:20,flexShrink:0}} aria-hidden="true"/>
+                  </div>
+                )
+                const raw = info[m.key]
+                const has = raw !== '' && raw != null
+                const disp = !has ? '—' : m.unit === '%' ? `${raw}%` : `${Number(raw).toLocaleString('es-ES')}${m.unit?` ${m.unit}`:''}`
+                const isSba = m.key === 'sba'
+                return (
+                  <InlineField key={m.key} label={`${m.label}${m.unit?` (${m.unit})`:''}`} value={disp}
+                    display={isSba ? <span style={{fontWeight:600,fontFamily:'var(--mono)',color:'var(--pdb-blue)'}}>{has?Number(raw).toLocaleString('es-ES'):'—'}</span> : undefined}
+                    onSave={()=>setDirty(true)}>
+                    <input type="number" value={raw||''} onChange={e=>setI(m.key,e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0" {...(m.unit==='%'?{min:'0',max:'100'}:{})}/>
+                  </InlineField>
+                )
+              })}
             </div>
           </div>
 
@@ -5211,6 +5278,7 @@ export default function FichaActivo() {
     if (!newForm.direccion) missing.push('Dirección')
     if (!newForm.tipo_activo) missing.push('Tipo de activo')
     if (!newForm.uso) missing.push('Uso principal')
+    if (!newForm.estado_construccion) missing.push('Estado de construcción')
     if (missing.length) { setSaveErr(`Campos obligatorios: ${missing.join(', ')}`); return }
     const nombre = newForm.nombre || newForm.direccion.split(',')[0].trim()
     setSaving(true); setSaveErr('')
@@ -5277,6 +5345,15 @@ export default function FichaActivo() {
       setSaveErr(`Error al crear el activo: ${e?.message || e}`); return
     }
     if (!insertOk) { setSaving(false); return }
+    // Migración 040 — ubicación granular + métricas por uso (update tolerante:
+    // si las columnas aún no existen, no rompe la creación ya hecha)
+    try {
+      await supabase.from('activos').update({
+        provincia: newForm.provincia || null,
+        municipio: newForm.municipio || newForm.ciudad || null,
+        metricas:  buildMetricas(newForm),
+      }).eq('ref', ref)
+    } catch { /* columnas 040 no aplicadas todavía */ }
     // Save stacking plan if the user created buildings while on the new activo form
     const stackBlds = liveStackingRef.current
     if (stackBlds && stackBlds.length > 0) {
@@ -5430,7 +5507,7 @@ export default function FichaActivo() {
                       {[activo?.zona, activo?.subzona, activo?.ciudad].filter(Boolean).length > 0 && <> · {[activo?.zona, activo?.subzona, activo?.ciudad].filter(Boolean).join(' · ')}</>}
                     </div>
                     <div className="ah-tags">
-                      {activo?.uso && <span className={`tag ${activo.uso === 'Oficinas' ? 'tag-blue' : activo.uso === 'Logístico' ? 'tag-teal' : activo.uso === 'Data Center' ? 'tag-blue' : activo.uso === 'Residencial' ? 'tag-amber' : 'tag-purple'}`}>{activo.uso}</span>}
+                      {activo?.uso && <span className={`tag ${usoTag(activo.uso)}`}>{activo.uso}</span>}
                       {activo?.leed && <span className="tag tag-leed">LEED {activo.leed}</span>}
                       {activo?.esg_rating && <span className="tag tag-esg">ESG {activo.esg_rating}</span>}
                       {(liveEdifCount ?? activo?.n_edificios) > 1 && <span className="tag tag-gray">{liveEdifCount ?? activo.n_edificios} edificios</span>}
@@ -6163,7 +6240,7 @@ export default function FichaActivo() {
 
                 {/* Características técnicas por uso */}
                 {caracTab==='ct-uso' && (() => {
-                  const usoFields = CARAC_USO_FIELDS[usoActivo] || []
+                  const usoFields = CARAC_USO_FIELDS[normalizeUso(usoActivo)] || []
                   const cSel = {padding:'4px 8px',border:'1px solid var(--border)',borderRadius:5,fontSize:11,fontFamily:'inherit',cursor:'pointer',outline:'none',minWidth:160}
                   const cInp = {padding:'4px 8px',border:'1px solid var(--border)',borderRadius:5,fontSize:11,fontFamily:'inherit',outline:'none',flex:1,minWidth:120,background:'transparent'}
                   const rowSt = {display:'grid',gridTemplateColumns:'160px 1fr 1fr',gap:8,padding:'8px 12px',borderBottom:'1px solid var(--border)',alignItems:'center'}

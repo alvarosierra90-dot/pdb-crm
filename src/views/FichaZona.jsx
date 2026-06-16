@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { exportPDF, exportPPT } from '../utils/exportReport'
+import { usoColor, usoTag } from '../lib/usoConfig'
 
 function ExportMenu({ getConfig }) {
   const [open, setOpen] = useState(false)
@@ -468,7 +469,7 @@ export default function FichaZona() {
                 </thead>
                 <tbody>
                   {ACTIVOS_ZONA.map(a => {
-                    const uc = a.uso==='Oficinas'?{bg:'#f5efe5',color:'#5a4828'}:a.uso==='Logístico'?{bg:'#f0fdfa',color:'#0f766e'}:{bg:'#fce7f3',color:'#9d174d'}
+                    const uc = usoColor(a.uso)
                     const occColor = a.occ>=90?'var(--green)':a.occ>=75?'var(--amber)':'var(--red)'
                     return (
                       <tr key={a.ref} onClick={()=>navigate('ficha-activo')}>
@@ -485,7 +486,7 @@ export default function FichaZona() {
                           </div>
                         </td>
                         <td style={{fontSize:11,color:'var(--text3)'}}>{a.zona}</td>
-                        <td><span className={`tag ${a.uso==='Oficinas'?'tag-blue':a.uso==='Logístico'?'tag-teal':'tag-purple'}`}>{a.uso}</span></td>
+                        <td><span className={`tag ${usoTag(a.uso)}`}>{a.uso}</span></td>
                         <td className="mono">{a.sba.toLocaleString()} m²</td>
                         <td className="mono" style={{color:'var(--amber)',fontWeight:600}}>{a.disponible.toLocaleString()} m²</td>
                         <td>

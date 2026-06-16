@@ -5,6 +5,7 @@ import { ACTIVOS } from '../data/mockData'
 import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import { Download, SlidersHorizontal } from 'lucide-react'
+import { usoColor, usoTag, normalizeUso } from '../lib/usoConfig'
 
 const shortDir = (dir) => {
   if (!dir) return ''
@@ -18,15 +19,6 @@ function occColor(occ) {
   if (occ >= 75) return 'var(--amber)'
   return 'var(--red)'
 }
-function usoColor(uso) {
-  if (uso === 'Oficinas')    return { bg: '#f5efe5', color: '#5a4828' }
-  if (uso === 'Logístico')   return { bg: '#f0fdfa', color: '#0f766e' }
-  if (uso === 'Retail')      return { bg: '#fdf4ff', color: '#6b5b8e' }
-  if (uso === 'Data Center') return { bg: '#f0f9ff', color: '#0369a1' }
-  if (uso === 'Residencial') return { bg: '#fff7ed', color: '#c2410c' }
-  return { bg: '#fce7f3', color: '#9d174d' }
-}
-
 const COLS = [
   { id: '_chk',       label: '',                    sys: true },
   { id: 'nombre',       label: 'Dirección',           required: true, type:'text',   getValue: r => r.direccion },
@@ -144,11 +136,11 @@ export default function ActivosList() {
     if (quickFilter === 'ocupado'  && !(a.occ === 100 || a.estado === 'Totalmente ocupado')) return false
     if (quickFilter === 'parcial'  && a.estado !== 'Parcialmente disponible') return false
     if (quickFilter === 'vacio'    && a.estado !== 'Vacío al completo') return false
-    if (quickFilter === 'oficinas' && a.uso !== 'Oficinas') return false
-    if (quickFilter === 'logistico'&& a.uso !== 'Logístico') return false
-    if (quickFilter === 'retail'   && a.uso !== 'Retail') return false
-    if (quickFilter === 'datacenter' && a.uso !== 'Data Center') return false
-    if (quickFilter === 'residencial'&& a.uso !== 'Residencial') return false
+    if (quickFilter === 'oficinas' && normalizeUso(a.uso) !== 'Oficinas') return false
+    if (quickFilter === 'logistico'&& normalizeUso(a.uso) !== 'Logística') return false
+    if (quickFilter === 'retail'   && normalizeUso(a.uso) !== 'Retail High Street') return false
+    if (quickFilter === 'datacenter' && normalizeUso(a.uso) !== 'Data Center') return false
+    if (quickFilter === 'residencial'&& normalizeUso(a.uso) !== 'Residencial') return false
     return true
   })
 
@@ -163,7 +155,7 @@ export default function ActivosList() {
     zona:    <td key="zona" style={{ fontSize: 11, fontWeight: 500 }}>{a.zona}</td>,
     subzona: <td key="subzona" style={{ fontSize: 11, color: 'var(--text3)' }}>{a.subzona || '—'}</td>,
     ciudad:  <td key="ciudad" style={{ fontSize: 11 }}>{a.ciudad}</td>,
-    uso:     <td key="uso"><span className={`tag ${a.uso === 'Oficinas' ? 'tag-blue' : a.uso === 'Logístico' ? 'tag-teal' : a.uso === 'Data Center' ? 'tag-blue' : a.uso === 'Residencial' ? 'tag-amber' : 'tag-purple'}`}>{a.uso}</span></td>,
+    uso:     <td key="uso"><span className={`tag ${usoTag(a.uso)}`}>{a.uso}</span></td>,
     occ:     <td key="occ"><div className="occ-cell" title="KPI derivado de las Ofertas vinculadas a este Activo"><div className="occ-bar"><div className="occ-bar-fill" style={{ width: `${a.occ}%`, background: occColor(a.occ) }} /></div><span style={{ fontSize: 11, color: occColor(a.occ) }}>{a.occ}%</span></div></td>,
     valor:   <td key="valor" className="mono">{a.valor}</td>,
     estado:  <td key="estado"><span className={`tag ${a.estado === 'Totalmente ocupado' ? 'tag-green' : a.estado === 'Activo en mercado' ? 'tag-green' : a.estado === 'Parcialmente disponible' ? 'tag-amber' : a.estado === 'En comercialización' ? 'tag-amber' : a.estado === 'Vacío al completo' ? 'tag-red' : 'tag-gray'}`}>{a.estado}</span></td>,
@@ -183,11 +175,11 @@ export default function ActivosList() {
   const totalmenteOcupados = activos.filter(a => a.occ === 100 || a.estado === 'Totalmente ocupado').length
   const parcialDisp        = activos.filter(a => a.estado === 'Parcialmente disponible').length
   const vacioCompleto      = activos.filter(a => a.estado === 'Vacío al completo').length
-  const cntOficinas    = activos.filter(a => a.uso === 'Oficinas').length
-  const cntLogistico   = activos.filter(a => a.uso === 'Logístico').length
-  const cntRetail      = activos.filter(a => a.uso === 'Retail').length
-  const cntDataCenter  = activos.filter(a => a.uso === 'Data Center').length
-  const cntResidencial = activos.filter(a => a.uso === 'Residencial').length
+  const cntOficinas    = activos.filter(a => normalizeUso(a.uso) === 'Oficinas').length
+  const cntLogistico   = activos.filter(a => normalizeUso(a.uso) === 'Logística').length
+  const cntRetail      = activos.filter(a => normalizeUso(a.uso) === 'Retail High Street').length
+  const cntDataCenter  = activos.filter(a => normalizeUso(a.uso) === 'Data Center').length
+  const cntResidencial = activos.filter(a => normalizeUso(a.uso) === 'Residencial').length
 
   // Chip helper
   const chip = (key, label, count, color) => {
@@ -322,7 +314,7 @@ export default function ActivosList() {
                   <div style={{ height:90, background:`linear-gradient(135deg, ${uc.bg} 0%, var(--surface) 100%)`, position:'relative', borderBottom:'1px solid var(--border)' }}>
                     <div style={{ position:'absolute', top:10, left:12, display:'flex', alignItems:'center', gap:6 }}>
                       <div style={{ width:32, height:32, borderRadius:6, background:uc.bg, color:uc.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, border:`1px solid ${uc.color}33` }}>{(a.uso||'?')[0]}</div>
-                      <span className={`tag ${a.uso === 'Oficinas' ? 'tag-blue' : a.uso === 'Logístico' ? 'tag-teal' : a.uso === 'Data Center' ? 'tag-blue' : a.uso === 'Residencial' ? 'tag-amber' : 'tag-purple'}`} style={{ fontSize:9 }}>{a.uso}</span>
+                      <span className={`tag ${usoTag(a.uso)}`} style={{ fontSize:9 }}>{a.uso}</span>
                     </div>
                     <div style={{ position:'absolute', top:10, right:12, textAlign:'right' }}>
                       <div style={{ fontSize:9, color:'var(--text4)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em' }}>Ocupación</div>
