@@ -18,7 +18,9 @@ function loadGoogleMaps(apiKey) {
   })
 }
 
-const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyArChBWnXkvyrdP-6uxTCDwFMjluO_QiSo'
+// Forzamos la clave del proyecto del usuario (Maps JS + Places + sin restricción).
+// La env VITE_GOOGLE_MAPS_API_KEY de Vercel apunta a una clave ajena que no carga.
+const MAPS_KEY = 'AIzaSyArChBWnXkvyrdP-6uxTCDwFMjluO_QiSo'
 
 // ── Layers ─────────────────────────────────────────────────────────────────
 const LAYERS = [

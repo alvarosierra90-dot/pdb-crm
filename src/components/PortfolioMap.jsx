@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 // `ciudad`. Pinta una chincheta por activo coloreada por uso y un
 // filtro de chips encima. Click en chincheta → onMarkerClick(activo).
 
-const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyArChBWnXkvyrdP-6uxTCDwFMjluO_QiSo'
+const MAPS_KEY = 'AIzaSyArChBWnXkvyrdP-6uxTCDwFMjluO_QiSo'
 
 // Misma carga global que MapasView para evitar duplicar el script.
 function loadGoogleMaps(apiKey) {

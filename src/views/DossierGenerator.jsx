@@ -88,7 +88,7 @@ const KPI_TEMPLATES = {
 }
 
 const LINEA_LABEL = { oficinas: 'Oficinas', industrial: 'Industrial / Logístico' }
-const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyArChBWnXkvyrdP-6uxTCDwFMjluO_QiSo'
+const MAPS_KEY = 'AIzaSyArChBWnXkvyrdP-6uxTCDwFMjluO_QiSo'
 
 const emptyAsset = () => ({
   fuente: 'activo',                 // 'activo' | 'oferta'
