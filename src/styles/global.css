@@ -383,6 +383,9 @@ nav {
   white-space: nowrap;
 }
 .tbtn:hover { background: var(--gray-lt); border-color: var(--border2); }
+
+/* Botones de acción del header del Activo: mismo borde/color/radius, sólo más grandes */
+.at-head-actions .tbtn { padding: 10px 18px; font-size: 13.5px; gap: 7px; }
 .tbtn.prim {
   background: var(--accent);
   color: #fff;

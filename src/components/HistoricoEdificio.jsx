@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { Download, FileSpreadsheet, FileText } from 'lucide-react'
+import { FileSpreadsheet, FileText } from 'lucide-react'
 
 /**
- * Histórico del edificio · Gantt timeline + tabla filtrable + export PDF/Excel.
+ * Histórico del edificio · tabla filtrable + export PDF/Excel.
  *
  * Vive en la pestaña Información general de FichaActivo. Carga todos los
  * arrendatarios y propietarios ligados a este activo (vigentes + con
- * motivo_salida) y los visualiza como barras horizontales por entidad.
+ * motivo_salida) y los lista en una tabla por entidad.
  *
  * Props:
  *   activoRef:     ref del activo
@@ -82,6 +82,7 @@ export default function HistoricoEdificio({ activoRef, activoNombre = '' }) {
       salidaYF:  end,
       anyo_firma: a.anyo_firma,
       trimestre: a.trimestre,
+      closing_rent: a.closing_rent,
       estado,
       motivo:    a.motivo_salida || null,
       destinoRef: a.destino_activo_ref || null,
@@ -150,13 +151,6 @@ export default function HistoricoEdificio({ activoRef, activoNombre = '' }) {
     for (let y = yearMin; y <= yearMax; y++) out.push(y)
     return out
   }, [yearMin, yearMax])
-
-  // Posición de una barra en %
-  const pos = (yf) => {
-    const range = yearMax - yearMin + 1
-    if (range <= 0) return 0
-    return Math.max(0, Math.min(100, ((yf - yearMin) / range) * 100))
-  }
 
   // ── EXPORT ──
   const exportPDF = async () => {
@@ -276,89 +270,14 @@ export default function HistoricoEdificio({ activoRef, activoNombre = '' }) {
           </div>
         ) : (
           <>
-            {/* ── GANTT ── */}
-            <div style={{border:'1px solid var(--border)',borderRadius:'var(--r)',overflow:'hidden',marginBottom:18}}>
-              {/* Eje X de años */}
-              <div style={{display:'grid',gridTemplateColumns:'180px 1fr',background:'var(--gray-lt)',borderBottom:'1px solid var(--border)'}}>
-                <div style={{padding:'6px 12px',fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>{tab === 'inquilinos' ? 'Inquilino' : 'Propietario'}</div>
-                <div style={{position:'relative',height:24,padding:'0 8px'}}>
-                  {years.map((y, i) => (
-                    <span key={y} style={{
-                      position:'absolute',
-                      left:`${(i / (years.length)) * 100}%`,
-                      top:'50%',
-                      transform:'translateY(-50%)',
-                      fontSize:10,
-                      color:'var(--text4)',
-                      fontFamily:'var(--mono)',
-                      fontWeight:600,
-                    }}>{y}</span>
-                  ))}
-                </div>
-              </div>
-              {/* Filas */}
-              {filtered.map(r => {
-                const startYF = r.entradaYF != null ? r.entradaYF : yearMin
-                const endYF   = r.salidaYF  != null ? r.salidaYF   : (yearMax + 1)
-                const left    = pos(startYF)
-                const width   = Math.max(2, pos(endYF) - pos(startYF))
-                const isOngoing = r.estado === 'Vigente'
-                return (
-                  <div key={r._id} style={{display:'grid',gridTemplateColumns:'180px 1fr',borderTop:'1px solid var(--line-2)',background:'#fff'}}>
-                    <div style={{padding:'8px 12px',fontSize:11,fontWeight:600,color:'var(--text)',display:'flex',alignItems:'center',gap:6,overflow:'hidden'}}>
-                      <span style={{width:10,height:10,borderRadius:3,background:r.color,flexShrink:0}}/>
-                      <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.nombre}</span>
-                    </div>
-                    <div style={{position:'relative',height:28,padding:'0 8px'}}>
-                      <div style={{
-                        position:'absolute',
-                        top:6,
-                        bottom:6,
-                        left:`${left}%`,
-                        width:`${width}%`,
-                        background:r.color,
-                        borderRadius:4,
-                        opacity:isOngoing ? 1 : 0.55,
-                        boxShadow:'0 1px 3px rgba(0,0,0,0.08)',
-                        display:'flex',alignItems:'center',justifyContent:'flex-start',paddingLeft:6,
-                        fontSize:9,fontWeight:700,color:'#fff',
-                        overflow:'hidden',whiteSpace:'nowrap',
-                      }}
-                      title={`${r.nombre} · ${isoToDisplay(r.entrada)} → ${r.salida ? isoToDisplay(r.salida) : 'Activo'} · ${r.sup ? r.sup.toLocaleString('es-ES')+' m²' : ''}`}>
-                        {width > 6 && (r.sup ? r.sup.toLocaleString('es-ES') + ' m²' : r.estado)}
-                      </div>
-                      {/* Marker de salida cuando hay motivo */}
-                      {r.motivo && (
-                        <span style={{
-                          position:'absolute',
-                          left:`${pos(endYF)}%`,
-                          top:'50%',
-                          transform:'translate(-50%, -50%)',
-                          fontSize:10,
-                          background:r.motivo === 'Baja' ? '#9ca3af' : 'var(--accent)',
-                          color:'#fff',
-                          borderRadius:9,
-                          padding:'1px 6px',
-                          fontWeight:700,
-                          fontFamily:'var(--mono)',
-                        }} title={r.motivo}>
-                          {r.motivo === 'Baja' ? 'B' : 'T'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
             {/* ── TABLA ── */}
             <div style={{border:'1px solid var(--border)',borderRadius:'var(--r)',overflow:'hidden'}}>
               <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
                 <thead>
                   <tr style={{background:'var(--gray-lt)'}}>
                     {(tab === 'inquilinos'
-                      ? ['Inquilino','Sup m²','Año firma','Trim.','Entrada','Salida','Estado']
-                      : ['Propietario','Sup m²','Año compra','Trim.','Precio compra','Salida','Estado']
+                      ? ['Inquilino','Sup m²','Año firma','Trim.','Entrada','Closing rent','Salida','Estado']
+                      : ['Propietario','Sup m²','Año compra','Trim.','Precio de compra','Salida','Estado']
                     ).map(h => (
                       <th key={h} style={{padding:'7px 12px',fontSize:9,fontWeight:700,color:'var(--text4)',textAlign:'left',borderBottom:'1px solid var(--border)',textTransform:'uppercase',letterSpacing:'.04em'}}>{h}</th>
                     ))}
@@ -378,7 +297,10 @@ export default function HistoricoEdificio({ activoRef, activoNombre = '' }) {
                       <td style={{padding:'8px 12px',fontFamily:'var(--mono)'}}>{tab==='inquilinos' ? (r.anyo_firma || '—') : (r.anyo_compra || '—')}</td>
                       <td style={{padding:'8px 12px'}}><span className="tag tag-gray" style={{fontSize:9}}>{trimestreLabel(r.trimestre)}</span></td>
                       {tab === 'inquilinos' ? (
-                        <td style={{padding:'8px 12px',color:'var(--text3)'}}>{isoToDisplay(r.entrada)}</td>
+                        <>
+                          <td style={{padding:'8px 12px',color:'var(--text3)'}}>{isoToDisplay(r.entrada)}</td>
+                          <td style={{padding:'8px 12px',fontFamily:'var(--mono)',fontWeight:600}}>{(r.closing_rent ?? '') !== '' ? `${r.closing_rent} €/m²/mes` : '—'}</td>
+                        </>
                       ) : (
                         <td style={{padding:'8px 12px',fontFamily:'var(--mono)',fontWeight:600}}>{r.precio_compra || '—'}</td>
                       )}

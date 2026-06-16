@@ -5477,7 +5477,7 @@ export default function FichaActivo() {
                   <Clock size={12} strokeWidth={1.75} />
                   <span>Última modificación · {activo?.updated_by || 'Álvaro Sierra'} · {activo?.updated_at ? new Date(activo.updated_at).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES')}</span>
                 </div>
-                <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                <div className="at-head-actions" style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                   {pitchesActivo.length > 0 ? (
                     <button
                       className="tbtn"
@@ -5485,7 +5485,7 @@ export default function FichaActivo() {
                       onClick={() => window.open(pitchesActivo[0].url, '_blank', 'noopener')}
                       title={`${pitchesActivo.length} pitch${pitchesActivo.length>1?'es':''} sincronizado${pitchesActivo.length>1?'s':''}`}
                     >
-                      <FileText size={13} strokeWidth={1.75}/> Pitch comercial{pitchesActivo.length > 1 ? ` (${pitchesActivo.length})` : ''} ↗
+                      <FileText size={15} strokeWidth={1.75}/> Pitch comercial{pitchesActivo.length > 1 ? ` (${pitchesActivo.length})` : ''} ↗
                     </button>
                   ) : (
                     <button
@@ -5493,14 +5493,14 @@ export default function FichaActivo() {
                       onClick={() => window.open(`https://pitch-taupe-sigma.vercel.app/?activoRef=${encodeURIComponent(activo?.ref || '')}`, '_blank', 'noopener')}
                       title="Crear nuevo pitch para este activo"
                     >
-                      <FileText size={13} strokeWidth={1.75}/> Crear pitch ↗
+                      <FileText size={15} strokeWidth={1.75}/> Crear pitch ↗
                     </button>
                   )}
-                  <button className="tbtn" onClick={() => exportRentRoll(displayNombre ?? activo?.nombre ?? 'Activo')}><FileSpreadsheet size={13} strokeWidth={1.75} /> Rent-roll XLSX</button>
-                  <button className="tbtn" onClick={() => exportFichaActivo(navigate)}><FileText size={13} strokeWidth={1.75} /> Ficha PDF</button>
-                  <button className="tbtn" onClick={() => setShowNotasModal(true)}><StickyNote size={13} strokeWidth={1.75} /> Notas</button>
-                  <button className="tbtn" onClick={() => setShowIneModal(true)}><BarChart3 size={13} strokeWidth={1.75} /> Datos INE</button>
-                  <button className="tbtn" onClick={() => { const url = `https://savills.es/m/${activo?.ref || 'demo'}`; navigator.clipboard?.writeText(url); alert(`Link copiado:\n${url}`) }}><Link2 size={13} strokeWidth={1.75} /> Link microsite</button>
+                  <button className="tbtn" onClick={() => exportRentRoll(displayNombre ?? activo?.nombre ?? 'Activo')}><FileSpreadsheet size={15} strokeWidth={1.75} /> Rent-roll XLSX</button>
+                  <button className="tbtn" onClick={() => exportFichaActivo(navigate)}><FileText size={15} strokeWidth={1.75} /> Ficha PDF</button>
+                  <button className="tbtn" onClick={() => setShowNotasModal(true)}><StickyNote size={15} strokeWidth={1.75} /> Notas</button>
+                  <button className="tbtn" onClick={() => setShowIneModal(true)}><BarChart3 size={15} strokeWidth={1.75} /> Datos INE</button>
+                  <button className="tbtn" onClick={() => { const url = `https://savills.es/m/${activo?.ref || 'demo'}`; navigator.clipboard?.writeText(url); alert(`Link copiado:\n${url}`) }}><Link2 size={15} strokeWidth={1.75} /> Link microsite</button>
                 </div>
               </div>
             )}
