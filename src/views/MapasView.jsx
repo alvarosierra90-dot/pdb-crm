@@ -18,7 +18,7 @@ function loadGoogleMaps(apiKey) {
   })
 }
 
-const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyArChBWnXkvyrdP-6uxTCDwFMjluO_QiSo'
 
 // ── Layers ─────────────────────────────────────────────────────────────────
 const LAYERS = [
