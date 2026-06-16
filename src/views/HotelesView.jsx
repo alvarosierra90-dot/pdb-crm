@@ -135,13 +135,17 @@ export default function HotelesView() {
   // ─────────────────────── MÓDULO 1: CONTRATOS ───────────────────────
   const onFile = (f) => {
     if (!f || f.size > 10 * 1024 * 1024) return
-    const mime = f.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'text/plain'
-    const r = new FileReader()
-    r.onload = e => {
-      setCFile({ name: f.name, size: f.size, b64: e.target.result.split(',')[1], mime })
-      setCErr(''); setCRows([])
+    const n = f.name.toLowerCase()
+    const kind = n.endsWith('.pdf') ? 'pdf' : n.endsWith('.docx') ? 'docx' : 'text'
+    setCErr(''); setCRows([])
+    if (kind === 'pdf') {
+      const r = new FileReader()
+      r.onload = e => setCFile({ name: f.name, size: f.size, kind, b64: e.target.result.split(',')[1] })
+      r.readAsDataURL(f)
+    } else {
+      // .docx / .txt → guardamos el File; el texto se extrae al analizar
+      setCFile({ name: f.name, size: f.size, kind, file: f })
     }
-    r.readAsDataURL(f)
   }
 
   const analyzeContract = async () => {
@@ -154,10 +158,19 @@ Add up to 5 "otros" for important clauses not in the list (pre-emption, confiden
 Return ONLY valid JSON, no markdown fences:
 {"fields":[{"id":1,"cat":"...","sub":"...","summary":"...","page":"..."}],"otros":[{"cat":"Otros: ...","sub":"-","summary":"...","page":"..."}]}
 Fields:\n${flds}`
-    const block = cFile.mime === 'application/pdf'
-      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: cFile.b64 } }
-      : { type: 'text', text: atob(cFile.b64) }
     try {
+      let block
+      if (cFile.kind === 'pdf') {
+        block = { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: cFile.b64 } }
+      } else if (cFile.kind === 'docx') {
+        const mod = await import('mammoth/mammoth.browser.js')
+        const mammoth = mod.default || mod
+        const { value } = await mammoth.extractRawText({ arrayBuffer: await cFile.file.arrayBuffer() })
+        if (!value || !value.trim()) throw new Error('No se pudo extraer texto del documento Word.')
+        block = { type: 'text', text: value }
+      } else {
+        block = { type: 'text', text: await cFile.file.text() }
+      }
       const raw = await callAI([{ role: 'user', content: [block, { type: 'text', text: prompt }] }], 4000)
       const parsed = parseJSON(raw)
       setCRows([...(parsed.fields || []), ...(parsed.otros || [])])
@@ -260,11 +273,11 @@ Return ONLY valid JSON, no markdown:
                 onDragOver={e => { e.preventDefault() }}
                 onDrop={e => { e.preventDefault(); onFile(e.dataTransfer.files[0]) }}
                 style={{ border: '2px dashed var(--border2)', borderRadius: 10, padding: 28, textAlign: 'center', cursor: 'pointer', background: 'var(--gray-lt)' }}>
-                <input ref={cInputRef} type="file" accept=".pdf,.txt" style={{ display: 'none' }} onChange={e => e.target.files[0] && onFile(e.target.files[0])} />
+                <input ref={cInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }} onChange={e => e.target.files[0] && onFile(e.target.files[0])} />
                 <UploadCloud size={30} strokeWidth={1.5} color="var(--text3)" />
                 <div style={{ fontSize: 14, fontWeight: 500, marginTop: 8 }}>Arrastra el contrato aquí o haz clic para seleccionar</div>
                 <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10 }}>
-                  {['PDF', 'TXT'].map(x => <span key={x} style={{ border: '1px solid var(--border)', borderRadius: 99, padding: '2px 10px', fontSize: 11, color: 'var(--text3)' }}>{x}</span>)}
+                  {['PDF', 'DOCX', 'TXT'].map(x => <span key={x} style={{ border: '1px solid var(--border)', borderRadius: 99, padding: '2px 10px', fontSize: 11, color: 'var(--text3)' }}>{x}</span>)}
                 </div>
               </div>
 
