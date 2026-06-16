@@ -24,7 +24,10 @@ async function callAI(parts, maxTokens) {
     body: JSON.stringify({
       model: AI_MODEL,
       contents: [{ role: 'user', parts }],
-      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4, responseMimeType: 'application/json' },
+      generationConfig: {
+        maxOutputTokens: maxTokens, temperature: 0.4, responseMimeType: 'application/json',
+        thinkingConfig: { thinkingBudget: 0 }, // sin "thinking": evita truncar el JSON
+      },
     }),
   })
   if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.error?.message || `Error ${res.status}`) }
@@ -745,7 +748,7 @@ function ModSlides() {
   const generate = async () => {
     setErr(''); setLoading(true)
     const lines = pnl.filter(r => r.t !== 'sect').map(r => `${r.label}: 2023=${r.v[0]} 2024=${r.v[1]} 2025=${r.v[2]} (CAGR ${pctTxt(cagr(r.v))}, YoY ${pctTxt(yoy(r.v))})`).join('\n')
-    const prompt = `Eres asset manager hotelero senior en Savills. Analizas una cuenta de explotación (P&L) y produces contenido para una presentación a inversores/propietarios. Tono ejecutivo, formal, claro y muy conciso. Terminología de hotelería y asset management. Básate EXCLUSIVAMENTE en los datos dados.
+    const prompt = `Eres asset manager hotelero senior en PDB. Analizas una cuenta de explotación (P&L) y produces contenido para una presentación a inversores/propietarios. Tono ejecutivo, formal, claro y muy conciso. Terminología de hotelería y asset management. Básate EXCLUSIVAMENTE en los datos dados.
 Devuelve SOLO JSON sin markdown:
 {"headline":"titular insight-driven, 1-2 frases cortas, mensaje accionable para propietarios e inversores","histHeadline":"1 frase que sintetice la evolución histórica de ingresos/márgenes","comments":{"Habitaciones":"","F&B":"","Eventos":"","Spa":"","Otros":""}}
 Cada comentario: máximo 20-25 palabras, explica los drivers principales (crecimiento/descenso/estabilidad) de esa línea de ingresos.
@@ -819,7 +822,7 @@ Cuenta de explotación (k€ salvo indicado):\n${lines}`
               {err && <div className="s3err">{err}</div>}
 
               <section className="slide-sec" id="sec-exec">
-                <span className="savmark">savills</span>
+                <span className="savmark">PDB</span>
                 <div className="sec-title"><span className="hl">1. Resumen Ejecutivo</span></div>
                 <p className="headline">{analysis?.headline || 'El titular ejecutivo aparecerá aquí tras generar el análisis.'}</p>
                 <div className="kpis">
@@ -842,7 +845,7 @@ Cuenta de explotación (k€ salvo indicado):\n${lines}`
               </section>
 
               <section className="slide-sec" id="sec-hist">
-                <span className="savmark">savills</span>
+                <span className="savmark">PDB</span>
                 <div className="sec-title"><span className="hl">2. Revisión</span> · Datos Históricos</div>
                 <p className="headline" style={{ borderLeftColor: 'var(--accent)' }}>{analysis?.histHeadline || 'Comentarios por línea de ingresos.'}</p>
                 <div className="ms-pnl-wrap"><table className="msp"><thead><tr>
