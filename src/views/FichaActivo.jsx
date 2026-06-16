@@ -3172,7 +3172,7 @@ function ZonaBox({ info, setI, asChipRow }) {
 
   if (asChipRow) return (
     <div style={{position:'relative'}} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}>
-      <div className="va-chip-row">
+      <div className="va-chip-row zona-chip-row">
         <div className="va-chip-cell"><div className="label">Área</div><div className="val">{info.area||'—'}</div></div>
         <div className="va-chip-cell"><div className="label">Zona</div><div className="val">{info.zona||'—'}</div></div>
         <div className="va-chip-cell"><div className="label">Subzona</div><div className="val">{info.subzona||'—'}</div></div>
@@ -3529,7 +3529,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
 
           {/* LOCALIZACIÓN */}
           <div className="dash-card">
-            <div className="dash-card-head">Localización{info.coordenadas && <span style={{fontSize:9,fontWeight:500,color:'var(--text4)',fontFamily:'var(--mono)'}}>{info.coordenadas}</span>}</div>
+            <div className="dash-card-head">Localización</div>
             <div style={{padding:'10px 14px 14px'}}><ZonaBox info={info} setI={setI} asChipRow/></div>
           </div>
 
@@ -3551,6 +3551,11 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
             </InlineField>
             <InlineField label="Código postal" value={info.cp||'—'} onSave={()=>setDirty(true)}>
               <input value={info.cp} onChange={e=>setI('cp',e.target.value)} style={inp} placeholder="—"/>
+            </InlineField>
+            <InlineField label="Coordenadas" value={info.coordenadas||'—'}
+              display={info.coordenadas ? <span style={{fontFamily:'var(--mono)'}}>{info.coordenadas}</span> : '—'}
+              onSave={()=>setDirty(true)}>
+              <input value={info.coordenadas} onChange={e=>setI('coordenadas',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="lat, lng"/>
             </InlineField>
             </div>
           </div>

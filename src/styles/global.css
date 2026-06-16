@@ -1465,6 +1465,12 @@ tr:hover .ra-cell { opacity: 1; }
 }
 .va-chip-cell .val { font-size: 14px; font-weight: 600; color: var(--ink); }
 
+/* zona-chip-row — Área/Zona/Subzona en Localización: cajas más grandes y visibles */
+.zona-chip-row { gap: 2px; margin: 4px 0 6px; }
+.zona-chip-row .va-chip-cell { padding: 16px 16px; background: var(--gray-lt); }
+.zona-chip-row .va-chip-cell .label { font-size: 11px; margin-bottom: 6px; }
+.zona-chip-row .va-chip-cell .val { font-size: 18px; font-weight: 700; line-height: 1.25; }
+
 /* — Main content blocks — */
 .va-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
 .va-meta-card {
