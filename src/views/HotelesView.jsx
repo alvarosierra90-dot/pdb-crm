@@ -1,23 +1,21 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import '../styles/hoteles.css'
 import {
-  Home, FileText, Star, LayoutGrid, UploadCloud, ChevronRight,
-  Download, Play, X, Plus, Trash2, Sparkles,
+  FileText, Star, LayoutGrid, UploadCloud, ChevronRight, Download, Printer,
+  Trash2, Sparkles, RotateCcw, Wifi, MapPin,
 } from 'lucide-react'
 
 /* ============================================================================
  * Hoteles · suite de análisis hotelero — nativo PDB (.hot-skin)
- * Port a React del prototipo de 3 módulos:
- *   1. Revisión de contratos (plantilla HLA, deck y export Word)
- *   2. Score de hoteles (comp set / gravity, autocompletado IA)
+ *   1. Revisión de contratos (plantilla HLA → microsite + export Word)
+ *   2. Score de hoteles (comp set / gravity, autocompletado IA, ranking)
  *   3. Presentación (P&L editable + microsite ejecutiva)
- * TODA la IA pasa por el proxy serverless /api/gemini (Google Gemini),
- * igual que Pitch — la clave nunca se expone en el navegador.
+ * TODA la IA pasa por el proxy serverless /api/gemini (Google Gemini).
+ * Layout: barra superior con 3 botones (módulos). Impresión = solo contenido.
  * ========================================================================== */
 
 const AI_MODEL = 'gemini-2.5-flash'
 
-// ── Proxy IA (Gemini) ──
 async function callAI(parts, maxTokens) {
   const res = await fetch('/api/gemini', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -26,7 +24,7 @@ async function callAI(parts, maxTokens) {
       contents: [{ role: 'user', parts }],
       generationConfig: {
         maxOutputTokens: maxTokens, temperature: 0.4, responseMimeType: 'application/json',
-        thinkingConfig: { thinkingBudget: 0 }, // sin "thinking": evita truncar el JSON
+        thinkingConfig: { thinkingBudget: 0 },
       },
     }),
   })
@@ -38,6 +36,19 @@ async function callAI(parts, maxTokens) {
 const parseJSON = raw => JSON.parse((raw || '').replace(/```json|```/g, '').trim())
 const uid = () => Math.random().toString(36).slice(2, 9)
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
+function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) }
+function printNode(node) {
+  if (!node) return
+  node.classList.add('hot-print')
+  const done = () => { node.classList.remove('hot-print'); window.removeEventListener('afterprint', done) }
+  window.addEventListener('afterprint', done)
+  window.print()
+}
+const dlWord = (html, name) => {
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob(['﻿' + html, ''].join(''), { type: 'application/msword' }))
+  a.download = name; a.click()
+}
 
 /* ──────────────────────────── Plantilla HLA ──────────────────────────── */
 const HLA = [
@@ -87,18 +98,15 @@ function ModContratos() {
   const [lobName, setLobName] = useState('Hoteles — HLA')
   const [impName, setImpName] = useState('')
   const [critOpen, setCritOpen] = useState(false)
-  const [doc, setDoc] = useState(null) // {name, kind:'pdf'|'text', data}
+  const [doc, setDoc] = useState(null)
   const [over, setOver] = useState(false)
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
   const [analysis, setAnalysis] = useState(null)
-  const [deck, setDeck] = useState(null) // {slides, idx}
-  const impRef = useRef(null)
-  const docRef = useRef(null)
-
+  const [sec, setSec] = useState('resumen')
+  const impRef = useRef(null), docRef = useRef(null), msRef = useRef(null)
   const ready = criteria.length > 0 && !!doc
 
-  /* Plantilla en blanco */
   const downloadBlank = async () => {
     const XLSX = await import('xlsx')
     const wb = XLSX.utils.book_new()
@@ -124,7 +132,6 @@ function ModContratos() {
     XLSX.writeFile(wb, 'Plantilla_Analisis_Contratos.xlsx')
   }
 
-  /* Importar plantilla rellena */
   const importTemplate = async (f) => {
     if (!f) return
     try {
@@ -139,7 +146,6 @@ function ModContratos() {
     } catch { alert('No se pudo leer la plantilla. Usa el formato descargado.') }
   }
 
-  /* Subida del contrato */
   const handleDoc = async (f) => {
     if (!f) return
     setErr('')
@@ -160,28 +166,22 @@ function ModContratos() {
     } else alert('Formato no soportado. Usa PDF, Word (.docx) o TXT.')
   }
 
-  /* Análisis */
   const analyze = async () => {
     setErr(''); setLoading(true)
     const critList = criteria.map((c, i) => `${i + 1}. [${c[0]}${c[1] && c[1] !== '-' ? ' / ' + c[1] : ''}] ${c[2]}`).join('\n')
-    const sys = `Eres analista contractual senior de una consultora inmobiliaria. Analizas el contrato adjunto frente a una lista de criterios. Para CADA criterio devuelve un objeto con: "summary" (resumen claro y conciso en español de lo que dice el contrato sobre ese punto, 1-3 frases, con los datos concretos: importes, plazos, %), "page" (número o rango de página/cláusula donde aparece, o "" si no se localiza), "status" ("found" si está bien recogido, "attention" si existe pero tiene algún matiz/riesgo a revisar, "missing" si no aparece en el contrato), "highlight" (true si es un punto clave que destacar). Responde SOLO con JSON válido, sin markdown: un objeto {"meta":{"title":"breve título del contrato","parties":"partes principales","date":"fecha de firma si consta"},"items":[{...}]} con un item por criterio, EN EL MISMO ORDEN.`
+    const sys = `Eres analista contractual senior de una consultora inmobiliaria. Analizas el contrato adjunto frente a una lista de criterios. Para CADA criterio devuelve un objeto con: "summary" (resumen claro y completo en español de lo que dice el contrato sobre ese punto, 2-4 frases, con los datos concretos: importes, plazos, %), "page" (número o rango de página/cláusula donde aparece, o "" si no se localiza), "status" ("found" si está bien recogido, "attention" si existe pero tiene algún matiz/riesgo a revisar, "missing" si no aparece en el contrato), "highlight" (true si es un punto clave que destacar). Responde SOLO con JSON válido, sin markdown: {"meta":{"title":"breve título del contrato","parties":"partes principales","date":"fecha de firma si consta"},"items":[{...}]} con un item por criterio, EN EL MISMO ORDEN.`
     const userText = `CRITERIOS A ANALIZAR:\n${critList}\n\nAnaliza el contrato adjunto según estos criterios y devuelve el JSON.`
     const parts = doc.kind === 'pdf'
       ? [{ inlineData: { mimeType: 'application/pdf', data: doc.data } }, { text: sys + '\n\n' + userText }]
       : [{ text: sys + '\n\nCONTRATO:\n' + doc.data + '\n\n' + userText }]
     try {
-      const j = parseJSON(await callAI(parts, 8000))
+      const j = parseJSON(await callAI(parts, 16000))
       const items = (j.items || []).map((it, i) => ({ ...it, _cat: criteria[i]?.[0] || '', _sub: criteria[i]?.[1] || '' }))
-      setAnalysis({ meta: j.meta || {}, items })
-      try { document.querySelector('.hot-skin .content')?.scrollTo(0, 0) } catch { /* noop */ }
-    } catch (e) {
-      setErr('No se pudo completar el análisis: ' + e.message + '. Revisa el contrato e inténtalo de nuevo.')
-    } finally { setLoading(false) }
+      setAnalysis({ meta: j.meta || {}, items }); setSec('resumen')
+    } catch (e) { setErr('No se pudo completar el análisis: ' + e.message + '. Revisa el contrato e inténtalo de nuevo.') }
+    finally { setLoading(false) }
   }
 
-  const newAnalysis = () => { setAnalysis(null); setDoc(null); setErr('') }
-
-  /* Export Word */
   const exportWord = () => {
     if (!analysis) return
     const rows = analysis.items.map(it => {
@@ -198,194 +198,149 @@ function ModContratos() {
       <table style="border-collapse:collapse;width:100%;font-size:11pt">
       <tr style="background:#1f5f5b;color:#fff"><th style="border:1px solid #ccc;padding:6px;text-align:left">Cláusula</th><th style="border:1px solid #ccc;padding:6px;text-align:left">Resumen</th><th style="border:1px solid #ccc;padding:6px">Pág.</th><th style="border:1px solid #ccc;padding:6px">Estado</th></tr>
       ${rows}</table></body></html>`
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob(['﻿' + html], { type: 'application/msword' }))
-    a.download = (m.title || 'analisis_contrato').replace(/[^\w]+/g, '_') + '.doc'; a.click()
+    dlWord(html, (m.title || 'analisis_contrato').replace(/[^\w]+/g, '_') + '.doc')
   }
 
-  /* Deck */
-  const openDeck = () => {
-    if (!analysis) return
-    const { items, meta } = analysis
-    const attn = items.filter(i => i.status === 'attention').length
-    const miss = items.filter(i => i.status === 'missing').length
-    const slides = [{
-      sn: 'Resumen', h: meta.title || 'Análisis del contrato',
-      sub: (meta.parties || '') + (meta.date ? (' · ' + meta.date) : ''),
-      body: `${items.length} cláusulas analizadas · ${attn} a revisar · ${miss} no localizadas`, pg: lobName, badge: null,
-    }]
-    items.filter(i => i.highlight || i.status !== 'found').forEach(it => slides.push({
-      sn: it._cat, h: (it._sub && it._sub !== '-') ? it._sub : it._cat, sub: (it._sub && it._sub !== '-') ? it._cat : '',
-      body: it.summary || '—', pg: it.page ? ('Página ' + it.page) : '',
-      badge: it.status === 'missing' ? ['No localizado', '#9c3329'] : it.status === 'attention' ? ['Revisar', '#9a6b00'] : null,
-    }))
-    if (slides.length === 1) items.forEach(it => slides.push({
-      sn: it._cat, h: (it._sub && it._sub !== '-') ? it._sub : it._cat, sub: '',
-      body: it.summary || '—', pg: it.page ? ('Página ' + it.page) : '', badge: null,
-    }))
-    setDeck({ slides, idx: 0 })
-  }
-  useEffect(() => {
-    if (!deck) return
-    const onKey = e => {
-      if (e.key === 'ArrowRight') setDeck(d => d && { ...d, idx: Math.min(d.idx + 1, d.slides.length - 1) })
-      if (e.key === 'ArrowLeft') setDeck(d => d && { ...d, idx: Math.max(d.idx - 1, 0) })
-      if (e.key === 'Escape') setDeck(null)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [deck])
+  const goSec = s => { setSec(s); msRef.current?.querySelector('#hc-' + s)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 
-  const stats = analysis ? (() => {
+  if (loading) return <div className="wrap"><div className="cloading"><div className="cspin" /><div>Analizando contrato…</div></div></div>
+
+  if (analysis) {
     const items = analysis.items
-    const attn = items.filter(i => i.status === 'attention').length
-    const miss = items.filter(i => i.status === 'missing').length
-    return { tot: items.length, attn, miss, ok: items.length - attn - miss }
-  })() : null
+    const attn = items.filter(i => i.status === 'attention')
+    const miss = items.filter(i => i.status === 'missing')
+    const review = [...miss, ...attn]
+    const groups = items.reduce((g, it) => { (g[it._cat] = g[it._cat] || []).push(it); return g }, {})
+    const m = analysis.meta
+    const Clause = ({ it }) => {
+      const st = it.status === 'missing' ? 'miss' : it.status === 'attention' ? 'attn' : 'found'
+      return (
+        <div className={'clause ' + st}>
+          <div className="dot" />
+          <div className="c-main">
+            <div className="c-cat">{it._cat}{it._sub && it._sub !== '-' && <span className="c-sub">{it._sub}</span>}</div>
+            <div className="c-sum">{it.summary || '—'}</div>
+          </div>
+          <div className="c-side">
+            {st === 'miss' && <span className="tag miss">No localizado</span>}
+            {st === 'attn' && <span className="tag attn">Revisar</span>}
+            {st === 'found' && <span className="tag ok">OK</span>}
+            <span className="c-page mono">{it.page ? ('p. ' + it.page) : '—'}</span>
+          </div>
+        </div>
+      )
+    }
+    return (
+      <div className="wrap">
+        <div className="ms-toolbar hot-no-print">
+          <button className="btn" onClick={() => setAnalysis(null)}><RotateCcw size={15} /> Nuevo análisis</button>
+          <button className="btn" onClick={() => printNode(msRef.current)}><Printer size={15} /> Imprimir / PDF</button>
+          <button className="btn" onClick={exportWord}><Download size={15} /> Exportar a Word</button>
+        </div>
+        <div className="ms-doc" ref={msRef}>
+          <div className="ms-band">
+            <div className="ms-brand">PDB</div>
+            <div className="ms-eyebrow">Revisión de contratos</div>
+            <div className="ms-title">{m.title || 'Análisis del contrato'}</div>
+            <div className="ms-meta">{[m.parties, m.date ? 'Firma: ' + m.date : '', lobName].filter(Boolean).join('  ·  ')}</div>
+          </div>
+          <div className="ms-nav hot-no-print">
+            <a className={sec === 'resumen' ? 'active' : ''} onClick={() => goSec('resumen')}><span className="num">1</span>Resumen</a>
+            <a className={sec === 'revisar' ? 'active' : ''} onClick={() => goSec('revisar')}><span className="num">2</span>A revisar ({review.length})</a>
+            <a className={sec === 'clausulas' ? 'active' : ''} onClick={() => goSec('clausulas')}><span className="num">3</span>Cláusulas ({items.length})</a>
+          </div>
 
-  const groups = analysis ? analysis.items.reduce((g, it) => { (g[it._cat] = g[it._cat] || []).push(it); return g }, {}) : {}
+          <section className="ms-sec" id="hc-resumen">
+            <div className="ms-h"><span className="hl">Resumen ejecutivo</span></div>
+            <p className="headline">{miss.length || attn.length
+              ? `${miss.length} cláusula${miss.length === 1 ? '' : 's'} no localizada${miss.length === 1 ? '' : 's'} y ${attn.length} requieren revisión, de un total de ${items.length} criterios analizados.`
+              : `Las ${items.length} cláusulas de la plantilla están correctamente recogidas en el contrato.`}</p>
+            <div className="mk-grid">
+              <div className="mk"><div className="k-l">Cláusulas</div><div className="k-v mono">{items.length}</div></div>
+              <div className="mk"><div className="k-l">Correctas</div><div className="k-v mono" style={{ color: 'var(--good)' }}>{items.length - attn.length - miss.length}</div></div>
+              <div className="mk"><div className="k-l">A revisar</div><div className="k-v mono" style={{ color: 'var(--warn)' }}>{attn.length}</div></div>
+              <div className="mk"><div className="k-l">No localizadas</div><div className="k-v mono" style={{ color: 'var(--miss)' }}>{miss.length}</div></div>
+            </div>
+          </section>
+
+          <section className="ms-sec" id="hc-revisar">
+            <div className="ms-h"><span className="hl">Puntos a revisar</span></div>
+            {review.length ? review.map((it, i) => <Clause key={i} it={it} />)
+              : <p className="headline" style={{ borderLeftColor: 'var(--good)' }}>No hay cláusulas pendientes de revisión.</p>}
+          </section>
+
+          <section className="ms-sec" id="hc-clausulas">
+            <div className="ms-h"><span className="hl">Análisis cláusula a cláusula</span></div>
+            {Object.keys(groups).map(cat => (
+              <div key={cat}>
+                <div className="group-h">{cat}</div>
+                {groups[cat].map((it, i) => <Clause key={i} it={it} />)}
+              </div>
+            ))}
+          </section>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="wrap">
-      {!analysis && !loading && (
-        <div className="steps">
-          {/* Paso 1 */}
-          <div className="ccard">
-            <div className="ccardhead">
-              <div className={'step-n done'}>1</div>
-              <div className="step-title">Elige la plantilla de análisis</div>
-              <div className="step-meta">{criteria.length} criterios</div>
+      <h1>Revisión de contratos</h1>
+      <p className="lead">Analiza un contrato de arrendamiento hotelero (PDF, Word o TXT) frente a la plantilla por equipo. La IA localiza cada cláusula, indica la página y marca lo que falta o requiere atención.</p>
+      <div className="steps">
+        <div className="ccard">
+          <div className="ccardhead"><div className="step-n done">1</div><div className="step-title">Elige la plantilla de análisis</div><div className="step-meta">{criteria.length} criterios</div></div>
+          <div className="ccardbody">
+            <label className="fld">Línea de negocio</label>
+            <select value="HLA" onChange={e => { if (e.target.value === 'custom') impRef.current?.click() }}>
+              <option value="HLA">Hoteles — Hotel Lease Agreement (HLA)</option>
+              <option value="custom">Plantilla personalizada (importar Excel)</option>
+            </select>
+            <div className="row" style={{ marginTop: 18 }}>
+              <button className="btn" onClick={downloadBlank}><Download size={15} /> Descargar plantilla en blanco</button>
+              <button className="btn ghost" onClick={() => impRef.current?.click()}><UploadCloud size={15} /> Importar plantilla rellena</button>
+              <input ref={impRef} type="file" accept=".xlsx,.xls" hidden onChange={e => importTemplate(e.target.files[0])} />
             </div>
-            <div className="ccardbody">
-              <label className="fld">Línea de negocio</label>
-              <select value="HLA" onChange={e => { if (e.target.value === 'custom') impRef.current?.click() }}>
-                <option value="HLA">Hoteles — Hotel Lease Agreement (HLA)</option>
-                <option value="custom">Plantilla personalizada (importar Excel)</option>
-              </select>
-              <div className="row" style={{ marginTop: 16 }}>
-                <button className="btn" onClick={downloadBlank}><Download size={15} /> Descargar plantilla en blanco</button>
-                <button className="btn ghost" onClick={() => impRef.current?.click()}><UploadCloud size={15} /> Importar plantilla rellena</button>
-                <input ref={impRef} type="file" accept=".xlsx,.xls" hidden onChange={e => importTemplate(e.target.files[0])} />
+            {impName && <div className="file-pill">{impName} <span className="x" onClick={() => { setImpName(''); setCriteria(HLA.map(r => [...r])); setLobName('Hoteles — HLA') }}>×</span></div>}
+            <p className="hint">La plantilla en blanco incluye una hoja de <strong>instrucciones</strong> y la estructura de criterios. Un director edita las cláusulas que interesan al equipo, la rellena y la vuelve a importar aquí.</p>
+            <div style={{ marginTop: 18 }}>
+              <button className="crit-toggle" aria-expanded={critOpen} onClick={() => setCritOpen(o => !o)}>
+                <span>{critOpen ? 'Ocultar' : 'Ver'} los {criteria.length} criterios · {lobName}</span>
+                <span className="chev"><ChevronRight size={16} /></span>
+              </button>
+              <div className={'crit-wrap' + (critOpen ? ' open' : '')}>
+                <table className="crit-table">
+                  <thead><tr><th>Categoría</th><th>Subcategoría</th><th>Qué analiza</th></tr></thead>
+                  <tbody>{criteria.map((r, i) => <tr key={i}><td><strong>{r[0]}</strong></td><td>{r[1] || '—'}</td><td style={{ color: 'var(--ink-soft)' }}>{r[2]}</td></tr>)}</tbody>
+                </table>
               </div>
-              {impName && <div className="file-pill" style={{ marginTop: 12 }}>{impName} <span className="x" onClick={() => { setImpName(''); setCriteria(HLA.map(r => [...r])); setLobName('Hoteles — HLA') }}>×</span></div>}
-              <p className="hint">La plantilla en blanco incluye una hoja de <strong>instrucciones</strong> y la estructura de criterios. Un director edita las cláusulas que interesan al equipo, la rellena y la vuelve a importar aquí.</p>
-              <div style={{ marginTop: 18 }}>
-                <button className="crit-toggle" aria-expanded={critOpen} onClick={() => setCritOpen(o => !o)}>
-                  <span>{critOpen ? 'Ocultar' : 'Ver'} los {criteria.length} criterios · {lobName}</span>
-                  <span className="chev"><ChevronRight size={16} /></span>
-                </button>
-                <div className={'crit-wrap' + (critOpen ? ' open' : '')}>
-                  <table className="crit-table">
-                    <thead><tr><th>Categoría</th><th>Subcategoría</th><th>Qué analiza</th></tr></thead>
-                    <tbody>{criteria.map((r, i) => (
-                      <tr key={i}><td><strong>{r[0]}</strong></td><td>{r[1] || '—'}</td><td style={{ color: 'var(--ink-soft)' }}>{r[2]}</td></tr>
-                    ))}</tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Paso 2 */}
-          <div className={'ccard' + (criteria.length ? '' : ' dim')}>
-            <div className="ccardhead">
-              <div className={'step-n' + (doc ? ' done' : '')}>2</div>
-              <div className="step-title">Sube el contrato</div>
-              <div className="step-meta">{doc?.name || ''}</div>
-            </div>
-            <div className="ccardbody">
-              <div className={'drop' + (over ? ' over' : '')} onClick={() => docRef.current?.click()}
-                onDragOver={e => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)}
-                onDrop={e => { e.preventDefault(); setOver(false); handleDoc(e.dataTransfer.files[0]) }}>
-                <div className="ic"><UploadCloud size={24} /></div>
-                <div className="t">Arrastra el contrato o haz clic</div>
-                <div className="h">PDF, Word (.docx) o TXT</div>
-              </div>
-              <input ref={docRef} type="file" accept=".pdf,.docx,.txt" hidden onChange={e => handleDoc(e.target.files[0])} />
-              {doc && <div className="file-pill"><FileText size={14} /> {doc.name} <span className="x" onClick={() => setDoc(null)}>×</span></div>}
-            </div>
-          </div>
-
-          {/* Paso 3 */}
-          <div className={'ccard' + (doc ? '' : ' dim')}>
-            <div className="ccardhead">
-              <div className="step-n">3</div>
-              <div className="step-title">Analizar</div>
-            </div>
-            <div className="ccardbody">
-              <button className="btn primary" disabled={!ready} onClick={analyze}>Analizar contrato</button>
-              {err && <div className="err">{err}</div>}
-              <p className="hint">El análisis recorre cada criterio de la plantilla, localiza la cláusula en el contrato e indica la página. Marca lo que falta o requiere atención.</p>
             </div>
           </div>
         </div>
-      )}
 
-      {loading && (
-        <div className="cloading"><div className="cspin" /><div>Analizando contrato…</div></div>
-      )}
-
-      {analysis && !loading && (
-        <div style={{ padding: '4px 0 80px' }}>
-          <div className="rep-actions">
-            <button className="btn" onClick={newAnalysis}>← Nuevo análisis</button>
-            <button className="btn" onClick={openDeck}><Play size={14} /> Modo presentación</button>
-            <button className="btn" onClick={exportWord}><Download size={14} /> Exportar a Word</button>
-          </div>
-          <div className="rep-head">
-            <div className="rep-title">{analysis.meta.title || 'Análisis del contrato'}</div>
-            <div className="rep-line">{[analysis.meta.parties, analysis.meta.date ? 'Firma: ' + analysis.meta.date : '', lobName].filter(Boolean).join('  ·  ')}</div>
-            <div className="kpis">
-              <div className="kpi"><div className="v mono">{stats.tot}</div><div className="l">Cláusulas analizadas</div></div>
-              <div className="kpi"><div className="v mono">{stats.ok}</div><div className="l">Correctas</div></div>
-              <div className="kpi attn"><div className="v mono">{stats.attn}</div><div className="l">A revisar</div></div>
-              <div className="kpi miss"><div className="v mono">{stats.miss}</div><div className="l">No localizadas</div></div>
+        <div className={'ccard' + (criteria.length ? '' : ' dim')}>
+          <div className="ccardhead"><div className={'step-n' + (doc ? ' done' : '')}>2</div><div className="step-title">Sube el contrato</div><div className="step-meta">{doc?.name || ''}</div></div>
+          <div className="ccardbody">
+            <div className={'drop' + (over ? ' over' : '')} onClick={() => docRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)}
+              onDrop={e => { e.preventDefault(); setOver(false); handleDoc(e.dataTransfer.files[0]) }}>
+              <div className="ic"><UploadCloud size={28} /></div>
+              <div className="t">Arrastra el contrato o haz clic</div>
+              <div className="h">PDF, Word (.docx) o TXT</div>
             </div>
+            <input ref={docRef} type="file" accept=".pdf,.docx,.txt" hidden onChange={e => handleDoc(e.target.files[0])} />
+            {doc && <div className="file-pill"><FileText size={15} /> {doc.name} <span className="x" onClick={() => setDoc(null)}>×</span></div>}
           </div>
-          {Object.keys(groups).map(cat => (
-            <div className="group" key={cat}>
-              <div className="group-h">{cat}</div>
-              {groups[cat].map((it, i) => {
-                const st = it.status === 'missing' ? 'miss' : it.status === 'attention' ? 'attn' : 'found'
-                return (
-                  <div className={'clause ' + st} key={i}>
-                    <div className={'dot ' + st} />
-                    <div className="c-main">
-                      <div className="c-cat">{it._cat}{it._sub && it._sub !== '-' && <span className="c-sub">{it._sub}</span>}</div>
-                      <div className="c-sum">{it.summary || '—'}</div>
-                      {st === 'miss' && <div className="tag miss">No localizado</div>}
-                      {st === 'attn' && <div className="tag attn">Revisar</div>}
-                    </div>
-                    <div className="c-side"><div className="c-page mono">{it.page ? ('p. ' + it.page) : '—'}</div></div>
-                  </div>
-                )
-              })}
-            </div>
-          ))}
         </div>
-      )}
 
-      {deck && (() => {
-        const s = deck.slides[deck.idx]
-        return (
-          <div className="deck">
-            <button className="deck-close" onClick={() => setDeck(null)}>×</button>
-            <div className="slide">
-              <div className="sn">{s.sn}</div>
-              <h2>{s.h}</h2>
-              {s.sub && <div className="sub2">{s.sub}</div>}
-              <div className="body">{s.body}</div>
-              {s.badge && <div className="badge" style={{ background: s.badge[1] + '22', color: s.badge[1] }}>{s.badge[0]}</div>}
-              {s.pg && <div className="pg mono">{s.pg}</div>}
-            </div>
-            <div className="deck-nav">
-              <button onClick={() => setDeck(d => ({ ...d, idx: Math.max(d.idx - 1, 0) }))}>‹ Anterior</button>
-              <div className="pos mono">{deck.idx + 1} / {deck.slides.length}</div>
-              <button onClick={() => setDeck(d => ({ ...d, idx: Math.min(d.idx + 1, d.slides.length - 1) }))}>Siguiente ›</button>
-            </div>
+        <div className={'ccard' + (doc ? '' : ' dim')}>
+          <div className="ccardhead"><div className="step-n">3</div><div className="step-title">Analizar</div></div>
+          <div className="ccardbody">
+            <button className="btn primary" disabled={!ready} onClick={analyze}>Analizar contrato</button>
+            {err && <div className="err">{err}</div>}
           </div>
-        )
-      })()}
+        </div>
+      </div>
     </div>
   )
 }
@@ -424,6 +379,19 @@ const newScoreHotel = (subject) => ({
   id: uid(), name: '', address: '', web: '', stars: '', keys: '', group: '', brand: '', lastRefurb: '',
   booking: '', tripadvisor: '', amenities: {}, distances: {}, isSubject: subject, inCS: 'Yes', open: true,
 })
+const scoreColor = t => t >= 3.5 ? 'var(--good)' : t >= 2.5 ? 'var(--accent)' : 'var(--warn)'
+
+function AddHotel({ value, onChange, onAdd }) {
+  return (
+    <div className="add-card">
+      <label className="fld">Añadir hotel</label>
+      <div className="add-row">
+        <input className="inp" value={value} onChange={e => onChange(e.target.value)} onKeyDown={e => e.key === 'Enter' && onAdd()} placeholder="Nombre del hotel (la IA completa el resto)" />
+        <button className="btn primary" onClick={onAdd}><Sparkles size={15} /> Añadir y autocompletar</button>
+      </div>
+    </div>
+  )
+}
 
 function ModScore() {
   const [city, setCity] = useState('')
@@ -435,7 +403,8 @@ function ModScore() {
   const [hotels, setHotels] = useState([])
   const [hName, setHName] = useState('')
   const [poiLoad, setPoiLoad] = useState(false)
-  const [busy, setBusy] = useState({}) // id -> bool
+  const [busy, setBusy] = useState({})
+  const resRef = useRef(null)
 
   const { der, csAvg, csCount } = computeScores(hotels, pois, amenities)
   const setHotel = (id, patch) => setHotels(p => p.map(h => h.id === id ? { ...h, ...patch } : h))
@@ -450,9 +419,7 @@ function ModScore() {
     } catch (e) { alert('No se pudieron sugerir puntos (' + e.message + '). Puedes escribirlos a mano.') }
     finally { setPoiLoad(false) }
   }
-
   const addAm = () => { const v = amInput.trim(); if (v && !amenities.includes(v)) { setAmenities(a => [...a, v]); setAmInput('') } }
-
   const start = () => {
     if (!city.trim()) { alert('Indica la ciudad de análisis.'); return }
     const valid = pois.filter(p => p.name.trim())
@@ -473,12 +440,11 @@ Puntos turísticos: ${poiNames.join(', ')}`
       const j = parseJSON(await callAI([{ text: prompt }], 1200))
       setHotels(p => p.map(h => {
         if (h.id !== hotel.id) return h
-        const next = { ...h }
+        const next = { ...h, amenities: { ...h.amenities }, distances: { ...h.distances } }
         next.address = j.address || h.address; next.web = j.web || h.web
         next.stars = j.stars ?? h.stars; next.keys = j.keys ?? h.keys
         next.group = j.group || h.group; next.brand = j.brand || h.brand
         next.lastRefurb = j.lastRefurb ?? h.lastRefurb; next.booking = j.booking ?? h.booking; next.tripadvisor = j.tripadvisor ?? h.tripadvisor
-        next.amenities = { ...h.amenities }; next.distances = { ...h.distances }
         if (j.amenities) amenities.forEach(a => { if (a in j.amenities) next.amenities[a] = !!j.amenities[a] })
         if (j.distances) pois.forEach(pp => { const v = j.distances[pp.name]; if (typeof v === 'number') next.distances[pp.id] = v })
         return next
@@ -486,17 +452,15 @@ Puntos turísticos: ${poiNames.join(', ')}`
     } catch (e) { alert('No se pudo autocompletar (' + e.message + '). Rellena los campos a mano.') }
     finally { setBusy(b => ({ ...b, [hotel.id]: false })) }
   }
-
   const addHotel = () => {
     const n = hName.trim(); if (!n) return
     const h = newScoreHotel(hotels.length === 0); h.name = n
-    setHotels(p => [...p, h]); setHName('')
-    autofill(h)
+    setHotels(p => [...p, h]); setHName(''); autofill(h)
   }
 
+  const ranked = [...hotels].sort((a, b) => der[b.id].total - der[a.id].total)
   const exportWord = () => {
     if (!hotels.length) return
-    const ranked = [...hotels].sort((a, b) => der[b.id].total - der[a.id].total)
     const rows = ranked.map((h, i) => `<tr>
       <td style="border:1px solid #ccc;padding:5px;text-align:center">${i + 1}</td>
       <td style="border:1px solid #ccc;padding:5px"><b>${esc(h.name)}</b>${h.isSubject ? ' (objeto)' : ''}<br><span style="color:#777;font-size:9pt">${esc(h.address || '')}</span></td>
@@ -513,88 +477,92 @@ Puntos turísticos: ${poiNames.join(', ')}`
       ${rows}
       <tr style="background:#f2f1ee;font-weight:bold"><td style="border:1px solid #ccc;padding:5px"></td><td style="border:1px solid #ccc;padding:5px">Media comp set</td><td style="border:1px solid #ccc;padding:5px"></td><td style="border:1px solid #ccc;padding:5px;text-align:center">${csAvg.loc.toFixed(1)}</td><td style="border:1px solid #ccc;padding:5px;text-align:center">${csAvg.prod.toFixed(1)}</td><td style="border:1px solid #ccc;padding:5px;text-align:center">${csAvg.rat.toFixed(1)}</td><td style="border:1px solid #ccc;padding:5px;text-align:center">${(csAvg.total * 20).toFixed(0)}</td></tr>
       </table></body></html>`
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob(['﻿' + html], { type: 'application/msword' }))
-    a.download = 'score_hoteles_' + city.replace(/[^\w]+/g, '_') + '.doc'; a.click()
+    dlWord(html, 'score_hoteles_' + city.replace(/[^\w]+/g, '_') + '.doc')
   }
 
-  const scoreColor = t => t >= 3.5 ? 'var(--good)' : t >= 2.5 ? 'var(--accent)' : 'var(--warn)'
-  const ranked = [...hotels].sort((a, b) => der[b.id].total - der[a.id].total)
+  const Bars = ({ d }) => {
+    const bars = [['Ubicación', d.loc, 'var(--blue)'], ['Producto', d.prod, 'var(--good)'], ['Reputación', d.rat, 'var(--purple)']]
+    return (
+      <div className="rk-bars">
+        {bars.map(([l, v, c]) => (
+          <div key={l}>
+            <div className="bar-l"><span>{l}</span><b>{v ? v.toFixed(1) : '–'}</b></div>
+            <div className="bar-t"><div className="bar-f" style={{ width: (clamp(v, 0, 5) / 5 * 100) + '%', background: c }} /></div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  const DataChips = ({ h }) => {
+    const ams = amenities.filter(a => h.amenities[a])
+    return (
+      <div className="data-chips">
+        {h.booking ? <span className="dchip rate"><Star size={12} /> Booking <b>{h.booking}</b></span> : null}
+        {h.tripadvisor ? <span className="dchip rate"><Star size={12} /> TripAdvisor <b>{h.tripadvisor}</b></span> : null}
+        {h.lastRefurb ? <span className="dchip">Reforma <b>{h.lastRefurb}</b></span> : null}
+        {der[h.id].distAvg != null ? <span className="dchip"><MapPin size={12} /> <b>{der[h.id].distAvg.toFixed(1)}</b> km medios</span> : null}
+        {ams.map(a => <span className="dchip am" key={a}><Wifi size={12} /> {a}</span>)}
+      </div>
+    )
+  }
 
   return (
     <div className="wrap">
-      <div className="tabs">
-        <button className={'tab' + (pane === 'config' ? ' active' : '')} onClick={() => setPane('config')}>Configuración</button>
-        <button className={'tab' + (pane === 'set' ? ' active' : '')} disabled={!started} onClick={() => setPane('set')}>Comp set</button>
-        <button className={'tab' + (pane === 'res' ? ' active' : '')} disabled={!started} onClick={() => setPane('res')}>Resultados</button>
+      <h1>Score de hoteles</h1>
+      <p className="lead">Define la ciudad y su conjunto competitivo. La IA autocompleta cada hotel por su nombre; el score pondera ubicación, producto y reputación, y se compara con la media del comp set.</p>
+      <div className="subtabs">
+        <button className={'subtab' + (pane === 'config' ? ' active' : '')} onClick={() => setPane('config')}>Configuración</button>
+        <button className={'subtab' + (pane === 'set' ? ' active' : '')} disabled={!started} onClick={() => setPane('set')}>Comp set</button>
+        <button className={'subtab' + (pane === 'res' ? ' active' : '')} disabled={!started} onClick={() => setPane('res')}>Resultados</button>
       </div>
 
-      {/* CONFIG */}
-      <div className={'pane' + (pane === 'config' ? ' active' : '')}>
+      {pane === 'config' && <>
         <div className="card">
           <div className="card-h"><h2>Ciudad de análisis</h2></div>
           <p className="desc">Todo el análisis se referencia a una ciudad. Define los puntos turísticos clave: las distancias a ellos determinan el score de ubicación.</p>
           <label className="fld">Ciudad</label>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <input className="inp" value={city} onChange={e => setCity(e.target.value)} placeholder="Ej. Madrid, Toledo, Sevilla…" style={{ maxWidth: 340 }} />
-            <button className="btn ai sm" onClick={suggestPoi}><Sparkles size={14} /> Sugerir puntos turísticos</button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <input className="inp" value={city} onChange={e => setCity(e.target.value)} placeholder="Ej. Madrid, Toledo, Sevilla…" style={{ maxWidth: 380 }} />
+            <button className="btn ai sm" onClick={suggestPoi}><Sparkles size={15} /> Sugerir puntos turísticos</button>
           </div>
           {poiLoad && <div className="loading"><div className="spin" /><span>Buscando los principales puntos turísticos…</span></div>}
-          <div style={{ marginTop: 20 }}>
+          <div style={{ marginTop: 22 }}>
             <label className="fld">Puntos turísticos de referencia</label>
-            <div>
-              {pois.map((p, i) => (
-                <div className="poi-row" key={p.id}>
-                  <input className="inp" value={p.name} placeholder={`Punto turístico ${i + 1}`} onChange={e => setPois(prev => prev.map(x => x.id === p.id ? { ...x, name: e.target.value } : x))} />
-                  <button className="del" onClick={() => setPois(prev => prev.filter(x => x.id !== p.id))}><Trash2 size={16} /></button>
-                </div>
-              ))}
-            </div>
-            <button className="btn sm" style={{ marginTop: 10 }} onClick={() => setPois(p => [...p, { id: uid(), name: '' }])}>+ Añadir punto</button>
+            {pois.map((p, i) => (
+              <div className="poi-row" key={p.id}>
+                <input className="inp" value={p.name} placeholder={`Punto turístico ${i + 1}`} onChange={e => setPois(prev => prev.map(x => x.id === p.id ? { ...x, name: e.target.value } : x))} />
+                <button className="del" onClick={() => setPois(prev => prev.filter(x => x.id !== p.id))}><Trash2 size={17} /></button>
+              </div>
+            ))}
+            <button className="btn sm" style={{ marginTop: 12 }} onClick={() => setPois(p => [...p, { id: uid(), name: '' }])}>+ Añadir punto</button>
           </div>
         </div>
-
         <div className="card">
           <div className="card-h"><h2>Amenities a evaluar</h2></div>
           <p className="desc">Las instalaciones que cuentan para el score de producto. En cada hotel marcarás cuáles tiene.</p>
-          <div className="am-chips">
-            {amenities.map(a => (
-              <span className="am-chip" key={a}>{a} <span className="x" onClick={() => setAmenities(prev => prev.filter(x => x !== a))}>×</span></span>
-            ))}
-          </div>
-          <div className="add-row" style={{ marginTop: 12, maxWidth: 420 }}>
+          <div className="am-chips">{amenities.map(a => <span className="am-chip" key={a}>{a} <span className="x" onClick={() => setAmenities(prev => prev.filter(x => x !== a))}>×</span></span>)}</div>
+          <div className="add-row" style={{ marginTop: 14, maxWidth: 460 }}>
             <input className="inp" value={amInput} onChange={e => setAmInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addAm()} placeholder="Añadir amenity (ej. Rooftop)" />
             <button className="btn sm" onClick={addAm}>Añadir</button>
           </div>
         </div>
-
         <button className="btn primary" onClick={start}>Continuar al comp set →</button>
-      </div>
+      </>}
 
-      {/* COMP SET */}
-      <div className={'pane' + (pane === 'set' ? ' active' : '')}>
-        <div className="card">
-          <div className="card-h"><h2>Añadir hotel</h2><span className="meta">{hotels.length ? `${hotels.length} hoteles` : ''}</span></div>
-          <div className="add-row">
-            <input className="inp" value={hName} onChange={e => setHName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addHotel()} placeholder="Nombre del hotel (la IA completa el resto)" />
-            <button className="btn primary" onClick={addHotel}>Añadir y autocompletar</button>
-          </div>
-          <p className="desc" style={{ margin: '10px 0 0' }}>Marca un hotel como <b>objeto</b> (el que analizas) y los que formen el <b>comp set relevante</b>. La media se calcula solo con los del comp set.</p>
-        </div>
-
+      {pane === 'set' && <>
+        <AddHotel value={hName} onChange={setHName} onAdd={addHotel} />
+        <p className="desc" style={{ margin: '12px 2px 18px' }}>Marca un hotel como <b>objeto</b> (el que analizas) y los que formen el <b>comp set relevante</b>. La media se calcula solo con los del comp set.</p>
         {!hotels.length
           ? <div className="empty">Escribe el nombre de un hotel arriba para empezar. La IA completará dirección, categoría, amenities y distancias.</div>
           : hotels.map(h => {
-            const d = der[h.id]
-            const stars = '★'.repeat(Math.round(+h.stars || 0))
+            const d = der[h.id]; const stars = '★'.repeat(Math.round(+h.stars || 0))
             return (
               <div className={'hotel' + (h.isSubject ? ' subject' : '') + (h.open ? ' open' : '')} key={h.id}>
                 <div className="hotel-bar" onClick={() => setHotel(h.id, { open: !h.open })}>
-                  <span className="h-chev"><ChevronRight size={14} /></span>
+                  <span className="h-chev"><ChevronRight size={15} /></span>
                   <div className="h-id">
                     <div className="h-name">{h.name}{stars && <span className="h-stars">{stars}</span>}
-                      {h.isSubject && <span className="h-tag subj">Objeto</span>}
-                      {h.inCS === 'Yes' && <span className="h-tag cs">Comp set</span>}</div>
+                      {h.isSubject && <span className="h-tag subj">Objeto</span>}{h.inCS === 'Yes' && <span className="h-tag cs">Comp set</span>}</div>
                     <div className="h-sub">{h.address || 'Sin datos aún'}{h.keys ? ` · ${h.keys} hab.` : ''}</div>
                   </div>
                   <div className="h-score"><div className="n mono" style={{ color: scoreColor(d.total) }}>{d.total ? (d.total * 20).toFixed(0) : '–'}</div><div className="l">/100</div></div>
@@ -620,11 +588,10 @@ Puntos turísticos: ${poiNames.join(', ')}`
                     <div className="grp"><div className="grp-t">Producto · amenities y estado</div>
                       <div className="am-grid">
                         {amenities.map(a => (
-                          <div className={'am-toggle' + (h.amenities[a] ? ' on' : '')} key={a} onClick={() => setHotel(h.id, { amenities: { ...h.amenities, [a]: !h.amenities[a] } })}>
-                            <span>{a}</span><span className="sw" /></div>
+                          <div className={'am-toggle' + (h.amenities[a] ? ' on' : '')} key={a} onClick={() => setHotel(h.id, { amenities: { ...h.amenities, [a]: !h.amenities[a] } })}><span>{a}</span><span className="sw" /></div>
                         ))}
                       </div>
-                      <div style={{ marginTop: 11, maxWidth: 200 }}><label className="fld">Año última reforma</label><input className="inp" type="number" value={h.lastRefurb} onChange={e => setHotel(h.id, { lastRefurb: e.target.value })} /></div>
+                      <div style={{ marginTop: 12, maxWidth: 220 }}><label className="fld">Año última reforma</label><input className="inp" type="number" value={h.lastRefurb} onChange={e => setHotel(h.id, { lastRefurb: e.target.value })} /></div>
                     </div>
                     <div className="grp"><div className="grp-t">Reputación</div>
                       <div className="fgrid">
@@ -636,7 +603,7 @@ Puntos turísticos: ${poiNames.join(', ')}`
                       <label className="hopt"><input type="checkbox" checked={h.inCS === 'Yes'} onChange={e => setHotel(h.id, { inCS: e.target.checked ? 'Yes' : 'No' })} /> Incluir en comp set</label>
                     </div>
                     <div className="row-actions">
-                      <button className="btn ai sm" onClick={() => autofill(h)}><Sparkles size={14} /> Reautocompletar</button>
+                      <button className="btn ai sm" onClick={() => autofill(h)}><Sparkles size={15} /> Reautocompletar</button>
                       <button className="btn sm" style={{ marginLeft: 'auto' }} onClick={() => setHotels(p => p.filter(x => x.id !== h.id))}>Eliminar</button>
                     </div>
                   </div>
@@ -644,39 +611,79 @@ Puntos turísticos: ${poiNames.join(', ')}`
               </div>
             )
           })}
-        {!!hotels.length && <button className="btn primary" onClick={() => setPane('res')}>Ver resultados →</button>}
-      </div>
+        {!!hotels.length && <>
+          <AddHotel value={hName} onChange={setHName} onAdd={addHotel} />
+          <button className="btn primary" style={{ marginTop: 14 }} onClick={() => setPane('res')}>Ver resultados →</button>
+        </>}
+      </>}
 
-      {/* RESULTADOS */}
-      <div className={'pane' + (pane === 'res' ? ' active' : '')}>
-        <div className="card">
-          <div className="card-h"><h2>Ranking y comparativa</h2><span className="meta">{hotels.length} hoteles · {csCount} en comp set</span></div>
-          <div className="res-head"><div /><div className="l">Hotel</div><div>Ubic.</div><div>Prod.</div><div>Reput.</div><div>Total</div></div>
-          {!hotels.length ? <div className="empty">Sin hoteles.</div> : ranked.map((h, i) => {
-            const d = der[h.id]
-            const vs = csAvg.total ? (d.total / csAvg.total - 1) * 100 : 0
-            return (
-              <div className={'res-row' + (h.isSubject ? ' subj' : '')} key={h.id}>
-                <div className={'rp ' + (i < 3 ? 'p' + (i + 1) : '')}>{i + 1}</div>
-                <div className="rn">{h.name} {h.inCS === 'Yes' && csAvg.total ? <span className={'vsbar ' + (vs >= 0 ? 'up' : 'down')}>{vs >= 0 ? '+' : ''}{vs.toFixed(0)}%</span> : null}
-                  <div className="loc">{h.address || h.group || ''}</div></div>
-                <div className="sc">{d.loc ? d.loc.toFixed(1) : '–'}</div>
-                <div className="sc">{d.prod ? d.prod.toFixed(1) : '–'}</div>
-                <div className="sc">{d.rat ? d.rat.toFixed(1) : '–'}</div>
-                <div className="sc tot" style={{ color: scoreColor(d.total) }}>{(d.total * 20).toFixed(0)}<small>{d.total.toFixed(1)}/5</small></div>
-              </div>
-            )
-          })}
-          {!!csCount && (
-            <div className="res-row avg">
-              <div /><div className="rn">Media comp set</div>
-              <div className="sc">{csAvg.loc.toFixed(1)}</div><div className="sc">{csAvg.prod.toFixed(1)}</div><div className="sc">{csAvg.rat.toFixed(1)}</div>
-              <div className="sc tot">{(csAvg.total * 20).toFixed(0)}<small>{csAvg.total.toFixed(1)}/5</small></div>
-            </div>
-          )}
-          <div style={{ marginTop: 18 }}><button className="btn" onClick={exportWord}><Download size={14} /> Exportar informe</button></div>
+      {pane === 'res' && <>
+        <div className="ms-toolbar hot-no-print">
+          <button className="btn" onClick={() => setPane('set')}>← Volver al comp set</button>
+          <button className="btn" onClick={() => printNode(resRef.current)}><Printer size={15} /> Imprimir / PDF</button>
+          <button className="btn" onClick={exportWord}><Download size={15} /> Exportar a Word</button>
         </div>
-      </div>
+        <div className="ms-doc" ref={resRef}>
+          <div className="ms-band">
+            <div className="ms-brand">PDB</div>
+            <div className="ms-eyebrow">Score de hoteles · Comp set</div>
+            <div className="ms-title">Ranking comparativo — {city || 'ciudad'}</div>
+            <div className="ms-meta">{hotels.length} hoteles · {csCount} en comp set · Ref.: {pois.map(p => p.name).filter(Boolean).join(', ') || '—'}</div>
+          </div>
+          {!hotels.length ? <div className="ms-sec"><div className="empty">Sin hoteles.</div></div> : <>
+            <section className="ms-sec">
+              <div className="ms-h"><span className="hl">Podio</span></div>
+              <div className="podium">
+                {ranked.slice(0, 3).map((h, i) => {
+                  const d = der[h.id]; const vs = csAvg.total ? (d.total / csAvg.total - 1) * 100 : 0
+                  return (
+                    <div className={'pod r' + (i + 1) + (h.isSubject ? ' subject' : '')} key={h.id}>
+                      <div className="medal">{i + 1}</div>
+                      <div className="pn">{h.name}{h.isSubject ? ' ·' : ''}</div>
+                      {!!Math.round(+h.stars) && <div className="pstars">{'★'.repeat(Math.round(+h.stars))}</div>}
+                      <div className="pscore" style={{ color: scoreColor(d.total) }}>{(d.total * 20).toFixed(0)}<small>/100</small></div>
+                      {h.inCS === 'Yes' && csAvg.total ? <div className="pvs"><span className={'vsbar ' + (vs >= 0 ? 'up' : 'down')}>{vs >= 0 ? '+' : ''}{vs.toFixed(0)}% vs media</span></div> : null}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+            <section className="ms-sec">
+              <div className="ms-h"><span className="hl">Ranking detallado</span></div>
+              {ranked.map((h, i) => {
+                const d = der[h.id]; const vs = csAvg.total ? (d.total / csAvg.total - 1) * 100 : 0
+                return (
+                  <div className={'rk-card' + (h.isSubject ? ' subject' : '')} key={h.id}>
+                    <div className="rk-top">
+                      <div className={'rk-pos' + (i < 3 ? ' p' + (i + 1) : '')}>{i + 1}</div>
+                      <div className="rk-name">
+                        <div className="nn">{h.name}
+                          {h.isSubject && <span className="h-tag subj">Objeto</span>}
+                          {h.inCS === 'Yes' && csAvg.total ? <span className={'vsbar ' + (vs >= 0 ? 'up' : 'down')}>{vs >= 0 ? '+' : ''}{vs.toFixed(0)}% vs media</span> : null}</div>
+                        <div className="ss">{h.address || h.group || ''}{h.keys ? ` · ${h.keys} hab.` : ''}</div>
+                      </div>
+                      <div className="rk-total"><div className="n mono" style={{ color: scoreColor(d.total) }}>{(d.total * 20).toFixed(0)}</div><div className="s">{d.total.toFixed(1)}/5</div></div>
+                    </div>
+                    <Bars d={d} />
+                    <DataChips h={h} />
+                  </div>
+                )
+              })}
+            </section>
+            {!!csCount && (
+              <section className="ms-sec">
+                <div className="ms-h"><span className="hl">Media del comp set</span></div>
+                <div className="mk-grid">
+                  <div className="mk"><div className="k-l">Ubicación</div><div className="k-v mono">{csAvg.loc.toFixed(1)}</div></div>
+                  <div className="mk"><div className="k-l">Producto</div><div className="k-v mono">{csAvg.prod.toFixed(1)}</div></div>
+                  <div className="mk"><div className="k-l">Reputación</div><div className="k-v mono">{csAvg.rat.toFixed(1)}</div></div>
+                  <div className="mk"><div className="k-l">Score medio</div><div className="k-v mono" style={{ color: 'var(--accent)' }}>{(csAvg.total * 20).toFixed(0)}</div></div>
+                </div>
+              </section>
+            )}
+          </>}
+        </div>
+      </>}
     </div>
   )
 }
@@ -737,8 +744,8 @@ function ModSlides() {
   const [analysis, setAnalysis] = useState(null)
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
-  const [activeSec, setActiveSec] = useState('sec-exec')
-  const bodyRef = useRef(null)
+  const [sec, setSec] = useState('exec')
+  const msRef = useRef(null)
 
   const setCell = (id, i, val) => setPnl(p => p.map(r => r.id === id ? { ...r, v: r.v.map((x, j) => j === i ? (parseFloat(val) || 0) : x) } : r))
   const setLabel = (id, label) => setPnl(p => p.map(r => r.id === id ? { ...r, label } : r))
@@ -757,197 +764,151 @@ Cuenta de explotación (k€ salvo indicado):\n${lines}`
     catch (e) { setErr('No se pudo generar el análisis (' + e.message + '). Los KPIs y la P&L sí se muestran.') }
     finally { setLoading(false) }
   }
-
-  const goMicrosite = () => { setShowMs(true); generate() }
-  const scrollTo = sec => {
-    setActiveSec(sec)
-    bodyRef.current?.querySelector('#' + sec)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
+  const goMicrosite = () => { setShowMs(true); setSec('exec'); generate() }
+  const goSec = s => { setSec(s); msRef.current?.querySelector('#hs-' + s)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 
   const kpiWant = [['Ocupación', 'Ocupación'], ['ADR', 'ADR'], ['RevPAR', 'RevPAR'], ['GOP', 'GOP'], ['% Margen GOP', 'Margen GOP'], ['Total Ingresos', 'Ingresos totales']]
   const cmtOrder = ['Habitaciones', 'F&B', 'Eventos', 'Spa', 'Otros']
 
-  return (
-    <div className="s3wrap">
-      <div className="s3head" style={{ display: showMs ? 'none' : 'block' }}>
-        <div className="s3brand"><span className="s3eyebrow">Hoteles</span><span className="s3chip">Módulo 3</span></div>
-        <div className="s3title">Presentación</div>
-        <p className="s3sub">Edita la cuenta de explotación (P&amp;L) y genera una microsite ejecutiva con titular insight-driven, KPIs y comentarios por línea.</p>
+  if (!showMs) {
+    return (
+      <div className="wrap">
+        <h1>Presentación</h1>
+        <p className="lead">Edita la cuenta de explotación (P&amp;L) y genera una microsite ejecutiva con titular insight-driven, KPIs y comentarios por línea.</p>
+        <div className="pnl-tools">
+          <input className="inp" value={projName} onChange={e => setProjName(e.target.value)} placeholder="Nombre del proyecto / hotel" style={{ fontWeight: 600, minWidth: 260, maxWidth: 360 }} />
+          <span className="grow" />
+          <button className="btn sm" onClick={addLine}>+ Añadir línea</button>
+          <button className="btn primary" onClick={goMicrosite}>Generar microsite →</button>
+        </div>
+        <div className="pnl-card"><table className="pnl"><thead><tr>
+          <th className="l">k€</th><th className="l">KPI</th><th>2023A</th><th>2024A</th><th>2025A</th><th>CAGR</th><th>YoY 25-24</th><th />
+        </tr></thead><tbody>
+          {pnl.map(r => {
+            if (r.t === 'sect') return <tr className="sect" key={r.id}><td className="l" colSpan={8}>{r.label}</td></tr>
+            const c = cagr(r.v), y = yoy(r.v)
+            return (
+              <tr className={r.t} key={r.id}>
+                <td className="l"><input className="lbl" value={r.label} onChange={e => setLabel(r.id, e.target.value)} /></td>
+                <td className="l"><span className="unit">{r.unit || ''}</span></td>
+                {[0, 1, 2].map(i => <td key={i}><input value={r.v[i]} onChange={e => setCell(r.id, i, e.target.value)} /></td>)}
+                <td className={'delta ' + (c >= 0 ? 'up' : 'down')}>{pctTxt(c)}</td>
+                <td className={'delta ' + (y >= 0 ? 'up' : 'down')}>{pctTxt(y)}</td>
+                <td><button className="rowdel" title="Eliminar" onClick={() => setPnl(p => p.filter(x => x.id !== r.id))}>×</button></td>
+              </tr>
+            )
+          })}
+        </tbody></table></div>
       </div>
-      <div className="s3main">
-        {/* EDITOR */}
-        <div className={'s3view' + (showMs ? '' : ' on')}>
-          <div className="pnl-tools">
-            <input className="s3btn" value={projName} onChange={e => setProjName(e.target.value)} placeholder="Nombre del proyecto / hotel" style={{ fontWeight: 560, minWidth: 240 }} />
-            <span className="grow" />
-            <button className="s3btn sm" onClick={addLine}>+ Añadir línea</button>
-            <button className="s3btn primary" onClick={goMicrosite}>Generar microsite →</button>
+    )
+  }
+
+  return (
+    <div className="wrap">
+      <div className="ms-toolbar hot-no-print">
+        <button className="btn" onClick={() => setShowMs(false)}>← Volver al editor</button>
+        <button className="btn" onClick={generate}><Sparkles size={15} /> Regenerar análisis</button>
+        <button className="btn" onClick={() => printNode(msRef.current)}><Printer size={15} /> Imprimir / PDF</button>
+      </div>
+      <div className="ms-doc" ref={msRef}>
+        <div className="ms-band">
+          <div className="ms-brand">PDB</div>
+          <div className="ms-eyebrow">Presentación · Business Plan Review</div>
+          <div className="ms-title">{projName.trim() || 'Proyecto hotelero'}</div>
+          <div className="ms-meta">Cuenta de explotación 2023A–2025A · Desempeño, márgenes y GOP</div>
+        </div>
+        <div className="ms-nav hot-no-print">
+          <a className={sec === 'exec' ? 'active' : ''} onClick={() => goSec('exec')}><span className="num">1</span>Resumen Ejecutivo</a>
+          <a className={sec === 'hist' ? 'active' : ''} onClick={() => goSec('hist')}><span className="num">2</span>Datos Históricos</a>
+        </div>
+        {loading && <div className="loading" style={{ padding: '16px 36px 0' }}><div className="spin" /><span>Generando análisis ejecutivo…</span></div>}
+        {err && <div className="err" style={{ margin: '14px 36px 0' }}>{err}</div>}
+
+        <section className="ms-sec" id="hs-exec">
+          <div className="ms-h"><span className="hl">1. Resumen Ejecutivo</span></div>
+          <p className="headline">{analysis?.headline || 'El titular ejecutivo aparecerá aquí tras generar el análisis.'}</p>
+          <div className="mk-grid">
+            {kpiWant.map(([lbl, disp]) => {
+              const r = findRow(lbl); if (!r) return null
+              const y = yoy(r.v); const up = y >= 0
+              return (
+                <div className="mk" key={lbl}>
+                  <div className="k-l">{disp}</div>
+                  <div className="k-v mono">{fmtVal(r.v[2], (r.fmt === 'pct' || lbl === '% Margen GOP') ? 'pct' : r.fmt)}</div>
+                  <div><span className={'k-d ' + (up ? 'up' : 'down')}>{up ? '▲' : '▼'} {pctTxt(y).replace('+', '')}</span><span className="k-yo">YoY 25-24</span></div>
+                </div>
+              )
+            })}
           </div>
-          <div className="pnl-card"><table className="pnl"><thead><tr>
-            <th className="l">k€</th><th className="l">KPI</th><th>2023A</th><th>2024A</th><th>2025A</th><th>CAGR</th><th>YoY 25-24</th><th />
+          <div className="ctx-grid" style={{ marginTop: 18 }}>
+            <div className="ctx-card"><h4>Contexto del proyecto</h4><ul><li>Cuenta de explotación 2023A–2025A</li><li>Análisis de desempeño y márgenes</li></ul></div>
+            <div className="ctx-card"><h4>Revisión datos históricos</h4><ul><li>Evolución de ingresos por departamento</li><li>Estructura de costes y GOP</li></ul></div>
+          </div>
+        </section>
+
+        <section className="ms-sec" id="hs-hist">
+          <div className="ms-h"><span className="hl">2. Revisión</span> · Datos Históricos</div>
+          <p className="headline">{analysis?.histHeadline || 'Comentarios por línea de ingresos.'}</p>
+          <div className="ms-pnl-wrap"><table className="msp"><thead><tr>
+            <th className="l">k€</th><th>2023A</th><th>2024A</th><th>2025A</th><th>CAGR</th><th>YoY</th>
           </tr></thead><tbody>
-            {pnl.map(r => {
-              if (r.t === 'sect') return <tr className="sect" key={r.id}><td className="l" colSpan={8}>{r.label}</td></tr>
+            {pnl.filter(r => r.t !== 'kpi').map(r => {
+              if (r.t === 'sect') return <tr className="sect" key={r.id}><td className="l" colSpan={6}>{r.label}</td></tr>
               const c = cagr(r.v), y = yoy(r.v)
               return (
                 <tr className={r.t} key={r.id}>
-                  <td className="l"><input className="lbl" value={r.label} onChange={e => setLabel(r.id, e.target.value)} /></td>
-                  <td className="l"><span className="unit">{r.unit || ''}</span></td>
-                  {[0, 1, 2].map(i => <td key={i}><input value={r.v[i]} onChange={e => setCell(r.id, i, e.target.value)} /></td>)}
-                  <td className={'delta ' + (c >= 0 ? 'up' : 'down')}>{pctTxt(c)}</td>
-                  <td className={'delta ' + (y >= 0 ? 'up' : 'down')}>{pctTxt(y)}</td>
-                  <td><button className="rowdel" title="Eliminar" onClick={() => setPnl(p => p.filter(x => x.id !== r.id))}>×</button></td>
+                  <td className="l">{r.label}</td>
+                  <td className="mono">{fmtVal(r.v[0], r.fmt)}</td><td className="mono">{fmtVal(r.v[1], r.fmt)}</td><td className="mono">{fmtVal(r.v[2], r.fmt)}</td>
+                  <td className={'mono delta ' + (c >= 0 ? 'up' : 'down')}>{pctTxt(c)}</td>
+                  <td className={'mono delta ' + (y >= 0 ? 'up' : 'down')}>{pctTxt(y)}</td>
                 </tr>
               )
             })}
           </tbody></table></div>
-        </div>
-
-        {/* MICROSITE */}
-        <div className={'s3view' + (showMs ? ' on' : '')}>
-          <div className="ms">
-            <nav className="ms-index">
-              <div className="lg">Hoteles <span className="sav">·</span></div>
-              <div className="pj">{projName.trim() || 'Proyecto hotelero'}</div>
-              <a className={activeSec === 'sec-exec' ? 'active' : ''} onClick={() => scrollTo('sec-exec')}><span className="num">1</span>Resumen Ejecutivo</a>
-              <a className={activeSec === 'sec-hist' ? 'active' : ''} onClick={() => scrollTo('sec-hist')}><span className="num">2</span>Revisión · Datos Históricos</a>
-            </nav>
-            <div className="ms-body" ref={bodyRef}>
-              <div className="ms-toolbar">
-                <button className="s3btn sm" onClick={() => setShowMs(false)}>← Volver al editor</button>
-                <button className="s3btn sm" onClick={generate}><Sparkles size={14} /> Regenerar análisis</button>
-                <button className="s3btn sm" onClick={() => window.print()}><Download size={14} /> Imprimir / PDF</button>
-              </div>
-              {loading && <div className="s3load"><div className="s3spin" /><span>Generando análisis ejecutivo…</span></div>}
-              {err && <div className="s3err">{err}</div>}
-
-              <section className="slide-sec" id="sec-exec">
-                <span className="savmark">PDB</span>
-                <div className="sec-title"><span className="hl">1. Resumen Ejecutivo</span></div>
-                <p className="headline">{analysis?.headline || 'El titular ejecutivo aparecerá aquí tras generar el análisis.'}</p>
-                <div className="kpis">
-                  {kpiWant.map(([lbl, disp]) => {
-                    const r = findRow(lbl); if (!r) return null
-                    const y = yoy(r.v); const up = y >= 0
-                    return (
-                      <div className="kpi" key={lbl}>
-                        <div className="k-l">{disp}</div>
-                        <div className="k-v mono">{fmtVal(r.v[2], (r.fmt === 'pct' || lbl === '% Margen GOP') ? 'pct' : r.fmt)}</div>
-                        <div><span className={'k-d ' + (up ? 'up' : 'down')}>{up ? '▲' : '▼'} {pctTxt(y).replace('+', '')}</span><span className="k-yo">YoY 25-24</span></div>
-                      </div>
-                    )
-                  })}
-                </div>
-                <div className="ctx-grid">
-                  <div className="ctx-card"><h4>Contexto del proyecto</h4><ul><li>Cuenta de explotación 2023A–2025A</li><li>Análisis de desempeño y márgenes</li></ul></div>
-                  <div className="ctx-card"><h4>Revisión datos históricos</h4><ul><li>Evolución de ingresos por departamento</li><li>Estructura de costes y GOP</li></ul></div>
-                </div>
-              </section>
-
-              <section className="slide-sec" id="sec-hist">
-                <span className="savmark">PDB</span>
-                <div className="sec-title"><span className="hl">2. Revisión</span> · Datos Históricos</div>
-                <p className="headline" style={{ borderLeftColor: 'var(--accent)' }}>{analysis?.histHeadline || 'Comentarios por línea de ingresos.'}</p>
-                <div className="ms-pnl-wrap"><table className="msp"><thead><tr>
-                  <th className="l">k€</th><th>2023A</th><th>2024A</th><th>2025A</th><th>CAGR</th><th>YoY</th>
-                </tr></thead><tbody>
-                  {pnl.filter(r => r.t !== 'kpi').map(r => {
-                    if (r.t === 'sect') return <tr className="sect" key={r.id}><td className="l" colSpan={6}>{r.label}</td></tr>
-                    const c = cagr(r.v), y = yoy(r.v)
-                    return (
-                      <tr className={r.t} key={r.id}>
-                        <td className="l">{r.label}</td>
-                        <td className="mono">{fmtVal(r.v[0], r.fmt)}</td><td className="mono">{fmtVal(r.v[1], r.fmt)}</td><td className="mono">{fmtVal(r.v[2], r.fmt)}</td>
-                        <td className={'mono delta ' + (c >= 0 ? 'up' : 'down')}>{pctTxt(c)}</td>
-                        <td className={'mono delta ' + (y >= 0 ? 'up' : 'down')}>{pctTxt(y)}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody></table></div>
-                <h4 style={{ fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 700, margin: '26px 0 4px' }}>Comentarios · Ingresos</h4>
-                <div className="comments">
-                  {cmtOrder.map((k, i) => analysis?.comments?.[k]
-                    ? <div className="cmt" key={k}><div className="cn">{i + 1}</div><div className="cc"><h5>{k}</h5><p>{analysis.comments[k]}</p></div></div>
-                    : null)}
-                </div>
-              </section>
-            </div>
+          <h4 style={{ fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 700, margin: '26px 0 6px' }}>Comentarios · Ingresos</h4>
+          <div className="comments">
+            {cmtOrder.map((k, i) => analysis?.comments?.[k]
+              ? <div className="cmt" key={k}><div className="cn">{i + 1}</div><div className="cc"><h5>{k}</h5><p>{analysis.comments[k]}</p></div></div>
+              : null)}
           </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ════════════════════════════ HOME ════════════════════════════════════ */
-const FEATS = {
-  contracts: ['Carga de contratos en PDF, Word o TXT', 'Análisis cláusula a cláusula según plantilla por equipo', 'Detección de puntos a revisar y no localizados', 'Exportación a Word y modo presentación'],
-  score: ['Competitive set por ciudad con puntos turísticos', 'Autocompletado por IA desde el nombre del hotel', 'Score ponderado: ubicación, producto y reputación', 'Ranking comparativo vs media del comp set'],
-  slides: ['Microsite ejecutiva a partir del P&L', 'Titular insight-driven y comentarios por línea', 'Exportación a PDF / impresión'],
-}
-function HomePane({ go }) {
-  return (
-    <div className="home">
-      <h1>Hoteles</h1>
-      <p className="lead">Suite de análisis hotelero. Tres módulos que comparten datos: revisión de contratos, evaluación de activos y generación de presentaciones.</p>
-      <div className="mods">
-        <div className="mod-card" onClick={() => go('contracts')}>
-          <div className="mc-top"><div className="mc-ic a"><FileText size={20} /></div><div className="mc-t"><div className="h">Revisión de contratos</div><div className="s">Análisis automático de documentos contractuales</div></div><span className="mc-tag a">Módulo 1</span></div>
-          <div className="mc-feats">{FEATS.contracts.map(f => <div key={f}><span className="fi">›</span> {f}</div>)}</div>
-        </div>
-        <div className="mod-card" onClick={() => go('score')}>
-          <div className="mc-top"><div className="mc-ic b"><Star size={20} /></div><div className="mc-t"><div className="h">Score de hoteles</div><div className="s">Evaluación y puntuación de propiedades</div></div><span className="mc-tag b">Módulo 2</span></div>
-          <div className="mc-feats">{FEATS.score.map(f => <div key={f}><span className="fi">›</span> {f}</div>)}</div>
-        </div>
-        <div className="mod-card" onClick={() => go('slides')}>
-          <div className="mc-top"><div className="mc-ic c"><LayoutGrid size={20} /></div><div className="mc-t"><div className="h">Presentación</div><div className="s">Generación de microsites ejecutivas</div></div><span className="mc-tag c">Módulo 3</span></div>
-          <div className="mc-feats">{FEATS.slides.map(f => <div key={f}><span className="fi">›</span> {f}</div>)}</div>
-        </div>
+        </section>
       </div>
     </div>
   )
 }
 
 /* ════════════════════════════ SHELL ═══════════════════════════════════ */
-const NAV = [
-  { v: 'home', label: 'Inicio', icon: Home },
-  { v: 'contracts', label: 'Revisión de contratos', icon: FileText },
-  { v: 'score', label: 'Score de hoteles', icon: Star },
-  { v: 'slides', label: 'Presentación', icon: LayoutGrid },
+const TABS = [
+  { v: 'contracts', label: 'Revisión de contratos', sub: 'Análisis HLA', icon: FileText },
+  { v: 'score', label: 'Score de hoteles', sub: 'Comp set / Gravity', icon: Star },
+  { v: 'slides', label: 'Presentación', sub: 'BP Review · microsite', icon: LayoutGrid },
 ]
-function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) }
-
 export default function HotelesView() {
-  const [view, setView] = useState('home')
-  const go = v => { setView(v); try { document.querySelector('.hot-skin .content')?.scrollTo(0, 0) } catch { /* noop */ } }
-
+  const [view, setView] = useState('contracts')
   return (
     <div className="hot-skin">
-      <aside className="side">
-        <div className="logo"><div className="mark">H</div><div className="nm">Hoteles</div></div>
-        <nav className="nav">
-          {NAV.map(n => {
-            const Ico = n.icon
+      <div className="hot-top">
+        <div className="hot-top-head">
+          <div className="hot-mark">H</div>
+          <div><div className="hot-h1">Hoteles</div><div className="hot-h2">Suite de análisis hotelero · contratos, score y presentaciones</div></div>
+        </div>
+        <div className="hot-tabs">
+          {TABS.map(t => {
+            const Ico = t.icon
             return (
-              <a key={n.v} className={view === n.v ? 'active' : ''} onClick={() => go(n.v)}>
-                <span className="nicon"><Ico size={16} /></span> {n.label}
-                {n.v === 'slides' && <span className="soon">Beta</span>}
-              </a>
+              <button key={t.v} className={'hot-tab' + (view === t.v ? ' active' : '')} onClick={() => setView(t.v)}>
+                <span className="tic"><Ico size={19} /></span>
+                <span className="tt"><span className="a">{t.label}</span><span className="b">{t.sub}</span></span>
+              </button>
             )
           })}
-        </nav>
-      </aside>
-      <div className="content">
-        <section className={'view' + (view === 'home' ? ' active' : '')}><HomePane go={go} /></section>
-        <section className={'view' + (view === 'contracts' ? ' active' : '')}>
-          <div className="mhead"><div className="eyebrow">Hoteles · Módulo 1</div></div>
-          <ModContratos />
-        </section>
-        <section className={'view' + (view === 'score' ? ' active' : '')}>
-          <div className="mhead"><div className="eyebrow">Hoteles · Módulo 2</div></div>
-          <ModScore />
-        </section>
-        <section className={'view' + (view === 'slides' ? ' active' : '')}><ModSlides /></section>
+        </div>
+      </div>
+      <div className="hot-scroll">
+        {/* Montados siempre: cambiar de botón no pierde el trabajo en curso */}
+        <div style={{ display: view === 'contracts' ? 'block' : 'none' }}><ModContratos /></div>
+        <div style={{ display: view === 'score' ? 'block' : 'none' }}><ModScore /></div>
+        <div style={{ display: view === 'slides' ? 'block' : 'none' }}><ModSlides /></div>
       </div>
     </div>
   )
