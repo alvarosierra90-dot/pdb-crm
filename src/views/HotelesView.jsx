@@ -16,7 +16,7 @@ import {
  * IA vía nuestro proxy serverless /api/anthropic (clave server-side).
  * ========================================================================== */
 
-const AI_MODEL = 'gemini-2.0-flash'
+const AI_MODEL = 'gemini-2.5-flash'
 const YEAR = new Date().getFullYear()
 
 // ── Template HLA (verbatim del Excel 2. 260612_Template_HLA) ──
