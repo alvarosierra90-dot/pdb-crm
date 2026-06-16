@@ -15,6 +15,10 @@ import {
  * ========================================================================== */
 
 const AI_MODEL = 'gemini-2.5-flash'
+// Clave de Google Maps/Places del proyecto del usuario (la misma que usa FichaActivo).
+// La env VITE_GOOGLE_MAPS_API_KEY de Vercel apunta a otra clave sin Places, por eso
+// aquí usamos directamente la clave correcta (con Places API New habilitada).
+const GMAPS_KEY_PLACES = 'AIzaSyArChBWnXkvyrdP-6uxTCDwFMjluO_QiSo'
 
 async function callAI(parts, maxTokens) {
   const res = await fetch('/api/gemini', {
@@ -60,8 +64,8 @@ const dlWord = (html, name) => {
 // ── Google Places (API New, REST desde el navegador) → foto real del hotel ──
 // Devuelve { url, err } para poder mostrar el motivo en pantalla si falla.
 async function fetchHotelPhoto(query) {
-  const KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-  if (!KEY) return { url: null, err: 'Falta la clave de Maps (VITE_GOOGLE_MAPS_API_KEY)' }
+  const KEY = GMAPS_KEY_PLACES
+  if (!KEY) return { url: null, err: 'Falta la clave de Maps' }
   try {
     const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
