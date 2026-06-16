@@ -14,6 +14,7 @@ import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
 import { supabase } from '../lib/supabase'
 import {
   USOS_PRINCIPALES, normalizeUso, calidadesDe, camposSuperficie, buildMetricas, usoTag,
+  CALIDADES_POR_USO,
 } from '../lib/usoConfig'
 import {
   Building2, Factory, ShoppingBag, Server, Home, Hotel, Square,
@@ -4981,27 +4982,40 @@ export default function FichaActivo() {
   }
 
   // ── Sugerencias automáticas por similitud ───────────────────────────────
-  // Query: activos con misma zona, misma ciudad o mismo uso (top 12),
-  // excluyendo el propio activo y los ya añadidos como competidor manual.
+  // Jerarquía: (1) MISMO Uso principal (obligatorio · nunca otro uso),
+  // (2) proximidad de SBA, (3) cercanía de Calidad en la escala propia del uso
+  // (en Hotel, además, coincidencia de Tipo de hotel afina el desempate).
   const reloadSugerencias = async () => {
-    if (!activo?.id) return
+    if (!activo?.id || !activo.uso) { setSugerencias([]); return }
     try {
       const usados = new Set(competidores.map(c => c.competidor_id))
-      const conds = []
-      if (activo.zona)   conds.push(`zona.eq.${activo.zona}`)
-      if (activo.ciudad) conds.push(`ciudad.eq.${activo.ciudad}`)
-      if (activo.uso)    conds.push(`uso.eq.${activo.uso}`)
-      const orClause = conds.length ? conds.join(',') : null
-      let query = supabase.from('activos')
-        .select('id,ref,nombre,zona,subzona,ciudad,uso,sba,occupancy_rate,renta_zona,leed,n_edificios,stacking_data')
-        .neq('id', activo.id).limit(12)
-      if (orClause) query = query.or(orClause)
-      const { data = [] } = await query
-      const filtradas = (data || []).filter(a => !usados.has(a.id))
-      // Calcular score por similitud y ordenar
-      const conScore = filtradas.map(a => ({ competidor: a, ...computeSimilarity(a) }))
-        .filter(s => s.score > 0)
-        .sort((x,y) => y.score - x.score)
+      const usoA = normalizeUso(activo.uso)
+      const { data = [] } = await supabase.from('activos')
+        .select('id,ref,nombre,zona,subzona,ciudad,uso,calidad,metricas,sba,occupancy_rate,renta_zona,leed,n_edificios,stacking_data')
+        .neq('id', activo.id).limit(60)
+      // (1) Filtro obligatorio: mismo Uso principal
+      const filtradas = (data || []).filter(a => !usados.has(a.id) && normalizeUso(a.uso) === usoA)
+
+      // (3) Cercanía de calidad en la escala del uso (0..1). -1 si no informada.
+      const escala = CALIDADES_POR_USO[usoA] || []
+      const idxA   = escala.indexOf(activo.calidad)
+      const qualCloseness = (a) => {
+        const idxO = escala.indexOf(a.calidad)
+        if (idxA < 0 || idxO < 0) return -1   // sin calidad → baja prioridad, no excluye
+        let q = 1 - Math.abs(idxA - idxO) / Math.max(1, escala.length - 1)
+        if (usoA === 'Hotel') {   // afinador por Tipo de hotel
+          const tA = activo.metricas?.tipo_hotel, tO = a.metricas?.tipo_hotel
+          if (tA && tO && tA === tO) q += 0.25
+        }
+        return q
+      }
+      const sbaA = Number(activo.sba) || null
+      const sbaDiff = (a) => { const o = Number(a.sba) || null; return (sbaA && o) ? Math.abs(o - sbaA) : Infinity }
+
+      const conScore = filtradas
+        .map(a => ({ competidor: a, sbaDiff: sbaDiff(a), qual: qualCloseness(a), ...computeSimilarity(a) }))
+        // (2) proximidad de SBA → (3) cercanía de calidad/tipo
+        .sort((x,y) => (x.sbaDiff - y.sbaDiff) || (y.qual - x.qual))
         .slice(0, 6)
       const enriched = await enrichWithKpis(conScore)
       setSugerencias(enriched)
