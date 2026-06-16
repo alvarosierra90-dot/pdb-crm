@@ -549,7 +549,7 @@ function ModScore() {
     // 3) Google Places (extra, solo si la clave lo permite)
     const p = await fetchHotelPhoto(`${hotel.name}${city ? ', ' + city : ''}`)
     if (p.url && await preloadImg(p.url)) { setHotel(hotel.id, { photo: p.url, photoErr: '' }); return }
-    setHotel(hotel.id, { photoErr: 'Sin foto disponible para este hotel' })
+    setHotel(hotel.id, { photoErr: `Sin foto · web (${web || hotel.web || '—'}): ${o.err} · img IA: ${image ? 'rota' : 'no'}` })
   }
   const autofill = async (hotel) => {
     setBusy(b => ({ ...b, [hotel.id]: true }))
