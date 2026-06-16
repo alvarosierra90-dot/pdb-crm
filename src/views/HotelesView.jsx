@@ -70,29 +70,35 @@ async function fetchHotelPhoto(query) {
   try {
     await loadMaps()
     const g = window.google
-    // 1) API nueva de Places (Places API New) — la válida para proyectos recientes
+    const places = g?.maps?.places
+    // 1) API nueva de Places (solo si está disponible en este bootstrap)
     try {
-      const lib = await g.maps.importLibrary('places')
-      const Place = lib.Place || g.maps.places.Place
+      let Place = places?.Place
+      if (!Place && typeof g?.maps?.importLibrary === 'function') Place = (await g.maps.importLibrary('places')).Place
       if (Place?.searchByText) {
-        const { places } = await Place.searchByText({ textQuery: query, fields: ['photos'], maxResultCount: 1 })
-        const ph = places?.[0]?.photos?.[0]
+        const { places: rs } = await Place.searchByText({ textQuery: query, fields: ['photos'], maxResultCount: 1, includedType: 'lodging' })
+        const ph = rs?.[0]?.photos?.[0]
         if (ph?.getURI) return ph.getURI({ maxWidth: 640, maxHeight: 420 })
-        console.warn('[Hoteles] Places (new) sin foto para:', query)
       }
-    } catch (e) { console.warn('[Hoteles] Places API (new) falló:', e?.message || e) }
-    // 2) Fallback: API clásica (Places API) — proyectos antiguos
-    try {
-      return await new Promise(resolve => {
-        const svc = new g.maps.places.PlacesService(document.createElement('div'))
-        svc.findPlaceFromQuery({ query, fields: ['photos', 'name'] }, (results, status) => {
-          if (status === g.maps.places.PlacesServiceStatus.OK && results?.[0]?.photos?.length)
-            resolve(results[0].photos[0].getUrl({ maxWidth: 640, maxHeight: 420 }))
-          else { console.warn('[Hoteles] Places (legacy) status:', status, 'query:', query); resolve(null) }
+    } catch (e) { console.warn('[Hoteles] Places (new):', e?.message || e) }
+    // 2) API clásica (Places API) — con respaldo a getDetails si la ficha no trae foto directa
+    if (places?.PlacesService) {
+      const svc = new places.PlacesService(document.createElement('div'))
+      const cand = await new Promise(resolve => {
+        svc.findPlaceFromQuery({ query, fields: ['photos', 'place_id', 'name'] }, (results, status) => {
+          if (status === places.PlacesServiceStatus.OK && results?.[0]) resolve(results[0])
+          else { console.warn('[Hoteles] Places (legacy) status:', status); resolve(null) }
         })
       })
-    } catch (e) { console.warn('[Hoteles] PlacesService falló:', e?.message || e); return null }
-  } catch (e) { console.warn('[Hoteles] Google Maps no cargó:', e?.message || e); return null }
+      if (cand?.photos?.length) return cand.photos[0].getUrl({ maxWidth: 640, maxHeight: 420 })
+      if (cand?.place_id) {
+        const det = await new Promise(resolve => svc.getDetails({ placeId: cand.place_id, fields: ['photos'] },
+          (r, s) => resolve(s === places.PlacesServiceStatus.OK ? r : null)))
+        if (det?.photos?.length) return det.photos[0].getUrl({ maxWidth: 640, maxHeight: 420 })
+      }
+    }
+    return null
+  } catch (e) { console.warn('[Hoteles] Google Maps:', e?.message || e); return null }
 }
 // Respaldo: foto de la web oficial del hotel (og:image) vía nuestro serverless
 async function fetchOgImage(web) {
