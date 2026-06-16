@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import '../styles/hoteles.css'
 import {
   FileText, Star, LayoutGrid, UploadCloud, ChevronRight, Download, Printer,
-  Trash2, Sparkles, RotateCcw, Wifi, MapPin, ArrowUp, MessageSquare, Building2,
+  Trash2, Sparkles, RotateCcw, Wifi, MapPin, ArrowUp, MessageSquare, Building2, Check,
 } from 'lucide-react'
 
 /* ============================================================================
@@ -87,12 +87,12 @@ function BackToTop() {
 }
 
 // Card de cláusula (a nivel de módulo: el input de comentario no pierde el foco)
-function ClauseCard({ it, clickable, onOpen, comment, onComment }) {
+function ClauseCard({ it, clickable, onOpen, comment, onComment, reviewed, onReview }) {
   const st = it.status === 'missing' ? 'miss' : it.status === 'attention' ? 'attn' : 'found'
   const ref = it.clause || ''
   const pg = (it.pageNum !== '' && it.pageNum != null) ? it.pageNum : ''
   return (
-    <div className={'clause ' + st + (clickable ? ' clickable' : '')} onClick={clickable ? () => onOpen(it) : undefined}>
+    <div id={'cl-' + it._idx} className={'clause ' + st + (clickable ? ' clickable' : '') + (reviewed ? ' reviewed' : '')} onClick={clickable ? () => onOpen(it) : undefined}>
       <div className="dot" />
       <div className="c-main">
         <div className="c-cat">{it._cat}{it._sub && it._sub !== '-' && <span className="c-sub">{it._sub}</span>}</div>
@@ -115,6 +115,9 @@ function ClauseCard({ it, clickable, onOpen, comment, onComment }) {
         {st === 'attn' && <span className="tag attn">Revisar</span>}
         {st === 'found' && <span className="tag ok">OK</span>}
         {(comment || '').trim() && <span className="tag blue">Comentario</span>}
+        <button className={'c-ok' + (reviewed ? ' on' : '')} onClick={e => { e.stopPropagation(); onReview(it._idx) }}>
+          <Check size={14} /> {reviewed ? 'Revisado' : 'Marcar OK'}
+        </button>
       </div>
     </div>
   )
@@ -174,9 +177,11 @@ function ModContratos() {
   const [err, setErr] = useState('')
   const [analysis, setAnalysis] = useState(null)
   const [comments, setComments] = useState({})
+  const [reviewed, setReviewed] = useState({})
   const [sec, setSec] = useState('resumen')
   const impRef = useRef(null), docRef = useRef(null), msRef = useRef(null)
   const onComment = (idx, val) => setComments(c => ({ ...c, [idx]: val }))
+  const onReview = idx => setReviewed(r => ({ ...r, [idx]: !r[idx] }))
   const ready = criteria.length > 0 && !!doc
 
   const downloadBlank = async () => {
@@ -253,7 +258,7 @@ function ModContratos() {
         ...it, _idx: i, _cat: criteria[i]?.[0] || '', _sub: criteria[i]?.[1] || '',
         clause: it.clause || it.page || '', pageNum: (it.pageNum ?? it.page_num ?? '') === null ? '' : (it.pageNum ?? it.page_num ?? ''),
       }))
-      setComments({}); setAnalysis({ meta: j.meta || {}, items }); setSec('resumen')
+      setComments({}); setReviewed({}); setAnalysis({ meta: j.meta || {}, items }); setSec('resumen')
     } catch (e) { setErr('No se pudo completar el análisis: ' + e.message + '. Revisa el contrato e inténtalo de nuevo.') }
     finally { setLoading(false) }
   }
@@ -296,7 +301,14 @@ function ModContratos() {
       window.open(doc.url + (pg ? '#page=' + pg : ''), '_blank', 'noopener')
     }
     const pending = items.filter(it => (comments[it._idx] || '').trim())
-    const cardOf = it => <ClauseCard key={it._idx} it={it} clickable={canOpen && it.status !== 'missing'} onOpen={openClause} comment={comments[it._idx]} onComment={onComment} />
+    const cardOf = it => <ClauseCard key={it._idx} it={it} clickable={canOpen && it.status !== 'missing'} onOpen={openClause} comment={comments[it._idx]} onComment={onComment} reviewed={!!reviewed[it._idx]} onReview={onReview} />
+    const goToClause = idx => {
+      setSec('clausulas')
+      setTimeout(() => {
+        const el = msRef.current?.querySelector('#cl-' + idx)
+        if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1600) }
+      }, 60)
+    }
     return (
       <div className="wrap">
         <div className="ms-toolbar hot-no-print">
@@ -335,8 +347,8 @@ function ModContratos() {
             <p className="headline" style={{ borderLeftColor: 'var(--blue)' }}>Escribe un comentario en cualquier card (campo inferior) y aparecerá aquí como punto a completar para tu revisión.</p>
             {pending.length
               ? pending.map(it => (
-                <div className="complete-card" key={it._idx}>
-                  <div className="cc-h">{it._cat}{it._sub && it._sub !== '-' ? <span className="c-sub" style={{ display: 'inline', marginLeft: 8 }}>· {it._sub}</span> : null}</div>
+                <div className="complete-card" key={it._idx} onClick={() => goToClause(it._idx)} title="Ir a la cláusula">
+                  <div className="cc-h">{it._cat}{it._sub && it._sub !== '-' ? <span className="c-sub" style={{ display: 'inline', marginLeft: 8 }}>· {it._sub}</span> : null}<span className="cc-go">Ir a la cláusula →</span></div>
                   <div className="cc-cmt">{comments[it._idx]}</div>
                   {(it.clause || it.pageNum) && <div className="cc-ref">{[it.clause, it.pageNum ? 'Página ' + it.pageNum : ''].filter(Boolean).join('  ·  ')}</div>}
                 </div>
@@ -920,7 +932,7 @@ Cuenta de explotación (k€ salvo indicado):\n${lines}`
         <section className="ms-sec" id="hs-exec">
           <div className="ms-h"><span className="hl">1. Resumen Ejecutivo</span></div>
           <p className="headline">{analysis?.headline || 'El titular ejecutivo aparecerá aquí tras generar el análisis.'}</p>
-          <div className="mk-grid">
+          <div className="mk-grid one-row">
             {kpiWant.map(([lbl, disp]) => {
               const r = findRow(lbl); if (!r) return null
               const y = yoy(r.v); const up = y >= 0

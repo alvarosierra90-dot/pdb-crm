@@ -131,8 +131,11 @@
 
 /* tarjetas KPI microsite */
 .hot-skin .mk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:6px 0}
-.hot-skin .mk{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:#fff}
-.hot-skin .mk .k-l{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+.hot-skin .mk-grid.one-row{grid-template-columns:repeat(6,minmax(0,1fr))}
+.hot-skin .mk{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:#fff;min-width:0}
+.hot-skin .mk-grid.one-row .mk{padding:16px 14px}
+.hot-skin .mk-grid.one-row .mk .k-v{font-size:25px}
+.hot-skin .mk .k-l{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hot-skin .mk .k-v{font-size:32px;font-weight:300;letter-spacing:-.02em;line-height:1;margin-top:10px}
 .hot-skin .mk .k-d{font-size:12px;font-weight:700;margin-top:9px;display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:7px}
 .hot-skin .mk .k-d.up{background:var(--good-soft);color:var(--good)} .hot-skin .mk .k-d.down{background:var(--miss-soft);color:var(--miss)}
@@ -155,12 +158,20 @@
 .hot-skin .clause.clickable{cursor:pointer;transition:.13s}
 .hot-skin .clause.clickable:hover{border-color:var(--accent-bd);background:#fbfdfc;box-shadow:0 2px 10px rgba(20,20,18,.05)}
 .hot-skin .clause .c-side{flex:none;text-align:right;min-width:90px;display:flex;flex-direction:column;gap:7px;align-items:flex-end}
+.hot-skin .clause.reviewed{border-color:var(--good);border-left-color:var(--good);background:#fafdfb}
+.hot-skin .clause.flash{animation:hot-flash 1.6s ease}
+@keyframes hot-flash{0%,100%{box-shadow:0 0 0 0 rgba(31,95,91,0)}25%{box-shadow:0 0 0 4px var(--accent-soft)}}
+.hot-skin .c-ok{display:inline-flex;align-items:center;gap:5px;border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);border-radius:9px;padding:7px 11px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;transition:.13s;white-space:nowrap}
+.hot-skin .c-ok:hover{border-color:var(--good);color:var(--good)}
+.hot-skin .c-ok.on{background:var(--good);border-color:var(--good);color:#fff}
 .hot-skin .clause .c-cmt{display:flex;align-items:center;gap:9px;margin-top:12px;color:var(--ink-soft)}
 .hot-skin .clause .c-cmt-inp{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;font-family:inherit;font-size:13.5px;background:#fcfcfb;color:var(--ink)}
 .hot-skin .clause .c-cmt-inp:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
 /* Puntos por completar */
-.hot-skin .complete-card{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:13px;padding:18px 22px;margin-bottom:12px;background:#fff}
-.hot-skin .complete-card .cc-h{font-size:16px;font-weight:700}
+.hot-skin .complete-card{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:13px;padding:18px 22px;margin-bottom:12px;background:#fff;cursor:pointer;transition:.13s}
+.hot-skin .complete-card:hover{border-color:var(--blue);background:#fbfdff}
+.hot-skin .complete-card .cc-h{font-size:16px;font-weight:700;display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+.hot-skin .complete-card .cc-go{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--blue)}
 .hot-skin .complete-card .cc-cmt{font-size:14.5px;color:#2f2f2b;margin-top:8px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
 .hot-skin .complete-card .cc-ref{font-size:12.5px;color:var(--ink-soft);margin-top:10px}
 /* Volver arriba */
@@ -326,6 +337,7 @@
   .hot-skin .hot-tab{min-width:0;flex:1}
   .hot-skin .hot-tab .tt .b{display:none}
   .hot-skin .kpis.k4,.hot-skin .kpis.k6{grid-template-columns:repeat(2,1fr)}
+  .hot-skin .mk-grid.one-row{grid-template-columns:repeat(3,1fr)}
   .hot-skin .podium{grid-template-columns:1fr}
   .hot-skin .ms-band,.hot-skin .ms-nav,.hot-skin .ms-sec{padding-left:20px;padding-right:20px}
   .hot-skin .wrap{padding:20px 18px 80px}
