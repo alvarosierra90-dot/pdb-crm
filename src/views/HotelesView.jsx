@@ -37,12 +37,19 @@ const parseJSON = raw => JSON.parse((raw || '').replace(/```json|```/g, '').trim
 const uid = () => Math.random().toString(36).slice(2, 9)
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
 function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) }
+// Imprime SOLO el informe: abre una ventana con el contenido clonado + los
+// estilos de la app, para que pagine y maquete bien (sin sacar toda la PDB).
 function printNode(node) {
   if (!node) return
-  node.classList.add('hot-print')
-  const done = () => { node.classList.remove('hot-print'); window.removeEventListener('afterprint', done) }
-  window.addEventListener('afterprint', done)
-  window.print()
+  const w = window.open('', 'hot_print', 'width=940,height=1000')
+  if (!w) { window.print(); return }
+  const styles = [...document.querySelectorAll('link[rel="stylesheet"],style')].map(n => n.outerHTML).join('\n')
+  w.document.open()
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8">${styles}<style>html,body{margin:0;padding:0;background:#fff}.hot-skin.print-host{display:block!important;overflow:visible!important;height:auto!important;min-height:0!important}</style></head><body><div class="hot-skin print-host">${node.outerHTML}</div></body></html>`)
+  w.document.close()
+  const go = () => { try { w.focus(); w.print() } catch { /* noop */ } }
+  w.onload = go
+  setTimeout(go, 900)
 }
 const dlWord = (html, name) => {
   const a = document.createElement('a')
@@ -480,6 +487,12 @@ function HotelPhoto({ src, className }) {
   return <div className={className + ' ph'}><Building2 size={18} /></div>
 }
 const scoreColor = t => t >= 3.5 ? 'var(--good)' : t >= 2.5 ? 'var(--accent)' : 'var(--warn)'
+const scoreTint = t => t >= 3.5 ? 'var(--good-soft)' : t >= 2.5 ? 'var(--accent-soft)' : 'var(--warn-soft)'
+function Stars({ n }) {
+  const v = Math.round(+n || 0)
+  if (!v) return null
+  return <span className="rk-stars">{[1, 2, 3, 4, 5].map(i => <span key={i} className={i <= v ? 'on' : ''}>★</span>)}</span>
+}
 
 function AddHotel({ value, onChange, onAdd }) {
   return (
@@ -751,7 +764,7 @@ Puntos turísticos: ${poiNames.join(', ')}`
                       <HotelPhoto src={h.photo} className="pod-photo" />
                       <div className="medal">{i + 1}</div>
                       <div className="pn">{h.name}{h.isSubject ? ' ·' : ''}</div>
-                      {!!Math.round(+h.stars) && <div className="pstars">{'★'.repeat(Math.round(+h.stars))}</div>}
+                      <div className="pstars"><Stars n={h.stars} /></div>
                       <div className="pscore" style={{ color: scoreColor(d.total) }}>{(d.total * 20).toFixed(0)}<small>/100</small></div>
                       {h.inCS === 'Yes' && csAvg.total ? <div className="pvs"><span className={'vsbar ' + (vs >= 0 ? 'up' : 'down')}>{vs >= 0 ? '+' : ''}{vs.toFixed(0)}% vs media</span></div> : null}
                     </div>
@@ -767,14 +780,20 @@ Puntos turísticos: ${poiNames.join(', ')}`
                   <div className={'rk-card' + (h.isSubject ? ' subject' : '')} key={h.id}>
                     <div className="rk-top">
                       <div className={'rk-pos' + (i < 3 ? ' p' + (i + 1) : '')}>{i + 1}</div>
-                      <HotelPhoto src={h.photo} className="rk-photo" />
+                      <HotelPhoto src={h.photo} className="rk-photo big" />
                       <div className="rk-name">
                         <div className="nn">{h.name}
                           {h.isSubject && <span className="h-tag subj">Objeto</span>}
                           {h.inCS === 'Yes' && csAvg.total ? <span className={'vsbar ' + (vs >= 0 ? 'up' : 'down')}>{vs >= 0 ? '+' : ''}{vs.toFixed(0)}% vs media</span> : null}</div>
-                        <div className="ss">{h.address || h.group || ''}{h.keys ? ` · ${h.keys} hab.` : ''}</div>
+                        <div className="ss">
+                          <Stars n={h.stars} />
+                          <span className="ss-t">{[h.address || h.group, h.keys ? `${h.keys} hab.` : ''].filter(Boolean).join(' · ')}</span>
+                        </div>
                       </div>
-                      <div className="rk-total"><div className="n mono" style={{ color: scoreColor(d.total) }}>{(d.total * 20).toFixed(0)}</div><div className="s">{d.total.toFixed(1)}/5</div></div>
+                      <div className="rk-total">
+                        <div className="rk-badge" style={{ background: scoreTint(d.total), color: scoreColor(d.total) }}>{(d.total * 20).toFixed(0)}</div>
+                        <div className="s">{d.total.toFixed(1)} / 5</div>
+                      </div>
                     </div>
                     <Bars d={d} />
                     <DataChips h={h} />
