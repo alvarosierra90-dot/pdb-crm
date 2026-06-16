@@ -28,3 +28,6 @@ dist-ssr
 
 # Build artifacts del generador de PPTX (regenerables con node scripts/build-pptx.mjs)
 .cache-pptx/
+
+# Material de referencia del módulo Hoteles (no versionar)
+/Hoteles/
