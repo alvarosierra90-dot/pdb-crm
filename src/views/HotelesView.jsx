@@ -546,7 +546,8 @@ function ModScore() {
     const o = await fetchOgImage(web || hotel.web)   // respaldo: web oficial del hotel
     if (o.url && await preloadImg(o.url)) { setHotel(hotel.id, { photo: o.url, photoErr: '' }); return }
     const placesMsg = p.url ? 'foto de Google bloqueada al cargar (SKU Place Photos / restricción de clave)' : (p.err || 'sin foto')
-    setHotel(hotel.id, { photoErr: `Google → ${placesMsg}  ·  ${o.err}` })
+    const tail = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').slice(-6)
+    setHotel(hotel.id, { photoErr: `Google → ${placesMsg}  ·  ${o.err}  ·  clave …${tail}` })
   }
   const autofill = async (hotel) => {
     setBusy(b => ({ ...b, [hotel.id]: true }))
