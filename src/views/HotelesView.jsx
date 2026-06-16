@@ -79,13 +79,13 @@ async function fetchHotelPhoto(query) {
 const preloadImg = src => new Promise(res => { const im = new Image(); im.onload = () => res(true); im.onerror = () => res(false); im.src = src })
 // Respaldo: foto de la web oficial del hotel (og:image) vía nuestro serverless
 async function fetchOgImage(web) {
-  if (!web) return null
+  if (!web) return { url: null, err: 'sin web' }
   try {
     const r = await fetch('/api/oimg?url=' + encodeURIComponent(web))
-    if (!r.ok) return null
-    const d = await r.json()
-    return d.image || null
-  } catch { return null }
+    const d = await r.json().catch(() => ({}))
+    if (d.image) return { url: d.image, err: null }
+    return { url: null, err: d.error ? 'web: ' + d.error : 'web sin og:image' }
+  } catch (e) { return { url: null, err: 'web: ' + (e?.message || e) } }
 }
 
 // Volver arriba (scrollea el contenedor interno del módulo)
@@ -541,11 +541,12 @@ function ModScore() {
   }
 
   const resolveHotelPhoto = async (hotel, web) => {
-    const { url, err } = await fetchHotelPhoto(`${hotel.name}${city ? ', ' + city : ''}`)
-    if (url && await preloadImg(url)) { setHotel(hotel.id, { photo: url, photoErr: '' }); return }
-    const og = await fetchOgImage(web || hotel.web)   // respaldo: web oficial del hotel
-    if (og && await preloadImg(og)) { setHotel(hotel.id, { photo: og, photoErr: '' }); return }
-    setHotel(hotel.id, { photoErr: url ? 'La foto de Google se bloqueó al cargar (revisa "Place Photos" / restricciones de la clave)' : (err || 'Sin foto') })
+    const p = await fetchHotelPhoto(`${hotel.name}${city ? ', ' + city : ''}`)
+    if (p.url && await preloadImg(p.url)) { setHotel(hotel.id, { photo: p.url, photoErr: '' }); return }
+    const o = await fetchOgImage(web || hotel.web)   // respaldo: web oficial del hotel
+    if (o.url && await preloadImg(o.url)) { setHotel(hotel.id, { photo: o.url, photoErr: '' }); return }
+    const placesMsg = p.url ? 'foto de Google bloqueada al cargar (SKU Place Photos / restricción de clave)' : (p.err || 'sin foto')
+    setHotel(hotel.id, { photoErr: `Google → ${placesMsg}  ·  ${o.err}` })
   }
   const autofill = async (hotel) => {
     setBusy(b => ({ ...b, [hotel.id]: true }))
