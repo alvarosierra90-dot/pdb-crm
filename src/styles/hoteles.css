@@ -125,8 +125,8 @@
 .hot-skin .ms-nav .num{font-weight:800;opacity:.6;margin-right:1px}
 .hot-skin .ms-sec{padding:30px 36px;border-bottom:1px solid var(--line-soft);scroll-margin-top:70px}
 .hot-skin .ms-sec:last-child{border-bottom:none}
-.hot-skin .ms-h{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin-bottom:14px}
-.hot-skin .ms-h .hl{background:#ffe500;padding:2px 8px;border-radius:4px;color:var(--ink)}
+.hot-skin .ms-h{font-size:25px;letter-spacing:-.015em;color:var(--ink);font-weight:720;margin-bottom:18px;line-height:1.15}
+.hot-skin .ms-h .hl{background:none;padding:0;color:var(--ink)}
 .hot-skin .headline{font-size:17px;line-height:1.5;color:#2a2a27;font-weight:500;margin:6px 0 18px;max-width:780px;border-left:3px solid var(--accent);padding-left:16px}
 
 /* tarjetas KPI microsite */
@@ -252,19 +252,19 @@
 .hot-skin .pnl-tools{display:flex;gap:11px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
 .hot-skin .pnl-tools .grow{flex:1}
 .hot-skin .pnl-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:auto}
-.hot-skin table.pnl{width:100%;border-collapse:collapse;font-size:13.5px}
-.hot-skin table.pnl th{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;padding:13px 12px;border-bottom:1px solid var(--line);text-align:right;background:#fcfcfb}
+.hot-skin table.pnl{width:100%;border-collapse:collapse;font-size:15.5px}
+.hot-skin table.pnl th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;padding:14px 14px;border-bottom:1px solid var(--line);text-align:right;background:#fcfcfb}
 .hot-skin table.pnl th.l{text-align:left}
-.hot-skin table.pnl td{padding:4px 12px;border-bottom:1px solid var(--line-soft);text-align:right}
+.hot-skin table.pnl td{padding:5px 14px;border-bottom:1px solid var(--line-soft);text-align:right}
 .hot-skin table.pnl td.l{text-align:left;font-weight:500}
-.hot-skin table.pnl tr.sect td{background:#f4f3f0;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;padding:10px 12px}
+.hot-skin table.pnl tr.sect td{background:#f4f3f0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;padding:11px 14px}
 .hot-skin table.pnl tr.tot td{font-weight:700;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .hot-skin table.pnl tr.kpi td{background:#fafdfc}
-.hot-skin table.pnl tr.sub td.l{padding-left:26px;color:var(--ink-soft);font-weight:400;font-style:italic}
-.hot-skin table.pnl input{width:84px;border:1.5px solid transparent;border-radius:8px;padding:7px 9px;font-size:13.5px;text-align:right;font-family:'JetBrains Mono',monospace;background:#fafaf8;color:var(--ink)}
+.hot-skin table.pnl tr.sub td.l{padding-left:28px;color:var(--ink-soft);font-weight:400;font-style:italic}
+.hot-skin table.pnl input{width:100px;border:1.5px solid transparent;border-radius:8px;padding:9px 11px;font-size:15.5px;text-align:right;font-family:'JetBrains Mono',monospace;background:#fafaf8;color:var(--ink)}
 .hot-skin table.pnl input:hover{background:#f2f1ee}
 .hot-skin table.pnl input:focus{outline:none;background:#fff;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-.hot-skin table.pnl input.lbl{width:auto;min-width:200px;text-align:left;font-family:inherit;font-size:13.5px;background:transparent}
+.hot-skin table.pnl input.lbl{width:auto;min-width:230px;text-align:left;font-family:inherit;font-size:15px;background:transparent}
 .hot-skin table.pnl input.lbl:hover{background:#f7f6f4}
 .hot-skin .unit{font-size:11px;color:var(--ink-soft)}
 .hot-skin .delta{font-weight:700}
@@ -273,12 +273,12 @@
 .hot-skin table.pnl tr:hover .rowdel{opacity:.5}
 .hot-skin .rowdel:hover{opacity:1!important;color:var(--miss)}
 .hot-skin .ms-pnl-wrap{border:1px solid var(--line);border-radius:13px;overflow:auto;margin-top:6px}
-.hot-skin table.msp{width:100%;border-collapse:collapse;font-size:13px}
-.hot-skin table.msp th{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;padding:11px 12px;border-bottom:1px solid var(--line);text-align:right;background:#fcfcfb}
+.hot-skin table.msp{width:100%;border-collapse:collapse;font-size:15.5px}
+.hot-skin table.msp th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;padding:13px 14px;border-bottom:1px solid var(--line);text-align:right;background:#fcfcfb}
 .hot-skin table.msp th.l{text-align:left}
-.hot-skin table.msp td{padding:7px 12px;border-bottom:1px solid var(--line-soft);text-align:right}
+.hot-skin table.msp td{padding:9px 14px;border-bottom:1px solid var(--line-soft);text-align:right}
 .hot-skin table.msp td.l{text-align:left}
-.hot-skin table.msp tr.sect td{background:#f4f3f0;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+.hot-skin table.msp tr.sect td{background:#f4f3f0;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
 .hot-skin table.msp tr.tot td{font-weight:700;border-top:1px solid var(--line)}
 .hot-skin table.msp tr.kpi td{background:#fafdfc;font-weight:600}
 .hot-skin table.msp tr.sub td.l{padding-left:24px;font-style:italic;color:var(--ink-soft)}

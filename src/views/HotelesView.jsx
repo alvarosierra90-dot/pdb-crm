@@ -239,8 +239,7 @@ function ModContratos() {
         </div>
         <div className="ms-doc" ref={msRef}>
           <div className="ms-band">
-            <div className="ms-brand">PDB</div>
-            <div className="ms-eyebrow">Revisión de contratos</div>
+              <div className="ms-eyebrow">Revisión de contratos</div>
             <div className="ms-title">{m.title || 'Análisis del contrato'}</div>
             <div className="ms-meta">{[m.parties, m.date ? 'Firma: ' + m.date : '', lobName].filter(Boolean).join('  ·  ')}</div>
           </div>
@@ -625,8 +624,7 @@ Puntos turísticos: ${poiNames.join(', ')}`
         </div>
         <div className="ms-doc" ref={resRef}>
           <div className="ms-band">
-            <div className="ms-brand">PDB</div>
-            <div className="ms-eyebrow">Score de hoteles · Comp set</div>
+              <div className="ms-eyebrow">Score de hoteles · Comp set</div>
             <div className="ms-title">Ranking comparativo — {city || 'ciudad'}</div>
             <div className="ms-meta">{hotels.length} hoteles · {csCount} en comp set · Ref.: {pois.map(p => p.name).filter(Boolean).join(', ') || '—'}</div>
           </div>
@@ -812,7 +810,6 @@ Cuenta de explotación (k€ salvo indicado):\n${lines}`
       </div>
       <div className="ms-doc" ref={msRef}>
         <div className="ms-band">
-          <div className="ms-brand">PDB</div>
           <div className="ms-eyebrow">Presentación · Business Plan Review</div>
           <div className="ms-title">{projName.trim() || 'Proyecto hotelero'}</div>
           <div className="ms-meta">Cuenta de explotación 2023A–2025A · Desempeño, márgenes y GOP</div>
