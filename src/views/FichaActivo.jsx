@@ -432,11 +432,14 @@ const MEDIOS_TRANSPORTE = ['Metro','Autobús','Cercanías','Tren','Tranvía','Bi
 export const ESTADOS_CONSTRUCCION = ['Cambio de uso en trámite','Construcción existente','En construcción','En demolición','En rehabilitación','LC + ICO obtenidos','LC + ICO solicitados','Licencia de construcción','Licencia primera ocupación','Llave en mano','Nueva construcción / Obra nueva','Proyecto','Rehabilitación integral','Rehabilitación parcial']
 // USOS_PRINCIPALES y la lógica de Calidad/Superficies viven en ../lib/usoConfig
 
+// Tipo de hotel — solo aplica cuando Uso principal === 'Hotel' (se guarda en metricas)
+const TIPOS_HOTEL = ['Boutique','Luxury','Lifestyle','Business','Urban','Resort','Aparthotel','Serviced Apartments','Extended Stay','Budget / Economy','Wellness & Spa','Convention / MICE','Heritage','Rural','Airport','Golf Resort','Beach Resort','Ski Resort']
+
 const NEW_FORM_INIT = {
   nombre:'', direccion:'', ciudad:'Madrid', provincia:'', municipio:'', pais:'España', cp:'', coordenadas:'',
   area:'', zona:'', subzona:'',
   tipo_activo:'Edificio', estado_construccion:'',
-  uso:'', uso_secundario:'', calidad:'',
+  uso:'', uso_secundario:'', calidad:'', tipo_hotel:'',
   propietario:'', asset_manager:'',
   sba:'', sup_planta_tipo:'', ratio_perdida:'',
   anno_construccion:'', anno_rehabilitacion:'',
@@ -2784,7 +2787,7 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
                 </select>
               </InlineField>
               <InlineField label={reqMark('Uso principal')} value={newForm.uso} display={reqShown(newForm.uso)} onSave={()=>{}}>
-                <select value={newForm.uso} onChange={e=>{setNF('uso',e.target.value);setNF('calidad','');setNF('area','');setNF('zona','');setNF('subzona','')}} style={sel}>
+                <select value={newForm.uso} onChange={e=>{setNF('uso',e.target.value);setNF('calidad','');setNF('area','');setNF('zona','');setNF('subzona','');if(normalizeUso(e.target.value)!=='Hotel')setNF('tipo_hotel','')}} style={sel}>
                   <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
                 </select>
               </InlineField>
@@ -2798,6 +2801,13 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
                   <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
                 </select>
               </InlineField>
+              {normalizeUso(newForm.uso)==='Hotel' && (
+                <InlineField label="Tipo de hotel" value={newForm.tipo_hotel||'—'} onSave={()=>{}}>
+                  <select value={newForm.tipo_hotel||''} onChange={e=>setNF('tipo_hotel',e.target.value)} style={sel}>
+                    <option value="">—</option>{TIPOS_HOTEL.map(t=><option key={t}>{t}</option>)}
+                  </select>
+                </InlineField>
+              )}
               <InlineField label="Calidad" value={newForm.calidad||'—'} onSave={()=>{}}>
                 <select value={newForm.calidad} onChange={e=>setNF('calidad',e.target.value)} style={sel}>
                   <option value="">—</option>{calidadesDe(newForm.uso, newForm.calidad).map(c=><option key={c}>{c}</option>)}
@@ -3307,7 +3317,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
     nombre:'', direccion:'', ciudad:'', provincia:'', municipio:'', pais:'España', cp:'', coordenadas:'',
     area:'', zona:'', subzona:'',
     tipo_activo:'Edificio', estado_construccion:'Construcción existente',
-    uso:'', uso_secundario:'', calidad:'',
+    uso:'', uso_secundario:'', calidad:'', tipo_hotel:'',
     asset_manager:'', sba:'', sup_planta_tipo:'', ratio_perdida:'',
     anno_construccion:'', anno_rehabilitacion:'',
     ref_catastral:'', uso_pgou:'', clasificacion_urb:'', calificacion_urb:'',
@@ -3408,7 +3418,10 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
     // Migración 040 — ubicación granular + métricas dinámicas por uso (jsonb)
     if (has('provincia'))         payload.provincia         = info.provincia         || null
     if (has('municipio'))         payload.municipio         = info.municipio          || null
-    if (has('metricas'))          payload.metricas          = buildMetricas(info)
+    if (has('metricas')) {
+      payload.metricas = buildMetricas(info)
+      if (normalizeUso(info.uso) === 'Hotel' && info.tipo_hotel) payload.metricas.tipo_hotel = info.tipo_hotel
+    }
 
     const { error } = await supabase.from('activos').update(payload).eq('ref', activo.ref)
     setSaving(false)
@@ -3624,7 +3637,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
               </select>
             </InlineField>
             <InlineField label="Uso principal" value={info.uso} onSave={()=>setDirty(true)}>
-              <select value={info.uso} onChange={e=>setI('uso',e.target.value)} style={sel}>
+              <select value={info.uso} onChange={e=>{ setI('uso',e.target.value); if(normalizeUso(e.target.value)!=='Hotel') setI('tipo_hotel','') }} style={sel}>
                 <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
               </select>
             </InlineField>
@@ -3633,6 +3646,13 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
                 <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
               </select>
             </InlineField>
+            {normalizeUso(info.uso)==='Hotel' && (
+              <InlineField label="Tipo de hotel" value={info.tipo_hotel||'—'} onSave={()=>setDirty(true)}>
+                <select value={info.tipo_hotel||''} onChange={e=>setI('tipo_hotel',e.target.value)} style={sel}>
+                  <option value="">—</option>{TIPOS_HOTEL.map(t=><option key={t}>{t}</option>)}
+                </select>
+              </InlineField>
+            )}
             <InlineField label="Calidad" value={info.calidad||'—'} onSave={()=>setDirty(true)}>
               <select value={info.calidad} onChange={e=>setI('calidad',e.target.value)} style={sel}>
                 <option value="">—</option>{calidadesDe(info.uso, info.calidad).map(c=><option key={c}>{c}</option>)}
@@ -5333,10 +5353,12 @@ export default function FichaActivo() {
     // Migración 040 — ubicación granular + métricas por uso (update tolerante:
     // si las columnas aún no existen, no rompe la creación ya hecha)
     try {
+      const metricas = buildMetricas(newForm)
+      if (normalizeUso(newForm.uso) === 'Hotel' && newForm.tipo_hotel) metricas.tipo_hotel = newForm.tipo_hotel
       await supabase.from('activos').update({
         provincia: newForm.provincia || null,
         municipio: newForm.municipio || newForm.ciudad || null,
-        metricas:  buildMetricas(newForm),
+        metricas,
       }).eq('ref', ref)
     } catch { /* columnas 040 no aplicadas todavía */ }
     // Save stacking plan if the user created buildings while on the new activo form

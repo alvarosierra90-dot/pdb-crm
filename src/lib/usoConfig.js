@@ -34,7 +34,7 @@ const CAL_LIVING = ['Prime', 'Alta', 'Media', 'Estándar']   // residencial-styl
 const CAL_ABC    = ['A', 'B', 'C']
 export const CALIDADES_POR_USO = {
   'Oficinas':              ['A+', 'A', 'B', 'C'],
-  'Hotel':                 ['Gran Lujo', '5★', '4★', '3★', '2★', '1★', 'Boutique'],
+  'Hotel':                 ['5★', '4★', '3★', '2★', '1★'],
   'Logística':             ['Clase A', 'Clase B', 'Clase C'],
   'Industrial':            ['A', 'B', 'C'],
   'Retail High Street':    ['Prime', 'High Street', 'Secundaria'],
