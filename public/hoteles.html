@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Asset Manager Tool</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#185FA5;--blue-light:#E6F1FB;--blue-dark:#0C447C;
+  --green:#3B6D11;--green-light:#EAF3DE;
+  --amber:#854F0B;--amber-light:#FAEEDA;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --yellow-light:#FFF2CC;--yellow:#633806;
+  --bg:#F8F7F4;--surface:#FFFFFF;--surface2:#F1EFE8;
+  --border:#E0DDD5;--border2:#CCCAC2;
+  --text:#1A1916;--text2:#5C5A55;--text3:#9C9A96;
+  --radius:10px;--radius-sm:7px;
+  --shadow:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+/* HEADER */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.header-logo{display:flex;align-items:center;gap:10px}
+.header-logo .icon{width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px}
+.header-logo .name{font-size:15px;font-weight:600;color:var(--text)}
+.header-logo .sub{font-size:11px;color:var(--text3);margin-top:1px}
+.header-badge{background:var(--blue-light);color:var(--blue);font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px}
+
+/* SIDEBAR */
+.layout{display:flex;min-height:calc(100vh - 56px)}
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);padding:16px 0;flex-shrink:0;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto}
+.sidebar-section{padding:8px 12px 4px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.sidebar-item{display:flex;align-items:center;gap:9px;padding:9px 16px;cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;border-radius:0;transition:all .15s;border-left:2px solid transparent;margin:1px 0}
+.sidebar-item:hover{background:var(--surface2);color:var(--text)}
+.sidebar-item.active{background:var(--blue-light);color:var(--blue);border-left-color:var(--blue)}
+.sidebar-item i{font-size:16px;width:18px;text-align:center}
+.sidebar-divider{height:1px;background:var(--border);margin:8px 0}
+
+/* MAIN */
+.main{flex:1;padding:28px;max-width:900px}
+.page{display:none}.page.active{display:block}
+
+/* PAGE HEADER */
+.page-hd{margin-bottom:20px}
+.page-hd h1{font-size:20px;font-weight:600;color:var(--text);margin-bottom:4px}
+.page-hd p{font-size:13px;color:var(--text2);line-height:1.5}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.card-title i{font-size:15px;color:var(--blue)}
+
+/* UPLOAD */
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;background:var(--surface2);position:relative;transition:all .15s}
+.upload-zone:hover,.upload-zone.over{border-color:var(--blue);background:var(--blue-light)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-zone .uz-icon{font-size:32px;color:var(--text3);display:block;margin-bottom:8px}
+.upload-zone .uz-t{font-size:14px;font-weight:500;color:var(--text)}
+.upload-zone .uz-s{font-size:12px;color:var(--text3);margin-top:4px}
+.format-pills{display:flex;gap:6px;justify-content:center;margin-top:10px}
+.format-pill{background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:2px 10px;font-size:11px;color:var(--text2)}
+
+/* FILE PILL */
+.file-pill{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-top:10px}
+.fp-icon{width:36px;height:36px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0}
+.fp-name{font-size:13px;font-weight:500;flex:1}
+.fp-size{font-size:11px;color:var(--text3)}
+.fp-rm{background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;padding:2px;line-height:1}
+.fp-rm:hover{color:var(--text)}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:7px;transition:all .15s}
+.btn-primary{background:var(--blue);color:#fff;width:100%;justify-content:center;margin-top:10px}
+.btn-primary:hover:not(:disabled){background:var(--blue-dark)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed}
+.btn-outline{background:var(--surface);border:1px solid var(--border2);color:var(--text)}
+.btn-outline:hover{background:var(--surface2)}
+
+/* PROGRESS */
+.prog-wrap{margin-top:10px}
+.prog-bg{background:var(--surface2);border-radius:99px;height:5px;overflow:hidden;border:1px solid var(--border)}
+.prog-fill{height:100%;background:var(--blue);border-radius:99px;transition:width .5s ease;width:0%}
+.prog-lbl{font-size:11px;color:var(--text3);margin-top:6px}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center}
+.stat-n{font-size:22px;font-weight:600}.stat-l{font-size:10px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
+
+/* TABLE */
+.tbl-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.tbl-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.tbl-header span{font-size:13px;font-weight:600}
+.tbl-scroll{max-height:440px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--surface2);padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);position:sticky;top:0}
+td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.5}
+tr:last-child td{border-bottom:none}
+tr.otros-row{background:#FAFEF7}
+
+/* BADGES */
+.badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;margin-right:4px;letter-spacing:.02em}
+.b-ok{background:var(--blue-light);color:var(--blue)}
+.b-tbc{background:var(--red-light);color:var(--red)}
+.b-duda{background:var(--yellow-light);color:var(--yellow)}
+.b-otros{background:var(--green-light);color:var(--green)}
+
+/* FORM */
+.form-grid{display:grid;gap:12px;margin-bottom:14px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.g4{grid-template-columns:1fr 1fr 1fr 1fr}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.form-group input,.form-group select{width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--surface);color:var(--text)}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1)}
+.sec-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+/* FACILITIES */
+.fac-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.fac{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;background:var(--surface2);font-size:11px;font-weight:500;color:var(--text2);text-align:center;user-select:none}
+.fac i{font-size:20px}
+.fac:hover{border-color:var(--blue);color:var(--blue)}
+.fac.on{border-color:var(--blue);background:var(--blue-light);color:var(--blue)}
+
+/* POI */
+.poi-row{display:grid;grid-template-columns:1fr 90px;gap:8px;margin-bottom:8px;align-items:center}
+.poi-row input{padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;background:var(--surface);color:var(--text);width:100%}
+.poi-row input:focus{outline:none;border-color:var(--blue)}
+.poi-dist{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 8px;font-size:11px;color:var(--text3);text-align:center;font-weight:500}
+
+/* SCORE RESULTS */
+.score-hero{display:grid;grid-template-columns:160px 1fr;gap:12px;margin-bottom:12px}
+.score-main{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;box-shadow:var(--shadow)}
+.score-number{font-size:52px;font-weight:700;color:var(--blue);line-height:1}
+.score-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.score-grade{font-size:13px;font-weight:600;margin-top:8px}
+.score-breakdown{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.srow{display:flex;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+.srow:last-child{border-bottom:none}
+.srow-lbl{font-size:12px;color:var(--text2);width:80px;flex-shrink:0}
+.sbar-bg{flex:1;margin:0 12px;background:var(--surface2);border-radius:99px;height:6px;overflow:hidden;border:1px solid var(--border)}
+.sbar{height:100%;border-radius:99px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.sval{font-size:13px;font-weight:600;min-width:28px;text-align:right}
+.insight-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+
+/* ERROR */
+.err{background:var(--red-light);border:1px solid #F09595;border-radius:var(--radius-sm);padding:10px 14px;margin-top:10px;font-size:12px;color:var(--red)}
+
+/* SLIDE PREVIEW */
+.slide-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.slide-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px}
+.coming-soon{text-align:center;padding:48px 20px;color:var(--text3)}
+.coming-soon i{font-size:40px;display:block;margin-bottom:12px}
+.coming-soon h3{font-size:15px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.coming-soon p{font-size:12px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">
+    <div class="icon"><i class="ti ti-building"></i></div>
+    <div>
+      <div class="name">Hotel Asset Manager</div>
+      <div class="sub">Commercial Due Diligence Tool</div>
+    </div>
+  </div>
+  <div class="header-badge">Asset Manager Tool</div>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">Módulos</div>
+    <div class="sidebar-item active" onclick="goPage('contract')" id="nav-contract">
+      <i class="ti ti-file-text"></i>Revisión de contratos
+    </div>
+    <div class="sidebar-item" onclick="goPage('score')" id="nav-score">
+      <i class="ti ti-star"></i>Score de hoteles
+    </div>
+    <div class="sidebar-item" onclick="goPage('slide')" id="nav-slide">
+      <i class="ti ti-presentation"></i>Presentación
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">Exportar</div>
+    <div class="sidebar-item" onclick="exportCSV()">
+      <i class="ti ti-download"></i>Exportar CSV
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- ═══════ MÓDULO 1: CONTRATOS ═══════ -->
+    <div class="page active" id="page-contract">
+      <div class="page-hd">
+        <h1>Revisión de contratos — HLA</h1>
+        <p>Sube el contrato de arrendamiento hotelero. La IA extrae automáticamente todos los campos del template HLA, marcando TBC cuando falta información y DUDA cuando hay ambigüedad.</p>
+      </div>
+
+      <div class="card">
+        <div class="upload-zone" id="cZone">
+          <input type="file" id="cFile" accept=".pdf,.docx,.txt">
+          <i class="ti ti-cloud-upload uz-icon"></i>
+          <div class="uz-t">Arrastra el contrato aquí o haz clic para seleccionar</div>
+          <div class="uz-s">Formatos aceptados</div>
+          <div class="format-pills">
+            <span class="format-pill">PDF</span>
+            <span class="format-pill">DOCX</span>
+            <span class="format-pill">TXT</span>
+          </div>
+        </div>
+        <div id="cPill" style="display:none"></div>
+        <button class="btn btn-primary" id="cBtn" disabled>
+          <i class="ti ti-brain"></i>Analizar contrato con IA
+        </button>
+        <div id="cProg" style="display:none" class="prog-wrap">
+          <div class="prog-bg"><div class="prog-fill" id="cFill"></div></div>
+          <div class="prog-lbl" id="cLbl">Procesando…</div>
+        </div>
+        <div id="cErr" class="err" style="display:none"></div>
+      </div>
+
+      <div id="cResults" style="display:none">
+        <div class="stats-grid" id="cStats"></div>
+        <div class="tbl-wrap">
+          <div class="tbl-header">
+            <span>Resultado HLA — Hotel Lease Analysis</span>
+            <button class="btn btn-outline" id="cExpBtn" style="padding:6px 14px;font-size:12px">
+              <i class="ti ti-download" style="font-size:13px"></i>Exportar CSV
+            </button>
+          </div>
+          <div class="tbl-scroll">
+            <table>
+              <thead><tr><th>Categoría</th><th>Subcategoría</th><th>Resumen del contrato</th><th>Cláusula / Página</th></tr></thead>
+              <tbody id="cBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ MÓDULO 2: SCORE ═══════ -->
+    <div class="page" id="page-score">
+      <div class="page-hd">
+        <h1>Score de hoteles — Gravity Analysis</h1>
+        <p>Introduce los datos del hotel. La IA genera un score completo basado en el framework CompSet: Location · Product · Condition · Rating.</p>
+      </div>
+
+      <div class="card">
+        <div class="sec-label">Hotel analizado</div>
+        <div class="form-grid g2">
+          <div class="form-group"><label>Nombre del hotel</label><input id="sName" placeholder="Hotel Beatriz Toledo"></div>
+          <div class="form-group"><label>Dirección</label><input id="sAddr" placeholder="Carretera CM-40, Km 13,5, Toledo"></div>
+        </div>
+        <div class="form-grid g4">
+          <div class="form-group"><label>Categoría</label><select id="sCat"><option>4★</option><option>5★</option><option>3★</option></select></div>
+          <div class="form-group"><label>Habitaciones</label><input id="sKeys" type="number" placeholder="180"></div>
+          <div class="form-group"><label>Año última reforma</label><input id="sRef" type="number" placeholder="2019" min="2000" max="2026"></div>
+          <div class="form-group"><label>Estrellas</label><select id="sStars"><option value="4">4 ★</option><option value="5">5 ★</option><option value="3">3 ★</option></select></div>
+        </div>
+
+        <div class="sec-label">Puntos de interés (POI)</div>
+        <div id="poisWrap">
+          <div class="poi-row"><input class="poi" placeholder="POI 1 — ej. Catedral de Toledo"><div class="poi-dist">— km</div></div>
+          <div class="poi-row"><input class="poi" placeholder="POI 2 — ej. Puy du Fou"><div class="poi-dist">— km</div></div>
+          <div class="poi-row"><input class="poi" placeholder="POI 3 — ej. Aeropuerto Madrid-Barajas"><div class="poi-dist">— km</div></div>
+          <div class="poi-row"><input class="poi" placeholder="POI 4 — ej. Estación AVE Toledo"><div class="poi-dist">— km</div></div>
+        </div>
+
+        <div class="sec-label">Facilities del hotel</div>
+        <div class="fac-grid">
+          <div class="fac" data-f="F&B" onclick="this.classList.toggle('on')"><i class="ti ti-tools-kitchen-2"></i>F&B</div>
+          <div class="fac" data-f="Meeting" onclick="this.classList.toggle('on')"><i class="ti ti-building-community"></i>Meeting</div>
+          <div class="fac" data-f="Auditorium" onclick="this.classList.toggle('on')"><i class="ti ti-microphone"></i>Auditorium</div>
+          <div class="fac" data-f="Spa" onclick="this.classList.toggle('on')"><i class="ti ti-ripple"></i>Spa</div>
+          <div class="fac" data-f="Pool" onclick="this.classList.toggle('on')"><i class="ti ti-swimming"></i>Pool</div>
+          <div class="fac" data-f="Gym" onclick="this.classList.toggle('on')"><i class="ti ti-barbell"></i>Gym</div>
+          <div class="fac" data-f="Parking" onclick="this.classList.toggle('on')"><i class="ti ti-parking"></i>Parking</div>
+        </div>
+
+        <div class="sec-label">Reputación online</div>
+        <div class="form-grid g3">
+          <div class="form-group"><label>Booking.com (0–10)</label><input id="sBook" type="number" step="0.1" min="0" max="10" placeholder="8.5"></div>
+          <div class="form-group"><label>TripAdvisor (0–5)</label><input id="sTrip" type="number" step="0.1" min="0" max="5" placeholder="4.2"></div>
+          <div class="form-group"><label>Web oficial</label><input id="sWeb" type="url" placeholder="https://..."></div>
+        </div>
+
+        <button class="btn btn-primary" id="sBtn">
+          <i class="ti ti-chart-bar"></i>Generar score con IA
+        </button>
+        <div id="sProg" style="display:none" class="prog-wrap">
+          <div class="prog-bg"><div class="prog-fill" id="sFill"></div></div>
+          <div class="prog-lbl" id="sLbl">Analizando…</div>
+        </div>
+        <div id="sErr" class="err" style="display:none"></div>
+      </div>
+
+      <div id="sResults" style="display:none">
+        <div class="score-hero">
+          <div class="score-main">
+            <div class="score-number" id="sBig">—</div>
+            <div class="score-sub">Score global / 5.0</div>
+            <div class="score-grade" id="sGrade"></div>
+          </div>
+          <div class="score-breakdown">
+            <div class="card-title" style="margin-bottom:8px"><i class="ti ti-chart-bar"></i>Desglose por categoría</div>
+            <div id="sBreak"></div>
+          </div>
+        </div>
+        <div class="insight-card" id="sInsightCard">
+          <div class="card-title"><i class="ti ti-bulb"></i>Análisis IA — Asset Manager</div>
+          <div id="sInsight" style="font-size:12px;color:var(--text2);line-height:1.7"></div>
+        </div>
+        <div style="text-align:right;margin-top:10px">
+          <button class="btn btn-outline" id="sExpBtn" style="font-size:12px">
+            <i class="ti ti-download" style="font-size:13px"></i>Exportar CSV
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ MÓDULO 3: PRESENTACIÓN ═══════ -->
+    <div class="page" id="page-slide">
+      <div class="page-hd">
+        <h1>Presentación ejecutiva</h1>
+        <p>Generada automáticamente con los datos del contrato y del score. Lista para exportar y presentar al cliente.</p>
+      </div>
+
+      <div id="pNoData" class="coming-soon">
+        <i class="ti ti-presentation-analytics"></i>
+        <h3>Completa primero los módulos anteriores</h3>
+        <p>Analiza un contrato en el módulo 1 o genera un score en el módulo 2.<br>La presentación se generará automáticamente con los datos disponibles.</p>
+      </div>
+
+      <div id="pContent" style="display:none">
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:16px">
+          <button class="btn btn-outline" onclick="alert('PPTX — próximamente en la siguiente versión')">
+            <i class="ti ti-file-export"></i>Exportar PPTX
+          </button>
+          <button class="btn btn-outline" onclick="window.print()">
+            <i class="ti ti-download"></i>Exportar PDF
+          </button>
+        </div>
+        <div id="pSlides"></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+// ─── STATE ───
+let cRows=[], scoreData=null, c64=null, cMime=null;
+
+// ─── NAVIGATION ───
+function goPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+}
+
+// ─── HLA FIELDS ───
+const FIELDS=[
+  {cat:"Signature date",sub:"-",desc:"Contract execution date"},
+  {cat:"Purpose of the contract",sub:"-",desc:"Purpose of the contract"},
+  {cat:"Lessee",sub:"-",desc:"Name and NIF of lessee"},
+  {cat:"Lessor",sub:"-",desc:"Name and NIF of lessor"},
+  {cat:"Guarantor",sub:"-",desc:"Guarantor details if any"},
+  {cat:"Duration",sub:"Full Term",desc:"Total contract term"},
+  {cat:"Duration",sub:"Mandatory Period",desc:"Minimum mandatory term"},
+  {cat:"Renewal",sub:"Rights",desc:"Renewal terms"},
+  {cat:"Renewal",sub:"Conditions",desc:"Renewal conditions for both parties"},
+  {cat:"Break clauses",sub:"-",desc:"Break clauses; No if none"},
+  {cat:"Performance Clause",sub:"-",desc:"Performance clauses; No if none"},
+  {cat:"Grounds for Termination",sub:"-",desc:"Grounds for termination"},
+  {cat:"GMI",sub:"Quantum / Calculation",desc:"GMI amount or calculation method"},
+  {cat:"GMI",sub:"Update",desc:"Annual adjustments to GMI"},
+  {cat:"GMI",sub:"Payment terms",desc:"GMI payment terms"},
+  {cat:"Variable rent",sub:"Quantum / Calculation",desc:"Variable rent calculation"},
+  {cat:"Variable rent",sub:"Update",desc:"Variable rent adjustments"},
+  {cat:"Variable rent",sub:"Payment terms",desc:"Variable rent payment terms"},
+  {cat:"FF&E Reserve",sub:"Quantum / Calculation",desc:"FF&E Reserve amount or method"},
+  {cat:"FF&E Reserve",sub:"Update",desc:"FF&E Reserve adjustments"},
+  {cat:"R&M",sub:"Routine / Structural",desc:"Repair and maintenance obligations"},
+  {cat:"R&M",sub:"CAPEX",desc:"CAPEX and investment obligations"},
+  {cat:"Licences and Permits",sub:"-",desc:"Licences and permits"},
+  {cat:"Insurances",sub:"Lessee",desc:"Lessee insurance obligations"},
+  {cat:"Insurances",sub:"Lessor",desc:"Lessor insurance obligations"},
+  {cat:"Staff",sub:"-",desc:"Staff and personnel provisions"},
+  {cat:"Taxes",sub:"Lessee",desc:"Lessee tax obligations"},
+  {cat:"Taxes",sub:"Lessor",desc:"Lessor tax obligations"},
+  {cat:"Subletting and Assignment",sub:"-",desc:"Subletting and assignment"},
+  {cat:"Security Deposit",sub:"Cash",desc:"Cash security deposit"},
+  {cat:"Security Deposit",sub:"Bank Guarantee",desc:"Bank guarantee"},
+  {cat:"Security Deposit",sub:"Corporate Guarantee",desc:"Corporate guarantee"},
+  {cat:"Return of the Property",sub:"-",desc:"Lessee obligations on termination"},
+  {cat:"Jurisdiction",sub:"-",desc:"Applicable jurisdiction"},
+  {cat:"Governing Law",sub:"-",desc:"Governing law"},
+  {cat:"Access to hotel",sub:"-",desc:"Lessor access terms"},
+  {cat:"Lessor representative",sub:"-",desc:"Lessor representative"},
+  {cat:"Lessee information",sub:"-",desc:"Lessee reporting obligations"},
+];
+
+// ─── MODULE 1: CONTRACT ───
+const cZone=document.getElementById('cZone');
+const cFileEl=document.getElementById('cFile');
+cZone.addEventListener('dragover',e=>{e.preventDefault();cZone.classList.add('over')});
+cZone.addEventListener('dragleave',()=>cZone.classList.remove('over'));
+cZone.addEventListener('drop',e=>{e.preventDefault();cZone.classList.remove('over');loadCFile(e.dataTransfer.files[0])});
+cFileEl.addEventListener('change',()=>cFileEl.files[0]&&loadCFile(cFileEl.files[0]));
+
+function loadCFile(f){
+  if(!f||f.size>10*1024*1024)return;
+  cMime=f.name.toLowerCase().endsWith('.pdf')?'application/pdf':'text/plain';
+  const r=new FileReader();
+  r.onload=e=>{
+    c64=e.target.result.split(',')[1];
+    const sz=f.size>1e6?`${(f.size/1e6).toFixed(1)} MB`:`${Math.round(f.size/1024)} KB`;
+    document.getElementById('cPill').innerHTML=`
+      <div class="file-pill">
+        <div class="fp-icon"><i class="ti ti-file-text"></i></div>
+        <div><div class="fp-name">${f.name}</div><div class="fp-size">${sz}</div></div>
+        <button class="fp-rm" onclick="resetC()">✕</button>
+      </div>`;
+    document.getElementById('cPill').style.display='block';
+    document.getElementById('cBtn').disabled=false;
+    document.getElementById('cErr').style.display='none';
+    document.getElementById('cResults').style.display='none';
+  };
+  r.readAsDataURL(f);
+}
+function resetC(){c64=null;document.getElementById('cPill').style.display='none';document.getElementById('cBtn').disabled=true;}
+
+document.getElementById('cBtn').addEventListener('click',async()=>{
+  if(!c64)return;
+  document.getElementById('cErr').style.display='none';
+  document.getElementById('cResults').style.display='none';
+  document.getElementById('cProg').style.display='block';
+  document.getElementById('cBtn').disabled=true;
+  prog('cFill','cLbl',15,'Enviando a la IA…');
+
+  const flds=FIELDS.map((f,i)=>`${i+1}. Category:"${f.cat}" Sub:"${f.sub}" Extract:${f.desc}`).join('\n');
+  const prompt=`You are a hotel asset manager. Analyze this hotel lease contract and extract each field.
+For each: "summary" = concise English (2-3 sentences). "TBC" if not found. Start with "DUDA: " if ambiguous. "page" = clause reference.
+Add up to 5 "otros" for important clauses not in the list (pre-emption, confidentiality, force majeure, etc.).
+Return ONLY valid JSON, no markdown fences:
+{"fields":[{"id":1,"cat":"...","sub":"...","summary":"...","page":"..."}],"otros":[{"cat":"Otros: ...","sub":"-","summary":"...","page":"..."}]}
+Fields:\n${flds}`;
+
+  try{
+    prog('cFill','cLbl',40,'Analizando cláusulas…');
+    const isPdf=cMime==='application/pdf';
+    const block=isPdf
+      ?{type:"document",source:{type:"base64",media_type:"application/pdf",data:c64}}
+      :{type:"text",text:atob(c64)};
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:4000,messages:[{role:"user",content:[block,{type:"text",text:prompt}]}]})
+    });
+    prog('cFill','cLbl',80,'Estructurando HLA…');
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`Error ${res.status}`);}
+    const d=await res.json();
+    const raw=d.content.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(raw);
+    cRows=[...(parsed.fields||[]),...(parsed.otros||[])];
+    renderCTable();renderCStats();
+    document.getElementById('cResults').style.display='block';
+    document.getElementById('cProg').style.display='none';
+    document.getElementById('cBtn').disabled=false;
+    checkSlide();
+  }catch(e){
+    document.getElementById('cProg').style.display='none';
+    document.getElementById('cBtn').disabled=false;
+    showErr('cErr','Error al analizar el contrato: '+e.message);
+  }
+});
+
+function renderCTable(){
+  document.getElementById('cBody').innerHTML=cRows.map(r=>{
+    const isO=(r.cat||'').startsWith('Otros');
+    const bCls=isO?'b-otros':(!r.summary||r.summary==='TBC')?'b-tbc':(r.summary||'').startsWith('DUDA:')?'b-duda':'b-ok';
+    const bTxt=isO?'Otros':(!r.summary||r.summary==='TBC')?'TBC':(r.summary||'').startsWith('DUDA:')?'DUDA':'✓';
+    return`<tr${isO?' class="otros-row"':''}><td style="font-weight:600;white-space:nowrap">${(r.cat||'').replace(/^Otros: /,'')}</td><td style="color:var(--text3);white-space:nowrap">${r.sub||'-'}</td><td><span class="badge ${bCls}">${bTxt}</span>${r.summary||'TBC'}</td><td style="font-size:11px;color:var(--text3);white-space:nowrap">${r.page||'-'}</td></tr>`;
+  }).join('');
+}
+function renderCStats(){
+  const tot=cRows.length,tbc=cRows.filter(r=>!r.summary||r.summary==='TBC').length,duda=cRows.filter(r=>(r.summary||'').startsWith('DUDA:')).length,ok=tot-tbc-duda;
+  document.getElementById('cStats').innerHTML=`
+    <div class="stat"><div class="stat-n">${tot}</div><div class="stat-l">Total campos</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--blue)">${ok}</div><div class="stat-l">Extraídos</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--amber)">${duda}</div><div class="stat-l">Dudas</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--red)">${tbc}</div><div class="stat-l">TBC</div></div>`;
+}
+document.getElementById('cExpBtn').addEventListener('click',()=>{
+  if(!cRows.length)return;
+  dl([['Category','Subcategory','Summary','Clause'],...cRows.map(r=>[r.cat,r.sub,r.summary,r.page].map(v=>`"${(v||'').replace(/"/g,'""')}"`))]
+    .map(r=>r.join(',')).join('\n'),'text/csv','HLA_export.csv');
+});
+
+// ─── MODULE 2: SCORE ───
+document.getElementById('sBtn').addEventListener('click',async()=>{
+  const name=document.getElementById('sName').value.trim()||'Hotel analizado';
+  const addr=document.getElementById('sAddr').value.trim();
+  const keys=document.getElementById('sKeys').value||'—';
+  const cat=document.getElementById('sCat').value;
+  const ref=parseInt(document.getElementById('sRef').value)||null;
+  const book=document.getElementById('sBook').value||null;
+  const trip=document.getElementById('sTrip').value||null;
+  const web=document.getElementById('sWeb').value.trim();
+  const facs=[...document.querySelectorAll('.fac.on')].map(e=>e.dataset.f);
+  const pois=[...document.querySelectorAll('.poi')].map(i=>i.value.trim()).filter(Boolean);
+  const cond=(()=>{if(!ref)return 3;const y=2026-ref;return y<=1?5:y<=3?4.5:y<=5?4:y<=7?3.5:y<=9?3:y<=12?2.5:y<=15?2:1;})();
+
+  document.getElementById('sErr').style.display='none';
+  document.getElementById('sResults').style.display='none';
+  document.getElementById('sProg').style.display='block';
+  document.getElementById('sBtn').disabled=true;
+  prog('sFill','sLbl',20,'Analizando con IA…');
+
+  const prompt=`You are a hotel commercial due diligence expert (Gravity Analysis framework).
+Hotel: ${name} | ${addr} | ${cat} | ${keys} keys
+Facilities: ${facs.length?facs.join(', '):'none indicated'}
+Booking: ${book||'N/A'}/10 | TripAdvisor: ${trip||'N/A'}/5
+Last refurb: ${ref||'N/A'} | Condition score (auto-calculated): ${cond}/5
+POIs: ${pois.length?pois.join(', '):'none provided'}
+${web?'Web: '+web:''}
+Return ONLY valid JSON, no markdown:
+{"hotelName":"${name}","scores":{"location":<0-5>,"product":<0-5>,"condition":${cond},"rating":<0-5>,"total":<avg 1dec>},"poiDistances":[${pois.map(p=>`{"poi":"${p}","km":"<estimate>","note":"<brief>"}`).join(',')}],"facilitiesNote":"<2 sentences>","ratingNote":"<1 sentence>","insights":"• point1\n• point2\n• point3","grade":"Strong|Good|Average|Weak"}`;
+
+  try{
+    prog('sFill','sLbl',60,'Calculando scores…');
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1200,messages:[{role:"user",content:prompt}]})
+    });
+    prog('sFill','sLbl',85,'Renderizando…');
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`Error ${res.status}`);}
+    const d=await res.json();
+    scoreData=JSON.parse(d.content.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim());
+    renderScore();
+    document.getElementById('sResults').style.display='block';
+    document.getElementById('sProg').style.display='none';
+    document.getElementById('sBtn').disabled=false;
+    checkSlide();
+  }catch(e){
+    document.getElementById('sProg').style.display='none';
+    document.getElementById('sBtn').disabled=false;
+    showErr('sErr','Error: '+e.message);
+  }
+});
+
+function renderScore(){
+  const s=scoreData.scores||{};
+  document.getElementById('sBig').textContent=parseFloat(s.total||0).toFixed(1);
+  const gc={'Strong':{'color':'var(--blue)'},'Good':{'color':'var(--green)'},'Average':{'color':'var(--amber)'},'Weak':{'color':'var(--red)'}};
+  const g=document.getElementById('sGrade');
+  g.textContent=scoreData.grade||'';
+  g.style.color=(gc[scoreData.grade]||{}).color||'var(--text3)';
+  document.getElementById('sBreak').innerHTML=[
+    {l:'Location',k:'location',c:'var(--blue)'},
+    {l:'Product',k:'product',c:'var(--green)'},
+    {l:'Condition',k:'condition',c:'var(--amber)'},
+    {l:'Rating',k:'rating',c:'#7C3AED'},
+  ].map(x=>{
+    const v=parseFloat(s[x.k]||0);
+    return`<div class="srow"><span class="srow-lbl">${x.l}</span><div class="sbar-bg"><div class="sbar" style="width:${v/5*100}%;background:${x.c}"></div></div><span class="sval">${v.toFixed(1)}</span></div>`;
+  }).join('');
+  const pois=(scoreData.poiDistances||[]).map(p=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)"><span>${p.poi}</span><b>${p.km}</b></div>`).join('');
+  const ins=(scoreData.insights||'').split('\n').filter(Boolean).map(l=>`<p style="margin-bottom:4px">${l}</p>`).join('');
+  document.getElementById('sInsight').innerHTML=
+    (pois?`<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">POI Distances</div>${pois}</div>`:'')
+    +(scoreData.facilitiesNote?`<p style="margin-bottom:6px"><b>Facilities:</b> ${scoreData.facilitiesNote}</p>`:'')
+    +(scoreData.ratingNote?`<p style="margin-bottom:6px"><b>Reputación:</b> ${scoreData.ratingNote}</p>`:'')
+    +(ins?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">${ins}</div>`:'');
+}
+
+document.getElementById('sExpBtn').addEventListener('click',()=>{
+  if(!scoreData)return;
+  const s=scoreData.scores||{};
+  dl([['Hotel','Location','Product','Condition','Rating','Total','Grade'],[scoreData.hotelName,s.location,s.product,s.condition,s.rating,s.total,scoreData.grade]].map(r=>r.join(',')).join('\n'),'text/csv','Score_export.csv');
+});
+
+// ─── MODULE 3: SLIDE ───
+function checkSlide(){
+  if(!cRows.length&&!scoreData)return;
+  document.getElementById('pNoData').style.display='none';
+  document.getElementById('pContent').style.display='block';
+  const hotel=scoreData?scoreData.hotelName:(document.getElementById('sName').value||'Hotel');
+  const s=scoreData?scoreData.scores:{};
+  const date=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long'});
+  document.getElementById('pSlides').innerHTML=`
+    <div class="slide-card">
+      <div class="slide-label">Slide 1 — Portada</div>
+      <div style="font-size:18px;font-weight:700;color:var(--text)">${hotel}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">Commercial Due Diligence Report · ${date}</div>
+    </div>
+    ${scoreData?`<div class="slide-card">
+      <div class="slide-label">Slide 2 — Gravity Score</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:10px">Score global: <span style="color:var(--blue)">${parseFloat(s.total||0).toFixed(1)}/5.0</span> — ${scoreData.grade||''}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        ${[['Location','location','var(--blue)'],['Product','product','var(--green)'],['Condition','condition','var(--amber)'],['Rating','rating','#7C3AED']].map(([l,k,c])=>`<div style="text-align:center;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)"><div style="font-size:22px;font-weight:700;color:${c}">${parseFloat(s[k]||0).toFixed(1)}</div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">${l}</div></div>`).join('')}
+      </div>
+    </div>`:''}
+    ${cRows.length?`<div class="slide-card">
+      <div class="slide-label">Slide 3 — HLA Key Highlights</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:10px">Key Contract Clauses</div>
+      ${cRows.filter(r=>r.summary&&r.summary!=='TBC'&&!(r.summary||'').startsWith('DUDA:')).slice(0,6).map(r=>`<div style="display:flex;gap:8px;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-weight:600;min-width:140px;color:var(--text2)">${r.cat}</span><span style="color:var(--text)">${(r.summary||'').slice(0,100)}${(r.summary||'').length>100?'…':''}</span></div>`).join('')}
+    </div>`:''}
+    <div class="slide-card" style="text-align:center;color:var(--text3)">
+      <i class="ti ti-info-circle" style="font-size:20px;display:block;margin-bottom:6px"></i>
+      <div style="font-size:12px">Exporta a PPTX para editar el contenido y añadir slides adicionales</div>
+    </div>`;
+}
+
+// ─── GLOBAL EXPORT ───
+function exportCSV(){
+  if(cRows.length){
+    dl([['Category','Subcategory','Summary','Clause'],...cRows.map(r=>[r.cat,r.sub,r.summary,r.page].map(v=>`"${(v||'').replace(/"/g,'""')}"`))]
+      .map(r=>r.join(',')).join('\n'),'text/csv','HLA_export.csv');
+  } else if(scoreData){
+    const s=scoreData.scores||{};
+    dl([['Hotel','Location','Product','Condition','Rating','Total','Grade'],[scoreData.hotelName,s.location,s.product,s.condition,s.rating,s.total,scoreData.grade]].map(r=>r.join(',')).join('\n'),'text/csv','Score_export.csv');
+  } else{alert('No hay datos que exportar todavía.');}
+}
+
+// ─── UTILS ───
+function prog(fId,lId,pct,txt){document.getElementById(fId).style.width=pct+'%';document.getElementById(lId).textContent=txt;}
+function showErr(id,msg){const el=document.getElementById(id);el.textContent=msg;el.style.display='block';}
+function dl(content,type,name){const b=new Blob([content],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);}
+</script>
+</body>
+</html>
