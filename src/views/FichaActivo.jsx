@@ -2702,201 +2702,179 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
     finally { setSyncingCat(false) }
   }
 
-  // Derived conditional zone data
-  const nfAreas  = getAreas(newForm.ciudad, newForm.uso)
-  const zonas    = newForm.area ? getZonas(newForm.ciudad, newForm.uso, newForm.area) : []
-  const subzonas = newForm.area && newForm.zona ? getSubzonas(newForm.ciudad, newForm.uso, newForm.area, newForm.zona) : []
-
-  // Obligatorios resaltados en rojo en vivo (guía el orden de cumplimentación)
-  const err = (field) => !newForm[field]
+  // Bloqueo guiado: hasta tener dirección, el resto de tarjetas queda atenuado.
   const dirOk = !!newForm.direccion
   const lock = dirOk ? undefined : { opacity:.45, pointerEvents:'none', userSelect:'none' }
-  const inp = (field) => ({padding:'5px 8px',border:`1px solid ${err(field)?'var(--red)':'var(--accent-bd)'}`,borderRadius:5,fontSize:12,fontFamily:'inherit',background:err(field)?'#fff5f5':'var(--accent-lt)',color:'var(--text1)',width:'100%',boxSizing:'border-box',outline:'none'})
-  const inpBase = {padding:'5px 8px',border:'1px solid var(--accent-bd)',borderRadius:5,fontSize:12,fontFamily:'inherit',background:'var(--accent-lt)',color:'var(--text1)',width:'100%',boxSizing:'border-box',outline:'none'}
-  const sel = (field) => ({...inpBase,cursor:'pointer',...(err(field)?{border:'1px solid var(--red)',background:'#fff5f5'}:{})})
-  const selSt = {padding:'4px 7px',border:'1px solid var(--border)',borderRadius:5,fontSize:11,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)',width:'100%'}
-
-  const Req = () => <span style={{color:'var(--red)',marginLeft:2,fontWeight:700}}>*</span>
-
-  const Row = ({label, required, children}) => (
-    <div className="ir" style={{alignItems:'flex-start',gap:6}}>
-      <span className="ir-k">{label}{required && <Req/>}</span>
-      <div style={{flex:1}}>{children}</div>
-    </div>
-  )
+  // Estilos de input idénticos a los de la ficha existente (TabInfo)
+  const inp = {padding:'5px 8px',border:'1px solid var(--accent-bd)',borderRadius:5,fontSize:12,fontFamily:'inherit',background:'var(--accent-lt)',color:'var(--text1)',width:'100%',boxSizing:'border-box',outline:'none'}
+  const sel = {...inp,cursor:'pointer'}
+  // Marcadores de obligatorio en rojo (mismo diseño, solo cue visual)
+  const reqMark = (txt) => <>{txt} <span style={{color:'var(--pdb-red)',fontWeight:700}}>*</span></>
+  const reqShown = (val) => val ? val : <span style={{color:'var(--pdb-red)',fontWeight:600}}>Obligatorio</span>
 
   return (
     <div className="tab-content active">
       <div className="info-pad">
 
-        {/* ── PASO 1 · DIRECCIÓN (obligatorio, desbloquea el resto) ── */}
-        {/* Mapa + carrusel */}
-        <MapaCarrusel activo={null} direccion={newForm.direccion}
+        {/* Mapa + carrusel · la barra de búsqueda sale en rojo (campo más importante) hasta tener dirección */}
+        <MapaCarrusel activo={null} direccion={newForm.direccion} highlightSearch={!dirOk}
           onAddressChange={({direccion,ciudad,municipio,provincia,pais,cp,coordenadas})=>{
-            setNF('direccion',direccion)
-            setNF('ciudad',municipio||ciudad||''); setNF('municipio',municipio||ciudad||'')
+            const mun = municipio||ciudad||''
+            setNF('direccion',direccion); setNF('municipio',mun); setNF('ciudad',mun)
             if(provincia) setNF('provincia',provincia)
             setNF('pais',pais||'España'); setNF('area',''); setNF('zona',''); setNF('subzona','')
             if(cp) setNF('cp',cp); if(coordenadas) setNF('coordenadas',coordenadas)
           }}/>
 
-        {/* UBICACIÓN (paso 1) */}
-        <div className="va-card" style={{marginBottom:20}}>
-          <div className="va-card-header">
-            <h3><span className="ico accent-red">●</span> Ubicación <span style={{fontSize:10,fontWeight:600,color:'var(--text4)',marginLeft:6}}>· Paso 1</span></h3>
-          </div>
-          <div className="va-meta-body" style={{padding:'8px 16px 14px'}}>
-            <Row label="Nombre del activo">
-              <input value={newForm.nombre} onChange={e=>setNF('nombre',e.target.value)} style={inpBase} placeholder="P.E Avalon, Torre Sevilla..."/>
-            </Row>
-            <Row label="Propietario">
-              <input list="fa-cuentas-new" value={newForm.propietario} onChange={e=>setNF('propietario',e.target.value)} style={inpBase} placeholder="Buscar cuenta..."/>
-              <datalist id="fa-cuentas-new">{CUENTAS_FA.map(c=><option key={c} value={c}/>)}</datalist>
-            </Row>
-            <Row label="Dirección" required>
-              <input value={newForm.direccion} onChange={e=>setNF('direccion',e.target.value)} style={inp('direccion')} placeholder="Busca en el mapa o escribe la dirección..."/>
-              {err('direccion') && <span style={{fontSize:10,color:'var(--pdb-red)'}}>Campo obligatorio — empieza por aquí</span>}
-            </Row>
-            <Row label="País"><input value={newForm.pais} onChange={e=>setNF('pais',e.target.value)} style={inpBase} placeholder="España"/></Row>
-            <Row label="Provincia"><input value={newForm.provincia||''} onChange={e=>setNF('provincia',e.target.value)} style={inpBase} placeholder="—"/></Row>
-            <Row label="Municipio">
-              <input value={newForm.municipio||''} onChange={e=>{setNF('municipio',e.target.value);setNF('ciudad',e.target.value);setNF('area','');setNF('zona','');setNF('subzona','')}} style={inpBase} placeholder="Madrid"/>
-            </Row>
-            <Row label="Código postal"><input value={newForm.cp} onChange={e=>setNF('cp',e.target.value)} style={inpBase} placeholder="28037"/></Row>
-            <Row label="Coordenadas">
-              <input value={newForm.coordenadas||''} onChange={e=>setNF('coordenadas',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)',fontSize:11}} placeholder="40.416775, -3.703790"/>
-            </Row>
-          </div>
-        </div>
-
-        {/* Aviso de bloqueo hasta completar la dirección */}
         {!dirOk && (
-          <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',marginBottom:16,
-            background:'#fff5f5',border:'1px solid var(--pdb-red)',borderRadius:8,fontSize:12,color:'var(--pdb-red)',fontWeight:600}}>
-            <AlertTriangle size={15} strokeWidth={2}/> Completa la <strong>dirección</strong> para desbloquear el resto de la ficha.
+          <div style={{display:'flex',alignItems:'center',gap:7,padding:'8px 12px',marginBottom:12,
+            background:'#fff5f5',border:'1px solid var(--pdb-red)',borderRadius:7,fontSize:11.5,color:'var(--pdb-red)',fontWeight:600}}>
+            <AlertTriangle size={14} strokeWidth={2}/> Empieza por la <strong>dirección</strong> — desbloquea el resto de la ficha.
           </div>
         )}
 
-        {/* ── RESTO DE LA FICHA · bloqueado hasta tener dirección ── */}
-        <div style={lock} aria-disabled={!dirOk}>
+        {/* ── DETALLE · misma fila de 5 tarjetas que un activo guardado ── */}
+        <div className="act-info-row" style={{display:'grid',gridTemplateColumns:'repeat(5, minmax(0,1fr))',gap:12,marginBottom:14,alignItems:'stretch'}}>
 
-          {/* TIPOLOGÍA (paso 2) */}
-          <div className="va-card" style={{marginBottom:20}}>
-            <div className="va-card-header">
-              <h3><span className="ico accent-purple">●</span> Tipología <span style={{fontSize:10,fontWeight:600,color:'var(--text4)',marginLeft:6}}>· Paso 2</span></h3>
-            </div>
-            <div className="va-meta-body" style={{padding:'8px 16px 14px'}}>
-              <Row label="Tipo de activo" required>
-                <select value={newForm.tipo_activo} onChange={e=>setNF('tipo_activo',e.target.value)} style={sel('tipo_activo')}>
-                  {['Edificio','Nave','Local','Parcela','Complejo','Torre','Centro comercial','Parque empresarial','Parque logístico','Residencia'].map(t=><option key={t}>{t}</option>)}
-                </select>
-              </Row>
-              <Row label="Uso principal" required>
-                <select value={newForm.uso} onChange={e=>{setNF('uso',e.target.value);setNF('calidad','');setNF('area','');setNF('zona','');setNF('subzona','')}} style={sel('uso')}>
-                  <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
-                </select>
-              </Row>
-              <Row label="Estado de construcción" required>
-                <select value={newForm.estado_construccion} onChange={e=>setNF('estado_construccion',e.target.value)} style={sel('estado_construccion')}>
-                  <option value="">—</option>{ESTADOS_CONSTRUCCION.map(e=><option key={e}>{e}</option>)}
-                </select>
-              </Row>
-              <Row label="Uso secundario">
-                <select value={newForm.uso_secundario} onChange={e=>setNF('uso_secundario',e.target.value)} style={{...inpBase,cursor:'pointer'}}>
-                  <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
-                </select>
-              </Row>
-              <Row label="Calidad">
-                <select value={newForm.calidad} onChange={e=>setNF('calidad',e.target.value)} style={{...inpBase,cursor:'pointer'}}>
-                  <option value="">—</option>{calidadesDe(newForm.uso, newForm.calidad).map(c=><option key={c}>{c}</option>)}
-                </select>
-              </Row>
+          {/* LOCALIZACIÓN (bloqueado hasta tener dirección) */}
+          <div className="dash-card" style={lock}>
+            <div className="dash-card-head">Localización</div>
+            <div style={{padding:'10px 14px 14px'}}><ZonaBox info={newForm} setI={setNF} asChipRow/></div>
+          </div>
+
+          {/* UBICACIÓN (siempre activo · contiene la dirección obligatoria) */}
+          <div className="dash-card">
+            <div className="dash-card-head">Ubicación</div>
+            <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr',gap:0,padding:'6px 14px 14px'}}>
+              <InlineField label="Nombre del activo" value={newForm.nombre} onSave={()=>{}}>
+                <input value={newForm.nombre} onChange={e=>setNF('nombre',e.target.value)} style={inp} placeholder="Nombre comercial del activo..."/>
+              </InlineField>
+              <AddressField value={newForm.direccion} ciudad={newForm.municipio||newForm.ciudad} requiredMark
+                onSave={d=>{ setNF('direccion',d.direccion)
+                  if(d.pais)setNF('pais',d.pais)
+                  if(d.provincia)setNF('provincia',d.provincia)
+                  if(d.municipio){setNF('municipio',d.municipio);setNF('ciudad',d.municipio)}
+                  if(d.cp)setNF('cp',d.cp); if(d.coordenadas)setNF('coordenadas',d.coordenadas) }}/>
+              <InlineField label="País" value={newForm.pais} onSave={()=>{}}>
+                <input value={newForm.pais} onChange={e=>setNF('pais',e.target.value)} style={inp} placeholder="España"/>
+              </InlineField>
+              <InlineField label="Provincia" value={newForm.provincia||'—'} onSave={()=>{}}>
+                <input value={newForm.provincia} onChange={e=>setNF('provincia',e.target.value)} style={inp} placeholder="—"/>
+              </InlineField>
+              <InlineField label="Municipio" value={newForm.municipio||'—'} onSave={()=>{}}>
+                <input value={newForm.municipio} onChange={e=>{setNF('municipio',e.target.value);setNF('ciudad',e.target.value);setNF('area','');setNF('zona','');setNF('subzona','')}} style={inp} placeholder="Madrid"/>
+              </InlineField>
+              <InlineField label="Código postal" value={newForm.cp||'—'} onSave={()=>{}}>
+                <input value={newForm.cp} onChange={e=>setNF('cp',e.target.value)} style={inp} placeholder="28037"/>
+              </InlineField>
+              <InlineField label="Coordenadas" value={newForm.coordenadas||'—'}
+                display={newForm.coordenadas ? <span style={{fontFamily:'var(--mono)'}}>{newForm.coordenadas}</span> : '—'} onSave={()=>{}}>
+                <input value={newForm.coordenadas||''} onChange={e=>setNF('coordenadas',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="lat, lng"/>
+              </InlineField>
             </div>
           </div>
 
-          {/* LOCALIZACIÓN (Área / Zona / Subzona) */}
-          <div className="va-card" style={{marginBottom:20}}>
-            <div className="va-card-header">
-              <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Localización</h3>
-              {newForm.coordenadas && <span className="hint">Coordenadas · {newForm.coordenadas}</span>}
-            </div>
-            <div className="va-chip-row">
-              <div className="va-chip-cell">
-                <div className="label">Área</div>
-                {nfAreas.length > 0
-                  ? <select value={newForm.area} onChange={e=>{setNF('area',e.target.value);setNF('zona','');setNF('subzona','')}} style={selSt}><option value="">—</option>{nfAreas.map(a=><option key={a}>{a}</option>)}</select>
-                  : <input value={newForm.area} onChange={e=>setNF('area',e.target.value)} style={selSt} placeholder="—"/>}
-              </div>
-              <div className="va-chip-cell">
-                <div className="label">Zona</div>
-                {zonas.length > 0
-                  ? <select value={newForm.zona} onChange={e=>{setNF('zona',e.target.value);setNF('subzona','')}} style={selSt}><option value="">—</option>{zonas.map(z=><option key={z}>{z}</option>)}</select>
-                  : <input value={newForm.zona} onChange={e=>setNF('zona',e.target.value)} style={selSt} placeholder="—"/>}
-              </div>
-              <div className="va-chip-cell">
-                <div className="label">Subzona</div>
-                {subzonas.length > 0
-                  ? <select value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} style={selSt}><option value="">—</option>{subzonas.map(s=><option key={s}>{s}</option>)}</select>
-                  : <input value={newForm.subzona} onChange={e=>setNF('subzona',e.target.value)} style={selSt} placeholder="—"/>}
-              </div>
+          {/* TIPOLOGÍA (bloqueado hasta tener dirección) */}
+          <div className="dash-card" style={lock}>
+            <div className="dash-card-head">Tipología</div>
+            <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr',gap:0,padding:'6px 14px 14px'}}>
+              <InlineField label={reqMark('Tipo de activo')} value={newForm.tipo_activo} display={reqShown(newForm.tipo_activo)} onSave={()=>{}}>
+                <select value={newForm.tipo_activo} onChange={e=>setNF('tipo_activo',e.target.value)} style={sel}>
+                  {['Edificio','Nave','Local','Parcela','Complejo','Torre','Centro comercial','Parque empresarial','Parque logístico','Residencia'].map(t=><option key={t}>{t}</option>)}
+                </select>
+              </InlineField>
+              <InlineField label={reqMark('Uso principal')} value={newForm.uso} display={reqShown(newForm.uso)} onSave={()=>{}}>
+                <select value={newForm.uso} onChange={e=>{setNF('uso',e.target.value);setNF('calidad','');setNF('area','');setNF('zona','');setNF('subzona','')}} style={sel}>
+                  <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
+                </select>
+              </InlineField>
+              <InlineField label={reqMark('Estado de construcción')} value={newForm.estado_construccion} display={reqShown(newForm.estado_construccion)} onSave={()=>{}}>
+                <select value={newForm.estado_construccion} onChange={e=>setNF('estado_construccion',e.target.value)} style={sel}>
+                  <option value="">—</option>{ESTADOS_CONSTRUCCION.map(e=><option key={e}>{e}</option>)}
+                </select>
+              </InlineField>
+              <InlineField label="Uso secundario" value={newForm.uso_secundario||'—'} onSave={()=>{}}>
+                <select value={newForm.uso_secundario} onChange={e=>setNF('uso_secundario',e.target.value)} style={sel}>
+                  <option value="">—</option>{USOS_PRINCIPALES.map(u=><option key={u}>{u}</option>)}
+                </select>
+              </InlineField>
+              <InlineField label="Calidad" value={newForm.calidad||'—'} onSave={()=>{}}>
+                <select value={newForm.calidad} onChange={e=>setNF('calidad',e.target.value)} style={sel}>
+                  <option value="">—</option>{calidadesDe(newForm.uso, newForm.calidad).map(c=><option key={c}>{c}</option>)}
+                </select>
+              </InlineField>
             </div>
           </div>
 
           {/* SUPERFICIES Y DETALLES · dinámica según Uso principal */}
-          <div className="va-card" style={{marginBottom:20}}>
-            <div className="va-card-header">
-              <h3><span className="ico">▭</span> Superficies y detalles</h3>
-            </div>
-            <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:16}}>
+          <div className="dash-card" style={lock}>
+            <div className="dash-card-head">Superficies y detalles</div>
+            <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr',gap:0,padding:'6px 14px 14px'}}>
               {camposSuperficie(newForm.uso).map(m => {
                 if (m.compute) {
                   const cv = m.compute(newForm)
                   return (
                     <div className="ir" key={m.key}>
                       <span className="ir-k">{m.label}{m.unit?` (${m.unit})`:''}</span>
-                      <span className="ir-v" style={{color:'var(--pdb-blue)'}}>{cv != null ? cv.toLocaleString('es-ES') : '—'}</span>
+                      <span className="ir-v" style={{flex:1,color:'var(--pdb-blue)'}}>{cv != null ? cv.toLocaleString('es-ES') : '—'}</span>
+                      <span style={{width:20,flexShrink:0}} aria-hidden="true"/>
                     </div>
                   )
                 }
+                if (m.special === 'pm') return (
+                  <InlineField key={m.key} label={m.label} value={newForm.asset_manager||'—'} onSave={()=>{}}>
+                    <AssetManagerSearch value={newForm.asset_manager} onChange={v=>setNF('asset_manager',v)}/>
+                  </InlineField>
+                )
                 if (m.special === 'stacking') return (
                   <div className="ir" key={m.key}>
                     <span className="ir-k">{m.label}</span>
-                    <span className="ir-v" style={{fontSize:10,color:'var(--muted)',fontStyle:'italic'}}>Desde Stacking Plan</span>
+                    <span className="ir-v" style={{flex:1,fontSize:10,color:'var(--muted)',fontStyle:'italic',textAlign:'right'}}>Desde Stacking Plan</span>
+                    <span style={{width:20,flexShrink:0}} aria-hidden="true"/>
                   </div>
                 )
-                if (m.special === 'pm') return (
-                  <Row key={m.key} label={m.label}>
-                    <input value={newForm.asset_manager} onChange={e=>setNF('asset_manager',e.target.value)} style={inpBase} placeholder="—"/>
-                  </Row>
-                )
+                const raw = newForm[m.key]
+                const has = raw !== '' && raw != null
+                const disp = !has ? '—' : m.unit === '%' ? `${raw}%` : `${Number(raw).toLocaleString('es-ES')}${m.unit?` ${m.unit}`:''}`
+                const isSba = m.key === 'sba'
                 return (
-                  <Row key={m.key} label={`${m.label}${m.unit?` (${m.unit})`:''}`}>
-                    <input type="number" value={newForm[m.key]||''} onChange={e=>setNF(m.key,e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="0" {...(m.unit==='%'?{min:'0',max:'100'}:{})}/>
-                  </Row>
+                  <InlineField key={m.key} label={`${m.label}${m.unit?` (${m.unit})`:''}`} value={disp}
+                    display={isSba ? <span style={{fontWeight:600,fontFamily:'var(--mono)',color:'var(--pdb-blue)'}}>{has?Number(raw).toLocaleString('es-ES'):'—'}</span> : undefined}
+                    onSave={()=>{}}>
+                    <input type="number" value={raw||''} onChange={e=>setNF(m.key,e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0" {...(m.unit==='%'?{min:'0',max:'100'}:{})}/>
+                  </InlineField>
                 )
               })}
             </div>
           </div>
 
-          {/* DATOS URBANÍSTICOS */}
-          <div className="va-card" style={{marginBottom:20}}>
-            <div className="va-card-header">
-              <h3><span className="ico">⚑</span> Datos urbanísticos</h3>
-              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                {catMsg === 'ok' && <span style={{fontSize:10,color:'var(--pdb-green)',fontWeight:600}}>✓ Sincronizado</span>}
-                {catMsg && catMsg !== 'ok' && <span style={{fontSize:10,color:'var(--pdb-red)',maxWidth:200,textAlign:'right',lineHeight:1.3}}>{catMsg}</span>}
-                <button className="ab-btn blue" onClick={syncCatastro} disabled={syncingCat}>
-                  {syncingCat ? '⟳ Consultando...' : '⟳ Sincronizar'}
-                </button>
-              </div>
+          {/* DATOS URBANÍSTICOS (bloqueado hasta tener dirección) */}
+          <div className="dash-card" style={lock}>
+            <div className="dash-card-head">Datos urbanísticos
+              <button className="ab-btn blue" onClick={syncCatastro} disabled={syncingCat} style={{padding:'2px 8px',fontSize:10}}>
+                {syncingCat ? 'Consultando…' : 'Sincronizar'}
+              </button>
             </div>
-            <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 40px',paddingBottom:16}}>
-              <Row label="Ref. catastral"><input value={newForm.ref_catastral} onChange={e=>setNF('ref_catastral',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/></Row>
-              <Row label="Clasificación"><input value={newForm.clasificacion_urb||''} onChange={e=>setNF('clasificacion_urb',e.target.value)} style={inpBase} placeholder="—"/></Row>
-              <Row label="Edificabilidad"><input value={newForm.edificabilidad} onChange={e=>setNF('edificabilidad',e.target.value)} style={inpBase} placeholder="—"/></Row>
-              <Row label="Uso PGOU"><input value={newForm.uso_pgou} onChange={e=>setNF('uso_pgou',e.target.value)} style={inpBase} placeholder="—"/></Row>
-              <Row label="Calificación"><input value={newForm.calificacion_urb} onChange={e=>setNF('calificacion_urb',e.target.value)} style={inpBase} placeholder="—"/></Row>
-              <Row label="Sup. parcela (m²)"><input type="number" value={newForm.sup_parcela} onChange={e=>setNF('sup_parcela',e.target.value)} style={{...inpBase,fontFamily:'var(--mono)'}} placeholder="—"/></Row>
+            {catMsg && <div style={{padding:'4px 14px 0',fontSize:9.5,color:catMsg==='ok'?'var(--pdb-green)':'var(--pdb-red)',fontWeight:600,lineHeight:1.3}}>{catMsg==='ok'?'✓ Sincronizado':catMsg}</div>}
+            <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr',gap:0,padding:'6px 14px 14px'}}>
+              <InlineField label="Ref. catastral" value={newForm.ref_catastral||'—'} onSave={()=>{}}>
+                <input value={newForm.ref_catastral} onChange={e=>setNF('ref_catastral',e.target.value)} style={{...inp,fontFamily:'var(--mono)',fontSize:11}} placeholder="—"/>
+              </InlineField>
+              <InlineField label="Clasificación" value={newForm.clasificacion_urb||'—'} onSave={()=>{}}>
+                <input value={newForm.clasificacion_urb||''} onChange={e=>setNF('clasificacion_urb',e.target.value)} style={inp} placeholder="—"/>
+              </InlineField>
+              <InlineField label="Edificabilidad" value={newForm.edificabilidad||'—'} onSave={()=>{}}>
+                <input value={newForm.edificabilidad} onChange={e=>setNF('edificabilidad',e.target.value)} style={inp} placeholder="—"/>
+              </InlineField>
+              <InlineField label="Uso PGOU" value={newForm.uso_pgou||'—'} onSave={()=>{}}>
+                <input value={newForm.uso_pgou} onChange={e=>setNF('uso_pgou',e.target.value)} style={inp} placeholder="—"/>
+              </InlineField>
+              <InlineField label="Calificación" value={newForm.calificacion_urb||'—'} onSave={()=>{}}>
+                <input value={newForm.calificacion_urb} onChange={e=>setNF('calificacion_urb',e.target.value)} style={inp} placeholder="—"/>
+              </InlineField>
+              <InlineField label="Sup. parcela (m²)" value={newForm.sup_parcela ? Number(newForm.sup_parcela).toLocaleString('es-ES')+' m²' : '—'} onSave={()=>{}}>
+                <input type="number" value={newForm.sup_parcela} onChange={e=>setNF('sup_parcela',e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="—"/>
+              </InlineField>
             </div>
           </div>
 
@@ -2906,7 +2884,7 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
   )
 }
 
-function MapaCarrusel({ activo, direccion, onAddressChange }) {
+function MapaCarrusel({ activo, direccion, onAddressChange, highlightSearch }) {
   const mapElRef   = useRef(null)
   const mapObj     = useRef(null)
   const markerRef  = useRef(null)
@@ -3085,17 +3063,23 @@ function MapaCarrusel({ activo, direccion, onAddressChange }) {
         {/* Search bar overlay */}
         <div style={{ position: 'absolute', top: 10, left: 10, right: 10, zIndex: 10 }}>
           <div style={{ position: 'relative' }}>
-            <svg viewBox="0 0 16 16" fill="none" stroke="var(--text3)" strokeWidth="1.5"
+            <svg viewBox="0 0 16 16" fill="none" stroke={highlightSearch ? 'var(--pdb-red)' : 'var(--text3)'} strokeWidth="1.5"
               style={{ position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', width:12, height:12, pointerEvents:'none', zIndex:1 }}>
               <circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/>
             </svg>
             <input ref={searchRef} type="text"
-              placeholder="Buscar dirección en el mapa..."
+              placeholder={highlightSearch ? 'Empieza aquí · busca la dirección (obligatorio)' : 'Buscar dirección en el mapa...'}
               style={{ width:'100%', boxSizing:'border-box', padding:'8px 12px 8px 28px',
-                background:'rgba(255,255,255,.97)', border:'none',
+                background: highlightSearch ? '#fff5f5' : 'rgba(255,255,255,.97)',
+                border: highlightSearch ? '2px solid var(--pdb-red)' : 'none',
                 borderRadius:6, fontSize:12, fontFamily:'inherit', color:'var(--text1)',
-                boxShadow:'0 2px 8px rgba(11,18,32,.15)', outline:'none' }}/>
+                boxShadow: highlightSearch ? '0 0 0 3px rgba(220,38,38,.18), 0 2px 8px rgba(11,18,32,.15)' : '0 2px 8px rgba(11,18,32,.15)', outline:'none' }}/>
           </div>
+          {highlightSearch && (
+            <div style={{marginTop:6,display:'inline-flex',alignItems:'center',gap:5,padding:'3px 9px',background:'var(--pdb-red)',color:'#fff',borderRadius:5,fontSize:10.5,fontWeight:700,boxShadow:'0 2px 8px rgba(11,18,32,.2)'}}>
+              <AlertTriangle size={12} strokeWidth={2}/> Campo más importante — empieza por la dirección
+            </div>
+          )}
         </div>
         <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(255,255,255,.92)', borderRadius: 5, padding: '3px 8px', fontSize: 10, fontWeight: 600, color: 'var(--text2)', backdropFilter: 'blur(4px)', border: '1px solid var(--border)' }}>
           {activo?.zona || 'M-30'} · {activo?.ciudad || 'Madrid'}
@@ -3240,7 +3224,7 @@ function ZonaBox({ info, setI, asChipRow }) {
   )
 }
 
-function AddressField({ value, ciudad, onSave }) {
+function AddressField({ value, ciudad, onSave, requiredMark }) {
   const [editing, setEditing] = useState(false)
   const [hover,   setHover]   = useState(false)
   const [draft, setDraft] = useState({ direccion: value, ciudad, pais: '' })
@@ -3305,10 +3289,11 @@ function AddressField({ value, ciudad, onSave }) {
     </div>
   )
 
+  const reqEmpty = requiredMark && !value
   return (
     <div className="ir" onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}>
-      <span className="ir-k">Dirección</span>
-      <span className="ir-v" style={{flex:1}}>{value || '—'}</span>
+      <span className="ir-k">Dirección{requiredMark && <span style={{color:'var(--pdb-red)',fontWeight:700,marginLeft:2}}>*</span>}</span>
+      <span className="ir-v" style={{flex:1, ...(reqEmpty?{color:'var(--pdb-red)',fontWeight:600}:{})}}>{value || (reqEmpty ? 'Obligatorio' : '—')}</span>
       <button onClick={()=>{ setDraft({direccion:value,ciudad,pais:''}); setEditing(true) }}
         style={{opacity:hover?1:0,transition:'opacity .15s',background:'none',border:'none',cursor:'pointer',padding:'2px 4px',color:'var(--text4)',display:'flex',alignItems:'center',borderRadius:4,flexShrink:0}}>
         <PencilIco/>
