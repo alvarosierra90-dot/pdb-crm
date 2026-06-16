@@ -152,7 +152,8 @@ function ModContratos() {
     const ext = f.name.split('.').pop().toLowerCase()
     if (ext === 'pdf') {
       const rd = new FileReader()
-      rd.onload = e => setDoc({ name: f.name, kind: 'pdf', data: e.target.result.split(',')[1] })
+      const url = URL.createObjectURL(f)
+      rd.onload = e => setDoc({ name: f.name, kind: 'pdf', data: e.target.result.split(',')[1], url })
       rd.readAsDataURL(f)
     } else if (ext === 'docx') {
       try {
@@ -169,14 +170,17 @@ function ModContratos() {
   const analyze = async () => {
     setErr(''); setLoading(true)
     const critList = criteria.map((c, i) => `${i + 1}. [${c[0]}${c[1] && c[1] !== '-' ? ' / ' + c[1] : ''}] ${c[2]}`).join('\n')
-    const sys = `Eres analista contractual senior de una consultora inmobiliaria. Analizas el contrato adjunto frente a una lista de criterios. Para CADA criterio devuelve un objeto con: "summary" (resumen claro y completo en español de lo que dice el contrato sobre ese punto, 2-4 frases, con los datos concretos: importes, plazos, %), "page" (número o rango de página/cláusula donde aparece, o "" si no se localiza), "status" ("found" si está bien recogido, "attention" si existe pero tiene algún matiz/riesgo a revisar, "missing" si no aparece en el contrato), "highlight" (true si es un punto clave que destacar). Responde SOLO con JSON válido, sin markdown: {"meta":{"title":"breve título del contrato","parties":"partes principales","date":"fecha de firma si consta"},"items":[{...}]} con un item por criterio, EN EL MISMO ORDEN.`
+    const sys = `Eres analista contractual senior de una consultora inmobiliaria. Analizas el contrato adjunto frente a una lista de criterios. Para CADA criterio devuelve un objeto con: "summary" (resumen claro y completo en español de lo que dice el contrato sobre ese punto, 2-4 frases, con los datos concretos: importes, plazos, %), "clause" (referencia textual a la cláusula/apartado del contrato donde aparece, ej. "Cláusula Décima — 10.1 Duración", o "" si no se localiza), "pageNum" (número de página del documento donde aparece esa cláusula, ENTERO; si hay varias usa la primera; "" si no se puede determinar), "status" ("found" si está bien recogido, "attention" si existe pero tiene algún matiz/riesgo a revisar, "missing" si no aparece en el contrato), "highlight" (true si es un punto clave que destacar). Responde SOLO con JSON válido, sin markdown: {"meta":{"title":"breve título del contrato","parties":"partes principales","date":"fecha de firma si consta"},"items":[{...}]} con un item por criterio, EN EL MISMO ORDEN.`
     const userText = `CRITERIOS A ANALIZAR:\n${critList}\n\nAnaliza el contrato adjunto según estos criterios y devuelve el JSON.`
     const parts = doc.kind === 'pdf'
       ? [{ inlineData: { mimeType: 'application/pdf', data: doc.data } }, { text: sys + '\n\n' + userText }]
       : [{ text: sys + '\n\nCONTRATO:\n' + doc.data + '\n\n' + userText }]
     try {
       const j = parseJSON(await callAI(parts, 16000))
-      const items = (j.items || []).map((it, i) => ({ ...it, _cat: criteria[i]?.[0] || '', _sub: criteria[i]?.[1] || '' }))
+      const items = (j.items || []).map((it, i) => ({
+        ...it, _cat: criteria[i]?.[0] || '', _sub: criteria[i]?.[1] || '',
+        clause: it.clause || it.page || '', pageNum: (it.pageNum ?? it.page_num ?? '') === null ? '' : (it.pageNum ?? it.page_num ?? ''),
+      }))
       setAnalysis({ meta: j.meta || {}, items }); setSec('resumen')
     } catch (e) { setErr('No se pudo completar el análisis: ' + e.message + '. Revisa el contrato e inténtalo de nuevo.') }
     finally { setLoading(false) }
@@ -186,9 +190,10 @@ function ModContratos() {
     if (!analysis) return
     const rows = analysis.items.map(it => {
       const status = it.status === 'missing' ? 'NO LOCALIZADO' : it.status === 'attention' ? 'REVISAR' : 'OK'
+      const refTxt = [it.clause, it.pageNum !== '' && it.pageNum != null ? 'p. ' + it.pageNum : ''].filter(Boolean).join(' · ')
       return `<tr><td style="border:1px solid #ccc;padding:6px"><b>${esc(it._cat)}</b>${it._sub && it._sub !== '-' ? ' / ' + esc(it._sub) : ''}</td>
         <td style="border:1px solid #ccc;padding:6px">${esc(it.summary || '—')}</td>
-        <td style="border:1px solid #ccc;padding:6px;text-align:center">${it.page ? esc(it.page) : '—'}</td>
+        <td style="border:1px solid #ccc;padding:6px">${esc(refTxt || '—')}</td>
         <td style="border:1px solid #ccc;padding:6px;text-align:center">${status}</td></tr>`
     }).join('')
     const m = analysis.meta || {}
@@ -196,7 +201,7 @@ function ModContratos() {
       <h1>${esc(m.title || 'Análisis del contrato')}</h1>
       <p>${esc(m.parties || '')} ${m.date ? (' · Firma: ' + esc(m.date)) : ''}<br>Plantilla: ${esc(lobName)}</p>
       <table style="border-collapse:collapse;width:100%;font-size:11pt">
-      <tr style="background:#1f5f5b;color:#fff"><th style="border:1px solid #ccc;padding:6px;text-align:left">Cláusula</th><th style="border:1px solid #ccc;padding:6px;text-align:left">Resumen</th><th style="border:1px solid #ccc;padding:6px">Pág.</th><th style="border:1px solid #ccc;padding:6px">Estado</th></tr>
+      <tr style="background:#1f5f5b;color:#fff"><th style="border:1px solid #ccc;padding:6px;text-align:left">Cláusula</th><th style="border:1px solid #ccc;padding:6px;text-align:left">Resumen</th><th style="border:1px solid #ccc;padding:6px;text-align:left">Referencia</th><th style="border:1px solid #ccc;padding:6px">Estado</th></tr>
       ${rows}</table></body></html>`
     dlWord(html, (m.title || 'analisis_contrato').replace(/[^\w]+/g, '_') + '.doc')
   }
@@ -212,20 +217,35 @@ function ModContratos() {
     const review = [...miss, ...attn]
     const groups = items.reduce((g, it) => { (g[it._cat] = g[it._cat] || []).push(it); return g }, {})
     const m = analysis.meta
+    const canOpen = doc?.kind === 'pdf' && !!doc.url
+    const openClause = (it) => {
+      if (!canOpen) return
+      const pg = parseInt(it.pageNum)
+      window.open(doc.url + (pg ? '#page=' + pg : ''), '_blank', 'noopener')
+    }
     const Clause = ({ it }) => {
       const st = it.status === 'missing' ? 'miss' : it.status === 'attention' ? 'attn' : 'found'
+      const ref = it.clause || ''
+      const pg = (it.pageNum !== '' && it.pageNum != null) ? it.pageNum : ''
+      const clickable = canOpen && st !== 'miss'
       return (
-        <div className={'clause ' + st}>
+        <div className={'clause ' + st + (clickable ? ' clickable' : '')} onClick={clickable ? () => openClause(it) : undefined}>
           <div className="dot" />
           <div className="c-main">
             <div className="c-cat">{it._cat}{it._sub && it._sub !== '-' && <span className="c-sub">{it._sub}</span>}</div>
             <div className="c-sum">{it.summary || '—'}</div>
+            {(ref || pg !== '' || clickable) && (
+              <div className="c-ref">
+                {ref && <span className="c-ref-i"><MapPin size={13} /> {ref}</span>}
+                {pg !== '' && <span className="c-ref-i">Página {pg}</span>}
+                {clickable && <span className="c-open">Ver en el contrato →</span>}
+              </div>
+            )}
           </div>
           <div className="c-side">
             {st === 'miss' && <span className="tag miss">No localizado</span>}
             {st === 'attn' && <span className="tag attn">Revisar</span>}
             {st === 'found' && <span className="tag ok">OK</span>}
-            <span className="c-page mono">{it.page ? ('p. ' + it.page) : '—'}</span>
           </div>
         </div>
       )
