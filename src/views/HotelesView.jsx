@@ -53,13 +53,13 @@ const dlWord = (html, name) => {
 // ── Google Places: foto real del hotel (clave de Maps ya usada en la app) ──
 let mapsPromise = null
 function loadMaps() {
-  if (window.google?.maps?.places) return Promise.resolve()
+  if (window.google?.maps) return Promise.resolve()
   if (mapsPromise) return mapsPromise
   const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-  if (!key) return Promise.reject(new Error('Sin clave de Google Maps'))
+  if (!key) return Promise.reject(new Error('Sin clave de Google Maps (VITE_GOOGLE_MAPS_API_KEY)'))
   mapsPromise = new Promise((res, rej) => {
     const s = document.createElement('script')
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places`
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&loading=async&v=weekly`
     s.async = true; s.defer = true
     s.onload = () => res(); s.onerror = () => rej(new Error('No se pudo cargar Google Maps'))
     document.head.appendChild(s)
@@ -69,15 +69,30 @@ function loadMaps() {
 async function fetchHotelPhoto(query) {
   try {
     await loadMaps()
-    return await new Promise(resolve => {
-      const svc = new window.google.maps.places.PlacesService(document.createElement('div'))
-      svc.findPlaceFromQuery({ query, fields: ['photos', 'name'] }, (results, status) => {
-        const ok = status === window.google.maps.places.PlacesServiceStatus.OK
-        if (ok && results?.[0]?.photos?.length) resolve(results[0].photos[0].getUrl({ maxWidth: 640, maxHeight: 420 }))
-        else resolve(null)
+    const g = window.google
+    // 1) API nueva de Places (Places API New) — la válida para proyectos recientes
+    try {
+      const lib = await g.maps.importLibrary('places')
+      const Place = lib.Place || g.maps.places.Place
+      if (Place?.searchByText) {
+        const { places } = await Place.searchByText({ textQuery: query, fields: ['photos'], maxResultCount: 1 })
+        const ph = places?.[0]?.photos?.[0]
+        if (ph?.getURI) return ph.getURI({ maxWidth: 640, maxHeight: 420 })
+        console.warn('[Hoteles] Places (new) sin foto para:', query)
+      }
+    } catch (e) { console.warn('[Hoteles] Places API (new) falló:', e?.message || e) }
+    // 2) Fallback: API clásica (Places API) — proyectos antiguos
+    try {
+      return await new Promise(resolve => {
+        const svc = new g.maps.places.PlacesService(document.createElement('div'))
+        svc.findPlaceFromQuery({ query, fields: ['photos', 'name'] }, (results, status) => {
+          if (status === g.maps.places.PlacesServiceStatus.OK && results?.[0]?.photos?.length)
+            resolve(results[0].photos[0].getUrl({ maxWidth: 640, maxHeight: 420 }))
+          else { console.warn('[Hoteles] Places (legacy) status:', status, 'query:', query); resolve(null) }
+        })
       })
-    })
-  } catch { return null }
+    } catch (e) { console.warn('[Hoteles] PlacesService falló:', e?.message || e); return null }
+  } catch (e) { console.warn('[Hoteles] Google Maps no cargó:', e?.message || e); return null }
 }
 
 // Volver arriba (scrollea el contenedor interno del módulo)
