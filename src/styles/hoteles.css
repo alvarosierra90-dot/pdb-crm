@@ -33,9 +33,9 @@
 .hot-skin .hot-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 6px 18px rgba(31,95,91,.22)}
 .hot-skin .hot-tab .tic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--accent-soft);color:var(--accent)}
 .hot-skin .hot-tab.active .tic{background:rgba(255,255,255,.18);color:#fff}
-.hot-skin .hot-tab .tt{text-align:left}
-.hot-skin .hot-tab .tt .a{font-size:14.5px;font-weight:680}
-.hot-skin .hot-tab .tt .b{font-size:11.5px;opacity:.72;margin-top:1px}
+.hot-skin .hot-tab .tt{text-align:left;display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.hot-skin .hot-tab .tt .a{display:block;font-size:14.5px;font-weight:680}
+.hot-skin .hot-tab .tt .b{display:block;font-size:11.5px;opacity:.72;margin-top:2px}
 .hot-skin .hot-scroll{flex:1;min-height:0;overflow:auto}
 
 /* ===== Comunes ===== */
@@ -155,6 +155,21 @@
 .hot-skin .clause.clickable{cursor:pointer;transition:.13s}
 .hot-skin .clause.clickable:hover{border-color:var(--accent-bd);background:#fbfdfc;box-shadow:0 2px 10px rgba(20,20,18,.05)}
 .hot-skin .clause .c-side{flex:none;text-align:right;min-width:90px;display:flex;flex-direction:column;gap:7px;align-items:flex-end}
+.hot-skin .clause .c-cmt{display:flex;align-items:center;gap:9px;margin-top:12px;color:var(--ink-soft)}
+.hot-skin .clause .c-cmt-inp{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;font-family:inherit;font-size:13.5px;background:#fcfcfb;color:var(--ink)}
+.hot-skin .clause .c-cmt-inp:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+/* Puntos por completar */
+.hot-skin .complete-card{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:13px;padding:18px 22px;margin-bottom:12px;background:#fff}
+.hot-skin .complete-card .cc-h{font-size:16px;font-weight:700}
+.hot-skin .complete-card .cc-cmt{font-size:14.5px;color:#2f2f2b;margin-top:8px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.hot-skin .complete-card .cc-ref{font-size:12.5px;color:var(--ink-soft);margin-top:10px}
+/* Volver arriba */
+.hot-skin .backtop{display:flex;justify-content:center;margin-top:26px}
+/* Foto de hotel (Google Places) */
+.hot-skin .rk-photo{width:72px;height:54px;border-radius:10px;object-fit:cover;flex:none;background:var(--line-soft)}
+.hot-skin .rk-photo.ph{display:grid;place-items:center;color:var(--ink-soft)}
+.hot-skin .pod-photo{width:100%;height:104px;border-radius:13px;object-fit:cover;margin-bottom:14px;background:var(--line-soft)}
+.hot-skin .pod-photo.ph{display:grid;place-items:center;color:var(--ink-soft)}
 
 /* loaders */
 .hot-skin .cloading{display:flex;flex-direction:column;align-items:center;gap:14px;padding:60px;color:var(--ink-soft)}

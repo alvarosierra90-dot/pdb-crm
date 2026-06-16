@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import '../styles/hoteles.css'
 import {
   FileText, Star, LayoutGrid, UploadCloud, ChevronRight, Download, Printer,
-  Trash2, Sparkles, RotateCcw, Wifi, MapPin,
+  Trash2, Sparkles, RotateCcw, Wifi, MapPin, ArrowUp, MessageSquare, Building2,
 } from 'lucide-react'
 
 /* ============================================================================
@@ -48,6 +48,76 @@ const dlWord = (html, name) => {
   const a = document.createElement('a')
   a.href = URL.createObjectURL(new Blob(['﻿' + html, ''].join(''), { type: 'application/msword' }))
   a.download = name; a.click()
+}
+
+// ── Google Places: foto real del hotel (clave de Maps ya usada en la app) ──
+let mapsPromise = null
+function loadMaps() {
+  if (window.google?.maps?.places) return Promise.resolve()
+  if (mapsPromise) return mapsPromise
+  const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+  if (!key) return Promise.reject(new Error('Sin clave de Google Maps'))
+  mapsPromise = new Promise((res, rej) => {
+    const s = document.createElement('script')
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places`
+    s.async = true; s.defer = true
+    s.onload = () => res(); s.onerror = () => rej(new Error('No se pudo cargar Google Maps'))
+    document.head.appendChild(s)
+  })
+  return mapsPromise
+}
+async function fetchHotelPhoto(query) {
+  try {
+    await loadMaps()
+    return await new Promise(resolve => {
+      const svc = new window.google.maps.places.PlacesService(document.createElement('div'))
+      svc.findPlaceFromQuery({ query, fields: ['photos', 'name'] }, (results, status) => {
+        const ok = status === window.google.maps.places.PlacesServiceStatus.OK
+        if (ok && results?.[0]?.photos?.length) resolve(results[0].photos[0].getUrl({ maxWidth: 640, maxHeight: 420 }))
+        else resolve(null)
+      })
+    })
+  } catch { return null }
+}
+
+// Volver arriba (scrollea el contenedor interno del módulo)
+function BackToTop() {
+  const up = () => document.querySelector('.hot-skin .hot-scroll')?.scrollTo({ top: 0, behavior: 'smooth' })
+  return <div className="backtop hot-no-print"><button className="btn" onClick={up}><ArrowUp size={15} /> Volver arriba</button></div>
+}
+
+// Card de cláusula (a nivel de módulo: el input de comentario no pierde el foco)
+function ClauseCard({ it, clickable, onOpen, comment, onComment }) {
+  const st = it.status === 'missing' ? 'miss' : it.status === 'attention' ? 'attn' : 'found'
+  const ref = it.clause || ''
+  const pg = (it.pageNum !== '' && it.pageNum != null) ? it.pageNum : ''
+  return (
+    <div className={'clause ' + st + (clickable ? ' clickable' : '')} onClick={clickable ? () => onOpen(it) : undefined}>
+      <div className="dot" />
+      <div className="c-main">
+        <div className="c-cat">{it._cat}{it._sub && it._sub !== '-' && <span className="c-sub">{it._sub}</span>}</div>
+        <div className="c-sum">{it.summary || '—'}</div>
+        {(ref || pg !== '' || clickable) && (
+          <div className="c-ref">
+            {ref && <span className="c-ref-i"><MapPin size={13} /> {ref}</span>}
+            {pg !== '' && <span className="c-ref-i">Página {pg}</span>}
+            {clickable && <span className="c-open">Ver en el contrato →</span>}
+          </div>
+        )}
+        <div className="c-cmt" onClick={e => e.stopPropagation()}>
+          <MessageSquare size={14} />
+          <input className="c-cmt-inp" value={comment || ''} placeholder="Añade un comentario / punto a completar…"
+            onChange={e => onComment(it._idx, e.target.value)} />
+        </div>
+      </div>
+      <div className="c-side">
+        {st === 'miss' && <span className="tag miss">No localizado</span>}
+        {st === 'attn' && <span className="tag attn">Revisar</span>}
+        {st === 'found' && <span className="tag ok">OK</span>}
+        {(comment || '').trim() && <span className="tag blue">Comentario</span>}
+      </div>
+    </div>
+  )
 }
 
 /* ──────────────────────────── Plantilla HLA ──────────────────────────── */
@@ -103,8 +173,10 @@ function ModContratos() {
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
   const [analysis, setAnalysis] = useState(null)
+  const [comments, setComments] = useState({})
   const [sec, setSec] = useState('resumen')
   const impRef = useRef(null), docRef = useRef(null), msRef = useRef(null)
+  const onComment = (idx, val) => setComments(c => ({ ...c, [idx]: val }))
   const ready = criteria.length > 0 && !!doc
 
   const downloadBlank = async () => {
@@ -178,10 +250,10 @@ function ModContratos() {
     try {
       const j = parseJSON(await callAI(parts, 16000))
       const items = (j.items || []).map((it, i) => ({
-        ...it, _cat: criteria[i]?.[0] || '', _sub: criteria[i]?.[1] || '',
+        ...it, _idx: i, _cat: criteria[i]?.[0] || '', _sub: criteria[i]?.[1] || '',
         clause: it.clause || it.page || '', pageNum: (it.pageNum ?? it.page_num ?? '') === null ? '' : (it.pageNum ?? it.page_num ?? ''),
       }))
-      setAnalysis({ meta: j.meta || {}, items }); setSec('resumen')
+      setComments({}); setAnalysis({ meta: j.meta || {}, items }); setSec('resumen')
     } catch (e) { setErr('No se pudo completar el análisis: ' + e.message + '. Revisa el contrato e inténtalo de nuevo.') }
     finally { setLoading(false) }
   }
@@ -223,33 +295,8 @@ function ModContratos() {
       const pg = parseInt(it.pageNum)
       window.open(doc.url + (pg ? '#page=' + pg : ''), '_blank', 'noopener')
     }
-    const Clause = ({ it }) => {
-      const st = it.status === 'missing' ? 'miss' : it.status === 'attention' ? 'attn' : 'found'
-      const ref = it.clause || ''
-      const pg = (it.pageNum !== '' && it.pageNum != null) ? it.pageNum : ''
-      const clickable = canOpen && st !== 'miss'
-      return (
-        <div className={'clause ' + st + (clickable ? ' clickable' : '')} onClick={clickable ? () => openClause(it) : undefined}>
-          <div className="dot" />
-          <div className="c-main">
-            <div className="c-cat">{it._cat}{it._sub && it._sub !== '-' && <span className="c-sub">{it._sub}</span>}</div>
-            <div className="c-sum">{it.summary || '—'}</div>
-            {(ref || pg !== '' || clickable) && (
-              <div className="c-ref">
-                {ref && <span className="c-ref-i"><MapPin size={13} /> {ref}</span>}
-                {pg !== '' && <span className="c-ref-i">Página {pg}</span>}
-                {clickable && <span className="c-open">Ver en el contrato →</span>}
-              </div>
-            )}
-          </div>
-          <div className="c-side">
-            {st === 'miss' && <span className="tag miss">No localizado</span>}
-            {st === 'attn' && <span className="tag attn">Revisar</span>}
-            {st === 'found' && <span className="tag ok">OK</span>}
-          </div>
-        </div>
-      )
-    }
+    const pending = items.filter(it => (comments[it._idx] || '').trim())
+    const cardOf = it => <ClauseCard key={it._idx} it={it} clickable={canOpen && it.status !== 'missing'} onOpen={openClause} comment={comments[it._idx]} onComment={onComment} />
     return (
       <div className="wrap">
         <div className="ms-toolbar hot-no-print">
@@ -259,14 +306,15 @@ function ModContratos() {
         </div>
         <div className="ms-doc" ref={msRef}>
           <div className="ms-band">
-              <div className="ms-eyebrow">Revisión de contratos</div>
+            <div className="ms-eyebrow">Revisión de contratos</div>
             <div className="ms-title">{m.title || 'Análisis del contrato'}</div>
             <div className="ms-meta">{[m.parties, m.date ? 'Firma: ' + m.date : '', lobName].filter(Boolean).join('  ·  ')}</div>
           </div>
           <div className="ms-nav hot-no-print">
             <a className={sec === 'resumen' ? 'active' : ''} onClick={() => goSec('resumen')}><span className="num">1</span>Resumen</a>
-            <a className={sec === 'revisar' ? 'active' : ''} onClick={() => goSec('revisar')}><span className="num">2</span>A revisar ({review.length})</a>
-            <a className={sec === 'clausulas' ? 'active' : ''} onClick={() => goSec('clausulas')}><span className="num">3</span>Cláusulas ({items.length})</a>
+            <a className={sec === 'completar' ? 'active' : ''} onClick={() => goSec('completar')}><span className="num">2</span>Por completar ({pending.length})</a>
+            <a className={sec === 'revisar' ? 'active' : ''} onClick={() => goSec('revisar')}><span className="num">3</span>A revisar ({review.length})</a>
+            <a className={sec === 'clausulas' ? 'active' : ''} onClick={() => goSec('clausulas')}><span className="num">4</span>Cláusulas ({items.length})</a>
           </div>
 
           <section className="ms-sec" id="hc-resumen">
@@ -282,9 +330,23 @@ function ModContratos() {
             </div>
           </section>
 
+          <section className="ms-sec" id="hc-completar">
+            <div className="ms-h"><span className="hl">Puntos por completar</span></div>
+            <p className="headline" style={{ borderLeftColor: 'var(--blue)' }}>Escribe un comentario en cualquier card (campo inferior) y aparecerá aquí como punto a completar para tu revisión.</p>
+            {pending.length
+              ? pending.map(it => (
+                <div className="complete-card" key={it._idx}>
+                  <div className="cc-h">{it._cat}{it._sub && it._sub !== '-' ? <span className="c-sub" style={{ display: 'inline', marginLeft: 8 }}>· {it._sub}</span> : null}</div>
+                  <div className="cc-cmt">{comments[it._idx]}</div>
+                  {(it.clause || it.pageNum) && <div className="cc-ref">{[it.clause, it.pageNum ? 'Página ' + it.pageNum : ''].filter(Boolean).join('  ·  ')}</div>}
+                </div>
+              ))
+              : <p className="headline" style={{ borderLeftColor: 'var(--good)' }}>Aún no has añadido comentarios.</p>}
+          </section>
+
           <section className="ms-sec" id="hc-revisar">
             <div className="ms-h"><span className="hl">Puntos a revisar</span></div>
-            {review.length ? review.map((it, i) => <Clause key={i} it={it} />)
+            {review.length ? review.map(cardOf)
               : <p className="headline" style={{ borderLeftColor: 'var(--good)' }}>No hay cláusulas pendientes de revisión.</p>}
           </section>
 
@@ -293,11 +355,12 @@ function ModContratos() {
             {Object.keys(groups).map(cat => (
               <div key={cat}>
                 <div className="group-h">{cat}</div>
-                {groups[cat].map((it, i) => <Clause key={i} it={it} />)}
+                {groups[cat].map(cardOf)}
               </div>
             ))}
           </section>
         </div>
+        <BackToTop />
       </div>
     )
   }
@@ -396,8 +459,13 @@ function computeScores(hotels, pois, amenities) {
 }
 const newScoreHotel = (subject) => ({
   id: uid(), name: '', address: '', web: '', stars: '', keys: '', group: '', brand: '', lastRefurb: '',
-  booking: '', tripadvisor: '', amenities: {}, distances: {}, isSubject: subject, inCS: 'Yes', open: true,
+  booking: '', tripadvisor: '', amenities: {}, distances: {}, photo: '', isSubject: subject, inCS: 'Yes', open: true,
 })
+function HotelPhoto({ src, className }) {
+  const [ok, setOk] = useState(true)
+  if (src && ok) return <img className={className} src={src} alt="" loading="lazy" onError={() => setOk(false)} />
+  return <div className={className + ' ph'}><Building2 size={18} /></div>
+}
 const scoreColor = t => t >= 3.5 ? 'var(--good)' : t >= 2.5 ? 'var(--accent)' : 'var(--warn)'
 
 function AddHotel({ value, onChange, onAdd }) {
@@ -448,6 +516,8 @@ function ModScore() {
 
   const autofill = async (hotel) => {
     setBusy(b => ({ ...b, [hotel.id]: true }))
+    // Foto real vía Google Places (en paralelo, no bloquea el autocompletado)
+    fetchHotelPhoto(`${hotel.name}${city ? ', ' + city : ''} hotel`).then(url => { if (url) setHotel(hotel.id, { photo: url }) })
     const poiNames = pois.map(p => p.name)
     const prompt = `Eres analista de inversión hotelera. Dado el nombre de un hotel y su ciudad, completa sus datos con tu mejor conocimiento. Para las distancias, estima los km a pie desde el hotel a cada punto turístico indicado (número, una cifra decimal). Para amenities responde true/false. Si no conoces un dato, estima de forma razonable y conservadora. Responde SOLO JSON sin markdown:
 {"address":"","web":"","stars":<0-5>,"keys":<nº habitaciones>,"group":"","brand":"","lastRefurb":<año>,"booking":<0-10>,"tripadvisor":<0-5>,"amenities":{"<nombre exacto>":true/false},"distances":{"<nombre punto>":<km>}}
@@ -579,6 +649,7 @@ Puntos turísticos: ${poiNames.join(', ')}`
               <div className={'hotel' + (h.isSubject ? ' subject' : '') + (h.open ? ' open' : '')} key={h.id}>
                 <div className="hotel-bar" onClick={() => setHotel(h.id, { open: !h.open })}>
                   <span className="h-chev"><ChevronRight size={15} /></span>
+                  <HotelPhoto src={h.photo} className="rk-photo" />
                   <div className="h-id">
                     <div className="h-name">{h.name}{stars && <span className="h-stars">{stars}</span>}
                       {h.isSubject && <span className="h-tag subj">Objeto</span>}{h.inCS === 'Yes' && <span className="h-tag cs">Comp set</span>}</div>
@@ -633,6 +704,7 @@ Puntos turísticos: ${poiNames.join(', ')}`
         {!!hotels.length && <>
           <AddHotel value={hName} onChange={setHName} onAdd={addHotel} />
           <button className="btn primary" style={{ marginTop: 14 }} onClick={() => setPane('res')}>Ver resultados →</button>
+          <BackToTop />
         </>}
       </>}
 
@@ -656,6 +728,7 @@ Puntos turísticos: ${poiNames.join(', ')}`
                   const d = der[h.id]; const vs = csAvg.total ? (d.total / csAvg.total - 1) * 100 : 0
                   return (
                     <div className={'pod r' + (i + 1) + (h.isSubject ? ' subject' : '')} key={h.id}>
+                      <HotelPhoto src={h.photo} className="pod-photo" />
                       <div className="medal">{i + 1}</div>
                       <div className="pn">{h.name}{h.isSubject ? ' ·' : ''}</div>
                       {!!Math.round(+h.stars) && <div className="pstars">{'★'.repeat(Math.round(+h.stars))}</div>}
@@ -674,6 +747,7 @@ Puntos turísticos: ${poiNames.join(', ')}`
                   <div className={'rk-card' + (h.isSubject ? ' subject' : '')} key={h.id}>
                     <div className="rk-top">
                       <div className={'rk-pos' + (i < 3 ? ' p' + (i + 1) : '')}>{i + 1}</div>
+                      <HotelPhoto src={h.photo} className="rk-photo" />
                       <div className="rk-name">
                         <div className="nn">{h.name}
                           {h.isSubject && <span className="h-tag subj">Objeto</span>}
@@ -701,6 +775,7 @@ Puntos turísticos: ${poiNames.join(', ')}`
             )}
           </>}
         </div>
+        <BackToTop />
       </>}
     </div>
   )
@@ -817,6 +892,7 @@ Cuenta de explotación (k€ salvo indicado):\n${lines}`
             )
           })}
         </tbody></table></div>
+        <BackToTop />
       </div>
     )
   }
@@ -890,6 +966,7 @@ Cuenta de explotación (k€ salvo indicado):\n${lines}`
           </div>
         </section>
       </div>
+      <BackToTop />
     </div>
   )
 }
