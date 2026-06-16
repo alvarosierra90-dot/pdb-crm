@@ -3536,7 +3536,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
           {/* UBICACIÓN */}
           <div className="dash-card">
             <div className="dash-card-head">Ubicación</div>
-            <div className="va-kv-list" style={{padding:'6px 14px 12px'}}>
+            <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr',gap:0,padding:'6px 14px 14px'}}>
             <InlineField label="Nombre del activo" value={info.nombre}
               onSave={()=>{ setDirty(true); if(onInfoSaved) onInfoSaved({nombre: info.nombre}) }}>
               <input value={info.nombre} onChange={e=>setI('nombre',e.target.value)} style={inp} placeholder="Nombre comercial del activo..."/>
@@ -3558,7 +3558,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
           {/* TIPOLOGÍA */}
           <div className="dash-card">
             <div className="dash-card-head">Tipología</div>
-            <div className="va-kv-list" style={{padding:'6px 14px 12px'}}>
+            <div className="va-kv-list" style={{display:'grid',gridTemplateColumns:'1fr',gap:0,padding:'6px 14px 14px'}}>
             <InlineField label="Tipo de activo" value={info.tipo_activo} onSave={()=>setDirty(true)}>
               <select value={info.tipo_activo} onChange={e=>setI('tipo_activo',e.target.value)} style={sel}>
                 {['Edificio','Nave','Local','Parcela','Complejo','Torre','Centro comercial','Parque empresarial','Parque logístico','Residencia'].map(t=><option key={t}>{t}</option>)}
