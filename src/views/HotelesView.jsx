@@ -50,55 +50,22 @@ const dlWord = (html, name) => {
   a.download = name; a.click()
 }
 
-// ── Google Places: foto real del hotel (clave de Maps ya usada en la app) ──
-let mapsPromise = null
-function loadMaps() {
-  if (window.google?.maps) return Promise.resolve()
-  if (mapsPromise) return mapsPromise
-  const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-  if (!key) return Promise.reject(new Error('Sin clave de Google Maps (VITE_GOOGLE_MAPS_API_KEY)'))
-  mapsPromise = new Promise((res, rej) => {
-    const s = document.createElement('script')
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&loading=async&v=weekly`
-    s.async = true; s.defer = true
-    s.onload = () => res(); s.onerror = () => rej(new Error('No se pudo cargar Google Maps'))
-    document.head.appendChild(s)
-  })
-  return mapsPromise
-}
+// ── Google Places (API New, REST desde el navegador) → foto real del hotel ──
 async function fetchHotelPhoto(query) {
+  const KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+  if (!KEY) { console.warn('[Hoteles] Falta VITE_GOOGLE_MAPS_API_KEY'); return null }
   try {
-    await loadMaps()
-    const g = window.google
-    const places = g?.maps?.places
-    // 1) API nueva de Places (solo si está disponible en este bootstrap)
-    try {
-      let Place = places?.Place
-      if (!Place && typeof g?.maps?.importLibrary === 'function') Place = (await g.maps.importLibrary('places')).Place
-      if (Place?.searchByText) {
-        const { places: rs } = await Place.searchByText({ textQuery: query, fields: ['photos'], maxResultCount: 1, includedType: 'lodging' })
-        const ph = rs?.[0]?.photos?.[0]
-        if (ph?.getURI) return ph.getURI({ maxWidth: 640, maxHeight: 420 })
-      }
-    } catch (e) { console.warn('[Hoteles] Places (new):', e?.message || e) }
-    // 2) API clásica (Places API) — con respaldo a getDetails si la ficha no trae foto directa
-    if (places?.PlacesService) {
-      const svc = new places.PlacesService(document.createElement('div'))
-      const cand = await new Promise(resolve => {
-        svc.findPlaceFromQuery({ query, fields: ['photos', 'place_id', 'name'] }, (results, status) => {
-          if (status === places.PlacesServiceStatus.OK && results?.[0]) resolve(results[0])
-          else { console.warn('[Hoteles] Places (legacy) status:', status); resolve(null) }
-        })
-      })
-      if (cand?.photos?.length) return cand.photos[0].getUrl({ maxWidth: 640, maxHeight: 420 })
-      if (cand?.place_id) {
-        const det = await new Promise(resolve => svc.getDetails({ placeId: cand.place_id, fields: ['photos'] },
-          (r, s) => resolve(s === places.PlacesServiceStatus.OK ? r : null)))
-        if (det?.photos?.length) return det.photos[0].getUrl({ maxWidth: 640, maxHeight: 420 })
-      }
-    }
-    return null
-  } catch (e) { console.warn('[Hoteles] Google Maps:', e?.message || e); return null }
+    const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': KEY, 'X-Goog-FieldMask': 'places.photos,places.displayName' },
+      body: JSON.stringify({ textQuery: query, maxResultCount: 1 }),
+    })
+    const d = await r.json()
+    if (!r.ok) { console.warn('[Hoteles] Places searchText:', d?.error?.message || ('HTTP ' + r.status)); return null }
+    const name = d?.places?.[0]?.photos?.[0]?.name
+    if (!name) { console.warn('[Hoteles] Places sin foto para:', query); return null }
+    return `https://places.googleapis.com/v1/${name}/media?maxWidthPx=800&key=${encodeURIComponent(KEY)}`
+  } catch (e) { console.warn('[Hoteles] Places fetch:', e?.message || e); return null }
 }
 // Respaldo: foto de la web oficial del hotel (og:image) vía nuestro serverless
 async function fetchOgImage(web) {
