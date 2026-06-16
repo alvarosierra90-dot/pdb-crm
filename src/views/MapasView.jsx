@@ -2,20 +2,29 @@ import { useEffect, useRef, useState, useMemo } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 
-function loadGoogleMaps(apiKey) {
-  return new Promise((resolve, reject) => {
-    if (window.google && window.google.maps) { resolve(); return }
+async function ensureLibs() {
+  // Garantiza drawing/geometry/places aunque Maps se cargara antes en otra vista
+  // (p. ej. una ficha de Activo) sin esas librerías.
+  if (window.google?.maps?.importLibrary) {
+    try { await Promise.all(['maps', 'drawing', 'geometry', 'places'].map(l => window.google.maps.importLibrary(l))) }
+    catch { /* noop */ }
+  }
+}
+async function loadGoogleMaps(apiKey) {
+  if (window.google && window.google.maps) { await ensureLibs(); return }
+  await new Promise((resolve, reject) => {
     const existing = document.getElementById('gm-script')
     if (existing) { existing.addEventListener('load', resolve); existing.addEventListener('error', reject); return }
     const s = document.createElement('script')
     s.id = 'gm-script'
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,drawing,geometry`
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,drawing,geometry&loading=async`
     s.async = true
     s.defer = true
     s.onload = resolve
     s.onerror = reject
     document.head.appendChild(s)
   })
+  await ensureLibs()
 }
 
 // Forzamos la clave del proyecto del usuario (Maps JS + Places + sin restricción).
@@ -450,13 +459,16 @@ export default function MapasView() {
       })
       mapObj.current = map
 
-      // Drawing manager
-      const dm = new window.google.maps.drawing.DrawingManager({
-        drawingMode: null, drawingControl: false,
-        circleOptions:  { fillColor:'#8a6d40', fillOpacity:.07, strokeColor:'#8a6d40', strokeWeight:1.5, clickable:false, editable:true, zIndex:1 },
-        polygonOptions: { fillColor:'#8a6d40', fillOpacity:.07, strokeColor:'#8a6d40', strokeWeight:1.5, clickable:false, editable:true, zIndex:1 },
-      })
-      dm.setMap(map)
+      // Drawing manager (si por lo que sea falta la librería, no rompemos el mapa)
+      let dm
+      try {
+        dm = new window.google.maps.drawing.DrawingManager({
+          drawingMode: null, drawingControl: false,
+          circleOptions:  { fillColor:'#8a6d40', fillOpacity:.07, strokeColor:'#8a6d40', strokeWeight:1.5, clickable:false, editable:true, zIndex:1 },
+          polygonOptions: { fillColor:'#8a6d40', fillOpacity:.07, strokeColor:'#8a6d40', strokeWeight:1.5, clickable:false, editable:true, zIndex:1 },
+        })
+        dm.setMap(map)
+      } catch { dm = { setMap(){}, addListener(){}, setDrawingMode(){} } }
       dmgr.current = dm
 
       const recalcShapeFilter = () => {
