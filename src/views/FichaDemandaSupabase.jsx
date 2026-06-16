@@ -73,6 +73,20 @@ const ta  = { width:'100%', padding:'6px 9px', fontSize:11.5, border:'1px solid 
 
 function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('es-ES') }
 
+// Wrapper de campo de Requisitos. DEBE vivir a nivel de módulo: si se define
+// dentro del render, cada pulsación recrea el componente y React remonta el
+// input → se pierde el foco tras un carácter.
+function ReqField({ label, required, accent, children }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:4, minWidth:0 }}>
+      <div style={{ fontSize:11, fontWeight:700, color: accent || 'var(--text)', textTransform:'uppercase', letterSpacing:'.03em' }}>
+        {label} {required && <span style={{ color:'#dc2626' }}>*</span>}
+      </div>
+      {children}
+    </div>
+  )
+}
+
 // Opciones que el usuario puede elegir explícitamente en el dropdown del
 // Estado de la demanda. 'cerrada_concedido' (Cerrada por Savills) NO se elige
 // aquí — se establece automáticamente al cerrar con éxito una negociación
@@ -1069,15 +1083,7 @@ export default function FichaDemandaSupabase({ refOrId }) {
               onError: (msg) => setSaveError(msg),
             })
 
-            // Helpers Requisitos (movidos desde el antiguo tab dem-req)
-            const ReqField = ({ label, required, accent, children }) => (
-              <div style={{ display:'flex', flexDirection:'column', gap:4, minWidth:0 }}>
-                <div style={{ fontSize:11, fontWeight:700, color: accent || 'var(--text)', textTransform:'uppercase', letterSpacing:'.03em' }}>
-                  {label} {required && <span style={{ color:'#dc2626' }}>*</span>}
-                </div>
-                {children}
-              </div>
-            )
+            // ReqField vive a nivel de módulo (evita remount/pérdida de foco al teclear)
             const canExport = !!form.uso_principal && (!!form.sup_min || !!form.sup_max)
 
             // Botón Editar/Guardar por card · usa el mecanismo global (editing + saveEdit)
