@@ -4940,12 +4940,20 @@ export default function FichaActivo() {
       const safeCount = async (promise) => {
         try { const res = await promise; return res?.count || 0 } catch { return 0 }
       }
-      const [nOf, nTx, nArr, nProp] = await Promise.all([
+      const safeFoto = async () => {
+        try {
+          const { data } = await supabase.from('fotos_activo').select('url,tipo,orden').eq('activo_id', cid).order('orden').limit(8)
+          const f = (data || []).find(x => x.url && !FOTO_SUB_PLAN.includes(x.tipo))
+          return f?.url || null
+        } catch { return null }
+      }
+      const [nOf, nTx, nArr, nProp, foto] = await Promise.all([
         safeCount(supabase.from('ofertas').select('id', { count:'exact', head:true }).eq('activo_id', cid)),
         safeCount(supabase.from('negociaciones').select('id', { count:'exact', head:true })
           .eq('activo_id', cid).in('estado', ['Firmado','Cerrada','Cerrado']).gte('cierre_estimado', cutoffISO)),
         safeCount(supabase.from('arrendatarios').select('id', { count:'exact', head:true }).eq('activo_ref', cref)),
         safeCount(supabase.from('propietarios').select('id', { count:'exact', head:true }).eq('activo_ref', cref)),
+        safeFoto(),
       ])
       return {
         ...r,
@@ -4955,6 +4963,7 @@ export default function FichaActivo() {
         n_propietarios: nProp,
         n_edificios: nEdif,
         plazas: 0,
+        foto,
       }
     }))
   }
@@ -5909,7 +5918,9 @@ export default function FichaActivo() {
                           {/* Imagen / placeholder */}
                           <div style={{height:120,background:'linear-gradient(135deg,#f5efe5,#ece0c9)',position:'relative',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
                             onClick={()=>navigate('ficha-activo',{ref:a.ref})}>
-                            <Building2 size={36} strokeWidth={1.5} color="#5a4828" style={{opacity:0.5}}/>
+                            {c.foto
+                              ? <img src={c.foto} alt={a.nombre||a.ref} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/>
+                              : <Building2 size={36} strokeWidth={1.5} color="#5a4828" style={{opacity:0.5}}/>}
                             {/* Tags arriba a la derecha */}
                             <div style={{position:'absolute',top:8,right:8,display:'flex',flexWrap:'wrap',gap:4,justifyContent:'flex-end',maxWidth:'70%'}}>
                               {sim.tags.slice(0,3).map(tag => (
@@ -5998,7 +6009,9 @@ export default function FichaActivo() {
                         <div key={a.id} style={{background:'#fff',border:'1px dashed var(--border2)',borderRadius:10,overflow:'hidden',display:'flex',flexDirection:'column',opacity:0.95}}>
                           <div style={{height:120,background:'linear-gradient(135deg,#f3f4f6,#e5e7eb)',position:'relative',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
                             onClick={()=>navigate('ficha-activo',{ref:a.ref})}>
-                            <Building2 size={36} strokeWidth={1.5} color="#6b7280" style={{opacity:0.5}}/>
+                            {c.foto
+                              ? <img src={c.foto} alt={a.nombre||a.ref} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/>
+                              : <Building2 size={36} strokeWidth={1.5} color="#6b7280" style={{opacity:0.5}}/>}
                             <div style={{position:'absolute',top:8,right:8,display:'flex',flexWrap:'wrap',gap:4,justifyContent:'flex-end',maxWidth:'70%'}}>
                               {c.tags.slice(0,3).map(tag => (
                                 <span key={tag} style={{fontSize:9,fontWeight:700,padding:'3px 7px',borderRadius:10,background:'rgba(255,255,255,0.95)',color:'var(--text2)',border:'1px solid var(--border)',whiteSpace:'nowrap'}}>{tag}</span>
