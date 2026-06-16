@@ -51,22 +51,25 @@ const dlWord = (html, name) => {
 }
 
 // ── Google Places (API New, REST desde el navegador) → foto real del hotel ──
+// Devuelve { url, err } para poder mostrar el motivo en pantalla si falla.
 async function fetchHotelPhoto(query) {
   const KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-  if (!KEY) { console.warn('[Hoteles] Falta VITE_GOOGLE_MAPS_API_KEY'); return null }
+  if (!KEY) return { url: null, err: 'Falta la clave de Maps (VITE_GOOGLE_MAPS_API_KEY)' }
   try {
     const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': KEY, 'X-Goog-FieldMask': 'places.photos,places.displayName' },
       body: JSON.stringify({ textQuery: query, maxResultCount: 1 }),
     })
-    const d = await r.json()
-    if (!r.ok) { console.warn('[Hoteles] Places searchText:', d?.error?.message || ('HTTP ' + r.status)); return null }
+    const d = await r.json().catch(() => ({}))
+    if (!r.ok) return { url: null, err: 'Places (New): ' + (d?.error?.message || ('HTTP ' + r.status)) }
     const name = d?.places?.[0]?.photos?.[0]?.name
-    if (!name) { console.warn('[Hoteles] Places sin foto para:', query); return null }
-    return `https://places.googleapis.com/v1/${name}/media?maxWidthPx=800&key=${encodeURIComponent(KEY)}`
-  } catch (e) { console.warn('[Hoteles] Places fetch:', e?.message || e); return null }
+    if (!name) return { url: null, err: 'Google no tiene foto de este hotel' }
+    return { url: `https://places.googleapis.com/v1/${name}/media?maxWidthPx=800&key=${encodeURIComponent(KEY)}`, err: null }
+  } catch (e) { return { url: null, err: 'Red/CORS: ' + (e?.message || e) } }
 }
+// Comprueba que una imagen carga de verdad (detecta 403 del SKU de fotos, etc.)
+const preloadImg = src => new Promise(res => { const im = new Image(); im.onload = () => res(true); im.onerror = () => res(false); im.src = src })
 // Respaldo: foto de la web oficial del hotel (og:image) vía nuestro serverless
 async function fetchOgImage(web) {
   if (!web) return null
@@ -469,7 +472,7 @@ function computeScores(hotels, pois, amenities) {
 }
 const newScoreHotel = (subject) => ({
   id: uid(), name: '', address: '', web: '', stars: '', keys: '', group: '', brand: '', lastRefurb: '',
-  booking: '', tripadvisor: '', amenities: {}, distances: {}, photo: '', isSubject: subject, inCS: 'Yes', open: true,
+  booking: '', tripadvisor: '', amenities: {}, distances: {}, photo: '', photoErr: '', isSubject: subject, inCS: 'Yes', open: true,
 })
 function HotelPhoto({ src, className }) {
   const [ok, setOk] = useState(true)
@@ -525,9 +528,11 @@ function ModScore() {
   }
 
   const resolveHotelPhoto = async (hotel, web) => {
-    let url = await fetchHotelPhoto(`${hotel.name}${city ? ', ' + city : ''}`)
-    if (!url) url = await fetchOgImage(web || hotel.web)   // respaldo: web oficial del hotel
-    if (url) setHotel(hotel.id, { photo: url })
+    const { url, err } = await fetchHotelPhoto(`${hotel.name}${city ? ', ' + city : ''}`)
+    if (url && await preloadImg(url)) { setHotel(hotel.id, { photo: url, photoErr: '' }); return }
+    const og = await fetchOgImage(web || hotel.web)   // respaldo: web oficial del hotel
+    if (og && await preloadImg(og)) { setHotel(hotel.id, { photo: og, photoErr: '' }); return }
+    setHotel(hotel.id, { photoErr: url ? 'La foto de Google se bloqueó al cargar (revisa "Place Photos" / restricciones de la clave)' : (err || 'Sin foto') })
   }
   const autofill = async (hotel) => {
     setBusy(b => ({ ...b, [hotel.id]: true }))
@@ -710,6 +715,7 @@ Puntos turísticos: ${poiNames.join(', ')}`
                       <button className="btn ai sm" onClick={() => autofill(h)}><Sparkles size={15} /> Reautocompletar</button>
                       <button className="btn sm" style={{ marginLeft: 'auto' }} onClick={() => setHotels(p => p.filter(x => x.id !== h.id))}>Eliminar</button>
                     </div>
+                    {!h.photo && h.photoErr && <div className="photo-note">Foto no disponible · {h.photoErr}</div>}
                   </div>
                 )}
               </div>
