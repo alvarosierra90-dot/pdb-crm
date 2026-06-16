@@ -540,20 +540,22 @@ function ModScore() {
     setPois(valid); setStarted(true); setPane('set')
   }
 
-  const resolveHotelPhoto = async (hotel, web) => {
+  const resolveHotelPhoto = async (hotel, web, image) => {
+    // 1) Foto de la web oficial del hotel (og:image) — fuente principal, sin Google
+    const o = await fetchOgImage(web || hotel.web)
+    if (o.url && await preloadImg(o.url)) { setHotel(hotel.id, { photo: o.url, photoErr: '' }); return }
+    // 2) Imagen directa sugerida por la IA (validada cargándola)
+    if (image && await preloadImg(image)) { setHotel(hotel.id, { photo: image, photoErr: '' }); return }
+    // 3) Google Places (extra, solo si la clave lo permite)
     const p = await fetchHotelPhoto(`${hotel.name}${city ? ', ' + city : ''}`)
     if (p.url && await preloadImg(p.url)) { setHotel(hotel.id, { photo: p.url, photoErr: '' }); return }
-    const o = await fetchOgImage(web || hotel.web)   // respaldo: web oficial del hotel
-    if (o.url && await preloadImg(o.url)) { setHotel(hotel.id, { photo: o.url, photoErr: '' }); return }
-    const placesMsg = p.url ? 'foto de Google bloqueada al cargar (SKU Place Photos / restricción de clave)' : (p.err || 'sin foto')
-    const tail = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').slice(-6)
-    setHotel(hotel.id, { photoErr: `Google → ${placesMsg}  ·  ${o.err}  ·  clave …${tail}` })
+    setHotel(hotel.id, { photoErr: 'Sin foto disponible para este hotel' })
   }
   const autofill = async (hotel) => {
     setBusy(b => ({ ...b, [hotel.id]: true }))
     const poiNames = pois.map(p => p.name)
     const prompt = `Eres analista de inversión hotelera. Dado el nombre de un hotel y su ciudad, completa sus datos con tu mejor conocimiento. Para las distancias, estima los km a pie desde el hotel a cada punto turístico indicado (número, una cifra decimal). Para amenities responde true/false. Si no conoces un dato, estima de forma razonable y conservadora. Responde SOLO JSON sin markdown:
-{"address":"","web":"","stars":<0-5>,"keys":<nº habitaciones>,"group":"","brand":"","lastRefurb":<año>,"booking":<0-10>,"tripadvisor":<0-5>,"amenities":{"<nombre exacto>":true/false},"distances":{"<nombre punto>":<km>}}
+{"address":"","web":"<URL de la web OFICIAL del hotel>","image":"<URL directa a una foto del hotel si la conoces (web oficial o Wikimedia Commons); cadena vacía si no>","stars":<0-5>,"keys":<nº habitaciones>,"group":"","brand":"","lastRefurb":<año>,"booking":<0-10>,"tripadvisor":<0-5>,"amenities":{"<nombre exacto>":true/false},"distances":{"<nombre punto>":<km>}}
 Hotel: ${hotel.name}
 Ciudad: ${city}
 Amenities a evaluar: ${amenities.join(', ')}
@@ -571,7 +573,7 @@ Puntos turísticos: ${poiNames.join(', ')}`
         if (j.distances) pois.forEach(pp => { const v = j.distances[pp.name]; if (typeof v === 'number') next.distances[pp.id] = v })
         return next
       }))
-      resolveHotelPhoto(hotel, j.web)   // foto: Places y, si no, og:image de la web
+      resolveHotelPhoto(hotel, j.web, j.image)   // foto: web del hotel → imagen IA → Places
     } catch (e) { alert('No se pudo autocompletar (' + e.message + '). Rellena los campos a mano.') }
     finally { setBusy(b => ({ ...b, [hotel.id]: false })) }
   }

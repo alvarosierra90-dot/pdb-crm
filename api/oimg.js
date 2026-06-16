@@ -28,9 +28,11 @@ export default async function handler(req, res) {
     const html = (await r.text()).slice(0, 600000)
     const pick = re => { const m = html.match(re); return m ? m[1] : null }
     let img =
-      pick(/<meta[^>]+(?:property|name)=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i) ||
+      pick(/<meta[^>]+(?:property|name)=["']og:image(?::secure_url|:url)?["'][^>]+content=["']([^"']+)["']/i) ||
       pick(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']og:image["']/i) ||
       pick(/<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i) ||
+      pick(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i) ||
+      pick(/<meta[^>]+itemprop=["']image["'][^>]+content=["']([^"']+)["']/i) ||
       pick(/<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/i)
     if (img) {
       img = img.replace(/&amp;/g, '&').trim()
