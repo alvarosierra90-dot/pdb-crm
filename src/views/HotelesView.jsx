@@ -94,6 +94,16 @@ async function fetchHotelPhoto(query) {
     } catch (e) { console.warn('[Hoteles] PlacesService falló:', e?.message || e); return null }
   } catch (e) { console.warn('[Hoteles] Google Maps no cargó:', e?.message || e); return null }
 }
+// Respaldo: foto de la web oficial del hotel (og:image) vía nuestro serverless
+async function fetchOgImage(web) {
+  if (!web) return null
+  try {
+    const r = await fetch('/api/oimg?url=' + encodeURIComponent(web))
+    if (!r.ok) return null
+    const d = await r.json()
+    return d.image || null
+  } catch { return null }
+}
 
 // Volver arriba (scrollea el contenedor interno del módulo)
 function BackToTop() {
@@ -541,10 +551,13 @@ function ModScore() {
     setPois(valid); setStarted(true); setPane('set')
   }
 
+  const resolveHotelPhoto = async (hotel, web) => {
+    let url = await fetchHotelPhoto(`${hotel.name}${city ? ', ' + city : ''}`)
+    if (!url) url = await fetchOgImage(web || hotel.web)   // respaldo: web oficial del hotel
+    if (url) setHotel(hotel.id, { photo: url })
+  }
   const autofill = async (hotel) => {
     setBusy(b => ({ ...b, [hotel.id]: true }))
-    // Foto real vía Google Places (en paralelo, no bloquea el autocompletado)
-    fetchHotelPhoto(`${hotel.name}${city ? ', ' + city : ''} hotel`).then(url => { if (url) setHotel(hotel.id, { photo: url }) })
     const poiNames = pois.map(p => p.name)
     const prompt = `Eres analista de inversión hotelera. Dado el nombre de un hotel y su ciudad, completa sus datos con tu mejor conocimiento. Para las distancias, estima los km a pie desde el hotel a cada punto turístico indicado (número, una cifra decimal). Para amenities responde true/false. Si no conoces un dato, estima de forma razonable y conservadora. Responde SOLO JSON sin markdown:
 {"address":"","web":"","stars":<0-5>,"keys":<nº habitaciones>,"group":"","brand":"","lastRefurb":<año>,"booking":<0-10>,"tripadvisor":<0-5>,"amenities":{"<nombre exacto>":true/false},"distances":{"<nombre punto>":<km>}}
@@ -565,6 +578,7 @@ Puntos turísticos: ${poiNames.join(', ')}`
         if (j.distances) pois.forEach(pp => { const v = j.distances[pp.name]; if (typeof v === 'number') next.distances[pp.id] = v })
         return next
       }))
+      resolveHotelPhoto(hotel, j.web)   // foto: Places y, si no, og:image de la web
     } catch (e) { alert('No se pudo autocompletar (' + e.message + '). Rellena los campos a mano.') }
     finally { setBusy(b => ({ ...b, [hotel.id]: false })) }
   }
