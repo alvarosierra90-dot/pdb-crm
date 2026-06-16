@@ -16,7 +16,7 @@ import {
  * IA vía nuestro proxy serverless /api/anthropic (clave server-side).
  * ========================================================================== */
 
-const AI_MODEL = 'claude-sonnet-4-6'
+const AI_MODEL = 'gemini-2.0-flash'
 const YEAR = new Date().getFullYear()
 
 // ── Template HLA (verbatim del Excel 2. 260612_Template_HLA) ──
@@ -79,15 +79,21 @@ function conditionFromRefurb(year) {
   return 1
 }
 
-// ── Proxy IA de la PDB ──
-async function callAI(messages, maxTokens) {
-  const res = await fetch('/api/anthropic', {
+// ── Proxy IA (Gemini) de la PDB ──
+// parts: array de partes Gemini ({text} | {inlineData:{mimeType,data}})
+async function callAI(parts, maxTokens) {
+  const res = await fetch('/api/gemini', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: AI_MODEL, max_tokens: maxTokens, messages }),
+    body: JSON.stringify({
+      model: AI_MODEL,
+      contents: [{ role: 'user', parts }],
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4, responseMimeType: 'application/json' },
+    }),
   })
   if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.error?.message || `Error ${res.status}`) }
   const d = await res.json()
-  return (d.content || []).map(b => b.text || '').join('')
+  if (d?.promptFeedback?.blockReason) throw new Error('Bloqueado por seguridad: ' + d.promptFeedback.blockReason)
+  return (d.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('')
 }
 const parseJSON = raw => JSON.parse((raw || '').replace(/```json|```/g, '').trim())
 function dlCSV(rows, name) {
@@ -153,15 +159,18 @@ Devuelve SOLO JSON válido, sin markdown:
 {"fields":[{"id":1,"cat":"...","sub":"...","summary":"...","page":"..."}],"otros":[{"cat":"Otros: ...","sub":"-","summary":"...","page":"..."}]}
 Tabla HLA:\n${tabla}`
     try {
-      let block
-      if (cFile.kind === 'pdf') block = { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: cFile.b64 } }
-      else if (cFile.kind === 'docx') {
+      let parts
+      if (cFile.kind === 'pdf') {
+        parts = [{ inlineData: { mimeType: 'application/pdf', data: cFile.b64 } }, { text: prompt }]
+      } else if (cFile.kind === 'docx') {
         const mod2 = await import('mammoth/mammoth.browser.js'); const mammoth = mod2.default || mod2
         const { value } = await mammoth.extractRawText({ arrayBuffer: await cFile.file.arrayBuffer() })
         if (!value || !value.trim()) throw new Error('No se pudo extraer texto del documento Word.')
-        block = { type: 'text', text: value }
-      } else block = { type: 'text', text: await cFile.file.text() }
-      const raw = await callAI([{ role: 'user', content: [block, { type: 'text', text: prompt }] }], 4500)
+        parts = [{ text: prompt + '\n\nCONTRATO (texto extraído):\n' + value }]
+      } else {
+        parts = [{ text: prompt + '\n\nCONTRATO:\n' + (await cFile.file.text()) }]
+      }
+      const raw = await callAI(parts, 4500)
       const parsed = parseJSON(raw)
       // Mezcla con la plantilla para conservar la Descripción de cada fila
       const fields = HLA_FIELDS.map((tpl, i) => {
@@ -239,7 +248,7 @@ Devuelve SOLO JSON válido, sin markdown, en el MISMO orden de entrada:
 {"hotels":[{"idx":0,"poiKm":[{"poi":"...","km":"<n>"}],"scoreLocation":<n>,"scoreProduct":<n>,"scoreRating":<n>,"total":<n>,"comment":"..."}]}
 Hoteles (JSON):\n${JSON.stringify(hotelsIn)}`
     try {
-      const raw = await callAI([{ role: 'user', content: prompt }], 2500)
+      const raw = await callAI([{ text: prompt }], 2500)
       const data = parseJSON(raw)
       const byIdx = {}; (data.hotels || []).forEach(h => { byIdx[h.idx] = h })
       const rows = cs.map((h, i) => {
@@ -313,7 +322,7 @@ Devuelve SOLO JSON válido, sin markdown:
 {"titular":"...","comentarios":{"Habitaciones":"...","F&B":"...","Eventos":"...","Spa":"...","Otros":"..."}}
 Datos (k€ / ratios):\n${tbl}`
     try {
-      const raw = await callAI([{ role: 'user', content: prompt }], 900)
+      const raw = await callAI([{ text: prompt }], 900)
       setBp(parseJSON(raw))
     } catch (e) { setPErr('Error: ' + e.message) }
     finally { setPLoading(false) }
