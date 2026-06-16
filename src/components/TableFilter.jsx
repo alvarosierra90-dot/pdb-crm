@@ -22,7 +22,7 @@ export function useTableFilter(rows, cols) {
   const activeCount = useMemo(() => {
     const fc = Object.keys(filters).filter(k => {
       const f = filters[k]; if (!f) return false
-      return f.values ? f.values.size > 0 : !!f.value
+      return f.values !== undefined ? true : !!f.value
     }).length
     return fc + sorts.length
   }, [filters, sorts])
@@ -35,7 +35,8 @@ export function useTableFilter(rows, cols) {
       const f = filters[col.id]
       if (!f || !col.getValue) return
       if (f.values !== undefined) {
-        if (f.values.size === 0) return
+        // Set explícito de valores seleccionados. Vacío = NINGUNA seleccionada
+        // (no pasa ninguna fila). "Todas" se representa como ausencia de filtro.
         data = data.filter(row => f.values.has(String(col.getValue(row) ?? '')))
       } else if (f.value) {
         const fv = f.value.toLowerCase()
@@ -79,7 +80,7 @@ export function ColHeader({ col, sorts, filters, setSort, setFilter, clearFilter
 
   const sort     = sorts.find(s => s.id === col.id)
   const filter   = filters[col.id]
-  const hasFilter = filter && (filter.value || (filter.values && filter.values.size > 0))
+  const hasFilter = filter && (filter.value || filter.values !== undefined)
   const isActive = sort || hasFilter
 
   const [textMode, setTextMode] = useState('contains')
@@ -103,17 +104,27 @@ export function ColHeader({ col, sorts, filters, setSort, setFilter, clearFilter
     return [...new Set((allRows || []).map(r => String(col.getValue(r) ?? '')).filter(Boolean))].sort()
   }, [allRows, col])
 
+  // Modelo de selección enum:
+  //  · sin filtro (selectedVals === null) → TODAS seleccionadas (no filtra)
+  //  · Set con valores                    → solo esos
+  //  · Set vacío                          → NINGUNA seleccionada
   const selectedVals = filter?.values ?? null
-  const allSelected  = !selectedVals || selectedVals.size === 0
+  const allSelected  = !selectedVals || (uniqueVals.length > 0 && selectedVals.size === uniqueVals.length)
+  const someSelected = !!selectedVals && !allSelected && selectedVals.size > 0   // estado indeterminado
+
+  // "Todas" = ausencia de filtro (no toca el sort de la columna)
+  const selectAll = () => setFilter(col.id, undefined)
+  const selectNone = () => setFilter(col.id, { values: new Set() })
 
   const toggleEnumVal = val => {
-    // Start from "all selected" if no filter set
-    const cur = allSelected ? new Set(uniqueVals) : new Set(selectedVals)
-    const next = new Set(cur)
+    const next = allSelected ? new Set(uniqueVals) : new Set(selectedVals)
     next.has(val) ? next.delete(val) : next.add(val)
-    if (next.size === uniqueVals.length) setFilter(col.id, { values: new Set() }) // all = no filter
-    else setFilter(col.id, { values: next })
+    if (next.size === uniqueVals.length) selectAll()       // todas → sin filtro
+    else setFilter(col.id, { values: next })               // subconjunto (vacío incluido = ninguna)
   }
+
+  // Checkbox maestro (Todos): toggle. Marcado → vacía la selección; si no → todas.
+  const toggleMaster = () => { allSelected ? selectNone() : selectAll() }
 
   const applyText = (val, mode = textMode) => {
     setTextVal(val)
@@ -187,7 +198,9 @@ export function ColHeader({ col, sorts, filters, setSort, setFilter, clearFilter
             {col.type === 'enum' ? (
               <div style={{ maxHeight: 180, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '3px 2px', cursor: 'pointer', fontSize: 11 }}>
-                  <input type="checkbox" checked={allSelected} onChange={() => setFilter(col.id, { values: new Set() })} style={{ accentColor: 'var(--accent)' }} />
+                  <input type="checkbox" checked={allSelected}
+                    ref={el => { if (el) el.indeterminate = someSelected }}
+                    onChange={toggleMaster} style={{ accentColor: 'var(--accent)' }} />
                   <em style={{ color: 'var(--text3)' }}>(Todos)</em>
                 </label>
                 {uniqueVals.map(v => (
