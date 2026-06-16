@@ -1,26 +1,43 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
-import { supabase } from '../lib/supabase'
+import { useState, useRef, useEffect } from 'react'
+import '../styles/hoteles.css'
 import {
-  FileText, Star, Presentation, Download, Brain, BarChart3, Lightbulb,
-  UploadCloud, X, Building2, AlertTriangle, Database, Plus, Trash2,
+  Home, FileText, Star, LayoutGrid, UploadCloud, ChevronRight,
+  Download, Play, X, Plus, Trash2, Sparkles,
 } from 'lucide-react'
 
 /* ============================================================================
- * Hoteles · Hotel Asset Manager — nativo PDB
- * Adaptado a la documentación de /Hoteles (prompts, plantillas, ejemplos):
- *  1. Revisión de contratos — Template HLA (38 campos exactos) + prompt real.
- *  2. Score de hoteles — CompSet / Gravity Analysis (hotel + competidores
- *     ilimitados, Condition por año de reforma, medias y % vs CompSet).
- *  3. Presentación — BP Review · Datos históricos (P&L: subir Excel o manual →
- *     titular ejecutivo + comentarios por línea de ingreso).
- * IA vía nuestro proxy serverless /api/anthropic (clave server-side).
+ * Hoteles · suite de análisis hotelero — nativo PDB (.hot-skin)
+ * Port a React del prototipo de 3 módulos:
+ *   1. Revisión de contratos (plantilla HLA, deck y export Word)
+ *   2. Score de hoteles (comp set / gravity, autocompletado IA)
+ *   3. Presentación (P&L editable + microsite ejecutiva)
+ * TODA la IA pasa por el proxy serverless /api/gemini (Google Gemini),
+ * igual que Pitch — la clave nunca se expone en el navegador.
  * ========================================================================== */
 
 const AI_MODEL = 'gemini-2.5-flash'
-const YEAR = new Date().getFullYear()
 
-// ── Template HLA (verbatim del Excel 2. 260612_Template_HLA) ──
-const HLA_FIELDS = [
+// ── Proxy IA (Gemini) ──
+async function callAI(parts, maxTokens) {
+  const res = await fetch('/api/gemini', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      contents: [{ role: 'user', parts }],
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4, responseMimeType: 'application/json' },
+    }),
+  })
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.error?.message || `Error ${res.status}`) }
+  const d = await res.json()
+  if (d?.promptFeedback?.blockReason) throw new Error('Bloqueado por seguridad: ' + d.promptFeedback.blockReason)
+  return (d.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('')
+}
+const parseJSON = raw => JSON.parse((raw || '').replace(/```json|```/g, '').trim())
+const uid = () => Math.random().toString(36).slice(2, 9)
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
+
+/* ──────────────────────────── Plantilla HLA ──────────────────────────── */
+const HLA = [
   ['Signature date', '-', 'Include the contract execution date'],
   ['Purpose of the contract', '-', 'Specify the purpose of the contract'],
   ['Lessee', '-', 'Include name and NIF of the lessee'],
@@ -30,8 +47,8 @@ const HLA_FIELDS = [
   ['Duration', 'Mandatory Period', 'Specify the minimum mandatory term of the contract'],
   ['Renewal', 'Rights', 'Specify the renewal terms'],
   ['Renewal', 'Conditions', 'Specify the renewal rights of both the lessor and the lessee'],
-  ['Break clauses', '-', 'Indicate whether any break clauses exist; if not, state "No"'],
-  ['Performance Clause', '-', 'Indicate whether any performance clauses exist; if not, state "No"'],
+  ['Break clauses', '-', 'Indicate whether any break clauses exist; if not, state No'],
+  ['Performance Clause', '-', 'Indicate whether any performance clauses exist; if not, state No'],
   ['Grounds for Termination', '-', 'Specify the contractual grounds for termination'],
   ['GMI', 'Quantum / Calculation', 'Specify the exact amount or calculation method of the Guaranteed Minimum Income (rent)'],
   ['GMI', 'Update', 'Specify whether there are annual adjustments to the GMI and how they are applied'],
@@ -53,551 +70,881 @@ const HLA_FIELDS = [
   ['Security Deposit', 'Cash', 'Specify whether a cash security deposit is required'],
   ['Security Deposit', 'Bank Guarantee', 'Specify whether a bank guarantee is required as security'],
   ['Security Deposit', 'Corporate Guarantee', 'Specify whether a corporate guarantee is required as security'],
-  ['Return of the Property', '-', "Specify the lessee's obligations upon termination, including the condition and handover of the property"],
+  ['Return of the Property', '-', 'Specify the lessee obligations upon termination, including the condition and handover of the property'],
   ['Jurisdiction', '-', 'Specify the applicable jurisdiction of the contract'],
   ['Governing Law', '-', 'Specify the governing law of the contract'],
   ['Access to hotel', '-', 'Specify the terms under which the lessor may access the hotel'],
   ['Lessor representative', '-', 'Specify whether a lessor representative is appointed'],
   ['Lessee information', '-', 'Specify the reporting obligations and information to be provided by the lessee to the lessor'],
-].map(([cat, sub, desc]) => ({ cat, sub, desc }))
+]
 
-const FACILITIES = ['F&B', 'Meeting areas', 'Auditorium', 'Spa', 'Pool', 'Gym', 'Parking']
+/* ════════════════════════════ MÓDULO 1 ════════════════════════════════ */
+function ModContratos() {
+  const [criteria, setCriteria] = useState(HLA.map(r => [...r]))
+  const [lobName, setLobName] = useState('Hoteles — HLA')
+  const [impName, setImpName] = useState('')
+  const [critOpen, setCritOpen] = useState(false)
+  const [doc, setDoc] = useState(null) // {name, kind:'pdf'|'text', data}
+  const [over, setOver] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [err, setErr] = useState('')
+  const [analysis, setAnalysis] = useState(null)
+  const [deck, setDeck] = useState(null) // {slides, idx}
+  const impRef = useRef(null)
+  const docRef = useRef(null)
 
-// Condition (1-5) según año de última reforma — tabla exacta de CS Gravity
-function conditionFromRefurb(year) {
-  const y = parseInt(year)
-  if (!y) return null
-  const a = YEAR - y
-  if (a <= 2) return 5
-  if (a <= 5) return 4.5
-  if (a <= 7) return 4
-  if (a <= 9) return 3.5
-  if (a <= 11) return 3
-  if (a <= 14) return 2.5
-  if (a <= 17) return 2
-  if (a <= 20) return 1.5
-  return 1
-}
+  const ready = criteria.length > 0 && !!doc
 
-// ── Proxy IA (Gemini) de la PDB ──
-// parts: array de partes Gemini ({text} | {inlineData:{mimeType,data}})
-async function callAI(parts, maxTokens) {
-  const res = await fetch('/api/gemini', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: AI_MODEL,
-      contents: [{ role: 'user', parts }],
-      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4, responseMimeType: 'application/json' },
-    }),
-  })
-  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.error?.message || `Error ${res.status}`) }
-  const d = await res.json()
-  if (d?.promptFeedback?.blockReason) throw new Error('Bloqueado por seguridad: ' + d.promptFeedback.blockReason)
-  return (d.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('')
-}
-const parseJSON = raw => JSON.parse((raw || '').replace(/```json|```/g, '').trim())
-function dlCSV(rows, name) {
-  const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
-  const u = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }))
-  const a = document.createElement('a'); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u)
-}
-
-// ── Estilos (tokens PDB) ──
-const inp = { width: '100%', padding: '7px 9px', border: '1px solid var(--border2)', borderRadius: 6, fontSize: 12.5, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text1)', boxSizing: 'border-box', outline: 'none' }
-const lbl = { display: 'block', fontSize: 10, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }
-const secLbl = { fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.05em', margin: '16px 0 8px', paddingBottom: 6, borderBottom: '1px solid var(--border)' }
-const errBox = { background: 'var(--red-lt)', border: '1px solid #f3b4b4', borderRadius: 7, padding: '10px 14px', marginTop: 10, fontSize: 12, color: 'var(--pdb-red)' }
-
-const newHotel = (subject = false) => ({
-  subject, name: '', address: '', web: '', category: subject ? '4★' : '4★', keys: '', group: '', brand: '',
-  refurb: '', stars: '4', booking: '', trip: '', distHotel: subject ? '0' : '', facs: [],
-})
-
-// Líneas del P&L (BP Review · Datos históricos)
-const PNL_KPIS = ['Ocupación', 'ADR', 'RevPAR', '% Margen GOP']
-const PNL_REV = ['Habitaciones', 'F&B', 'Eventos', 'Spa', 'Otros']
-const emptyPnl = () => {
-  const o = {}
-  ;[...PNL_KPIS, ...PNL_REV].forEach(k => { o[k] = { y2023: '', y2024: '', y2025: '' } })
-  return o
-}
-
-export default function HotelesView() {
-  const [mod, setMod] = useState('contract')
-
-  /* ─────────── MÓDULO 1: CONTRATOS (HLA) ─────────── */
-  const [cFile, setCFile] = useState(null)
-  const [cRows, setCRows] = useState([])
-  const [cLoading, setCLoading] = useState(false)
-  const [cErr, setCErr] = useState('')
-  const cInputRef = useRef(null)
-
-  const onFile = (f) => {
-    if (!f || f.size > 10 * 1024 * 1024) return
-    const n = f.name.toLowerCase()
-    const kind = n.endsWith('.pdf') ? 'pdf' : n.endsWith('.docx') ? 'docx' : 'text'
-    setCErr(''); setCRows([])
-    if (kind === 'pdf') {
-      const r = new FileReader()
-      r.onload = e => setCFile({ name: f.name, size: f.size, kind, b64: e.target.result.split(',')[1] })
-      r.readAsDataURL(f)
-    } else setCFile({ name: f.name, size: f.size, kind, file: f })
+  /* Plantilla en blanco */
+  const downloadBlank = async () => {
+    const XLSX = await import('xlsx')
+    const wb = XLSX.utils.book_new()
+    const instr = [
+      ['PLANTILLA DE ANÁLISIS CONTRACTUAL'], [''],
+      ['Cómo usar esta plantilla:'],
+      ["1. Ve a la hoja 'Template'."],
+      ['2. Cada fila es un punto que la IA analizará en el contrato.'],
+      ["3. Columna 'Category': el concepto (ej. Duration, GMI, Insurances)."],
+      ["4. Columna 'Subcategory': matiz dentro del concepto (usa '-' si no aplica)."],
+      ["5. Columna 'Description': instrucción clara de QUÉ debe extraer la IA."],
+      ['6. Añade, edita o elimina filas según las cláusulas que interesen a tu equipo.'],
+      ["7. Deja vacías 'Contract summary' y 'Page in Contract': las rellena la IA."],
+      ['8. Guarda e importa el Excel en la herramienta.'], [''],
+      ["Consejo: cuanto más concreta sea la 'Description', mejor será el análisis."],
+    ]
+    const wsI = XLSX.utils.aoa_to_sheet(instr); wsI['!cols'] = [{ wch: 90 }]
+    XLSX.utils.book_append_sheet(wb, wsI, 'Instrucciones')
+    const head = ['Category', 'Subcategory', 'Description', 'Contract summary', 'Page in Contract']
+    const wsT = XLSX.utils.aoa_to_sheet([head, ...HLA.map(r => [r[0], r[1], r[2], '', ''])])
+    wsT['!cols'] = [{ wch: 24 }, { wch: 22 }, { wch: 60 }, { wch: 40 }, { wch: 14 }]
+    XLSX.utils.book_append_sheet(wb, wsT, 'Template')
+    XLSX.writeFile(wb, 'Plantilla_Analisis_Contratos.xlsx')
   }
 
-  const analyzeContract = async () => {
-    if (!cFile) return
-    setCErr(''); setCRows([]); setCLoading(true)
-    const tabla = HLA_FIELDS.map((f, i) => `${i + 1}. Category:"${f.cat}" | Subcategory:"${f.sub}" | ${f.desc}`).join('\n')
-    const prompt = `Necesito que me rellenes la tabla "Template HLA" (Hotel Lease Analysis) con los datos de este contrato de arrendamiento hotelero. Soy Asset Manager de hoteles.
-Reglas:
-- Para cada fila escribe un "summary" conciso (2-3 frases) con la información del contrato para esa categoría/subcategoría.
-- Si NO encuentras la información, pon exactamente "TBC".
-- Si hay ambigüedad o tienes dudas, empieza el summary con "duda: " seguido de tus comentarios.
-- "page" = referencia a la cláusula o página del contrato.
-- Si hay algún tema relevante para un Asset Manager que NO esté en la tabla, añádelo en "otros" (hasta 6).
-Devuelve SOLO JSON válido, sin markdown:
-{"fields":[{"id":1,"cat":"...","sub":"...","summary":"...","page":"..."}],"otros":[{"cat":"Otros: ...","sub":"-","summary":"...","page":"..."}]}
-Tabla HLA:\n${tabla}`
-    try {
-      let parts
-      if (cFile.kind === 'pdf') {
-        parts = [{ inlineData: { mimeType: 'application/pdf', data: cFile.b64 } }, { text: prompt }]
-      } else if (cFile.kind === 'docx') {
-        const mod2 = await import('mammoth/mammoth.browser.js'); const mammoth = mod2.default || mod2
-        const { value } = await mammoth.extractRawText({ arrayBuffer: await cFile.file.arrayBuffer() })
-        if (!value || !value.trim()) throw new Error('No se pudo extraer texto del documento Word.')
-        parts = [{ text: prompt + '\n\nCONTRATO (texto extraído):\n' + value }]
-      } else {
-        parts = [{ text: prompt + '\n\nCONTRATO:\n' + (await cFile.file.text()) }]
-      }
-      const raw = await callAI(parts, 4500)
-      const parsed = parseJSON(raw)
-      // Mezcla con la plantilla para conservar la Descripción de cada fila
-      const fields = HLA_FIELDS.map((tpl, i) => {
-        const m = (parsed.fields || []).find(x => x.id === i + 1) || (parsed.fields || [])[i] || {}
-        return { ...tpl, summary: m.summary || 'TBC', page: m.page || '-' }
-      })
-      const otros = (parsed.otros || []).map(o => ({ cat: o.cat || 'Otros', sub: o.sub || '-', desc: '', summary: o.summary || '', page: o.page || '-' }))
-      setCRows([...fields, ...otros])
-    } catch (e) { setCErr('Error al analizar el contrato: ' + e.message) }
-    finally { setCLoading(false) }
-  }
-
-  const cStats = useMemo(() => {
-    const tot = cRows.length
-    const tbc = cRows.filter(r => !r.summary || r.summary === 'TBC').length
-    const duda = cRows.filter(r => /^duda/i.test(r.summary || '')).length
-    return { tot, tbc, duda, ok: tot - tbc - duda }
-  }, [cRows])
-
-  const exportContract = () => dlCSV(
-    [['Category', 'Subcategory', 'Description', 'Contract summary', 'Page in Contract'],
-      ...cRows.map(r => [r.cat, r.sub, r.desc, r.summary, r.page])], 'HLA.csv')
-
-  /* ─────────── MÓDULO 2: COMPSET / GRAVITY ─────────── */
-  const [cs, setCs] = useState([newHotel(true)])
-  const [pois, setPois] = useState(['', '', '', ''])
-  const [csResult, setCsResult] = useState(null)
-  const [csLoading, setCsLoading] = useState(false)
-  const [csErr, setCsErr] = useState('')
-  const [hoteles, setHoteles] = useState([])
-
-  useEffect(() => {
-    let cancel = false
-    supabase.from('activos').select('id,ref,nombre,direccion,calidad,anno_rehabilitacion,metricas')
-      .eq('uso', 'Hotel').order('nombre').then(({ data }) => { if (!cancel) setHoteles(data || []) })
-    return () => { cancel = true }
-  }, [])
-
-  const setHotel = (i, k, v) => setCs(p => p.map((h, j) => j === i ? { ...h, [k]: v } : h))
-  const toggleFac = (i, f) => setCs(p => p.map((h, j) => j === i ? { ...h, facs: h.facs.includes(f) ? h.facs.filter(x => x !== f) : [...h.facs, f] } : h))
-  const addHotel = () => setCs(p => [...p, newHotel(false)])
-  const removeHotel = (i) => setCs(p => p.filter((_, j) => j !== i))
-  const loadHotelFromPDB = (i, id) => {
-    const hh = hoteles.find(x => x.id === id); if (!hh) return
-    const m = hh.metricas || {}
-    setCs(p => p.map((h, j) => j === i ? {
-      ...h, name: hh.nombre || '', address: hh.direccion || '',
-      category: /[1-5]★/.test(hh.calidad || '') ? hh.calidad : h.category,
-      stars: (hh.calidad || '').match(/(\d)/)?.[1] || h.stars,
-      keys: m.n_habitaciones != null ? String(m.n_habitaciones) : '',
-      refurb: hh.anno_rehabilitacion ? String(hh.anno_rehabilitacion) : '',
-    } : h))
-  }
-
-  const genCompSet = async () => {
-    setCsErr(''); setCsResult(null); setCsLoading(true)
-    const poisF = pois.map(p => p.trim()).filter(Boolean)
-    const hotelsIn = cs.map((h, i) => ({
-      idx: i, role: h.subject ? 'SUBJECT HOTEL' : 'competitor',
-      name: h.name || (h.subject ? 'Hotel analizado' : `Competidor ${i}`),
-      address: h.address, web: h.web, category: h.category, keys: h.keys, group: h.group, brand: h.brand,
-      stars: h.stars, booking: h.booking, trip: h.trip, refurbYear: h.refurb,
-      condition: conditionFromRefurb(h.refurb), facilities: h.facs,
-    }))
-    const prompt = `Actúa como experto en commercial due diligence hotelera (framework Gravity Analysis / CompSet).
-Analiza este conjunto competitivo. POIs (puntos de interés) a medir: ${poisF.length ? poisF.join(', ') : 'ninguno'}.
-Para CADA hotel calcula, de forma comparable y estandarizada:
-- poiKm: distancia caminando (km, estimada) a cada POI en el MISMO orden que la lista de POIs.
-- scoreLocation (0-5): mejor cuanto más cerca de los POIs.
-- scoreProduct (0-5): según facilities y la Condition (ya calculada por año de reforma, te la doy).
-- scoreRating (0-5): según estrellas, Booking (0-10) y TripAdvisor (0-5).
-- total (0-5, 1 decimal): media de Location, Product y Rating.
-- comment: 1 frase ejecutiva.
-Devuelve SOLO JSON válido, sin markdown, en el MISMO orden de entrada:
-{"hotels":[{"idx":0,"poiKm":[{"poi":"...","km":"<n>"}],"scoreLocation":<n>,"scoreProduct":<n>,"scoreRating":<n>,"total":<n>,"comment":"..."}]}
-Hoteles (JSON):\n${JSON.stringify(hotelsIn)}`
-    try {
-      const raw = await callAI([{ text: prompt }], 2500)
-      const data = parseJSON(raw)
-      const byIdx = {}; (data.hotels || []).forEach(h => { byIdx[h.idx] = h })
-      const rows = cs.map((h, i) => {
-        const ai = byIdx[i] || {}
-        return {
-          ...h, condition: conditionFromRefurb(h.refurb),
-          poiKm: ai.poiKm || [], scoreLocation: +ai.scoreLocation || 0, scoreProduct: +ai.scoreProduct || 0,
-          scoreRating: +ai.scoreRating || 0, total: +ai.total || 0, comment: ai.comment || '',
-        }
-      })
-      // Media del CompSet (competidores, idx>0) y % del hotel vs media
-      const comps = rows.filter(r => !r.subject)
-      const avg = k => comps.length ? comps.reduce((s, r) => s + (r[k] || 0), 0) / comps.length : 0
-      const csAvg = { scoreLocation: avg('scoreLocation'), scoreProduct: avg('scoreProduct'), scoreRating: avg('scoreRating'), total: avg('total'), condition: avg('condition') }
-      const subj = rows.find(r => r.subject)
-      const pct = subj && csAvg.total ? (subj.total / csAvg.total - 1) : null
-      setCsResult({ rows, csAvg, pct, poisF })
-    } catch (e) { setCsErr('Error: ' + e.message) }
-    finally { setCsLoading(false) }
-  }
-
-  const exportCompSet = () => {
-    if (!csResult) return
-    const head = ['Hotel', 'Address', 'Category', 'Keys', 'Last Refurb Year', 'Condition',
-      ...csResult.poisF.map(p => `POI: ${p} (km)`), 'Score Location', 'Score Product', 'Score Rating', 'TOTAL SCORE', 'Comments']
-    const body = csResult.rows.map(r => [r.name, r.address, r.category, r.keys, r.refurb, r.condition ?? '',
-      ...csResult.poisF.map((_, i) => r.poiKm[i]?.km ?? ''), r.scoreLocation, r.scoreProduct, r.scoreRating, r.total, r.comment])
-    const avg = csResult.csAvg
-    body.push(['Relevant CS Average', '', '', '', '', avg.condition.toFixed(1), ...csResult.poisF.map(() => ''),
-      avg.scoreLocation.toFixed(1), avg.scoreProduct.toFixed(1), avg.scoreRating.toFixed(1), avg.total.toFixed(1), ''])
-    dlCSV([head, ...body], 'CompSet_Gravity.csv')
-  }
-
-  /* ─────────── MÓDULO 3: PRESENTACIÓN (BP REVIEW) ─────────── */
-  const [pnl, setPnl] = useState(emptyPnl())
-  const [pnlName, setPnlName] = useState('')
-  const [bp, setBp] = useState(null)
-  const [pLoading, setPLoading] = useState(false)
-  const [pErr, setPErr] = useState('')
-  const pInputRef = useRef(null)
-
-  const setPnlCell = (row, yr, v) => setPnl(p => ({ ...p, [row]: { ...p[row], [yr]: v } }))
-
-  const onPnlExcel = async (f) => {
+  /* Importar plantilla rellena */
+  const importTemplate = async (f) => {
     if (!f) return
-    setPErr('')
     try {
       const XLSX = await import('xlsx')
       const wb = XLSX.read(await f.arrayBuffer())
-      const ws = wb.Sheets[wb.SheetNames.find(n => /slide\s*2/i.test(n)) || wb.SheetNames[0]]
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: '' })
-      const next = emptyPnl()
-      const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? '' : n }
-      rows.forEach(r => {
-        const label = String(r[0] || '').trim()
-        const key = [...PNL_KPIS, ...PNL_REV].find(k => label.toLowerCase() === k.toLowerCase())
-        if (key) next[key] = { y2023: num(r[2]), y2024: num(r[3]), y2025: num(r[4]) }
-      })
-      setPnl(next); setPnlName(f.name)
-    } catch (e) { setPErr('No se pudo leer el Excel: ' + e.message) }
+      const sh = wb.Sheets['Template'] || wb.Sheets[wb.SheetNames[wb.SheetNames.length - 1]]
+      const rows = XLSX.utils.sheet_to_json(sh, { header: 1 }).filter(r => r.length)
+      const start = (rows[0] && /category/i.test(rows[0][0])) ? 1 : 0
+      const c = rows.slice(start).map(r => [r[0] || '', r[1] || '-', r[2] || '']).filter(r => r[0])
+      if (!c.length) throw new Error('vacío')
+      setCriteria(c); setLobName(f.name.replace(/\.(xlsx|xls)$/i, '')); setImpName(f.name)
+    } catch { alert('No se pudo leer la plantilla. Usa el formato descargado.') }
   }
 
-  const genBP = async () => {
-    setPErr(''); setBp(null); setPLoading(true)
-    const tbl = [...PNL_KPIS, ...PNL_REV].map(k => `${k}: 2023A=${pnl[k].y2023 || '—'} | 2024A=${pnl[k].y2024 || '—'} | 2025A=${pnl[k].y2025 || '—'}`).join('\n')
-    const prompt = `Actúa como experto en Asset Management hotelero, con experiencia en análisis financiero, business plans y reporting para propietarios e inversores.
-Analiza esta tabla de datos reales de un hotel (Datos históricos, slide ejecutiva de PowerPoint) y genera:
-1) Un Titular Ejecutivo "insight-driven" (1-2 frases cortas) que sintetice la conclusión estratégica principal del desempeño financiero. Tono ejecutivo y formal, mensaje claro y accionable.
-2) Un comentario por cada línea de ingresos (Habitaciones, F&B, Eventos, Spa, Otros): muy ejecutivo, formal y breve, MÁXIMO 20-25 palabras, explicando los principales drivers (crecimiento, descenso, estabilidad), con terminología de hotelería y asset management. Básate SOLO en los datos dados.
-Devuelve SOLO JSON válido, sin markdown:
-{"titular":"...","comentarios":{"Habitaciones":"...","F&B":"...","Eventos":"...","Spa":"...","Otros":"..."}}
-Datos (k€ / ratios):\n${tbl}`
+  /* Subida del contrato */
+  const handleDoc = async (f) => {
+    if (!f) return
+    setErr('')
+    const ext = f.name.split('.').pop().toLowerCase()
+    if (ext === 'pdf') {
+      const rd = new FileReader()
+      rd.onload = e => setDoc({ name: f.name, kind: 'pdf', data: e.target.result.split(',')[1] })
+      rd.readAsDataURL(f)
+    } else if (ext === 'docx') {
+      try {
+        const m = await import('mammoth/mammoth.browser.js'); const mammoth = m.default || m
+        const { value } = await mammoth.extractRawText({ arrayBuffer: await f.arrayBuffer() })
+        if (!value || !value.trim()) throw new Error('vacío')
+        setDoc({ name: f.name, kind: 'text', data: value })
+      } catch { alert('No se pudo leer el Word.') }
+    } else if (ext === 'txt') {
+      setDoc({ name: f.name, kind: 'text', data: await f.text() })
+    } else alert('Formato no soportado. Usa PDF, Word (.docx) o TXT.')
+  }
+
+  /* Análisis */
+  const analyze = async () => {
+    setErr(''); setLoading(true)
+    const critList = criteria.map((c, i) => `${i + 1}. [${c[0]}${c[1] && c[1] !== '-' ? ' / ' + c[1] : ''}] ${c[2]}`).join('\n')
+    const sys = `Eres analista contractual senior de una consultora inmobiliaria. Analizas el contrato adjunto frente a una lista de criterios. Para CADA criterio devuelve un objeto con: "summary" (resumen claro y conciso en español de lo que dice el contrato sobre ese punto, 1-3 frases, con los datos concretos: importes, plazos, %), "page" (número o rango de página/cláusula donde aparece, o "" si no se localiza), "status" ("found" si está bien recogido, "attention" si existe pero tiene algún matiz/riesgo a revisar, "missing" si no aparece en el contrato), "highlight" (true si es un punto clave que destacar). Responde SOLO con JSON válido, sin markdown: un objeto {"meta":{"title":"breve título del contrato","parties":"partes principales","date":"fecha de firma si consta"},"items":[{...}]} con un item por criterio, EN EL MISMO ORDEN.`
+    const userText = `CRITERIOS A ANALIZAR:\n${critList}\n\nAnaliza el contrato adjunto según estos criterios y devuelve el JSON.`
+    const parts = doc.kind === 'pdf'
+      ? [{ inlineData: { mimeType: 'application/pdf', data: doc.data } }, { text: sys + '\n\n' + userText }]
+      : [{ text: sys + '\n\nCONTRATO:\n' + doc.data + '\n\n' + userText }]
     try {
-      const raw = await callAI([{ text: prompt }], 900)
-      setBp(parseJSON(raw))
-    } catch (e) { setPErr('Error: ' + e.message) }
-    finally { setPLoading(false) }
+      const j = parseJSON(await callAI(parts, 8000))
+      const items = (j.items || []).map((it, i) => ({ ...it, _cat: criteria[i]?.[0] || '', _sub: criteria[i]?.[1] || '' }))
+      setAnalysis({ meta: j.meta || {}, items })
+      try { document.querySelector('.hot-skin .content')?.scrollTo(0, 0) } catch { /* noop */ }
+    } catch (e) {
+      setErr('No se pudo completar el análisis: ' + e.message + '. Revisa el contrato e inténtalo de nuevo.')
+    } finally { setLoading(false) }
   }
 
-  const hasData = cRows.length > 0 || !!csResult || !!bp
-  const MODULES = [
-    { id: 'contract', label: 'Revisión de contratos', icon: FileText },
-    { id: 'score', label: 'Score · CompSet', icon: Star },
-    { id: 'slide', label: 'Presentación', icon: Presentation },
-  ]
-  const breakdown = [
-    { l: 'Location', k: 'scoreLocation', c: 'var(--pdb-blue)' },
-    { l: 'Product', k: 'scoreProduct', c: 'var(--pdb-green)' },
-    { l: 'Rating', k: 'scoreRating', c: '#7C3AED' },
-  ]
-  const num3 = v => (v == null || v === '' || isNaN(v)) ? '—' : Number(v).toLocaleString('es-ES', { maximumFractionDigits: 2 })
+  const newAnalysis = () => { setAnalysis(null); setDoc(null); setErr('') }
+
+  /* Export Word */
+  const exportWord = () => {
+    if (!analysis) return
+    const rows = analysis.items.map(it => {
+      const status = it.status === 'missing' ? 'NO LOCALIZADO' : it.status === 'attention' ? 'REVISAR' : 'OK'
+      return `<tr><td style="border:1px solid #ccc;padding:6px"><b>${esc(it._cat)}</b>${it._sub && it._sub !== '-' ? ' / ' + esc(it._sub) : ''}</td>
+        <td style="border:1px solid #ccc;padding:6px">${esc(it.summary || '—')}</td>
+        <td style="border:1px solid #ccc;padding:6px;text-align:center">${it.page ? esc(it.page) : '—'}</td>
+        <td style="border:1px solid #ccc;padding:6px;text-align:center">${status}</td></tr>`
+    }).join('')
+    const m = analysis.meta || {}
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"></head><body style="font-family:Calibri,Arial">
+      <h1>${esc(m.title || 'Análisis del contrato')}</h1>
+      <p>${esc(m.parties || '')} ${m.date ? (' · Firma: ' + esc(m.date)) : ''}<br>Plantilla: ${esc(lobName)}</p>
+      <table style="border-collapse:collapse;width:100%;font-size:11pt">
+      <tr style="background:#1f5f5b;color:#fff"><th style="border:1px solid #ccc;padding:6px;text-align:left">Cláusula</th><th style="border:1px solid #ccc;padding:6px;text-align:left">Resumen</th><th style="border:1px solid #ccc;padding:6px">Pág.</th><th style="border:1px solid #ccc;padding:6px">Estado</th></tr>
+      ${rows}</table></body></html>`
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob(['﻿' + html], { type: 'application/msword' }))
+    a.download = (m.title || 'analisis_contrato').replace(/[^\w]+/g, '_') + '.doc'; a.click()
+  }
+
+  /* Deck */
+  const openDeck = () => {
+    if (!analysis) return
+    const { items, meta } = analysis
+    const attn = items.filter(i => i.status === 'attention').length
+    const miss = items.filter(i => i.status === 'missing').length
+    const slides = [{
+      sn: 'Resumen', h: meta.title || 'Análisis del contrato',
+      sub: (meta.parties || '') + (meta.date ? (' · ' + meta.date) : ''),
+      body: `${items.length} cláusulas analizadas · ${attn} a revisar · ${miss} no localizadas`, pg: lobName, badge: null,
+    }]
+    items.filter(i => i.highlight || i.status !== 'found').forEach(it => slides.push({
+      sn: it._cat, h: (it._sub && it._sub !== '-') ? it._sub : it._cat, sub: (it._sub && it._sub !== '-') ? it._cat : '',
+      body: it.summary || '—', pg: it.page ? ('Página ' + it.page) : '',
+      badge: it.status === 'missing' ? ['No localizado', '#9c3329'] : it.status === 'attention' ? ['Revisar', '#9a6b00'] : null,
+    }))
+    if (slides.length === 1) items.forEach(it => slides.push({
+      sn: it._cat, h: (it._sub && it._sub !== '-') ? it._sub : it._cat, sub: '',
+      body: it.summary || '—', pg: it.page ? ('Página ' + it.page) : '', badge: null,
+    }))
+    setDeck({ slides, idx: 0 })
+  }
+  useEffect(() => {
+    if (!deck) return
+    const onKey = e => {
+      if (e.key === 'ArrowRight') setDeck(d => d && { ...d, idx: Math.min(d.idx + 1, d.slides.length - 1) })
+      if (e.key === 'ArrowLeft') setDeck(d => d && { ...d, idx: Math.max(d.idx - 1, 0) })
+      if (e.key === 'Escape') setDeck(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [deck])
+
+  const stats = analysis ? (() => {
+    const items = analysis.items
+    const attn = items.filter(i => i.status === 'attention').length
+    const miss = items.filter(i => i.status === 'missing').length
+    return { tot: items.length, attn, miss, ok: items.length - attn - miss }
+  })() : null
+
+  const groups = analysis ? analysis.items.reduce((g, it) => { (g[it._cat] = g[it._cat] || []).push(it); return g }, {}) : {}
 
   return (
-    <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 28px' }}>
+    <div className="wrap">
+      {!analysis && !loading && (
+        <div className="steps">
+          {/* Paso 1 */}
+          <div className="ccard">
+            <div className="ccardhead">
+              <div className={'step-n done'}>1</div>
+              <div className="step-title">Elige la plantilla de análisis</div>
+              <div className="step-meta">{criteria.length} criterios</div>
+            </div>
+            <div className="ccardbody">
+              <label className="fld">Línea de negocio</label>
+              <select value="HLA" onChange={e => { if (e.target.value === 'custom') impRef.current?.click() }}>
+                <option value="HLA">Hoteles — Hotel Lease Agreement (HLA)</option>
+                <option value="custom">Plantilla personalizada (importar Excel)</option>
+              </select>
+              <div className="row" style={{ marginTop: 16 }}>
+                <button className="btn" onClick={downloadBlank}><Download size={15} /> Descargar plantilla en blanco</button>
+                <button className="btn ghost" onClick={() => impRef.current?.click()}><UploadCloud size={15} /> Importar plantilla rellena</button>
+                <input ref={impRef} type="file" accept=".xlsx,.xls" hidden onChange={e => importTemplate(e.target.files[0])} />
+              </div>
+              {impName && <div className="file-pill" style={{ marginTop: 12 }}>{impName} <span className="x" onClick={() => { setImpName(''); setCriteria(HLA.map(r => [...r])); setLobName('Hoteles — HLA') }}>×</span></div>}
+              <p className="hint">La plantilla en blanco incluye una hoja de <strong>instrucciones</strong> y la estructura de criterios. Un director edita las cláusulas que interesan al equipo, la rellena y la vuelve a importar aquí.</p>
+              <div style={{ marginTop: 18 }}>
+                <button className="crit-toggle" aria-expanded={critOpen} onClick={() => setCritOpen(o => !o)}>
+                  <span>{critOpen ? 'Ocultar' : 'Ver'} los {criteria.length} criterios · {lobName}</span>
+                  <span className="chev"><ChevronRight size={16} /></span>
+                </button>
+                <div className={'crit-wrap' + (critOpen ? ' open' : '')}>
+                  <table className="crit-table">
+                    <thead><tr><th>Categoría</th><th>Subcategoría</th><th>Qué analiza</th></tr></thead>
+                    <tbody>{criteria.map((r, i) => (
+                      <tr key={i}><td><strong>{r[0]}</strong></td><td>{r[1] || '—'}</td><td style={{ color: 'var(--ink-soft)' }}>{r[2]}</td></tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Building2 size={18} strokeWidth={1.9} /></div>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Hotel Asset Manager</div>
-            <div style={{ fontSize: 12, color: 'var(--text3)' }}>Commercial Due Diligence · HLA · CompSet Gravity · BP Review</div>
+          {/* Paso 2 */}
+          <div className={'ccard' + (criteria.length ? '' : ' dim')}>
+            <div className="ccardhead">
+              <div className={'step-n' + (doc ? ' done' : '')}>2</div>
+              <div className="step-title">Sube el contrato</div>
+              <div className="step-meta">{doc?.name || ''}</div>
+            </div>
+            <div className="ccardbody">
+              <div className={'drop' + (over ? ' over' : '')} onClick={() => docRef.current?.click()}
+                onDragOver={e => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)}
+                onDrop={e => { e.preventDefault(); setOver(false); handleDoc(e.dataTransfer.files[0]) }}>
+                <div className="ic"><UploadCloud size={24} /></div>
+                <div className="t">Arrastra el contrato o haz clic</div>
+                <div className="h">PDF, Word (.docx) o TXT</div>
+              </div>
+              <input ref={docRef} type="file" accept=".pdf,.docx,.txt" hidden onChange={e => handleDoc(e.target.files[0])} />
+              {doc && <div className="file-pill"><FileText size={14} /> {doc.name} <span className="x" onClick={() => setDoc(null)}>×</span></div>}
+            </div>
+          </div>
+
+          {/* Paso 3 */}
+          <div className={'ccard' + (doc ? '' : ' dim')}>
+            <div className="ccardhead">
+              <div className="step-n">3</div>
+              <div className="step-title">Analizar</div>
+            </div>
+            <div className="ccardbody">
+              <button className="btn primary" disabled={!ready} onClick={analyze}>Analizar contrato</button>
+              {err && <div className="err">{err}</div>}
+              <p className="hint">El análisis recorre cada criterio de la plantilla, localiza la cláusula en el contrato e indica la página. Marca lo que falta o requiere atención.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {loading && (
+        <div className="cloading"><div className="cspin" /><div>Analizando contrato…</div></div>
+      )}
+
+      {analysis && !loading && (
+        <div style={{ padding: '4px 0 80px' }}>
+          <div className="rep-actions">
+            <button className="btn" onClick={newAnalysis}>← Nuevo análisis</button>
+            <button className="btn" onClick={openDeck}><Play size={14} /> Modo presentación</button>
+            <button className="btn" onClick={exportWord}><Download size={14} /> Exportar a Word</button>
+          </div>
+          <div className="rep-head">
+            <div className="rep-title">{analysis.meta.title || 'Análisis del contrato'}</div>
+            <div className="rep-line">{[analysis.meta.parties, analysis.meta.date ? 'Firma: ' + analysis.meta.date : '', lobName].filter(Boolean).join('  ·  ')}</div>
+            <div className="kpis">
+              <div className="kpi"><div className="v mono">{stats.tot}</div><div className="l">Cláusulas analizadas</div></div>
+              <div className="kpi"><div className="v mono">{stats.ok}</div><div className="l">Correctas</div></div>
+              <div className="kpi attn"><div className="v mono">{stats.attn}</div><div className="l">A revisar</div></div>
+              <div className="kpi miss"><div className="v mono">{stats.miss}</div><div className="l">No localizadas</div></div>
+            </div>
+          </div>
+          {Object.keys(groups).map(cat => (
+            <div className="group" key={cat}>
+              <div className="group-h">{cat}</div>
+              {groups[cat].map((it, i) => {
+                const st = it.status === 'missing' ? 'miss' : it.status === 'attention' ? 'attn' : 'found'
+                return (
+                  <div className={'clause ' + st} key={i}>
+                    <div className={'dot ' + st} />
+                    <div className="c-main">
+                      <div className="c-cat">{it._cat}{it._sub && it._sub !== '-' && <span className="c-sub">{it._sub}</span>}</div>
+                      <div className="c-sum">{it.summary || '—'}</div>
+                      {st === 'miss' && <div className="tag miss">No localizado</div>}
+                      {st === 'attn' && <div className="tag attn">Revisar</div>}
+                    </div>
+                    <div className="c-side"><div className="c-page mono">{it.page ? ('p. ' + it.page) : '—'}</div></div>
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {deck && (() => {
+        const s = deck.slides[deck.idx]
+        return (
+          <div className="deck">
+            <button className="deck-close" onClick={() => setDeck(null)}>×</button>
+            <div className="slide">
+              <div className="sn">{s.sn}</div>
+              <h2>{s.h}</h2>
+              {s.sub && <div className="sub2">{s.sub}</div>}
+              <div className="body">{s.body}</div>
+              {s.badge && <div className="badge" style={{ background: s.badge[1] + '22', color: s.badge[1] }}>{s.badge[0]}</div>}
+              {s.pg && <div className="pg mono">{s.pg}</div>}
+            </div>
+            <div className="deck-nav">
+              <button onClick={() => setDeck(d => ({ ...d, idx: Math.max(d.idx - 1, 0) }))}>‹ Anterior</button>
+              <div className="pos mono">{deck.idx + 1} / {deck.slides.length}</div>
+              <button onClick={() => setDeck(d => ({ ...d, idx: Math.min(d.idx + 1, d.slides.length - 1) }))}>Siguiente ›</button>
+            </div>
+          </div>
+        )
+      })()}
+    </div>
+  )
+}
+
+/* ════════════════════════════ MÓDULO 2 ════════════════════════════════ */
+function conditionRating(year) {
+  year = +year; if (!year) return 0
+  if (year < 2003) return 1; if (year >= 2024) return 5
+  const t = [[2003, 1], [2006, 1.5], [2009, 2], [2012, 2.5], [2015, 3], [2017, 3.5], [2019, 4], [2021, 4.5], [2024, 5]]
+  let r = 1; for (const [y, v] of t) { if (year >= y) r = v } return r
+}
+function computeScores(hotels, pois, amenities) {
+  const der = {}
+  hotels.forEach(h => {
+    const ds = pois.map(p => h.distances[p.id]).filter(v => typeof v === 'number' && !isNaN(v))
+    der[h.id] = { distAvg: ds.length ? ds.reduce((a, b) => a + b, 0) / ds.length : null, facCount: amenities.filter(a => h.amenities[a]).length }
+  })
+  const distAvgs = hotels.map(h => der[h.id].distAvg).filter(v => v != null)
+  const distCS = distAvgs.length ? distAvgs.reduce((a, b) => a + b, 0) / distAvgs.length : 1
+  const facMax = Math.max(1, ...hotels.map(h => der[h.id].facCount))
+  hotels.forEach(h => {
+    const d = der[h.id]
+    const loc = d.distAvg != null ? clamp(5 - d.distAvg / (distCS || 1), 0, 5) : 0
+    const facScore = 5 * d.facCount / facMax
+    const cond = conditionRating(h.lastRefurb)
+    const prod = (facScore + (cond || facScore)) / (cond ? 2 : 1)
+    const rt = []; if (+h.stars) rt.push(+h.stars); if (+h.booking) rt.push(+h.booking / 2); if (+h.tripadvisor) rt.push(+h.tripadvisor)
+    const rat = rt.length ? rt.reduce((a, b) => a + b, 0) / rt.length : 0
+    Object.assign(d, { loc, prod, rat, total: (loc + prod + rat) / 3, cond })
+  })
+  const cs = hotels.filter(h => h.inCS === 'Yes')
+  const avg = k => cs.length ? cs.reduce((a, b) => a + der[b.id][k], 0) / cs.length : 0
+  return { der, csAvg: { loc: avg('loc'), prod: avg('prod'), rat: avg('rat'), total: avg('total') }, csCount: cs.length }
+}
+const newScoreHotel = (subject) => ({
+  id: uid(), name: '', address: '', web: '', stars: '', keys: '', group: '', brand: '', lastRefurb: '',
+  booking: '', tripadvisor: '', amenities: {}, distances: {}, isSubject: subject, inCS: 'Yes', open: true,
+})
+
+function ModScore() {
+  const [city, setCity] = useState('')
+  const [started, setStarted] = useState(false)
+  const [pane, setPane] = useState('config')
+  const [pois, setPois] = useState([{ id: uid(), name: '' }, { id: uid(), name: '' }, { id: uid(), name: '' }])
+  const [amenities, setAmenities] = useState(['F&B', 'Salas de reuniones', 'Auditorio', 'Spa', 'Piscina', 'Gimnasio', 'Parking'])
+  const [amInput, setAmInput] = useState('')
+  const [hotels, setHotels] = useState([])
+  const [hName, setHName] = useState('')
+  const [poiLoad, setPoiLoad] = useState(false)
+  const [busy, setBusy] = useState({}) // id -> bool
+
+  const { der, csAvg, csCount } = computeScores(hotels, pois, amenities)
+  const setHotel = (id, patch) => setHotels(p => p.map(h => h.id === id ? { ...h, ...patch } : h))
+
+  const suggestPoi = async () => {
+    if (!city.trim()) return
+    setPoiLoad(true)
+    try {
+      const prompt = `Devuelve SOLO JSON sin markdown: {"pois":["punto 1","punto 2","punto 3"]} con los 3 principales puntos turísticos o hitos de referencia de la ciudad indicada, los más relevantes para valorar la ubicación de un hotel.\nCiudad: ${city}`
+      const j = parseJSON(await callAI([{ text: prompt }], 500))
+      if (j.pois?.length) setPois(j.pois.slice(0, 5).map(n => ({ id: uid(), name: n })))
+    } catch (e) { alert('No se pudieron sugerir puntos (' + e.message + '). Puedes escribirlos a mano.') }
+    finally { setPoiLoad(false) }
+  }
+
+  const addAm = () => { const v = amInput.trim(); if (v && !amenities.includes(v)) { setAmenities(a => [...a, v]); setAmInput('') } }
+
+  const start = () => {
+    if (!city.trim()) { alert('Indica la ciudad de análisis.'); return }
+    const valid = pois.filter(p => p.name.trim())
+    if (!valid.length) { alert('Añade al menos un punto turístico.'); return }
+    setPois(valid); setStarted(true); setPane('set')
+  }
+
+  const autofill = async (hotel) => {
+    setBusy(b => ({ ...b, [hotel.id]: true }))
+    const poiNames = pois.map(p => p.name)
+    const prompt = `Eres analista de inversión hotelera. Dado el nombre de un hotel y su ciudad, completa sus datos con tu mejor conocimiento. Para las distancias, estima los km a pie desde el hotel a cada punto turístico indicado (número, una cifra decimal). Para amenities responde true/false. Si no conoces un dato, estima de forma razonable y conservadora. Responde SOLO JSON sin markdown:
+{"address":"","web":"","stars":<0-5>,"keys":<nº habitaciones>,"group":"","brand":"","lastRefurb":<año>,"booking":<0-10>,"tripadvisor":<0-5>,"amenities":{"<nombre exacto>":true/false},"distances":{"<nombre punto>":<km>}}
+Hotel: ${hotel.name}
+Ciudad: ${city}
+Amenities a evaluar: ${amenities.join(', ')}
+Puntos turísticos: ${poiNames.join(', ')}`
+    try {
+      const j = parseJSON(await callAI([{ text: prompt }], 1200))
+      setHotels(p => p.map(h => {
+        if (h.id !== hotel.id) return h
+        const next = { ...h }
+        next.address = j.address || h.address; next.web = j.web || h.web
+        next.stars = j.stars ?? h.stars; next.keys = j.keys ?? h.keys
+        next.group = j.group || h.group; next.brand = j.brand || h.brand
+        next.lastRefurb = j.lastRefurb ?? h.lastRefurb; next.booking = j.booking ?? h.booking; next.tripadvisor = j.tripadvisor ?? h.tripadvisor
+        next.amenities = { ...h.amenities }; next.distances = { ...h.distances }
+        if (j.amenities) amenities.forEach(a => { if (a in j.amenities) next.amenities[a] = !!j.amenities[a] })
+        if (j.distances) pois.forEach(pp => { const v = j.distances[pp.name]; if (typeof v === 'number') next.distances[pp.id] = v })
+        return next
+      }))
+    } catch (e) { alert('No se pudo autocompletar (' + e.message + '). Rellena los campos a mano.') }
+    finally { setBusy(b => ({ ...b, [hotel.id]: false })) }
+  }
+
+  const addHotel = () => {
+    const n = hName.trim(); if (!n) return
+    const h = newScoreHotel(hotels.length === 0); h.name = n
+    setHotels(p => [...p, h]); setHName('')
+    autofill(h)
+  }
+
+  const exportWord = () => {
+    if (!hotels.length) return
+    const ranked = [...hotels].sort((a, b) => der[b.id].total - der[a.id].total)
+    const rows = ranked.map((h, i) => `<tr>
+      <td style="border:1px solid #ccc;padding:5px;text-align:center">${i + 1}</td>
+      <td style="border:1px solid #ccc;padding:5px"><b>${esc(h.name)}</b>${h.isSubject ? ' (objeto)' : ''}<br><span style="color:#777;font-size:9pt">${esc(h.address || '')}</span></td>
+      <td style="border:1px solid #ccc;padding:5px;text-align:center">${esc(h.stars) || '–'}</td>
+      <td style="border:1px solid #ccc;padding:5px;text-align:center">${der[h.id].loc.toFixed(1)}</td>
+      <td style="border:1px solid #ccc;padding:5px;text-align:center">${der[h.id].prod.toFixed(1)}</td>
+      <td style="border:1px solid #ccc;padding:5px;text-align:center">${der[h.id].rat.toFixed(1)}</td>
+      <td style="border:1px solid #ccc;padding:5px;text-align:center;font-weight:bold">${(der[h.id].total * 20).toFixed(0)}</td></tr>`).join('')
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"></head><body style="font-family:Calibri,Arial">
+      <h1>Score de hoteles — ${esc(city)}</h1>
+      <p>${ranked.length} hoteles · Puntos de referencia: ${esc(pois.map(p => p.name).join(', '))}</p>
+      <table style="border-collapse:collapse;width:100%;font-size:10pt">
+      <tr style="background:#1f5f5b;color:#fff"><th style="border:1px solid #ccc;padding:5px">#</th><th style="border:1px solid #ccc;padding:5px;text-align:left">Hotel</th><th style="border:1px solid #ccc;padding:5px">★</th><th style="border:1px solid #ccc;padding:5px">Ubic.</th><th style="border:1px solid #ccc;padding:5px">Prod.</th><th style="border:1px solid #ccc;padding:5px">Reput.</th><th style="border:1px solid #ccc;padding:5px">Score</th></tr>
+      ${rows}
+      <tr style="background:#f2f1ee;font-weight:bold"><td style="border:1px solid #ccc;padding:5px"></td><td style="border:1px solid #ccc;padding:5px">Media comp set</td><td style="border:1px solid #ccc;padding:5px"></td><td style="border:1px solid #ccc;padding:5px;text-align:center">${csAvg.loc.toFixed(1)}</td><td style="border:1px solid #ccc;padding:5px;text-align:center">${csAvg.prod.toFixed(1)}</td><td style="border:1px solid #ccc;padding:5px;text-align:center">${csAvg.rat.toFixed(1)}</td><td style="border:1px solid #ccc;padding:5px;text-align:center">${(csAvg.total * 20).toFixed(0)}</td></tr>
+      </table></body></html>`
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob(['﻿' + html], { type: 'application/msword' }))
+    a.download = 'score_hoteles_' + city.replace(/[^\w]+/g, '_') + '.doc'; a.click()
+  }
+
+  const scoreColor = t => t >= 3.5 ? 'var(--good)' : t >= 2.5 ? 'var(--accent)' : 'var(--warn)'
+  const ranked = [...hotels].sort((a, b) => der[b.id].total - der[a.id].total)
+
+  return (
+    <div className="wrap">
+      <div className="tabs">
+        <button className={'tab' + (pane === 'config' ? ' active' : '')} onClick={() => setPane('config')}>Configuración</button>
+        <button className={'tab' + (pane === 'set' ? ' active' : '')} disabled={!started} onClick={() => setPane('set')}>Comp set</button>
+        <button className={'tab' + (pane === 'res' ? ' active' : '')} disabled={!started} onClick={() => setPane('res')}>Resultados</button>
+      </div>
+
+      {/* CONFIG */}
+      <div className={'pane' + (pane === 'config' ? ' active' : '')}>
+        <div className="card">
+          <div className="card-h"><h2>Ciudad de análisis</h2></div>
+          <p className="desc">Todo el análisis se referencia a una ciudad. Define los puntos turísticos clave: las distancias a ellos determinan el score de ubicación.</p>
+          <label className="fld">Ciudad</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <input className="inp" value={city} onChange={e => setCity(e.target.value)} placeholder="Ej. Madrid, Toledo, Sevilla…" style={{ maxWidth: 340 }} />
+            <button className="btn ai sm" onClick={suggestPoi}><Sparkles size={14} /> Sugerir puntos turísticos</button>
+          </div>
+          {poiLoad && <div className="loading"><div className="spin" /><span>Buscando los principales puntos turísticos…</span></div>}
+          <div style={{ marginTop: 20 }}>
+            <label className="fld">Puntos turísticos de referencia</label>
+            <div>
+              {pois.map((p, i) => (
+                <div className="poi-row" key={p.id}>
+                  <input className="inp" value={p.name} placeholder={`Punto turístico ${i + 1}`} onChange={e => setPois(prev => prev.map(x => x.id === p.id ? { ...x, name: e.target.value } : x))} />
+                  <button className="del" onClick={() => setPois(prev => prev.filter(x => x.id !== p.id))}><Trash2 size={16} /></button>
+                </div>
+              ))}
+            </div>
+            <button className="btn sm" style={{ marginTop: 10 }} onClick={() => setPois(p => [...p, { id: uid(), name: '' }])}>+ Añadir punto</button>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', margin: '16px 0 20px' }}>
-          {MODULES.map(m => {
-            const on = mod === m.id; const Ico = m.icon
-            return (
-              <button key={m.id} onClick={() => setMod(m.id)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', background: 'none', border: 'none', borderBottom: on ? '2px solid var(--accent)' : '2px solid transparent', color: on ? 'var(--accent)' : 'var(--text3)', fontWeight: on ? 700 : 500, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', marginBottom: -1 }}>
-                <Ico size={15} strokeWidth={1.8} /> {m.label}
-              </button>
-            )
-          })}
+        <div className="card">
+          <div className="card-h"><h2>Amenities a evaluar</h2></div>
+          <p className="desc">Las instalaciones que cuentan para el score de producto. En cada hotel marcarás cuáles tiene.</p>
+          <div className="am-chips">
+            {amenities.map(a => (
+              <span className="am-chip" key={a}>{a} <span className="x" onClick={() => setAmenities(prev => prev.filter(x => x !== a))}>×</span></span>
+            ))}
+          </div>
+          <div className="add-row" style={{ marginTop: 12, maxWidth: 420 }}>
+            <input className="inp" value={amInput} onChange={e => setAmInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addAm()} placeholder="Añadir amenity (ej. Rooftop)" />
+            <button className="btn sm" onClick={addAm}>Añadir</button>
+          </div>
         </div>
 
-        {/* ════════ MÓDULO 1: CONTRATOS ════════ */}
-        {mod === 'contract' && (
-          <>
-            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Revisión de contratos — HLA</h2>
-            <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 16 }}>Sube el contrato de arrendamiento hotelero (PDF, Word o TXT). La IA rellena el template HLA marcando <b>TBC</b> si falta info, <b>duda</b> si hay ambigüedad y <b>Otros</b> para cláusulas relevantes fuera de la tabla.</p>
+        <button className="btn primary" onClick={start}>Continuar al comp set →</button>
+      </div>
 
-            <div className="va-card" style={{ padding: 20 }}>
-              <div onClick={() => cInputRef.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); onFile(e.dataTransfer.files[0]) }}
-                style={{ border: '2px dashed var(--border2)', borderRadius: 10, padding: 28, textAlign: 'center', cursor: 'pointer', background: 'var(--gray-lt)' }}>
-                <input ref={cInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }} onChange={e => e.target.files[0] && onFile(e.target.files[0])} />
-                <UploadCloud size={30} strokeWidth={1.5} color="var(--text3)" />
-                <div style={{ fontSize: 14, fontWeight: 500, marginTop: 8 }}>Arrastra el contrato aquí o haz clic para seleccionar</div>
-                <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10 }}>{['PDF', 'DOCX', 'TXT'].map(x => <span key={x} style={{ border: '1px solid var(--border)', borderRadius: 99, padding: '2px 10px', fontSize: 11, color: 'var(--text3)' }}>{x}</span>)}</div>
-              </div>
-              {cFile && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--gray-lt)', border: '1px solid var(--border)', borderRadius: 7, padding: '10px 14px', marginTop: 10 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><FileText size={17} /></div>
-                  <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500 }}>{cFile.name}</div><div style={{ fontSize: 11, color: 'var(--text3)' }}>{cFile.size > 1e6 ? (cFile.size / 1e6).toFixed(1) + ' MB' : Math.round(cFile.size / 1024) + ' KB'}</div></div>
-                  <button onClick={() => setCFile(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><X size={16} /></button>
+      {/* COMP SET */}
+      <div className={'pane' + (pane === 'set' ? ' active' : '')}>
+        <div className="card">
+          <div className="card-h"><h2>Añadir hotel</h2><span className="meta">{hotels.length ? `${hotels.length} hoteles` : ''}</span></div>
+          <div className="add-row">
+            <input className="inp" value={hName} onChange={e => setHName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addHotel()} placeholder="Nombre del hotel (la IA completa el resto)" />
+            <button className="btn primary" onClick={addHotel}>Añadir y autocompletar</button>
+          </div>
+          <p className="desc" style={{ margin: '10px 0 0' }}>Marca un hotel como <b>objeto</b> (el que analizas) y los que formen el <b>comp set relevante</b>. La media se calcula solo con los del comp set.</p>
+        </div>
+
+        {!hotels.length
+          ? <div className="empty">Escribe el nombre de un hotel arriba para empezar. La IA completará dirección, categoría, amenities y distancias.</div>
+          : hotels.map(h => {
+            const d = der[h.id]
+            const stars = '★'.repeat(Math.round(+h.stars || 0))
+            return (
+              <div className={'hotel' + (h.isSubject ? ' subject' : '') + (h.open ? ' open' : '')} key={h.id}>
+                <div className="hotel-bar" onClick={() => setHotel(h.id, { open: !h.open })}>
+                  <span className="h-chev"><ChevronRight size={14} /></span>
+                  <div className="h-id">
+                    <div className="h-name">{h.name}{stars && <span className="h-stars">{stars}</span>}
+                      {h.isSubject && <span className="h-tag subj">Objeto</span>}
+                      {h.inCS === 'Yes' && <span className="h-tag cs">Comp set</span>}</div>
+                    <div className="h-sub">{h.address || 'Sin datos aún'}{h.keys ? ` · ${h.keys} hab.` : ''}</div>
+                  </div>
+                  <div className="h-score"><div className="n mono" style={{ color: scoreColor(d.total) }}>{d.total ? (d.total * 20).toFixed(0) : '–'}</div><div className="l">/100</div></div>
                 </div>
-              )}
-              <button className="ab-btn blue" disabled={!cFile || cLoading} onClick={analyzeContract} style={{ width: '100%', justifyContent: 'center', marginTop: 12, padding: 10, opacity: (!cFile || cLoading) ? .5 : 1, cursor: (!cFile || cLoading) ? 'not-allowed' : 'pointer' }}>
-                <Brain size={15} strokeWidth={1.8} /> {cLoading ? 'Analizando con IA…' : 'Analizar contrato con IA'}
-              </button>
-              {cErr && <div style={errBox}><AlertTriangle size={13} style={{ verticalAlign: -2, marginRight: 5 }} />{cErr}</div>}
-            </div>
-
-            {cRows.length > 0 && (
-              <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, margin: '16px 0' }}>
-                  {[['Total campos', cStats.tot, 'var(--text)'], ['Extraídos', cStats.ok, 'var(--pdb-blue)'], ['Dudas', cStats.duda, 'var(--amber)'], ['TBC', cStats.tbc, 'var(--pdb-red)']].map(([l, n, c]) => (
-                    <div key={l} style={{ background: 'var(--gray-lt)', border: '1px solid var(--border)', borderRadius: 7, padding: 12, textAlign: 'center' }}><div style={{ fontSize: 22, fontWeight: 700, color: c }}>{n}</div><div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.04em', marginTop: 2 }}>{l}</div></div>
-                  ))}
-                </div>
-                <div className="dash-card">
-                  <div className="dash-card-head">Resultado HLA — Hotel Lease Analysis<button className="ab-btn" onClick={exportContract} style={{ padding: '4px 10px', fontSize: 11 }}><Download size={12} /> CSV</button></div>
-                  <div style={{ maxHeight: 480, overflowY: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                      <thead><tr>{['Category', 'Subcategory', 'Contract summary', 'Page'].map(h => <th key={h} style={{ position: 'sticky', top: 0, background: 'var(--gray-lt)', padding: '8px 12px', textAlign: 'left', fontSize: 9.5, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.04em', borderBottom: '1px solid var(--border)' }}>{h}</th>)}</tr></thead>
-                      <tbody>
-                        {cRows.map((r, i) => {
-                          const isO = (r.cat || '').startsWith('Otros')
-                          const tbc = !r.summary || r.summary === 'TBC'
-                          const duda = /^duda/i.test(r.summary || '')
-                          const tag = isO ? 'tag-green' : tbc ? 'tag-red' : duda ? 'tag-amber' : 'tag-blue'
-                          const txt = isO ? 'Otros' : tbc ? 'TBC' : duda ? 'Duda' : '✓'
-                          return (
-                            <tr key={i} style={{ borderBottom: '1px solid var(--line-2)' }}>
-                              <td style={{ padding: '8px 12px', fontWeight: 600, whiteSpace: 'nowrap' }}>{(r.cat || '').replace(/^Otros: /, '')}</td>
-                              <td style={{ padding: '8px 12px', color: 'var(--text3)', whiteSpace: 'nowrap' }}>{r.sub || '-'}</td>
-                              <td style={{ padding: '8px 12px', lineHeight: 1.5 }} title={r.desc}><span className={`tag ${tag}`} style={{ marginRight: 5, fontSize: 9 }}>{txt}</span>{r.summary || 'TBC'}</td>
-                              <td style={{ padding: '8px 12px', fontSize: 11, color: 'var(--text3)', whiteSpace: 'nowrap' }}>{r.page || '-'}</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </>
-            )}
-          </>
-        )}
-
-        {/* ════════ MÓDULO 2: COMPSET / GRAVITY ════════ */}
-        {mod === 'score' && (
-          <>
-            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Score de hoteles — CompSet / Gravity Analysis</h2>
-            <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 16 }}>Define el hotel y su conjunto competitivo (sin límite de competidores) y hasta 4 POIs. La IA puntúa <b>Location · Product · Rating</b>; la <b>Condition</b> se calcula por el año de reforma. Se calcula la media del CompSet y el % del hotel vs la media.</p>
-
-            <div className="va-card" style={{ padding: 16 }}>
-              <div style={secLbl}>Puntos de interés (POI) · hasta 4</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
-                {pois.map((p, i) => <input key={i} style={inp} value={p} onChange={e => setPois(prev => prev.map((x, j) => j === i ? e.target.value : x))} placeholder={`POI ${i + 1} — ej. Catedral de Toledo`} />)}
-              </div>
-
-              <div style={secLbl}>Conjunto competitivo</div>
-              {cs.map((h, i) => (
-                <div key={i} style={{ border: `1px solid ${h.subject ? 'var(--accent-bd)' : 'var(--border)'}`, background: h.subject ? 'var(--accent-lt)' : 'var(--gray-lt)', borderRadius: 8, padding: 12, marginBottom: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: h.subject ? 'var(--accent)' : 'var(--text2)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{h.subject ? '★ Hotel analizado' : `Competidor ${i}`}</span>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      {hoteles.length > 0 && (
-                        <select value="" onChange={e => loadHotelFromPDB(i, e.target.value)} style={{ ...inp, width: 'auto', fontSize: 11, padding: '3px 6px', cursor: 'pointer' }}>
-                          <option value="">Cargar de la PDB…</option>
-                          {hoteles.map(x => <option key={x.id} value={x.id}>{x.nombre || x.ref}</option>)}
-                        </select>
-                      )}
-                      {!h.subject && <button onClick={() => removeHotel(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pdb-red)' }} title="Eliminar"><Trash2 size={15} /></button>}
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
-                    <div><label style={lbl}>Hotel</label><input style={inp} value={h.name} onChange={e => setHotel(i, 'name', e.target.value)} placeholder="Nombre" /></div>
-                    <div><label style={lbl}>Dirección</label><input style={inp} value={h.address} onChange={e => setHotel(i, 'address', e.target.value)} /></div>
-                    <div><label style={lbl}>Categoría</label><select style={{ ...inp, cursor: 'pointer' }} value={h.category} onChange={e => setHotel(i, 'category', e.target.value)}>{['5★', '4★', '3★', '2★', '1★'].map(o => <option key={o}>{o}</option>)}</select></div>
-                    <div><label style={lbl}>Habitaciones</label><input style={inp} type="number" value={h.keys} onChange={e => setHotel(i, 'keys', e.target.value)} /></div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 8, marginBottom: 8 }}>
-                    <div><label style={lbl}>Año reforma</label><input style={inp} type="number" value={h.refurb} onChange={e => setHotel(i, 'refurb', e.target.value)} placeholder="2019" /></div>
-                    <div><label style={lbl}>Condition</label><input style={{ ...inp, background: 'var(--surface2)', color: 'var(--text3)' }} value={conditionFromRefurb(h.refurb) ?? '—'} readOnly /></div>
-                    <div><label style={lbl}>Estrellas</label><select style={{ ...inp, cursor: 'pointer' }} value={h.stars} onChange={e => setHotel(i, 'stars', e.target.value)}>{['5', '4', '3', '2', '1'].map(o => <option key={o} value={o}>{o} ★</option>)}</select></div>
-                    <div><label style={lbl}>Booking /10</label><input style={inp} type="number" step="0.1" value={h.booking} onChange={e => setHotel(i, 'booking', e.target.value)} /></div>
-                    <div><label style={lbl}>TripAdvisor /5</label><input style={inp} type="number" step="0.1" value={h.trip} onChange={e => setHotel(i, 'trip', e.target.value)} /></div>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {FACILITIES.map(f => {
-                      const on = h.facs.includes(f)
-                      return <span key={f} onClick={() => toggleFac(i, f)} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 99, cursor: 'pointer', userSelect: 'none', border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`, background: on ? 'var(--accent)' : 'var(--surface)', color: on ? '#fff' : 'var(--text2)', fontWeight: on ? 700 : 500 }}>{f}</span>
-                    })}
-                  </div>
-                </div>
-              ))}
-              <button className="ab-btn" onClick={addHotel} style={{ fontSize: 12 }}><Plus size={14} /> Añadir competidor</button>
-
-              <button className="ab-btn blue" disabled={csLoading} onClick={genCompSet} style={{ width: '100%', justifyContent: 'center', marginTop: 14, padding: 10, opacity: csLoading ? .5 : 1, cursor: csLoading ? 'not-allowed' : 'pointer' }}>
-                <BarChart3 size={15} strokeWidth={1.8} /> {csLoading ? 'Analizando CompSet con IA…' : 'Generar análisis CompSet con IA'}
-              </button>
-              {csErr && <div style={errBox}><AlertTriangle size={13} style={{ verticalAlign: -2, marginRight: 5 }} />{csErr}</div>}
-            </div>
-
-            {csResult && (
-              <div className="dash-card" style={{ marginTop: 16 }}>
-                <div className="dash-card-head">Gravity Analysis — CompSet<button className="ab-btn" onClick={exportCompSet} style={{ padding: '4px 10px', fontSize: 11 }}><Download size={12} /> CSV</button></div>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ borderCollapse: 'collapse', fontSize: 11.5, minWidth: '100%' }}>
-                    <thead>
-                      <tr>
-                        {['Hotel', 'Cat.', 'Hab.', 'Reforma', 'Condition', ...csResult.poisF.map(p => `${p} (km)`), 'Location', 'Product', 'Rating', 'TOTAL'].map(h => (
-                          <th key={h} style={{ position: 'sticky', top: 0, background: 'var(--gray-lt)', padding: '7px 10px', textAlign: 'left', fontSize: 9, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {csResult.rows.map((r, i) => (
-                        <tr key={i} style={{ borderBottom: '1px solid var(--line-2)', background: r.subject ? 'var(--accent-lt)' : '#fff' }}>
-                          <td style={{ padding: '7px 10px', fontWeight: r.subject ? 700 : 600, whiteSpace: 'nowrap' }}>{r.subject ? '★ ' : ''}{r.name || '—'}</td>
-                          <td style={{ padding: '7px 10px' }}>{r.category}</td>
-                          <td style={{ padding: '7px 10px', fontFamily: 'var(--mono)' }}>{r.keys || '—'}</td>
-                          <td style={{ padding: '7px 10px', fontFamily: 'var(--mono)' }}>{r.refurb || '—'}</td>
-                          <td style={{ padding: '7px 10px', fontFamily: 'var(--mono)' }}>{r.condition ?? '—'}</td>
-                          {csResult.poisF.map((_, j) => <td key={j} style={{ padding: '7px 10px', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{r.poiKm[j]?.km ?? '—'}</td>)}
-                          <td style={{ padding: '7px 10px', fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--pdb-blue)' }}>{num3(r.scoreLocation)}</td>
-                          <td style={{ padding: '7px 10px', fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--pdb-green)' }}>{num3(r.scoreProduct)}</td>
-                          <td style={{ padding: '7px 10px', fontFamily: 'var(--mono)', fontWeight: 700, color: '#7C3AED' }}>{num3(r.scoreRating)}</td>
-                          <td style={{ padding: '7px 10px', fontFamily: 'var(--mono)', fontWeight: 800 }}>{num3(r.total)}</td>
-                        </tr>
+                {h.open && (
+                  <div className="hotel-body" onClick={e => e.stopPropagation()}>
+                    {busy[h.id] && <div className="loading"><div className="spin" /><span>Autocompletando con IA…</span></div>}
+                    <div className="grp"><div className="grp-t">Datos generales</div>
+                      <div className="fgrid">
+                        <div><label className="fld">Dirección</label><input className="inp" value={h.address} onChange={e => setHotel(h.id, { address: e.target.value })} /></div>
+                        <div><label className="fld">Web</label><input className="inp" value={h.web} onChange={e => setHotel(h.id, { web: e.target.value })} /></div>
+                        <div><label className="fld">Estrellas</label><input className="inp" type="number" min="0" max="5" value={h.stars} onChange={e => setHotel(h.id, { stars: e.target.value })} /></div>
+                        <div><label className="fld">Habitaciones</label><input className="inp" type="number" value={h.keys} onChange={e => setHotel(h.id, { keys: e.target.value })} /></div>
+                        <div><label className="fld">Grupo</label><input className="inp" value={h.group} onChange={e => setHotel(h.id, { group: e.target.value })} /></div>
+                        <div><label className="fld">Marca</label><input className="inp" value={h.brand} onChange={e => setHotel(h.id, { brand: e.target.value })} /></div>
+                      </div></div>
+                    <div className="grp"><div className="grp-t">Ubicación · distancias a pie (km)</div>
+                      {pois.map(p => (
+                        <div className="dist-row" key={p.id}><span className="pl">{p.name}</span>
+                          <input className="inp" type="number" step="0.1" value={h.distances[p.id] ?? ''} onChange={e => setHotel(h.id, { distances: { ...h.distances, [p.id]: e.target.value === '' ? undefined : +e.target.value } })} /></div>
                       ))}
-                      <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--gray-lt)', fontWeight: 700 }}>
-                        <td style={{ padding: '7px 10px' }} colSpan={4}>Relevant CS Average</td>
-                        <td style={{ padding: '7px 10px', fontFamily: 'var(--mono)' }}>{csResult.csAvg.condition.toFixed(1)}</td>
-                        {csResult.poisF.map((_, j) => <td key={j} />)}
-                        <td style={{ padding: '7px 10px', fontFamily: 'var(--mono)' }}>{csResult.csAvg.scoreLocation.toFixed(1)}</td>
-                        <td style={{ padding: '7px 10px', fontFamily: 'var(--mono)' }}>{csResult.csAvg.scoreProduct.toFixed(1)}</td>
-                        <td style={{ padding: '7px 10px', fontFamily: 'var(--mono)' }}>{csResult.csAvg.scoreRating.toFixed(1)}</td>
-                        <td style={{ padding: '7px 10px', fontFamily: 'var(--mono)' }}>{csResult.csAvg.total.toFixed(1)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                {csResult.pct != null && (
-                  <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border)', fontSize: 12.5 }}>
-                    Hotel analizado vs media del CompSet: <b style={{ color: csResult.pct >= 0 ? 'var(--pdb-green)' : 'var(--pdb-red)' }}>{(csResult.pct * 100).toFixed(1)}%</b>
-                  </div>
-                )}
-                {csResult.rows.some(r => r.comment) && (
-                  <div style={{ padding: '4px 14px 14px' }}>
-                    {csResult.rows.filter(r => r.comment).map((r, i) => (
-                      <div key={i} style={{ fontSize: 12, padding: '5px 0', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8 }}>
-                        <b style={{ minWidth: 160, color: 'var(--text2)' }}>{r.subject ? '★ ' : ''}{r.name}</b><span style={{ color: 'var(--text2)' }}>{r.comment}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* ════════ MÓDULO 3: PRESENTACIÓN (BP REVIEW) ════════ */}
-        {mod === 'slide' && (
-          <>
-            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Presentación — BP Review · Datos históricos</h2>
-            <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 16 }}>Carga el P&L (sube el Excel formato MASTER o edita a mano) y la IA genera el <b>titular ejecutivo</b> y los <b>comentarios por línea de ingreso</b> (≤20-25 palabras), listos para la slide.</p>
-
-            <div className="va-card" style={{ padding: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                <button className="ab-btn" onClick={() => pInputRef.current?.click()} style={{ fontSize: 12 }}><UploadCloud size={14} /> Subir Excel del P&L</button>
-                <input ref={pInputRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={e => e.target.files[0] && onPnlExcel(e.target.files[0])} />
-                {pnlName && <span style={{ fontSize: 11, color: 'var(--text3)' }}><Database size={12} style={{ verticalAlign: -2 }} /> {pnlName} · ajusta los valores si hace falta</span>}
-              </div>
-
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
-                  <thead><tr>{['Línea (k€ / ratio)', '2023A', '2024A', '2025A'].map(h => <th key={h} style={{ background: 'var(--gray-lt)', padding: '6px 10px', textAlign: 'left', fontSize: 9.5, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', borderBottom: '1px solid var(--border)' }}>{h}</th>)}</tr></thead>
-                  <tbody>
-                    {[...PNL_KPIS, ...PNL_REV].map(k => (
-                      <tr key={k} style={{ borderBottom: '1px solid var(--line-2)' }}>
-                        <td style={{ padding: '4px 10px', fontWeight: PNL_REV.includes(k) ? 700 : 500, color: PNL_REV.includes(k) ? 'var(--text)' : 'var(--text2)' }}>{k}</td>
-                        {['y2023', 'y2024', 'y2025'].map(yr => (
-                          <td key={yr} style={{ padding: '3px 6px' }}><input style={{ ...inp, fontFamily: 'var(--mono)', padding: '5px 7px' }} value={pnl[k][yr]} onChange={e => setPnlCell(k, yr, e.target.value)} placeholder="—" /></td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <button className="ab-btn blue" disabled={pLoading} onClick={genBP} style={{ width: '100%', justifyContent: 'center', marginTop: 14, padding: 10, opacity: pLoading ? .5 : 1, cursor: pLoading ? 'not-allowed' : 'pointer' }}>
-                <Lightbulb size={15} strokeWidth={1.8} /> {pLoading ? 'Generando con IA…' : 'Generar titular y comentarios con IA'}
-              </button>
-              {pErr && <div style={errBox}><AlertTriangle size={13} style={{ verticalAlign: -2, marginRight: 5 }} />{pErr}</div>}
-            </div>
-
-            {bp && (
-              <>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', margin: '16px 0 10px' }}><button className="ab-btn" onClick={() => window.print()}><Download size={13} /> Exportar PDF</button></div>
-                <div className="va-card" style={{ padding: 18, marginBottom: 10 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: 8 }}>Slide · Datos históricos — Titular ejecutivo</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.4, color: 'var(--text)' }}>{bp.titular}</div>
-                </div>
-                <div className="va-card" style={{ padding: 18 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: 8 }}>Comentarios por línea de ingresos</div>
-                  {PNL_REV.map(k => (
-                    <div key={k} style={{ display: 'flex', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
-                      <b style={{ minWidth: 110, color: 'var(--text2)' }}>{k}</b>
-                      <span style={{ color: 'var(--text2)', lineHeight: 1.55 }}>{bp.comentarios?.[k] || '—'}</span>
                     </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </>
-        )}
+                    <div className="grp"><div className="grp-t">Producto · amenities y estado</div>
+                      <div className="am-grid">
+                        {amenities.map(a => (
+                          <div className={'am-toggle' + (h.amenities[a] ? ' on' : '')} key={a} onClick={() => setHotel(h.id, { amenities: { ...h.amenities, [a]: !h.amenities[a] } })}>
+                            <span>{a}</span><span className="sw" /></div>
+                        ))}
+                      </div>
+                      <div style={{ marginTop: 11, maxWidth: 200 }}><label className="fld">Año última reforma</label><input className="inp" type="number" value={h.lastRefurb} onChange={e => setHotel(h.id, { lastRefurb: e.target.value })} /></div>
+                    </div>
+                    <div className="grp"><div className="grp-t">Reputación</div>
+                      <div className="fgrid">
+                        <div><label className="fld">Booking (0-10)</label><input className="inp" type="number" step="0.1" min="0" max="10" value={h.booking} onChange={e => setHotel(h.id, { booking: e.target.value })} /></div>
+                        <div><label className="fld">Tripadvisor (0-5)</label><input className="inp" type="number" step="0.1" min="0" max="5" value={h.tripadvisor} onChange={e => setHotel(h.id, { tripadvisor: e.target.value })} /></div>
+                      </div></div>
+                    <div className="hopts">
+                      <label className="hopt"><input type="radio" name={'subj-' + h.id} checked={h.isSubject} onChange={() => setHotels(p => p.map(x => ({ ...x, isSubject: x.id === h.id })))} /> Hotel objeto del análisis</label>
+                      <label className="hopt"><input type="checkbox" checked={h.inCS === 'Yes'} onChange={e => setHotel(h.id, { inCS: e.target.checked ? 'Yes' : 'No' })} /> Incluir en comp set</label>
+                    </div>
+                    <div className="row-actions">
+                      <button className="btn ai sm" onClick={() => autofill(h)}><Sparkles size={14} /> Reautocompletar</button>
+                      <button className="btn sm" style={{ marginLeft: 'auto' }} onClick={() => setHotels(p => p.filter(x => x.id !== h.id))}>Eliminar</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        {!!hotels.length && <button className="btn primary" onClick={() => setPane('res')}>Ver resultados →</button>}
+      </div>
 
+      {/* RESULTADOS */}
+      <div className={'pane' + (pane === 'res' ? ' active' : '')}>
+        <div className="card">
+          <div className="card-h"><h2>Ranking y comparativa</h2><span className="meta">{hotels.length} hoteles · {csCount} en comp set</span></div>
+          <div className="res-head"><div /><div className="l">Hotel</div><div>Ubic.</div><div>Prod.</div><div>Reput.</div><div>Total</div></div>
+          {!hotels.length ? <div className="empty">Sin hoteles.</div> : ranked.map((h, i) => {
+            const d = der[h.id]
+            const vs = csAvg.total ? (d.total / csAvg.total - 1) * 100 : 0
+            return (
+              <div className={'res-row' + (h.isSubject ? ' subj' : '')} key={h.id}>
+                <div className={'rp ' + (i < 3 ? 'p' + (i + 1) : '')}>{i + 1}</div>
+                <div className="rn">{h.name} {h.inCS === 'Yes' && csAvg.total ? <span className={'vsbar ' + (vs >= 0 ? 'up' : 'down')}>{vs >= 0 ? '+' : ''}{vs.toFixed(0)}%</span> : null}
+                  <div className="loc">{h.address || h.group || ''}</div></div>
+                <div className="sc">{d.loc ? d.loc.toFixed(1) : '–'}</div>
+                <div className="sc">{d.prod ? d.prod.toFixed(1) : '–'}</div>
+                <div className="sc">{d.rat ? d.rat.toFixed(1) : '–'}</div>
+                <div className="sc tot" style={{ color: scoreColor(d.total) }}>{(d.total * 20).toFixed(0)}<small>{d.total.toFixed(1)}/5</small></div>
+              </div>
+            )
+          })}
+          {!!csCount && (
+            <div className="res-row avg">
+              <div /><div className="rn">Media comp set</div>
+              <div className="sc">{csAvg.loc.toFixed(1)}</div><div className="sc">{csAvg.prod.toFixed(1)}</div><div className="sc">{csAvg.rat.toFixed(1)}</div>
+              <div className="sc tot">{(csAvg.total * 20).toFixed(0)}<small>{csAvg.total.toFixed(1)}/5</small></div>
+            </div>
+          )}
+          <div style={{ marginTop: 18 }}><button className="btn" onClick={exportWord}><Download size={14} /> Exportar informe</button></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ════════════════════════════ MÓDULO 3 ════════════════════════════════ */
+const initialPNL = () => [
+  { id: uid(), t: 'kpi', label: 'Ocupación', unit: '%', fmt: 'pct', v: [63.9, 64.6, 63.0] },
+  { id: uid(), t: 'kpi', label: 'ADR', unit: '€', fmt: 'eur', v: [80.7, 81.8, 94.3] },
+  { id: uid(), t: 'kpi', label: 'RevPAR', unit: '€', fmt: 'eur', v: [51.6, 52.8, 59.4] },
+  { id: uid(), t: 'kpi', label: '% Margen GOP', unit: '%', fmt: 'pct', v: [23.9, 28.9, 33.9] },
+  { id: uid(), t: 'sect', label: 'Ingresos' },
+  { id: uid(), t: 'line', label: 'Habitaciones', unit: '% T Rev', fmt: 'keur', v: [5552, 5701, 6399] },
+  { id: uid(), t: 'sub', label: 'F&B Rte. In house', unit: 'POR', fmt: 'keur', v: [0, 0, 2503] },
+  { id: uid(), t: 'sub', label: 'F&B Rte. Walk-ins', unit: 'PAR', fmt: 'keur', v: [0, 0, 589] },
+  { id: uid(), t: 'sub', label: 'F&B Eventos', unit: 'PAR', fmt: 'keur', v: [0, 0, 2621] },
+  { id: uid(), t: 'line', label: 'F&B', unit: 'POR', fmt: 'keur', v: [6250, 5219, 5713] },
+  { id: uid(), t: 'line', label: 'Eventos', unit: 'PAR', fmt: 'keur', v: [451, 277, 418] },
+  { id: uid(), t: 'line', label: 'Spa', unit: 'POR', fmt: 'keur', v: [549, 555, 595] },
+  { id: uid(), t: 'line', label: 'Otros', unit: 'PAR', fmt: 'keur', v: [240, 513, 813] },
+  { id: uid(), t: 'total', label: 'Total Ingresos', unit: 'POR', fmt: 'keur', v: [13043, 12265, 13937] },
+  { id: uid(), t: 'sect', label: 'Costes Operativos' },
+  { id: uid(), t: 'line', label: 'Costes Habitaciones', unit: 'POR', fmt: 'keur', v: [1825, 1742, 1693] },
+  { id: uid(), t: 'line', label: 'Costes F&B', unit: '% F&B Rev', fmt: 'keur', v: [4918, 3978, 4240] },
+  { id: uid(), t: 'line', label: 'Costes Eventos', unit: '% Ev Rev', fmt: 'keur', v: [343, 448, 660] },
+  { id: uid(), t: 'line', label: 'Costes Spa', unit: '% Spa Rev', fmt: 'keur', v: [327, 314, 330] },
+  { id: uid(), t: 'total', label: 'Total Costes Operativos', unit: '% T Rev', fmt: 'keur', v: [7412, 6483, 6923] },
+  { id: uid(), t: 'sect', label: 'Márgenes departamentales' },
+  { id: uid(), t: 'line', label: 'Margen Habitaciones', unit: '% RRev', fmt: 'keur', v: [3727, 3959, 4706] },
+  { id: uid(), t: 'line', label: 'Margen F&B + Eventos', unit: '% Rev', fmt: 'keur', v: [1441, 1069, 1231] },
+  { id: uid(), t: 'line', label: 'Margen Spa', unit: '% Spa Rev', fmt: 'keur', v: [223, 241, 264] },
+  { id: uid(), t: 'line', label: 'Margen Otros', unit: '% Rev', fmt: 'keur', v: [240, 513, 813] },
+  { id: uid(), t: 'total', label: 'GOI', unit: '% T Rev', fmt: 'keur', v: [5631, 5782, 7014] },
+  { id: uid(), t: 'sect', label: 'Gastos no distribuidos' },
+  { id: uid(), t: 'line', label: 'Administración y Generales', unit: 'PAR', fmt: 'keur', v: [490, 575, 535] },
+  { id: uid(), t: 'line', label: 'Ventas y Marketing', unit: 'PAR', fmt: 'keur', v: [326, 266, 314] },
+  { id: uid(), t: 'line', label: 'Reparaciones y Mantenim.', unit: 'PAR', fmt: 'keur', v: [701, 672, 683] },
+  { id: uid(), t: 'line', label: 'Suministros', unit: 'POR', fmt: 'keur', v: [990, 729, 760] },
+  { id: uid(), t: 'total', label: 'Total gastos no distribuidos', unit: 'PAR', fmt: 'keur', v: [2507, 2242, 2291] },
+  { id: uid(), t: 'total', label: 'Total Costes', unit: 'PAR', fmt: 'keur', v: [9919, 8725, 9214] },
+  { id: uid(), t: 'total', label: 'GOP', unit: '% T Rev', fmt: 'keur', v: [3123, 3540, 4723] },
+  { id: uid(), t: 'kpi', label: 'GOP / habitación', unit: 'Por Hab.', fmt: 'hab', v: [10.6, 12.0, 16.0] },
+]
+const fmtVal = (val, f) => {
+  if (val == null || isNaN(val)) return '–'
+  if (f === 'pct') return val.toFixed(1) + '%'
+  if (f === 'eur') return val.toFixed(1) + '€'
+  if (f === 'hab') return val.toFixed(1)
+  return Math.round(val).toLocaleString('es-ES')
+}
+const cagr = v => (!v || v[0] === 0 || v[0] == null) ? null : Math.pow(v[2] / v[0], 1 / 2) - 1
+const yoy = v => (!v || v[1] === 0 || v[1] == null) ? null : v[2] / v[1] - 1
+const pctTxt = x => x == null ? 'n.a.' : (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + '%'
+
+function ModSlides() {
+  const [pnl, setPnl] = useState(initialPNL)
+  const [projName, setProjName] = useState('')
+  const [showMs, setShowMs] = useState(false)
+  const [analysis, setAnalysis] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [err, setErr] = useState('')
+  const [activeSec, setActiveSec] = useState('sec-exec')
+  const bodyRef = useRef(null)
+
+  const setCell = (id, i, val) => setPnl(p => p.map(r => r.id === id ? { ...r, v: r.v.map((x, j) => j === i ? (parseFloat(val) || 0) : x) } : r))
+  const setLabel = (id, label) => setPnl(p => p.map(r => r.id === id ? { ...r, label } : r))
+  const addLine = () => { const name = prompt('Nombre de la línea:'); if (name) setPnl(p => [...p, { id: uid(), t: 'line', label: name, unit: '', fmt: 'keur', v: [0, 0, 0] }]) }
+  const findRow = lbl => pnl.find(r => r.label === lbl)
+
+  const generate = async () => {
+    setErr(''); setLoading(true)
+    const lines = pnl.filter(r => r.t !== 'sect').map(r => `${r.label}: 2023=${r.v[0]} 2024=${r.v[1]} 2025=${r.v[2]} (CAGR ${pctTxt(cagr(r.v))}, YoY ${pctTxt(yoy(r.v))})`).join('\n')
+    const prompt = `Eres asset manager hotelero senior en Savills. Analizas una cuenta de explotación (P&L) y produces contenido para una presentación a inversores/propietarios. Tono ejecutivo, formal, claro y muy conciso. Terminología de hotelería y asset management. Básate EXCLUSIVAMENTE en los datos dados.
+Devuelve SOLO JSON sin markdown:
+{"headline":"titular insight-driven, 1-2 frases cortas, mensaje accionable para propietarios e inversores","histHeadline":"1 frase que sintetice la evolución histórica de ingresos/márgenes","comments":{"Habitaciones":"","F&B":"","Eventos":"","Spa":"","Otros":""}}
+Cada comentario: máximo 20-25 palabras, explica los drivers principales (crecimiento/descenso/estabilidad) de esa línea de ingresos.
+Cuenta de explotación (k€ salvo indicado):\n${lines}`
+    try { setAnalysis(parseJSON(await callAI([{ text: prompt }], 1500))) }
+    catch (e) { setErr('No se pudo generar el análisis (' + e.message + '). Los KPIs y la P&L sí se muestran.') }
+    finally { setLoading(false) }
+  }
+
+  const goMicrosite = () => { setShowMs(true); generate() }
+  const scrollTo = sec => {
+    setActiveSec(sec)
+    bodyRef.current?.querySelector('#' + sec)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const kpiWant = [['Ocupación', 'Ocupación'], ['ADR', 'ADR'], ['RevPAR', 'RevPAR'], ['GOP', 'GOP'], ['% Margen GOP', 'Margen GOP'], ['Total Ingresos', 'Ingresos totales']]
+  const cmtOrder = ['Habitaciones', 'F&B', 'Eventos', 'Spa', 'Otros']
+
+  return (
+    <div className="s3wrap">
+      <div className="s3head" style={{ display: showMs ? 'none' : 'block' }}>
+        <div className="s3brand"><span className="s3eyebrow">Hoteles</span><span className="s3chip">Módulo 3</span></div>
+        <div className="s3title">Presentación</div>
+        <p className="s3sub">Edita la cuenta de explotación (P&amp;L) y genera una microsite ejecutiva con titular insight-driven, KPIs y comentarios por línea.</p>
+      </div>
+      <div className="s3main">
+        {/* EDITOR */}
+        <div className={'s3view' + (showMs ? '' : ' on')}>
+          <div className="pnl-tools">
+            <input className="s3btn" value={projName} onChange={e => setProjName(e.target.value)} placeholder="Nombre del proyecto / hotel" style={{ fontWeight: 560, minWidth: 240 }} />
+            <span className="grow" />
+            <button className="s3btn sm" onClick={addLine}>+ Añadir línea</button>
+            <button className="s3btn primary" onClick={goMicrosite}>Generar microsite →</button>
+          </div>
+          <div className="pnl-card"><table className="pnl"><thead><tr>
+            <th className="l">k€</th><th className="l">KPI</th><th>2023A</th><th>2024A</th><th>2025A</th><th>CAGR</th><th>YoY 25-24</th><th />
+          </tr></thead><tbody>
+            {pnl.map(r => {
+              if (r.t === 'sect') return <tr className="sect" key={r.id}><td className="l" colSpan={8}>{r.label}</td></tr>
+              const c = cagr(r.v), y = yoy(r.v)
+              return (
+                <tr className={r.t} key={r.id}>
+                  <td className="l"><input className="lbl" value={r.label} onChange={e => setLabel(r.id, e.target.value)} /></td>
+                  <td className="l"><span className="unit">{r.unit || ''}</span></td>
+                  {[0, 1, 2].map(i => <td key={i}><input value={r.v[i]} onChange={e => setCell(r.id, i, e.target.value)} /></td>)}
+                  <td className={'delta ' + (c >= 0 ? 'up' : 'down')}>{pctTxt(c)}</td>
+                  <td className={'delta ' + (y >= 0 ? 'up' : 'down')}>{pctTxt(y)}</td>
+                  <td><button className="rowdel" title="Eliminar" onClick={() => setPnl(p => p.filter(x => x.id !== r.id))}>×</button></td>
+                </tr>
+              )
+            })}
+          </tbody></table></div>
+        </div>
+
+        {/* MICROSITE */}
+        <div className={'s3view' + (showMs ? ' on' : '')}>
+          <div className="ms">
+            <nav className="ms-index">
+              <div className="lg">Hoteles <span className="sav">·</span></div>
+              <div className="pj">{projName.trim() || 'Proyecto hotelero'}</div>
+              <a className={activeSec === 'sec-exec' ? 'active' : ''} onClick={() => scrollTo('sec-exec')}><span className="num">1</span>Resumen Ejecutivo</a>
+              <a className={activeSec === 'sec-hist' ? 'active' : ''} onClick={() => scrollTo('sec-hist')}><span className="num">2</span>Revisión · Datos Históricos</a>
+            </nav>
+            <div className="ms-body" ref={bodyRef}>
+              <div className="ms-toolbar">
+                <button className="s3btn sm" onClick={() => setShowMs(false)}>← Volver al editor</button>
+                <button className="s3btn sm" onClick={generate}><Sparkles size={14} /> Regenerar análisis</button>
+                <button className="s3btn sm" onClick={() => window.print()}><Download size={14} /> Imprimir / PDF</button>
+              </div>
+              {loading && <div className="s3load"><div className="s3spin" /><span>Generando análisis ejecutivo…</span></div>}
+              {err && <div className="s3err">{err}</div>}
+
+              <section className="slide-sec" id="sec-exec">
+                <span className="savmark">savills</span>
+                <div className="sec-title"><span className="hl">1. Resumen Ejecutivo</span></div>
+                <p className="headline">{analysis?.headline || 'El titular ejecutivo aparecerá aquí tras generar el análisis.'}</p>
+                <div className="kpis">
+                  {kpiWant.map(([lbl, disp]) => {
+                    const r = findRow(lbl); if (!r) return null
+                    const y = yoy(r.v); const up = y >= 0
+                    return (
+                      <div className="kpi" key={lbl}>
+                        <div className="k-l">{disp}</div>
+                        <div className="k-v mono">{fmtVal(r.v[2], (r.fmt === 'pct' || lbl === '% Margen GOP') ? 'pct' : r.fmt)}</div>
+                        <div><span className={'k-d ' + (up ? 'up' : 'down')}>{up ? '▲' : '▼'} {pctTxt(y).replace('+', '')}</span><span className="k-yo">YoY 25-24</span></div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="ctx-grid">
+                  <div className="ctx-card"><h4>Contexto del proyecto</h4><ul><li>Cuenta de explotación 2023A–2025A</li><li>Análisis de desempeño y márgenes</li></ul></div>
+                  <div className="ctx-card"><h4>Revisión datos históricos</h4><ul><li>Evolución de ingresos por departamento</li><li>Estructura de costes y GOP</li></ul></div>
+                </div>
+              </section>
+
+              <section className="slide-sec" id="sec-hist">
+                <span className="savmark">savills</span>
+                <div className="sec-title"><span className="hl">2. Revisión</span> · Datos Históricos</div>
+                <p className="headline" style={{ borderLeftColor: 'var(--accent)' }}>{analysis?.histHeadline || 'Comentarios por línea de ingresos.'}</p>
+                <div className="ms-pnl-wrap"><table className="msp"><thead><tr>
+                  <th className="l">k€</th><th>2023A</th><th>2024A</th><th>2025A</th><th>CAGR</th><th>YoY</th>
+                </tr></thead><tbody>
+                  {pnl.filter(r => r.t !== 'kpi').map(r => {
+                    if (r.t === 'sect') return <tr className="sect" key={r.id}><td className="l" colSpan={6}>{r.label}</td></tr>
+                    const c = cagr(r.v), y = yoy(r.v)
+                    return (
+                      <tr className={r.t} key={r.id}>
+                        <td className="l">{r.label}</td>
+                        <td className="mono">{fmtVal(r.v[0], r.fmt)}</td><td className="mono">{fmtVal(r.v[1], r.fmt)}</td><td className="mono">{fmtVal(r.v[2], r.fmt)}</td>
+                        <td className={'mono delta ' + (c >= 0 ? 'up' : 'down')}>{pctTxt(c)}</td>
+                        <td className={'mono delta ' + (y >= 0 ? 'up' : 'down')}>{pctTxt(y)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody></table></div>
+                <h4 style={{ fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 700, margin: '26px 0 4px' }}>Comentarios · Ingresos</h4>
+                <div className="comments">
+                  {cmtOrder.map((k, i) => analysis?.comments?.[k]
+                    ? <div className="cmt" key={k}><div className="cn">{i + 1}</div><div className="cc"><h5>{k}</h5><p>{analysis.comments[k]}</p></div></div>
+                    : null)}
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ════════════════════════════ HOME ════════════════════════════════════ */
+const FEATS = {
+  contracts: ['Carga de contratos en PDF, Word o TXT', 'Análisis cláusula a cláusula según plantilla por equipo', 'Detección de puntos a revisar y no localizados', 'Exportación a Word y modo presentación'],
+  score: ['Competitive set por ciudad con puntos turísticos', 'Autocompletado por IA desde el nombre del hotel', 'Score ponderado: ubicación, producto y reputación', 'Ranking comparativo vs media del comp set'],
+  slides: ['Microsite ejecutiva a partir del P&L', 'Titular insight-driven y comentarios por línea', 'Exportación a PDF / impresión'],
+}
+function HomePane({ go }) {
+  return (
+    <div className="home">
+      <h1>Hoteles</h1>
+      <p className="lead">Suite de análisis hotelero. Tres módulos que comparten datos: revisión de contratos, evaluación de activos y generación de presentaciones.</p>
+      <div className="mods">
+        <div className="mod-card" onClick={() => go('contracts')}>
+          <div className="mc-top"><div className="mc-ic a"><FileText size={20} /></div><div className="mc-t"><div className="h">Revisión de contratos</div><div className="s">Análisis automático de documentos contractuales</div></div><span className="mc-tag a">Módulo 1</span></div>
+          <div className="mc-feats">{FEATS.contracts.map(f => <div key={f}><span className="fi">›</span> {f}</div>)}</div>
+        </div>
+        <div className="mod-card" onClick={() => go('score')}>
+          <div className="mc-top"><div className="mc-ic b"><Star size={20} /></div><div className="mc-t"><div className="h">Score de hoteles</div><div className="s">Evaluación y puntuación de propiedades</div></div><span className="mc-tag b">Módulo 2</span></div>
+          <div className="mc-feats">{FEATS.score.map(f => <div key={f}><span className="fi">›</span> {f}</div>)}</div>
+        </div>
+        <div className="mod-card" onClick={() => go('slides')}>
+          <div className="mc-top"><div className="mc-ic c"><LayoutGrid size={20} /></div><div className="mc-t"><div className="h">Presentación</div><div className="s">Generación de microsites ejecutivas</div></div><span className="mc-tag c">Módulo 3</span></div>
+          <div className="mc-feats">{FEATS.slides.map(f => <div key={f}><span className="fi">›</span> {f}</div>)}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ════════════════════════════ SHELL ═══════════════════════════════════ */
+const NAV = [
+  { v: 'home', label: 'Inicio', icon: Home },
+  { v: 'contracts', label: 'Revisión de contratos', icon: FileText },
+  { v: 'score', label: 'Score de hoteles', icon: Star },
+  { v: 'slides', label: 'Presentación', icon: LayoutGrid },
+]
+function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) }
+
+export default function HotelesView() {
+  const [view, setView] = useState('home')
+  const go = v => { setView(v); try { document.querySelector('.hot-skin .content')?.scrollTo(0, 0) } catch { /* noop */ } }
+
+  return (
+    <div className="hot-skin">
+      <aside className="side">
+        <div className="logo"><div className="mark">H</div><div className="nm">Hoteles</div></div>
+        <nav className="nav">
+          {NAV.map(n => {
+            const Ico = n.icon
+            return (
+              <a key={n.v} className={view === n.v ? 'active' : ''} onClick={() => go(n.v)}>
+                <span className="nicon"><Ico size={16} /></span> {n.label}
+                {n.v === 'slides' && <span className="soon">Beta</span>}
+              </a>
+            )
+          })}
+        </nav>
+      </aside>
+      <div className="content">
+        <section className={'view' + (view === 'home' ? ' active' : '')}><HomePane go={go} /></section>
+        <section className={'view' + (view === 'contracts' ? ' active' : '')}>
+          <div className="mhead"><div className="eyebrow">Hoteles · Módulo 1</div></div>
+          <ModContratos />
+        </section>
+        <section className={'view' + (view === 'score' ? ' active' : '')}>
+          <div className="mhead"><div className="eyebrow">Hoteles · Módulo 2</div></div>
+          <ModScore />
+        </section>
+        <section className={'view' + (view === 'slides' ? ' active' : '')}><ModSlides /></section>
       </div>
     </div>
   )
