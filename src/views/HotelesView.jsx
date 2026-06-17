@@ -3,6 +3,7 @@ import '../styles/hoteles.css'
 import {
   FileText, Star, LayoutGrid, UploadCloud, ChevronRight, Download, Printer,
   Trash2, Sparkles, RotateCcw, Wifi, MapPin, ArrowUp, MessageSquare, Building2, Check,
+  ArrowRight, FileCheck,
 } from 'lucide-react'
 
 /* ============================================================================
@@ -352,6 +353,7 @@ function ModContratos() {
         </div>
         <div className="ms-doc" ref={msRef}>
           <div className="ms-band">
+            <div className="ms-brand">PDB</div>
             <div className="ms-eyebrow">Revisión de contratos</div>
             <div className="ms-title">{m.title || 'Análisis del contrato'}</div>
             <div className="ms-meta">{[m.parties, m.date ? 'Firma: ' + m.date : '', lobName].filter(Boolean).join('  ·  ')}</div>
@@ -411,13 +413,22 @@ function ModContratos() {
     )
   }
 
+  const plantillaTag = /HLA/i.test(lobName) ? 'HLA' : 'Personalizada'
   return (
     <div className="wrap">
-      <h1>Revisión de contratos</h1>
-      <p className="lead">Analiza un contrato de arrendamiento hotelero (PDF, Word o TXT) frente a la plantilla por equipo. La IA localiza cada cláusula, indica la página y marca lo que falta o requiere atención.</p>
-      <div className="steps">
-        <div className="ccard">
-          <div className="ccardhead"><div className="step-n done">1</div><div className="step-title">Elige la plantilla de análisis</div><div className="step-meta">{criteria.length} criterios</div></div>
+      <header className="c-hero">
+        <div className="c-hero-txt">
+          <div className="eyebrow">Módulo 01 · Análisis contractual</div>
+          <h1>Revisión de contratos</h1>
+          <p className="lead">Analiza un contrato de arrendamiento hotelero (PDF, Word o TXT) frente a la plantilla por equipo. La IA localiza cada cláusula, indica la página y marca lo que falta o requiere atención.</p>
+        </div>
+        <div className="c-hero-badge"><FileCheck size={16} /><span className="t">{plantillaTag}</span><span className="n">{criteria.length} criterios</span></div>
+      </header>
+      <div className="steps spine">
+        <div className="cstep">
+          <div className="cstep-rail"><div className="step-dot done">1</div></div>
+          <div className="ccard">
+          <div className="ccardhead"><div className="step-title">Elige la plantilla de análisis</div><div className="step-meta">{criteria.length} criterios</div></div>
           <div className="ccardbody">
             <label className="fld">Línea de negocio</label>
             <select value="HLA" onChange={e => { if (e.target.value === 'custom') impRef.current?.click() }}>
@@ -444,10 +455,13 @@ function ModContratos() {
               </div>
             </div>
           </div>
+          </div>
         </div>
 
-        <div className={'ccard' + (criteria.length ? '' : ' dim')}>
-          <div className="ccardhead"><div className={'step-n' + (doc ? ' done' : '')}>2</div><div className="step-title">Sube el contrato</div><div className="step-meta">{doc?.name || ''}</div></div>
+        <div className="cstep">
+          <div className="cstep-rail"><div className={'step-dot' + (doc ? ' done' : '')}>2</div></div>
+          <div className={'ccard' + (criteria.length ? '' : ' dim')}>
+          <div className="ccardhead"><div className="step-title">Sube el contrato</div><div className="step-meta">{doc?.name || ''}</div></div>
           <div className="ccardbody">
             <div className={'drop' + (over ? ' over' : '')} onClick={() => docRef.current?.click()}
               onDragOver={e => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)}
@@ -459,13 +473,23 @@ function ModContratos() {
             <input ref={docRef} type="file" accept=".pdf,.docx,.txt" hidden onChange={e => handleDoc(e.target.files[0])} />
             {doc && <div className="file-pill"><FileText size={15} /> {doc.name} <span className="x" onClick={() => setDoc(null)}>×</span></div>}
           </div>
+          </div>
         </div>
 
-        <div className={'ccard' + (doc ? '' : ' dim')}>
-          <div className="ccardhead"><div className="step-n">3</div><div className="step-title">Analizar</div></div>
+        <div className="cstep">
+          <div className="cstep-rail"><div className={'step-dot' + (ready ? ' done' : '')}>3</div></div>
+          <div className={'ccard' + (doc ? '' : ' dim')}>
+          <div className="ccardhead"><div className="step-title">Analizar</div></div>
           <div className="ccardbody">
-            <button className="btn primary" disabled={!ready} onClick={analyze}>Analizar contrato</button>
+            <div className="analyze-panel">
+              <div className="ap-recap">
+                <span className="ap-chip"><FileCheck size={15} /> {plantillaTag} · {criteria.length} criterios</span>
+                <span className="ap-chip">{doc ? <><FileText size={15} /> {doc.name}</> : <><UploadCloud size={15} /> Sin documento</>}</span>
+              </div>
+              <button className="btn primary lg" disabled={!ready} onClick={analyze}>Analizar contrato <ArrowRight size={16} /></button>
+            </div>
             {err && <div className="err">{err}</div>}
+          </div>
           </div>
         </div>
       </div>
