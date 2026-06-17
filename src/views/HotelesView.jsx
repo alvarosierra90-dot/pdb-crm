@@ -353,7 +353,6 @@ function ModContratos() {
         </div>
         <div className="ms-doc" ref={msRef}>
           <div className="ms-band">
-            <div className="ms-brand">PDB</div>
             <div className="ms-eyebrow">Revisión de contratos</div>
             <div className="ms-title">{m.title || 'Análisis del contrato'}</div>
             <div className="ms-meta">{[m.parties, m.date ? 'Firma: ' + m.date : '', lobName].filter(Boolean).join('  ·  ')}</div>
