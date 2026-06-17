@@ -295,6 +295,27 @@ function ModContratos() {
     dlWord(html, (m.title || 'analisis_contrato').replace(/[^\w]+/g, '_') + '.doc')
   }
 
+  // Devuelve la hoja "Template" del modelo HLA cumplimentada según el contrato:
+  // mismas columnas que downloadBlank, con Contract summary y Page in Contract rellenadas por la IA.
+  const exportFilledTemplate = async () => {
+    if (!analysis) return
+    const XLSX = await import('xlsx')
+    const wb = XLSX.utils.book_new()
+    const m = analysis.meta || {}
+    const statusTxt = s => s === 'missing' ? 'No localizado' : s === 'attention' ? 'A revisar' : 'OK'
+    const head = ['Category', 'Subcategory', 'Description', 'Contract summary', 'Page in Contract', 'Status']
+    const body = criteria.map((c, i) => {
+      const it = analysis.items[i] || {}
+      const page = it.pageNum !== '' && it.pageNum != null ? it.pageNum : ''
+      const ref = [it.clause, page !== '' ? 'p. ' + page : ''].filter(Boolean).join(' · ')
+      return [c[0], c[1] || '-', c[2] || '', it.summary || '', ref, statusTxt(it.status)]
+    })
+    const ws = XLSX.utils.aoa_to_sheet([head, ...body])
+    ws['!cols'] = [{ wch: 24 }, { wch: 22 }, { wch: 60 }, { wch: 70 }, { wch: 28 }, { wch: 14 }]
+    XLSX.utils.book_append_sheet(wb, ws, 'Template')
+    XLSX.writeFile(wb, ((m.title || 'plantilla_cumplimentada').replace(/[^\w]+/g, '_')) + '_HLA.xlsx')
+  }
+
   const goSec = s => { setSec(s); msRef.current?.querySelector('#hc-' + s)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 
   if (loading) return <div className="wrap"><div className="cloading"><div className="cspin" /><div>Analizando contrato…</div></div></div>
@@ -327,6 +348,7 @@ function ModContratos() {
           <button className="btn" onClick={() => setAnalysis(null)}><RotateCcw size={15} /> Nuevo análisis</button>
           <button className="btn" onClick={() => printNode(msRef.current)}><Printer size={15} /> Imprimir / PDF</button>
           <button className="btn" onClick={exportWord}><Download size={15} /> Exportar a Word</button>
+          <button className="btn" onClick={exportFilledTemplate}><Download size={15} /> Plantilla cumplimentada</button>
         </div>
         <div className="ms-doc" ref={msRef}>
           <div className="ms-band">
