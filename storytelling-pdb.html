@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Property Database · El sistema operativo de la compañía</title>
+<meta name="description" content="No es una base de datos. Es el sistema operativo de la compañía. Activos + Clientes = Todo el negocio.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Property Database — Storytelling interactivo
+   Experiencia premium, scroll narrativo. Tema oscuro.
+   ============================================================ */
+:root{
+  --bg:#07080b; --bg-2:#0c0e13; --panel:#0f1117; --panel-2:#141821;
+  --ink:#eef0f4; --ink-soft:#9aa0ad; --ink-dim:#646b78;
+  --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.14);
+  --teal:#2dd4bf; --teal-2:#34d399; --indigo:#818cf8; --violet:#a78bfa;
+  --amber:#fbbf24; --rose:#fb7185;
+  --grad:linear-gradient(110deg,#34d399 0%,#2dd4bf 38%,#818cf8 100%);
+  --glow-teal:rgba(45,212,191,.35); --glow-indigo:rgba(129,140,248,.30);
+  --maxw:1120px;
+  --ease:cubic-bezier(.16,.84,.44,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.55;
+  -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  letter-spacing:-.011em;
+}
+body::before{ /* grano sutil + glows ambientales fijos */
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(900px 600px at 12% -5%, var(--glow-teal), transparent 60%),
+    radial-gradient(800px 600px at 100% 8%, var(--glow-indigo), transparent 55%),
+    radial-gradient(700px 700px at 50% 120%, rgba(167,139,250,.12), transparent 60%);
+  opacity:.9;
+}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px;position:relative;z-index:1}
+section{position:relative;z-index:1}
+
+/* ---- Tipografía ---- */
+.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+h1,h2,h3{letter-spacing:-.03em;line-height:1.05;font-weight:800}
+.h-xl{font-size:clamp(40px,8vw,92px);font-weight:900;letter-spacing:-.045em;line-height:.98}
+.h-lg{font-size:clamp(32px,5.2vw,62px)}
+.h-md{font-size:clamp(26px,3.6vw,40px)}
+.lead{font-size:clamp(17px,2vw,21px);color:var(--ink-soft);font-weight:400;max-width:640px}
+.grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.muted{color:var(--ink-soft)} .dim{color:var(--ink-dim)}
+
+/* ---- Barra de progreso + marca ---- */
+.progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:50;background:var(--grad);
+  box-shadow:0 0 18px var(--glow-teal);transition:width .08s linear}
+.brand{position:fixed;top:22px;left:28px;z-index:40;display:flex;align-items:center;gap:11px;
+  font-weight:800;letter-spacing:-.02em;mix-blend-mode:difference}
+.brand .logo{width:30px;height:30px;border-radius:9px;background:var(--grad);display:grid;place-items:center;
+  font-size:14px;font-weight:900;color:#06231f}
+.brand small{display:block;font-size:10.5px;font-weight:600;color:var(--ink-soft);letter-spacing:.02em;margin-top:-2px}
+
+/* ---- Reveal on scroll ---- */
+.reveal{opacity:0;transform:translateY(34px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+.reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}
+.reveal.d4{transition-delay:.32s}.reveal.d5{transition-delay:.4s}.reveal.d6{transition-delay:.48s}
+
+/* ============ HERO ============ */
+.hero{min-height:100vh;display:flex;align-items:center;padding:140px 0 80px;overflow:hidden}
+.hero-grid{position:absolute;inset:0;z-index:0;opacity:.5;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(120% 90% at 50% 30%,#000 30%,transparent 75%);
+  -webkit-mask-image:radial-gradient(120% 90% at 50% 30%,#000 30%,transparent 75%)}
+.hero .wrap{text-align:center}
+.hero .kicker{display:inline-flex;align-items:center;gap:9px;border:1px solid var(--line-2);
+  border-radius:100px;padding:8px 16px;font-size:13px;color:var(--ink-soft);margin-bottom:30px;
+  backdrop-filter:blur(8px);background:rgba(255,255,255,.02)}
+.hero .kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--teal-2);box-shadow:0 0 12px var(--teal-2)}
+.hero h1{margin:0 auto}
+.hero .strike{color:var(--ink-dim);position:relative;white-space:nowrap}
+.hero .strike::after{content:"";position:absolute;left:-2%;right:-2%;top:54%;height:5px;border-radius:4px;
+  background:var(--rose);transform:scaleX(0);transform-origin:left;transition:transform 1s var(--ease) .6s}
+.hero.in .strike::after{transform:scaleX(1)}
+.hero .sub{margin:34px auto 0;font-size:clamp(18px,2.3vw,24px);color:var(--ink-soft);max-width:660px;font-weight:400}
+.scroll-hint{margin-top:64px;display:inline-flex;flex-direction:column;align-items:center;gap:10px;color:var(--ink-dim);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+.scroll-hint .mouse{width:24px;height:38px;border:2px solid var(--line-2);border-radius:13px;position:relative}
+.scroll-hint .mouse::after{content:"";position:absolute;left:50%;top:7px;width:4px;height:8px;border-radius:3px;background:var(--ink-soft);transform:translateX(-50%);animation:wheel 1.7s var(--ease) infinite}
+@keyframes wheel{0%{opacity:0;transform:translate(-50%,-4px)}40%{opacity:1}100%{opacity:0;transform:translate(-50%,12px)}}
+
+/* ============ Secciones genéricas ============ */
+.s{padding:130px 0}
+.s-head{max-width:760px;margin-bottom:64px}
+.s-head .h-lg{margin-top:16px}
+.s-head .lead{margin-top:22px}
+.center{text-align:center;margin-left:auto;margin-right:auto}
+
+/* ---- PROBLEMA: caos de tarjetas disconexas ---- */
+.chaos{position:relative;display:flex;flex-wrap:wrap;gap:14px;justify-content:center;padding:20px 0}
+.chaos .chip{border:1px dashed var(--line-2);background:rgba(255,255,255,.015);border-radius:13px;
+  padding:14px 18px;font-size:14.5px;color:var(--ink-soft);display:flex;align-items:center;gap:10px;
+  transition:transform .8s var(--ease),opacity .8s var(--ease)}
+.chaos .chip .ic{opacity:.6}
+.chaos.in .chip{opacity:1}
+.chaos .chip:nth-child(odd){transform:rotate(-2.5deg)}
+.chaos .chip:nth-child(even){transform:rotate(2deg)}
+.chaos .chip:nth-child(3n){transform:rotate(-1deg) translateY(6px)}
+.problem-tag{display:inline-block;margin-top:40px;color:var(--rose);font-weight:600;font-size:15px}
+
+/* ---- SOLUCIÓN: dato una vez ---- */
+.once{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:20px}
+.once .card{border:1px solid var(--line);background:linear-gradient(180deg,var(--panel),var(--bg-2));
+  border-radius:20px;padding:30px 26px}
+.once .n{font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--teal-2)}
+.once h3{font-size:21px;margin:14px 0 10px}
+.once p{font-size:15px;color:var(--ink-soft)}
+
+/* ---- PILARES ---- */
+.pillars{display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:stretch;margin-top:10px}
+.pillar{border:1px solid var(--line);border-radius:24px;padding:38px 34px;background:linear-gradient(180deg,var(--panel),var(--bg-2));position:relative;overflow:hidden}
+.pillar::before{content:"";position:absolute;inset:0;opacity:.5;pointer-events:none}
+.pillar.activo::before{background:radial-gradient(420px 220px at 0% 0%,var(--glow-teal),transparent 60%)}
+.pillar.cliente::before{background:radial-gradient(420px 220px at 100% 0%,var(--glow-indigo),transparent 60%)}
+.pillar .ptag{font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+.pillar h3{font-size:34px;margin:8px 0 6px;letter-spacing:-.03em}
+.pillar.activo h3{color:var(--teal)} .pillar.cliente h3{color:var(--indigo)}
+.pillar p.desc{font-size:15px;color:var(--ink-soft);margin-bottom:22px}
+.pillar .tags{display:flex;flex-wrap:wrap;gap:8px}
+.pillar .tags span{font-size:12.5px;color:var(--ink-soft);border:1px solid var(--line-2);
+  border-radius:8px;padding:6px 11px;background:rgba(255,255,255,.02)}
+.pillar.activo .tags span:hover{border-color:var(--teal);color:var(--teal)}
+.pillar.cliente .tags span:hover{border-color:var(--indigo);color:var(--indigo)}
+.pillar .types{margin-bottom:18px;font-size:13px;color:var(--ink-dim)}
+.equals{display:flex;align-items:center;justify-content:center;width:96px;font-size:46px;font-weight:300;color:var(--ink-dim)}
+.equation{text-align:center;margin-top:48px;font-size:clamp(22px,3.4vw,40px);font-weight:800;letter-spacing:-.03em}
+.equation b.t{color:var(--teal)} .equation b.c{color:var(--indigo)}
+.equation .res{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ---- VISIÓN 360 (constelación / red) ---- */
+.net{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:10px}
+.net .col{border:1px solid var(--line);border-radius:22px;padding:32px 30px;background:var(--panel);position:relative}
+.net .col h3{font-size:22px;margin-bottom:6px}
+.net .col .sub{font-size:14px;color:var(--ink-soft);margin-bottom:20px}
+.net .col.a h3{color:var(--teal)} .net .col.c h3{color:var(--indigo)}
+.net ul{list-style:none;display:flex;flex-direction:column;gap:2px}
+.net li{display:flex;align-items:center;gap:13px;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px;color:var(--ink)}
+.net li:last-child{border-bottom:none}
+.net li .arr{flex:none;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:11px;font-weight:800}
+.net .col.a li .arr{background:rgba(45,212,191,.14);color:var(--teal)}
+.net .col.c li .arr{background:rgba(129,140,248,.14);color:var(--indigo)}
+
+/* ---- EL VIAJE (timeline) ---- */
+.journey{position:relative;margin-top:30px;padding-left:8px}
+.spine{position:absolute;left:22px;top:8px;bottom:8px;width:2px;background:var(--line-2);overflow:hidden}
+.spine .fill{position:absolute;left:0;top:0;width:100%;height:0;background:var(--grad);box-shadow:0 0 16px var(--glow-teal)}
+.step{position:relative;padding:0 0 30px 70px;min-height:64px}
+.step .node{position:absolute;left:9px;top:2px;width:28px;height:28px;border-radius:50%;
+  background:var(--bg-2);border:2px solid var(--line-2);display:grid;place-items:center;
+  font-size:11px;font-weight:800;color:var(--ink-dim);z-index:2;transition:.5s var(--ease)}
+.step.lit .node{border-color:var(--teal);color:var(--teal);box-shadow:0 0 0 5px rgba(45,212,191,.12),0 0 18px var(--glow-teal)}
+.step h4{font-size:19px;font-weight:700;letter-spacing:-.02em}
+.step p{font-size:14.5px;color:var(--ink-soft);margin-top:3px;max-width:560px}
+.step .ph{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:5px}
+.journey-foot{margin-top:6px;padding-left:70px;font-size:15px;color:var(--teal-2);font-weight:500}
+
+/* ---- EQUIPOS (silos → unión) ---- */
+.teams{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:10px}
+.teams .block{border:1px solid var(--line);border-radius:22px;padding:34px 30px}
+.teams .before{background:rgba(251,113,133,.04)}
+.teams .after{background:rgba(45,212,191,.05);border-color:rgba(45,212,191,.2)}
+.teams .lab{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px}
+.teams .before .lab{color:var(--rose)} .teams .after .lab{color:var(--teal-2)}
+.silos{display:flex;flex-wrap:wrap;gap:10px}
+.silos .s-item{border:1px dashed var(--line-2);border-radius:11px;padding:12px 14px;font-size:13.5px;color:var(--ink-soft);flex:1;min-width:120px;text-align:center}
+.merged{display:flex;flex-wrap:wrap;gap:10px}
+.merged .m-item{border:1px solid rgba(45,212,191,.3);border-radius:11px;padding:12px 14px;font-size:13.5px;color:var(--ink);flex:1;min-width:120px;text-align:center;background:rgba(45,212,191,.06)}
+
+/* ---- INTELIGENCIA (grid de capacidades) ---- */
+.feat{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:10px}
+.feat .f{border:1px solid var(--line);border-radius:18px;padding:26px 24px;background:var(--panel);transition:.3s var(--ease)}
+.feat .f:hover{border-color:var(--line-2);transform:translateY(-4px)}
+.feat .f .ic{width:42px;height:42px;border-radius:12px;background:rgba(45,212,191,.1);display:grid;place-items:center;margin-bottom:16px;color:var(--teal)}
+.feat .f h4{font-size:17px;font-weight:700;margin-bottom:6px}
+.feat .f p{font-size:14px;color:var(--ink-soft)}
+
+/* ---- IA ---- */
+.ia{border:1px solid var(--line-2);border-radius:28px;padding:60px 50px;margin-top:10px;
+  background:radial-gradient(700px 400px at 80% 0%,var(--glow-indigo),transparent 60%),linear-gradient(180deg,var(--panel),var(--bg-2));position:relative;overflow:hidden}
+.ia .layers{display:flex;flex-direction:column;gap:14px;margin-top:30px;max-width:520px}
+.ia .layer{display:flex;align-items:center;gap:16px}
+.ia .layer .bar{flex:1;border-radius:12px;padding:16px 20px;font-weight:600;font-size:15px;border:1px solid var(--line)}
+.ia .layer.l1 .bar{background:var(--grad);color:#06231f;border:none}
+.ia .layer.l2 .bar{background:rgba(129,140,248,.12);color:var(--indigo);border-color:rgba(129,140,248,.3)}
+.ia .layer.l3 .bar{background:var(--panel-2);color:var(--ink-soft)}
+.ia .layer .lvl{width:84px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);text-align:right}
+.ia .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px}
+.ia .pills span{font-size:13px;color:var(--ink-soft);border:1px solid var(--line-2);border-radius:100px;padding:7px 14px}
+
+/* ---- CIERRE / MANIFIESTO ---- */
+.finale{min-height:90vh;display:flex;align-items:center;text-align:center;padding:120px 0}
+.finale .wrap{max-width:880px}
+.finale .h-xl{margin-bottom:8px}
+.finale .manifesto{font-size:clamp(20px,2.6vw,28px);color:var(--ink-soft);font-weight:400;margin:30px auto 0;max-width:680px}
+.finale .eq{margin-top:50px;font-size:clamp(20px,3vw,34px);font-weight:800}
+.footer{text-align:center;padding:50px 0 60px;color:var(--ink-dim);font-size:13px;border-top:1px solid var(--line)}
+
+/* ---- divisor de frase grande ---- */
+.statement{padding:120px 0;text-align:center}
+.statement p{font-size:clamp(26px,4.4vw,52px);font-weight:800;letter-spacing:-.03em;max-width:900px;margin:0 auto;line-height:1.1}
+
+/* ---- responsive ---- */
+@media(max-width:880px){
+  .once,.feat{grid-template-columns:1fr}
+  .pillars{grid-template-columns:1fr}
+  .equals{width:100%;height:70px;transform:rotate(90deg)}
+  .net,.teams{grid-template-columns:1fr}
+  .s{padding:90px 0} .hero{padding:120px 0 60px}
+  .ia{padding:40px 26px}
+  .brand small{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="brand"><div class="logo">P</div><div>Property Database<small>El sistema operativo de la compañía</small></div></div>
+
+<!-- ============ HERO ============ -->
+<header class="hero" id="hero">
+  <div class="hero-grid"></div>
+  <div class="wrap">
+    <div class="kicker reveal"><span class="dot"></span> Property Database · Visión de producto</div>
+    <h1 class="h-xl reveal d1">No es una <span class="strike">base de datos</span>.<br>Es el <span class="grad-text">sistema operativo</span><br>de la compañía.</h1>
+    <p class="sub reveal d3">No existe para almacenar información. Existe para conectar personas, clientes, activos, operaciones y procesos — y convertir los datos en <strong style="color:var(--ink)">inteligencia comercial</strong>.</p>
+    <div class="scroll-hint reveal d4"><div class="mouse"></div>Desliza para descubrirlo</div>
+  </div>
+</header>
+
+<!-- ============ PROBLEMA ============ -->
+<section class="s" id="problema">
+  <div class="wrap">
+    <div class="s-head center reveal">
+      <div class="eyebrow">El punto de partida</div>
+      <h2 class="h-lg">El conocimiento vive disperso.</h2>
+      <p class="lead center">En la mayoría de compañías la información está rota en mil pedazos. Cada equipo guarda su parte. Nada habla con nada.</p>
+    </div>
+    <div class="chaos reveal" id="chaos">
+      <div class="chip">📊 Excels sueltos</div>
+      <div class="chip">✉️ Correos infinitos</div>
+      <div class="chip">🗂️ Carpetas duplicadas</div>
+      <div class="chip">🧩 Herramientas aisladas</div>
+      <div class="chip">👤 Conocimiento en personas</div>
+      <div class="chip">🔁 Datos duplicados</div>
+      <div class="chip">✍️ Procesos manuales</div>
+      <div class="chip">🚧 Equipos en silos</div>
+      <div class="chip">❓ Sin trazabilidad</div>
+      <div class="chip">🌫️ Nadie ve el cuadro completo</div>
+    </div>
+    <p class="center"><span class="problem-tag reveal">El resultado: decisiones a ciegas y oportunidades que se pierden.</span></p>
+  </div>
+</section>
+
+<!-- ============ EL RETO ============ -->
+<section class="statement" id="reto">
+  <div class="wrap">
+    <p class="reveal">El reto no era guardar datos.<br>Era <span class="grad-text">conectarlo todo</span> en un único ecosistema.</p>
+  </div>
+</section>
+
+<!-- ============ LA SOLUCIÓN ============ -->
+<section class="s" id="solucion">
+  <div class="wrap">
+    <div class="s-head reveal">
+      <div class="eyebrow">La solución</div>
+      <h2 class="h-lg">Un dato. Una sola vez.</h2>
+      <p class="lead">Cada dato se introduce una única vez. A partir de ese instante, toda la plataforma lo reutiliza de forma automática. No hay islas. Todo está conectado.</p>
+    </div>
+    <div class="once">
+      <div class="card reveal d1"><div class="n">01</div><h3>Se introduce una vez</h3><p>Un activo, un cliente, una operación. Capturado en su origen, sin volver a teclearlo nunca más.</p></div>
+      <div class="card reveal d2"><div class="n">02</div><h3>Se conecta solo</h3><p>El dato fluye a cada módulo que lo necesita. Las relaciones se construyen automáticamente.</p></div>
+      <div class="card reveal d3"><div class="n">03</div><h3>Se convierte en inteligencia</h3><p>Lo que era información dispersa pasa a ser conocimiento accionable para toda la organización.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LOS DOS PILARES ============ -->
+<section class="s" id="pilares">
+  <div class="wrap">
+    <div class="s-head center reveal">
+      <div class="eyebrow">La arquitectura</div>
+      <h2 class="h-lg">Toda la plataforma gira<br>en torno a dos mundos.</h2>
+    </div>
+    <div class="pillars">
+      <div class="pillar activo reveal d1">
+        <div class="ptag">Pilar 01 · Conocimiento inmobiliario</div>
+        <h3>Activo</h3>
+        <p class="desc">Cada edificio tiene una Vista 360º donde se concentra todo su conocimiento. Nunca es un registro aislado: es un elemento vivo conectado con toda la organización.</p>
+        <div class="tags">
+          <span>Características</span><span>Superficies</span><span>Disponibilidad</span><span>Fotografías</span><span>Planos</span><span>Stacking plan</span><span>Documentación</span><span>Sostenibilidad</span><span>Propietario</span><span>Mandatos</span><span>Operaciones</span><span>Visitas</span><span>Empresas interesadas</span><span>Actividad comercial</span><span>Histórico</span><span>KPIs</span><span>Reporting</span>
+        </div>
+      </div>
+      <div class="equals reveal d2">+</div>
+      <div class="pillar cliente reveal d3">
+        <div class="ptag">Pilar 02 · Conocimiento comercial</div>
+        <h3>Cliente</h3>
+        <p class="types">Empresa · Propietario · Inversor · Promotor · Operador · Consultora · Partner</p>
+        <p class="desc">Cada cliente tiene una Vista 360º donde se concentra toda su relación con la compañía. El segundo gran eje de la plataforma.</p>
+        <div class="tags">
+          <span>Contactos</span><span>Organigrama</span><span>Oportunidades</span><span>Propuestas</span><span>Proyectos</span><span>Operaciones</span><span>Activos relacionados</span><span>Reuniones</span><span>Llamadas</span><span>Emails</span><span>Visitas</span><span>Actividad comercial</span><span>Histórico</span><span>Facturación</span><span>Equipos implicados</span>
+        </div>
+      </div>
+    </div>
+    <div class="equation reveal d4"><b class="t">Activos</b> + <b class="c">Clientes</b> = <span class="res">Todo el negocio</span></div>
+  </div>
+</section>
+
+<!-- ============ FRASE ============ -->
+<section class="statement">
+  <div class="wrap">
+    <p class="reveal">Todo lo demás es el <span class="grad-text">flujo de trabajo</span><br>que conecta ambos pilares.</p>
+  </div>
+</section>
+
+<!-- ============ EL VIAJE ============ -->
+<section class="s" id="viaje">
+  <div class="wrap">
+    <div class="s-head reveal">
+      <div class="eyebrow">El recorrido</div>
+      <h2 class="h-lg">El viaje completo<br>de una operación.</h2>
+      <p class="lead">Una operación atraviesa toda la plataforma de principio a fin. Ningún módulo funciona solo: la información fluye automáticamente y nunca se vuelve a introducir un dato.</p>
+    </div>
+    <div class="journey" id="journey">
+      <div class="spine"><div class="fill" id="spineFill"></div></div>
+      <div class="step"><div class="node">1</div><div class="ph">Origen</div><h4>Lead</h4><p>Entra el primer interés. El punto de arranque del funnel comercial.</p></div>
+      <div class="step"><div class="node">2</div><div class="ph">Identidad</div><h4>Cuenta</h4><p>El lead se cualifica y nace la cuenta: la organización con la que trabajamos.</p></div>
+      <div class="step"><div class="node">3</div><div class="ph">Identidad</div><h4>Contacto</h4><p>Las personas dentro de la cuenta. Su organigrama y sus interlocutores.</p></div>
+      <div class="step"><div class="node">4</div><div class="ph">Pipeline</div><h4>Oportunidad</h4><p>El negocio potencial cobra forma. Define si vamos por pitch o directo, compra o venta.</p></div>
+      <div class="step"><div class="node">5</div><div class="ph">Pipeline</div><h4>Propuesta</h4><p>La oferta de servicios al cliente. El paso que convierte la intención en compromiso.</p></div>
+      <div class="step"><div class="node">6</div><div class="ph">Ejecución</div><h4>Proyecto</h4><p>El marco de trabajo donde se organiza la ejecución del encargo.</p></div>
+      <div class="step"><div class="node">7</div><div class="ph">Ejecución</div><h4>Mandato</h4><p>El encargo formal. Vincula cuenta, activo e instrucción bajo condiciones claras.</p></div>
+      <div class="step"><div class="node">8</div><div class="ph">Mercado</div><h4>Oferta</h4><p>El producto que sale al mercado. Las condiciones disponibles de un activo.</p></div>
+      <div class="step"><div class="node">9</div><div class="ph">Mercado</div><h4>Demanda</h4><p>Lo que busca el cliente. El motor de matching cruza demanda contra el pool de ofertas.</p></div>
+      <div class="step"><div class="node">10</div><div class="ph">Producto</div><h4>Activo</h4><p>El edificio en el centro de la operación, con toda su Vista 360º a un clic.</p></div>
+      <div class="step"><div class="node">11</div><div class="ph">Comercial</div><h4>Visitas</h4><p>Cada visita queda registrada y trazada: quién, cuándo, a qué activo.</p></div>
+      <div class="step"><div class="node">12</div><div class="ph">Comercial</div><h4>Negociación</h4><p>Las condiciones se mueven entre las dos partes, con todo el histórico vivo.</p></div>
+      <div class="step"><div class="node">13</div><div class="ph">Cierre</div><h4>Operación</h4><p>El acuerdo se cierra. La operación queda ligada a su activo y a su cliente.</p></div>
+      <div class="step"><div class="node">14</div><div class="ph">Cierre</div><h4>Preparación para facturación</h4><p>Todo lo necesario queda listo y trazable para facturar. Sin recopilar nada a mano.</p></div>
+      <p class="journey-foot reveal">14 etapas. Un único hilo. Cero datos reintroducidos.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VISIÓN 360 / RED ============ -->
+<section class="s" id="vision360">
+  <div class="wrap">
+    <div class="s-head center reveal">
+      <div class="eyebrow">Visión 360º</div>
+      <h2 class="h-lg">Todo se mira desde<br>los dos lados.</h2>
+      <p class="lead center">Cliente y activo son dos puertas a la misma red conectada. Desde cualquiera de ellas ves la historia completa.</p>
+    </div>
+    <div class="net">
+      <div class="col c reveal d1">
+        <h3>Desde un Cliente</h3>
+        <div class="sub">Toda su relación con la compañía, de un vistazo.</div>
+        <ul>
+          <li><span class="arr">→</span> Qué edificios ocupa</li>
+          <li><span class="arr">→</span> Qué edificios visitó</li>
+          <li><span class="arr">→</span> Qué edificios descartó</li>
+          <li><span class="arr">→</span> Qué propuestas recibió</li>
+          <li><span class="arr">→</span> Qué operaciones realizó</li>
+          <li><span class="arr">→</span> Qué consultores participaron</li>
+          <li><span class="arr">→</span> Toda su actividad comercial</li>
+        </ul>
+      </div>
+      <div class="col a reveal d2">
+        <h3>Desde un Activo</h3>
+        <div class="sub">Toda la vida comercial del edificio, conectada.</div>
+        <ul>
+          <li><span class="arr">→</span> Qué empresas lo visitaron</li>
+          <li><span class="arr">→</span> Qué empresas mostraron interés</li>
+          <li><span class="arr">→</span> Qué demandas encajan</li>
+          <li><span class="arr">→</span> Qué operaciones se cerraron</li>
+          <li><span class="arr">→</span> Qué consultores lo trabajan</li>
+          <li><span class="arr">→</span> Qué mandatos existen</li>
+          <li><span class="arr">→</span> Cuál ha sido su evolución</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EQUIPOS ============ -->
+<section class="s" id="equipos">
+  <div class="wrap">
+    <div class="s-head reveal">
+      <div class="eyebrow">Colaboración</div>
+      <h2 class="h-lg">Los silos desaparecen.</h2>
+      <p class="lead">Todos los departamentos trabajan sobre la misma información. Cada interacción suma valor al resto. El conocimiento deja de pertenecer a una persona y pasa a ser de toda la organización.</p>
+    </div>
+    <div class="teams">
+      <div class="block before reveal d1">
+        <div class="lab">Antes · Islas</div>
+        <div class="silos">
+          <div class="s-item">Agency</div><div class="s-item">Capital Markets</div><div class="s-item">Research</div><div class="s-item">Property Mgmt</div><div class="s-item">Valoraciones</div><div class="s-item">Dirección</div>
+        </div>
+        <p class="muted" style="margin-top:18px;font-size:14px">Cada equipo, su propia versión de la verdad.</p>
+      </div>
+      <div class="block after reveal d2">
+        <div class="lab">Ahora · Un solo ecosistema</div>
+        <div class="merged">
+          <div class="m-item">Agency</div><div class="m-item">Capital Markets</div><div class="m-item">Research</div><div class="m-item">Property Mgmt</div><div class="m-item">Valoraciones</div><div class="m-item">Dirección</div>
+        </div>
+        <p style="margin-top:18px;font-size:14px;color:var(--teal-2)">Una sola verdad, compartida y viva.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INTELIGENCIA COMERCIAL ============ -->
+<section class="s" id="inteligencia">
+  <div class="wrap">
+    <div class="s-head reveal">
+      <div class="eyebrow">Inteligencia comercial</div>
+      <h2 class="h-lg">No almacena datos.<br>Genera conocimiento.</h2>
+      <p class="lead">Cuando todo está conectado, la plataforma empieza a revelar lo que antes era invisible.</p>
+    </div>
+    <div class="feat">
+      <div class="f reveal d1"><div class="ic">◎</div><h4>Detecta oportunidades</h4><p>Cruza demanda y oferta para descubrir encajes que nadie estaba viendo.</p></div>
+      <div class="f reveal d2"><div class="ic">⇄</div><h4>Conecta clientes y activos</h4><p>Relaciona quién busca qué con qué edificio puede resolverlo.</p></div>
+      <div class="f reveal d3"><div class="ic">◇</div><h4>Descubre relaciones</h4><p>Saca a la luz vínculos ocultos entre operaciones, equipos y cuentas.</p></div>
+      <div class="f reveal d4"><div class="ic">▤</div><h4>Reporting automático</h4><p>Informes y cuadros de mando que se construyen solos a partir del dato vivo.</p></div>
+      <div class="f reveal d5"><div class="ic">↗</div><h4>Mide KPIs</h4><p>Actividad comercial, pipeline y rendimiento, siempre actualizados.</p></div>
+      <div class="f reveal d6"><div class="ic">✓</div><h4>Facilita decisiones</h4><p>Convierte el conocimiento conectado en criterios para decidir mejor y antes.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ IA ============ -->
+<section class="s" id="ia">
+  <div class="wrap">
+    <div class="s-head reveal">
+      <div class="eyebrow">Inteligencia artificial</div>
+      <h2 class="h-lg">La IA no sustituye<br>la Property Database.<br><span class="grad-text">La potencia.</span></h2>
+      <p class="lead">Toda la inteligencia artificial funciona porque existe una base sólida y estructurada debajo. Sin esa base, la IA no tiene de qué hablar.</p>
+    </div>
+    <div class="ia reveal">
+      <h3 class="h-md">La base hace posible la inteligencia.</h3>
+      <div class="layers">
+        <div class="layer l1"><div class="lvl">IA</div><div class="bar">Responde · Recomienda · Automatiza · Resume</div></div>
+        <div class="layer l2"><div class="lvl">Conexión</div><div class="bar">Relaciones entre activos, clientes y operaciones</div></div>
+        <div class="layer l3"><div class="lvl">Base</div><div class="bar">Property Database · dato estructurado y único</div></div>
+      </div>
+      <div class="pills">
+        <span>Responde preguntas</span><span>Genera informes</span><span>Detecta oportunidades</span><span>Recomienda acciones</span><span>Automatiza procesos</span><span>Ayuda a los consultores</span><span>Resume operaciones</span><span>Genera reporting</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CIERRE ============ -->
+<section class="finale" id="cierre">
+  <div class="wrap">
+    <div class="eyebrow reveal">El sistema operativo de la compañía</div>
+    <h2 class="h-xl reveal d1" style="margin-top:18px">Una plataforma.<br>Todo el <span class="grad-text">negocio</span>.</h2>
+    <p class="manifesto reveal d2">La Property Database conecta personas, clientes, activos, operaciones y procesos. Convierte la información en inteligencia y el trabajo de cada equipo en valor para todos.</p>
+    <div class="eq reveal d3"><b style="color:var(--teal)">Activos</b> + <b style="color:var(--indigo)">Clientes</b> = <span class="grad-text">Todo el negocio</span></div>
+  </div>
+</section>
+<div class="footer">Property Database · Visión de producto · Storytelling interactivo</div>
+
+<script>
+(function(){
+  var rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* Reveal on scroll */
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold:.16, rootMargin:'0px 0px -8% 0px'});
+  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  document.querySelectorAll('.chaos,.hero').forEach(function(el){ io.observe(el); });
+
+  /* Hero marca el strike */
+  var hero = document.getElementById('hero');
+  if(hero){ requestAnimationFrame(function(){ hero.classList.add('in'); }); }
+
+  /* Progress bar + journey spine fill */
+  var progress = document.getElementById('progress');
+  var journey = document.getElementById('journey');
+  var spineFill = document.getElementById('spineFill');
+  var steps = journey ? Array.prototype.slice.call(journey.querySelectorAll('.step')) : [];
+
+  function onScroll(){
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    var p = max>0 ? (h.scrollTop || window.pageYOffset)/max : 0;
+    progress.style.width = (p*100)+'%';
+
+    if(journey && spineFill){
+      var r = journey.getBoundingClientRect();
+      var vh = window.innerHeight;
+      /* progreso del relleno: desde que el bloque entra hasta que su base pasa el 60% de pantalla */
+      var start = vh*0.85, end = vh*0.35;
+      var prog = (start - r.top) / (r.height + (start-end));
+      prog = Math.max(0, Math.min(1, prog));
+      spineFill.style.height = (prog*100)+'%';
+      /* enciende nodos alcanzados */
+      var litLine = r.top + r.height*prog;
+      steps.forEach(function(st){
+        var sr = st.getBoundingClientRect();
+        if(sr.top < vh*0.72) st.classList.add('lit'); else st.classList.remove('lit');
+      });
+    }
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  /* Parallax sutil del grid del hero con el ratón (desktop) */
+  if(!rm && window.matchMedia('(pointer:fine)').matches){
+    var grid = document.querySelector('.hero-grid');
+    window.addEventListener('mousemove', function(ev){
+      if(!grid) return;
+      var x=(ev.clientX/window.innerWidth-.5), y=(ev.clientY/window.innerHeight-.5);
+      grid.style.transform='translate('+(x*-18)+'px,'+(y*-18)+'px)';
+    });
+  }
+})();
+</script>
+</body>
+</html>
