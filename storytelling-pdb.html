@@ -212,6 +212,20 @@ h1,h2,h3{letter-spacing:-.03em;line-height:1.05;font-weight:800}
 .statement{padding:120px 0;text-align:center}
 .statement p{font-size:clamp(26px,4.4vw,52px);font-weight:800;letter-spacing:-.03em;max-width:900px;margin:0 auto;line-height:1.1}
 
+/* ---- DYNAMICS / gobierno del dato ---- */
+.dyn{display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:center;margin-top:10px}
+.dyn-node{border:1px solid var(--line);border-radius:22px;padding:32px 28px;background:linear-gradient(180deg,var(--panel),var(--bg-2));text-align:center}
+.dyn-node.pdb{border-color:rgba(45,212,191,.3);background:radial-gradient(420px 200px at 50% 0%,var(--glow-teal),transparent 62%),linear-gradient(180deg,var(--panel),var(--bg-2))}
+.dyn-lab{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim)}
+.dyn-name{font-size:26px;font-weight:800;letter-spacing:-.03em;margin:8px 0 6px}
+.dyn-sub{font-size:13.5px;color:var(--ink-soft)}
+.dyn-arrow{display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 24px;color:var(--teal);font-size:30px;font-weight:300}
+.dyn-arrow span{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);white-space:nowrap}
+.dyn-tags{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin-top:32px}
+.dyn-tag{border:1px solid var(--indigo);color:var(--indigo);border-radius:100px;padding:9px 18px;font-size:14px;font-weight:600;background:rgba(129,140,248,.08)}
+.dyn-note{font-size:13.5px;color:var(--ink-dim);font-style:italic}
+@media(max-width:880px){.dyn{grid-template-columns:1fr}.dyn-arrow{transform:rotate(90deg);padding:16px 0}}
+
 /* ---- responsive ---- */
 @media(max-width:880px){
   .once,.feat{grid-template-columns:1fr}
@@ -325,6 +339,37 @@ h1,h2,h3{letter-spacing:-.03em;line-height:1.05;font-weight:800}
 <section class="statement">
   <div class="wrap">
     <p class="reveal">Todo lo demás es el <span class="grad-text">flujo de trabajo</span><br>que conecta ambos pilares.</p>
+  </div>
+</section>
+
+<!-- ============ DYNAMICS / GOBIERNO DEL DATO ============ -->
+<section class="s" id="dynamics">
+  <div class="wrap">
+    <div class="s-head reveal">
+      <div class="eyebrow">Gobierno del dato corporativo</div>
+      <h2 class="h-lg">Nuestro CRM<br>nace en Dynamics.</h2>
+      <p class="lead">La Property Database no sustituye al CRM corporativo: se apoya en él. <strong style="color:var(--ink)">Clientes, oportunidades e instrucciones</strong> se crean primero en Microsoft Dynamics y la plataforma los hereda automáticamente — así cumplimos con los requisitos globales de la compañía.</p>
+    </div>
+    <div class="dyn reveal d1">
+      <div class="dyn-node origin">
+        <div class="dyn-lab">CRM corporativo</div>
+        <div class="dyn-name">Microsoft Dynamics</div>
+        <div class="dyn-sub">Origen y maestro del dato regulado</div>
+      </div>
+      <div class="dyn-arrow"><span>hereda</span>→</div>
+      <div class="dyn-node pdb">
+        <div class="dyn-lab">Sistema operativo</div>
+        <div class="dyn-name grad-text">Property Database</div>
+        <div class="dyn-sub">Conecta, enriquece y opera el dato</div>
+      </div>
+    </div>
+    <div class="dyn-tags reveal d2">
+      <span class="dyn-tag">Clientes</span>
+      <span class="dyn-tag">Oportunidades</span>
+      <span class="dyn-tag">Instrucciones</span>
+      <span class="dyn-note">se crean primero en Dynamics</span>
+    </div>
+    <p class="center muted reveal d3" style="margin-top:26px;font-size:14.5px;max-width:680px;margin-left:auto;margin-right:auto">Un único origen para el dato regulado garantiza el cumplimiento de los estándares globales de la compañía. Todo lo demás se conecta y cobra vida dentro de la Property Database.</p>
   </div>
 </section>
 
