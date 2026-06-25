@@ -106,10 +106,9 @@ export default function PropietariosList() {
       // por carga; las siguientes son no-op porque ya no hay refs malos.
       await healRefs('propietarios', 'PRO')
       if (cancel) return
-      // Orden por updated_at desc → lo recién dado de baja/editado sale arriba.
-      // (created_at como desempate para filas nunca tocadas.)
+      // Orden por created_at desc → lo recién creado (p. ej. una baja que crea
+      // fila) sale arriba. (propietarios no tiene updated_at en el esquema actual.)
       const { data: props } = await supabase.from('propietarios').select('*')
-        .order('updated_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
       if (cancel) return
       const list = props || []

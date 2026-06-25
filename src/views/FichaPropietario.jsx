@@ -97,7 +97,7 @@ export default function FichaPropietario() {
     if (!params?.id) { setPropietarioReal(null); return }
     let cancel = false
     supabase.from('propietarios')
-      .select('id, ref, nombre, propietario, activo_ref, activo, estado, fecha_desactivacion, motivo_desactivacion, fecha_salida, motivo_salida, destino_activo_ref')
+      .select('id, nombre, propietario, activo_ref, activo, estado, fecha_desactivacion, motivo_desactivacion, fecha_salida, motivo_salida, destino_activo_ref')
       .eq('id', params.id)
       .maybeSingle()
       .then(({ data }) => { if (!cancel) setPropietarioReal(data || null) })
@@ -408,15 +408,13 @@ export default function FichaPropietario() {
       const { error } = await supabase.from('propietarios').update(row).eq('id', dbId)
       if (error) { setSaving(false); setSaveErr(error.message); return }
     } else {
-      // INSERT · generamos ref corto cliente-side (PRO-XXXXXXX)
-      // La BD tiene un DEFAULT por secuencia como fallback (migración 032),
-      // pero generarlo aquí permite mostrarlo y enlazar al instante.
-      const { nextRef } = await import('../lib/nextRef')
-      const ref = await nextRef('propietarios', 'PRO')
+      // INSERT. La tabla propietarios no tiene columna `ref` en el esquema actual
+      // (la lista usa el id como fallback) → no la enviamos. Si se añade vía
+      // migración, su DEFAULT la rellenará.
       const { data, error } = await supabase
         .from('propietarios')
-        .insert({ ...row, ref })
-        .select('id, ref')
+        .insert(row)
+        .select('id')
         .single()
       if (error) { setSaving(false); setSaveErr(error.message); return }
       if (data?.id) { setDbId(data.id); savedId = data.id }

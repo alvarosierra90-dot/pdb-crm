@@ -4702,12 +4702,9 @@ export default function FichaActivo() {
     // 1) Persistir en Supabase con ref canónico (PRO-XXXXXXX) para que la ficha
     //    del propietario cargue de verdad y la superficie se vincule por prop_id.
     //    Mismas columnas que FichaPropietario.handleSaveFromActivo.
-    const { nextRef } = await import('../lib/nextRef')
     let savedId = null, savedRef = null
     try {
-      const ref = await nextRef('propietarios', 'PRO')
       const row = {
-        ref,
         nombre:        propietario.propietario,
         propietario:   propietario.propietario,
         activo:        activo?.nombre || activo?.direccion || null,
@@ -4724,9 +4721,10 @@ export default function FichaActivo() {
         cap_rate:      propietario.cap_rate ? parseFloat(propietario.cap_rate) : null,
         observaciones: propietario.notas || null,
       }
-      const { data, error } = await supabase.from('propietarios').insert(row).select('id, ref').single()
+      // propietarios no tiene columna `ref` en el esquema actual → no se envía.
+      const { data, error } = await supabase.from('propietarios').insert(row).select('id').single()
       if (error) { console.error('Error guardando propietario:', error); alert('No se pudo guardar el propietario: ' + error.message) }
-      else if (data) { savedId = data.id; savedRef = data.ref }
+      else if (data) { savedId = data.id }
     } catch (e) { console.error('Exception guardando propietario:', e) }
 
     // 2) Estado local del panel del stacking con el id REAL (uuid) → al arrastrar

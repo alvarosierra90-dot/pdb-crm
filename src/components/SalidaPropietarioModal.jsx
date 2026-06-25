@@ -118,13 +118,11 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
 
       // observaciones: registro legible de la venta (incluye el precio).
       const observacion = `Venta ${trimestre} ${anyoVenta} · ${precioFmt} · ${compradorTexto}`
-      // updated_at → para que en la lista aparezca arriba lo recién dado de baja.
       const saleCore = {
         fecha_salida:  fechaAprox,
         motivo_salida: 'Baja',
         estado:        'Vendido',
         observaciones: observacion,
-        updated_at:    new Date().toISOString(),
       }
       const supVendida = scope === 'all' ? (ownerSupTotal || null) : (tramoSup || null)
 
