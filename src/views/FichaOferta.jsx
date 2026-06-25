@@ -1840,7 +1840,14 @@ function FichaOfertaMock() {
                           <input type="checkbox" id="supAprox" checked={supAprox} onChange={e => setSupAprox(e.target.checked)} style={{ accentColor:'var(--accent)' }} />
                           <label htmlFor="supAprox" style={{ fontSize:11, cursor:'pointer' }}>Superficie aproximada</label>
                         </div>
-                        <div><FieldLbl>Planta tipo (m²)</FieldLbl><input type="number" className="of-inp" value={plantaTipo} onChange={e => setPlantaTipo(e.target.value)} /></div>
+                        <div>
+                          <FieldLbl>Plazas de aparcamiento</FieldLbl>
+                          <div style={{ padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r)', fontSize:14, fontWeight:700, background:'var(--gray-lt)', display:'flex', alignItems:'center', gap:6 }}>
+                            <span>{plazas.reduce((s,p)=>s+(Number(p.cantidad)||0),0)}</span>
+                            <span style={{ fontSize:10, color:'var(--text4)', fontWeight:600 }}>plazas</span>
+                            <span style={{ marginLeft:'auto', fontSize:9, color:'var(--text4)', fontWeight:600 }}>detalle abajo ↓</span>
+                          </div>
+                        </div>
                         <div style={{ padding:'10px 12px', background:'var(--accent-lt)', border:'1px solid var(--accent-bd)', borderRadius:'var(--r)', fontSize:10 }}>
                           <div style={{ fontWeight:700, color:'var(--accent)', marginBottom:4 }}>Escenarios comerciales</div>
                           {getEscenarios().map((sc,i) => (
