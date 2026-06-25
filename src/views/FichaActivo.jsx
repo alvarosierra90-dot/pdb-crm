@@ -1349,8 +1349,8 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
             </div>
 
             {(()=>{ const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1); return edif.floors.map((floor, floorIdx)=>{
-              // barH reducido ~30% para que torres con muchas plantas (15-30+) entren sin scroll infinito.
-              const barH = Math.max(34, Math.round((floor.sup / maxFloorSup) * 52))
+              // Altura unificada con las vistas Propietarios y Arrendatarios (misma barra en las 3).
+              const barH = Math.max(38, Math.round((floor.sup / maxFloorSup) * 58))
               const used  = floor.principal.reduce((s,u)=>s+u.sup,0)
               const avail = floor.sup-used
               const isTgt = dragTarget===floor.id
@@ -1676,7 +1676,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                 <div/>
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
-                const barH = Math.max(34, Math.round((floor.sup / maxFloorSup) * 54))
+                const barH = Math.max(38, Math.round((floor.sup / maxFloorSup) * 58))
                 const tramos   = floor.principal || []
                 const propRow  = (edif.prop||[]).find(r=>r.p===floor.id)
                 const slots    = slotsFor(tramos, propRow?.units)
