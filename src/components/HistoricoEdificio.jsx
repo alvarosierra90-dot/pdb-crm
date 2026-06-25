@@ -53,8 +53,9 @@ export default function HistoricoEdificio({ activoRef, activoNombre = '' }) {
     let cancel = false
     setLoading(true)
     Promise.all([
-      supabase.from('arrendatarios').select('*').eq('activo_ref', activoRef).order('created_at', { ascending: true }),
-      supabase.from('propietarios').select('*').eq('activo_ref', activoRef).order('created_at', { ascending: true }),
+      // Lo más reciente arriba en la tabla del histórico.
+      supabase.from('arrendatarios').select('*').eq('activo_ref', activoRef).order('created_at', { ascending: false }),
+      supabase.from('propietarios').select('*').eq('activo_ref', activoRef).order('created_at', { ascending: false }),
     ]).then(([arrRes, propRes]) => {
       if (cancel) return
       setArrs(arrRes.data || [])
