@@ -924,7 +924,14 @@ function FichaOfertaMock() {
   // del stacking. Se usa cuando la oferta fue introducida por error.
   const handleEliminarOferta = async () => {
     setDbErrors([]); setDbSaving(true)
-    const ofertaNombres = ofertasDesglose.map(o => o.nombre)
+    // Nombres reales con que esta oferta figura en el stacking (derivados del
+    // propio stacking) — los desgloses pueden no existir, así que no basta con
+    // ofertasDesglose. Incluimos también el ref por si la unit lo usa.
+    const ofertaNombres = [
+      ...espaciosComercializables.map(e => e.ofertaNombre).filter(Boolean),
+      ...ofertasDesglose.map(o => o.nombre).filter(Boolean),
+      oferta?.ref,
+    ].filter(Boolean)
     try {
       // 1. Limpiar stacking: quitar units 'vac' que pertenezcan a esta oferta
       if (activoSeleccionado?.ref) {
@@ -961,7 +968,11 @@ function FichaOfertaMock() {
     setDbErrors([]); setDbSaving(true)
 
     const tenantName = dbForm.tenant_desconocido ? 'Desconocido' : dbForm.tenant.trim()
-    const ofertaNombres = ofertasDesglose.map(o => o.nombre)
+    const ofertaNombres = [
+      ...espaciosComercializables.map(e => e.ofertaNombre).filter(Boolean),
+      ...ofertasDesglose.map(o => o.nombre).filter(Boolean),
+      oferta?.ref,
+    ].filter(Boolean)
     const supTotal = espaciosComercializables.reduce((s,e)=>s+(e.sup||0),0)
     const bo = addYearsDMY(dbForm.fecha_inicio, dbForm.anios_obligado)
     const ff = dbForm.anios_obligado_2 ? addYearsDMY(bo||dbForm.fecha_inicio, dbForm.anios_obligado_2) : bo
@@ -2923,7 +2934,7 @@ function FichaOfertaMock() {
       {/* Modal Dar de baja */}
       {showDarBaja && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <div style={{background:'var(--surface)',borderRadius:12,padding:28,width:480,maxWidth:'95vw',boxShadow:'0 8px 40px rgba(0,0,0,.25)',display:'flex',flexDirection:'column',gap:16}}>
+          <div style={{background:'var(--surface)',borderRadius:12,padding:28,width:480,maxWidth:'95vw',maxHeight:'90vh',overflowY:'auto',boxShadow:'0 8px 40px rgba(0,0,0,.25)',display:'flex',flexDirection:'column',gap:16}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
               <div>
                 <div style={{fontSize:15,fontWeight:700,color:'var(--text1)'}}>Dar de baja oferta</div>
