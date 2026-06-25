@@ -3652,10 +3652,10 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
   ]
 
   return (
-    <div className="tab-content active" style={hidden ? {display:'none'} : undefined}>
+    <div className="tab-content active act-cards" style={hidden ? {display:'none'} : undefined}>
       <div className="info-pad">
 
-        {/* ── VINCULACIONES MAESTRA (canónico, siempre arriba) ── */}
+        {/* ── VINCULACIONES MAESTRA (canónico, siempre arriba · NO se reubica) ── */}
         <VinculacionesMaestra items={vincItems} />
 
         {/* ── Mapa con barra búsqueda integrada + Carrusel ── */}

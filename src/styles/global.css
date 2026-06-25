@@ -381,6 +381,40 @@ nav {
 /* Cabeceras de bloque (los títulos de sección en gris) un poco más grandes */
 .of-cards .info-block > div:first-child { font-size: 13px; }
 
+/* ═══════════════════════════════════════════════════════════════
+   FICHA ACTIVO · Información general legible (scopeado .act-cards)
+   Solo diseño: sube la letra enana y unifica radios/sombras con tokens.
+   No reestructura InlineField (mantiene su edición en sitio).
+   ═══════════════════════════════════════════════════════════════ */
+.act-cards .va-card,
+.act-cards .va-meta-card,
+.act-cards .dash-card,
+.act-cards .info-block { border-radius: var(--r-lg); box-shadow: var(--shadow-xs); }
+.act-cards .va-card-header h3,
+.act-cards .va-meta-head { font-size: var(--fs-title) !important; font-weight: 700; }
+/* Campos: label y valor legibles (antes 10/12px) */
+.act-cards .ir-k { font-size: var(--fs-label) !important; color: var(--text3); }
+.act-cards .ir-v { font-size: var(--fs-value) !important; }
+.act-cards .ir-v input,
+.act-cards .ir-v select { font-size: var(--fs-value) !important; }
+/* Tablas: cabeceras y celdas legibles (antes 9.5/11px) */
+.act-cards table th { font-size: var(--fs-label) !important; }
+.act-cards table td { font-size: var(--fs-body) !important; }
+/* Focus de inputs con anillo bronce */
+.act-cards input:focus,
+.act-cards select:focus,
+.act-cards textarea:focus { border-color: var(--accent) !important; box-shadow: var(--focus-ring) !important; outline: none !important; }
+
+/* ── Chip de PROCEDENCIA del dato (de dónde viene cada campo) ── */
+.src-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: var(--fs-micro); font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: var(--r-full); border: 1px solid; white-space: nowrap;
+}
+.src-chip.dynamics { color: var(--src-dynamics); background: var(--src-dynamics-lt); border-color: var(--info-bd); }
+.src-chip.auto     { color: var(--src-auto);     background: var(--src-auto-lt);     border-color: var(--purple-bd); }
+.src-chip.pdb      { color: var(--src-pdb);       background: var(--src-pdb-lt);      border-color: var(--accent-bd); }
+
 .nav-subhead {
   font-size: 8.5px;
   font-weight: 700;
