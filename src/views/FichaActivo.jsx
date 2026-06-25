@@ -740,6 +740,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   const updBuilding = (fn) => setBuildings(prev=>prev.map(b=>b.id===edifId?fn(b):b))
 
   const assignPrincipal = (floorId, usoId, supVal) => {
+    if(blockIfAssigned(floorId)) return
     updBuilding(b=>({...b, floors:b.floors.map(f=>{
       if(f.id!==floorId) return f
       const used = f.principal.reduce((s,u)=>s+u.sup,0)
@@ -761,6 +762,9 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   }
 
   const removeItem = (floorId, idx, layer) => {
+    // Quitar un tramo de Uso principal reescribe los muros heredados → bloqueado
+    // si hay asignaciones. Los usos adicionales (atributos) sí se pueden quitar.
+    if(layer==='principal' && blockIfAssigned(floorId)) return
     updBuilding(b=>({...b, floors:b.floors.map(f=>{
       if(f.id!==floorId) return f
       const arr=[...f[layer]]; arr.splice(idx,1)
@@ -1008,9 +1012,9 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
     setEditPA(null); setEditPASup(''); setEditPARenta(''); setEditPATotal('')
   }
 
-  // ¿Qué variables hay asignadas en una planta? La superficie total de la planta
-  // no se puede tocar si tiene propietario, arrendatario u oferta: cambiarla
-  // descuadraría los tramos heredados. Devuelve la lista para el aviso.
+  // ¿Qué variables hay asignadas en una planta? El Uso principal de la planta
+  // (composición de usos y sus m²) no se puede tocar si tiene propietario,
+  // arrendatario u oferta: hay que ajustar antes esas variables. Lista p/ aviso.
   const floorAssignments = (floorId) => {
     const out = []
     const propUnits = (edif.prop||[]).find(r=>r.p===floorId)?.units || []
@@ -1021,15 +1025,20 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
     return out
   }
 
-  // Abridor protegido del editor de superficie de planta: si hay asignaciones,
-  // bloquea y avisa (auto-oculta a los 4 s) en vez de abrir el input.
-  const tryEditFloorSup = (floorId, currentSup) => {
+  // Guarda única de TODAS las interacciones de Uso principal: si la planta tiene
+  // asignaciones, muestra el aviso (auto-oculta 4 s) y devuelve true (bloqueado).
+  // El usuario debe revisar/ajustar antes la oferta y el propietario.
+  const blockIfAssigned = (floorId) => {
     const vars = floorAssignments(floorId)
-    if (vars.length) {
-      setSupLockWarn({ floorId, vars })
-      setTimeout(() => setSupLockWarn(w => (w && w.floorId === floorId) ? null : w), 4000)
-      return
-    }
+    if (!vars.length) return false
+    setSupLockWarn({ floorId, vars })
+    setTimeout(() => setSupLockWarn(w => (w && w.floorId === floorId) ? null : w), 4000)
+    return true
+  }
+
+  // Abridor protegido del editor de superficie de planta.
+  const tryEditFloorSup = (floorId, currentSup) => {
+    if (blockIfAssigned(floorId)) return
     setSupLockWarn(null)
     setEditFloorSup(floorId); setEditFloorSupVal(String(currentSup))
   }
@@ -1037,8 +1046,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   const saveFloorSup = () => {
     if(!editFloorSup) return
     // Backstop: aunque el editor estuviera abierto, no se guarda si hay asignaciones.
-    const vars = floorAssignments(editFloorSup)
-    if(vars.length){ setSupLockWarn({ floorId: editFloorSup, vars }); setEditFloorSup(null); return }
+    if(blockIfAssigned(editFloorSup)){ setEditFloorSup(null); return }
     const val = parseFloat(editFloorSupVal)
     if(isNaN(val)||val<=0) return
     updBuilding(b=>({...b,
@@ -1051,6 +1059,9 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
 
   const saveSup = () => {
     if(!editFloor) return
+    // Cambiar los m² de un tramo de Uso principal reescribe el muro heredado →
+    // bloqueado si hay asignaciones. La superficie de los adicionales sí se edita.
+    if(editFloor.layer==='principal' && blockIfAssigned(editFloor.floorId)){ setEditFloor(null); return }
     const val = parseFloat(editSup)
     if(isNaN(val)||val<=0) return
     updBuilding(b=>({...b, floors:b.floors.map(f=>{
@@ -1063,6 +1074,9 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   }
 
   const bulkAssign = (usoId) => {
+    // Si alguna planta seleccionada tiene asignaciones, no se asigna en lote: avisa.
+    const blocked = selectedFloors.find(fId => floorAssignments(fId).length>0)
+    if(blocked){ blockIfAssigned(blocked); return }
     selectedFloors.forEach(fId=>assignPrincipal(fId,usoId))
     setSelectedFloors([])
   }
@@ -1098,13 +1112,8 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
 
   const deleteFloor = (floorId) => {
     // No se borra una planta con propietario/arrendatario/oferta: dejaría esas
-    // variables huérfanas. Mismo aviso que el bloqueo de superficie.
-    const vars = floorAssignments(floorId)
-    if (vars.length) {
-      setSupLockWarn({ floorId, vars })
-      setTimeout(() => setSupLockWarn(w => (w && w.floorId === floorId) ? null : w), 4000)
-      return
-    }
+    // variables huérfanas. Mismo aviso que el resto de interacciones.
+    if (blockIfAssigned(floorId)) return
     updBuilding(b => ({
       ...b,
       floors: b.floors.filter(f => f.id !== floorId),
@@ -1408,6 +1417,10 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     if(!dragging) return
                     const isUA = !!UA_ALL.find(u=>u.id===dragging)
                     const targets = selectedFloors.length > 1 ? selectedFloors : [floor.id]
+                    // Una planta con propietario/arrendatario/oferta no admite cambios
+                    // de Uso principal: hay que ajustar antes esas variables.
+                    const blocked = targets.find(fId => floorAssignments(fId).length>0)
+                    if(blocked){ blockIfAssigned(blocked); setDragging(null); return }
                     if(isUA) {
                       if(targets.length > 1) {
                         setBuildings(prev=>prev.map(b=>{
@@ -1479,7 +1492,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     {supLockWarn?.floorId===floor.id && (
                       <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 9px',background:'#fffbeb',border:'1px solid var(--amber-bd)',borderRadius:6,fontSize:10.5,color:'#92400e',fontWeight:600}} onClick={e=>e.stopPropagation()}>
                         <AlertTriangle size={12} strokeWidth={1.9}/>
-                        <span>No puedes cambiar la superficie: la planta tiene {supLockWarn.vars.join(', ')}. Retíralo{supLockWarn.vars.length>1?'s':''} antes.</span>
+                        <span>Para modificar el Uso principal de esta planta, revisa y ajusta primero su {supLockWarn.vars.join(', ')}.</span>
                       </div>
                     )}
 
@@ -1499,7 +1512,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                             return (
                               <div key={i}
                                 title={`${info.label} · ${u.sup.toLocaleString('es-ES')} m²`}
-                                onClick={e=>{e.stopPropagation();if(isEd)setEditFloor(null);else{setEditFloor({floorId:floor.id,idx:i,layer:'principal'});setEditSup(String(u.sup))}}}
+                                onClick={e=>{e.stopPropagation();if(isEd){setEditFloor(null);return}if(blockIfAssigned(floor.id))return;setEditFloor({floorId:floor.id,idx:i,layer:'principal'});setEditSup(String(u.sup))}}
                                 className={`sp-block${isHL?' sp-block-hl':''}`}
                                 style={{width:wpct,background:info.bg,border:`1px solid ${isHL?info.color:info.bd}`,flex:'unset',flexShrink:0,boxShadow:isHL?`0 0 0 2px ${info.color}, 0 2px 12px ${info.color}66`:undefined,transform:isHL?'scale(1.02)':undefined,zIndex:isHL?2:undefined,position:'relative',transition:'box-shadow 120ms ease, transform 120ms ease'}}
                               >
