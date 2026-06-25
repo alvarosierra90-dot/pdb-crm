@@ -1256,6 +1256,47 @@ function FichaOfertaMock() {
                     })()}
                   </div>
 
+                  {/* ── VINCULAR ACTIVO · destacado, ancho completo, ENCIMA de Equipo ── */}
+                  {!activoSeleccionado && (
+                    <div className="info-pad" style={{padding:'0 36px 14px'}}>
+                      <div className="va-card" style={{ overflow:'visible', border:'2px solid var(--pdb-blue)', boxShadow:'0 2px 10px rgba(15,95,167,.12)' }}>
+                        <div className="va-card-header" style={{ background:'var(--pdb-blue-50,#eff6ff)' }}>
+                          <h3 style={{ fontSize:15 }}><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Vincular activo</h3>
+                          <span className="hint" style={{ color:'var(--red,#dc2626)', fontWeight:600 }}>Esta oferta necesita un activo asignado</span>
+                        </div>
+                        <div style={{ padding:'12px 18px 16px' }}>
+                          <div style={{ position:'relative', width:'100%' }}>
+                            <input className="of-inp" style={{ width:'100%', fontSize:14, padding:'12px 14px' }} placeholder="🔍 Buscar activo por nombre..." value={activoBuscador}
+                              onChange={e => { setActivoBuscador(e.target.value); setShowActivoDropdown(true) }}
+                              onFocus={() => setShowActivoDropdown(true)}
+                              onBlur={() => setTimeout(() => setShowActivoDropdown(false), 150)} />
+                            {showActivoDropdown && (
+                              <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 8px 24px rgba(0,0,0,.18)', zIndex:9999, maxHeight:280, overflowY:'auto', textAlign:'left' }}>
+                                {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).slice(0,10).map(a => (
+                                  <div key={a.ref} onMouseDown={() => {
+                                    setActivoBuscador(''); setShowActivoDropdown(false)
+                                    setLoadingActivo(true)
+                                    supabase.from('activos').select('*').eq('ref', a.ref).single()
+                                      .then(({ data: full }) => {
+                                        setActivoSeleccionado(full || a); setLoadingActivo(false)
+                                        if (oferta?.ref) supabase.from('ofertas').update({ activo_ref: a.ref, activo_id: full?.id || null }).eq('ref', oferta.ref)
+                                      })
+                                  }} style={{ padding:'9px 14px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:12 }}>
+                                    <div style={{ fontWeight:600 }}>{a.nombre}</div>
+                                    <div style={{ color:'var(--text4)', fontSize:10 }}>{a.ref} · {a.uso}</div>
+                                  </div>
+                                ))}
+                                {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).length === 0 && (
+                                  <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Sin resultados</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* ── 02 · EQUIPO Y COLABORADORES (50/50, justo bajo Vinculaciones) ── */}
                   <div className="info-pad" style={{padding:'0 36px 12px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
                     {/* ─ Equipo de trabajo (izquierda) ─ */}
@@ -1394,49 +1435,6 @@ function FichaOfertaMock() {
 
                   <div className="info-pad" style={{display:'grid',gridTemplateColumns:'1.45fr 1fr',gap:12,alignItems:'start',paddingTop:0}}>
                   <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
-
-                    {/* ── VINCULAR ACTIVO · solo si aún no hay activo asignado.
-                        Cuando hay activo, el chip del header arriba ya navega a su
-                        ficha y muestra todos sus datos heredados (regla del usuario). ── */}
-                    {!activoSeleccionado && (
-                      <div className="va-card" style={{ overflow:'visible' }}>
-                        <div className="va-card-header">
-                          <h3><span className="ico" style={{color:'var(--pdb-blue)'}}>●</span> Vincular activo</h3>
-                          <span className="hint">Esta oferta necesita un activo asignado</span>
-                        </div>
-                        <div style={{ padding:'4px 18px 14px' }}>
-                          <div style={{ position:'relative', maxWidth:340, marginBottom:8 }}>
-                            <input className="of-inp" placeholder="🔍 Buscar activo por nombre..." value={activoBuscador}
-                              onChange={e => { setActivoBuscador(e.target.value); setShowActivoDropdown(true) }}
-                              onFocus={() => setShowActivoDropdown(true)}
-                              onBlur={() => setTimeout(() => setShowActivoDropdown(false), 150)} />
-                            {showActivoDropdown && (
-                              <div style={{ position:'absolute', top:'100%', left:0, right:0, minWidth:300, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r)', boxShadow:'0 8px 24px rgba(0,0,0,.18)', zIndex:9999, maxHeight:240, overflowY:'auto', textAlign:'left' }}>
-                                {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).slice(0,8).map(a => (
-                                  <div key={a.ref} onMouseDown={() => {
-                                    setActivoBuscador(''); setShowActivoDropdown(false)
-                                    setLoadingActivo(true)
-                                    supabase.from('activos').select('*').eq('ref', a.ref).single()
-                                      .then(({ data: full }) => {
-                                        setActivoSeleccionado(full || a); setLoadingActivo(false)
-                                        // Persistir el vínculo YA (sin esperar a Guardar) para que la oferta
-                                        // aparezca en la Vista 360 / lista del activo al instante.
-                                        if (oferta?.ref) supabase.from('ofertas').update({ activo_ref: a.ref, activo_id: full?.id || null }).eq('ref', oferta.ref)
-                                      })
-                                  }} style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
-                                    <div style={{ fontWeight:600 }}>{a.nombre}</div>
-                                    <div style={{ color:'var(--text4)', fontSize:10 }}>{a.ref} · {a.uso}</div>
-                                  </div>
-                                ))}
-                                {activosDB.filter(a => !activoBuscador || a.nombre.toLowerCase().includes(activoBuscador.toLowerCase())).length === 0 && (
-                                  <div style={{ padding:'10px 12px', color:'var(--text4)', fontSize:11 }}>Sin resultados</div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     {/* ── COMERCIALIZACIÓN + TIPOLOGÍA Y ESTADO ── */}
                     <div className="va-two-col" style={{ overflow:'visible' }}>
