@@ -823,45 +823,38 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
     const unit = slotsFor(floor?.principal || [], propRow?.units)[seg]
     if (!unit) return
 
-    // La baja de propietario es POR IDENTIDAD: afecta a TODAS sus plantas (las
-    // que comparten prop_id, o nombre si es legacy sin id), en todos los
-    // edificios del activo. Si ocupa 3 plantas, se desasigna de las 3.
+    // Baja de propietario = VENTA con SUSTITUCIÓN (opción A): lo vendido NO se
+    // borra, pasa a «Propietario desconocido» (la superficie no queda huérfana)
+    // y el comprador real se completa luego desde el panel. Al ser venta, los
+    // arrendatarios/ofertas que haya encima se traspasan al comprador → no se
+    // bloquea por ocupación (eso solo aplica a cambios de Uso principal).
+    // Por identidad: prop_id (o nombre si es legacy) → afecta a todas sus plantas.
     const ownerId = unit.prop_id || null
     const ownerName = unit.n
     const matchesOwner = (u) => (ownerId && u.prop_id) ? u.prop_id === ownerId : u.n === ownerName
 
-    // No se puede dar de baja si ALGUNA de sus plantas tiene oferta o
-    // arrendatario encima — primero hay que retirarlos.
-    const blockedFloors = []
-    for (const b of buildings) {
-      for (const row of (b.prop || [])) {
-        if (!(row.units || []).some(matchesOwner)) continue
-        const arrRow = (b.arr || []).find(r => r.p === row.p)
-        const blocking = (arrRow?.units || []).filter(u => u.type === 'ten' || (u.type === 'vac' && u.oferta))
-        if (blocking.length) blockedFloors.push(row.p)
-      }
-    }
-    if (blockedFloors.length) {
-      const list = [...new Set(blockedFloors)].join(', ')
-      window.alert(`No se puede dar de baja a ${ownerName}: las plantas ${list} tienen oferta o arrendatario. Retíralos antes de quitar el propietario.`)
-      return
-    }
+    // Nº de plantas que ocupa (para preguntar el alcance solo si ocupa >1).
+    let footprintCount = 0
+    for (const b of buildings) for (const row of (b.prop || [])) if ((row.units || []).some(matchesOwner)) footprintCount++
 
-    // Quita TODAS las unidades del propietario en todos los edificios.
-    const doRemove = () => setBuildings(prev => prev.map(b => ({
-      ...b,
-      prop: (b.prop || []).map(row => ({
-        ...row,
-        units: (row.units || []).filter(u => !matchesOwner(u)),
-      })),
-    })))
+    const DESCONOCIDO = 'Propietario desconocido'
+    const doSubstitute = (scope) => setBuildings(prev => prev.map(b => {
+      if (scope === 'one' && b.id !== edifId) return b
+      return {
+        ...b,
+        prop: (b.prop || []).map(row => {
+          if (scope === 'one' && row.p !== floorId) return row
+          return { ...row, units: (row.units || []).map(u => matchesOwner(u) ? { ...u, n: DESCONOCIDO, prop_id: null } : u) }
+        }),
+      }
+    }))
 
     // Si el padre maneja la baja (abre el modal de venta), delegamos.
     if (typeof onRemoveOwner === 'function') {
-      onRemoveOwner({ unit, floorId, idx: seg, doRemove })
+      onRemoveOwner({ unit, floorId, edifId, idx: seg, footprintCount, doSubstitute })
       return
     }
-    doRemove()
+    doSubstitute('all')
   }
   // arrSlotsFor: reconcilia las units de arrendatario/oferta contra los tramos.
   // A diferencia de prop, un tramo puede tener VARIOS ocupantes (el espacio del
@@ -5792,8 +5785,8 @@ export default function FichaActivo() {
                     setBajaArr({ unit, doRemove })
                   }
                 }}
-                onRemoveOwner={({ unit, doRemove }) => {
-                  setSalidaProp({ unit, doRemove })
+                onRemoveOwner={({ unit, floorId, edifId, footprintCount, doSubstitute }) => {
+                  setSalidaProp({ unit, floorId, edifId, footprintCount, doSubstitute })
                 }}
                 onRemoveOferta={({ unit, floorId, doRemove }) => {
                   setSalidaOfr({ unit, floorId, doRemove })
@@ -7015,16 +7008,24 @@ export default function FichaActivo() {
             activo_ref:    activo?.ref,
             activo_nombre: activo?.nombre || displayNombre || '',
           }}
+          footprintCount={salidaProp.footprintCount}
+          floorLabel={salidaProp.floorId}
+          edifId={salidaProp.edifId}
+          floorId={salidaProp.floorId}
           onClose={() => setSalidaProp(null)}
-          onSuccess={() => {
-            try { salidaProp.doRemove() } catch (e) {}
-            // Quita el chip del panel lateral al instante. prop_id puede ser un id
-            // sintético LEGACY-… (no uuid) → en ese caso filtramos por nombre.
-            const pid = salidaProp.unit.prop_id
-            const isUuidPid = typeof pid === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pid)
-            setPropietariosReg(prev => prev.filter(p =>
-              isUuidPid ? p.id !== pid : p.propietario !== salidaProp.unit.n
-            ))
+          onSuccess={({ scope } = {}) => {
+            // Sustituye en memoria por «Propietario desconocido» con el alcance
+            // elegido (la BD ya la actualizó el modal). El autosave persiste.
+            try { salidaProp.doSubstitute(scope || 'all') } catch (e) {}
+            // Si vendió TODA su superficie, quita su chip del panel. prop_id puede
+            // ser un id sintético LEGACY-… (no uuid) → filtramos por nombre.
+            if ((scope || 'all') === 'all') {
+              const pid = salidaProp.unit.prop_id
+              const isUuidPid = typeof pid === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pid)
+              setPropietariosReg(prev => prev.filter(p =>
+                isUuidPid ? p.id !== pid : p.propietario !== salidaProp.unit.n
+              ))
+            }
             setSalidaProp(null)
           }}
         />

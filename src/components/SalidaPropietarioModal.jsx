@@ -25,10 +25,13 @@ import { X, AlertCircle, Search } from 'lucide-react'
  *   onClose:     () => void
  *   onSuccess:   ({ anyo, trimestre, precio, comprador }) => void
  */
-export default function SalidaPropietarioModal({ propietario, onClose, onSuccess }) {
+export default function SalidaPropietarioModal({ propietario, onClose, onSuccess, footprintCount = 1, floorLabel = '', edifId = null, floorId = null }) {
   const [anyoVenta, setAnyoVenta]   = useState(String(new Date().getFullYear()))
   const [trimestre, setTrimestre]   = useState('Q' + (Math.floor(new Date().getMonth()/3)+1))
   const [precio, setPrecio]         = useState('')
+  // Alcance de la venta: 'all' (todos sus tramos) | 'one' (solo la planta del aspa).
+  // Solo se pregunta cuando ocupa más de una planta.
+  const [scope, setScope]           = useState('all')
   const [search, setSearch]         = useState('')
   const [results, setResults]       = useState([])
   const [comprador, setComprador]   = useState(null) // { dynamics_id, nombre } | null
@@ -62,7 +65,14 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
     return true
   }, [anyoVenta, trimestre, precio])
 
-  const limpiarStackingOrigen = async () => {
+  // Sustitución (opción A): lo vendido NO se borra, pasa a "Propietario
+  // desconocido" (se completa el comprador real luego desde el panel del
+  // stacking). Respeta el alcance: 'all' = todos sus tramos; 'one' = solo la
+  // planta del aspa (mismo edificio + misma planta).
+  const DESCONOCIDO = 'Propietario desconocido'
+  const matchesOwner = (u) =>
+    (propietario.id && u.prop_id) ? u.prop_id === propietario.id : u.n === propietario.propietario
+  const sustituirStackingOrigen = async () => {
     if (!propietario.activo_ref) return
     const { data: act } = await supabase
       .from('activos')
@@ -70,15 +80,15 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
       .eq('ref', propietario.activo_ref)
       .single()
     if (!act?.stacking_data) return
+    const inScope = (b, row) =>
+      scope === 'all' || (String(b.id) === String(edifId) && row.p === floorId)
     const updated = act.stacking_data.map(b => ({
       ...b,
-      prop: (b.prop || []).map(row => ({
-        ...row,
-        units: row.units.filter(u => {
-          if (propietario.id && u.prop_id) return u.prop_id !== propietario.id
-          return u.n !== propietario.propietario
-        }),
-      })),
+      prop: (b.prop || []).map(row =>
+        inScope(b, row)
+          ? { ...row, units: (row.units || []).map(u => matchesOwner(u) ? { ...u, n: DESCONOCIDO, prop_id: null } : u) }
+          : row
+      ),
     }))
     await supabase.from('activos').update({ stacking_data: updated }).eq('ref', propietario.activo_ref)
   }
@@ -114,15 +124,19 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
         estado:        'Vendido',
         observaciones: observacion,
       }
-      const target = supabase.from('propietarios').update(update)
-      const { error: upErr } = await (isUuid(propietario.id)
-        ? target.eq('id', propietario.id)
-        : target.eq('activo_ref', propietario.activo_ref).eq('propietario', propietario.propietario))
-      if (upErr) throw new Error(`Propietario: ${upErr.message}`)
+      // Solo se marca la fila como Vendida si vende TODA su superficie. En venta
+      // parcial ('one') el propietario sigue siendo dueño del resto → no se toca.
+      if (scope === 'all') {
+        const target = supabase.from('propietarios').update(update)
+        const { error: upErr } = await (isUuid(propietario.id)
+          ? target.eq('id', propietario.id)
+          : target.eq('activo_ref', propietario.activo_ref).eq('propietario', propietario.propietario))
+        if (upErr) throw new Error(`Propietario: ${upErr.message}`)
+      }
 
-      await limpiarStackingOrigen()
+      await sustituirStackingOrigen()
 
-      if (onSuccess) onSuccess({ anyo: anyoVenta, trimestre, precio, comprador: comprador?.nombre || null })
+      if (onSuccess) onSuccess({ scope, anyo: anyoVenta, trimestre, precio, comprador: comprador?.nombre || null })
     } catch (e) {
       setError(e.message)
     } finally {
@@ -154,8 +168,25 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
         <div style={{padding:'16px 18px',overflowY:'auto',display:'flex',flexDirection:'column',gap:14}}>
 
           <div style={{padding:'10px 12px',background:'#fff7ed',border:'1px solid #fed7aa',borderRadius:6,fontSize:11,color:'#9a3412',lineHeight:1.55}}>
-            Un propietario sale del activo porque <strong>lo ha vendido</strong>. La fila queda en el histórico del edificio. NO hay traslado a otro activo (a diferencia de los arrendatarios).
+            Un propietario sale del activo porque <strong>lo ha vendido</strong>. Lo vendido pasa a <strong>«Propietario desconocido»</strong> (la superficie no queda huérfana); el comprador real se completa después desde el panel izquierdo del stacking.
           </div>
+
+          {/* Alcance — solo si ocupa más de una planta */}
+          {footprintCount > 1 && (
+            <div>
+              {lbl('Alcance de la venta', true)}
+              <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                <label style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',border:`1px solid ${scope==='all'?'var(--accent)':'var(--border)'}`,borderRadius:6,cursor:'pointer',fontSize:12}}>
+                  <input type="radio" name="scope" checked={scope==='all'} onChange={()=>setScope('all')} style={{accentColor:'var(--accent)'}}/>
+                  <span>Toda su superficie <span style={{color:'var(--text4)'}}>· {footprintCount} plantas</span></span>
+                </label>
+                <label style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',border:`1px solid ${scope==='one'?'var(--accent)':'var(--border)'}`,borderRadius:6,cursor:'pointer',fontSize:12}}>
+                  <input type="radio" name="scope" checked={scope==='one'} onChange={()=>setScope('one')} style={{accentColor:'var(--accent)'}}/>
+                  <span>Solo esta planta{floorLabel ? <span style={{color:'var(--text4)'}}> · {floorLabel}</span> : null}</span>
+                </label>
+              </div>
+            </div>
+          )}
 
           {/* Año + Trimestre */}
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
