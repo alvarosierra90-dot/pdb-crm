@@ -390,8 +390,22 @@ nav {
 .act-cards .va-meta-card,
 .act-cards .dash-card,
 .act-cards .info-block { border-radius: var(--r-lg); box-shadow: var(--shadow-xs); }
-.act-cards .va-card-header h3,
-.act-cards .va-meta-head { font-size: var(--fs-title) !important; font-weight: 700; }
+.act-cards .va-card-header h3 { font-size: var(--fs-title) !important; font-weight: 700; }
+/* Títulos de los cuadros (Localización, Tipología…) → banda en MAYÚSCULA resaltada
+   para que se distingan claramente del dato y no parezcan parte de la información. */
+.act-cards .dash-card-head,
+.act-cards .va-meta-head {
+  text-transform: uppercase !important;
+  letter-spacing: .08em !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: var(--accent) !important;
+  background: var(--accent-lt) !important;
+  border-bottom: 1px solid var(--accent-bd) !important;
+  padding: 11px 14px !important;
+}
+/* El contador a la derecha del título (nº) en tono coherente con la banda */
+.act-cards .dash-card-head .dash-card-count { background: var(--surface); color: var(--accent); }
 /* Campos: label y valor legibles (antes 10/12px) */
 .act-cards .ir-k { font-size: var(--fs-label) !important; color: var(--text3); }
 .act-cards .ir-v { font-size: var(--fs-value) !important; }
