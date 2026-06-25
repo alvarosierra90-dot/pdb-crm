@@ -71,6 +71,66 @@
   --serif: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --sans:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --mono:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* ═══ SISTEMA DE DISEÑO v2 · tokens nuevos (aditivos, no rompen nada) ═══ */
+
+  /* Superficies */
+  --surface-2: #f5f5f3;   /* fondo de campo/zona hundida */
+  --surface-3: #fafafa;   /* fondo de página (= --bg) */
+
+  /* Interacción */
+  --hover:      rgba(0,0,0,.04);
+  --selected:   rgba(176,141,87,.10);   /* bronce 10% */
+  --focus-ring: 0 0 0 3px rgba(176,141,87,.18);
+  --accent-press: #8a6d40;              /* bronce-dark, para :active/:hover primario */
+
+  /* Estados semánticos (con -lt/-bd) */
+  --success: #15803d; --success-lt: #f0fdf4; --success-bd: #a7f3d0;
+  --warning: #b45309; --warning-lt: #fffbeb; --warning-bd: #fde68a;
+  --danger:  #b91c1c; --danger-lt:  #fef2f2; --danger-bd:  #fca5a5;
+  --info:    #0a66c2; --info-lt:    #eff6ff; --info-bd:    #bfdbfe;
+
+  /* Radios unificados (--r:10 y --r2:14 ya existen) */
+  --r-sm:   6px;     /* inputs, badges, chips */
+  --r-lg:   14px;    /* cards de sección grandes (= --r2) */
+  --r-full: 999px;   /* pills de estado */
+
+  /* Escala de espaciado (base 4) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Escala tipográfica (suelo 11px) */
+  --fs-caption:  11px;   /* sub-textos, metadatos */
+  --fs-label:    11.5px; /* labels de campo (mayúsculas) */
+  --fs-body:     13px;   /* texto corrido (base) */
+  --fs-value:    14px;   /* valor de campo */
+  --fs-subtitle: 15px;   /* subtítulos */
+  --fs-title:    17px;   /* título de card/sección */
+  --fs-h:        22px;   /* cabeceras de panel */
+  --fs-display:  28px;   /* nombre de activo / KPIs hero */
+  --fs-micro:    10px;   /* SOLO tags en mayúscula con tracking ancho */
+
+  /* Procedencia del dato (de dónde viene): chips/captions de origen */
+  --src-dynamics: #0a66c2;  --src-dynamics-lt: #eff6ff;   /* dato de Dynamics */
+  --src-auto:     #6b5b8e;  --src-auto-lt:     #f1eef5;   /* calculado/derivado */
+  --src-pdb:      #B08D57;  --src-pdb-lt:      #f5efe5;   /* editable en PDB */
+
+  /* Colores de USO (tokenizados; antes sueltos en usoConfig/JSX) */
+  --uso-oficinas:   #5a4828; --uso-oficinas-lt:   #f5efe5;
+  --uso-retail:     #9d2a63; --uso-retail-lt:     #fce7f3;
+  --uso-logistica:  #0f766e; --uso-logistica-lt:  #f0fdfa;
+  --uso-residencial:#6b3fa0; --uso-residencial-lt:#f3eefc;
+  --uso-hotel:      #0e7490; --uso-hotel-lt:      #ecfeff;
+  --uso-comun:      #4a7a4a; --uso-comun-lt:      #f0f4ed;
+  --uso-parking:    #475569; --uso-parking-lt:    #f1f5f9;
+  --uso-default:    #9d174d; --uso-default-lt:    #fce7f3;
+  /* Estados de ocupación del stacking */
+  --occ-ocupado: #15803d; --occ-vacante: #b45309;
 }
 
 /* Refs / códigos / KPIs numéricos: cifras tabulares para alinear sin usar fuente mono */
