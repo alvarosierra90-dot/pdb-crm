@@ -1668,10 +1668,12 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
 
             {/* ── GRID PLANTAS (driven by edif.floors) ── */}
             <div style={{minWidth:0}}>
-              <div className="sp-table-head">
+              <div className="sp-table-head" style={{gridTemplateColumns:'20px 40px 1fr 80px 44px'}}>
+                <div/>
                 <div>Planta</div>
                 <div>Propietario · arrastra desde el panel</div>
                 <div style={{textAlign:'right'}}>Sup.</div>
+                <div/>
               </div>
               {(()=>{const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1);return edif.floors.map(floor=>{
                 const barH = Math.max(34, Math.round((floor.sup / maxFloorSup) * 54))
@@ -1701,14 +1703,16 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     }}
                     className="sp-row"
                     style={{
+                      gridTemplateColumns:'20px 40px 1fr 80px 44px',
                       borderBottom: floor.id==='PB' ? '3px solid var(--ink-2)' : undefined,
                       background:dropWarning===floor.id?'#fff1f2':isTgt?'var(--pdb-blue-50)':isSel?'#f0f9ff':'var(--surface)',
                       outline:dropWarning===floor.id?'1.5px solid #fca5a5':isSel||isTgt?'1.5px solid var(--pdb-blue)':'none', cursor:'pointer',
-                      // Ancho proporcional (capa Propietarios)
+                      // Ancho proporcional (capa Propietarios) — misma rejilla que Uso principal
                       width: `${Math.max((floor.sup / maxFloorSup) * 100, 30)}%`,
                       minWidth: 280,
                     }}>
 
+                    <div/>
                     <div className={`sp-row-floor${isEmpty?' empty':''}`} style={{color:isSel?'var(--pdb-blue)':undefined}}>{floor.id}</div>
 
                     <div className="sp-row-blocks" style={{flexDirection:'column',gap:3,padding:'6px 0',alignItems:'stretch'}}>
@@ -1781,6 +1785,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     </div>
 
                     <div className="sp-row-total">{rowSup.toLocaleString('es-ES')} m²</div>
+                    <div/>
                   </div>
                 )
               })
@@ -1945,10 +1950,12 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
 
             {/* ── GRID PLANTAS (driven by edif.floors) ── */}
             <div style={{minWidth:0}}>
-              <div className="sp-table-head">
+              <div className="sp-table-head" style={{gridTemplateColumns:'20px 40px 1fr 80px 44px'}}>
+                <div/>
                 <div>Planta</div>
                 <div>Arrendatario · oferta</div>
                 <div style={{textAlign:'right'}}>Sup.</div>
+                <div/>
               </div>
               {(()=>{
                 const maxFloorSup=Math.max(...edif.floors.map(f=>f.sup),1)
@@ -2100,15 +2107,17 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     }}
                     className="sp-row"
                     style={{
+                      gridTemplateColumns:'20px 40px 1fr 80px 44px',
                       borderBottom: floor.id==='PB' ? '3px solid var(--ink-2)' : undefined,
                       background:dropWarning===floor.id?'#fff1f2':isTgt?'var(--pdb-blue-50)':isSel?'#f0f9ff':'var(--surface)',
                       outline:dropWarning===floor.id?'1.5px solid #fca5a5':isSel||isTgt?'1.5px solid var(--pdb-blue)':'none',
                       cursor:'pointer',
-                      // Ancho proporcional (capa Arrendatarios + ofertas)
+                      // Ancho proporcional (capa Arrendatarios + ofertas) — misma rejilla que Uso principal
                       width: `${Math.max((floor.sup / maxFloorSup) * 100, 30)}%`,
                       minWidth: 280,
                     }}>
 
+                    <div/>
                     <div className={`sp-row-floor${isEmpty?' empty':''}`} style={{color:isSel?'var(--pdb-blue)':undefined}}>{floor.id}</div>
 
                     <div className="sp-row-blocks" style={{flexDirection:'column',gap:3,padding:'6px 0',alignItems:'stretch'}}>
@@ -2188,6 +2197,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     </div>
 
                     <div className="sp-row-total">{rowSup.toLocaleString('es-ES')} m²</div>
+                    <div/>
                   </div>
                 )
               })
