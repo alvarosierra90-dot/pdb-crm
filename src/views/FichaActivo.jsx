@@ -688,12 +688,14 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   const [newBldg, setNewBldg]           = useState({label:'',sup:'',sobre:'',bajo:''})
   const [splitModal, setSplitModal]     = useState(null) // {floorId, usoId}
   const [splitSup, setSplitSup]         = useState('')
-  const [ppOpen, setPpOpen]             = useState(false)
-  const [uaOpen, setUaOpen]             = useState(false)
+  // Secciones del panel abiertas por defecto: las fuentes de arrastre tienen
+  // que verse nada más entrar (si no, el panel parece vacío y no se entiende).
+  const [ppOpen, setPpOpen]             = useState(true)
+  const [uaOpen, setUaOpen]             = useState(true)
   // Toggles para los sidebars de las vistas 'prop' y 'arr'.
-  const [propPanelOpen, setPropPanelOpen]     = useState(false)
-  const [tenPanelOpen, setTenPanelOpen]       = useState(false)
-  const [ofrPanelOpen, setOfrPanelOpen]       = useState(false)
+  const [propPanelOpen, setPropPanelOpen]     = useState(true)
+  const [tenPanelOpen, setTenPanelOpen]       = useState(true)
+  const [ofrPanelOpen, setOfrPanelOpen]       = useState(true)
   // Sidebar lateral: 300px desplegado / 60px plegado (icon-rail).
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [editPA, setEditPA]             = useState(null)  // {layer:'prop'|'arr', rowP, idx}
@@ -1700,7 +1702,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     className="sp-row"
                     style={{
                       borderBottom: floor.id==='PB' ? '3px solid var(--ink-2)' : undefined,
-                      background:dropWarning===floor.id?'#fff1f2':isTgt?'var(--pdb-blue-50)':isSel?'#f0f9ff':isEmpty?'var(--bg)':'var(--surface)',
+                      background:dropWarning===floor.id?'#fff1f2':isTgt?'var(--pdb-blue-50)':isSel?'#f0f9ff':'var(--surface)',
                       outline:dropWarning===floor.id?'1.5px solid #fca5a5':isSel||isTgt?'1.5px solid var(--pdb-blue)':'none', cursor:'pointer',
                       // Ancho proporcional (capa Propietarios)
                       width: `${Math.max((floor.sup / maxFloorSup) * 100, 30)}%`,
@@ -2099,7 +2101,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                     className="sp-row"
                     style={{
                       borderBottom: floor.id==='PB' ? '3px solid var(--ink-2)' : undefined,
-                      background:dropWarning===floor.id?'#fff1f2':isTgt?'var(--pdb-blue-50)':isSel?'#f0f9ff':isEmpty?'var(--bg)':'var(--surface)',
+                      background:dropWarning===floor.id?'#fff1f2':isTgt?'var(--pdb-blue-50)':isSel?'#f0f9ff':'var(--surface)',
                       outline:dropWarning===floor.id?'1.5px solid #fca5a5':isSel||isTgt?'1.5px solid var(--pdb-blue)':'none',
                       cursor:'pointer',
                       // Ancho proporcional (capa Arrendatarios + ofertas)
@@ -5645,7 +5647,7 @@ export default function FichaActivo() {
           )}
 
           {/* ── TAB: Stacking Plan — always mounted to preserve state ── */}
-          <div className="tab-content active" style={activeTab !== 'at-stacking' ? {display:'none'} : undefined}>
+          <div className="tab-content active" style={{background:'#fff', ...(activeTab !== 'at-stacking' ? {display:'none'} : {})}}>
             <div className="info-pad" style={{paddingTop:24}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:22}}>
                 <div>
