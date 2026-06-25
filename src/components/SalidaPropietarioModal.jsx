@@ -88,6 +88,13 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
   // como columnas todavía, así que los guardamos en observaciones / notas.
   const trimestreToMonth = { Q1:1, Q2:4, Q3:7, Q4:10 }
 
+  // El stacking puede llevar prop_id sintéticos (LEGACY-…) para propietarios sin
+  // fila real en BD. Esos NO son uuid → no se puede filtrar la tabla por id con
+  // ellos (Postgres lanza "invalid input syntax for type uuid"). En ese caso
+  // caemos al match por activo_ref + nombre.
+  const isUuid = (v) => typeof v === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
+
   const handleConfirm = async () => {
     if (!canConfirm) return
     setSaving(true); setError(null)
@@ -108,7 +115,7 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
         observaciones: observacion,
       }
       const target = supabase.from('propietarios').update(update)
-      const { error: upErr } = await (propietario.id
+      const { error: upErr } = await (isUuid(propietario.id)
         ? target.eq('id', propietario.id)
         : target.eq('activo_ref', propietario.activo_ref).eq('propietario', propietario.propietario))
       if (upErr) throw new Error(`Propietario: ${upErr.message}`)

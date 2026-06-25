@@ -7007,11 +7007,12 @@ export default function FichaActivo() {
           onClose={() => setSalidaProp(null)}
           onSuccess={() => {
             try { salidaProp.doRemove() } catch (e) {}
-            // Quita el chip del panel lateral al instante
+            // Quita el chip del panel lateral al instante. prop_id puede ser un id
+            // sintético LEGACY-… (no uuid) → en ese caso filtramos por nombre.
+            const pid = salidaProp.unit.prop_id
+            const isUuidPid = typeof pid === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pid)
             setPropietariosReg(prev => prev.filter(p =>
-              salidaProp.unit.prop_id
-                ? p.id !== salidaProp.unit.prop_id
-                : p.propietario !== salidaProp.unit.n
+              isUuidPid ? p.id !== pid : p.propietario !== salidaProp.unit.n
             ))
             setSalidaProp(null)
           }}
