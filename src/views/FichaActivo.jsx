@@ -5800,6 +5800,12 @@ export default function FichaActivo() {
                   // Auto-save stacking to Supabase (debounced 1.5 s)
                   const ref = activoRef.current?.ref
                   if (!ref) return
+                  // NO autosaves "eco" del montaje/recarga: si el stacking es idéntico
+                  // al de la BD, no programamos escritura. Si no, el autosave de montaje
+                  // (con el estado recién cargado) podía pisar cambios hechos en otra
+                  // ficha (p. ej. asignar el comprador de un «Propietario desconocido»).
+                  const current = activoRef.current?.stacking_data
+                  if (current && JSON.stringify(current) === JSON.stringify(blds)) return
                   clearTimeout(autoSaveTimer.current)
                   autoSaveTimer.current = setTimeout(async () => {
                     const { error } = await supabase.from('activos').update({ stacking_data: blds }).eq('ref', ref)
