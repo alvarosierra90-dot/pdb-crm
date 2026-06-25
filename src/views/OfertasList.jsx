@@ -110,7 +110,7 @@ export default function OfertasList() {
     }).select().single()
     setCreando(false)
     if (!error && data) {
-      navigate('ficha-oferta', { ofertaRef: data.ref })
+      navigate('ficha-oferta', { ofertaRef: data.ref, nuevaOferta: true })
     }
   }
 

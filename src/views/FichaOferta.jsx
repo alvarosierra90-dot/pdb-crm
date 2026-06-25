@@ -190,7 +190,9 @@ function FichaOfertaMock() {
   // como texto plano, sin flechas ni inputs). El usuario pulsa "✎ Editar"
   // para activar el modo edición. Tras guardar OK, vuelve a vista.
   // Patrón pensado para que el broker vea claramente qué está guardado.
-  const [editing, setEditing]   = useState(false)
+  // Una oferta recién creada entra directamente en modo edición (si no, los
+  // campos salen como texto plano de solo-lectura y "no se puede cumplimentar").
+  const [editing, setEditing]   = useState(!!params?.nuevaOferta)
 
   // Tab 1
   // Comercialización: 3 opciones canónicas. Migramos valores legacy en el load.
@@ -235,7 +237,7 @@ function FichaOfertaMock() {
   const [showColaboradorDropdown,setShowColaboradorDropdown]= useState(false)
   const [colaboradoresResults,   setColaboradoresResults]   = useState([])
 
-  const [gastosComunes, setGastosComunes] = useState(3.01)
+  const [gastosComunes, setGastosComunes] = useState('')
   const [ibi, setIbi] = useState('')
   const [gastosIncluidos, setGastosIncluidos] = useState(false)
   const [tituloWeb, setTituloWeb] = useState('Complejo de edificios exclusivos en Arroyo de la Vega')
@@ -349,7 +351,7 @@ function FichaOfertaMock() {
   const [supAprox, setSupAprox] = useState(false)
   const [plantaTipo, setPlantaTipo] = useState(2790)
   const [ofertasDesglose, setOfertasDesglose] = useState([
-    { id:1, nombre:'Disp - ', divisible:true, supMin:null, cargasM2:3.01, ibiM2:0, fechaDisp:'' },
+    { id:1, nombre:'Disp - ', divisible:true, supMin:null, cargasM2:0, ibiM2:0, fechaDisp:'' },
   ])
   const [nextOfertaId, setNextOfertaId] = useState(2)
   const [editNombreId, setEditNombreId] = useState(null)
@@ -487,10 +489,20 @@ function FichaOfertaMock() {
     supabase.from('propietarios').select('*').eq('activo_ref', ref).is('motivo_salida', null)
       .then(({ data }) => setPropietariosReg(data || []))
     supabase.from('arrendatarios').select('*').eq('activo_ref', ref).is('motivo_salida', null)
-      .then(({ data }) => setArrendatariosReg((data || []).map(a => ({
-        id: a.id, ref: a.ref, tenant: a.tenant || a.nombre,
-      }))))
-  }, [activoSeleccionado?.ref])
+      .then(({ data }) => {
+        // MISMO criterio que FichaActivo: solo los arrendatarios que están de
+        // verdad en el stacking del activo (descarta zombies: fila en BD pero
+        // sin unit). Así el panel es idéntico al del activo.
+        const blds = activoSeleccionado?.stacking_data || []
+        const enStacking = new Set(
+          blds.flatMap(b => b.arr || []).flatMap(r => r.units || [])
+            .filter(u => u.type === 'ten' && u.arr_ref).map(u => u.arr_ref)
+        )
+        setArrendatariosReg((data || [])
+          .filter(a => enStacking.has(a.ref))
+          .map(a => ({ id: a.id, ref: a.ref, tenant: a.tenant || a.nombre })))
+      })
+  }, [activoSeleccionado?.ref, activoSeleccionado?.stacking_data])
 
   async function guardarDesglose() {
     const ofertaId = oferta?.id
@@ -1115,7 +1127,7 @@ function FichaOfertaMock() {
                   const rentaM2  = supDisp > 0 ? (rentaTot / supDisp) : 0
                   const items = [
                     { lbl:'Renta',         val: rentaM2 > 0 ? rentaM2.toFixed(2) : '—',                                sub:'€/m²/mes',    color:'var(--green)' },
-                    { lbl:'Gastos',        val: '3,01',                                                                sub:'€/m²/mes',    color:'var(--text1)' },
+                    { lbl:'Gastos',        val: gastosComunes ? Number(gastosComunes).toFixed(2) : '—',                 sub:'€/m²/mes',    color:'var(--text1)' },
                     { lbl:'Sup. disp.',    val: supDisp > 0 ? supDisp.toLocaleString('es-ES') : '—',                  sub:'m²',          color:'var(--accent)' },
                     { lbl:'Renta mensual', val: rentaTot > 0 ? Math.round(rentaTot).toLocaleString('es-ES') : '—',     sub:'€/mes',        color:'var(--green)' },
                   ]
