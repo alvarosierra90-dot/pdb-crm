@@ -1709,6 +1709,13 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                       onMouseLeave={()=>setHoverKey(null)}
                       onClick={() => {
                         if (dragging) return
+                        // "Propietario desconocido" no tiene ficha: es un placeholder de
+                        // una venta. Se completa arrastrando una cuenta del panel sobre
+                        // su tramo (borde discontinuo) en la rejilla.
+                        if (!o.id && o.name === 'Propietario desconocido') {
+                          window.alert('«Propietario desconocido» es un hueco de una venta.\n\nPara asignar el comprador real: añade la cuenta con «+ Añadir» y arrástrala sobre el tramo de borde discontinuo en la rejilla.')
+                          return
+                        }
                         spNavigate('ficha-propietario', {
                           id: o.id,
                           ownerData: { id: o.id, propietario: o.name, superficie: m2 },
@@ -1719,7 +1726,9 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                           fromActivoTab: 'at-stacking',
                         })
                       }}
-                      title={`${o.name} · ${m2 ? m2.toLocaleString('es-ES') : 0} m²`}
+                      title={(!o.id && o.name === 'Propietario desconocido')
+                        ? 'Hueco de una venta · arrastra una cuenta sobre su tramo (borde discontinuo) para asignar el propietario'
+                        : `${o.name} · ${m2 ? m2.toLocaleString('es-ES') : 0} m²`}
                       style={{
                         border:`1px solid ${dragging===dragKey?col:col+'88'}`,background:col+'18',
                         opacity:dragging&&dragging!==dragKey?.4:1,
@@ -1837,12 +1846,20 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                           const col = ownerColor(u.n)
                           const initials = (u.n||'').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()
                           const isHL = hoverKey === 'owner:'+(u.prop_id || u.n)
+                          // "Propietario desconocido" (placeholder de una venta) admite soltar
+                          // una cuenta del panel encima para completarlo/sustituirlo → sincroniza.
+                          const isUnknown = !u.prop_id && u.n === 'Propietario desconocido'
                           return (
                             <div key={i}
-                              onDragOver={e=>{e.preventDefault();e.stopPropagation()}}
-                              title={`${u.n} · ${tr.sup.toLocaleString('es-ES')} m² · ${usoInfo(tr.uso).label}`}
+                              onDragOver={isUnknown
+                                ? e=>{e.preventDefault();e.stopPropagation();setDragTarget(floor.id)}
+                                : e=>{e.preventDefault();e.stopPropagation()}}
+                              onDrop={isUnknown ? onTramoDrop : undefined}
+                              title={isUnknown
+                                ? `${u.n} · arrastra una cuenta del panel para asignar el propietario`
+                                : `${u.n} · ${tr.sup.toLocaleString('es-ES')} m² · ${usoInfo(tr.uso).label}`}
                               className={`sp-block${isHL?' sp-block-hl':''}`}
-                              style={{width:wpct,background:col+(isHL?'2E':'18'),border:`1px solid ${isHL?col:col+'88'}`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible',boxShadow:isHL?`0 0 0 2px ${col}, 0 2px 12px ${col}66`:undefined,transform:isHL?'scale(1.02)':undefined,zIndex:isHL?2:undefined,transition:'box-shadow 120ms ease, transform 120ms ease'}}
+                              style={{width:wpct,background:col+(isHL?'2E':'18'),border:`1px ${isUnknown?'dashed':'solid'} ${isHL?col:col+'88'}`,flex:'unset',flexShrink:0,position:'relative',overflow:'visible',boxShadow:isHL?`0 0 0 2px ${col}, 0 2px 12px ${col}66`:undefined,transform:isHL?'scale(1.02)':undefined,zIndex:isHL?2:undefined,transition:'box-shadow 120ms ease, transform 120ms ease'}}
                             >
                               <button onClick={e=>{e.stopPropagation();removeOwnerTramo(floor.id,i)}}
                                 style={{position:'absolute',top:-5,right:-5,width:14,height:14,borderRadius:7,background:'#dc2626',color:'#fff',border:'1.5px solid #fff',fontSize:9,lineHeight:1,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontWeight:700,zIndex:2}}>✕</button>
