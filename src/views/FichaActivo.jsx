@@ -2265,9 +2265,12 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                             const dragKey = isTen ? dragging.slice(4) : null
                             const dropTenant = dragKey ? (tenantSet.find(t=>t.key===dragKey) || {ref:null,name:dragKey}) : null
                             const ofrName = isOfr ? dragging.slice(4) : null
+                            // Vínculo estable por ref de la oferta (no por nombre): así
+                            // renombrar/dar de baja no rompe la relación con el stacking.
+                            const ofrRef = isOfr ? (extraOfertas.find(o => (o.nombre || o.ref) === ofrName)?.ref || null) : null
                             const mk = () => isTen
                               ? {type:'ten', arr_ref: dropTenant.ref, n: dropTenant.name, renta: Number(dropTenant.renta) || 0}
-                              : {type:'vac', oferta: ofrName, renta:0}
+                              : {type:'vac', oferta: ofrName, oferta_ref: ofrRef, renta:0}
                             // Multi-selección: mismo ocupante al primer tramo libre de
                             // cada planta seleccionada (p. ej. un inquilino en P5–P8).
                             const targets = selectedFloors.length>1 ? selectedFloors : [floor.id]

@@ -281,26 +281,35 @@ function FichaOfertaMock() {
   // las unidades del stacking que la referencian (capa 'arr', type='vac').
   // Sin esto, el panel izquierdo muestra el nombre nuevo pero los bloques pintan
   // el nombre antiguo, que es lo que el usuario marcó como "lío".
-  const renameOferta = (id, oldName, newName) => {
+  const renameOferta = async (id, oldName, newName) => {
     if (!newName || newName === oldName) {
       setOfertasDesglose(prev => prev.map(x => x.id === id ? { ...x, nombre: newName || x.nombre } : x))
       return
     }
     setOfertasDesglose(prev => prev.map(x => x.id === id ? { ...x, nombre: newName } : x))
-    if (liveBuildings.current?.length > 0) {
-      const updated = liveBuildings.current.map(b => ({
-        ...b,
-        arr: (b.arr || []).map(r => ({
-          ...r,
-          units: r.units.map(u => (u.type === 'vac' && u.oferta === oldName) ? { ...u, oferta: newName } : u),
-        })),
-      }))
-      liveBuildings.current = updated
-      if (activoSeleccionado?.ref) {
-        supabase.from('activos').update({ stacking_data: updated }).eq('ref', activoSeleccionado.ref)
-      }
-      setStackingKey(k => k + 1)
+    const ref = activoSeleccionado?.ref
+    if (!ref) return
+    // Fuente única = stacking del activo. Si no está en memoria, lo leemos de BD.
+    let blds = liveBuildings.current?.length > 0 ? liveBuildings.current : null
+    if (!blds) {
+      const { data } = await supabase.from('activos').select('stacking_data').eq('ref', ref).single()
+      blds = data?.stacking_data || []
     }
+    const ofrRef = oferta?.ref
+    // Vínculo por ref (estable); nombre como respaldo para units antiguas.
+    const updated = blds.map(b => ({
+      ...b,
+      arr: (b.arr || []).map(r => ({
+        ...r,
+        units: (r.units || []).map(u =>
+          (u.type === 'vac' && ((ofrRef && u.oferta_ref === ofrRef) || u.oferta === oldName))
+            ? { ...u, oferta: newName } : u),
+      })),
+    }))
+    liveBuildings.current = updated
+    await supabase.from('activos').update({ stacking_data: updated }).eq('ref', ref)
+    setActivoSeleccionado(prev => prev ? { ...prev, stacking_data: updated } : prev)
+    setStackingKey(k => k + 1)
   }
 
   // Handlers de creación equivalentes a FichaActivo: navegan a la ficha del
@@ -953,7 +962,7 @@ function FichaOfertaMock() {
             ...b,
             arr: (b.arr||[]).map(row => ({
               ...row,
-              units: row.units.filter(u => !(u.type==='vac' && (ofertaNombres.includes(u.oferta) || u.prop_id === oferta?.ref)))
+              units: row.units.filter(u => !(u.type==='vac' && (u.oferta_ref === oferta?.ref || ofertaNombres.includes(u.oferta) || u.prop_id === oferta?.ref)))
             }))
           }))
           await supabase.from('activos').update({ stacking_data: updated }).eq('ref', activoSeleccionado.ref)
@@ -999,10 +1008,11 @@ function FichaOfertaMock() {
         const updated = acData.stacking_data.map(b => ({
           ...b,
           arr: (b.arr||[]).map(row => {
-            const hasOffer = row.units.some(u=>u.type==='vac'&&ofertaNombres.includes(u.oferta))
+            const esEsta = (u) => u.type==='vac' && (u.oferta_ref === oferta?.ref || ofertaNombres.includes(u.oferta))
+            const hasOffer = row.units.some(esEsta)
             if (!hasOffer) return row
-            const offerSup = row.units.filter(u=>u.type==='vac'&&ofertaNombres.includes(u.oferta)).reduce((s,u)=>s+u.sup,0)
-            const withoutOffers = row.units.filter(u=>!(u.type==='vac'&&ofertaNombres.includes(u.oferta)))
+            const offerSup = row.units.filter(esEsta).reduce((s,u)=>s+u.sup,0)
+            const withoutOffers = row.units.filter(u=>!esEsta(u))
             return {...row, units:[...withoutOffers,{type:'ten',n:tenantName,sup:offerSup}]}
           })
         }))
