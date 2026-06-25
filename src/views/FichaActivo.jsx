@@ -2832,7 +2832,7 @@ function NewActivoInfoTab({ newForm, setNF, submitted }) {
   const reqShown = (val) => val ? val : <span style={{color:'var(--pdb-red)',fontWeight:600}}>Obligatorio</span>
 
   return (
-    <div className="tab-content active">
+    <div className="tab-content active act-cards">
       <div className="info-pad">
 
         {/* Mapa + carrusel · la barra de búsqueda sale en rojo (campo más importante) hasta tener dirección */}
