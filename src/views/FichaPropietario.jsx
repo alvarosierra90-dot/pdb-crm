@@ -485,6 +485,12 @@ export default function FichaPropietario() {
           }))
           await supabase.from('activos').update({ stacking_data: updated }).eq('ref', activoRefFinal)
         }
+        // El hueco ya tiene comprador real → eliminamos la fila placeholder
+        // «Propietario desconocido» de este activo para que no quede en el listado.
+        await supabase.from('propietarios').delete()
+          .eq('activo_ref', activoRefFinal)
+          .eq('propietario', 'Propietario desconocido')
+          .is('motivo_salida', null)
       } catch (e) { console.error('Completar desconocido:', e) }
       setSaving(false)
       navigate('ficha-activo', { ref: activoRefFinal, tab: 'at-stacking' })

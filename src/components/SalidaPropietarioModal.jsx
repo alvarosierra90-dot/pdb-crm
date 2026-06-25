@@ -164,6 +164,35 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
 
       await sustituirStackingOrigen()
 
+      // El comprador entra como «Propietario desconocido»: creamos (o ampliamos)
+      // su fila para que figure en el listado de propietarios hasta que se
+      // complete con la cuenta real. Una sola fila desconocido por activo.
+      if (propietario.activo_ref) {
+        const { data: exist } = await supabase.from('propietarios')
+          .select('id, superficie')
+          .eq('activo_ref', propietario.activo_ref)
+          .eq('propietario', 'Propietario desconocido')
+          .is('motivo_salida', null)
+          .limit(1)
+        const addSup = Number(supVendida) || 0
+        if (exist && exist[0]) {
+          await supabase.from('propietarios')
+            .update({ superficie: (Number(exist[0].superficie) || 0) + addSup })
+            .eq('id', exist[0].id)
+        } else {
+          await supabase.from('propietarios').insert({
+            nombre:       'Propietario desconocido',
+            propietario:  'Propietario desconocido',
+            activo_ref:   propietario.activo_ref,
+            activo:       propietario.activo_nombre || null,
+            superficie:   supVendida,
+            anyo_compra:  Number(anyoVenta) || null,
+            trimestre,
+            estado:       'Activo',
+          })
+        }
+      }
+
       if (onSuccess) onSuccess({ scope, anyo: anyoVenta, trimestre, precio, comprador: comprador?.nombre || null })
     } catch (e) {
       setError(e.message)
