@@ -274,6 +274,45 @@ nav {
   opacity: 1 !important;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   FICHA OFERTA · maquetación en CUADROS con letra más grande
+   (scopeado a .of-cards — no afecta a otras fichas). Cada campo es
+   una caja dentro de la tarjeta de sección. La letra sube de ~10-12px.
+   ═══════════════════════════════════════════════════════════════ */
+.of-cards .va-meta-card { border: 1px solid var(--border); border-radius: 12px; overflow: visible; }
+.of-cards .va-meta-head {
+  font-size: 13px; font-weight: 800; letter-spacing: .01em;
+  padding: 13px 16px; color: var(--text);
+}
+/* Lista de campos → rejilla de cuadros */
+.of-cards .va-kv-list {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px; padding: 14px 16px;
+}
+/* Cada fila (ir) pasa a ser un cuadro: label arriba, valor/input abajo */
+.of-cards .va-meta-card .ir,
+.of-cards .ir {
+  flex-direction: column; align-items: stretch; gap: 6px;
+  border: 1px solid var(--border) !important; border-radius: 9px;
+  padding: 10px 12px; background: var(--surface);
+}
+.of-cards .ir-k {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--text4);
+}
+.of-cards .ir-v { font-size: 14px; font-weight: 600; color: var(--text); text-align: left; }
+/* Inputs/selects dentro de los cuadros: legibles */
+.of-cards .ir-v select,
+.of-cards .ir-v input,
+.of-cards .of-sel,
+.of-cards .of-inp {
+  font-size: 14px !important; width: 100% !important; min-width: 0 !important;
+  padding: 8px 10px !important; box-sizing: border-box;
+}
+/* Cabeceras de las tarjetas grandes (va-card) un punto más legibles */
+.of-cards .va-card-header h3 { font-size: 14px; font-weight: 800; }
+@media (max-width: 1100px) { .of-cards .va-kv-list { grid-template-columns: 1fr; } }
+
 .nav-subhead {
   font-size: 8.5px;
   font-weight: 700;

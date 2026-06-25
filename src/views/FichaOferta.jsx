@@ -1191,7 +1191,7 @@ function FichaOfertaMock() {
 
               {/* ── TAB 1: Información oferta ── */}
               {activeTab==='of-info' && (
-                <div className="tab-content active">
+                <div className="tab-content active of-cards">
                   <div className="info-pad" style={{padding:'20px 36px 4px'}}>
                     {/* ── 01 · VINCULACIONES (FunnelStepCards canon) ── */}
                     {(() => {
