@@ -4873,6 +4873,21 @@ export default function FichaActivo() {
   const autoSaveTimer = useRef(null) // debounce timer for stacking auto-save
   activoRef.current = activo // keep ref in sync on every render
 
+  // Al desmontar (p. ej. al navegar a la ficha de un propietario para completar
+  // un «Propietario desconocido»), vacía el autosave PENDIENTE: lo escribimos ya
+  // y cancelamos el timer. Si no, el setTimeout huérfano se disparaba más tarde
+  // y reescribía el stacking viejo encima de la asignación hecha en la ficha
+  // (causa de que el propietario volviera a aparecer como «desconocido»).
+  useEffect(() => () => {
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current)
+      autoSaveTimer.current = null
+      const ref = activoRef.current?.ref
+      const blds = liveStackingRef.current
+      if (ref && blds) supabase.from('activos').update({ stacking_data: blds }).eq('ref', ref)
+    }
+  }, [])
+
   // Sincroniza superficie (y renta de cierre) de cada arrendatario/propietario
   // asignado en el stacking hacia su fila en BD, para que sus fichas lo
   // reflejen sin tener que abrirlas. Se llama tras persistir el stacking.
