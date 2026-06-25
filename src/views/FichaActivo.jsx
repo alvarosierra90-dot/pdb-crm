@@ -5339,8 +5339,12 @@ export default function FichaActivo() {
           })
         } else if (activo?.propietario) {
           // No hay fila en propietarios pero el activo tiene propietario legacy
-          // (campo de la tabla activos). Sembramos una entrada sintética para
-          // que aparezca como chip en el panel lateral del stacking.
+          // (campo de la tabla activos). Solo lo sembramos como chip si REALMENTE
+          // sigue presente en algún tramo del stacking — si ya se vendió/sustituyó
+          // no debe aparecer en las etiquetas del panel (sí queda en el histórico).
+          const enStacking = (activo?.stacking_data || []).some(b =>
+            (b.prop || []).some(r => (r.units || []).some(u => u.n === activo.propietario)))
+          if (!enStacking) return
           setPropietariosReg(prev => {
             if (prev.some(p => p.propietario === activo.propietario)) return prev
             return [...prev, {
