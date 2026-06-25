@@ -286,7 +286,10 @@ function FichaOfertaMock() {
       setOfertasDesglose(prev => prev.map(x => x.id === id ? { ...x, nombre: newName || x.nombre } : x))
       return
     }
-    setOfertasDesglose(prev => prev.map(x => x.id === id ? { ...x, nombre: newName } : x))
+    // Nueva lista de desglose con el nombre cambiado → estado + persistir en BD
+    const nextDesglose = ofertasDesglose.map(x => x.id === id ? { ...x, nombre: newName } : x)
+    setOfertasDesglose(nextDesglose)
+    guardarDesglose(nextDesglose)  // persiste el nombre en desglose_ofertas (no se revierte al recargar)
     const ref = activoSeleccionado?.ref
     if (!ref) return
     // Fuente única = stacking del activo. Si no está en memoria, lo leemos de BD.
@@ -534,7 +537,8 @@ function FichaOfertaMock() {
       })
   }, [activoSeleccionado?.ref, activoSeleccionado?.stacking_data])
 
-  async function guardarDesglose() {
+  async function guardarDesglose(listOverride) {
+    const list = listOverride || ofertasDesglose
     const ofertaId = oferta?.id
     if (!ofertaId) {
       // Sin oferta persistida aún — limpiar pending para desbloquear UI
@@ -544,9 +548,9 @@ function FichaOfertaMock() {
     setSavingDesglose(true)
     try {
       await supabase.from('desglose_ofertas').delete().eq('oferta_id', ofertaId)
-      if (ofertasDesglose.length > 0) {
+      if (list.length > 0) {
         await supabase.from('desglose_ofertas').insert(
-          ofertasDesglose.map((d, i) => ({
+          list.map((d, i) => ({
             oferta_id: ofertaId,
             nombre: d.nombre,
             divisible: d.divisible,

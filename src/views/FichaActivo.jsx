@@ -2063,9 +2063,13 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                 // 'Disp 2 en Albatros' que aparecía sin card en sidebar
                 // porque su oferta no existe en la tabla ofertas.
                 const validOfertaNames = new Set((extraOfertas || []).map(o => o.nombre).filter(Boolean))
+                // También por REF de oferta: una unit con oferta_ref válido sobrevive
+                // aunque su nombre (de área) no coincida con un chip → no se "desasigna".
+                const validOfertaRefs = new Set((extraOfertas || []).map(o => o.ref).filter(Boolean))
                 const filterUnits = (us) => (us || []).filter(u => {
                   if (u.type !== 'vac') return true
-                  if (!u.oferta) return false
+                  if (!u.oferta && !u.oferta_ref) return false
+                  if (u.oferta_ref && validOfertaRefs.has(u.oferta_ref)) return true
                   return validOfertaNames.has(u.oferta)
                 })
                 return edif.floors.map(floor=>{
