@@ -5852,12 +5852,14 @@ export default function FichaActivo() {
                   // Fuente persistente: ofertas en DB ligadas a este activo.
                   // Cualquier oferta creada y vinculada permanece en el panel
                   // izquierdo aunque ya esté asignada a una planta.
-                  const fromDB = (ofertas || []).map(o => ({
-                    id: o.id,
-                    ref: o.ref,
-                    nombre: o.nombre || o.ref,
-                    tipoOperacion: o.tipo_operacion || 'Alquiler',
-                  }))
+                  const fromDB = (ofertas || [])
+                    .filter(o => o.estado !== 'Cerrada' && o.estado !== 'Desactivada' && o.activa !== false)
+                    .map(o => ({
+                      id: o.id,
+                      ref: o.ref,
+                      nombre: o.nombre || o.ref,
+                      tipoOperacion: o.tipo_operacion || 'Alquiler',
+                    }))
                   // Mezcla con ofertas pasadas vía navegación (cuando se vuelve
                   // recién creadas) deduplicando por ref/nombre.
                   const extras = (params?.ofertasFromOferta || []).filter(p =>
@@ -7105,6 +7107,15 @@ export default function FichaActivo() {
           onClose={() => setSalidaOfr(null)}
           onSuccess={({ motivo, arrendatario }) => {
             try { salidaOfr.doRemove() } catch (e) {}
+            // La oferta nunca se borra: pasa a Cerrada (alquilada) o Desactivada
+            // (error). Así desaparece del panel y queda en su módulo.
+            const ofName = salidaOfr.unit.oferta
+            const ofRow = (ofertas || []).find(o => o.ref === ofName || (o.nombre || o.ref) === ofName)
+            if (ofRow?.id) {
+              const nuevoEstado = motivo === 'cierre' ? 'Cerrada' : 'Desactivada'
+              supabase.from('ofertas').update({ estado: nuevoEstado, activa: false }).eq('id', ofRow.id)
+              setOfertas(prev => prev.filter(o => o.id !== ofRow.id))
+            }
             // Si fue 'cierre', el nuevo arrendatario se añade al panel y
             // se reemplaza la unit 'vac' por una 'ten' en el stacking.
             if (motivo === 'cierre' && arrendatario) {

@@ -25,6 +25,7 @@ export default function SalidaOfertaModal({ oferta, activo, onClose, onSuccess }
   const [tenant, setTenant]       = useState('')
   const [tenantDesconocido, setTenantDesconocido] = useState(false)
   const [closingRent, setClosingRent] = useState(oferta?.renta ? String(oferta.renta) : '')
+  const [inicio, setInicio]       = useState('')   // fecha de inicio del contrato
   const [anyo, setAnyo]           = useState(String(new Date().getFullYear()))
   const [trimestre, setTrimestre] = useState('Q' + (Math.floor(new Date().getMonth()/3)+1))
   const [saving, setSaving]       = useState(false)
@@ -35,10 +36,13 @@ export default function SalidaOfertaModal({ oferta, activo, onClose, onSuccess }
     try {
       const tenantName = tenantDesconocido ? 'Arrendatario desconocido' : tenant.trim()
       if (!tenantDesconocido && !tenantName) throw new Error('Indica el nombre del arrendatario o marca Desconocido.')
+      if (!inicio) throw new Error('Indica la fecha de inicio del contrato.')
       const payload = {
+        nombre:              tenantName,   // columna NOT NULL
         tenant:              tenantName,
         tenant_desconocido:  tenantDesconocido,
         activo_ref:          activo?.ref || null,
+        inicio:              inicio || null,
         anyo_firma:          /^\d{4}$/.test(anyo.trim()) ? Number(anyo) : null,
         trimestre:           trimestre || null,
         closing_rent:        closingRent !== '' ? Number(closingRent) : null,
@@ -137,6 +141,11 @@ export default function SalidaOfertaModal({ oferta, activo, onClose, onSuccess }
                 {!tenantDesconocido && (
                   <input value={tenant} onChange={e=>setTenant(e.target.value)} placeholder="Nombre del arrendatario o empresa" style={inp}/>
                 )}
+              </div>
+
+              <div>
+                {lbl('Fecha de inicio del contrato', true)}
+                <input type="date" value={inicio} onChange={e=>setInicio(e.target.value)} style={inp}/>
               </div>
 
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
