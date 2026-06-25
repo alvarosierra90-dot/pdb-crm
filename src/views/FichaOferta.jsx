@@ -1389,7 +1389,12 @@ function FichaOfertaMock() {
                                     setActivoBuscador(''); setShowActivoDropdown(false)
                                     setLoadingActivo(true)
                                     supabase.from('activos').select('*').eq('ref', a.ref).single()
-                                      .then(({ data: full }) => { setActivoSeleccionado(full || a); setLoadingActivo(false) })
+                                      .then(({ data: full }) => {
+                                        setActivoSeleccionado(full || a); setLoadingActivo(false)
+                                        // Persistir el vínculo YA (sin esperar a Guardar) para que la oferta
+                                        // aparezca en la Vista 360 / lista del activo al instante.
+                                        if (oferta?.ref) supabase.from('ofertas').update({ activo_ref: a.ref, activo_id: full?.id || null }).eq('ref', oferta.ref)
+                                      })
                                   }} style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:11 }}>
                                     <div style={{ fontWeight:600 }}>{a.nombre}</div>
                                     <div style={{ color:'var(--text4)', fontSize:10 }}>{a.ref} · {a.uso}</div>
@@ -1810,8 +1815,9 @@ function FichaOfertaMock() {
 
                       {/* Derecha */}
                       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-                        {/* Desglose de ofertas */}
-                        <div className="info-block" style={{ padding:0, overflow:'hidden' }}>
+                        {/* Desglose de ofertas — tabla de captura: siempre editable
+                            (modal-editable evita que el modo "vista" la bloquee). */}
+                        <div className="info-block modal-editable" style={{ padding:0, overflow:'hidden' }}>
                           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px', borderBottom:'1px solid var(--border)', background:'var(--gray-lt)' }}>
                             <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                               <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>Desglose de ofertas</div>
