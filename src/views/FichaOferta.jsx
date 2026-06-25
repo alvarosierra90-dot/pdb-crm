@@ -116,7 +116,7 @@ const SEG_ACTS = [
 ]
 
 function FieldLbl({ children, req }) {
-  return <div style={{ fontSize:9, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:3 }}>{children}{req && <span style={{ color:'var(--red)', marginLeft:2 }}>*</span>}</div>
+  return <div style={{ fontSize:11, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:5 }}>{children}{req && <span style={{ color:'var(--red)', marginLeft:2 }}>*</span>}</div>
 }
 function ReadonlyPill({ value }) {
   return <div style={{ padding:'6px 9px', border:'1px solid var(--border)', borderRadius:'var(--r)', fontSize:12, background:'var(--gray-lt)', color:'var(--text3)', display:'flex', alignItems:'center', gap:6 }}>{value}<span style={{ marginLeft:'auto', fontSize:9, color:'var(--text4)', fontWeight:600 }}>AUTO</span></div>
@@ -1817,9 +1817,9 @@ function FichaOfertaMock() {
 
               {/* ── TAB 2: Espacios comerciales ── */}
               {activeTab==='of-espacios' && (
-                <div className="tab-content active">
+                <div className="tab-content active of-cards">
                   <div className="info-pad">
-                    <div style={{ display:'grid', gridTemplateColumns:'260px 1fr', gap:16 }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'280px 1fr', gap:18 }}>
                       {/* Config izquierda */}
                       <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                         <div style={{ fontSize:11, fontWeight:700, marginBottom:2 }}>Configuración general</div>
@@ -2098,7 +2098,7 @@ function FichaOfertaMock() {
               {/* Condiciones · integrado dentro de Espacios comerciales
                   (regla del usuario · ya no es un tab independiente). */}
               {activeTab==='of-espacios' && (
-                <div className="tab-content active"><div className="info-pad">
+                <div className="tab-content active of-cards"><div className="info-pad">
                   <div style={{ display:'flex', alignItems:'center', gap:10, margin:'4px 0 16px', paddingTop:14, borderTop:'2px solid var(--border)' }}>
                     <div style={{ width:28, height:28, borderRadius:8, background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, flexShrink:0 }}>€</div>
                     <div>

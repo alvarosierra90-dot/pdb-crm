@@ -313,6 +313,14 @@ nav {
 .of-cards .va-card-header h3 { font-size: 14px; font-weight: 800; }
 @media (max-width: 1100px) { .of-cards .va-kv-list { grid-template-columns: 1fr; } }
 
+/* Tablas del tab Espacios comerciales: letra legible (vencía la inline minúscula) */
+.of-cards table { font-size: 13px !important; }
+.of-cards table th { font-size: 11px !important; letter-spacing: .03em; }
+.of-cards table td { font-size: 13px !important; }
+.of-cards .info-block { border-radius: 12px; }
+/* Cabeceras de bloque (los títulos de sección en gris) un poco más grandes */
+.of-cards .info-block > div:first-child { font-size: 13px; }
+
 .nav-subhead {
   font-size: 8.5px;
   font-weight: 700;
