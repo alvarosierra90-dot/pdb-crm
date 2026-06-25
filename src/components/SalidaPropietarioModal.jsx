@@ -57,13 +57,11 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
   }, [search, comprador, desconocido])
 
   const canConfirm = useMemo(() => {
+    // Obligatorios: año y trimestre. El precio es OPCIONAL.
     if (!/^\d{4}$/.test(anyoVenta.trim())) return false
     if (!trimestre) return false
-    if (!precio || isNaN(parseFloat(precio))) return false
-    // Comprador es opcional — si !desconocido y no hay selected, vale; si
-    // desconocido marcado, vale; si selected, vale.
     return true
-  }, [anyoVenta, trimestre, precio])
+  }, [anyoVenta, trimestre])
 
   // Sustitución (opción A): lo vendido NO se borra, pasa a "Propietario
   // desconocido" (se completa el comprador real luego desde el panel del
@@ -111,13 +109,14 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
     try {
       const m = trimestreToMonth[trimestre] || 1
       const fechaAprox = `${anyoVenta}-${String(m).padStart(2,'0')}-01`
-      const precioFmt = `${Number(precio).toLocaleString('es-ES')} €`
+      // Precio opcional: solo se incluye si se ha indicado.
+      const precioFmt = (precio && !isNaN(parseFloat(precio))) ? `${Number(precio).toLocaleString('es-ES')} €` : null
       const compradorTexto = desconocido
         ? 'Comprador desconocido'
         : (comprador?.nombre || 'Comprador desconocido')
 
-      // observaciones: registro legible de la venta (incluye el precio).
-      const observacion = `Venta ${trimestre} ${anyoVenta} · ${precioFmt} · ${compradorTexto}`
+      // observaciones: registro legible de la venta (incluye el precio si lo hay).
+      const observacion = `Venta ${trimestre} ${anyoVenta}${precioFmt ? ` · ${precioFmt}` : ''} · ${compradorTexto}`
       const saleCore = {
         fecha_salida:  fechaAprox,
         motivo_salida: 'Baja',
@@ -140,6 +139,7 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
           if (upErr) throw new Error(`Propietario: ${upErr.message}`)
         } else {
           const { error: insErr } = await supabase.from('propietarios').insert({
+            nombre:      propietario.propietario,
             propietario: propietario.propietario,
             activo_ref:  propietario.activo_ref,
             activo:      propietario.activo_nombre || null,
@@ -152,6 +152,7 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
         // Venta parcial: el propietario conserva su fila (sigue siendo dueño del
         // resto). Creamos una fila de histórico para la superficie vendida.
         const { error: insErr } = await supabase.from('propietarios').insert({
+          nombre:      propietario.propietario,
           propietario: propietario.propietario,
           activo_ref:  propietario.activo_ref,
           activo:      propietario.activo_nombre || null,
@@ -231,7 +232,7 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
 
           {/* Precio de venta */}
           <div>
-            {lbl('Precio de venta (€)', true)}
+            {lbl('Precio de venta (€)', false)}
             <input type="number" value={precio} onChange={e=>setPrecio(e.target.value)} placeholder="Ej. 45000000" style={{...inp,fontFamily:'var(--mono)'}}/>
           </div>
 

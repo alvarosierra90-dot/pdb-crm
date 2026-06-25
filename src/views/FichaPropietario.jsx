@@ -97,10 +97,57 @@ export default function FichaPropietario() {
     if (!params?.id) { setPropietarioReal(null); return }
     let cancel = false
     supabase.from('propietarios')
-      .select('id, nombre, propietario, activo_ref, activo, estado, fecha_desactivacion, motivo_desactivacion, fecha_salida, motivo_salida, destino_activo_ref')
+      .select('*')
       .eq('id', params.id)
       .maybeSingle()
-      .then(({ data }) => { if (!cancel) setPropietarioReal(data || null) })
+      .then(({ data }) => {
+        if (cancel || !data) { if (!cancel) setPropietarioReal(null); return }
+        setPropietarioReal(data)
+        setDbId(data.id)
+        // Hidrata el formulario con los datos REALES de la fila (antes salía
+        // vacío/mock al abrir un propietario existente desde la lista).
+        const s = (v) => (v == null ? '' : String(v))
+        setForm(prev => ({
+          ...prev,
+          id: prev.id,
+          propietario:        data.propietario || data.nombre || '',
+          cif:                s(data.cif),
+          tipo_entidad:       s(data.tipo_entidad),
+          pais:               s(data.pais),
+          ciudad_sede:        s(data.ciudad_sede),
+          estado:             s(data.estado),
+          perfil:             s(data.perfil),
+          asset_manager:      s(data.asset_manager),
+          responsable:        s(data.responsable),
+          email:              s(data.email),
+          telefono:           s(data.telefono),
+          contacto_principal: s(data.contacto_principal),
+          observaciones:      s(data.observaciones),
+          activo:             s(data.activo),
+          zona:               s(data.zona),
+          subzona:            s(data.subzona),
+          superficie:         s(data.superficie),
+          uso:                s(data.uso),
+          area:               s(data.area),
+          tipologia:          s(data.tipologia),
+          anyo_compra:        s(data.anyo_compra),
+          trimestre:          s(data.trimestre),
+          precio_compra:      s(data.precio_compra),
+          estado_activo:      s(data.estado_activo),
+          regimen:            s(data.regimen),
+          valoracion_actual:  s(data.valoracion_actual),
+          cap_rate:           s(data.cap_rate),
+          yield:              s(data.yield_pct),
+          tir_objetivo:       s(data.tir_objetivo),
+          horizonte_inv:      s(data.horizonte_inv),
+          estrategia:         s(data.estrategia),
+          ltv:                s(data.ltv),
+          financiacion:       s(data.financiacion),
+          banco:              s(data.banco),
+          tipo_deuda:         s(data.tipo_deuda),
+          vencimiento_deuda:  s(data.vencimiento_deuda),
+        }))
+      })
     return () => { cancel = true }
   }, [params?.id, reloadKey])
   const [usos, setUsos] = useState(['Oficinas','Logístico / Industrial'])
@@ -673,7 +720,7 @@ export default function FichaPropietario() {
                 <div style={{minWidth:0, overflow:'visible'}}>
                   <Section title="Propietario" hint={form.propietario ? 'Datos heredados de la cuenta' : null}>
                     <div className="kf-grid">
-                      <KF label="Propietario (cuenta)">
+                      <KF label="Propietario (cuenta)" required>
                         {form.propietario ? (
                           <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',border:'1px solid var(--accent-bd)',borderRadius:'var(--r)',background:'var(--accent-lt)',width:'100%'}}>
                             <span style={{fontWeight:600,color:'var(--accent)',fontSize:12,flex:1}}>{form.propietario}</span>
@@ -688,7 +735,7 @@ export default function FichaPropietario() {
                               onChange={e => { setPropSearch(e.target.value); setShowPropDD(true) }}
                               onFocus={() => setShowPropDD(true)}
                               onBlur={() => setTimeout(() => setShowPropDD(false), 200)}
-                              style={{ fontStyle: propSearch ? 'normal' : 'italic', width:'100%' }}
+                              style={{ fontStyle: propSearch ? 'normal' : 'italic', width:'100%', borderColor:'var(--red)', boxShadow:'0 0 0 2px rgba(165,80,80,.15)' }}
                             />
                             {showPropDD && propSearch.length >= 2 && (
                               <div style={{position:'absolute',top:'100%',left:0,right:0,minWidth:280,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)',boxShadow:'0 8px 24px rgba(0,0,0,.18)',zIndex:9999,maxHeight:240,overflowY:'auto',marginTop:2}}>
@@ -842,9 +889,11 @@ export default function FichaPropietario() {
                           {['Asset deal','Share deal'].map(o=><option key={o}>{o}</option>)}
                         </select>
                       </KF>
-                      <KF label="Año compra" value={form.anyo_compra} set={(v)=>set('anyo_compra',v)} mono/>
-                      <KF label="Trimestre">
-                        <select className="kf-sel" value={form.trimestre} onChange={e=>set('trimestre',e.target.value)}>
+                      <KF label="Año compra" value={form.anyo_compra} set={(v)=>set('anyo_compra',v)} mono required={!params?.completingUnknown}/>
+                      <KF label="Trimestre" required={!params?.completingUnknown}>
+                        <select className="kf-sel" value={form.trimestre} onChange={e=>set('trimestre',e.target.value)}
+                          style={(!params?.completingUnknown && !form.trimestre) ? {borderColor:'var(--red)', boxShadow:'0 0 0 2px rgba(165,80,80,.15)'} : undefined}>
+                          <option value="">Por completar</option>
                           {['Q1','Q2','Q3','Q4'].map(o=><option key={o}>{o}</option>)}
                         </select>
                       </KF>
@@ -1397,20 +1446,22 @@ function KpiMini({label,value,color}) {
   )
 }
 
-function KF({label,value,set,mono,suffix,extra,children,placeholder='por completar'}) {
+function KF({label,value,set,mono,suffix,extra,children,placeholder='por completar',required}) {
+  const lbl = <div className="rp-lbl">{label}{required && <span style={{color:'var(--red)',marginLeft:3,fontWeight:700}}>*</span>}</div>
   if (children) return (
     <div className="kf">
-      <div className="rp-lbl">{label}</div>
+      {lbl}
       {children}
     </div>
   )
   const empty = !value
+  const errStyle = (required && empty) ? { borderColor:'var(--red)', boxShadow:'0 0 0 2px rgba(165,80,80,.15)' } : {}
   return (
     <div className="kf">
-      <div className="rp-lbl">{label}</div>
+      {lbl}
       {set
         ? <input className="kf-inp" placeholder={placeholder} value={value||''} onChange={e=>set(e.target.value)}
-            style={{ ...(mono?{fontFamily:'var(--mono)'}:{}), ...(empty?{fontStyle:'italic'}:{}) }}/>
+            style={{ ...(mono?{fontFamily:'var(--mono)'}:{}), ...(empty?{fontStyle:'italic'}:{}), ...errStyle }}/>
         : <div className="kf-val" style={{ ...(mono?{fontFamily:'var(--mono)'}:{}), ...(empty?{fontStyle:'italic',color:'var(--text4)'}:{}) }}>
             {value || placeholder}
             {value && suffix && <span style={{fontSize:10,marginLeft:3,color:'var(--text4)'}}>{suffix}</span>}

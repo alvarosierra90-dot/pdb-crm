@@ -361,7 +361,7 @@ export default function PropietariosList() {
           </thead>
           <tbody>
             {result.map(p=>(
-              <tr key={p.id} onClick={()=>navigate('ficha-propietario')} style={{cursor:'pointer'}}>
+              <tr key={p.id} onClick={()=>navigate('ficha-propietario',{ id: p._dbId || p.id })} style={{cursor:'pointer'}}>
                 {visibleCols.map(c=>cell(p)[c.id])}
               </tr>
             ))}
