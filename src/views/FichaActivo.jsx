@@ -21,7 +21,7 @@ import {
   Mail, Phone, Users, FileText, Pencil, CheckSquare,
   MapPin, Search, Upload, Image as ImageIcon, AlertTriangle, ArrowDown, BarChart3, Wallet, ClipboardList,
   Inbox, Clock, FileSpreadsheet, StickyNote, Link2, X as XClose, Download,
-  Folder, Wrench, Target, Compass, Presentation, ScrollText, Tag, UserCheck
+  Folder, Wrench, Target, Compass, Presentation, ScrollText, Tag, UserCheck, Lock
 } from 'lucide-react'
 
 const USO_PREFIX_FA    = { 'Oficinas':'OF', 'Industrial':'IN', 'Logística':'LG', 'Retail High Street':'RT', 'Centro Comercial':'CC', 'Hotel':'HT', 'Residencial':'RS', 'Build to Rent':'BR', 'Build to Sell':'BS', 'Flex Living':'FL', 'Senior Living':'SL', 'Care Homes':'CH', 'Apartamentos Turísticos':'AT', 'Aparcamiento':'AP', 'Trasteros':'TR', 'Data Center':'DC', 'Suelo':'SU' }
@@ -704,6 +704,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   const [editPATotal, setEditPATotal]   = useState('')
   const [editFloorSup, setEditFloorSup]       = useState(null) // floorId — editable only from principal view
   const [editFloorSupVal, setEditFloorSupVal] = useState('')
+  const [supLockWarn, setSupLockWarn]         = useState(null) // {floorId, vars:[]} — superficie bloqueada por asignaciones
   const [hoveredIns, setHoveredIns]           = useState(null)
   const [dropWarning, setDropWarning]         = useState(null) // floorId con aviso activo
 
@@ -1007,8 +1008,37 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
     setEditPA(null); setEditPASup(''); setEditPARenta(''); setEditPATotal('')
   }
 
+  // ¿Qué variables hay asignadas en una planta? La superficie total de la planta
+  // no se puede tocar si tiene propietario, arrendatario u oferta: cambiarla
+  // descuadraría los tramos heredados. Devuelve la lista para el aviso.
+  const floorAssignments = (floorId) => {
+    const out = []
+    const propUnits = (edif.prop||[]).find(r=>r.p===floorId)?.units || []
+    if (propUnits.some(u => u && (u.n || u.prop_id))) out.push('propietario')
+    const arrUnits = (edif.arr||[]).find(r=>r.p===floorId)?.units || []
+    if (arrUnits.some(u => u && u.type==='ten')) out.push('arrendatario')
+    if (arrUnits.some(u => u && u.type==='vac' && u.oferta)) out.push('oferta')
+    return out
+  }
+
+  // Abridor protegido del editor de superficie de planta: si hay asignaciones,
+  // bloquea y avisa (auto-oculta a los 4 s) en vez de abrir el input.
+  const tryEditFloorSup = (floorId, currentSup) => {
+    const vars = floorAssignments(floorId)
+    if (vars.length) {
+      setSupLockWarn({ floorId, vars })
+      setTimeout(() => setSupLockWarn(w => (w && w.floorId === floorId) ? null : w), 4000)
+      return
+    }
+    setSupLockWarn(null)
+    setEditFloorSup(floorId); setEditFloorSupVal(String(currentSup))
+  }
+
   const saveFloorSup = () => {
     if(!editFloorSup) return
+    // Backstop: aunque el editor estuviera abierto, no se guarda si hay asignaciones.
+    const vars = floorAssignments(editFloorSup)
+    if(vars.length){ setSupLockWarn({ floorId: editFloorSup, vars }); setEditFloorSup(null); return }
     const val = parseFloat(editFloorSupVal)
     if(isNaN(val)||val<=0) return
     updBuilding(b=>({...b,
@@ -1356,6 +1386,8 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
               const isTgt = dragTarget===floor.id
               const isSel = selectedFloors.includes(floor.id)
               const hasAdic = floor.adicional.length>0
+              // Superficie bloqueada si la planta tiene propietario/arrendatario/oferta
+              const supLocked = floorAssignments(floor.id).length>0
               // Línea gruesa debajo de PB para separar SR de BR
               const isPB = floor.id === 'PB'
 
@@ -1434,6 +1466,14 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
 
                   {/* Columna central: uso principal + adicionales */}
                   <div className="sp-row-blocks" style={{flexDirection:'column',gap:4,padding:'6px 0',alignItems:'stretch'}}>
+
+                    {/* Aviso: superficie bloqueada porque la planta tiene asignaciones */}
+                    {supLockWarn?.floorId===floor.id && (
+                      <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 9px',background:'#fffbeb',border:'1px solid var(--amber-bd)',borderRadius:6,fontSize:10.5,color:'#92400e',fontWeight:600}} onClick={e=>e.stopPropagation()}>
+                        <AlertTriangle size={12} strokeWidth={1.9}/>
+                        <span>No puedes cambiar la superficie: la planta tiene {supLockWarn.vars.join(', ')}. Retíralo{supLockWarn.vars.length>1?'s':''} antes.</span>
+                      </div>
+                    )}
 
                     {/* Fila 1: barras de uso principal */}
                     <div style={{display:'flex',gap:2,minHeight:barH}}>
@@ -1530,9 +1570,12 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                       </div>
                     ) : (
                       <span
-                        title="Clic para editar superficie total"
-                        onClick={()=>{setEditFloorSup(floor.id);setEditFloorSupVal(String(floor.sup))}}
-                        style={{cursor:'pointer',borderBottom:'1px dotted var(--text4)'}}>
+                        title={supLocked ? 'Superficie bloqueada: la planta tiene propietario, arrendatario u oferta' : 'Clic para editar superficie total'}
+                        onClick={()=>tryEditFloorSup(floor.id, floor.sup)}
+                        style={supLocked
+                          ? {cursor:'not-allowed',color:'var(--text3)',display:'inline-flex',alignItems:'center',gap:3}
+                          : {cursor:'pointer',borderBottom:'1px dotted var(--text4)'}}>
+                        {supLocked && <Lock size={9} strokeWidth={2} style={{opacity:.6}}/>}
                         {floor.sup.toLocaleString('es-ES')} m²
                       </span>
                     )}
@@ -1540,7 +1583,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                   {/* Acciones: ✎ editar sup · + insertar encima · − eliminar */}
                   <div style={{display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:2,padding:'0 4px'}} onClick={e=>e.stopPropagation()}>
                     {[
-                      {icon:'✎', title:'Editar superficie', onClick:()=>{setEditFloorSup(floor.id);setEditFloorSupVal(String(floor.sup))}, hoverBg:'#faf5ec', hoverCol:'var(--accent)', hoverBd:'var(--accent-bd)'},
+                      {icon: supLocked?'🔒':'✎', title: supLocked?'Superficie bloqueada: hay propietario, arrendatario u oferta':'Editar superficie', onClick:()=>tryEditFloorSup(floor.id, floor.sup), hoverBg:'#faf5ec', hoverCol:'var(--accent)', hoverBd:'var(--accent-bd)'},
                       {icon:'+', title:'Insertar planta encima', onClick:()=>insertFloorAt(floorIdx), hoverBg:'#f0fdf4', hoverCol:'#16a34a', hoverBd:'#86efac'},
                       {icon:'−', title:'Eliminar planta', onClick:()=>deleteFloor(floor.id), hoverBg:'#fee2e2', hoverCol:'#dc2626', hoverBd:'#fca5a5'},
                     ].map(({icon,title,onClick,hoverBg,hoverCol,hoverBd})=>(
