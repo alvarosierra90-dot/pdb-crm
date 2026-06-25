@@ -3816,7 +3816,7 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
                 const isSba = m.key === 'sba'
                 return (
                   <InlineField key={m.key} label={`${m.label}${m.unit?` (${m.unit})`:''}`} value={disp}
-                    display={isSba ? <span style={{fontWeight:600,fontFamily:'var(--mono)',color:'var(--pdb-blue)'}}>{has?Number(raw).toLocaleString('es-ES'):'—'}</span> : undefined}
+                    display={isSba ? <span className="kpi-strong">{has?Number(raw).toLocaleString('es-ES'):'—'}{has&&<span style={{fontSize:12,fontWeight:600,marginLeft:4,color:'var(--text4)'}}>m²</span>}</span> : undefined}
                     onSave={()=>setDirty(true)}>
                     <input type="number" value={raw||''} onChange={e=>setI(m.key,e.target.value)} style={{...inp,fontFamily:'var(--mono)'}} placeholder="0" {...(m.unit==='%'?{min:'0',max:'100'}:{})}/>
                   </InlineField>

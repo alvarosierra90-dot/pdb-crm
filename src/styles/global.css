@@ -408,9 +408,11 @@ nav {
 .act-cards .dash-card-head .dash-card-count { background: var(--surface); color: var(--accent); }
 /* Campos: label y valor legibles (antes 10/12px) */
 .act-cards .ir-k { font-size: var(--fs-label) !important; color: var(--text3); }
-.act-cards .ir-v { font-size: var(--fs-value) !important; }
+.act-cards .ir-v { font-size: 15px !important; font-weight: 600; color: var(--text); }
 .act-cards .ir-v input,
-.act-cards .ir-v select { font-size: var(--fs-value) !important; }
+.act-cards .ir-v select { font-size: 15px !important; }
+/* Dato destacado (SBA, KPIs clave): grande y en bronce */
+.act-cards .kpi-strong { font-size: 21px !important; font-weight: 700; line-height: 1.1; color: var(--accent); font-family: var(--mono); font-variant-numeric: tabular-nums; }
 /* Tablas: cabeceras y celdas legibles (antes 9.5/11px) */
 .act-cards table th { font-size: var(--fs-label) !important; }
 .act-cards table td { font-size: var(--fs-body) !important; }
