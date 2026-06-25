@@ -1074,7 +1074,7 @@ function FichaOfertaMock() {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}
-      className={editing ? 'oferta-editing' : 'oferta-viewing'}>
+      className={(editing || activeTab === 'of-stacking') ? 'oferta-editing' : 'oferta-viewing'}>
       {/* Action bar */}
       <div className="action-bar">
         <button className="ab-btn" onClick={() => navigate('ofertas')} style={{ color:'var(--text3)' }}>← Volver</button>
