@@ -1097,6 +1097,14 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   }
 
   const deleteFloor = (floorId) => {
+    // No se borra una planta con propietario/arrendatario/oferta: dejaría esas
+    // variables huérfanas. Mismo aviso que el bloqueo de superficie.
+    const vars = floorAssignments(floorId)
+    if (vars.length) {
+      setSupLockWarn({ floorId, vars })
+      setTimeout(() => setSupLockWarn(w => (w && w.floorId === floorId) ? null : w), 4000)
+      return
+    }
     updBuilding(b => ({
       ...b,
       floors: b.floors.filter(f => f.id !== floorId),
