@@ -106,6 +106,7 @@ export default function HistoricoEdificio({ activoRef, activoNombre = '' }) {
       anyo_compra: p.anyo_compra,
       trimestre: p.trimestre,
       precio_compra: p.precio_compra,
+      observaciones: p.observaciones || null,
       estado,
       motivo:    p.motivo_salida || null,
       color:     PROP_PALETTE[i % PROP_PALETTE.length],
@@ -306,6 +307,9 @@ export default function HistoricoEdificio({ activoRef, activoNombre = '' }) {
                       )}
                       <td style={{padding:'8px 12px',color:'var(--text3)'}}>
                         {r.salida ? isoToDisplay(r.salida) : <span style={{color:'var(--green)',fontWeight:600}}>Activo</span>}
+                        {tab === 'propietarios' && r.salida && r.observaciones && (
+                          <div style={{fontSize:9,color:'var(--text4)',marginTop:2}}>{r.observaciones}</div>
+                        )}
                       </td>
                       <td style={{padding:'8px 12px'}}>
                         <span className={`tag ${

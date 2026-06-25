@@ -833,9 +833,14 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
     const ownerName = unit.n
     const matchesOwner = (u) => (ownerId && u.prop_id) ? u.prop_id === ownerId : u.n === ownerName
 
-    // Nº de plantas que ocupa (para preguntar el alcance solo si ocupa >1).
-    let footprintCount = 0
-    for (const b of buildings) for (const row of (b.prop || [])) if ((row.units || []).some(matchesOwner)) footprintCount++
+    // Nº de plantas que ocupa + superficies (para alcance y para registrar la venta).
+    let footprintCount = 0, ownerSupTotal = 0
+    for (const b of buildings) for (const row of (b.prop || [])) {
+      if (!(row.units || []).some(matchesOwner)) continue
+      footprintCount++
+      for (const u of row.units) if (matchesOwner(u)) ownerSupTotal += Number(u.sup) || 0
+    }
+    const tramoSup = Number(unit.sup) || Number(floor?.principal?.[seg]?.sup) || 0
 
     const DESCONOCIDO = 'Propietario desconocido'
     const doSubstitute = (scope) => setBuildings(prev => prev.map(b => {
@@ -851,7 +856,7 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
 
     // Si el padre maneja la baja (abre el modal de venta), delegamos.
     if (typeof onRemoveOwner === 'function') {
-      onRemoveOwner({ unit, floorId, edifId, idx: seg, footprintCount, doSubstitute })
+      onRemoveOwner({ unit, floorId, edifId, idx: seg, footprintCount, ownerSupTotal, tramoSup, doSubstitute })
       return
     }
     doSubstitute('all')
@@ -5785,8 +5790,8 @@ export default function FichaActivo() {
                     setBajaArr({ unit, doRemove })
                   }
                 }}
-                onRemoveOwner={({ unit, floorId, edifId, footprintCount, doSubstitute }) => {
-                  setSalidaProp({ unit, floorId, edifId, footprintCount, doSubstitute })
+                onRemoveOwner={({ unit, floorId, edifId, footprintCount, ownerSupTotal, tramoSup, doSubstitute }) => {
+                  setSalidaProp({ unit, floorId, edifId, footprintCount, ownerSupTotal, tramoSup, doSubstitute })
                 }}
                 onRemoveOferta={({ unit, floorId, doRemove }) => {
                   setSalidaOfr({ unit, floorId, doRemove })
@@ -7012,6 +7017,8 @@ export default function FichaActivo() {
           floorLabel={salidaProp.floorId}
           edifId={salidaProp.edifId}
           floorId={salidaProp.floorId}
+          ownerSupTotal={salidaProp.ownerSupTotal}
+          tramoSup={salidaProp.tramoSup}
           onClose={() => setSalidaProp(null)}
           onSuccess={({ scope } = {}) => {
             // Sustituye en memoria por «Propietario desconocido» con el alcance

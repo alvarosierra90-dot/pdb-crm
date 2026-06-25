@@ -106,7 +106,11 @@ export default function PropietariosList() {
       // por carga; las siguientes son no-op porque ya no hay refs malos.
       await healRefs('propietarios', 'PRO')
       if (cancel) return
-      const { data: props } = await supabase.from('propietarios').select('*').order('created_at', { ascending: false })
+      // Orden por updated_at desc → lo recién dado de baja/editado sale arriba.
+      // (created_at como desempate para filas nunca tocadas.)
+      const { data: props } = await supabase.from('propietarios').select('*')
+        .order('updated_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
       if (cancel) return
       const list = props || []
       // JOIN manual con activos para enriquecer dirección/zona/área/uso

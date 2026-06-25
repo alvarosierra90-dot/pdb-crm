@@ -25,7 +25,7 @@ import { X, AlertCircle, Search } from 'lucide-react'
  *   onClose:     () => void
  *   onSuccess:   ({ anyo, trimestre, precio, comprador }) => void
  */
-export default function SalidaPropietarioModal({ propietario, onClose, onSuccess, footprintCount = 1, floorLabel = '', edifId = null, floorId = null }) {
+export default function SalidaPropietarioModal({ propietario, onClose, onSuccess, footprintCount = 1, floorLabel = '', edifId = null, floorId = null, tramoSup = 0, ownerSupTotal = 0 }) {
   const [anyoVenta, setAnyoVenta]   = useState(String(new Date().getFullYear()))
   const [trimestre, setTrimestre]   = useState('Q' + (Math.floor(new Date().getMonth()/3)+1))
   const [precio, setPrecio]         = useState('')
@@ -116,22 +116,51 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
         ? 'Comprador desconocido'
         : (comprador?.nombre || 'Comprador desconocido')
 
-      // observaciones: registro breve de la operación de venta.
+      // observaciones: registro legible de la venta (incluye el precio).
       const observacion = `Venta ${trimestre} ${anyoVenta} · ${precioFmt} · ${compradorTexto}`
-      const update = {
+      // updated_at → para que en la lista aparezca arriba lo recién dado de baja.
+      const saleCore = {
         fecha_salida:  fechaAprox,
         motivo_salida: 'Baja',
         estado:        'Vendido',
         observaciones: observacion,
+        updated_at:    new Date().toISOString(),
       }
-      // Solo se marca la fila como Vendida si vende TODA su superficie. En venta
-      // parcial ('one') el propietario sigue siendo dueño del resto → no se toca.
+      const supVendida = scope === 'all' ? (ownerSupTotal || null) : (tramoSup || null)
+
       if (scope === 'all') {
-        const target = supabase.from('propietarios').update(update)
-        const { error: upErr } = await (isUuid(propietario.id)
-          ? target.eq('id', propietario.id)
-          : target.eq('activo_ref', propietario.activo_ref).eq('propietario', propietario.propietario))
-        if (upErr) throw new Error(`Propietario: ${upErr.message}`)
+        // Localiza la fila del propietario; si es legacy (sin fila), la crea para
+        // que la venta quede guardada y salga en la lista + histórico.
+        let rowId = isUuid(propietario.id) ? propietario.id : null
+        if (!rowId && propietario.activo_ref) {
+          const { data: found } = await supabase.from('propietarios')
+            .select('id').eq('activo_ref', propietario.activo_ref).eq('propietario', propietario.propietario).limit(1)
+          rowId = found?.[0]?.id || null
+        }
+        if (rowId) {
+          const { error: upErr } = await supabase.from('propietarios').update(saleCore).eq('id', rowId)
+          if (upErr) throw new Error(`Propietario: ${upErr.message}`)
+        } else {
+          const { error: insErr } = await supabase.from('propietarios').insert({
+            propietario: propietario.propietario,
+            activo_ref:  propietario.activo_ref,
+            activo:      propietario.activo_nombre || null,
+            superficie:  supVendida,
+            ...saleCore,
+          })
+          if (insErr) throw new Error(`Propietario: ${insErr.message}`)
+        }
+      } else {
+        // Venta parcial: el propietario conserva su fila (sigue siendo dueño del
+        // resto). Creamos una fila de histórico para la superficie vendida.
+        const { error: insErr } = await supabase.from('propietarios').insert({
+          propietario: propietario.propietario,
+          activo_ref:  propietario.activo_ref,
+          activo:      propietario.activo_nombre || null,
+          superficie:  supVendida,
+          ...saleCore,
+        })
+        if (insErr) throw new Error(`Propietario: ${insErr.message}`)
       }
 
       await sustituirStackingOrigen()
