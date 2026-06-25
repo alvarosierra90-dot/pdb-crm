@@ -352,8 +352,12 @@ export default function FichaPropietario() {
   const handleSaveFromActivo = async () => {
     setSaveErr('')
     if (!form.propietario.trim()) { setSaveErr('El nombre del propietario es obligatorio'); return }
-    if (!form.anyo_compra) { setSaveErr('El año de compra es obligatorio'); return }
-    if (!form.trimestre)   { setSaveErr('El trimestre es obligatorio'); return }
+    // Al COMPLETAR un «Propietario desconocido» solo exigimos la cuenta: el año y
+    // el trimestre de compra se pueden rellenar luego. En el alta normal sí van.
+    if (!params?.completingUnknown) {
+      if (!form.anyo_compra) { setSaveErr('El año de compra es obligatorio'); return }
+      if (!form.trimestre)   { setSaveErr('El trimestre es obligatorio'); return }
+    }
     setSaving(true)
     const activoRefFinal = params?.fromActivoRef || linkedActivoRef || null
     // Construimos el payload SIN id (la columna es uuid con default gen_random_uuid)
@@ -1061,6 +1065,10 @@ export default function FichaPropietario() {
                         extraOfertas={ofertasActivo}
                         initView="prop"
                         onBuildingsChange={(blds) => {
+                          // No autosaves "eco" del montaje: si es idéntico al de la BD,
+                          // no escribir (evita pisar el stacking del activo al abrir el tab).
+                          const cur = stackingActivo?.stacking_data
+                          if (cur && JSON.stringify(cur) === JSON.stringify(blds)) return
                           clearTimeout(stackingAutoSaveTimer.current)
                           stackingAutoSaveTimer.current = setTimeout(async () => {
                             // 1) Persistir stacking_data del activo
