@@ -842,14 +842,15 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
     }
     const tramoSup = Number(unit.sup) || Number(floor?.principal?.[seg]?.sup) || 0
 
-    const DESCONOCIDO = 'Propietario desconocido'
-    const doSubstitute = (scope) => setBuildings(prev => prev.map(b => {
+    // Sustituye las units del vendedor por la identidad «Propietario desconocido»
+    // (con su id y nombre propios → registro y color distintos por cada baja).
+    const doSubstitute = (scope, descId, descName) => setBuildings(prev => prev.map(b => {
       if (scope === 'one' && b.id !== edifId) return b
       return {
         ...b,
         prop: (b.prop || []).map(row => {
           if (scope === 'one' && row.p !== floorId) return row
-          return { ...row, units: (row.units || []).map(u => matchesOwner(u) ? { ...u, n: DESCONOCIDO, prop_id: null } : u) }
+          return { ...row, units: (row.units || []).map(u => matchesOwner(u) ? { ...u, n: descName || 'Propietario desconocido', prop_id: descId || null } : u) }
         }),
       }
     }))
@@ -1709,12 +1710,14 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                       onMouseLeave={()=>setHoverKey(null)}
                       onClick={() => {
                         if (dragging) return
-                        // "Propietario desconocido" (placeholder de una venta) → abre la
-                        // ficha de propietario en modo "nuevo desde activo": allí se elige
-                        // la cuenta y, al guardar, sustituye sus tramos en el stacking.
-                        if (!o.id && o.name === 'Propietario desconocido') {
+                        // "Propietario desconocido [N]" (placeholder de una venta) → abre
+                        // la ficha de ESE hueco concreto para asignar la cuenta. Al
+                        // guardar, sustituye solo sus tramos en el stacking.
+                        if (o.name && o.name.startsWith('Propietario desconocido')) {
                           spNavigate('ficha-propietario', {
                             completingUnknown: true,
+                            ...(o.id ? { id: o.id } : {}),
+                            unknownName: o.name,
                             ownerSuperficie: m2,
                             fromActivoRef: activoRef,
                             fromActivoNombre: activoNombre,
@@ -7063,10 +7066,11 @@ export default function FichaActivo() {
           ownerSupTotal={salidaProp.ownerSupTotal}
           tramoSup={salidaProp.tramoSup}
           onClose={() => setSalidaProp(null)}
-          onSuccess={({ scope } = {}) => {
-            // Sustituye en memoria por «Propietario desconocido» con el alcance
-            // elegido (la BD ya la actualizó el modal). El autosave persiste.
-            try { salidaProp.doSubstitute(scope || 'all') } catch (e) {}
+          onSuccess={({ scope, desconocidoId, desconocidoName } = {}) => {
+            // Sustituye en memoria por la identidad «Propietario desconocido N»
+            // creada (id+nombre propios). La BD ya la actualizó el modal; el
+            // autosave persiste lo mismo.
+            try { salidaProp.doSubstitute(scope || 'all', desconocidoId, desconocidoName) } catch (e) {}
             // Si vendió TODA su superficie, quita su chip del panel. prop_id puede
             // ser un id sintético LEGACY-… (no uuid) → filtramos por nombre.
             if ((scope || 'all') === 'all') {

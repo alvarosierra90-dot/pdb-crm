@@ -110,7 +110,9 @@ export default function FichaPropietario() {
         setForm(prev => ({
           ...prev,
           id: prev.id,
-          propietario:        data.propietario || data.nombre || '',
+          // Al completar un hueco, la cuenta arranca vacía (buscador), no con el
+          // nombre «Propietario desconocido N» del placeholder.
+          propietario:        params?.completingUnknown ? '' : (data.propietario || data.nombre || ''),
           cif:                s(data.cif),
           tipo_entidad:       s(data.tipo_entidad),
           pais:               s(data.pais),
@@ -471,6 +473,11 @@ export default function FichaPropietario() {
     // activo: sustituimos sus tramos por esta cuenta y volvemos al activo.
     if (params?.completingUnknown && activoRefFinal && savedId) {
       try {
+        // Solo los tramos de ESTE hueco concreto: por su prop_id si la fila ya
+        // existía (params.id), o por nombre si es legacy sin id.
+        const targetId  = params?.id || null
+        const unkName   = params?.unknownName || 'Propietario desconocido'
+        const matches = (u) => targetId ? (u.prop_id === targetId) : (!u.prop_id && u.n === unkName)
         const { data: act } = await supabase.from('activos').select('stacking_data').eq('ref', activoRefFinal).single()
         if (act?.stacking_data) {
           const updated = act.stacking_data.map(b => ({
@@ -478,19 +485,16 @@ export default function FichaPropietario() {
             prop: (b.prop || []).map(rw => ({
               ...rw,
               units: (rw.units || []).map(u =>
-                (!u.prop_id && u.n === 'Propietario desconocido')
-                  ? { ...u, prop_id: savedId, n: form.propietario }
-                  : u),
+                matches(u) ? { ...u, prop_id: savedId, n: form.propietario } : u),
             })),
           }))
           await supabase.from('activos').update({ stacking_data: updated }).eq('ref', activoRefFinal)
         }
-        // El hueco ya tiene comprador real → eliminamos la fila placeholder
-        // «Propietario desconocido» de este activo para que no quede en el listado.
-        await supabase.from('propietarios').delete()
-          .eq('activo_ref', activoRefFinal)
-          .eq('propietario', 'Propietario desconocido')
-          .is('motivo_salida', null)
+        // Si era legacy (sin fila), borramos cualquier placeholder homónimo suelto.
+        if (!targetId) {
+          await supabase.from('propietarios').delete()
+            .eq('activo_ref', activoRefFinal).eq('propietario', unkName).is('motivo_salida', null)
+        }
       } catch (e) { console.error('Completar desconocido:', e) }
       setSaving(false)
       navigate('ficha-activo', { ref: activoRefFinal, tab: 'at-stacking' })

@@ -70,7 +70,7 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
   const DESCONOCIDO = 'Propietario desconocido'
   const matchesOwner = (u) =>
     (propietario.id && u.prop_id) ? u.prop_id === propietario.id : u.n === propietario.propietario
-  const sustituirStackingOrigen = async () => {
+  const sustituirStackingOrigen = async (descId, descName) => {
     if (!propietario.activo_ref) return
     const { data: act } = await supabase
       .from('activos')
@@ -84,7 +84,7 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
       ...b,
       prop: (b.prop || []).map(row =>
         inScope(b, row)
-          ? { ...row, units: (row.units || []).map(u => matchesOwner(u) ? { ...u, n: DESCONOCIDO, prop_id: null } : u) }
+          ? { ...row, units: (row.units || []).map(u => matchesOwner(u) ? { ...u, n: descName, prop_id: descId || null } : u) }
           : row
       ),
     }))
@@ -162,38 +162,38 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
         if (insErr) throw new Error(`Propietario: ${insErr.message}`)
       }
 
-      await sustituirStackingOrigen()
-
-      // El comprador entra como «Propietario desconocido»: creamos (o ampliamos)
-      // su fila para que figure en el listado de propietarios hasta que se
-      // complete con la cuenta real. Una sola fila desconocido por activo.
+      // Cada baja genera un comprador «Propietario desconocido» DISTINTO: su propia
+      // fila (figura en el listado) y su propio prop_id (color propio en el
+      // stacking). Se numeran: el 1º sin sufijo, el 2º «Propietario desconocido 2»…
+      let descId = null, descName = 'Propietario desconocido'
       if (propietario.activo_ref) {
-        const { data: exist } = await supabase.from('propietarios')
-          .select('id, superficie')
-          .eq('activo_ref', propietario.activo_ref)
-          .eq('propietario', 'Propietario desconocido')
-          .is('motivo_salida', null)
-          .limit(1)
-        const addSup = Number(supVendida) || 0
-        if (exist && exist[0]) {
-          await supabase.from('propietarios')
-            .update({ superficie: (Number(exist[0].superficie) || 0) + addSup })
-            .eq('id', exist[0].id)
-        } else {
-          await supabase.from('propietarios').insert({
-            nombre:       'Propietario desconocido',
-            propietario:  'Propietario desconocido',
-            activo_ref:   propietario.activo_ref,
-            activo:       propietario.activo_nombre || null,
-            superficie:   supVendida,
-            anyo_compra:  Number(anyoVenta) || null,
-            trimestre,
-            estado:       'Activo',
-          })
-        }
+        const { data: descRows } = await supabase.from('propietarios')
+          .select('id, propietario').eq('activo_ref', propietario.activo_ref)
+          .like('propietario', 'Propietario desconocido%').is('motivo_salida', null)
+        // Numeración robusta: máx número existente + 1 (sin sufijo = 1) → evita
+        // colisiones aunque se hayan completado/borrado huecos intermedios.
+        const nums = (descRows || []).map(r => {
+          const m = (r.propietario || '').match(/Propietario desconocido(?:\s+(\d+))?$/)
+          return m ? (m[1] ? parseInt(m[1]) : 1) : 0
+        })
+        const next = nums.length ? Math.max(...nums) + 1 : 1
+        descName = next === 1 ? 'Propietario desconocido' : `Propietario desconocido ${next}`
+        const { data: ins } = await supabase.from('propietarios').insert({
+          nombre:      descName,
+          propietario: descName,
+          activo_ref:  propietario.activo_ref,
+          activo:      propietario.activo_nombre || null,
+          superficie:  supVendida,
+          anyo_compra: Number(anyoVenta) || null,
+          trimestre,
+          estado:      'Activo',
+        }).select('id').single()
+        descId = ins?.id || null
       }
 
-      if (onSuccess) onSuccess({ scope, anyo: anyoVenta, trimestre, precio, comprador: comprador?.nombre || null })
+      await sustituirStackingOrigen(descId, descName)
+
+      if (onSuccess) onSuccess({ scope, desconocidoId: descId, desconocidoName: descName, anyo: anyoVenta, trimestre, precio, comprador: comprador?.nombre || null })
     } catch (e) {
       setError(e.message)
     } finally {
