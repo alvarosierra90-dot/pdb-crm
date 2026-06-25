@@ -398,11 +398,11 @@ export default function FichaPropietario() {
       contacto_principal: form.contacto_principal || null,
       observaciones:     form.observaciones || null,
     }
+    let savedId = dbId
     if (dbId) {
       // UPDATE sobre el uuid real de la fila
       const { error } = await supabase.from('propietarios').update(row).eq('id', dbId)
-      setSaving(false)
-      if (error) { setSaveErr(error.message); return }
+      if (error) { setSaving(false); setSaveErr(error.message); return }
     } else {
       // INSERT · generamos ref corto cliente-side (PRO-XXXXXXX)
       // La BD tiene un DEFAULT por secuencia como fallback (migración 032),
@@ -414,10 +414,35 @@ export default function FichaPropietario() {
         .insert({ ...row, ref })
         .select('id, ref')
         .single()
-      setSaving(false)
-      if (error) { setSaveErr(error.message); return }
-      if (data?.id) setDbId(data.id)
+      if (error) { setSaving(false); setSaveErr(error.message); return }
+      if (data?.id) { setDbId(data.id); savedId = data.id }
     }
+
+    // Si venimos a COMPLETAR un «Propietario desconocido» del stacking de un
+    // activo: sustituimos sus tramos por esta cuenta y volvemos al activo.
+    if (params?.completingUnknown && activoRefFinal && savedId) {
+      try {
+        const { data: act } = await supabase.from('activos').select('stacking_data').eq('ref', activoRefFinal).single()
+        if (act?.stacking_data) {
+          const updated = act.stacking_data.map(b => ({
+            ...b,
+            prop: (b.prop || []).map(rw => ({
+              ...rw,
+              units: (rw.units || []).map(u =>
+                (!u.prop_id && u.n === 'Propietario desconocido')
+                  ? { ...u, prop_id: savedId, n: form.propietario }
+                  : u),
+            })),
+          }))
+          await supabase.from('activos').update({ stacking_data: updated }).eq('ref', activoRefFinal)
+        }
+      } catch (e) { console.error('Completar desconocido:', e) }
+      setSaving(false)
+      navigate('ficha-activo', { ref: activoRefFinal, tab: 'at-stacking' })
+      return
+    }
+
+    setSaving(false)
     setSaveOk(true)
     setTimeout(() => setSaveOk(false), 3000)
   }

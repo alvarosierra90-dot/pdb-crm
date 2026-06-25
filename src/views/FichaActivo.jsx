@@ -660,7 +660,7 @@ function SidebarSection({ label, count, open, onToggle, collapsed, dot, actionLa
 // Exportado para que FichaOferta consuma EXACTAMENTE el mismo componente.
 // La regla del usuario: el Stacking Plan debe ser un único componente reutilizable,
 // no varios componentes replicados. (Ver memoria project_stacking_compartido.md)
-export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', activoRef='', activoNombre='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, onRemoveTenant, onRemoveOwner, onRemoveOferta, onCreateOwner, onTenantClick, extraOfertas=[], initView='principal', defaultLabel='', defaultSupPlantaTipo, allowCreate=true, noDataMessage=null }) {
+export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onBuildingsChange, activoPropietario='', activoRef='', activoNombre='', extraOwners=[], extraTenants=[], onAddOwner, onAddTenant, onConvertToTenant, onRemoveTenant, onRemoveOwner, onRemoveOferta, onTenantClick, extraOfertas=[], initView='principal', defaultLabel='', defaultSupPlantaTipo, allowCreate=true, noDataMessage=null }) {
   const { navigate: spNavigate } = useNav()
   const [buildings, setBuildings]       = useState(initBuildings !== undefined ? initBuildings : INIT_BUILDINGS)
   const [edifId, setEdifId]             = useState(initBuildings?.length > 0 ? initBuildings[0].id : 'A')
@@ -705,11 +705,6 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   const [editFloorSup, setEditFloorSup]       = useState(null) // floorId — editable only from principal view
   const [editFloorSupVal, setEditFloorSupVal] = useState('')
   const [supLockWarn, setSupLockWarn]         = useState(null) // {floorId, vars:[]} — superficie bloqueada por asignaciones
-  // Completar «Propietario desconocido» (placeholder de venta) con una cuenta real.
-  const [completeUnknown, setCompleteUnknown] = useState(null) // {name} o null
-  const [cuSearch, setCuSearch]               = useState('')
-  const [cuResults, setCuResults]             = useState([])
-  const [cuSaving, setCuSaving]               = useState(false)
   const [hoveredIns, setHoveredIns]           = useState(null)
   const [dropWarning, setDropWarning]         = useState(null) // floorId con aviso activo
 
@@ -727,47 +722,6 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
       setEdifId(initBuildings[0].id)
     }
   }, [initBuildings])
-
-  // Typeahead de cuentas (Dynamics) para completar «Propietario desconocido».
-  useEffect(() => {
-    if (!completeUnknown || cuSearch.trim().length < 2) { setCuResults([]); return }
-    let cancel = false
-    const t = setTimeout(async () => {
-      const { data = [] } = await supabase
-        .from('dynamics_accounts')
-        .select('dynamics_id, nombre, tipo, sector')
-        .ilike('nombre', `%${cuSearch}%`)
-        .order('nombre').limit(8)
-      if (!cancel) setCuResults(data || [])
-    }, 200)
-    return () => { cancel = true; clearTimeout(t) }
-  }, [cuSearch, completeUnknown])
-
-  // Sustituye TODOS los tramos «Propietario desconocido» por la cuenta elegida.
-  // El padre (onCreateOwner) crea la fila de propietarios y devuelve {id, name};
-  // aquí reescribimos las units y el autosave/sync propaga la superficie.
-  const applyCompleteUnknown = async (account) => {
-    if (!onCreateOwner) { setCompleteUnknown(null); return }
-    setCuSaving(true)
-    try {
-      const created = await onCreateOwner(account)
-      if (created && created.id) {
-        setBuildings(prev => prev.map(b => ({
-          ...b,
-          prop: (b.prop || []).map(row => ({
-            ...row,
-            units: (row.units || []).map(u =>
-              (!u.prop_id && u.n === 'Propietario desconocido')
-                ? { ...u, prop_id: created.id, n: created.name }
-                : u),
-          })),
-        })))
-      }
-    } finally {
-      setCuSaving(false)
-      setCompleteUnknown(null); setCuSearch(''); setCuResults([])
-    }
-  }
 
   const edif = buildings.find(b=>b.id===edifId) || buildings[0] || { id:'', label:'', floors:[], prop:[], arr:[], supPlantaTipo:0 }
   const usoInfo  = (id) => USOS_PPAL.find(u=>u.id===id) || UA_ALL.find(u=>u.id===id) || {label:id,color:'#94a3b8',bg:'#f1f5f9',bd:'#cbd5e1'}
@@ -1755,12 +1709,17 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
                       onMouseLeave={()=>setHoverKey(null)}
                       onClick={() => {
                         if (dragging) return
-                        // "Propietario desconocido" no tiene ficha: es un placeholder de
-                        // una venta. Al pulsarlo se abre el buscador de cuenta y, al
-                        // elegirla, sustituye todos sus tramos de golpe.
+                        // "Propietario desconocido" (placeholder de una venta) → abre la
+                        // ficha de propietario en modo "nuevo desde activo": allí se elige
+                        // la cuenta y, al guardar, sustituye sus tramos en el stacking.
                         if (!o.id && o.name === 'Propietario desconocido') {
-                          if (onCreateOwner) { setCompleteUnknown({ name: o.name }); setCuSearch(''); setCuResults([]) }
-                          else window.alert('«Propietario desconocido» es un hueco de una venta. Asigna el comprador desde la ficha del activo.')
+                          spNavigate('ficha-propietario', {
+                            completingUnknown: true,
+                            ownerSuperficie: m2,
+                            fromActivoRef: activoRef,
+                            fromActivoNombre: activoNombre,
+                            fromActivoTab: 'at-stacking',
+                          })
                           return
                         }
                         spNavigate('ficha-propietario', {
@@ -2440,52 +2399,6 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
         )
       })()}
 
-      {/* ══ MODAL · completar «Propietario desconocido» con una cuenta ══ */}
-      {completeUnknown && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1001}}
-          onClick={()=>{ if(!cuSaving){ setCompleteUnknown(null); setCuSearch(''); setCuResults([]) } }}>
-          <div style={{background:'var(--surface)',borderRadius:'var(--r2)',padding:20,width:'min(440px,100%)',boxShadow:'0 8px 32px rgba(0,0,0,.18)'}}
-            onClick={e=>e.stopPropagation()}>
-            <div style={{fontWeight:700,fontSize:14,marginBottom:4,color:'var(--text)'}}>Asignar comprador</div>
-            <div style={{fontSize:11,color:'var(--text3)',marginBottom:14,lineHeight:1.5}}>
-              Elige la cuenta que sustituirá a <strong>«Propietario desconocido»</strong>. Se asignará a <strong>todos sus tramos</strong> de este activo.
-            </div>
-            <div style={{position:'relative'}}>
-              <Search size={14} strokeWidth={1.75} style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'var(--text4)',pointerEvents:'none'}}/>
-              <input
-                placeholder="Buscar cuenta en la PDB…"
-                value={cuSearch}
-                onChange={e=>setCuSearch(e.target.value)}
-                autoFocus
-                disabled={cuSaving}
-                style={{width:'100%',padding:'8px 10px 8px 32px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',boxSizing:'border-box'}}
-              />
-            </div>
-            {cuResults.length > 0 && (
-              <div style={{border:'1px solid var(--border)',borderRadius:6,marginTop:6,maxHeight:240,overflowY:'auto'}}>
-                {cuResults.map(r => (
-                  <div key={r.dynamics_id} onClick={()=>{ if(!cuSaving) applyCompleteUnknown(r) }}
-                    style={{padding:'9px 12px',cursor:cuSaving?'wait':'pointer',borderBottom:'1px solid var(--border)',fontSize:12}}
-                    onMouseEnter={e=>e.currentTarget.style.background='var(--gray-lt)'}
-                    onMouseLeave={e=>e.currentTarget.style.background=''}>
-                    <div style={{fontWeight:600}}>{r.nombre}</div>
-                    <div style={{fontSize:10,color:'var(--text3)'}}>{[r.tipo, r.sector].filter(Boolean).join(' · ') || 'Cuenta Dynamics'}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {cuSearch.trim().length >= 2 && cuResults.length === 0 && !cuSaving && (
-              <div style={{fontSize:11,color:'var(--text4)',marginTop:8}}>Sin resultados.</div>
-            )}
-            <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:14}}>
-              <button onClick={()=>{ if(!cuSaving){ setCompleteUnknown(null); setCuSearch(''); setCuResults([]) } }}
-                style={{padding:'7px 14px',background:'none',border:'1px solid var(--border)',borderRadius:5,fontSize:11,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>
-                {cuSaving ? 'Asignando…' : 'Cancelar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -4836,34 +4749,6 @@ export default function FichaActivo() {
     setShowAltaPropietario(false)
   }
 
-  // Crea la fila de propietario a partir de una cuenta (para completar un
-  // «Propietario desconocido» desde el stacking). Hereda datos del activo y
-  // devuelve { id, name } para que el stacking reescriba sus units.
-  const handleCreateOwnerFromAccount = async (account) => {
-    if (!account?.nombre) return null
-    const { nextRef } = await import('../lib/nextRef')
-    try {
-      const ref = await nextRef('propietarios', 'PRO')
-      const row = {
-        ref,
-        nombre:       account.nombre,
-        propietario:  account.nombre,
-        activo:       activo?.nombre || activo?.direccion || null,
-        activo_ref:   activo?.ref || params?.ref || null,
-        zona:         activo?.zona || null,
-        subzona:      activo?.subzona || null,
-        area:         activo?.area || null,
-        uso:          activo?.uso || null,
-      }
-      const { data, error } = await supabase.from('propietarios').insert(row).select('id, ref').single()
-      if (error) { console.error('Error creando propietario:', error); alert('No se pudo crear el propietario: ' + error.message); return null }
-      setPropietariosReg(prev => [...prev, {
-        id: data.id, ref: data.ref, propietario: account.nombre, activo_ref: row.activo_ref,
-      }])
-      return { id: data.id, name: account.nombre }
-    } catch (e) { console.error('Exception creando propietario:', e); return null }
-  }
-
   const [showAltaArrendatario, setShowAltaArrendatario] = useState(false)
 
   const handleAddTenant = () => {
@@ -5917,7 +5802,6 @@ export default function FichaActivo() {
                 extraOwners={propietariosReg.map(p=>({ id: p.id, name: p.propietario }))}
                 extraTenants={arrendatariosReg.map(a=>({ ref: a.ref, name: a.tenant, renta: a.closing_rent ?? a.renta_m2 }))}
                 onAddOwner={handleAddOwner}
-                onCreateOwner={handleCreateOwnerFromAccount}
                 onAddTenant={handleAddTenant}
                 onRemoveTenant={({ unit, doRemove }) => {
                   // Si el unit está persistido (arr_ref) y no es legacy/desconocido,
