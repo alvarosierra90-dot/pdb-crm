@@ -295,15 +295,14 @@ function FichaOfertaMock() {
       const { data } = await supabase.from('activos').select('stacking_data').eq('ref', ref).single()
       blds = data?.stacking_data || []
     }
-    const ofrRef = oferta?.ref
-    // Vínculo por ref (estable); nombre como respaldo para units antiguas.
+    // Renombramos SOLO las units de ESTA área (por su nombre actual); el resto de
+    // áreas de la misma oferta no se tocan. oferta_ref se conserva (vínculo a la oferta).
     const updated = blds.map(b => ({
       ...b,
       arr: (b.arr || []).map(r => ({
         ...r,
         units: (r.units || []).map(u =>
-          (u.type === 'vac' && ((ofrRef && u.oferta_ref === ofrRef) || u.oferta === oldName))
-            ? { ...u, oferta: newName } : u),
+          (u.type === 'vac' && u.oferta === oldName) ? { ...u, oferta: newName } : u),
       })),
     }))
     liveBuildings.current = updated
@@ -407,9 +406,22 @@ function FichaOfertaMock() {
   const [showImportMedia, setShowImportMedia] = useState(false)
   const [lastSyncAt, setLastSyncAt] = useState(null)
 
-  function syncImagenesFromActivo() {
-    const sourceMedia = activoSeleccionado?.media || MOCK_MEDIA_ACTIVO
-    if (!sourceMedia || sourceMedia.length === 0) {
+  async function syncImagenesFromActivo() {
+    const aid = activoSeleccionado?.id
+    if (!aid) { alert('Vincula un activo primero para sincronizar sus imágenes.'); return }
+    // Fotos REALES del activo (tabla fotos_activo), no datos de ejemplo.
+    const { data: fotos } = await supabase
+      .from('fotos_activo')
+      .select('id, url, nombre, tipo, orden')
+      .eq('activo_id', aid)
+      .order('orden', { ascending: true })
+    const sourceMedia = (fotos || []).map(f => ({
+      id: f.id,
+      src: f.url,
+      desc: f.nombre || '',
+      tipo: f.tipo === 'Plano' ? 'Plano' : 'Fotografía',
+    }))
+    if (sourceMedia.length === 0) {
       alert('El activo vinculado no tiene imágenes disponibles para sincronizar.')
       return
     }
@@ -1070,15 +1082,11 @@ function FichaOfertaMock() {
         {isMock && <span style={{fontSize:11,color:'var(--amber)',background:'var(--amber-lt)',border:'1px solid var(--amber-bd)',borderRadius:'var(--r)',padding:'3px 8px',marginRight:6}}>Oferta de ejemplo · sólo lectura</span>}
         {/* Modo edición vs vista · cuando NO editas, los selects/inputs se ven como
             texto plano sin flechas. Pulsa "Editar" para modificar. */}
-        {!editing ? (
-          <button className="ab-btn save" onClick={() => setEditing(true)} disabled={isMock}>✎ Editar</button>
-        ) : (
-          <>
-            <button className="ab-btn save" onClick={handleSave} disabled={saving || isMock}>{saving ? 'Guardando...' : '💾 Guardar'}</button>
-            <button className="ab-btn" onClick={() => setEditing(false)} disabled={saving}>Cancelar</button>
-          </>
-        )}
-        <button className="ab-btn" onClick={async () => { try { if (!isMock) await handleSave() } catch(e) {} navigate('ofertas') }}>Guardar y cerrar</button>
+        {!editing
+          ? <button className="ab-btn" onClick={() => setEditing(true)} disabled={isMock}>✎ Editar</button>
+          : <button className="ab-btn" onClick={() => setEditing(false)} disabled={saving}>Cancelar</button>}
+        <button className="ab-btn save" onClick={handleSave} disabled={saving || isMock}>{saving ? 'Guardando...' : '💾 Guardar'}</button>
+        <button className="ab-btn save" onClick={async () => { try { if (!isMock) await handleSave() } catch(e) {} navigate('ofertas') }} disabled={saving || isMock}>💾 Guardar y cerrar</button>
         {saveOk  && <span style={{fontSize:11,color:'var(--green)',marginLeft:8}}>✓ Guardado</span>}
         {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
         <button className="ab-btn">Nuevo</button>
@@ -1688,7 +1696,7 @@ function FichaOfertaMock() {
 
               {/* ── TAB: Stacking plan — mismo layout que FichaActivo ── */}
               {activeTab==='of-stacking' && (
-                <div className="tab-content active">
+                <div className="tab-content active modal-editable">
                   <div className="info-pad">
                     {!activoSeleccionado && !loadingActivo ? (
                       <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'48px 24px',gap:12}}>
@@ -1712,12 +1720,24 @@ function FichaOfertaMock() {
                       initBuildings={liveBuildings.current?.length > 0 ? liveBuildings.current : (activoSeleccionado.stacking_data?.length > 0 ? activoSeleccionado.stacking_data : [])}
                       initView='arr'
                       allowCreate={true}
-                      extraOfertas={allOfertasActivo.map(o => ({
-                        id: o.id,
-                        ref: o.ref,
-                        nombre: o.nombre || o.ref,
-                        tipoOperacion: o.tipo_operacion || 'Alquiler',
-                      }))}
+                      extraOfertas={[
+                        // Áreas (disponibilidades) de ESTA oferta: cada una es un chip
+                        // arrastrable con SU nombre; al colocarla, ese nombre sale en el
+                        // stacking y queda vinculada por el ref de la oferta.
+                        ...ofertasDesglose.map(d => ({
+                          id: d.id,
+                          ref: oferta?.ref,
+                          nombre: d.nombre || oferta?.ref,
+                          tipoOperacion: tipoOperacion || 'Alquiler',
+                        })),
+                        // Otras ofertas del activo (paridad con el panel del activo).
+                        ...allOfertasActivo.filter(o => o.ref !== oferta?.ref).map(o => ({
+                          id: o.id,
+                          ref: o.ref,
+                          nombre: o.nombre || o.ref,
+                          tipoOperacion: o.tipo_operacion || 'Alquiler',
+                        })),
+                      ]}
                       activoPropietario={activoSeleccionado.propietario || ''}
                       extraOwners={propietariosReg.length > 0
                         ? propietariosReg.map(p => ({ id: p.id, name: p.propietario }))
