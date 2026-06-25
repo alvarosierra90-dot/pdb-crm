@@ -2934,7 +2934,7 @@ function FichaOfertaMock() {
       {/* Modal Dar de baja */}
       {showDarBaja && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <div style={{background:'var(--surface)',borderRadius:12,padding:28,width:480,maxWidth:'95vw',maxHeight:'90vh',overflowY:'auto',boxShadow:'0 8px 40px rgba(0,0,0,.25)',display:'flex',flexDirection:'column',gap:16}}>
+          <div className="modal-editable" style={{background:'var(--surface)',borderRadius:12,padding:28,width:480,maxWidth:'95vw',maxHeight:'90vh',overflowY:'auto',boxShadow:'0 8px 40px rgba(0,0,0,.25)',display:'flex',flexDirection:'column',gap:16}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
               <div>
                 <div style={{fontSize:15,fontWeight:700,color:'var(--text1)'}}>Dar de baja oferta</div>

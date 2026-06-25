@@ -245,6 +245,35 @@ nav {
   border-color: transparent !important;
 }
 
+/* EXCEPCIÓN: los modales (p. ej. "Dar de baja") se renderizan DENTRO de la ficha
+   en modo vista, pero sus campos SÍ deben ser editables. Reactivamos el input
+   normal dentro de .modal-editable (gana por ir después y misma especificidad). */
+.modal-editable input[type="text"],
+.modal-editable input[type="number"],
+.modal-editable input[type="date"],
+.modal-editable input[type="email"],
+.modal-editable input[type="tel"],
+.modal-editable input[type="url"],
+.modal-editable select,
+.modal-editable textarea {
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  -moz-appearance: auto !important;
+  pointer-events: auto !important;
+  cursor: auto !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px !important;
+  background: var(--surface) !important;
+  padding: 7px 10px !important;
+  font-weight: 400 !important;
+  color: var(--text) !important;
+}
+.modal-editable input[type="checkbox"],
+.modal-editable input[type="radio"] {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+}
+
 .nav-subhead {
   font-size: 8.5px;
   font-weight: 700;
