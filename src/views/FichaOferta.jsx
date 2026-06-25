@@ -481,15 +481,24 @@ function FichaOfertaMock() {
   // oferta real del activo. Los disps NO se decomponen en el panel — eso vive
   // en la pestaña Desglose. Aquí queremos paridad visual con FichaActivo.
   useEffect(() => {
+    // La oferta ACTUAL siempre debe estar en el panel (chip arrastrable), aunque
+    // su activo_ref aún no haya commit-eado o el activo no esté seleccionado.
+    const actual = oferta?.ref
+      ? [{ id: oferta.id, ref: oferta.ref, nombre: oferta.titulo_web || oferta.ref, tipo_operacion: oferta.tipo_operacion, activa: true }]
+      : []
     const ref = activoSeleccionado?.ref
-    if (!ref) { setAllOfertasActivo([]); return }
-    supabase.from('ofertas').select('id, ref, nombre, tipo_operacion, activa')
+    if (!ref) { setAllOfertasActivo(actual); return }
+    // OJO: `ofertas` NO tiene columna `nombre` (usar titulo_web/ref). Pedir
+    // `nombre` hacía fallar la query -> panel vacío.
+    supabase.from('ofertas').select('id, ref, titulo_web, tipo_operacion, activa')
       .eq('activo_ref', ref)
       .then(({ data }) => {
-        const list = (data || []).filter(o => o.activa !== false)
+        let list = (data || []).filter(o => o.activa !== false)
+          .map(o => ({ id: o.id, ref: o.ref, nombre: o.titulo_web || o.ref, tipo_operacion: o.tipo_operacion, activa: o.activa }))
+        if (oferta?.ref && !list.some(o => o.ref === oferta.ref)) list = [...actual, ...list]
         setAllOfertasActivo(list)
       })
-  }, [activoSeleccionado?.ref])
+  }, [activoSeleccionado?.ref, oferta?.ref])
 
   // Carga propietarios y arrendatarios del activo (mismo flujo que FichaActivo)
   useEffect(() => {
