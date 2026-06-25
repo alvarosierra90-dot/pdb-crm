@@ -54,7 +54,8 @@ export default function ActivosList() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('activos').select('*').order('nombre'),
+      // Lo último modificado primero (updated_at); nombre como desempate.
+      supabase.from('activos').select('*').order('updated_at', { ascending: false, nullsFirst: false }).order('nombre'),
       supabase.from('ofertas').select('activo_ref, superficie_disponible, activa'),
       supabase.from('propietarios').select('activo_ref, precio_compra'),
     ]).then(([actRes, ofRes, propRes]) => {

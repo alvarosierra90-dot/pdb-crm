@@ -3536,6 +3536,8 @@ function TabInfo({ navigate, plazas, activo, nEdificios, onInfoSaved, saveRef, s
       if (normalizeUso(info.uso) === 'Hotel' && info.tipo_hotel) payload.metricas.tipo_hotel = info.tipo_hotel
     }
 
+    // Marca de modificación para que el activo suba al principio del listado.
+    payload.updated_at = new Date().toISOString()
     const { error } = await supabase.from('activos').update(payload).eq('ref', activo.ref)
     setSaving(false)
     if (error) { setSaveErr(error.message || 'Error al guardar'); return }
