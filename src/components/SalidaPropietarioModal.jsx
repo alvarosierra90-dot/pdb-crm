@@ -112,8 +112,8 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
       // Precio opcional: solo se incluye si se ha indicado.
       const precioFmt = (precio && !isNaN(parseFloat(precio))) ? `${Number(precio).toLocaleString('es-ES')} €` : null
       const compradorTexto = desconocido
-        ? 'Comprador desconocido'
-        : (comprador?.nombre || 'Comprador desconocido')
+        ? 'Propietario desconocido'
+        : (comprador?.nombre || 'Propietario desconocido')
 
       // observaciones: registro legible de la venta (incluye el precio si lo hay).
       const observacion = `Venta ${trimestre} ${anyoVenta}${precioFmt ? ` · ${precioFmt}` : ''} · ${compradorTexto}`
@@ -225,7 +225,7 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
         <div style={{padding:'16px 18px',overflowY:'auto',display:'flex',flexDirection:'column',gap:14}}>
 
           <div style={{padding:'10px 12px',background:'#fff7ed',border:'1px solid #fed7aa',borderRadius:6,fontSize:11,color:'#9a3412',lineHeight:1.55}}>
-            Un propietario sale del activo porque <strong>lo ha vendido</strong>. Lo vendido pasa a <strong>«Propietario desconocido»</strong> (la superficie no queda huérfana); el comprador real se completa después desde el panel izquierdo del stacking.
+            Un propietario sale del activo porque <strong>lo ha vendido</strong>. Lo vendido pasa a <strong>«Propietario desconocido»</strong> (la superficie no queda huérfana); el propietario real se completa después desde el panel izquierdo del stacking.
           </div>
 
           {/* Alcance — solo si ocupa más de una planta */}
@@ -268,10 +268,10 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
           {/* Comprador (cuenta) — opcional */}
           <div>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-              {lbl('Comprador (cuenta)', false)}
+              {lbl('Propietario (cuenta)', false)}
               <label style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text3)',cursor:'pointer'}}>
                 <input type="checkbox" checked={desconocido} onChange={e=>{ setDesconocido(e.target.checked); if (e.target.checked) { setComprador(null); setSearch('') } }} style={{accentColor:'var(--accent)'}}/>
-                Comprador desconocido
+                Propietario desconocido
               </label>
             </div>
 
@@ -280,7 +280,7 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
                 <div style={{position:'relative'}}>
                   <Search size={14} strokeWidth={1.75} style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'var(--text4)',pointerEvents:'none'}}/>
                   <input
-                    placeholder="Buscar cuenta del comprador en la PDB…"
+                    placeholder="Buscar cuenta del nuevo propietario en la PDB…"
                     value={search}
                     onChange={e=>setSearch(e.target.value)}
                     style={{...inp,paddingLeft:32}}
@@ -314,7 +314,7 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
 
             {desconocido && (
               <div style={{padding:'10px 12px',background:'#fff7ed',border:'1px solid #fed7aa',borderRadius:6,fontSize:11,color:'#9a3412'}}>
-                La operación se registrará como <strong>comprador desconocido</strong>. Podrás añadir la cuenta más adelante desde el histórico del edificio.
+                La operación se registrará como <strong>propietario desconocido</strong>. Podrás añadir la cuenta más adelante desde el panel del stacking.
               </div>
             )}
           </div>
