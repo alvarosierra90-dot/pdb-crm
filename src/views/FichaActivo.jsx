@@ -4946,7 +4946,7 @@ export default function FichaActivo() {
           .eq('activo_id', activo.id),
         supabase.from('ofertas')
           .select('id', { count: 'exact', head: true })
-          .eq('activo_id', activo.id)
+          .or(`activo_id.eq.${activo.id},activo_ref.eq.${activo.ref}`)
           .neq('estado', 'Retirada'),
       ])
       if (cancelled) return
@@ -4995,7 +4995,7 @@ export default function FichaActivo() {
       const [ofertasRes, altsRes, transRes, mandActsRes] = await Promise.all([
         supabase.from('ofertas')
           .select('id,ref,estado,renta_m2,superficie_disponible,tipo_operacion,created_at')
-          .eq('activo_id', aid).order('created_at', { ascending: false }),
+          .or(`activo_id.eq.${aid},activo_ref.eq.${activo.ref}`).order('created_at', { ascending: false }),
         supabase.from('oferta_demanda')
           .select('demanda_id,estado_alternativa,created_at,demandas(id,ref,nombre,dynamics_account_id,sup_min,sup_max,estado)')
           .eq('activo_id', aid).order('created_at', { ascending: false }),

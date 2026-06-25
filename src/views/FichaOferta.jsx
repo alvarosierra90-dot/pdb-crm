@@ -849,6 +849,7 @@ function FichaOfertaMock() {
       // 1. Update campos básicos — solo columnas seguras que existen siempre
       const { error } = await dbCall(supabase.from('ofertas').update({
         activo_ref:             activoSeleccionado?.ref || null,
+        activo_id:              activoSeleccionado?.id  || null,
         tipo_comercializacion:  tipoComercializacion    || null,
         tipo_operacion:         tipoOperacion           || null,
         estado:                 oferta.estado           || 'En curso',
