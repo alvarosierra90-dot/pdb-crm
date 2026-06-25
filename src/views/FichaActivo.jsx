@@ -817,34 +817,45 @@ export function StackingPlan({ initBuildings, onCountChange, onOwnersChange, onB
   })
 
   const removeOwnerTramo = (floorId, seg) => {
-    // No se puede quitar un propietario si la misma planta tiene oferta o
-    // arrendatario asignados — primero hay que quitarlos.
     const bldNow = buildings.find(b => b.id === edifId)
-    const arrRow = bldNow?.arr?.find(r => r.p === floorId)
-    const blockingUnits = (arrRow?.units || []).filter(u =>
-      u.type === 'ten' || u.type === 'vac' || u.type === 'rt' || u.type === 'pk'
-    )
-    if (blockingUnits.length > 0) {
-      const hasOferta = blockingUnits.some(u => u.type === 'vac')
-      const hasArr    = blockingUnits.some(u => u.type === 'ten')
-      const lbl = hasOferta && hasArr ? 'una oferta y un arrendatario'
-                : hasOferta            ? 'una oferta'
-                : hasArr               ? 'un arrendatario'
-                : 'otra ocupación'
-      window.alert(`No se puede quitar el propietario de la planta ${floorId}: hay ${lbl} asignado. Primero retira lo que está encima y luego podrás quitar el propietario.`)
-      return
-    }
     const floor   = bldNow?.floors?.find(f => f.id === floorId)
     const propRow = bldNow?.prop?.find(r => r.p === floorId)
     const unit = slotsFor(floor?.principal || [], propRow?.units)[seg]
     if (!unit) return
-    const doRemove = () => updBuilding(b => {
-      const f = b.floors.find(fl => fl.id === floorId)
-      const row = (b.prop || []).find(r => r.p === floorId)
-      const slots = slotsFor(f?.principal || [], row?.units); slots[seg] = null
-      const units = slots.map((s, i) => s ? { prop_id: s.prop_id || null, n: s.n, seg: i, sup: f.principal[i].sup } : null).filter(Boolean)
-      return { ...b, prop: (b.prop || []).map(r => r.p !== floorId ? r : { ...r, units }) }
-    })
+
+    // La baja de propietario es POR IDENTIDAD: afecta a TODAS sus plantas (las
+    // que comparten prop_id, o nombre si es legacy sin id), en todos los
+    // edificios del activo. Si ocupa 3 plantas, se desasigna de las 3.
+    const ownerId = unit.prop_id || null
+    const ownerName = unit.n
+    const matchesOwner = (u) => (ownerId && u.prop_id) ? u.prop_id === ownerId : u.n === ownerName
+
+    // No se puede dar de baja si ALGUNA de sus plantas tiene oferta o
+    // arrendatario encima — primero hay que retirarlos.
+    const blockedFloors = []
+    for (const b of buildings) {
+      for (const row of (b.prop || [])) {
+        if (!(row.units || []).some(matchesOwner)) continue
+        const arrRow = (b.arr || []).find(r => r.p === row.p)
+        const blocking = (arrRow?.units || []).filter(u => u.type === 'ten' || (u.type === 'vac' && u.oferta))
+        if (blocking.length) blockedFloors.push(row.p)
+      }
+    }
+    if (blockedFloors.length) {
+      const list = [...new Set(blockedFloors)].join(', ')
+      window.alert(`No se puede dar de baja a ${ownerName}: las plantas ${list} tienen oferta o arrendatario. Retíralos antes de quitar el propietario.`)
+      return
+    }
+
+    // Quita TODAS las unidades del propietario en todos los edificios.
+    const doRemove = () => setBuildings(prev => prev.map(b => ({
+      ...b,
+      prop: (b.prop || []).map(row => ({
+        ...row,
+        units: (row.units || []).filter(u => !matchesOwner(u)),
+      })),
+    })))
+
     // Si el padre maneja la baja (abre el modal de venta), delegamos.
     if (typeof onRemoveOwner === 'function') {
       onRemoveOwner({ unit, floorId, idx: seg, doRemove })
