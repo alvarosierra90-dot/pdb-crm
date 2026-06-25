@@ -29,6 +29,7 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
   const [anyoVenta, setAnyoVenta]   = useState(String(new Date().getFullYear()))
   const [trimestre, setTrimestre]   = useState('Q' + (Math.floor(new Date().getMonth()/3)+1))
   const [precio, setPrecio]         = useState('')
+  const [conocePrecio, setConocePrecio] = useState(false) // ¿se conoce el precio?
   // Alcance de la venta: 'all' (todos sus tramos) | 'one' (solo la planta del aspa).
   // Solo se pregunta cuando ocupa más de una planta.
   const [scope, setScope]           = useState('all')
@@ -259,10 +260,18 @@ export default function SalidaPropietarioModal({ propietario, onClose, onSuccess
             </div>
           </div>
 
-          {/* Precio de venta */}
+          {/* Precio de venta — se pregunta primero si se conoce */}
           <div>
-            {lbl('Precio de venta (€)', false)}
-            <input type="number" value={precio} onChange={e=>setPrecio(e.target.value)} placeholder="Ej. 45000000" style={{...inp,fontFamily:'var(--mono)'}}/>
+            <label style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:12,color:'var(--text2)',cursor:'pointer',fontWeight:600}}>
+              <input type="checkbox" checked={conocePrecio} onChange={e=>{ setConocePrecio(e.target.checked); if(!e.target.checked) setPrecio('') }} style={{accentColor:'var(--accent)'}}/>
+              Conozco el precio de venta
+            </label>
+            {conocePrecio && (
+              <div style={{marginTop:8}}>
+                {lbl('Precio de venta (€)', false)}
+                <input type="number" value={precio} onChange={e=>setPrecio(e.target.value)} placeholder="Ej. 45000000" autoFocus style={{...inp,fontFamily:'var(--mono)'}}/>
+              </div>
+            )}
           </div>
 
           {/* Comprador (cuenta) — opcional */}
