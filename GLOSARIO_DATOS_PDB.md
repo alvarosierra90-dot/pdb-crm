@@ -16,7 +16,7 @@ Cada columna mide una superficie **de una entidad distinta**. Consolidar a un no
 | `activos.sba` | Superficie Bruta Alquilable del **activo** | m² | Dato maestro del activo |
 | `activos.sba_neta` | Superficie neta del activo | m² | Derivable de `sba × (1 − ratio_perdida)` |
 | `ofertas.superficie_disponible` | Superficie disponible de la **oferta** | m² | **Canónica** para oferta |
-| `ofertas.m2_oferta` | *(igual que arriba)* | m² | ⚠️ **DUP REAL** (`010:78`). Código hace `superficie_disponible \|\| m2_oferta`. **A deprecar** |
+| ~~`ofertas.m2_oferta`~~ | *(era igual que arriba)* | m² | ✅ **DEPRECADO** en migración `043` (backfill → drop). Código unificado en `superficie_disponible` |
 | `arrendatarios.superficie` | Superficie del **contrato** de arrendamiento | m² | |
 | `negociaciones.superficie` | Superficie en **negociación** | m² | |
 | `vencimientos.m2` | Superficie del **vencimiento** | m² | Nombre `m2` incoherente con el resto → idealmente `superficie` |
@@ -24,7 +24,7 @@ Cada columna mide una superficie **de una entidad distinta**. Consolidar a un no
 | `demandas.requisitos.sup_min` / `sup_max` (jsonb) | **Rango** buscado por la demanda | m² | Viven dentro del jsonb `requisitos`, no como columnas |
 | `activos.sup_planta_tipo` | Superficie de planta tipo | m² | |
 
-**Único duplicado real:** `ofertas.m2_oferta` ≡ `ofertas.superficie_disponible`.
+**Único duplicado real:** `ofertas.m2_oferta` ≡ `ofertas.superficie_disponible` → **deprecado** (migración 043).
 
 ---
 
@@ -114,7 +114,7 @@ Muchas tablas tienen `DEFAULT` en minúscula/inglés que **divergen** del glosar
 
 ## Acciones derivadas (decisión pendiente)
 
-1. **Deprecar `ofertas.m2_oferta`** (único dup real): backfill a `superficie_disponible` donde falte + retirar el fallback del código + migración que elimine la columna. Riesgo bajo, toca esquema.
+1. ~~**Deprecar `ofertas.m2_oferta`**~~ ✅ **Hecho** (migración 043: backfill + drop; código unificado en `superficie_disponible`).
 2. **`vencimientos.m2` → `superficie`**: renombrar para coherencia (o alias en `.select()`).
 3. **CHECK canónico en `ofertas.estado`** + derivar `ofertas.activa` de `estado` (cierra C5).
 4. **FK reales** para `arrendatarios.propietario_cuenta` / `activos.propietario` (requiere decisión: Cuenta es master Dynamics).

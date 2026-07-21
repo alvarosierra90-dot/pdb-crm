@@ -31,7 +31,7 @@ export default function MatchingOfertasModal({ demanda, yaAnadidas = [], onClose
       setLoading(true)
       const { data: ofs } = await supabase
         .from('ofertas')
-        .select('id, ref, nombre:titulo_web, tipo_operacion, tipologia, estado, activa, superficie_disponible, m2_oferta, renta_m2, activo_id, activo_ref')
+        .select('id, ref, nombre:titulo_web, tipo_operacion, tipologia, estado, activa, superficie_disponible, renta_m2, activo_id, activo_ref')
         .order('created_at', { ascending: false })
       const CERRADAS = new Set(['Cerrada', 'Desactivada', 'Perdida', 'Retirada'])
       // Excluir cerradas por estado Y las dadas de baja (activa=false): una oferta
@@ -82,7 +82,7 @@ export default function MatchingOfertasModal({ demanda, yaAnadidas = [], onClose
   // Clasifica una oferta: { overall, supCat, zCat, rentaCat, usoOK, sup, renta }
   const score = (o) => {
     const act = o.activos
-    const sup = Number(o.superficie_disponible || o.m2_oferta || act?.sba || 0)
+    const sup = Number(o.superficie_disponible || act?.sba || 0)
     let supCat = 'na'
     if (supMin || supMax) {
       const lo = supMin || 0, hi = supMax || Infinity

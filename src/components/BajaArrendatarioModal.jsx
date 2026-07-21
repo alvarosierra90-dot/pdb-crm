@@ -133,7 +133,6 @@ export default function BajaArrendatarioModal({ arrendatario, activo, onClose, o
         tipologia:             act.uso || 'Oficinas',
         estado:                'En curso',
         superficie_disponible: sup,
-        m2_oferta:             sup,
         fecha_disponibilidad:  fechaSalida,
         tipo_comercializacion: 'Mandato Savills',
         comentarios:           `Oferta generada al dar de baja al arrendatario ${arr.nombre}. Disponibilidad: ${fmtFecha(fechaSalida)}.`,
