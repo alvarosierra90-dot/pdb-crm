@@ -181,7 +181,7 @@ export default function VencimientosView() {
     //    caliente vs frío.
     Promise.all([
       supabase.from('arrendatarios')
-        .select('ref,nombre,activo_ref,break_option,vencimiento,m2,estado_arr,tenant_desconocido')
+        .select('ref,nombre,activo_ref,break_option,vencimiento,m2:superficie,estado_arr,tenant_desconocido')
         .or('break_option.not.is.null,vencimiento.not.is.null')
         .or('estado_arr.is.null,estado_arr.neq.Finalizado')
         .order('vencimiento', { nullsFirst: false }),

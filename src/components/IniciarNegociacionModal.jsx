@@ -175,7 +175,7 @@ export default function IniciarNegociacionModal({ demanda, onClose, onSuccess })
 
       // 5) Actividad de auditoría · negociación iniciada
       await supabase.from('actividades').insert({
-        tipo: 'Nota',
+        tipo: 'nota',
         asunto: `Negociación ${ref} creada desde demanda ${demanda.ref}`,
         descripcion: `Estado de la demanda movido a 'En negociación'. Negociación sincronizada con cuenta, oportunidad${mandato?' + mandato':''}${oferta?' + oferta':''}${activo?' + activo':''}.`,
         fecha: new Date().toISOString(),

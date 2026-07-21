@@ -912,7 +912,7 @@ export default function FichaArrendatario() {
                     label:'Oferta cerrada',
                     value: params?.fromOfertaRef || null,
                     sub: null,
-                    onClick: params?.fromOfertaRef ? () => navigate('ficha-oferta', { ref: params.fromOfertaRef }) : null,
+                    onClick: params?.fromOfertaRef ? () => navigate('ficha-oferta', { ofertaRef: params.fromOfertaRef }) : null,
                   },
                 ]} />
               </div>

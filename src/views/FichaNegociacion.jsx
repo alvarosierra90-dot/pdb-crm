@@ -308,6 +308,13 @@ export default function FichaNegociacion() {
         <button className="ab-btn" onClick={() => setShowTarea(true)}>✅ Asignar tarea</button>
       </div>
 
+      {!neg && (
+        <div style={{ margin:'8px 16px 0', padding:'8px 12px', background:'#fef3c7', border:'1px solid #fcd34d', borderRadius:8, fontSize:11.5, color:'#92400e', display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ fontSize:13 }}>⚠️</span>
+          <span><strong>Datos de ejemplo.</strong> No se ha encontrado una negociación real para este enlace (se esperaba una ref <code>NEG-XXXXXXX</code>). La ficha muestra el caso demo NEG-0044 a modo ilustrativo.</span>
+        </div>
+      )}
+
       {/* Funnel tracker · hilo conductor entre fases */}
       <FunnelTracker steps={[
         { key:'opo', label:'Oportunidad', ref: funnel.opo,

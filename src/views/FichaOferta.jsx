@@ -161,7 +161,7 @@ function FichaOfertaMock() {
     ;(async () => {
       const { data: alts } = await supabase
         .from('oferta_demanda')
-        .select('demanda_id, estado_alternativa, created_at, demandas(id, ref, nombre, dynamics_account_id, sup_min, sup_max, estado)')
+        .select('demanda_id, estado_alternativa, created_at, demandas(id, ref, nombre, dynamics_account_id, requisitos, estatus)')
         .eq('oferta_id', oferta.id)
         .order('created_at', { ascending:false })
       if (cancel) return
@@ -170,7 +170,7 @@ function FichaOfertaMock() {
         const d = a.demandas
         if (!d || seen.has(d.id)) continue
         seen.add(d.id)
-        demandas.push({ ...d, estado_alternativa: a.estado_alternativa, fecha: a.created_at })
+        demandas.push({ ...d, sup_min: d.requisitos?.sup_min, sup_max: d.requisitos?.sup_max, estado: d.estatus, estado_alternativa: a.estado_alternativa, fecha: a.created_at })
         if (d.dynamics_account_id) accIds.add(d.dynamics_account_id)
       }
       let cuentas = []
@@ -850,7 +850,16 @@ function FichaOfertaMock() {
       const rentaTotal = espaciosComercializables.reduce((s, e) => s + (e.renta || 0) * (e.sup || 0), 0)
       const rentaM2 = supDisp > 0 ? Math.round((rentaTotal / supDisp) * 100) / 100 : null
 
-      // 1. Update campos básicos — solo columnas seguras que existen siempre
+      // Colaboradores: si hay uno asociado vía lupa sustituye el array (modelo
+      // nuevo); si no, conserva el array legacy.
+      const colaboradoresVal = colaboradorAsociado
+        ? [{ dynamics_id: colaboradorAsociado.dynamics_id, nombre: colaboradorAsociado.nombre, tipo: colaboradorAsociado.tipo, sector: colaboradorAsociado.sector }]
+        : colaboradores
+
+      // Update único y atómico con TODAS las columnas reales de la oferta.
+      // (Antes había un segundo update con gastos_medios/ibi_medio, columnas que
+      // no existen en la tabla: fallaba con 400 y arrastraba en silencio la
+      // pérdida de tipología, estado del espacio, equipo y colaboradores.)
       const { error } = await dbCall(supabase.from('ofertas').update({
         activo_ref:             activoSeleccionado?.ref || null,
         activo_id:              activoSeleccionado?.id  || null,
@@ -859,43 +868,16 @@ function FichaOfertaMock() {
         estado:                 oferta.estado           || 'En curso',
         superficie_disponible:  supDisp || null,
         renta_m2:               rentaM2,
-        // Gastos comunes / IBI: persistir el valor que el broker rellenó.
-        // Sin esto, la columna gastos_comunes en la BD queda NULL y la lista
-        // de Ofertas no muestra los gastos pese a haberlos rellenado en ficha.
         gastos_comunes:         parseFloat(gastosComunes) || null,
+        tipologia:              tipologia        || null,
+        estado_espacio:         estadoEspacio    || null,
+        origen_oferta:          origenOferta     || null,
+        modalidad_visita:       modalidadVisita  || null,
+        confidencial:           confidential,
+        equipo:                 equipoMembers,
+        colaboradores:          colaboradoresVal,
       }).eq('ref', oferta.ref))
       if (error) { setSaveErr(error.message); return }
-
-      // 2. Intentar guardar columnas opcionales (pueden no existir aún en la tabla)
-      // Compute gastos_medios / ibi_medio for the list view
-      let gNum=0, gDen=0
-      ofertasDesglose.forEach(o => {
-        if (o.cargasM2 > 0) {
-          const asSup = espaciosComercializables.filter(e => e.ofertaNombre===o.nombre).reduce((s,e)=>s+e.sup,0)
-          if (asSup > 0) { gNum += o.cargasM2*asSup; gDen += asSup } else { gNum += o.cargasM2; gDen += 1 }
-        }
-      })
-      const gastosMedios = gDen > 0 ? Math.round(gNum/gDen*100)/100 : null
-      let iNum=0, iDen=0
-      ofertasDesglose.forEach(o => { if (o.ibiM2 > 0) { iNum += o.ibiM2; iDen += 1 } })
-      const ibiMedio = iDen > 0 ? Math.round(iNum/iDen*100)/100 : null
-
-      await dbCall(supabase.from('ofertas').update({
-        tipologia:        tipologia        || null,
-        estado_espacio:   estadoEspacio    || null,
-        origen_oferta:    origenOferta     || null,
-        modalidad_visita: modalidadVisita  || null,
-        confidencial:     confidential,
-        equipo:           equipoMembers,
-        // Si hay colaborador asociado vía lupa, sustituye el array (modelo nuevo).
-        // Si no, conserva el array legacy.
-        colaboradores: colaboradorAsociado
-          ? [{ dynamics_id: colaboradorAsociado.dynamics_id, nombre: colaboradorAsociado.nombre, tipo: colaboradorAsociado.tipo, sector: colaboradorAsociado.sector }]
-          : colaboradores,
-        gastos_medios:    gastosMedios,
-        ibi_medio:        ibiMedio,
-      }).eq('ref', oferta.ref)).catch(() => {})
-      // Ignorar error aquí — columnas opcionales
 
       // 3. Reload oferta para obtener id UUID actualizado
       const { data: refreshed } = await dbCall(supabase.from('ofertas').select('*').eq('ref', oferta.ref).single())

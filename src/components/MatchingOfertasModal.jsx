@@ -31,10 +31,12 @@ export default function MatchingOfertasModal({ demanda, yaAnadidas = [], onClose
       setLoading(true)
       const { data: ofs } = await supabase
         .from('ofertas')
-        .select('id, ref, nombre, tipo_operacion, tipologia, estado, superficie_disponible, m2_oferta, renta_m2, activo_id, activo_ref')
+        .select('id, ref, nombre:titulo_web, tipo_operacion, tipologia, estado, activa, superficie_disponible, m2_oferta, renta_m2, activo_id, activo_ref')
         .order('created_at', { ascending: false })
       const CERRADAS = new Set(['Cerrada', 'Desactivada', 'Perdida', 'Retirada'])
-      const lista = (ofs || []).filter(o => !CERRADAS.has(o.estado))
+      // Excluir cerradas por estado Y las dadas de baja (activa=false): una oferta
+      // retirada no debe reaparecer en el matching como alternativa "Cumple".
+      const lista = (ofs || []).filter(o => o.activa !== false && !CERRADAS.has(o.estado))
       // Join cliente-side con activos (por id o ref) para zona/uso/sba.
       const ids = [...new Set(lista.map(o => o.activo_id).filter(Boolean))]
       const refs = [...new Set(lista.map(o => o.activo_ref).filter(Boolean))]
@@ -55,22 +57,27 @@ export default function MatchingOfertasModal({ demanda, yaAnadidas = [], onClose
     return () => { cancel = true }
   }, [])
 
+  // Los criterios de la demanda (superficie, zona, uso, presupuesto) viven en el
+  // jsonb `requisitos`. Algunos flujos antiguos los pasan planos; fusionamos para
+  // leer de ambos. Sin esto el matching corría SIN criterios (todo "flexible").
+  const req = useMemo(() => ({ ...(demanda || {}), ...(demanda?.requisitos || {}) }), [demanda])
+
   // Tokens de zona/provincia de la demanda para el match geográfico.
   const zonaTokens = useMemo(() => {
     const t = []
-    ;(demanda?.zonas || []).forEach(z => {
+    ;(req?.zonas || []).forEach(z => {
       if (typeof z === 'string') t.push(z)
       else if (z) t.push(z.subzona, z.area, z.zona, z.eje, z.nombre)
     })
-    ;(demanda?.provincias || []).forEach(p => t.push(typeof p === 'string' ? p : p?.nombre))
+    ;(req?.provincias || []).forEach(p => t.push(typeof p === 'string' ? p : p?.nombre))
     return t.filter(Boolean).map(s => String(s).toLowerCase().trim()).filter(Boolean)
-  }, [demanda])
+  }, [req])
 
-  const supMin = Number(demanda?.sup_min) || 0
-  const supMax = Number(demanda?.sup_max) || 0
-  const alqMin = Number(demanda?.alq_min) || 0
-  const alqMax = Number(demanda?.alq_max) || 0
-  const tienePresupuesto = (demanda?.presupuesto_tipo === 'Alquiler') || alqMin > 0 || alqMax > 0
+  const supMin = Number(req?.sup_min ?? req?.m2_min) || 0
+  const supMax = Number(req?.sup_max ?? req?.m2_max) || 0
+  const alqMin = Number(req?.alq_min) || 0
+  const alqMax = Number(req?.alq_max) || 0
+  const tienePresupuesto = (req?.presupuesto_tipo === 'Alquiler') || alqMin > 0 || alqMax > 0
 
   // Clasifica una oferta: { overall, supCat, zCat, rentaCat, usoOK, sup, renta }
   const score = (o) => {
@@ -88,7 +95,7 @@ export default function MatchingOfertasModal({ demanda, yaAnadidas = [], onClose
       const hay = [act?.zona, act?.subzona, act?.ciudad].filter(Boolean).map(s => String(s).toLowerCase())
       zCat = hay.some(h => zonaTokens.some(t => h.includes(t) || t.includes(h))) ? 'cumple' : 'no'
     }
-    const usoOK = !demanda?.uso_principal || !act?.uso || act.uso === demanda.uso_principal
+    const usoOK = !req?.uso_principal || !act?.uso || act.uso === req.uso_principal
     let rentaCat = 'na'
     if (tienePresupuesto) {
       const r = Number(o.renta_m2) || 0
@@ -130,6 +137,10 @@ export default function MatchingOfertasModal({ demanda, yaAnadidas = [], onClose
 
   const addAlternativa = async (o, s) => {
     if (added.has(o.id)) return
+    // oferta_demanda.activo_id es NOT NULL: sin activo vinculado el insert falla
+    // en BD. Avisar en vez de dejar que reviente silenciosamente.
+    const activoId = o.activo_id || o.activos?.id || null
+    if (!activoId) { window.alert('Esta oferta no tiene un activo vinculado; no se puede añadir como alternativa.'); return }
     setAdding(o.id)
     const condiciones = {
       renta_m2: s.renta || null,
@@ -141,7 +152,7 @@ export default function MatchingOfertasModal({ demanda, yaAnadidas = [], onClose
     const { error } = await supabase.from('oferta_demanda').insert({
       demanda_id: demanda.id,
       oferta_id: o.id,
-      activo_id: o.activo_id || o.activos?.id || null,
+      activo_id: activoId,
       estado_alternativa: 'propuesta',
       condiciones_negociadas: condiciones,
     })
@@ -220,7 +231,7 @@ export default function MatchingOfertasModal({ demanda, yaAnadidas = [], onClose
           <div>
             <div style={{ fontSize: 14, fontWeight: 700 }}>Matching con el pool de ofertas</div>
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
-              {demanda?.uso_principal || 'Uso —'}
+              {req.uso_principal || 'Uso —'}
               {(supMin || supMax) ? ` · ${supMin.toLocaleString('es-ES')}–${supMax.toLocaleString('es-ES')} m²` : ''}
               {tienePresupuesto && (alqMin || alqMax) ? ` · ${alqMin || '—'}–${alqMax || '—'} €/m²/mes` : ''}
               {zonaTokens.length ? ` · ${zonaTokens.slice(0, 3).join(', ')}` : ''}

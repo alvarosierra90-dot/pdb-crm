@@ -163,8 +163,8 @@ export default function DossierGenerator() {
     if (isOferta) {
       const { data } = await supabase
         .from('ofertas')
-        .select('id, ref, nombre, titulo_web, tipo_operacion, estado, superficie_disponible, renta_m2, tipologia, activo_id, activo_ref')
-        .or(`nombre.ilike.%${term}%,ref.ilike.%${term}%,titulo_web.ilike.%${term}%`)
+        .select('id, ref, titulo_web, tipo_operacion, estado, superficie_disponible, renta_m2, tipologia, activo_id, activo_ref')
+        .or(`ref.ilike.%${term}%,titulo_web.ilike.%${term}%`)
         .order('ref').limit(8)
       setPdbResults((data || []).map(o => ({
         id: o.id, kind: 'oferta', ref: o.ref,
@@ -268,14 +268,12 @@ export default function DossierGenerator() {
       const totalDisp = vac.reduce((s, e) => s + e.sup, 0) || Number(o.superficie_disponible) || 0
       const modules = vac.map(e => e.sup).filter(s => s > 0)
       let desg = []
-      try { const { data } = await supabase.from('desglose_ofertas').select('divisible, sup_min').eq('oferta_id', o.id); desg = data || [] } catch { desg = [] }
+      try { const { data } = await supabase.from('desglose_ofertas').select('divisible').eq('oferta_id', o.id); desg = data || [] } catch { desg = [] }
       const divisible = desg.some(d => d.divisible) || modules.length > 1
-      const desgMins = desg.filter(d => d.divisible && Number(d.sup_min) > 0).map(d => Number(d.sup_min))
+      // desglose_ofertas no almacena superficie mínima por tramo; si la oferta
+      // es divisible, la mínima alquilable es el menor módulo del stacking.
       let supMin = totalDisp
-      if (divisible) {
-        if (desgMins.length) supMin = Math.min(...desgMins)
-        else if (modules.length) supMin = Math.min(...modules)
-      }
+      if (divisible && modules.length) supMin = Math.min(...modules)
 
       setDraft(d => ({
         ...d,

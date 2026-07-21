@@ -560,7 +560,7 @@ function InformeLinea({ linea, navigate }) {
 
   useEffect(() => {
     supabase.from('arrendatarios')
-      .select('ref,nombre,activo_ref,inicio,fecha_fin,m2,closing_rent,anio_firma,trimestre')
+      .select('ref,nombre,activo_ref,inicio,fecha_fin:vencimiento,m2:superficie,closing_rent,anio_firma:anyo_firma,trimestre')
       .then(({ data }) => {
         if (data?.length > 0) {
           const mapped = arrendatariosToInforme(data)

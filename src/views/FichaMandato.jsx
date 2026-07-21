@@ -8,7 +8,11 @@ import FichaMandatoSupabase from './FichaMandatoSupabase'
 export default function FichaMandato() {
   const { params, navigate } = useNav()
 
-  if (!params?.id) {
+  // Aceptar tanto { id } como { ref }: muchos enlaces (Demanda, Lead, Negociación,
+  // Oferta, Oportunidad, Propuesta) navegan con { ref }. FichaMandatoSupabase
+  // resuelve por ref o id indistintamente.
+  const idOrRef = params?.id || params?.ref
+  if (!idOrRef) {
     return (
       <div style={{ padding:32, maxWidth:560 }}>
         <div style={{ fontSize:14, fontWeight:700, marginBottom:8 }}>Mandato no especificado</div>
@@ -27,5 +31,5 @@ export default function FichaMandato() {
     )
   }
 
-  return <FichaMandatoSupabase refOrId={params.id} />
+  return <FichaMandatoSupabase refOrId={idOrRef} />
 }

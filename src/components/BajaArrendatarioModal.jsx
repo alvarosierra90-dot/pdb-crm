@@ -123,6 +123,9 @@ export default function BajaArrendatarioModal({ arrendatario, activo, onClose, o
       const payload = {
         ref:                   newRef,
         activo_id:             act.id,
+        // Guardar también activo_ref: el listado de Ofertas resuelve el activo
+        // por ref; sin esto la oferta aparece como "Pendiente Activo".
+        activo_ref:            act.ref,
         dynamics_account_id:   act.dynamics_account_id,
         portfolio_id:          act.portfolio_id,
         tipo_operacion:        tipoOp,

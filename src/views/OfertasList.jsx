@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase'
 import { OFERTAS as MOCK_OFERTAS } from '../data/mockData'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import { formatRef } from '../lib/formatRef'
-import { healRefs } from '../lib/healRefs'
 import { Download, SlidersHorizontal, AlertTriangle } from 'lucide-react'
 
 const estadoTag = { 'En revisión': 'tag-amber', 'Negociando': 'tag-purple', 'Pre-acuerdo': 'tag-green', 'En curso': 'tag-blue', 'Disponible': 'tag-green', 'En negociación': 'tag-amber', 'Cerrada': 'tag-gray', 'Finalista': 'tag-green' }
@@ -53,8 +52,9 @@ export default function OfertasList() {
   const [vista, setVista] = useState('activas') // 'activas' | 'desactivadas'
 
   useEffect(() => {
-    // Auto-limpia refs legacy/UUIDs en ofertas a OFR-NNNNNNN
-    healRefs('ofertas', 'OFR').finally(() => {
+    // Nota: NO se auto-renombran refs de ofertas. El vínculo oferta↔stacking
+    // (activos.stacking_data) y arrendatarios.oferta_origen son POR REF; renombrar
+    // aquí dejaría esos vínculos huérfanos. Los refs se fijan al crear la oferta.
     Promise.all([
       supabase.from('ofertas').select('*').order('created_at', { ascending: false }),
       supabase.from('activos').select('ref, nombre, direccion, zona, subzona, ciudad'),
@@ -75,8 +75,8 @@ export default function OfertasList() {
             subzona:    act?.subzona  || '—',
             m2:         o.superficie_disponible || 0,
             renta:      o.renta_m2 ? `${o.renta_m2} €/m²/mes` : '—',
-            gastos:     o.gastos_comunes ?? o.gastos_medios ?? null,
-            ibi:        o.ibi_medio ?? null,
+            gastos:     o.gastos_comunes ?? null,
+            ibi:        null, // 'ofertas' no tiene columna de IBI
             tipo:       o.tipo_operacion || '—',
             origen:     o.origen_oferta  || '—',
             estado:     o.estado         || '—',
@@ -86,7 +86,6 @@ export default function OfertasList() {
       }
       setLoading(false)
     }).catch(() => setLoading(false))
-    })
   }, [])
 
   const [creando, setCreando] = useState(false)

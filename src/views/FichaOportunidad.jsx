@@ -395,7 +395,7 @@ export default function FichaOportunidad() {
                       titulo={ref}
                       subtitulo="Click para abrir ficha de la demanda"
                       color="#6b5b8e" bg="#faf5ff" borderColor="#ddd6fe"
-                      onClick={() => navigate('ficha-demanda', { ref })}
+                      onClick={() => navigate('ficha-demanda', { id: ref })}
                     />
                   ))}
                 </Seccion>
