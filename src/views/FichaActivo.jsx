@@ -5088,7 +5088,7 @@ export default function FichaActivo() {
         safeCount(supabase.from('negociaciones').select('id', { count:'exact', head:true })
           .eq('activo_id', cid).in('estado', ['Firmado','Cerrada','Cerrado']).gte('cierre_estimado', cutoffISO)),
         safeCount(supabase.from('arrendatarios').select('id', { count:'exact', head:true }).eq('activo_ref', cref)),
-        safeCount(supabase.from('propietarios').select('id', { count:'exact', head:true }).eq('activo_ref', cref)),
+        safeCount(supabase.from('propietarios').select('id', { count:'exact', head:true }).eq('activo_id', cid)),
         safeFoto(),
       ])
       return {

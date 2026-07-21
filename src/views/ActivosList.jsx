@@ -58,7 +58,7 @@ export default function ActivosList() {
       // Lo último modificado primero (updated_at); nombre como desempate.
       supabase.from('activos').select('*').order('updated_at', { ascending: false, nullsFirst: false }).order('nombre'),
       supabase.from('ofertas').select('activo_ref, superficie_disponible, activa'),
-      supabase.from('propietarios').select('activo_ref, precio_compra'),
+      supabase.from('propietarios').select('activo_ref, activo_id, precio_compra'),
     ]).then(([actRes, ofRes, propRes]) => {
       const activosData = actRes.data || []
       const ofertasData = ofRes.data || []
@@ -71,13 +71,15 @@ export default function ActivosList() {
         if (!k) continue
         dispByActivo[k] = (dispByActivo[k] || 0) + (Number(o.superficie_disponible) || 0)
       }
-      // Mapa activo_ref → precio_compra (del propietario asignado en stacking).
-      // Si hay co-propiedad concatenamos con ' · '.
-      const precioByActivo = {}
+      // Mapa activo → precio_compra (del propietario asignado en stacking).
+      // Preferimos activo_id (robusto, FK migración 042); caemos a activo_ref
+      // para filas cuyo id aún no se resolvió. Co-propiedad → concatena con ' · '.
+      const precioById = {}, precioByRef = {}
+      const addPrecio = (map, k, v) => { map[k] = map[k] ? `${map[k]} · ${v}` : String(v) }
       for (const p of propData) {
-        if (!p.activo_ref || p.precio_compra == null || p.precio_compra === '') continue
-        const cur = precioByActivo[p.activo_ref]
-        precioByActivo[p.activo_ref] = cur ? `${cur} · ${p.precio_compra}` : String(p.precio_compra)
+        if (p.precio_compra == null || p.precio_compra === '') continue
+        if (p.activo_id)       addPrecio(precioById,  p.activo_id,  p.precio_compra)
+        else if (p.activo_ref) addPrecio(precioByRef, p.activo_ref, p.precio_compra)
       }
       if (!actRes.error) {
         const mapped = activosData.map(a => {
@@ -104,7 +106,7 @@ export default function ActivosList() {
             sba,
             occ,
             renta:  a.renta_zona     || 0,
-            valor:  precioByActivo[a.ref] || a.valor || '—',
+            valor:  precioById[a.id] || precioByRef[a.ref] || a.valor || '—',
             estado: a.estado || '',
             dias:   a.dias_comercializacion || 0,
             uso_secundario: a.uso_secundario || '',
