@@ -2810,3 +2810,118 @@ tr:hover .ra-cell { opacity: 1; }
   font-style: italic;
   margin-left: auto;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   SKIN "AZUL / BLANCO LIMPIO" · scopeada SOLO a la vista Activos
+   (contenedor con class .act-sky). No cambia ninguna funcionalidad:
+   re-viste KPIs, tabla, chips y acentos. Reversible quitando la clase.
+   ═══════════════════════════════════════════════════════════════ */
+.act-sky {
+  /* Acento bronce → azul profundo (no eléctrico, no parece hipervínculo) */
+  --accent:#1e40af; --accent-lt:#eef3fc; --accent-bd:#c6d6f2;
+  --bronze:#1e40af; --bronze-dark:#17307d; --bronze-light:#c6d6f2; --bronze-pale:#eef3fc;
+  --border:#e7ecf3; --border2:#dbe3ee; --gray-lt:#f4f7fb;
+  background:#f4f7fb;
+}
+
+/* KPI strip → tarjetas blancas separadas, con aire (adiós divisores y beige) */
+.act-sky .kpi-strip {
+  background:transparent;
+  border-bottom:none;
+  gap:14px;
+  padding:20px 24px 8px;
+}
+.act-sky .ks,
+.act-sky .ks:last-child {
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:18px 18px 16px !important;
+  box-shadow:0 1px 2px rgba(16,27,46,.04), 0 6px 20px rgba(16,27,46,.05);
+}
+.act-sky .ks-lbl { color:#8b98ab; letter-spacing:.06em; font-size:11px; margin-bottom:12px; }
+.act-sky .ks-val { font-size:30px; }
+.act-sky .ks-sub { color:#8b98ab; }
+
+/* Chips y barra de herramientas sobre el fondo claro */
+.act-sky .list-toolbar { background:transparent; border-bottom:1px solid var(--border); }
+.act-sky .search-inp:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(30,64,175,.15); }
+.act-sky input:focus, .act-sky select:focus, .act-sky textarea:focus { box-shadow:0 0 0 3px rgba(30,64,175,.13) !important; }
+
+/* Tabla → “tarjeta” blanca con filas aireadas y cabecera tenue */
+.act-sky .tbl-wrap {
+  margin:16px 24px 24px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:0 1px 2px rgba(16,27,46,.04), 0 6px 20px rgba(16,27,46,.05);
+}
+.act-sky table.main-tbl thead th {
+  background:#fff;
+  border-bottom:1px solid var(--border);
+  color:#8b98ab;
+  letter-spacing:.05em;
+}
+.act-sky table.main-tbl tbody td {
+  padding:15px 16px;
+  border-bottom:1px solid #eef2f7;
+}
+.act-sky table.main-tbl tbody tr:hover td { background:#fafcff; }
+.act-sky table.main-tbl tbody tr:last-child td { border-bottom:none; }
+
+/* ── Ficha del activo · mismo toque azul/blanco al pinchar un activo ── */
+.act-sky.ficha-wrap, .act-sky .ficha-main { background:#f4f7fb; }
+.act-sky .va-card,
+.act-sky .va-meta-card,
+.act-sky .dash-card,
+.act-sky .info-block {
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:0 1px 2px rgba(16,27,46,.04), 0 6px 20px rgba(16,27,46,.05);
+}
+/* Títulos de cuadro en MAYÚSCULA con potencia, pero en la paleta azul limpia */
+.act-sky .act-cards .dash-card-head,
+.act-sky .act-cards .va-meta-head,
+.act-sky .dash-card-head,
+.act-sky .va-meta-head {
+  text-transform:uppercase !important;
+  letter-spacing:.07em !important;
+  font-size:11.5px !important;
+  font-weight:800 !important;
+  color:var(--accent) !important;
+  background:var(--accent-lt) !important;
+  border-bottom:1px solid var(--accent-bd) !important;
+  padding:12px 15px !important;
+}
+
+/* "Información general": cards más anchas (adiós apiñamiento) y campos con aire */
+.act-sky .act-info-row {
+  grid-template-columns:repeat(auto-fit, minmax(252px, 1fr)) !important;
+  gap:14px !important;
+  align-items:start !important;
+}
+.act-sky .va-kv-list { gap:2px !important; padding:8px 16px 14px !important; }
+.act-sky .dash-card .va-kv-list > * { padding-top:9px; padding-bottom:9px; }
+.act-sky .dash-card .va-kv-list > * + * { border-top:1px solid var(--line-soft, #eef2f7); }
+/* Etiqueta discreta arriba, valor con cuerpo y sin apelotonar */
+.act-sky .ir-k, .act-sky .va-kv-list .kv-k, .act-sky .va-kv-list label {
+  font-size:11px !important; color:#8b98ab !important; font-weight:600 !important; letter-spacing:.01em;
+}
+.act-sky .ir-v, .act-sky .va-kv-list .kv-v {
+  font-size:14.5px !important; font-weight:600 !important; color:#1e3252 !important; line-height:1.4 !important;
+}
+.act-sky .act-cards .dash-card-head .dash-card-count { background:var(--accent-lt) !important; color:var(--accent) !important; }
+.act-sky .va-card-header h3,
+.act-sky .act-cards .va-card-header h3 {
+  font-size:13.5px !important;
+  font-weight:700;
+  color:#1e3252;
+  text-transform:none;
+}
+/* Dato hero (SBA, KPIs) en azul profundo */
+.act-sky .kpi-strong,
+.act-sky .act-cards .kpi-strong { color:var(--accent) !important; }
+/* Cabecera y pestañas de la ficha */
+.act-sky .ah { background:#fff; }
+.act-sky .tab.active { color:var(--accent); border-bottom-color:var(--accent); }

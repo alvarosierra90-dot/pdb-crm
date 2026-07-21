@@ -236,7 +236,7 @@ function RightPanel({ navigate, naturaleza, cmFields, demCampos = {}, demPres = 
           <div className="ai-head"><div className="ai-ico"></div><span className="ai-lbl">Análisis de la demanda</span><span className="ai-badge">Tiempo real</span></div>
           <div className="ai-text">
             {esInversion
-              ? <>Demanda de inversión <strong>{cmFields.calidad||'—'}</strong> · ticket {cmFields.ticket_min||'—'}–{cmFields.ticket_max||'—'} M€. Detectando activos compatibles en mercado y posibles riesgos de yield.</>
+              ? <>Demanda de inversión <strong>{cmFields.calidad||'—'}</strong> · ticket {cmFields.ticket_min||'—'}–{cmFields.ticket_max||'—'} M€. Detectando ofertas en venta compatibles en mercado y posibles riesgos de yield.</>
               : <>Búsqueda de <strong>{supMin.toLocaleString('es-ES')}–{supMax.toLocaleString('es-ES')} m²</strong> en A-1 · Alcobendas. <strong>3 ofertas cumplen requisitos</strong>, 5 alternativas razonables. Oferta OFR-0018 (Albatros P4) encaja al 100%.</>}
           </div>
           <div style={{ display:'flex', gap:6, marginTop:8, flexWrap:'wrap' }}>

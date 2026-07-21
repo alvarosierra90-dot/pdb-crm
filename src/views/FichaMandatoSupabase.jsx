@@ -3,6 +3,7 @@ import { useNav, useUnsavedGuard } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
 import { CURRENT_USER } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
+import EquipoBloque from '../components/EquipoBloque'
 import ActividadesPanel from '../components/ActividadesPanel'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import Vinculaciones from '../components/Vinculaciones'
@@ -133,9 +134,6 @@ export default function FichaMandatoSupabase({ refOrId }) {
   const [showNotasModal, setShowNotasModal] = useState(false)
   const [showFeesModal, setShowFeesModal] = useState(false)
   const [showActivosModal, setShowActivosModal] = useState(false)
-  // Alta inline de equipo/colaboradores (estilo Demanda/Lead/Propuesta)
-  const [addEqSection, setAddEqSection] = useState(null)   // 'equipo' | 'colab' | null
-  const [addEqDraft, setAddEqDraft] = useState({ equipo:'', miembro:'', rol:'Soporte' })
 
   const [form, setForm] = useState({
     titulo:'', tipo:'alquiler', via:'directo', estado:'en_curso',
@@ -162,9 +160,10 @@ export default function FichaMandatoSupabase({ refOrId }) {
         dynamics_account_id, dynamics_opportunity_id, cuenta_agente_id, contacto_agente_id,
         created_at, updated_at,
         dynamics_accounts:dynamics_account_id ( dynamics_id, nombre, tipo, sector, telefono, ciudad, direccion, codigo_postal, pais, web ),
-        dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo )
+        dynamics_opportunities:dynamics_opportunity_id ( dynamics_id, nombre, tipo ),
+        propuestas:propuesta_id ( id, ref )
       `)
-      .eq('ref', refOrId)
+      .eq(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(refOrId || '')) ? 'id' : 'ref', refOrId)
       .maybeSingle()
 
     if (errMandato) { setError(errMandato.message); setMandato(null); setLoading(false); return }
@@ -684,8 +683,8 @@ export default function FichaMandatoSupabase({ refOrId }) {
           <FunnelTracker steps={[
             { key:'opo',  label:'Oportunidad', ref: oportunidad?.dynamics_id || mandato.dynamics_opportunity_id || null,
               onClick: (oportunidad?.dynamics_id || mandato.dynamics_opportunity_id) ? () => navigate('ficha-oportunidad', { id: oportunidad?.dynamics_id || mandato.dynamics_opportunity_id }) : null },
-            { key:'pry',  label:'Propuesta', ref: mandato.propuesta_ref || null,
-              onClick: mandato.propuesta_ref ? () => navigate('ficha-propuesta', { id: mandato.propuesta_ref }) : null },
+            { key:'pry',  label:'Propuesta', ref: mandato.propuestas?.ref || null,
+              onClick: mandato.propuestas?.ref ? () => navigate('ficha-propuesta', { id: mandato.propuestas.ref }) : null },
             { key:'man',  label:'Mandato', ref: mandato.ref, current: true, onClick: null },
           ]} />
 
@@ -785,9 +784,6 @@ export default function FichaMandatoSupabase({ refOrId }) {
               onAfter: () => load(),
               onError: (msg) => setSaveError(msg),
             })
-            const equipoInterno = equipo.filter(m => m.rol !== 'Colaborador')
-            const colaboradores = equipo.filter(m => m.rol === 'Colaborador')
-            const mapIdx = (filtered, idx) => equipo.indexOf(filtered[idx])
 
             // Activo para la banda canónica de Vinculaciones:
             // · 1 activo → lo mostramos clicable
@@ -972,120 +968,14 @@ export default function FichaMandatoSupabase({ refOrId }) {
                     </div>
                   </div>
 
-                  {/* Equipo de trabajo · dash-card con Equipo + Colaboradores (estilo Demanda/Lead/Propuesta) */}
-                  {(() => {
-                    const iniciales = n => (n || '?').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()
-                    return (
-                      <div className="dash-card" style={{ overflow:'visible' }}>
-                        <div className="dash-card-head">Equipo de trabajo</div>
-                        <div style={{ padding:'12px 16px 14px', display:'flex', flexDirection:'column', gap:12 }}>
-
-                          {/* Equipo (Principal/Soporte) */}
-                          <div>
-                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
-                              <div className="dash-card-sub" style={{ margin:0 }}>Equipo</div>
-                              {canManage && addEqSection !== 'equipo' && (
-                                <button onClick={() => { setAddEqSection('equipo'); setAddEqDraft({ equipo:'', miembro:'', rol:'Soporte' }) }}
-                                  style={{ background:'none', border:'none', color:'#0a66c2', cursor:'pointer', fontSize:11, fontWeight:600, padding:0 }}>+ Añadir</button>
-                              )}
-                            </div>
-                            {equipoInterno.length === 0 ? (
-                              <div style={{ fontSize:11.5, color:'#94a3b8' }}>Sin asignar.</div>
-                            ) : (
-                              <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-                                {equipoInterno.map((m, i) => (
-                                  <div key={`int-${i}`} className="dash-eq-row">
-                                    <div style={{ width:24, height:24, borderRadius:'50%', background:'#f5efe5', color:'#5a4828', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>{iniciales(m.nombre)}</div>
-                                    <div style={{ fontSize:12, fontWeight:500, color:'#0f172a', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.nombre}</div>
-                                    <span style={{ fontSize:9.5, color: m.rol === 'Principal' ? '#0a66c2' : '#64748b', fontWeight:600 }}>{m.rol}</span>
-                                    {canManage && (
-                                      <button onClick={() => handlers.removeMiembro(mapIdx(equipoInterno, i))} className="dash-eq-remove" title="Quitar">×</button>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            {addEqSection === 'equipo' && (
-                              <div style={{ marginTop:8, padding:'10px 12px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:10, display:'flex', flexDirection:'column', gap:6 }}>
-                                <select className="fsel" value={addEqDraft.equipo} onChange={e => setAddEqDraft(p => ({ ...p, equipo: e.target.value, miembro:'' }))} style={{ fontSize:11.5 }}>
-                                  <option value="">Equipo…</option>
-                                  {EQUIPOS_SAVILLS.map(eq => <option key={eq}>{eq}</option>)}
-                                </select>
-                                {addEqDraft.equipo && (
-                                  <select className="fsel" value={addEqDraft.miembro} onChange={e => setAddEqDraft(p => ({ ...p, miembro: e.target.value }))} style={{ fontSize:11.5 }}>
-                                    <option value="">Miembro…</option>
-                                    {(MIEMBROS_POR_EQUIPO[addEqDraft.equipo] || []).map(n => <option key={n}>{n}</option>)}
-                                  </select>
-                                )}
-                                <select className="fsel" value={addEqDraft.rol} onChange={e => setAddEqDraft(p => ({ ...p, rol: e.target.value }))} style={{ fontSize:11.5 }}>
-                                  <option>Principal</option>
-                                  <option>Soporte</option>
-                                </select>
-                                <div style={{ display:'flex', gap:6 }}>
-                                  <button disabled={!addEqDraft.equipo || !addEqDraft.miembro}
-                                    onClick={() => { handlers.addMiembro(addEqDraft.miembro, addEqDraft.equipo, addEqDraft.rol); setAddEqSection(null) }}
-                                    style={{ flex:1, padding:'6px 10px', fontSize:11.5, fontWeight:600, border:'none', borderRadius:8, background: (!addEqDraft.equipo || !addEqDraft.miembro) ? '#cbd5e1' : '#0a66c2', color:'#fff', cursor: (!addEqDraft.equipo || !addEqDraft.miembro) ? 'not-allowed' : 'pointer' }}>Añadir</button>
-                                  <button onClick={() => setAddEqSection(null)} style={{ padding:'6px 10px', fontSize:11.5, fontWeight:500, border:'1px solid var(--border)', borderRadius:8, background:'#fff', color:'#64748b', cursor:'pointer' }}>Cancelar</button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Colaboradores */}
-                          <div>
-                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
-                              <div className="dash-card-sub" style={{ margin:0 }}>Colaboradores</div>
-                              {canManage && addEqSection !== 'colab' && (
-                                <button onClick={() => { setAddEqSection('colab'); setAddEqDraft({ equipo:'', miembro:'', rol:'Colaborador' }) }}
-                                  style={{ background:'none', border:'none', color:'#6b21a8', cursor:'pointer', fontSize:11, fontWeight:600, padding:0 }}>+ Añadir</button>
-                              )}
-                            </div>
-                            {colaboradores.length === 0 ? (
-                              <div style={{ fontSize:11.5, color:'#94a3b8' }}>Sin colaboradores externos.</div>
-                            ) : (
-                              <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-                                {colaboradores.map((m, i) => (
-                                  <div key={`cl-${i}`} className="dash-eq-row">
-                                    <div style={{ width:24, height:24, borderRadius:'50%', background:'#fdf4ff', color:'#6b5b8e', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0 }}>{iniciales(m.nombre)}</div>
-                                    <div style={{ fontSize:12, fontWeight:500, color:'#0f172a', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.nombre}</div>
-                                    <span style={{ fontSize:9.5, color:'#6b21a8', fontWeight:600 }}>{m.equipo || 'Colab'}</span>
-                                    {canManage && (
-                                      <button onClick={() => handlers.removeMiembro(mapIdx(colaboradores, i))} className="dash-eq-remove" title="Quitar">×</button>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            {addEqSection === 'colab' && (
-                              <div style={{ marginTop:8, padding:'10px 12px', background:'#faf5ff', border:'1px solid #e9d5ff', borderRadius:10, display:'flex', flexDirection:'column', gap:6 }}>
-                                <select className="fsel" value={addEqDraft.equipo} onChange={e => setAddEqDraft(p => ({ ...p, equipo: e.target.value, miembro:'' }))} style={{ fontSize:11.5 }}>
-                                  <option value="">Equipo / consultora…</option>
-                                  {EQUIPOS_SAVILLS.map(eq => <option key={eq}>{eq}</option>)}
-                                  <option value="Agente externo">Agente externo</option>
-                                </select>
-                                {addEqDraft.equipo && addEqDraft.equipo !== 'Agente externo' && (
-                                  <select className="fsel" value={addEqDraft.miembro} onChange={e => setAddEqDraft(p => ({ ...p, miembro: e.target.value }))} style={{ fontSize:11.5 }}>
-                                    <option value="">Miembro…</option>
-                                    {(MIEMBROS_POR_EQUIPO[addEqDraft.equipo] || []).map(n => <option key={n}>{n}</option>)}
-                                  </select>
-                                )}
-                                {addEqDraft.equipo === 'Agente externo' && (
-                                  <input className="kf-inp" placeholder="Nombre del agente externo" value={addEqDraft.miembro} onChange={e => setAddEqDraft(p => ({ ...p, miembro: e.target.value }))} style={{ fontSize:11.5 }} />
-                                )}
-                                <div style={{ display:'flex', gap:6 }}>
-                                  <button disabled={!addEqDraft.equipo || !addEqDraft.miembro}
-                                    onClick={() => { handlers.addMiembro(addEqDraft.miembro, addEqDraft.equipo, 'Colaborador'); setAddEqSection(null) }}
-                                    style={{ flex:1, padding:'6px 10px', fontSize:11.5, fontWeight:600, border:'none', borderRadius:8, background: (!addEqDraft.equipo || !addEqDraft.miembro) ? '#cbd5e1' : '#6b21a8', color:'#fff', cursor: (!addEqDraft.equipo || !addEqDraft.miembro) ? 'not-allowed' : 'pointer' }}>Añadir</button>
-                                  <button onClick={() => setAddEqSection(null)} style={{ padding:'6px 10px', fontSize:11.5, fontWeight:500, border:'1px solid var(--border)', borderRadius:8, background:'#fff', color:'#64748b', cursor:'pointer' }}>Cancelar</button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                        </div>
-                      </div>
-                    )
-                  })()}
+                  {/* Bloque unificado de personas · Empleados / Proveedores / Clientes con toggle Grupo/Tabla */}
+                  <EquipoBloque
+                    equipo={equipo}
+                    canManage={canManage}
+                    onAdd={handlers.addPersona}
+                    onRemove={handlers.removeMiembro}
+                    onRate={handlers.updateMiembroValoracion}
+                  />
 
                 </div>
 

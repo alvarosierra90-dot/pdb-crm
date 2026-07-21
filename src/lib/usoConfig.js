@@ -131,7 +131,7 @@ export function buildMetricas(form) {
 
 /* ── Color / etiqueta por uso para listados (centraliza ActivosList/FichaZona) ── */
 const USO_COLOR = {
-  'Oficinas':           { bg: '#f5efe5', color: '#5a4828' },
+  'Oficinas':           { bg: '#eef3fc', color: '#1e40af' },
   'Logística':          { bg: '#f0fdfa', color: '#0f766e' },
   'Retail High Street': { bg: '#fdf4ff', color: '#6b5b8e' },
   'Residencial':        { bg: '#fff7ed', color: '#c2410c' },

@@ -6,6 +6,7 @@ import ColumnEditor, { useVisibleCols } from '../components/ColumnEditor'
 import { useTableFilter, ColHeader, FilterBadge } from '../components/TableFilter'
 import { Download, SlidersHorizontal } from 'lucide-react'
 import { usoColor, usoTag, normalizeUso } from '../lib/usoConfig'
+import { deriveOccupancy } from '../lib/deriveOccupancy'
 
 const shortDir = (dir) => {
   if (!dir) return ''
@@ -82,11 +83,14 @@ export default function ActivosList() {
         const mapped = activosData.map(a => {
           const sba = a.sba || 0
           const sumDisp = dispByActivo[a.ref] || 0
-          // Ocupación derivada: si no hay ofertas activas → 100%.
-          // Si hay, occ = 100 − (sumDisp / sba) · 100 (clamp 0–100).
-          let occ = 100
-          if (sumDisp > 0 && sba > 0) {
-            occ = Math.max(0, Math.min(100, Math.round(100 - (sumDisp / sba) * 100)))
+          // Ocupación: fuente de verdad = stacking (vac/ten físico). Fallback a la
+          // disponibilidad de ofertas activas cuando el activo aún no tiene stacking.
+          let occ = deriveOccupancy(a.stacking_data).occ
+          if (occ == null) {
+            occ = 100
+            if (sumDisp > 0 && sba > 0) {
+              occ = Math.max(0, Math.min(100, Math.round(100 - (sumDisp / sba) * 100)))
+            }
           }
           return {
             ref:    a.ref,
@@ -204,7 +208,7 @@ export default function ActivosList() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+    <div className="act-sky" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
       {/* KPI strip canónico · 5 cuadritos como en el resto de listas */}
       <div className="kpi-strip" style={{ gridTemplateColumns: 'repeat(5,1fr)' }}>
         <div className="ks" style={{ padding: '12px 16px' }}><div className="ks-lbl">Total activos</div><div className="ks-val">{totalActivos}</div><div className="ks-sub">en cartera</div></div>

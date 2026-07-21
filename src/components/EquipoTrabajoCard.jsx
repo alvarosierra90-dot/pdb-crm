@@ -182,15 +182,21 @@ export function makeEquipoHandlers({ supabase, table, idValue, equipo, onAfter, 
     if (error) { onError && onError(error.message); return }
     onAfter && onAfter()
   }
-  const addMiembro = (nombre, equipoStr, rol) => {
+  // Alta de una persona. Dedupe por nombre+equipo+ROL: así una misma persona
+  // puede tener un "trabajo extra" en otro rol (p.ej. pasar de Soporte a
+  // Principal, o figurar además como Cliente) sin que el alta lo bloquee.
+  const addPersona = (persona) => {
+    const { nombre, equipo: equipoStr, rol, telefono = null } = persona || {}
     if (!nombre || !equipoStr || !rol) return
-    const ya = equipo.some(m => m.nombre === nombre && m.equipo === equipoStr)
-    if (ya) { onError && onError(`${nombre} ya está en el equipo de trabajo.`); return }
-    persistEquipo([...equipo, { nombre, equipo: equipoStr, rol }])
+    const ya = equipo.some(m => m.nombre === nombre && m.equipo === equipoStr && m.rol === rol)
+    if (ya) { onError && onError(`${nombre} ya figura como ${rol} en ${equipoStr}.`); return }
+    persistEquipo([...equipo, { nombre, equipo: equipoStr, rol, telefono }])
   }
+  const addMiembro = (nombre, equipoStr, rol) => addPersona({ nombre, equipo: equipoStr, rol })
   const removeMiembro = (idx) => persistEquipo(equipo.filter((_, i) => i !== idx))
   const updateMiembroRol = (idx, rol) => persistEquipo(equipo.map((m, i) => i === idx ? { ...m, rol } : m))
-  return { addMiembro, removeMiembro, updateMiembroRol, persistEquipo }
+  const updateMiembroValoracion = (idx, valoracion) => persistEquipo(equipo.map((m, i) => i === idx ? { ...m, valoracion } : m))
+  return { addPersona, addMiembro, removeMiembro, updateMiembroRol, updateMiembroValoracion, persistEquipo }
 }
 
 /** Helper: ¿el usuario actual es Principal en este equipo? */
