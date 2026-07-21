@@ -74,11 +74,15 @@ export default function BajaArrendatarioModal({ arrendatario, activo, onClose, o
       // La columna canónica es `tenant` (mig 007); algunas filas legacy usan
       // `nombre`. Probamos ambas con un OR.
       if (!arr?.ref && arr?.nombre && arr?.activo_ref) {
+        // Entrecomillar el valor para el filtro .or(): nombres con coma o
+        // paréntesis (p.ej. "Empresa, S.L.") rompen la sintaxis PostgREST si no
+        // se envuelven en comillas dobles (escapando " y \ internos).
+        const q = `"${String(arr.nombre).replace(/[\\"]/g, m => '\\' + m)}"`
         const { data } = await supabase
           .from('arrendatarios')
           .select('ref, tenant, nombre, activo_ref, superficie, vencimiento, break_option, fecha_salida, estado_arr')
           .eq('activo_ref', arr.activo_ref)
-          .or(`tenant.eq.${arr.nombre},nombre.eq.${arr.nombre}`)
+          .or(`tenant.eq.${q},nombre.eq.${q}`)
           .neq('estado_arr', 'Finalizado')
           .order('vencimiento', { ascending: true })
           .limit(1)

@@ -526,7 +526,12 @@ export default function FichaArrendatario() {
   // ── Load from DB when opened by tenant name click ─────────────
   useEffect(() => {
     if (!params?.tenantName || params?.fromOfertaRef) return
-    supabase.from('arrendatarios').select('*').eq('nombre', params.tenantName).limit(1).then(async ({ data }) => {
+    // Desambiguar por activo cuando el caller lo aporta (fromActivoRef): evita
+    // abrir una fila arbitraria si hay arrendatarios homónimos (p.ej. varios
+    // "Desconocido", que es un colectivo). Sin activo, cae al comportamiento previo.
+    let q = supabase.from('arrendatarios').select('*').eq('nombre', params.tenantName)
+    if (params.fromActivoRef) q = q.eq('activo_ref', params.fromActivoRef)
+    q.limit(1).then(async ({ data }) => {
       if (!data?.[0]) return
       const r = data[0]
       let activoDireccion = ''

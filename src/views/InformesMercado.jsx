@@ -247,6 +247,16 @@ function DonutChart({ items }) {
   const COLORS = ['#5a4828','#0891b2','#059669','#d97706','#6b5b8e','#db2777','#dc2626']
   const total = items.reduce((s, i) => s + i.value, 0)
   const R=46, ir=22, cx=52, cy=52, sz=104
+  // Guard: sin datos (todo a 0) → value/total = NaN rompía el path y dejaba el
+  // gráfico en blanco. Mostramos un anillo neutro con "Sin datos".
+  if (total <= 0) {
+    return (
+      <div style={{ display:'flex', gap:16, alignItems:'center', padding:'12px 14px' }}>
+        <div style={{ width:sz, height:sz, borderRadius:'50%', border:'8px solid var(--border)', flexShrink:0 }} />
+        <span style={{ fontSize:11, color:'var(--text4)' }}>Sin datos</span>
+      </div>
+    )
+  }
   let angle = -90
   const slices = items.map((item, i) => {
     const sweep = (item.value/total)*360

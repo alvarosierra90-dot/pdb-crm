@@ -156,7 +156,7 @@ function FichaOfertaMock() {
   // Vista 360 · demandas que han presentado esta oferta + cuentas (derivado de oferta_demanda)
   const [of360, setOf360] = useState({ loaded:false, demandas:[], cuentas:[] })
   useEffect(() => {
-    if (!oferta?.id || of360.loaded) return
+    if (!oferta?.id) return   // carga 1× por oferta.id (deps); recarga al cambiar de oferta
     let cancel = false
     ;(async () => {
       const { data: alts } = await supabase
