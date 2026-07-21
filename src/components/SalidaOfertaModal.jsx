@@ -48,7 +48,7 @@ export default function SalidaOfertaModal({ oferta, activo, onClose, onSuccess }
         closing_rent:        closingRent !== '' ? Number(closingRent) : null,
         superficie:          oferta?.sup || null,
         estado_arr:          'Vigente',
-        oferta_origen:       oferta?.nombre || null,
+        oferta_origen:       oferta?.ref || null,
       }
       const { data, error: insErr } = await supabase
         .from('arrendatarios')
@@ -90,7 +90,7 @@ export default function SalidaOfertaModal({ oferta, activo, onClose, onSuccess }
           <div>
             <div style={{fontSize:14,fontWeight:700}}>Dar de baja oferta</div>
             <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>
-              {oferta?.nombre || '—'} {activo?.nombre ? `· ${activo.nombre}` : ''}
+              {oferta?.ref || '—'} {activo?.nombre ? `· ${activo.nombre}` : ''}
             </div>
           </div>
           <button onClick={onClose} disabled={saving} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text3)',padding:4,display:'flex'}}><X size={16}/></button>
@@ -179,7 +179,7 @@ export default function SalidaOfertaModal({ oferta, activo, onClose, onSuccess }
           {motivo === 'error' && (
             <>
               <div style={{padding:'12px 14px',background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:8,fontSize:12,color:'#7f1d1d',lineHeight:1.55}}>
-                Se eliminará la oferta <strong>{oferta?.nombre}</strong> del stacking. <strong>No es reversible.</strong>
+                Se eliminará la oferta <strong>{oferta?.ref}</strong> del stacking. <strong>No es reversible.</strong>
               </div>
               {error && (
                 <div style={{display:'flex',alignItems:'flex-start',gap:6,padding:10,background:'#fef2f2',border:'1px solid #fecaca',borderRadius:6,fontSize:11,color:'#991b1b'}}>

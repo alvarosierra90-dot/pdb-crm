@@ -7105,7 +7105,7 @@ export default function FichaActivo() {
       {salidaOfr && (
         <SalidaOfertaModal
           oferta={{
-            nombre: salidaOfr.unit.oferta,
+            ref:    salidaOfr.unit.oferta,   // unit.oferta ES el ref (modelo oferta↔units por ref)
             sup:    salidaOfr.unit.sup,
             renta:  salidaOfr.unit.renta,
           }}
