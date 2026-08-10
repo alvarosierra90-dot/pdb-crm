@@ -918,7 +918,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
           )}
           {tab === 'of-caract'   && <div className="tab-content active"><StubTab label="Características" /></div>}
           {tab === 'of-docs'     && <div className="tab-content active"><StubTab label="Documentos" /></div>}
-          {tab === 'of-seg'      && <div className="tab-content active"><StubTab label="Seguimiento comercial" /></div>}
+          {tab === 'of-seg'      && <div className="tab-content active"><StubTab label="Vista 360" /></div>}
           {tab === 'of-conf'     && <div className="tab-content active"><StubTab label="Confidencialidad" /></div>}
 
         </div>

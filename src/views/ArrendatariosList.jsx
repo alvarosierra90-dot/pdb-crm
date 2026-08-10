@@ -91,7 +91,7 @@ const ESTADO_TAG = {
   'Vigente':'tag-green',                 // canónico operación
   'Baja':'tag-gray',                     // salida sin destino
   'Traslado':'tag-blue',                 // fin de contrato a otro activo
-  'Próximo a vencimiento':'tag-red',
+  'Próximo a vencimiento':'tag-amber',   // alerta (no error): mismo ámbar que VencimientosView
   'En negociación':'tag-purple',
   'Renovado':'tag-blue',
   'Finalizado':'tag-gray',
