@@ -420,7 +420,9 @@ Mismo patrón que el propietario (ver §6.0): panel lateral de la vista
 se pregunta por co-propiedad ni sustitución: un tramo admite varios ocupantes,
 así que el alta es directa.
 
-- **Arrendatario (Cuenta)** — obligatorio, typeahead o texto libre
+- **Arrendatario (Cuenta)** — obligatorio; typeahead sobre `dynamics_accounts`.
+  **No admite texto libre**: o se elige una cuenta del desplegable, o se marca
+  *Arrendatario desconocido*
 - **Año de firma** y **Trimestre** — obligatorios
 - **Fecha de inicio de contrato** — obligatoria
 - **Años de obligado cumplimiento** (calcula el break automáticamente)
@@ -433,10 +435,54 @@ sobre las plantas.
 
 > `nombre` es NOT NULL en `arrendatarios` y en `propietarios`: siempre se envía.
 
-> **Pendiente (regla canónica):** propietario y arrendatario deben ser
-> **siempre cuentas de Dynamics ya sincronizadas en la PDB** — la PDB no crea
-> cuentas, crea el vínculo cuenta ↔ activo en un rol. El campo de texto libre
-> del alta de arrendatario contradice esa regla y está pendiente de retirar.
+> **Regla canónica:** propietario y arrendatario son **siempre cuentas de
+> Dynamics ya sincronizadas en la PDB** — la PDB no crea cuentas, crea el
+> vínculo cuenta ↔ activo en un rol. El alta de arrendatario ya la cumple; solo
+> queda un resto cosmético: el placeholder aún dice *"Buscar cuenta o escribir
+> nombre…"* aunque escribir un nombre suelto no valida.
+
+### 7.1.1 La cadena de fechas del contrato
+
+Las fechas del contrato **no son campos sueltos**: forman una cadena en la que
+cada eslabón se calcula del anterior. Solo se teclean dos fechas reales (inicio
+y, si acaso, salida efectiva); el resto son plazos.
+
+```
+Fecha inicio            ← se elige en calendario
+   + Obligado cumplimiento 1er periodo (años)
+= Break option          ← AUTO
+   + Obligado cumplimiento 2º periodo (años)
+= Fecha fin de contrato ← AUTO
+   − Recordatorio (meses antes del break)
+= Fecha recordatorio    ← AUTO, solo lectura
+```
+
+| Campo | Cómo se introduce | Columna en BD |
+|---|---|---|
+| Fecha inicio | **Calendario** (`<input type="date">`), obligatorio | `inicio` |
+| Obligado cumplimiento 1er periodo | Años, admite decimales (0,5 = 6 meses) | `anios_obligado` |
+| **Break option** | **Automática** (inicio + años), con chip `AUTO`; editable a mano si el contrato pacta otra cosa | `break_option` |
+| Obligado cumplimiento 2º periodo | Años | `anios_obligado_2` |
+| **Fecha fin de contrato** | **Automática** (break + años del 2º periodo), chip `AUTO`, editable | `vencimiento` |
+| Recordatorio | **Meses de antelación** respecto al break (obligatorio, 1–24, por defecto 3) | `meses_recordatorio` |
+| **Fecha recordatorio** | **Automática y de solo lectura** (break − meses). Se pinta ámbar si faltan ≤ 30 días y roja si ya venció | *no se guarda* — se recalcula al vuelo |
+| Fecha salida efectiva | Calendario; solo al dar de baja | `fecha_salida` |
+
+Dónde vive cada cosa:
+
+- **Alta rápida desde el stacking** (`AltaArrendatarioModal`): pide fecha inicio
+  (calendario, obligatoria) y años de obligado cumplimiento (opcional). Al
+  guardar, `handleArrendatarioCreado` calcula el break option y lo persiste.
+- **Ficha del arrendatario** → tab *Información general*, bloque **Contrato**:
+  la cadena completa, con recálculo en vivo al teclear.
+- **Bloque Acción comercial**: meses de recordatorio y la fecha resultante.
+- El tab **Alertas y break option** explota estas fechas.
+
+> **Cuidado (deuda conocida):** el alta rápida escribe `vencimiento` con el
+> **mismo valor que el break option**, porque en ese momento no se ha pedido el
+> segundo periodo. Es decir, un arrendatario recién creado desde el stacking
+> "vence" en su break hasta que alguien abra la ficha y complete el 2º periodo.
+> Como Vencimientos y las alertas leen `vencimiento`, conviene completarlo.
 
 ### 7.2 Asignación a plantas
 
