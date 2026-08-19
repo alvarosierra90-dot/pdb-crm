@@ -228,6 +228,28 @@ reescriben los muros del tramo.
 
 ## 6. Propietarios
 
+### 6.0 El botón de alta vive en el propio stacking
+
+Cada capa del panel lateral tiene, en su cabecera, un **botón de acción
+`+ Añadir`** (`SidebarSection`, línea 618; `actionLabel="+ Añadir"` en las
+líneas 1693 para Propietarios y 1961 para Arrendatarios). Es decir: **se puede
+dar de alta un propietario o un arrendatario nuevo sin salir del stacking**, y
+el registro aparece al instante como chip arrastrable en el panel.
+
+Es una de las **4 vías de alta** previstas (idénticas para propietario y
+arrendatario):
+
+| Vía | Dónde | Qué vincula |
+|---|---|---|
+| 1 | Cards del activo (asignar cuenta arriba) | Vincula la card, **no** la superficie |
+| 2 | Módulo → *Nuevo* | Ficha completa; obligatorio activo + cuenta |
+| 3 | **Panel izquierdo del stacking → `+ Añadir`** | Crea el registro y lo deja listo para arrastrar |
+| 4 | **Sustitución desde el aspa** del stacking | Reemplaza al que estaba |
+
+> **Principio:** el alta crea el **vínculo cuenta ↔ activo en un rol**. La
+> **superficie nace únicamente al arrastrar el chip sobre un tramo del
+> stacking**. Vincular la cuenta en una card o en la ficha ≠ vincular m².
+
 ### 6.1 Alta
 
 Desde el panel lateral de la vista *Propietarios*, botón **+ Añadir**
@@ -319,8 +341,11 @@ El chip «Propietario desconocido» y su bloque en la rejilla admiten dos camino
 
 ### 7.1 Alta
 
-Panel lateral de la vista *Arrendatarios y oferta*, botón **+ Añadir** →
-`AltaArrendatarioModal`:
+Mismo patrón que el propietario (ver §6.0): panel lateral de la vista
+*Arrendatarios y oferta*, cabecera de la sección *Arrendatarios*, botón
+**+ Añadir** (`handleAddTenant`, línea 4765) → `AltaArrendatarioModal`. Aquí no
+se pregunta por co-propiedad ni sustitución: un tramo admite varios ocupantes,
+así que el alta es directa.
 
 - **Arrendatario (Cuenta)** — obligatorio, typeahead o texto libre
 - **Año de firma** y **Trimestre** — obligatorios
@@ -334,6 +359,11 @@ ref, la ficha no cargaría. La superficie se completa después, al arrastrarlo
 sobre las plantas.
 
 > `nombre` es NOT NULL en `arrendatarios` y en `propietarios`: siempre se envía.
+
+> **Pendiente (regla canónica):** propietario y arrendatario deben ser
+> **siempre cuentas de Dynamics ya sincronizadas en la PDB** — la PDB no crea
+> cuentas, crea el vínculo cuenta ↔ activo en un rol. El campo de texto libre
+> del alta de arrendatario contradice esa regla y está pendiente de retirar.
 
 ### 7.2 Asignación a plantas
 
@@ -540,6 +570,9 @@ KPIs. Devuelve `occ = null` cuando el stacking no aporta superficie alquilable
 11. Los vínculos son id-first (`prop_id`, `arr_ref`, `oferta_ref`); el nombre es
     solo fallback legacy.
 12. La ocupación se deriva, no se almacena.
+13. El alta de propietario y de arrendatario se puede hacer **desde el propio
+    stacking** (`+ Añadir` en el panel lateral), pero el alta solo crea el
+    vínculo: **la superficie nace al arrastrar el chip sobre un tramo**.
 
 ---
 
@@ -563,6 +596,9 @@ KPIs. Devuelve `occ = null` cuando el stacking no aporta superficie alquilable
 | Modal de división de planta | `FichaActivo.jsx:2368` |
 | Autosave + flush al desmontar | `FichaActivo.jsx:4892`, `:5811` |
 | `syncStackingToRecords` | `FichaActivo.jsx:4905` |
+| Botón `+ Añadir` del panel (`SidebarSection`) | `FichaActivo.jsx:618`, uso en `:1693` (prop) y `:1961` (arr) |
+| `handleAddOwner` / `handleAddTenant` | `FichaActivo.jsx:4700` / `:4765` |
+| `handlePropietarioCreado` / `handleArrendatarioCreado` | `FichaActivo.jsx:4714` / `:4771` |
 | Alta de propietario / arrendatario | `src/components/AltaPropietarioModal.jsx`, `AltaArrendatarioModal.jsx` |
 | Bajas | `SalidaPropietarioModal.jsx`, `SalidaArrendatarioModal.jsx`, `SalidaOfertaModal.jsx`, `BajaArrendatarioModal.jsx` |
 | Ocupación derivada | `src/lib/deriveOccupancy.js` |
