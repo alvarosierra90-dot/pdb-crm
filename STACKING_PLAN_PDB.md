@@ -145,21 +145,80 @@ además **clicables** y navegan a la ficha del registro.
 
 ## 5. Construir y modificar la estructura
 
-### 5.1 Crear el edificio
+### 5.1 Crear un edificio
 
-Si el activo no tiene stacking, aparece el asistente de configuración
-(`createFirstBuilding`, línea 1181) con tres campos:
+Todo el stacking arranca aquí: **sin edificio no hay plantas, y sin plantas no
+hay nada que asignar**. Hay dos puntos de entrada, con el mismo formulario y la
+misma lógica.
 
-- **Plantas SR** (sobre rasante, **incluye PB**: 5 → PB + P1..P4)
-- **Sótanos BR** (S1, S2…)
-- **Superficie de planta tipo** (m²)
+#### a) Primer edificio — asistente de configuración
 
-Se generan las plantas de arriba abajo (`P4…P1, PB, S1…`) todas con la misma
-superficie, y se crean las filas vacías correspondientes en `prop` y `arr`.
+Si el activo todavía no tiene stacking, el tab no muestra una rejilla vacía:
+muestra el **asistente "Configura el stacking plan"** (`createFirstBuilding`,
+línea 1181), con el subtítulo *"Define la estructura del edificio para empezar a
+asignar plantas y usos"*.
 
-Para **más edificios** en el mismo activo: pestaña *+ Añadir edificio*
-(`createBuilding`, línea 1137). Cada edificio es independiente: tiene sus
-plantas, sus propietarios y sus arrendatarios.
+| Campo | Etiqueta en pantalla | Qué es | Rango | Por defecto |
+|---|---|---|---|---|
+| Nombre | **Nombre del edificio** | Etiqueta de la pestaña del edificio | texto | El nombre o la dirección del activo |
+| Plantas sobre rasante | **Plantas SR** | Nº de plantas por encima del suelo, **PB incluida** | 1–100 | 5 |
+| Plantas bajo rasante | **Sótanos BR** | Nº de sótanos | 0–20 | 1 |
+| Superficie | **Sup. tipo (m²)** | m² de la planta tipo — se aplica a **todas** las plantas creadas | mín. 100 | La `sup_planta_tipo` del activo, o 1.000 |
+
+Botón **Crear estructura**.
+
+#### b) Edificios adicionales — pestaña *+ Añadir edificio*
+
+Un activo puede tener **varios edificios** (`createBuilding`, línea 1137). En la
+fila de pestañas de edificios hay un botón `+ Añadir edificio` que despliega el
+mismo formulario en línea, con los campos:
+
+- **Nombre**
+- **m² planta tipo**
+- **P. sobre rasante**
+- **P. bajo rasante**
+
+Cada edificio es **independiente**: sus plantas, sus tramos, sus propietarios y
+sus arrendatarios. Se le asigna un id correlativo (`A`, `B`, `C`…) y el stacking
+salta automáticamente a la pestaña del edificio recién creado, en la vista *Uso
+principal*.
+
+#### Cómo se traduce en plantas
+
+**"Plantas SR" incluye la planta baja.** Si se indica 5, el edificio tiene 5
+plantas sobre rasante = **PB + 4 plantas superiores**. Es el error de conteo más
+habitual, y está resuelto así a propósito.
+
+Con `SR = 5` y `BR = 2`, y superficie tipo 1.500 m², se generan de arriba abajo:
+
+```
+P4   1.500 m²
+P3   1.500 m²
+P2   1.500 m²
+P1   1.500 m²
+PB   1.500 m²   ← línea gruesa: separa sobre rasante de bajo rasante
+S1   1.500 m²
+S2   1.500 m²
+```
+
+- Los ids son `P{n}` descendiendo hasta `PB`, y `S{n}` para los sótanos.
+- **Todas las plantas nacen con la misma superficie** (la de planta tipo) y
+  **vacías**: sin uso principal, sin propietario y sin arrendatario. La SBA
+  total del edificio = `SR + BR` × superficie tipo.
+- Se crean a la vez las **filas espejo** en las tres capas: `floors`, `prop` y
+  `arr`, todas alineadas por el id de planta. Por eso el edificio nunca nace
+  descuadrado.
+- Los valores se sanean: SR mínimo 1, BR mínimo 0, superficie mínima 100 m².
+
+A partir de aquí, cada planta se puede ajustar individualmente: cambiar su
+superficie (§5.3), insertar plantas intermedias o eliminarlas (§5.2) y repartir
+su superficie por usos (§5.4).
+
+> **Nota de datos:** el asistente construye `stacking_data`, que es la fuente de
+> verdad. Las columnas `activos.n_plantas_sobre` y `activos.n_plantas_bajo`
+> existen en el esquema pero **el asistente no las escribe**; el número de
+> edificios que se muestra en la cabecera y en el panel derecho también se
+> deriva en vivo del stacking (`liveEdifCount`), no de `activos.n_edificios`.
 
 ### 5.2 Insertar y eliminar plantas
 
@@ -553,6 +612,9 @@ KPIs. Devuelve `occ = null` cuando el stacking no aporta superficie alquilable
 
 ## 11. Resumen de reglas
 
+0. Un edificio se crea con **nombre + plantas sobre rasante (PB incluida) +
+   plantas bajo rasante + superficie de planta tipo**. Todas las plantas nacen
+   con esa superficie y vacías, y con sus filas espejo en las tres capas.
 1. El stacking es la única fuente de verdad; propietario, arrendatario y oferta
    son vistas.
 2. Un componente único (`StackingPlan`) para Activo, Oferta y Arrendatario.
