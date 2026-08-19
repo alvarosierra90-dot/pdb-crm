@@ -9,6 +9,7 @@ import HeaderPills from '../components/HeaderPills'
 import { Building, Building2, ScrollText, Tag } from 'lucide-react'
 import { StackingPlan } from './FichaActivo'
 import { supabase } from '../lib/supabase'
+import { stackingPayload } from '../lib/stackingCounts'
 
 // DD/MM/YYYY → YYYY-MM-DD (for DB date columns and <input type="date">)
 function parseDate(ddmmyyyy) {
@@ -1422,7 +1423,7 @@ export default function FichaArrendatario() {
                           clearTimeout(stackingAutoSaveTimer.current)
                           stackingAutoSaveTimer.current = setTimeout(async () => {
                             // 1) Persistir stacking_data del activo
-                            await supabase.from('activos').update({ stacking_data: blds }).eq('ref', stackingActivo.ref)
+                            await supabase.from('activos').update(stackingPayload(blds)).eq('ref', stackingActivo.ref)
                             // Sincroniza la copia en memoria (evita que un re-render revierta lo guardado).
                             setStackingActivo(prev => prev ? { ...prev, stacking_data: blds } : prev)
                             // 2) Sincronizar la superficie del arrendatario actual

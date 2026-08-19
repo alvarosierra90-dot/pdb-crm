@@ -13,6 +13,7 @@ import VinculacionesMaestra from '../components/VinculacionesMaestra'
 import { BUILDINGS_BY_ACTIVO } from '../data/stackingData'
 import { supabase } from '../lib/supabase'
 import { deriveOccupancy } from '../lib/deriveOccupancy'
+import { stackingPayload } from '../lib/stackingCounts'
 import {
   USOS_PRINCIPALES, normalizeUso, calidadesDe, camposSuperficie, buildMetricas, usoTag,
   CALIDADES_POR_USO,
@@ -4895,7 +4896,7 @@ export default function FichaActivo() {
       autoSaveTimer.current = null
       const ref = activoRef.current?.ref
       const blds = liveStackingRef.current
-      if (ref && blds) supabase.from('activos').update({ stacking_data: blds }).eq('ref', ref)
+      if (ref && blds) supabase.from('activos').update(stackingPayload(blds)).eq('ref', ref)
     }
   }, [])
 
@@ -5527,7 +5528,7 @@ export default function FichaActivo() {
     // Save stacking plan if the user created buildings while on the new activo form
     const stackBlds = liveStackingRef.current
     if (stackBlds && stackBlds.length > 0) {
-      await supabase.from('activos').update({ stacking_data: stackBlds }).eq('ref', ref)
+      await supabase.from('activos').update(stackingPayload(stackBlds)).eq('ref', ref)
     }
     setSaving(false)
     setSaveOk(true)
@@ -5541,7 +5542,7 @@ export default function FichaActivo() {
     if (!activo?.ref) { console.warn('saveStackingData: no activo ref'); return }
 
     // 1. Save visual stacking to activo
-    const { error: stackErr } = await supabase.from('activos').update({ stacking_data: blds }).eq('ref', activo.ref)
+    const { error: stackErr } = await supabase.from('activos').update(stackingPayload(blds)).eq('ref', activo.ref)
     if (stackErr) { alert('Error guardando stacking: ' + stackErr.message); return }
 
     // 2. If we came from a specific offer, sync asignaciones_stacking
@@ -5825,7 +5826,7 @@ export default function FichaActivo() {
                   if (current && JSON.stringify(current) === JSON.stringify(blds)) return
                   clearTimeout(autoSaveTimer.current)
                   autoSaveTimer.current = setTimeout(async () => {
-                    const { error } = await supabase.from('activos').update({ stacking_data: blds }).eq('ref', ref)
+                    const { error } = await supabase.from('activos').update(stackingPayload(blds)).eq('ref', ref)
                     if (error) { console.error('Stacking autosave:', error.message); return }
                     // Sincroniza la copia en memoria para que un re-render no
                     // revierta lo guardado (causa de "no se queda guardado").

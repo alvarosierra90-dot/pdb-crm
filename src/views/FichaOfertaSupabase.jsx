@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNav } from '../context/NavigationContext'
 import { supabase } from '../lib/supabase'
+import { stackingPayload } from '../lib/stackingCounts'
 import { CURRENT_USER, esResponsable } from '../lib/currentUser'
 import EquipoTrabajoCard, { makeEquipoHandlers, isPrincipal } from '../components/EquipoTrabajoCard'
 import FirmarMandatoModal from '../components/FirmarMandatoModal'
@@ -812,7 +813,7 @@ export default function FichaOfertaSupabase({ refOrId }) {
                       if (activo.ref) {
                         clearTimeout(stackingAutoSave.current)
                         stackingAutoSave.current = setTimeout(() => {
-                          supabase.from('activos').update({ stacking_data: blds }).eq('ref', activo.ref)
+                          supabase.from('activos').update(stackingPayload(blds)).eq('ref', activo.ref)
                         }, 1500)
                       }
                     }}

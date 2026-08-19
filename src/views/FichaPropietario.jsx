@@ -5,6 +5,7 @@ import SalidaPropietarioModal from '../components/SalidaPropietarioModal'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { exportPDF, exportPPT } from '../utils/exportReport'
 import { supabase } from '../lib/supabase'
+import { stackingPayload } from '../lib/stackingCounts'
 import ConfidencialidadPanel from '../components/ConfidencialidadPanel'
 import VinculacionesMaestra from '../components/VinculacionesMaestra'
 import HeaderPills from '../components/HeaderPills'
@@ -1129,7 +1130,7 @@ export default function FichaPropietario() {
                           clearTimeout(stackingAutoSaveTimer.current)
                           stackingAutoSaveTimer.current = setTimeout(async () => {
                             // 1) Persistir stacking_data del activo
-                            await supabase.from('activos').update({ stacking_data: blds }).eq('ref', stackingActivo.ref)
+                            await supabase.from('activos').update(stackingPayload(blds)).eq('ref', stackingActivo.ref)
                             // Sincroniza la copia en memoria (evita que un re-render revierta lo guardado).
                             setStackingActivo(prev => prev ? { ...prev, stacking_data: blds } : prev)
                             // 2) Sincronizar la superficie del propietario actual sumando

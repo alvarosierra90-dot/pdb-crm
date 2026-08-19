@@ -214,11 +214,25 @@ A partir de aquí, cada planta se puede ajustar individualmente: cambiar su
 superficie (§5.3), insertar plantas intermedias o eliminarlas (§5.2) y repartir
 su superficie por usos (§5.4).
 
-> **Nota de datos:** el asistente construye `stacking_data`, que es la fuente de
-> verdad. Las columnas `activos.n_plantas_sobre` y `activos.n_plantas_bajo`
-> existen en el esquema pero **el asistente no las escribe**; el número de
-> edificios que se muestra en la cabecera y en el panel derecho también se
-> deriva en vivo del stacking (`liveEdifCount`), no de `activos.n_edificios`.
+#### Nº de plantas en la ficha del activo
+
+Al crear la estructura, además de `stacking_data` se rellenan las columnas
+**`activos.n_plantas_sobre`** y **`activos.n_plantas_bajo`**, que consumen otros
+módulos (p. ej. Mapas). No son un dato que se teclee aparte: se **derivan del
+stacking** y se escriben en el mismo `update` que lo persiste, de modo que no
+pueden desincronizarse (`src/lib/stackingCounts.js`).
+
+- Se recalculan **en cada guardado del stacking**, no solo al crear: insertar o
+  eliminar plantas después también las actualiza.
+- Regla de conteo: id que empieza por `S` → bajo rasante; el resto (`PB`, `P1`,
+  `P2`…) → sobre rasante.
+- Con **varios edificios** se toma el **máximo, no la suma**: la columna
+  describe la altura del edificio, no el total de forjados del activo.
+- Sin plantas quedan a `null` (no a `0`, que parecería un dato medido).
+
+> El número de **edificios** que se muestra en la cabecera y en el panel derecho
+> también se deriva en vivo del stacking (`liveEdifCount`), no de
+> `activos.n_edificios`.
 
 ### 5.2 Insertar y eliminar plantas
 
@@ -658,6 +672,7 @@ KPIs. Devuelve `occ = null` cuando el stacking no aporta superficie alquilable
 | Modal de división de planta | `FichaActivo.jsx:2368` |
 | Autosave + flush al desmontar | `FichaActivo.jsx:4892`, `:5811` |
 | `syncStackingToRecords` | `FichaActivo.jsx:4905` |
+| `deriveFloorCounts` / `stackingPayload` (nº de plantas SR/BR) | `src/lib/stackingCounts.js` |
 | Botón `+ Añadir` del panel (`SidebarSection`) | `FichaActivo.jsx:618`, uso en `:1693` (prop) y `:1961` (arr) |
 | `handleAddOwner` / `handleAddTenant` | `FichaActivo.jsx:4700` / `:4765` |
 | `handlePropietarioCreado` / `handleArrendatarioCreado` | `FichaActivo.jsx:4714` / `:4771` |

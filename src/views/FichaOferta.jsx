@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNav, useUnsavedGuard } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { supabase } from '../lib/supabase'
+import { stackingPayload } from '../lib/stackingCounts'
 import { OFERTAS as MOCK_OFERTAS, ACTIVOS as MOCK_ACTIVOS } from '../data/mockData'
 import { isSupabaseRef } from '../components/FichaPendienteSupabase'
 import FichaOfertaSupabase from './FichaOfertaSupabase'
@@ -930,7 +931,7 @@ function FichaOfertaMock() {
         }
         // Persist stacking_data to activo — this is the source of truth for visual reload
         if (activoSeleccionado?.ref) {
-          const { error: sdErr } = await dbCall(supabase.from('activos').update({ stacking_data: liveBuildings.current }).eq('ref', activoSeleccionado.ref))
+          const { error: sdErr } = await dbCall(supabase.from('activos').update(stackingPayload(liveBuildings.current)).eq('ref', activoSeleccionado.ref))
           if (sdErr) { setSaveErr('Error guardando stacking: ' + sdErr.message); return }
           // Update local state so returning to the stacking tab shows the saved state
           setActivoSeleccionado(prev => ({ ...prev, stacking_data: liveBuildings.current }))
@@ -1751,7 +1752,7 @@ function FichaOfertaMock() {
                         setEspaciosComercializables(prev => prev.filter(e => !(e.planta === floorId && e.ofertaNombre === unit.oferta)))
                         if (activoSeleccionado?.ref) {
                           // AWAIT — ensures FichaArrendatario reads stacking without the offer unit
-                          await supabase.from('activos').update({ stacking_data: updatedBlds }).eq('ref', activoSeleccionado.ref)
+                          await supabase.from('activos').update(stackingPayload(updatedBlds)).eq('ref', activoSeleccionado.ref)
                           setActivoSeleccionado(prev => prev ? { ...prev, stacking_data: updatedBlds } : prev)
                         }
                         // Solo pasamos info estructural del activo. Tenant/sup/renta NO
@@ -1789,7 +1790,7 @@ function FichaOfertaMock() {
                         if (activoSeleccionado?.ref) {
                           clearTimeout(stackingAutoSaveTimer.current)
                           stackingAutoSaveTimer.current = setTimeout(() => {
-                            supabase.from('activos').update({ stacking_data: blds }).eq('ref', activoSeleccionado.ref)
+                            supabase.from('activos').update(stackingPayload(blds)).eq('ref', activoSeleccionado.ref)
                             setActivoSeleccionado(prev => prev ? { ...prev, stacking_data: blds } : prev)
                           }, 1500)
                         }
