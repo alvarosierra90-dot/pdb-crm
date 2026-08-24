@@ -3,6 +3,7 @@ import { useNav, useUnsavedGuard } from '../context/NavigationContext'
 import AsignarTareaModal from '../components/AsignarTareaModal'
 import { supabase } from '../lib/supabase'
 import { stackingPayload } from '../lib/stackingCounts'
+import SalidaOfertaModal from '../components/SalidaOfertaModal'
 import { OFERTAS as MOCK_OFERTAS, ACTIVOS as MOCK_ACTIVOS } from '../data/mockData'
 import { isSupabaseRef } from '../components/FichaPendienteSupabase'
 import FichaOfertaSupabase from './FichaOfertaSupabase'
@@ -61,22 +62,6 @@ const MOCK_MEDIA_ACTIVO = [
   { id:6, tipo:'Plano',      subtipo:'Plano de planta', desc:'Planta tipo — distribución', src:'https://images.unsplash.com/photo-1541888846341-b14b40e47e34?w=800&q=80' },
 ]
 
-// ── Date helpers for dar de baja ──
-function parseDateDMY(ddmmyyyy) {
-  if (!ddmmyyyy || ddmmyyyy.length < 8) return null
-  const [d,m,y] = ddmmyyyy.trim().split('/').map(Number)
-  if (!d||!m||!y||y<1900) return null
-  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`
-}
-function addYearsDMY(ddmmyyyy, years) {
-  if (!ddmmyyyy || !years || isNaN(parseFloat(years))) return ''
-  const [d,m,y] = ddmmyyyy.trim().split('/').map(Number)
-  if (!d||!m||!y||y<1900) return ''
-  const dt = new Date(y + Math.floor(parseFloat(years)), m-1, d)
-  return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`
-}
-function fromInput(yyyymmdd) { if (!yyyymmdd) return ''; const [y,m,d]=yyyymmdd.split('-'); return `${d}/${m}/${y}` }
-function toInput(ddmmyyyy) { return parseDateDMY(ddmmyyyy)||'' }
 
 const TIPOLOGIA_MAP = {
   'Oficinas':['Oficina tradicional','Coworking','Subarriendo','Business park','Sede única (HQ)'],
@@ -341,21 +326,6 @@ function FichaOfertaMock() {
 
   // Dar de baja
   const [showDarBaja, setShowDarBaja] = useState(false)
-  const [dbForm, setDbForm] = useState({ tenant:'', tenant_desconocido:false, anyo_firma:String(new Date().getFullYear()), trimestre:'Q1', fecha_inicio:'', anios_obligado:'', anios_obligado_2:'', closing_rent:'' })
-  const [dbSaving, setDbSaving] = useState(false)
-  const [dbErrors, setDbErrors] = useState([])
-  // Motivo de baja · 'cierre' (alquilada → crea arrendatario) | 'error' (eliminar)
-  const [dbMode, setDbMode] = useState(null)
-  const setDbF = (k,v) => setDbForm(p => {
-    const n = {...p,[k]:v}
-    if (k==='fecha_inicio'||k==='anios_obligado') {
-      if (n.fecha_inicio&&n.anios_obligado) { const bo=addYearsDMY(n.fecha_inicio,n.anios_obligado); if(bo) { n.break_option=bo; if(n.anios_obligado_2){const ff=addYearsDMY(bo,n.anios_obligado_2);if(ff)n.fecha_fin=ff} } }
-    }
-    if (k==='anios_obligado_2'||k==='break_option') {
-      if (n.break_option&&n.anios_obligado_2) { const ff=addYearsDMY(n.break_option,n.anios_obligado_2); if(ff) n.fecha_fin=ff }
-    }
-    return n
-  })
 
   // Tab 3 + Stacking
   const [fechaDispGlobal, setFechaDispGlobal] = useState('2026-06-01')
@@ -952,112 +922,73 @@ function FichaOfertaMock() {
 
   // Eliminar la oferta por completo: la fila de Supabase + las unidades vac
   // del stacking. Se usa cuando la oferta fue introducida por error.
-  const handleEliminarOferta = async () => {
-    setDbErrors([]); setDbSaving(true)
-    // Nombres reales con que esta oferta figura en el stacking (derivados del
-    // propio stacking) — los desgloses pueden no existir, así que no basta con
-    // ofertasDesglose. Incluimos también el ref por si la unit lo usa.
+  // Salida de la oferta desde la ficha. Delega en SalidaOfertaModal (el mismo
+  // que el Stacking Plan) y aplica el resultado a TODAS las unidades de esta
+  // oferta, porque desde aquí la decisión es sobre la oferta entera, no sobre
+  // una planta suelta.
+  //
+  //   · cierre → la oferta se convierte en arrendatario: cada unit 'vac' pasa a
+  //     'ten' con el arr_ref real, y la oferta queda 'Cerrada'.
+  //   · error  → se retiran sus units y la oferta queda 'Desactivada'.
+  //
+  // La oferta NUNCA se borra: cambia de estado y sale del panel. Antes esta
+  // ficha hacía DELETE de la fila, lo que rompía la trazabilidad de cualquier
+  // arrendatario con oferta_origen apuntando a ella.
+  const handleSalidaOferta = async ({ motivo, arrendatario } = {}) => {
+    const esCierre = motivo === 'cierre'
+    // Nombres con que esta oferta figura en el stacking. Los desgloses pueden no
+    // existir, así que no basta con ofertasDesglose: incluimos también el ref.
     const ofertaNombres = [
       ...espaciosComercializables.map(e => e.ofertaNombre).filter(Boolean),
       ...ofertasDesglose.map(o => o.nombre).filter(Boolean),
       oferta?.ref,
     ].filter(Boolean)
+    const esEsta = (u) => u.type === 'vac' &&
+      (u.oferta_ref === oferta?.ref || ofertaNombres.includes(u.oferta))
+
     try {
-      // 1. Limpiar stacking: quitar units 'vac' que pertenezcan a esta oferta
+      // 1. Stacking del activo
       if (activoSeleccionado?.ref) {
-        const { data: acData } = await supabase.from('activos').select('stacking_data').eq('ref', activoSeleccionado.ref).single()
+        const { data: acData } = await supabase.from('activos')
+          .select('stacking_data').eq('ref', activoSeleccionado.ref).single()
         if (acData?.stacking_data) {
           const updated = acData.stacking_data.map(b => ({
             ...b,
-            arr: (b.arr||[]).map(row => ({
-              ...row,
-              units: row.units.filter(u => !(u.type==='vac' && (u.oferta_ref === oferta?.ref || ofertaNombres.includes(u.oferta) || u.prop_id === oferta?.ref)))
-            }))
+            arr: (b.arr || []).map(row => {
+              if (!row.units.some(esEsta)) return row
+              const resto = row.units.filter(u => !esEsta(u))
+              if (!esCierre) return { ...row, units: resto }
+              // Cierre: un bloque de arrendatario por tramo, conservando el seg
+              // y los m² de cada unit (no se agrupa a ciegas toda la planta).
+              const ocupadas = row.units.filter(esEsta).map(u => ({
+                type: 'ten',
+                arr_ref: arrendatario?.ref || null,
+                n: arrendatario?.tenant || arrendatario?.nombre || 'Arrendatario desconocido',
+                sup: u.sup,
+                ...(Number.isInteger(u.seg) ? { seg: u.seg } : {}),
+                renta: Number(arrendatario?.closing_rent) || 0,
+              }))
+              return { ...row, units: [...resto, ...ocupadas] }
+            }),
           }))
-          await supabase.from('activos').update({ stacking_data: updated }).eq('ref', activoSeleccionado.ref)
+          await supabase.from('activos').update(stackingPayload(updated)).eq('ref', activoSeleccionado.ref)
+          liveBuildings.current = updated
+          setActivoSeleccionado(prev => prev ? { ...prev, stacking_data: updated } : prev)
         }
       }
-      // 2. Borrar la fila de la oferta
-      await supabase.from('ofertas').delete().eq('ref', oferta.ref)
+
+      // 2. Estado de la oferta — mismos valores que el cierre desde el stacking.
+      await supabase.from('ofertas')
+        .update({ estado: esCierre ? 'Cerrada' : 'Desactivada', activa: false })
+        .eq('ref', oferta.ref)
     } catch (e) {
-      setDbErrors([e.message || 'Error eliminando oferta'])
-      setDbSaving(false)
+      setSaveErr(e.message || 'Error dando de baja la oferta')
       return
     }
-    setDbSaving(false)
+
     setShowDarBaja(false)
-    navigate('ofertas')
-  }
-
-  const handleDarBaja = async () => {
-    const errs = []
-    if (!dbForm.tenant_desconocido && !dbForm.tenant.trim()) errs.push('Tenant o marca "Desconocido"')
-    if (!dbForm.fecha_inicio) errs.push('Fecha de inicio de contrato')
-    if (!dbForm.anios_obligado || isNaN(parseFloat(dbForm.anios_obligado))) errs.push('Años de obligado cumplimiento')
-    if (errs.length) { setDbErrors(errs); return }
-    setDbErrors([]); setDbSaving(true)
-
-    const tenantName = dbForm.tenant_desconocido ? 'Desconocido' : dbForm.tenant.trim()
-    const ofertaNombres = [
-      ...espaciosComercializables.map(e => e.ofertaNombre).filter(Boolean),
-      ...ofertasDesglose.map(o => o.nombre).filter(Boolean),
-      oferta?.ref,
-    ].filter(Boolean)
-    const supTotal = espaciosComercializables.reduce((s,e)=>s+(e.sup||0),0)
-    const bo = addYearsDMY(dbForm.fecha_inicio, dbForm.anios_obligado)
-    const ff = dbForm.anios_obligado_2 ? addYearsDMY(bo||dbForm.fecha_inicio, dbForm.anios_obligado_2) : bo
-
-    // 1. Dar de baja la oferta
-    await supabase.from('ofertas').update({ activa: false }).eq('ref', oferta.ref)
-
-    // 2. Actualizar stacking: vac → ten en todas las plantas con esta oferta
-    if (activoSeleccionado?.ref) {
-      const { data: acData } = await supabase.from('activos').select('stacking_data').eq('ref', activoSeleccionado.ref).single()
-      if (acData?.stacking_data) {
-        const updated = acData.stacking_data.map(b => ({
-          ...b,
-          arr: (b.arr||[]).map(row => {
-            const esEsta = (u) => u.type==='vac' && (u.oferta_ref === oferta?.ref || ofertaNombres.includes(u.oferta))
-            const hasOffer = row.units.some(esEsta)
-            if (!hasOffer) return row
-            const offerSup = row.units.filter(esEsta).reduce((s,u)=>s+u.sup,0)
-            const withoutOffers = row.units.filter(u=>!esEsta(u))
-            return {...row, units:[...withoutOffers,{type:'ten',n:tenantName,sup:offerSup}]}
-          })
-        }))
-        await supabase.from('activos').update({ stacking_data: updated }).eq('ref', activoSeleccionado.ref)
-      }
-    }
-
-    // 3. Crear arrendatario
-    const { nextRef } = await import('../lib/nextRef')
-    const arrRef = await nextRef('arrendatarios', 'ARR')
-    const { data: newArr } = await supabase.from('arrendatarios').insert({
-      ref: arrRef,
-      nombre: tenantName,
-      tenant: tenantName,
-      tenant_desconocido: dbForm.tenant_desconocido,
-      activo_ref: activoSeleccionado?.ref || null,
-      uso: activoSeleccionado?.uso || null,
-      superficie: supTotal || null,
-      renta: parseFloat(dbForm.closing_rent)||oferta?.renta_m2||null,
-      closing_rent: parseFloat(dbForm.closing_rent)||oferta?.renta_m2||null,
-      anyo_firma: parseInt(dbForm.anyo_firma)||null,
-      trimestre: dbForm.trimestre,
-      inicio: parseDateDMY(dbForm.fecha_inicio),
-      break_option: parseDateDMY(bo),
-      vencimiento: parseDateDMY(ff),
-      anios_obligado: parseFloat(dbForm.anios_obligado)||null,
-      anios_obligado_2: parseFloat(dbForm.anios_obligado_2)||null,
-      tipo_contrato: 'Alquiler comercial',
-      meses_recordatorio: 3,
-      estado_arr: 'Vigente',
-      oferta_origen: oferta?.ref||null,
-    }).select().single()
-
-    setDbSaving(false)
-    setShowDarBaja(false)
-    navigate('ficha-arrendatario', { arrRef: newArr?.ref || arrRef })
+    if (esCierre && arrendatario?.ref) navigate('ficha-arrendatario', { arrRef: arrendatario.ref })
+    else navigate('ofertas')
   }
 
   return (
@@ -1079,7 +1010,7 @@ function FichaOfertaMock() {
         {saveErr && <span style={{fontSize:11,color:'var(--red)',marginLeft:8}}>{saveErr}</span>}
         <button className="ab-btn">Nuevo</button>
         {!isMock && oferta?.ref && oferta?.activa !== false && (
-          <button className="ab-btn" style={{color:'var(--red)',borderColor:'var(--red)'}} onClick={()=>{ setDbMode(null); setDbErrors([]); setDbForm(p=>({...p,closing_rent:oferta?.renta_m2?String(oferta.renta_m2):''})); setShowDarBaja(true) }}>Dar de baja</button>
+          <button className="ab-btn" style={{color:'var(--red)',borderColor:'var(--red)'}} onClick={()=>setShowDarBaja(true)}>Dar de baja</button>
         )}
         <div className="ab-sep" />
         <button className="ab-btn">Recalcular</button>
@@ -2981,137 +2912,26 @@ function FichaOfertaMock() {
         </div>
       )}
 
-      {/* Modal Dar de baja */}
+      {/* Modal Dar de baja — MISMO componente que usa el Stacking Plan.
+          Antes esta ficha tenía su propio modal con reglas distintas (no
+          tocaba `estado` al cerrar y hacía DELETE de la fila al marcar
+          "introducida por error"). Unificado: una sola pregunta, un solo
+          resultado, se decida donde se decida. */}
       {showDarBaja && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <div className="modal-editable" style={{background:'var(--surface)',borderRadius:12,padding:28,width:480,maxWidth:'95vw',maxHeight:'90vh',overflowY:'auto',boxShadow:'0 8px 40px rgba(0,0,0,.25)',display:'flex',flexDirection:'column',gap:16}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <div>
-                <div style={{fontSize:15,fontWeight:700,color:'var(--text1)'}}>Dar de baja oferta</div>
-                <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>
-                  {dbMode==='cierre' && 'Se creará un arrendatario y se actualizará el stacking plan'}
-                  {dbMode==='error'  && 'Se eliminará la oferta por completo'}
-                  {!dbMode             && 'Selecciona el motivo'}
-                </div>
-              </div>
-              <button onClick={()=>setShowDarBaja(false)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,color:'var(--text3)',lineHeight:1}}>✕</button>
-            </div>
-
-            {/* Paso 1: elegir motivo */}
-            {!dbMode && (
-              <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                <button onClick={()=>setDbMode('cierre')}
-                  style={{textAlign:'left',padding:'14px 16px',border:'1px solid var(--border)',borderRadius:8,background:'var(--surface)',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',gap:4}}
-                  onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'}
-                  onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
-                  <span style={{fontSize:13,fontWeight:700,color:'var(--text1)'}}>Oferta cerrada (alquilada)</span>
-                  <span style={{fontSize:11,color:'var(--text3)',lineHeight:1.5}}>El espacio queda como ocupado · se crea un arrendatario en el stacking y la oferta se desactiva.</span>
-                </button>
-                <button onClick={()=>setDbMode('error')}
-                  style={{textAlign:'left',padding:'14px 16px',border:'1px solid var(--border)',borderRadius:8,background:'var(--surface)',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',gap:4}}
-                  onMouseEnter={e=>e.currentTarget.style.borderColor='var(--red)'}
-                  onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
-                  <span style={{fontSize:13,fontWeight:700,color:'var(--red)'}}>Introducida por error</span>
-                  <span style={{fontSize:11,color:'var(--text3)',lineHeight:1.5}}>La oferta no debería haberse creado · se elimina la fila y se limpian las unidades del stacking. No queda registro.</span>
-                </button>
-                <div style={{display:'flex',justifyContent:'flex-end',marginTop:4}}>
-                  <button onClick={()=>setShowDarBaja(false)} style={{padding:'8px 16px',background:'none',border:'1px solid var(--border)',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>Cancelar</button>
-                </div>
-              </div>
-            )}
-
-            {/* Paso 2A: introducida por error → confirmación */}
-            {dbMode==='error' && (
-              <div style={{display:'flex',flexDirection:'column',gap:14}}>
-                <div style={{padding:'12px 14px',background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:8,fontSize:12,color:'#7f1d1d',lineHeight:1.55}}>
-                  Se va a <strong>eliminar la oferta {oferta?.ref}</strong> por completo: la fila en Supabase + las unidades vacantes del stacking asociadas. <strong>No es reversible.</strong>
-                </div>
-                {dbErrors.length>0 && <div style={{padding:'8px 12px',background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:6,fontSize:11,color:'var(--red)'}}>{dbErrors.map((e,i)=><div key={i}>• {e}</div>)}</div>}
-                <div style={{display:'flex',gap:8,justifyContent:'space-between',marginTop:4}}>
-                  <button onClick={()=>setDbMode(null)} style={{padding:'8px 16px',background:'none',border:'1px solid var(--border)',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>← Atrás</button>
-                  <div style={{display:'flex',gap:8}}>
-                    <button onClick={()=>setShowDarBaja(false)} style={{padding:'8px 16px',background:'none',border:'1px solid var(--border)',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>Cancelar</button>
-                    <button onClick={handleEliminarOferta} disabled={dbSaving} style={{padding:'8px 16px',background:'var(--red)',color:'#fff',border:'none',borderRadius:6,fontSize:12,fontWeight:600,cursor:dbSaving?'wait':'pointer',fontFamily:'inherit',opacity:dbSaving?.6:1}}>
-                      {dbSaving ? 'Eliminando...' : 'Eliminar oferta'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Paso 2B: cierre normal (arrendatario) — formulario completo */}
-            {dbMode==='cierre' && (<>
-
-            {/* Tenant */}
-            <div style={{display:'flex',flexDirection:'column',gap:6}}>
-              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Arrendatario <span style={{color:'var(--red)'}}>*</span></span>
-                <label style={{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'var(--text3)',cursor:'pointer',marginLeft:'auto'}}>
-                  <input type="checkbox" checked={dbForm.tenant_desconocido} onChange={e=>setDbF('tenant_desconocido',e.target.checked)} style={{accentColor:'var(--accent)'}}/>
-                  Desconocido
-                </label>
-              </div>
-              {!dbForm.tenant_desconocido && <input value={dbForm.tenant} onChange={e=>setDbF('tenant',e.target.value)} placeholder="Nombre de empresa o persona" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)',color:'var(--text1)'}}/>}
-            </div>
-
-            {/* Año firma + Trimestre */}
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-              <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Año de firma <span style={{color:'var(--red)'}}>*</span></span>
-                <input type="number" value={dbForm.anyo_firma} onChange={e=>setDbF('anyo_firma',e.target.value)} style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit'}}/>
-              </div>
-              <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Trimestre</span>
-                <select value={dbForm.trimestre} onChange={e=>setDbF('trimestre',e.target.value)} style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit',background:'var(--surface)'}}>
-                  <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Fecha inicio + Años obligado */}
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
-              <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Fecha inicio <span style={{color:'var(--red)'}}>*</span></span>
-                <input type="date" value={toInput(dbForm.fecha_inicio)} onChange={e=>setDbF('fecha_inicio',fromInput(e.target.value))} style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit'}}/>
-              </div>
-              <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Años OC 1 <span style={{color:'var(--red)'}}>*</span></span>
-                <input type="number" step="0.5" value={dbForm.anios_obligado} onChange={e=>setDbF('anios_obligado',e.target.value)} placeholder="3" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit'}}/>
-              </div>
-              <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Años OC 2</span>
-                <input type="number" step="0.5" value={dbForm.anios_obligado_2} onChange={e=>setDbF('anios_obligado_2',e.target.value)} placeholder="2" style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit'}}/>
-              </div>
-            </div>
-
-            {/* Fechas auto-calculadas */}
-            {(dbForm.break_option||dbForm.fecha_fin) && (
-              <div style={{display:'flex',gap:12,padding:'8px 12px',background:'var(--accent-lt)',border:'1px solid var(--accent-bd)',borderRadius:6}}>
-                {dbForm.break_option&&<span style={{fontSize:11,color:'var(--accent)'}}>Break option: <strong>{dbForm.break_option}</strong></span>}
-                {dbForm.fecha_fin&&<span style={{fontSize:11,color:'var(--accent)',marginLeft:8}}>Vencimiento: <strong>{dbForm.fecha_fin}</strong></span>}
-              </div>
-            )}
-
-            {/* Closing rent */}
-            <div style={{display:'flex',flexDirection:'column',gap:4}}>
-              <span style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.04em'}}>Closing rent (€/m²/mes)</span>
-              <input type="number" step="0.01" value={dbForm.closing_rent} onChange={e=>setDbF('closing_rent',e.target.value)} placeholder={oferta?.renta_m2||''} style={{padding:'7px 10px',border:'1px solid var(--border)',borderRadius:6,fontSize:12,fontFamily:'inherit'}}/>
-            </div>
-
-            {dbErrors.length>0 && <div style={{padding:'8px 12px',background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:6,fontSize:11,color:'var(--red)'}}>{dbErrors.map((e,i)=><div key={i}>• {e}</div>)}</div>}
-
-            <div style={{display:'flex',gap:8,justifyContent:'space-between',marginTop:4}}>
-              <button onClick={()=>setDbMode(null)} style={{padding:'8px 16px',background:'none',border:'1px solid var(--border)',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>← Atrás</button>
-              <div style={{display:'flex',gap:8}}>
-                <button onClick={()=>setShowDarBaja(false)} style={{padding:'8px 16px',background:'none',border:'1px solid var(--border)',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'inherit',color:'var(--text2)'}}>Cancelar</button>
-                <button onClick={handleDarBaja} disabled={dbSaving} style={{padding:'8px 16px',background:'var(--red)',color:'#fff',border:'none',borderRadius:6,fontSize:12,fontWeight:600,cursor:dbSaving?'wait':'pointer',fontFamily:'inherit',opacity:dbSaving?.6:1}}>
-                  {dbSaving ? 'Procesando...' : 'Confirmar baja'}
-                </button>
-              </div>
-            </div>
-            </>)}
-          </div>
-        </div>
+        <SalidaOfertaModal
+          oferta={{
+            ref:   oferta?.ref,
+            sup:   espaciosComercializables.reduce((s,e) => s + (e.sup || 0), 0) || oferta?.superficie_disponible || null,
+            renta: oferta?.renta_m2 || null,
+          }}
+          activo={activoSeleccionado ? {
+            ref:    activoSeleccionado.ref,
+            nombre: activoSeleccionado.nombre || activoSeleccionado.direccion || '',
+            uso:    activoSeleccionado.uso,
+          } : null}
+          onClose={() => setShowDarBaja(false)}
+          onSuccess={handleSalidaOferta}
+        />
       )}
     </div>
   )

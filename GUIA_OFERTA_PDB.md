@@ -144,9 +144,12 @@ El modal pide:
 |---|---|
 | **Arrendatario** (nombre) o marcar *Arrendatario desconocido* | Sí |
 | **Fecha de inicio del contrato** (calendario) | Sí |
-| **Años de obligado cumplimiento** | Sí desde la ficha |
 | Año de firma y trimestre | Precargados con el actual |
 | **Renta de cierre** | Precargada con la renta de la oferta |
+
+El resto del contrato (obligado cumplimiento, break option, segundo periodo,
+recordatorio) se completa en la ficha del arrendatario, a la que se navega
+automáticamente. Ver la cadena de fechas en `STACKING_PLAN_PDB.md` §7.1.1.
 
 Al confirmar ocurren cuatro cosas encadenadas:
 
@@ -162,21 +165,24 @@ Al confirmar ocurren cuatro cosas encadenadas:
 4. Se navega a la **ficha del nuevo arrendatario** para completar el contrato
    (break option, segundo periodo, recordatorio).
 
-> Si se hace desde la **ficha** en lugar de desde el stacking, la conversión es
-> **masiva**: convierte de golpe todas las unidades `vac` de esa oferta en todas
-> las plantas, agrupando los m² de cada planta en un único bloque de
-> arrendatario. Desde el stacking se convierte **solo la planta de la ✕**.
+> **Alcance según desde dónde se haga:** desde el stacking se convierte **solo
+> la planta de la ✕**; desde la ficha, **todas las plantas** de la oferta de una
+> vez. En ambos casos se respeta el tramo: cada unidad `vac` produce su propia
+> unidad `ten` con sus m² y su `seg`, no se fusionan los bloques de una planta.
 
 #### b) «Introducida por error» → se retira sin dejar rastro
 
 Para cuando la oferta no debería haberse creado. No crea arrendatario, no deja
 histórico: limpia las unidades del stacking y el espacio vuelve a quedar libre.
 
-> ⚠ **Ojo, los dos caminos NO hacen lo mismo:** desde el **stacking**, la oferta
-> se conserva y pasa a `Desactivada`; desde la **ficha**, se ejecuta un `DELETE`
-> y **la fila se borra de verdad**. El propio modal lo avisa ("se elimina la
-> fila… no queda registro"), pero contradice la regla de que una oferta nunca se
-> borra. Ver §6.5.
+La oferta **no se borra**: pasa a `Desactivada` y sigue en su módulo, en la
+pestaña *Desactivadas*, por si hay que reactivarla o consultarla.
+
+> **Los dos caminos hacen lo mismo.** La ✕ del stacking y el botón "Dar de baja"
+> de la ficha abren **el mismo modal** (`SalidaOfertaModal`) y producen el mismo
+> resultado en BD. La única diferencia es el **alcance**: desde el stacking se
+> actúa sobre la planta de la ✕; desde la ficha, sobre todas las plantas de la
+> oferta, porque ahí la decisión es sobre la oferta entera.
 
 ### 2.6 Desactivar y reactivar una oferta
 
@@ -365,19 +371,18 @@ portales) es estado de pantalla que **se pierde al recargar**.
 Se persiste en el guardado (`modalidad_visita`) pero **no hay ningún control en
 la interfaz** que lo rellene: siempre viaja vacío.
 
-### 6.5 La misma decisión da dos resultados distintos según dónde la tomes
+### 6.5 ~~La salida de la oferta divergía según dónde se hiciera~~ · RESUELTO
 
-Los dos motivos de salida existen en dos sitios, y **no hacen lo mismo**:
+**Cómo estaba** (hasta agosto 2026): la ficha tenía su propio modal con reglas
+distintas a las del stacking. Cerrar desde la ficha **no tocaba `estado`**, así
+que una oferta alquilada seguía figurando como `Disponible` en el listado; y
+"Introducida por error" hacía un **`DELETE`** real de la fila, rompiendo la
+trazabilidad de cualquier arrendatario con `oferta_origen` apuntando a ella.
 
-| Motivo | Desde el **stacking** (✕) | Desde la **ficha** ("Dar de baja") |
-|---|---|---|
-| Cerrada (alquilada) | `estado='Cerrada'` + `activa=false`; convierte **solo la planta** de la ✕ | **No toca `estado`**, solo `activa=false`; convierte **todas** las plantas |
-| Introducida por error | `estado='Desactivada'`, la fila **se conserva** | **`DELETE` de la fila**: se borra |
-
-Consecuencias: una oferta cerrada desde la ficha se queda con el estado que
-tuviera (`Disponible`), así que en el listado figura como disponible pese a
-estar alquilada; y el borrado real rompe la trazabilidad y deja huérfano
-cualquier `oferta_origen` que apuntara a ella.
+**Cómo está ahora:** la ficha usa el mismo `SalidaOfertaModal` que el stacking.
+Una sola pregunta y un solo resultado: `Cerrada` o `Desactivada`, siempre con
+`activa = false`, y la fila **nunca se borra**. Lo único que cambia según el
+origen es el alcance (una planta desde el stacking, todas desde la ficha).
 
 ### 6.6 `tipologia` mezcla dos escalas
 
@@ -405,6 +410,7 @@ ofertas tienen `Oficina`, que no está en ninguno de los dos catálogos.
 | Alta desde Lead | `src/components/TransformarLeadModal.jsx:372` |
 | Alta desde Propuesta ganada | `src/components/MarcarPropuestaGanadaModal.jsx:190` |
 | Alta desde Baja de arrendatario | `src/components/BajaArrendatarioModal.jsx:144` |
-| Cierre de oferta | `src/components/SalidaOfertaModal.jsx` |
+| Cierre de oferta (compartido ficha + stacking) | `src/components/SalidaOfertaModal.jsx` |
+| Handler de salida en la ficha | `FichaOferta.jsx:937` |
 | Retirada por mandato | `src/views/FichaMandatoSupabase.jsx:374`, `:404` |
 | Ficha alternativa **sin usar** | `src/views/FichaOfertaSupabase.jsx` |
