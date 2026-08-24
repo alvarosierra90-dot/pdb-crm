@@ -63,7 +63,10 @@ venta del edificio entero, cada una con su ciclo.
           'vac' → 'ten'                 │
                       ▼                 ▼
                   Cerrada          Desactivada
-              (la oferta NUNCA se borra)
+                      └────────┬────────┘
+                               ▼
+                    activa = false → pestaña
+                    "Desactivadas" (reactivable)
 ```
 
 ### 2.1 Las cinco vías de alta
@@ -108,17 +111,100 @@ Con la oferta publicada entra en el pool que consume el **matching de Demanda**;
 las alternativas seleccionadas se envían por **microsite**, y de ahí salen
 visitas y negociación. El botón de negociación pone la oferta `En negociación`.
 
-### 2.5 Cierre — dos salidas, y la oferta nunca se borra
+### 2.5 Quitar una oferta: siempre te pregunta **por qué**
 
-Desde la ✕ del bloque en el stacking se abre `SalidaOfertaModal`:
+Una oferta nunca desaparece en silencio. Tanto si pulsas la **✕ del bloque en el
+stacking** como el botón **"Dar de baja"** de la ficha, se abre una ventana
+central que obliga a elegir uno de **dos motivos**, porque las consecuencias son
+opuestas:
 
-| Motivo | Qué hace | Estado final |
+```
+                    ¿Por qué sale esta oferta?
+                              │
+          ┌───────────────────┴───────────────────┐
+          ▼                                       ▼
+  Oferta cerrada (alquilada)            Introducida por error
+  «Se ha alquilado / vendido»           «No debería existir»
+          │                                       │
+  · Se crea un ARRENDATARIO                · No se crea nada
+  · La unit 'vac' pasa a 'ten'             · La unit se borra del stacking
+  · El espacio pasa a OCUPADO              · El espacio vuelve a estar libre
+  · Queda la trazabilidad                  · No queda registro
+    (oferta_origen)
+```
+
+#### a) «Oferta cerrada (alquilada)» → **se convierte en arrendatario**
+
+Es el final feliz: el espacio se ha comercializado. El sistema **no te hace dar
+de alta al inquilino por separado** — la oferta se transforma en él.
+
+El modal pide:
+
+| Campo | Obligatorio |
+|---|---|
+| **Arrendatario** (nombre) o marcar *Arrendatario desconocido* | Sí |
+| **Fecha de inicio del contrato** (calendario) | Sí |
+| **Años de obligado cumplimiento** | Sí desde la ficha |
+| Año de firma y trimestre | Precargados con el actual |
+| **Renta de cierre** | Precargada con la renta de la oferta |
+
+Al confirmar ocurren cuatro cosas encadenadas:
+
+1. Se **crea la fila en `arrendatarios`** con `estado_arr='Vigente'`, la
+   superficie de la oferta y **`oferta_origen` = ref de la oferta** — ese campo
+   es la trazabilidad: desde el inquilino siempre se puede volver a la oferta
+   que lo generó.
+2. En el stacking, la unit **`type:'vac'` se sustituye por `type:'ten'`** con el
+   nombre del arrendatario y sus mismos m². El espacio deja de contar como
+   vacante y pasa a ocupado, así que **la ocupación del activo sube sola**.
+3. La **oferta se desactiva** (`activa = false`) y sale del panel lateral del
+   stacking y de la lista de ofertas activas.
+4. Se navega a la **ficha del nuevo arrendatario** para completar el contrato
+   (break option, segundo periodo, recordatorio).
+
+> Si se hace desde la **ficha** en lugar de desde el stacking, la conversión es
+> **masiva**: convierte de golpe todas las unidades `vac` de esa oferta en todas
+> las plantas, agrupando los m² de cada planta en un único bloque de
+> arrendatario. Desde el stacking se convierte **solo la planta de la ✕**.
+
+#### b) «Introducida por error» → se retira sin dejar rastro
+
+Para cuando la oferta no debería haberse creado. No crea arrendatario, no deja
+histórico: limpia las unidades del stacking y el espacio vuelve a quedar libre.
+
+> ⚠ **Ojo, los dos caminos NO hacen lo mismo:** desde el **stacking**, la oferta
+> se conserva y pasa a `Desactivada`; desde la **ficha**, se ejecuta un `DELETE`
+> y **la fila se borra de verdad**. El propio modal lo avisa ("se elimina la
+> fila… no queda registro"), pero contradice la regla de que una oferta nunca se
+> borra. Ver §6.5.
+
+### 2.6 Desactivar y reactivar una oferta
+
+Al margen del cierre, la oferta tiene un interruptor propio: la columna
+booleana **`activa`**. Es lo que separa las dos pestañas del listado.
+
+| | Activas | Desactivadas |
 |---|---|---|
-| **Oferta cerrada (alquilada)** | Pide arrendatario (o "desconocido"), fecha de inicio, año/trimestre y renta de cierre. Crea la fila en `arrendatarios` con `oferta_origen` y sustituye la unit `vac` por `ten` | `Cerrada` |
-| **Introducida por error** | Solo elimina la unit del stacking | `Desactivada` |
+| Filtro | `activa = true` | `activa = false` |
+| Qué son | Ofertas vivas, en mercado | *"Arrendadas / retiradas"* |
+| En el stacking | Aparecen como chip arrastrable | **Desaparecen del panel** |
+| Acción disponible | — | Botón **Reactivar** |
 
-Además, si se **cancela o no se renueva el mandato**, sus ofertas vivas pasan a
-`Retirada` con `motivo_descarte`.
+- **Desactivar** no es una acción suelta: ocurre como consecuencia de cerrar la
+  oferta (alquilada) o de retirarla.
+- **Reactivar** (botón verde en la pestaña *Desactivadas*) devuelve la oferta al
+  mercado: `activa = true` y `estado = 'Disponible'`.
+
+> ⚠ **Reactivar no devuelve el espacio.** Solo cambia los dos campos de la
+> oferta; las unidades del stacking ya se convirtieron en arrendatario o se
+> borraron. La oferta vuelve al panel lateral **vacía**, y hay que volver a
+> arrastrarla a sus plantas.
+
+### 2.7 Retirada por el mandato
+
+Si se **cancela o no se renueva el mandato**, sus ofertas vivas pasan
+automáticamente a `Retirada` con `activa = false` y un `motivo_descarte`
+("Mandato cancelado", "Mandato finalizado / no renovado").
 
 ---
 
@@ -279,7 +365,21 @@ portales) es estado de pantalla que **se pierde al recargar**.
 Se persiste en el guardado (`modalidad_visita`) pero **no hay ningún control en
 la interfaz** que lo rellene: siempre viaja vacío.
 
-### 6.5 `tipologia` mezcla dos escalas
+### 6.5 La misma decisión da dos resultados distintos según dónde la tomes
+
+Los dos motivos de salida existen en dos sitios, y **no hacen lo mismo**:
+
+| Motivo | Desde el **stacking** (✕) | Desde la **ficha** ("Dar de baja") |
+|---|---|---|
+| Cerrada (alquilada) | `estado='Cerrada'` + `activa=false`; convierte **solo la planta** de la ✕ | **No toca `estado`**, solo `activa=false`; convierte **todas** las plantas |
+| Introducida por error | `estado='Desactivada'`, la fila **se conserva** | **`DELETE` de la fila**: se borra |
+
+Consecuencias: una oferta cerrada desde la ficha se queda con el estado que
+tuviera (`Disponible`), así que en el listado figura como disponible pese a
+estar alquilada; y el borrado real rompe la trazabilidad y deja huérfano
+cualquier `oferta_origen` que apuntara a ella.
+
+### 6.6 `tipologia` mezcla dos escalas
 
 La ficha guarda valores finos (`Oficina tradicional`, `Coworking`), pero la baja
 de arrendatario guarda el **uso del activo** (`Oficinas`). En producción las 6
