@@ -1,10 +1,21 @@
 # Guía de la Oferta · PDB
 
-Flujo completo de una Oferta —desde cómo nace hasta cómo se cierra— y catálogo
-de todos sus campos desplegables con sus opciones.
+Documento **único y autocontenido** de la Oferta: qué es, cómo nace, cómo se
+trabaja, cómo se cierra, y el catálogo completo de todos sus campos
+desplegables con sus opciones reales.
 
 Código: `src/views/FichaOferta.jsx` (ficha), `src/views/OfertasList.jsx`
-(listado), `src/components/SalidaOfertaModal.jsx` (cierre).
+(listado), `src/components/SalidaOfertaModal.jsx` (baja).
+
+**Índice**
+
+1. Qué es una Oferta
+2. Flujo: cómo nace, vive y muere
+3. Anatomía de la ficha — 8 tabs
+4. Catálogo de campos desplegables
+5. Reglas de dependencia entre desplegables
+6. Incoherencias detectadas
+7. Mapa de código
 
 ---
 
@@ -21,9 +32,23 @@ Una Oferta es *"estos m² de este activo, en estas condiciones, ahora"*. Por eso
 un mismo activo puede tener una oferta de alquiler de las plantas 3–5 y otra de
 venta del edificio entero, cada una con su ciclo.
 
-**Vínculo con el stacking:** la oferta ocupa tramos de plantas como unidades
-`type:'vac'` con `oferta_ref`. Mientras esos m² tengan oferta, cuentan como
-**vacantes** en la ocupación derivada del activo (ver `STACKING_PLAN_PDB.md`).
+### Cómo se relaciona con el Stacking Plan
+
+El stacking del activo (`activos.stacking_data`) es la verdad física del
+edificio. Lo que hay que saber para trabajar con ofertas:
+
+- Cada planta se reparte en **tramos** (segmentos de uso con sus m²). El tramo
+  es la frontera del propietario: **1 tramo = 1 propietario**, pero puede tener
+  **varios ocupantes**.
+- La oferta se coloca sobre tramos como unidades **`type:'vac'`** con
+  **`oferta_ref`** (el vínculo es por ref, no por nombre: renombrar no lo rompe).
+- Un arrendatario con contrato es una unidad **`type:'ten'`** con `arr_ref`.
+- **Un tramo no puede tener oferta y arrendatario a la vez.**
+- La **ocupación del activo se deriva** de ahí: `ten` cuenta como ocupado, `vac`
+  como vacante. Por eso, mientras unos m² tengan oferta, figuran como vacantes,
+  y en cuanto la oferta se cierra pasan a ocupados **solos**.
+- La superficie y la renta de la oferta (`superficie_disponible`, `renta_m2`)
+  **no se teclean**: se derivan de lo asignado en el stacking.
 
 ---
 
@@ -147,9 +172,19 @@ El modal pide:
 | Año de firma y trimestre | Precargados con el actual |
 | **Renta de cierre** | Precargada con la renta de la oferta |
 
-El resto del contrato (obligado cumplimiento, break option, segundo periodo,
-recordatorio) se completa en la ficha del arrendatario, a la que se navega
-automáticamente. Ver la cadena de fechas en `STACKING_PLAN_PDB.md` §7.1.1.
+El resto del contrato se completa en la ficha del arrendatario, a la que se
+navega automáticamente. Ahí las fechas forman una **cadena**, cada eslabón
+calculado del anterior:
+
+```
+Fecha inicio            ← la que se ha puesto aquí, en calendario
+   + Obligado cumplimiento 1er periodo (años)
+= Break option          ← AUTO
+   + Obligado cumplimiento 2º periodo (años)
+= Fecha fin de contrato ← AUTO
+   − Recordatorio (meses antes del break)
+= Fecha recordatorio    ← AUTO, solo lectura
+```
 
 Al confirmar ocurren cuatro cosas encadenadas:
 
@@ -231,6 +266,27 @@ automáticamente a `Retirada` con `activa = false` y un `motivo_descarte`
 
 ## 4. Catálogo de campos desplegables
 
+**Resumen — los 14 desplegables de la Oferta:**
+
+| # | Desplegable | Opciones | Tab |
+|---|---|---|---|
+| 1 | Tipología comerc. `*` | 3 | Información |
+| 2 | Tipo de operación `*` | 3 | Información |
+| 3 | Origen de la oferta | 6 | Información |
+| 4 | Tipología `*` | Variable — depende del uso del activo | Información |
+| 5 | Estado del espacio | 10 | Información |
+| 6 | Añadir miembro al equipo | 4 | Información |
+| 7 | Tipo de arrendamiento | 6 | Espacios comerciales |
+| 8 | Régimen fiscal | 5 | Espacios comerciales |
+| 9 | Indexación anual | 5 | Espacios comerciales |
+| 10 | Plaza · Int / Ext | 2 | Espacios comerciales |
+| 11 | Plaza · Tipología | 4 | Espacios comerciales |
+| 12 | Plaza · Formato | 2 | Espacios comerciales |
+| 13 | Opción de publicación | 2 | Contenido web |
+| 14 | Portal (enlaces) | 1 | Contenido web |
+
+Más el **usuario autorizado** en Confidencialidad y los del **modal de baja**.
+
 > `*` = obligatorio. "Columna" es la columna real de la tabla `ofertas`.
 
 ### 4.1 Tab *Información oferta* — bloque **Comercialización**
@@ -305,14 +361,53 @@ El campo de renta de la plaza se oculta cuando el tipo de operación es `Venta`.
 Checkboxes: *Publicar condiciones económicas* · *Publicar* · *Geolocalización
 dirección*. Y el portal Idealista con su propio check.
 
-### 4.7 Desplegables auxiliares
+### 4.7 Tab *Información oferta* — **Equipo y colaboradores**
 
 | Campo | Opciones | Dónde |
 |---|---|---|
-| **Miembro del equipo** | Usuarios de la PDB | Bloque Equipo |
-| **Usuario autorizado** | Usuarios de la PDB | Tab Confidencialidad |
-| **Trimestre** | `Q1` · `Q2` · `Q3` · `Q4` | Modal de cierre → alta de arrendatario |
-| **Divisible** | Sí / No | Tabla de desglose |
+| **Añadir miembro al equipo** | `GOMEZ Ignacio · Leasing Oficinas MAD` · `García Marta · Capital Markets MAD` · `López Carmen · Valoraciones MAD` · `Martínez Rosa · Retail MAD` | Bloque Equipo |
+
+El formato del valor es `Nombre · Equipo` y se parte por el `·` para separar
+nombre y equipo al añadirlo. El responsable por defecto es **Sierra Álvaro ·
+Transaction Spain**.
+
+Los **colaboradores** no son un desplegable: se buscan con typeahead sobre
+`dynamics_accounts`.
+
+### 4.8 Tab *Confidencialidad*
+
+| Campo | Opciones |
+|---|---|
+| **Usuario autorizado** | `GOMEZ Ignacio · Leasing Oficinas MAD` · `García Marta · Capital Markets MAD` · `López Carmen · Valoraciones MAD` · `Alonso Abruña D. · Leasing MAD` · `Martínez Rosa · Retail MAD` |
+
+Marcar la oferta como confidencial oculta activo, dirección, documentos y
+condiciones a quien no esté autorizado (`confidencial` en BD).
+
+> ⚠ Las dos listas de usuarios (4.7 y 4.8) están **escritas a mano en el
+> código**, no salen de la tabla de usuarios — y además **no coinciden entre
+> sí**: la de confidencialidad incluye a `Alonso Abruña D.` y la de equipo no.
+
+### 4.9 Modal de baja de la oferta
+
+| Campo | Opciones | Defecto |
+|---|---|---|
+| **Motivo** | `Oferta cerrada (alquilada)` · `Introducida por error` | — (hay que elegir) |
+| **Trimestre** | `Q1` · `Q2` · `Q3` · `Q4` | El trimestre actual |
+
+Con el motivo `cierre` aparecen además: nombre del arrendatario (o check
+*Arrendatario desconocido*), fecha de inicio del contrato (calendario), año de
+firma y renta de cierre.
+
+### 4.10 Controles que no son desplegables pero conviene conocer
+
+| Control | Tipo | Dónde |
+|---|---|---|
+| **Divisible** | Checkbox por línea, más un `divisibleGlobal` que se aplica a las nuevas | Tabla de desglose |
+| **Publicar condiciones económicas** · **Publicar** · **Geolocalización dirección** | Checkboxes | Contenido web |
+| **Idealista** | Checkbox de portal | Contenido web |
+| **Confidencial** | Toggle | Confidencialidad |
+| **Vincular activo** · **Mandato asociado** · **Colaborador** | Buscadores typeahead | Información oferta |
+| **Fecha disp.** | Calendario | Tabla de desglose |
 
 ---
 
@@ -392,6 +487,14 @@ ofertas tienen `Oficina`, que no está en ninguno de los dos catálogos.
 
 ---
 
+### 6.7 Las listas de usuarios están escritas a mano
+
+Los desplegables de *Añadir miembro al equipo* y *Usuario autorizado* llevan sus
+opciones **hardcodeadas en el JSX**, no salen de la tabla de usuarios. Además no
+coinciden entre sí: la de confidencialidad tiene 5 nombres y la de equipo 4.
+
+---
+
 ## 7. Mapa de código
 
 | Qué | Dónde |
@@ -399,18 +502,19 @@ ofertas tienen `Oficina`, que no está en ninguno de los dos catálogos.
 | Ficha de Oferta (la que se usa) | `src/views/FichaOferta.jsx` |
 | Tabs | `FichaOferta.jsx:21` |
 | `TIPOLOGIA_MAP` | `FichaOferta.jsx:81` |
-| Dropdowns de Comercialización | `FichaOferta.jsx:1432`, `:1437`, `:1442` |
-| Dropdowns de Tipología y estado | `FichaOferta.jsx:1530`, `:1539` |
-| Desglose de áreas | `FichaOferta.jsx:365` (modelo), `:1878` (tabla) |
-| Condiciones contractuales | `FichaOferta.jsx:2207`, `:2213`, `:2227` |
-| Plazas de aparcamiento | `FichaOferta.jsx:2015`, `:2020`, `:2025` |
-| Publicación web | `FichaOferta.jsx:2505`, `:2546` |
-| Guardado (payload real) | `FichaOferta.jsx:864` |
+| Dropdowns de Comercialización | `FichaOferta.jsx:1363`, `:1368`, `:1373` |
+| Dropdowns de Tipología y estado | `FichaOferta.jsx:1461`, `:1470` |
+| Desglose de áreas | `FichaOferta.jsx:336` (modelo), `:1809` (tabla) |
+| Condiciones contractuales | `FichaOferta.jsx:2138`, `:2144`, `:2158` |
+| Plazas de aparcamiento | `FichaOferta.jsx:1946`, `:1951`, `:1956` |
+| Publicación web | `FichaOferta.jsx:2436`, `:2477` |
+| Desplegables de usuarios (hardcode) | `FichaOferta.jsx:1275` (equipo), `:2649` (confidencialidad) |
+| Guardado (payload real) | `FichaOferta.jsx:795` |
 | Listado y alta rápida | `src/views/OfertasList.jsx:99` |
 | Alta desde Lead | `src/components/TransformarLeadModal.jsx:372` |
 | Alta desde Propuesta ganada | `src/components/MarcarPropuestaGanadaModal.jsx:190` |
 | Alta desde Baja de arrendatario | `src/components/BajaArrendatarioModal.jsx:144` |
 | Cierre de oferta (compartido ficha + stacking) | `src/components/SalidaOfertaModal.jsx` |
-| Handler de salida en la ficha | `FichaOferta.jsx:937` |
+| Handler de salida en la ficha | `FichaOferta.jsx:937` (`handleSalidaOferta`) |
 | Retirada por mandato | `src/views/FichaMandatoSupabase.jsx:374`, `:404` |
 | Ficha alternativa **sin usar** | `src/views/FichaOfertaSupabase.jsx` |
